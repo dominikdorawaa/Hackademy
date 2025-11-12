@@ -8,7 +8,6 @@ Hackademy wypełnia lukę na polskim rynku edukacji w zakresie cyberbezpieczeńs
 - Polskojęzyczne ścieżki edukacyjne
 - Praktyczne zadania w bezpiecznym, izolowanym środowisku
 - Interaktywną metodę nauczania przez praktykę
-
 ---
 
 ## ✨ Funkcjonalności
