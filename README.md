@@ -82,4 +82,8 @@ Hackademy wypełnia lukę na polskim rynku edukacji w zakresie cyberbezpieczeńs
 - JWT/OAuth2
 
 ### Baza danych
+<<<<<<< HEAD
 - PostgreSQL
+=======
+- PostgreSQL
+>>>>>>> origin/main
