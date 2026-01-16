@@ -59,7 +59,7 @@ export const getRooms = (token) => {
 
 export const getAllRoomsAdmin = (token) => {
      // Fetch generic list
-     return fetch('http://localhost:8080/api/rooms', {
+     return fetch((import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api/rooms', {
          headers: { 'Authorization': `Bearer ${token}` }
      }).then(res => res.json());
 };
