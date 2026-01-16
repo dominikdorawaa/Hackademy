@@ -5,12 +5,12 @@ WORKDIR /app
 # Kopiujemy pliki
 COPY . .
 # Budujemy aplikację (dodajemy flagę wskazującą lokalizację pom.xml jeśli jest głębiej)
-RUN mvn clean package -DskipTests
+RUN mvn -f server/pom.xml clean package -DskipTests
 
 # Etap 2: Uruchamianie aplikacji
 FROM eclipse-temurin:17-jdk
 WORKDIR /app
 # Kopiujemy plik .jar z etapu budowania
-COPY --from=build /app/target/*.jar app.jar
+COPY --from=build /app/server/target/*.jar app.jar
 EXPOSE 8080
 ENTRYPOINT ["java", "-jar", "app.jar"]
