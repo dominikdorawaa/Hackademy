@@ -11,7 +11,7 @@ services:
         - pom.xml
     buildCommand: "cd server && mvn clean package -DskipTests"
     startCommand: "java -jar target/server-0.0.1-SNAPSHOT.jar"
-    healthCheckPath: /api/test/all 
+    healthCheckPath: /api/rooms 
     envVars:
       - key: DATABASE_URL
         fromDatabase:

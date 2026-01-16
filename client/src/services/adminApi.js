@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8080/api/admin'; // Assuming your backend runs on port 8080
+const API_BASE_URL = (import.meta.env.VITE_API_URL || 'http://localhost:8080') + '/api/admin'; // Assuming your backend runs on port 8080
 
 const request = async (endpoint, options) => {
     const { token, ...restOptions } = options;
