@@ -1,0 +1,69 @@
+.badge-container {
+    position: relative;
+    cursor: default !important; /* Force default cursor */
+    display: flex;
+    align-items: center;
+    justify-content: center;
+}
+
+/* Ensure FontAwesome font is used */
+.badge-container i {
+    font-family: "Font Awesome 6 Free", "Font Awesome 5 Free", sans-serif;
+    font-weight: 900;
+    font-style: normal;
+    font-variant: normal;
+    text-rendering: auto;
+    line-height: 1;
+}
+
+.badge-tooltip {
+    visibility: hidden;
+    width: 200px;
+    background-color: #333;
+    color: #fff;
+    text-align: center;
+    border-radius: 6px;
+    padding: 10px;
+    position: absolute;
+    z-index: 100;
+    bottom: 125%; /* Position above the badge */
+    left: 50%;
+    transform: translateX(-50%);
+    opacity: 0;
+    transition: opacity 0.2s, visibility 0.2s;
+    border: 1px solid #555;
+    box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+    font-size: 0.85rem;
+    pointer-events: none; /* Prevent tooltip from blocking mouse events */
+    white-space: normal; /* Allow text wrapping */
+}
+
+.badge-tooltip::after {
+    content: "";
+    position: absolute;
+    top: 100%;
+    left: 50%;
+    margin-left: -5px;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #333 transparent transparent transparent;
+}
+
+.badge-container:hover .badge-tooltip {
+    visibility: visible;
+    opacity: 1;
+}
+
+.badge-name {
+    font-weight: bold;
+    color: #ffd700;
+    display: block;
+    margin-bottom: 5px;
+    font-size: 0.95rem;
+}
+
+.badge-desc {
+    color: #ccc;
+    display: block;
+    line-height: 1.4;
+}

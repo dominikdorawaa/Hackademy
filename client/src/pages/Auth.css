@@ -1,0 +1,98 @@
+/* Auth.css */
+
+.auth-container {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: calc(100vh - 280px); /* Full height minus navbar/footer */
+  padding: 40px 20px;
+}
+
+.auth-terminal {
+  width: 100%;
+  max-width: 600px;
+  background: var(--bg-panel);
+  border-radius: 12px;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5),
+    inset 0 0 15px rgba(11, 99, 255, 0.1);
+  overflow: hidden;
+  font-family: "JetBrains Mono", monospace;
+}
+
+.auth-terminal-header {
+  background: #1f2937;
+  padding: 10px 15px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.auth-terminal-header .dot {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+.auth-terminal-header .red {
+  background: #ef4444;
+}
+.auth-terminal-header .yellow {
+  background: #f59e0b;
+}
+.auth-terminal-header .green {
+  background: #10b981;
+}
+.auth-terminal-header .title {
+  color: var(--text-gray);
+  margin: 0 auto;
+  font-size: 0.9rem;
+}
+
+.auth-terminal-body {
+  padding: 30px;
+  font-size: 1rem;
+  color: var(--text-light);
+}
+
+.auth-line {
+  display: flex;
+  align-items: center;
+  margin-bottom: 1rem;
+}
+
+.auth-line .prompt {
+  color: var(--primary-blue);
+  font-weight: bold;
+  margin-right: 10px;
+}
+
+.auth-line input {
+  background: transparent;
+  border: none;
+  color: var(--text-light);
+  font-family: inherit;
+  font-size: inherit;
+  flex-grow: 1; /* <-- ZMIANA TUTAJ */
+  outline: none;
+}
+
+.auth-submit-message {
+  color: var(--primary-red);
+  font-size: 0.9rem;
+  margin-top: 20px;
+}
+
+.auth-info-line {
+  margin-bottom: 0.5rem;
+  white-space: pre-wrap;
+}
+
+.auth-info-line .keyword-success {
+  color: #10b981; /* green */
+}
+
+.auth-info-line .keyword-error {
+  color: #ef4444; /* red */
+}
+
