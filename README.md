@@ -57,14 +57,8 @@ Hackademy wypełnia lukę na polskim rynku edukacji w zakresie cyberbezpieczeńs
 - **👥 Zarządzanie użytkownikami**  
   Tworzenie, usuwanie i zmiana ról
 
-- **📈 Monitor zasobów**  
-  Śledzenie wydajności systemu
-
 - **🔒 Audyt bezpieczeństwa**  
   Logi i monitoring aktywności
-
-- **🔐 Zarządzanie dostępem**  
-  Kontrola uprawnień i ról
 
 ---
 
@@ -82,8 +76,5 @@ Hackademy wypełnia lukę na polskim rynku edukacji w zakresie cyberbezpieczeńs
 - JWT/OAuth2
 
 ### Baza danych
-<<<<<<< HEAD
 - PostgreSQL
-=======
-- PostgreSQL
->>>>>>> origin/main
+
