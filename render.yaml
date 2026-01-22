@@ -19,6 +19,8 @@ services:
           property: connectionString
       - key: JWT_SECRET
         generateValue: true
+      - key: FRONTEND_URL
+        value: https://hackademy-client.onrender.com
 
   - type: staticsite
     name: hackademy-client

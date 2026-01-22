@@ -33,7 +33,8 @@ const LoginPage = () => {
       await delay(500);
       setLoginSequence(prev => [...prev, '[INFO] Weryfikacja poświadczeń...']);
 
-      const response = await fetch('http://localhost:8080/api/auth/login', {
+      const apiUrl = import.meta.env.VITE_API_URL;
+      const response = await fetch(`${apiUrl}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),
