@@ -44,10 +44,10 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
 
-        // Pozwól tylko frontendowi z Rendera + localhost w dev
+        // localhost w dev + FRONTEND_URL z env (np. https://hackademy-client.onrender.com)
         configuration.setAllowedOrigins(Arrays.asList(
                 "http://localhost:5173",
-                "https://hackademy-frontend.onrender.com"
+                frontendUrl
         ));
 
         configuration.setAllowedMethods(Arrays.asList("GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS"));

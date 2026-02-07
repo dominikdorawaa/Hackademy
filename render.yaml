@@ -1,33 +1,39 @@
 services:
-    repo: https://github.com/dominikdorawaa/Hackademy.git
+  # Backend (Java/Spring) – na Renderze Java działa tylko przez Docker
+  - type: web
+    name: hackademy-twth
+    runtime: docker
     plan: free
+    repo: https://github.com/dominikdorawaa/Hackademy.git
     autoDeploy: true
+    dockerfilePath: Dockerfile
+    healthCheckPath: /api/rooms
     buildFilter:
       paths:
         - server/**
         - pom.xml
-    buildCommand: "cd server && mvn clean package -DskipTests"
-    startCommand: "java -jar target/server-0.0.1-SNAPSHOT.jar"
-    healthCheckPath: /api/rooms 
+        - Dockerfile
     envVars:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://hackademy-client.onrender.com
+        value: https://hackademy-frontend.onrender.com
 
-  - type: staticsite
-    name: hackademy-client
-    repo: https://github.com/dominikdorawaa/Hackademy.git
+  # Frontend (Static Site)
+  - type: web
+    name: hackademy-frontend
+    runtime: static
     plan: free
+    repo: https://github.com/dominikdorawaa/Hackademy.git
     autoDeploy: true
     buildFilter:
       paths:
         - client/**
-    buildCommand: "cd client && npm install && npm run build"
-    staticPublishPath: "dist"
-    # WAŻNE: Ustaw zmienną środowiskową VITE_API_URL w panelu Render
-    # na adres URL Twojego backendu (np. https://hackademy-server.onrender.com)
+    buildCommand: cd client && npm install && npm run build
+    staticPublishPath: client/dist
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
+    # WAŻNE: W panelu Render (Environment) dla hackademy-frontend dodaj:
+    # VITE_API_URL = https://hackademy-twth.onrender.com
