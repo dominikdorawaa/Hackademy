@@ -58,6 +58,7 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authorize -> authorize
+                .requestMatchers(antMatcher("/")).permitAll()
                 .requestMatchers(antMatcher("/api/auth/**")).permitAll()
                 .requestMatchers(antMatcher("/api/user/ranking")).permitAll()
                 .anyRequest().authenticated()
