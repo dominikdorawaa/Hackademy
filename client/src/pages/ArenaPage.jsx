@@ -43,16 +43,39 @@ const ArenaPage = () => {
         fetchUserData();
     }, [token]);
 
+    // Initial check for active game (only once on mount)
+    useEffect(() => {
+        const checkInitialStatus = async () => {
+            if (token) {
+                try {
+                    const response = await fetch(`${API_URL}/api/arena/status`, {
+                        headers: { 'Authorization': `Bearer ${token}` }
+                    });
+                    
+                    if (response.status === 200) {
+                        const session = await response.json();
+                        if (session.status !== 'FINISHED') {
+                            setGameSession(session);
+                            setStatus('GAME');
+                        }
+                    }
+                } catch (err) {
+                    console.error("Initial status check error", err);
+                }
+            }
+        };
+        checkInitialStatus();
+    }, [token]);
+
     // Polling for game status and challenges
     useEffect(() => {
         let interval;
         if (token) {
             interval = setInterval(async () => {
                 try {
-                    // Check game status
-                    // Only poll if we are not already viewing a finished game result
-                    // or if we are in a state that expects updates
-                    if (status === 'QUEUE' || status === 'GAME' || status === 'IDLE') {
+                    // Check game status ONLY if we are in QUEUE or GAME state
+                    // If IDLE, we don't want to accidentally join a game we just cancelled
+                    if (status === 'QUEUE' || status === 'GAME') {
                         const response = await fetch(`${API_URL}/api/arena/status`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
@@ -90,7 +113,7 @@ const ArenaPage = () => {
                         }
                     }
 
-                    // Check challenges
+                    // Check challenges (always check for challenges)
                     const challengesRes = await fetch(`${API_URL}/api/arena/challenges`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
@@ -180,12 +203,15 @@ const ArenaPage = () => {
     };
 
     const handleLeaveQueue = async () => {
+        // Immediately update UI state to prevent race conditions
+        setStatus('IDLE');
+        setGameSession(null);
+        
         try {
             await fetch(`${API_URL}/api/arena/leave`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-            setStatus('IDLE');
         } catch (err) {
             console.error("Error leaving queue", err);
         }
