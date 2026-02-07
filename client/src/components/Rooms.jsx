@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Rooms = () => {
   return (
@@ -10,7 +11,7 @@ const Rooms = () => {
         </p>
 
         <div className="rooms-grid">
-          <div className="room-card">
+          <Link to="/register" className="room-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
             <div className="room-top-badge"><i className="fas fa-lock"></i></div>
             <div className="room-image-placeholder">
               <span className="difficulty-badge diff-easy">Łatwy</span>
@@ -26,9 +27,9 @@ const Rooms = () => {
                 <span>2,403 graczy</span>
               </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="room-card">
+          <Link to="/register" className="room-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
             <div className="room-top-badge"><i className="fas fa-lock"></i></div>
             <div className="room-image-placeholder">
               <span className="difficulty-badge diff-medium">Średni</span>
@@ -44,9 +45,9 @@ const Rooms = () => {
                 <span>1,100 graczy</span>
               </div>
             </div>
-          </div>
+          </Link>
 
-          <div className="room-card">
+          <Link to="/register" className="room-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
             <div className="room-top-badge"><i className="fas fa-lock"></i></div>
             <div className="room-image-placeholder">
               <span className="difficulty-badge diff-hard">Trudny</span>
@@ -62,7 +63,7 @@ const Rooms = () => {
                 <span>850 graczy</span>
               </div>
             </div>
-          </div>
+          </Link>
         </div>
       </div>
     </section>

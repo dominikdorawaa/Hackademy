@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Arena = () => {
   return (
@@ -96,9 +97,9 @@ const Arena = () => {
                 </p>
               </div>
 
-              <button className="elo-btn">
+              <Link to="/register" className="elo-btn" style={{ display: 'inline-flex', alignItems: 'center', justifyContent: 'center', gap: '8px', textDecoration: 'none', color: 'inherit' }}>
                 <i className="fas fa-search"></i> Znajdź Przeciwnika
-              </button>
+              </Link>
             </div>
           </div>
         </div>

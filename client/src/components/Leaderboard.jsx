@@ -59,7 +59,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
 
         {showTitle && (
           <div style={{ textAlign: 'center' }}>
-            <a href="#" className="btn btn-primary">Dołącz do Rankingu</a>
+            <Link to="/register" className="btn btn-primary">Dołącz do Rankingu</Link>
           </div>
         )}
       </div>
