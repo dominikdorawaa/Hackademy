@@ -17,23 +17,25 @@ services:
       - key: JWT_SECRET
         generateValue: true
       - key: FRONTEND_URL
-        value: https://hackademy-frontend.onrender.com
+        value: https://hackademy-front.onrender.com
 
   # Frontend (Static Site)
   - type: web
-    name: hackademy-frontend
+    name: hackademy-front
     runtime: static
     plan: free
     repo: https://github.com/dominikdorawaa/Hackademy.git
     autoDeploy: true
+    rootDir: client
     buildFilter:
       paths:
         - client/**
-    buildCommand: cd client && npm install && npm run build
-    staticPublishPath: client/dist
+    buildCommand: npm install && npm run build
+    staticPublishPath: dist
     routes:
       - type: rewrite
         source: /*
         destination: /index.html
-    # WAŻNE: W panelu Render (Environment) dla hackademy-frontend dodaj:
-    # VITE_API_URL = https://hackademy-twth.onrender.com
+    envVars:
+      - key: VITE_API_URL
+        value: https://hackademy-twth.onrender.com
