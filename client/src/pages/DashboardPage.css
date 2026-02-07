@@ -1,0 +1,138 @@
+.dashboard-container {
+    display: grid;
+    grid-template-columns: 280px 1fr;
+    gap: 30px;
+    padding-top: 40px;
+    padding-bottom: 40px;
+    align-items: start;
+}
+
+.filters-sidebar {
+    background-color: #1e1e1e;
+    border: 1px solid #333;
+    border-radius: 12px;
+    padding: 25px;
+    position: sticky;
+    top: 100px; /* Below navbar */
+}
+
+.filter-group {
+    margin-bottom: 25px;
+    padding-bottom: 20px;
+    border-bottom: 1px solid #333;
+}
+
+.filter-group:last-child {
+    border-bottom: none;
+    margin-bottom: 0;
+    padding-bottom: 0;
+}
+
+.filter-title {
+    font-size: 1rem;
+    font-weight: 600;
+    color: #fff;
+    margin-bottom: 15px;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+}
+
+.filter-options {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.filter-label {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    cursor: pointer;
+    color: #ccc;
+    font-size: 0.9rem;
+    transition: color 0.2s;
+}
+
+.filter-label:hover {
+    color: #fff;
+}
+
+.filter-checkbox {
+    appearance: none;
+    width: 18px;
+    height: 18px;
+    border: 2px solid #555;
+    border-radius: 4px;
+    background-color: #2d2d2d;
+    cursor: pointer;
+    position: relative;
+    transition: all 0.2s;
+}
+
+.filter-checkbox:checked {
+    background-color: var(--primary-blue);
+    border-color: var(--primary-blue);
+}
+
+.filter-checkbox:checked::after {
+    content: '\f00c';
+    font-family: 'Font Awesome 5 Free';
+    font-weight: 900;
+    color: white;
+    font-size: 10px;
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    transform: translate(-50%, -50%);
+}
+
+.rooms-content {
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+.rooms-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 20px;
+}
+
+.results-count {
+    color: #888;
+    font-size: 0.9rem;
+}
+
+.sort-select {
+    background-color: #1e1e1e;
+    color: #fff;
+    border: 1px solid #333;
+    padding: 8px 12px;
+    border-radius: 6px;
+    outline: none;
+    cursor: pointer;
+}
+
+/* Responsive */
+@media (max-width: 900px) {
+    .dashboard-container {
+        grid-template-columns: 1fr;
+    }
+
+    .filters-sidebar {
+        position: static;
+        margin-bottom: 30px;
+    }
+
+    .filter-options {
+        flex-direction: row;
+        flex-wrap: wrap;
+    }
+
+    .filter-group {
+        border-bottom: none;
+        padding-bottom: 0;
+    }
+}

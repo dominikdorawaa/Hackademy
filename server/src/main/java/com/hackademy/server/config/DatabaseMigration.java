@@ -189,6 +189,18 @@ public class DatabaseMigration implements CommandLineRunner {
                     "END $$;");
             System.out.println("Migration 15 completed.");
 
+            // Migration 16: Add category column to rooms
+            System.out.println("Migration 16: Adding category column to rooms...");
+            jdbcTemplate.execute("DO $$ " +
+                    "BEGIN " +
+                    "    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='rooms' AND column_name='category') THEN " +
+                    "        ALTER TABLE rooms ADD COLUMN category VARCHAR(50); " +
+                    "        UPDATE rooms SET category = 'Web' WHERE category IS NULL; " +
+                    "        ALTER TABLE rooms ALTER COLUMN category SET NOT NULL; " +
+                    "    END IF; " +
+                    "END $$;");
+            System.out.println("Migration 16 completed.");
+
             System.out.println("All migrations completed successfully.");
 
         } catch (Exception e) {

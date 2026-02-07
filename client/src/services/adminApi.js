@@ -55,14 +55,12 @@ export const createRoom = (roomData, token) => {
 };
 
 export const getRooms = (token) => {
-    return request('/../rooms', { method: 'GET', token }); 
+    return request('/rooms', { method: 'GET', token }); 
 };
 
 export const getAllRoomsAdmin = (token) => {
-     // Fetch generic list
-     return fetch(API_URL + '/api/rooms', {
-         headers: { 'Authorization': `Bearer ${token}` }
-     }).then(res => res.json());
+     // Use the dedicated admin endpoint which returns lightweight DTOs
+     return request('/rooms', { method: 'GET', token });
 };
 
 export const getRoomAdmin = (id, token) => {

@@ -28,6 +28,9 @@ public class CreateRoomRequest {
     @NotNull(message = "Difficulty level is required")
     private DifficultyLevel difficulty;
 
+    @NotBlank(message = "Category is required")
+    private String category; // New field
+
     @NotNull(message = "Points are required")
     @Min(value = 0, message = "Points must be non-negative")
     private Integer points;

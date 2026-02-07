@@ -27,6 +27,9 @@ public class UpdateRoomRequest {
     @NotNull(message = "Difficulty cannot be null")
     private DifficultyLevel difficulty;
 
+    @NotBlank(message = "Category cannot be empty")
+    private String category; // New field
+
     @Min(value = 0, message = "Points must be non-negative")
     private int points;
 

@@ -23,6 +23,7 @@ com\hackademy\server\repository\HintRepository.class
 com\hackademy\server\exception\UserNotFoundException.class
 com\hackademy\server\repository\UserUnlockedHintRepository.class
 com\hackademy\server\dto\CreateRoomRequest.class
+com\hackademy\server\dto\RoomSummaryDto.class
 com\hackademy\server\service\BadgeService.class
 com\hackademy\server\config\SecurityConfig.class
 com\hackademy\server\model\UserSolvedRoom.class
@@ -45,6 +46,7 @@ com\hackademy\server\model\Hint.class
 com\hackademy\server\repository\UserSolvedRoomRepository.class
 com\hackademy\server\model\Role.class
 com\hackademy\server\service\MatchmakingServiceImpl$PlayerInfo.class
+com\hackademy\server\dto\RoomAdminSummaryDto.class
 com\hackademy\server\dto\BadgeDto.class
 com\hackademy\server\model\UserBadge.class
 com\hackademy\server\model\UserUnlockedHint.class
@@ -73,6 +75,7 @@ com\hackademy\server\dto\RoomDto$RoomDtoBuilder.class
 com\hackademy\server\service\RoomServiceImpl.class
 com\hackademy\server\dto\RoomAdminDto.class
 com\hackademy\server\dto\RoomDto.class
+com\hackademy\server\dto\RoomSummaryDto$RoomSummaryDtoBuilder.class
 com\hackademy\server\dto\RankingEntry.class
 com\hackademy\server\dto\UserProfileDto.class
 com\hackademy\server\controller\FriendshipController.class

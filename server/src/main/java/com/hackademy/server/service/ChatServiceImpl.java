@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.List;
 
 @Service
@@ -24,7 +25,8 @@ public class ChatServiceImpl implements ChatService {
         User user = userRepository.findById(senderId)
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
 
-        if (user.getMutedUntil() != null && user.getMutedUntil().isAfter(LocalDateTime.now())) {
+        // Check mute status using UTC
+        if (user.getMutedUntil() != null && user.getMutedUntil().isAfter(LocalDateTime.now(ZoneOffset.UTC))) {
             throw new IllegalStateException("User is muted until " + user.getMutedUntil());
         }
 

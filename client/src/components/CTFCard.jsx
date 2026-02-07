@@ -32,7 +32,7 @@ const CTFCard = ({ challenge }) => {
       </div>
       <div className="room-body">
         <h3 className="room-title">{challenge.title}</h3>
-        <div className="room-tags">Web • Security</div>
+        <div className="room-tags">{challenge.category || 'Web'} • Security</div>
 
         <div className="room-locked-footer" style={{ color: 'var(--text-gray)'}}>
             <span>

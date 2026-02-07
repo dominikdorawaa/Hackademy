@@ -18,11 +18,10 @@ public class RoomDto {
     private String description;
     private String shortDescription;
     private DifficultyLevel difficulty;
+    private String category; // New field
     private int points;
     private int solutionsCount;
+    private boolean solved;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
-    
-    // Flag is explicitly excluded here for users.
-    // Admin view might need a separate DTO or use the Entity directly (since they have permission).
 }

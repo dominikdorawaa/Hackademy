@@ -2,6 +2,7 @@ package com.hackademy.server.controller;
 
 import com.hackademy.server.dto.RoomDetailDto;
 import com.hackademy.server.dto.RoomDto;
+import com.hackademy.server.dto.RoomSummaryDto;
 import com.hackademy.server.dto.SolveRoomResponse;
 import com.hackademy.server.model.RoomFile;
 import com.hackademy.server.service.RoomService;
@@ -26,8 +27,13 @@ public class RoomController {
     private final RoomService roomService;
 
     @GetMapping
-    public ResponseEntity<List<RoomDto>> getAllRooms() {
-        return ResponseEntity.ok(roomService.getAllRooms());
+    public ResponseEntity<List<RoomSummaryDto>> getAllRooms() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = null;
+        if (principal instanceof UserDetails) {
+            username = ((UserDetails) principal).getUsername();
+        }
+        return ResponseEntity.ok(roomService.getAllRooms(username));
     }
 
     @GetMapping("/{id}")

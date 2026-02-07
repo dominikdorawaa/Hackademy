@@ -40,6 +40,9 @@ public class Room {
     @Column(nullable = false)
     private DifficultyLevel difficulty;
 
+    @Column(nullable = false)
+    private String category; // New field
+
     @Min(0)
     @Column(nullable = false)
     private int points;

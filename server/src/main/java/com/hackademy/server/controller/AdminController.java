@@ -2,6 +2,7 @@ package com.hackademy.server.controller;
 
 import com.hackademy.server.dto.CreateRoomRequest;
 import com.hackademy.server.dto.RoomAdminDto;
+import com.hackademy.server.dto.RoomAdminSummaryDto;
 import com.hackademy.server.dto.UpdateUserRoleRequest;
 import com.hackademy.server.dto.UserAdminView;
 import com.hackademy.server.model.ChatMessage;
@@ -56,6 +57,11 @@ public class AdminController {
     public RoomAdminDto getRoom(@PathVariable Long id) {
         Room room = roomService.getRoomById(id);
         return mapToAdminDto(room);
+    }
+
+    @GetMapping("/rooms")
+    public List<RoomAdminSummaryDto> getAllRooms() {
+        return roomService.getAllRoomsForAdmin();
     }
 
     @DeleteMapping("/rooms/{id}")

@@ -20,6 +20,7 @@ import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -182,11 +183,12 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         
+        // Use UTC time to ensure consistency across timezones
         if (durationInSeconds == -1) {
             // Permanent mute (e.g., 100 years)
-            user.setMutedUntil(LocalDateTime.now().plusYears(100));
+            user.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).plusYears(100));
         } else {
-            user.setMutedUntil(LocalDateTime.now().plusSeconds(durationInSeconds));
+            user.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).plusSeconds(durationInSeconds));
         }
         userRepository.save(user);
     }

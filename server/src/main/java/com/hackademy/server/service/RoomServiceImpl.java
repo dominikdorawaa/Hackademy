@@ -2,8 +2,10 @@ package com.hackademy.server.service;
 
 import com.hackademy.server.dto.BadgeDto;
 import com.hackademy.server.dto.CreateRoomRequest;
+import com.hackademy.server.dto.RoomAdminSummaryDto;
 import com.hackademy.server.dto.RoomDetailDto;
 import com.hackademy.server.dto.RoomDto;
+import com.hackademy.server.dto.RoomSummaryDto;
 import com.hackademy.server.dto.SolveRoomResponse;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.model.Room;
@@ -28,6 +30,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 @Service
@@ -51,6 +54,7 @@ public class RoomServiceImpl implements RoomService {
                 .description(createRoomRequest.getDescription())
                 .shortDescription(createRoomRequest.getShortDescription())
                 .difficulty(createRoomRequest.getDifficulty())
+                .category(createRoomRequest.getCategory())
                 .points(createRoomRequest.getPoints())
                 .flag(createRoomRequest.getFlag())
                 .build();
@@ -74,9 +78,41 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoomDto> getAllRooms() {
+    public List<RoomSummaryDto> getAllRooms(String username) {
+        // Use projection to fetch only necessary fields
+        List<RoomSummaryDto> rooms = roomRepository.findAllSummaries();
+        Set<Long> solvedRoomIds;
+
+        if (username != null) {
+            User user = userRepository.findByUsername(username)
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
+            
+            // Optimized: Fetch only IDs of solved rooms
+            solvedRoomIds = userSolvedRoomRepository.findByUser_Id(user.getId()).stream()
+                    .map(usr -> usr.getRoom().getId())
+                    .collect(Collectors.toSet());
+        } else {
+            solvedRoomIds = Set.of();
+        }
+
+        // Set solved status in memory
+        rooms.forEach(room -> room.setSolved(solvedRoomIds.contains(room.getId())));
+        
+        return rooms;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoomAdminSummaryDto> getAllRoomsForAdmin() {
+        // Fetch all rooms but map to a lightweight DTO
         return roomRepository.findAll().stream()
-                .map(this::mapToDto)
+                .map(room -> new RoomAdminSummaryDto(
+                        room.getId(),
+                        room.getTitle(),
+                        room.getCategory(),
+                        room.getDifficulty(),
+                        room.getPoints()
+                ))
                 .collect(Collectors.toList());
     }
 
@@ -90,6 +126,7 @@ public class RoomServiceImpl implements RoomService {
         room.setDescription(updateRoomRequest.getDescription());
         room.setShortDescription(updateRoomRequest.getShortDescription());
         room.setDifficulty(updateRoomRequest.getDifficulty());
+        room.setCategory(updateRoomRequest.getCategory());
         room.setPoints(updateRoomRequest.getPoints());
         room.setFlag(updateRoomRequest.getFlag());
 
@@ -321,15 +358,17 @@ public class RoomServiceImpl implements RoomService {
         return new com.hackademy.server.dto.HintDto(hint.getId(), hint.getDescription());
     }
 
-    private RoomDto mapToDto(Room room) {
+    private RoomDto mapToDto(Room room, boolean solved) {
         return RoomDto.builder()
                 .id(room.getId())
                 .title(room.getTitle())
                 .description(room.getDescription())
                 .shortDescription(room.getShortDescription())
                 .difficulty(room.getDifficulty())
+                .category(room.getCategory())
                 .points(room.getPoints())
                 .solutionsCount(room.getSolutionsCount())
+                .solved(solved)
                 .createdAt(room.getCreatedAt())
                 .updatedAt(room.getUpdatedAt())
                 .build();

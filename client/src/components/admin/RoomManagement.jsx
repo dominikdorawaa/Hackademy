@@ -11,6 +11,7 @@ const RoomManagement = () => {
     const [shortDescription, setShortDescription] = useState('');
     const [description, setDescription] = useState('');
     const [difficulty, setDifficulty] = useState('EASY');
+    const [category, setCategory] = useState('Web'); // New field
     const [points, setPoints] = useState(0);
     const [flag, setFlag] = useState('');
     const [hints, setHints] = useState([]);
@@ -50,6 +51,7 @@ const RoomManagement = () => {
         setShortDescription('');
         setDescription('');
         setDifficulty('EASY');
+        setCategory('Web');
         setPoints(0);
         setFlag('');
         setHints([]);
@@ -72,6 +74,7 @@ const RoomManagement = () => {
             setShortDescription(room.shortDescription || '');
             setDescription(room.description);
             setDifficulty(room.difficulty);
+            setCategory(room.category || 'Web');
             setPoints(room.points);
             setFlag(room.flag || '');
             setHints(room.hints || []);
@@ -117,7 +120,7 @@ const RoomManagement = () => {
         setError(null);
         setSuccess(null);
 
-        const roomData = { title, shortDescription, description, difficulty, points: Number(points), flag, hints };
+        const roomData = { title, shortDescription, description, difficulty, category, points: Number(points), flag, hints };
 
         try {
             // Use FormData to send file and JSON
@@ -127,10 +130,6 @@ const RoomManagement = () => {
                 formData.append('file', file);
             }
 
-            // We need to manually call fetch here because adminApi helper might not support FormData easily
-            // or we update adminApi to support it. Let's update adminApi logic inline here for simplicity or update the helper.
-            // Assuming adminApi functions are updated or we use fetch directly.
-            
             let url = isEditing ? `${API_URL}/api/admin/rooms/${id}` : `${API_URL}/api/admin/rooms`;
             let method = isEditing ? 'PUT' : 'POST';
 
@@ -138,7 +137,6 @@ const RoomManagement = () => {
                 method: method,
                 headers: {
                     'Authorization': `Bearer ${token}`
-                    // Do NOT set Content-Type header when using FormData, browser sets it with boundary
                 },
                 body: formData
             });
@@ -171,17 +169,33 @@ const RoomManagement = () => {
                     onChange={(e) => setTitle(e.target.value)}
                     required
                 />
-                <input
-                    type="text"
-                    placeholder="Kategoria"
-                    value={shortDescription}
-                    onChange={(e) => setShortDescription(e.target.value)}
-                    maxLength="100"
-                />
+                
+                <div style={{ display: 'flex', gap: '1rem' }}>
+                    <input
+                        type="text"
+                        placeholder="Krótki opis (zajawka)"
+                        value={shortDescription}
+                        onChange={(e) => setShortDescription(e.target.value)}
+                        maxLength="100"
+                        style={{ flex: 2 }}
+                    />
+                    <select
+                        value={category}
+                        onChange={(e) => setCategory(e.target.value)}
+                        style={{ flex: 1 }}
+                    >
+                        <option value="Web">Web</option>
+                        <option value="Crypto">Crypto</option>
+                        <option value="Forensics">Forensics</option>
+                        <option value="Reverse">Reverse</option>
+                        <option value="OSINT">OSINT</option>
+                        <option value="Misc">Misc</option>
+                    </select>
+                </div>
+
                 <textarea
                     placeholder="Opis pokoju"
                     value={description}
-
                     onChange={(e) => setDescription(e.target.value)}
                     required
                     style={{ minHeight: '100px' }}
@@ -281,6 +295,7 @@ const RoomManagement = () => {
                         <tr>
                             <th>ID</th>
                             <th>Nazwa</th>
+                            <th>Kategoria</th>
                             <th>Trudność</th>
                             <th>Punkty</th>
                             <th>Akcje</th>
@@ -291,6 +306,7 @@ const RoomManagement = () => {
                             <tr key={room.id}>
                                 <td>{room.id}</td>
                                 <td>{room.title}</td>
+                                <td>{room.category || 'Web'}</td>
                                 <td>
                                     <span className={`difficulty-badge ${room.difficulty.toLowerCase()}`}>
                                         {room.difficulty}
@@ -319,7 +335,7 @@ const RoomManagement = () => {
                         ))}
                         {rooms.length === 0 && (
                             <tr>
-                                <td colSpan="5" style={{ textAlign: 'center' }}>Brak pokoi.</td>
+                                <td colSpan="6" style={{ textAlign: 'center' }}>Brak pokoi.</td>
                             </tr>
                         )}
                     </tbody>
