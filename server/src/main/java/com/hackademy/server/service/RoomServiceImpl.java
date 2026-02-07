@@ -104,16 +104,8 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomAdminSummaryDto> getAllRoomsForAdmin() {
-        // Fetch all rooms but map to a lightweight DTO
-        return roomRepository.findAll().stream()
-                .map(room -> new RoomAdminSummaryDto(
-                        room.getId(),
-                        room.getTitle(),
-                        room.getCategory(),
-                        room.getDifficulty(),
-                        room.getPoints()
-                ))
-                .collect(Collectors.toList());
+        // Use projection to fetch only necessary fields directly from DB
+        return roomRepository.findAllAdminSummaries();
     }
 
     @Override

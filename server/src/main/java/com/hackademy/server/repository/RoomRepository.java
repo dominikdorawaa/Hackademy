@@ -1,5 +1,6 @@
 package com.hackademy.server.repository;
 
+import com.hackademy.server.dto.RoomAdminSummaryDto;
 import com.hackademy.server.dto.RoomSummaryDto;
 import com.hackademy.server.model.Room;
 import org.springframework.data.jpa.repository.JpaRepository;
@@ -15,4 +16,9 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
            "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.createdAt) " +
            "FROM Room r")
     List<RoomSummaryDto> findAllSummaries();
+
+    @Query("SELECT new com.hackademy.server.dto.RoomAdminSummaryDto(" +
+           "r.id, r.title, r.category, r.difficulty, r.points) " +
+           "FROM Room r")
+    List<RoomAdminSummaryDto> findAllAdminSummaries();
 }
