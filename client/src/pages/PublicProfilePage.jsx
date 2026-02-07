@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import './ProfilePage.css'; // Import CSS for tooltips
+import API_URL from '../apiConfig';
+import './ProfilePage.css';
 
 const PublicProfilePage = () => {
     const { username } = useParams();
@@ -18,7 +19,7 @@ const PublicProfilePage = () => {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`http://localhost:8080/api/user/${username}`, {
+                const response = await fetch(`${API_URL}/api/user/${username}`, {
                     headers: {
                         'Authorization': `Bearer ${token}`
                     }
@@ -46,7 +47,7 @@ const PublicProfilePage = () => {
 
     const fetchFriendshipStatus = async (targetUsername) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/friends/status/${targetUsername}`, {
+            const response = await fetch(`${API_URL}/api/friends/status/${targetUsername}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -62,7 +63,7 @@ const PublicProfilePage = () => {
 
     const fetchFriendshipStats = async (targetUsername) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/friends/stats/${targetUsername}`, {
+            const response = await fetch(`${API_URL}/api/friends/stats/${targetUsername}`, {
                 headers: {
                     'Authorization': `Bearer ${token}`
                 }
@@ -79,7 +80,7 @@ const PublicProfilePage = () => {
     const handleSendRequest = async () => {
         setActionLoading(true);
         try {
-            const response = await fetch(`http://localhost:8080/api/friends/request/${profile.username}`, {
+            const response = await fetch(`${API_URL}/api/friends/request/${profile.username}`, {
                 method: 'POST',
                 headers: {
                     'Authorization': `Bearer ${token}`

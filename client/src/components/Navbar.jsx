@@ -1,7 +1,8 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import './Navbar.css'; // Import new styles
+import API_URL from '../apiConfig';
+import './Navbar.css';
 
 const Navbar = () => {
   const { isAuthenticated, logout, token } = useAuth();
@@ -20,7 +21,7 @@ const Navbar = () => {
     const fetchUserData = async () => {
       if (isAuthenticated && token) {
         try {
-          const response = await fetch('http://localhost:8080/api/user/me', {
+          const response = await fetch(`${API_URL}/api/user/me`, {
             headers: {
               'Authorization': `Bearer ${token}`
             }
@@ -46,13 +47,13 @@ const Navbar = () => {
       if (isAuthenticated && token) {
         try {
           // Fetch friend requests
-          const friendsRes = await fetch('http://localhost:8080/api/friends/requests', {
+          const friendsRes = await fetch(`${API_URL}/api/friends/requests`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const friendRequests = await friendsRes.json();
 
           // Fetch challenges
-          const challengesRes = await fetch('http://localhost:8080/api/arena/challenges', {
+          const challengesRes = await fetch(`${API_URL}/api/arena/challenges`, {
             headers: { 'Authorization': `Bearer ${token}` }
           });
           const challenges = await challengesRes.json();
@@ -118,7 +119,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
     try {
-        await fetch(`http://localhost:8080/api/friends/accept/${requestId}`, {
+        await fetch(`${API_URL}/api/friends/accept/${requestId}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -137,7 +138,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
     try {
-        await fetch(`http://localhost:8080/api/friends/reject/${requestId}`, {
+        await fetch(`${API_URL}/api/friends/reject/${requestId}`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -153,7 +154,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
     try {
-        const res = await fetch(`http://localhost:8080/api/arena/challenge/${challengeId}/accept`, {
+        const res = await fetch(`${API_URL}/api/arena/challenge/${challengeId}/accept`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });
@@ -175,7 +176,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
     try {
-        await fetch(`http://localhost:8080/api/arena/challenge/${challengeId}/reject`, {
+        await fetch(`${API_URL}/api/arena/challenge/${challengeId}/reject`, {
             method: 'POST',
             headers: { 'Authorization': `Bearer ${token}` }
         });

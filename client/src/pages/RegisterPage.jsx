@@ -1,7 +1,8 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import AuthLayout from '../components/auth/AuthLayout';
-import { useAuth } from '../context/AuthContext'; // Import useAuth
+import { useAuth } from '../context/AuthContext';
+import API_URL from '../apiConfig';
 
 // Helper function to add delay
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
@@ -24,7 +25,7 @@ const RegisterPage = () => {
       setRegisterSequence(prev => [...prev, '[INFO] Wysyłanie żądania do serwera...']);
       await delay(500);
 
-      const response = await fetch('http://localhost:8080/api/auth/register', {
+      const response = await fetch(`${API_URL}/api/auth/register`, {
         method: 'POST',
         headers: {
           'Content-Type': 'application/json',

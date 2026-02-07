@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/auth/AuthLayout';
+import API_URL from '../apiConfig';
 
 // Helper function to add delay
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
@@ -33,8 +34,7 @@ const LoginPage = () => {
       await delay(500);
       setLoginSequence(prev => [...prev, '[INFO] Weryfikacja poświadczeń...']);
 
-      const apiUrl = import.meta.env.VITE_API_URL;
-      const response = await fetch(`${apiUrl}/api/auth/login`, {
+      const response = await fetch(`${API_URL}/api/auth/login`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ email, password }),

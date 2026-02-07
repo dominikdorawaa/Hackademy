@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import GameFoundModal from '../components/common/GameFoundModal';
+import API_URL from '../apiConfig';
 
 const ArenaPage = () => {
     const { token } = useAuth();
@@ -28,7 +29,7 @@ const ArenaPage = () => {
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const response = await fetch('http://localhost:8080/api/user/me', {
+                const response = await fetch(`${API_URL}/api/user/me`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 if (response.ok) {
@@ -52,7 +53,7 @@ const ArenaPage = () => {
                     // Only poll if we are not already viewing a finished game result
                     // or if we are in a state that expects updates
                     if (status === 'QUEUE' || status === 'GAME' || status === 'IDLE') {
-                        const response = await fetch('http://localhost:8080/api/arena/status', {
+                        const response = await fetch(`${API_URL}/api/arena/status`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
                         
@@ -90,7 +91,7 @@ const ArenaPage = () => {
                     }
 
                     // Check challenges
-                    const challengesRes = await fetch('http://localhost:8080/api/arena/challenges', {
+                    const challengesRes = await fetch(`${API_URL}/api/arena/challenges`, {
                         headers: { 'Authorization': `Bearer ${token}` }
                     });
                     if (challengesRes.ok) {
@@ -109,7 +110,7 @@ const ArenaPage = () => {
     const fetchFriends = async () => {
         setFriendsLoading(true);
         try {
-            const response = await fetch('http://localhost:8080/api/friends', {
+            const response = await fetch(`${API_URL}/api/friends`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -130,7 +131,7 @@ const ArenaPage = () => {
 
     const handleChallengeFriend = async (username) => {
         try {
-            const response = await fetch('http://localhost:8080/api/arena/challenge/create', {
+            const response = await fetch(`${API_URL}/api/arena/challenge/create`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -159,7 +160,7 @@ const ArenaPage = () => {
 
     const handleJoinQueue = async () => {
         try {
-            const response = await fetch('http://localhost:8080/api/arena/join', {
+            const response = await fetch(`${API_URL}/api/arena/join`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -180,7 +181,7 @@ const ArenaPage = () => {
 
     const handleLeaveQueue = async () => {
         try {
-            await fetch('http://localhost:8080/api/arena/leave', {
+            await fetch(`${API_URL}/api/arena/leave`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -195,7 +196,7 @@ const ArenaPage = () => {
         setProcessingChallengeId(challengeId);
 
         try {
-            const response = await fetch(`http://localhost:8080/api/arena/challenge/${challengeId}/accept`, {
+            const response = await fetch(`${API_URL}/api/arena/challenge/${challengeId}/accept`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -223,7 +224,7 @@ const ArenaPage = () => {
         setProcessingChallengeId(challengeId);
 
         try {
-            await fetch(`http://localhost:8080/api/arena/challenge/${challengeId}/reject`, {
+            await fetch(`${API_URL}/api/arena/challenge/${challengeId}/reject`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });

@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../apiConfig';
 import Hero from '../components/Hero';
 import HowItWorks from '../components/HowItWorks';
 import Arena from '../components/Arena';
@@ -26,7 +27,7 @@ const HomePage = () => {
     const fetchRanking = async () => {
       try {
         setRankingLoading(true);
-        const response = await fetch('http://localhost:8080/api/user/ranking', {
+        const response = await fetch(`${API_URL}/api/user/ranking`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json'

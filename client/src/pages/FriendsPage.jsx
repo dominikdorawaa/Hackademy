@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link, useNavigate } from 'react-router-dom';
+import API_URL from '../apiConfig';
 
 const FriendsPage = () => {
     const { token } = useAuth();
@@ -26,8 +27,8 @@ const FriendsPage = () => {
         setLoading(true);
         try {
             const [friendsRes, requestsRes] = await Promise.all([
-                fetch('http://localhost:8080/api/friends', { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch('http://localhost:8080/api/friends/requests', { headers: { 'Authorization': `Bearer ${token}` } })
+                fetch(`${API_URL}/api/friends`, { headers: { 'Authorization': `Bearer ${token}` } }),
+                fetch(`${API_URL}/api/friends/requests`, { headers: { 'Authorization': `Bearer ${token}` } })
             ]);
 
             if (friendsRes.ok && requestsRes.ok) {
@@ -51,7 +52,7 @@ const FriendsPage = () => {
 
         setIsSearching(true);
         try {
-            const response = await fetch(`http://localhost:8080/api/user/search?query=${searchQuery}`, {
+            const response = await fetch(`${API_URL}/api/user/search?query=${searchQuery}`, {
                 headers: { 'Authorization': `Bearer ${token}` }
             });
             if (response.ok) {
@@ -67,7 +68,7 @@ const FriendsPage = () => {
 
     const handleSendRequest = async (username) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/friends/request/${username}`, {
+            const response = await fetch(`${API_URL}/api/friends/request/${username}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -84,7 +85,7 @@ const FriendsPage = () => {
 
     const handleAccept = async (requestId) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/friends/accept/${requestId}`, {
+            const response = await fetch(`${API_URL}/api/friends/accept/${requestId}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -98,7 +99,7 @@ const FriendsPage = () => {
 
     const handleReject = async (requestId) => {
         try {
-            const response = await fetch(`http://localhost:8080/api/friends/reject/${requestId}`, {
+            const response = await fetch(`${API_URL}/api/friends/reject/${requestId}`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -114,7 +115,7 @@ const FriendsPage = () => {
         if (!window.confirm("Czy na pewno chcesz usunąć tego użytkownika ze znajomych?")) return;
 
         try {
-            const response = await fetch(`http://localhost:8080/api/friends/${friendId}`, {
+            const response = await fetch(`${API_URL}/api/friends/${friendId}`, {
                 method: 'DELETE',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -128,7 +129,7 @@ const FriendsPage = () => {
 
     const handleChallenge = async (username) => {
         try {
-            const response = await fetch('http://localhost:8080/api/arena/challenge/create', {
+            const response = await fetch(`${API_URL}/api/arena/challenge/create`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',

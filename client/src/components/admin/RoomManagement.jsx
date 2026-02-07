@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
+import API_URL from '../../apiConfig';
 import './Management.css';
 
 const RoomManagement = () => {
@@ -130,7 +131,7 @@ const RoomManagement = () => {
             // or we update adminApi to support it. Let's update adminApi logic inline here for simplicity or update the helper.
             // Assuming adminApi functions are updated or we use fetch directly.
             
-            let url = isEditing ? `http://localhost:8080/api/admin/rooms/${id}` : 'http://localhost:8080/api/admin/rooms';
+            let url = isEditing ? `${API_URL}/api/admin/rooms/${id}` : `${API_URL}/api/admin/rooms`;
             let method = isEditing ? 'PUT' : 'POST';
 
             const response = await fetch(url, {

@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import CTFCard from '../components/CTFCard';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import API_URL from '../apiConfig';
 
 const DashboardPage = () => {
   const { token, logout } = useAuth();
@@ -20,7 +21,7 @@ const DashboardPage = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch('http://localhost:8080/api/user/me', {
+        const response = await fetch(`${API_URL}/api/user/me`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',
@@ -51,7 +52,7 @@ const DashboardPage = () => {
         setRoomsLoading(true);
         setRoomsError(null);
 
-        const response = await fetch('http://localhost:8080/api/rooms', {
+        const response = await fetch(`${API_URL}/api/rooms`, {
           method: 'GET',
           headers: {
             'Content-Type': 'application/json',

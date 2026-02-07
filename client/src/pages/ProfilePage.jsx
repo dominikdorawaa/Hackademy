@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import API_URL from '../apiConfig';
 
 const ProfilePage = () => {
     const { token, login, logout } = useAuth();
@@ -23,14 +24,14 @@ const ProfilePage = () => {
                 setError(null);
 
                 const [userRes, badgesRes] = await Promise.all([
-                    fetch('http://localhost:8080/api/user/me', {
+                    fetch(`${API_URL}/api/user/me`, {
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
                         },
                     }),
-                    fetch('http://localhost:8080/api/badges/all', { // Fetch ALL badges with status
+                    fetch(`${API_URL}/api/badges/all`, { // Fetch ALL badges with status
                         method: 'GET',
                         headers: {
                             'Content-Type': 'application/json',
@@ -73,7 +74,7 @@ const ProfilePage = () => {
         setFormMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch('http://localhost:8080/api/user/me/username', {
+            const response = await fetch(`${API_URL}/api/user/me/username`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -107,7 +108,7 @@ const ProfilePage = () => {
         setFormMessage({ type: '', text: '' });
 
         try {
-            const response = await fetch('http://localhost:8080/api/user/me/bio', {
+            const response = await fetch(`${API_URL}/api/user/me/bio`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',
@@ -138,7 +139,7 @@ const ProfilePage = () => {
         }
 
         try {
-            const response = await fetch('http://localhost:8080/api/user/me/password', {
+            const response = await fetch(`${API_URL}/api/user/me/password`, {
                 method: 'PATCH',
                 headers: {
                     'Content-Type': 'application/json',

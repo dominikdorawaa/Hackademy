@@ -5,6 +5,7 @@ import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
 import ArenaResultModal from '../components/common/ArenaResultModal';
+import API_URL from '../apiConfig';
 import './RoomPage.css';
 
 const RoomPage = () => {
@@ -56,7 +57,7 @@ const RoomPage = () => {
   // Fetch user data to know current user ID
   useEffect(() => {
       if (token) {
-          fetch('http://localhost:8080/api/user/me', {
+          fetch(`${API_URL}/api/user/me`, {
               headers: { 'Authorization': `Bearer ${token}` }
           })
           .then(res => res.json())
@@ -95,7 +96,7 @@ const RoomPage = () => {
     let interval;
     if (isArenaMode && token && userData) {
         // Initial fetch
-        fetch(`http://localhost:8080/api/arena/game/${arenaGameId}`, {
+        fetch(`${API_URL}/api/arena/game/${arenaGameId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()).then(data => {
             setArenaSession(data);
@@ -111,7 +112,7 @@ const RoomPage = () => {
 
         interval = setInterval(async () => {
             try {
-                const response = await fetch(`http://localhost:8080/api/arena/game/${arenaGameId}`, {
+                const response = await fetch(`${API_URL}/api/arena/game/${arenaGameId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
                 
@@ -140,7 +141,7 @@ const RoomPage = () => {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const response = await fetch(`http://localhost:8080/api/rooms/${id}`, {
+        const response = await fetch(`${API_URL}/api/rooms/${id}`, {
           headers: {
             'Authorization': `Bearer ${token}`
           }
@@ -190,7 +191,7 @@ const RoomPage = () => {
     try {
         // If Arena Mode, call arena hint endpoint
         if (isArenaMode) {
-            const response = await fetch(`http://localhost:8080/api/arena/game/${arenaGameId}/hint`, {
+            const response = await fetch(`${API_URL}/api/arena/game/${arenaGameId}/hint`, {
                 method: 'POST',
                 headers: { 
                     'Content-Type': 'application/json',
@@ -206,7 +207,7 @@ const RoomPage = () => {
             setSubmitStatus('warning');
         } else {
             // Normal mode
-            const response = await fetch(`http://localhost:8080/api/rooms/${id}/hints/${hintToUnlock}/unlock`, {
+            const response = await fetch(`${API_URL}/api/rooms/${id}/hints/${hintToUnlock}/unlock`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
@@ -237,7 +238,7 @@ const RoomPage = () => {
 
   const handleDownloadFile = async () => {
       try {
-          const response = await fetch(`http://localhost:8080/api/rooms/${id}/file`, {
+          const response = await fetch(`${API_URL}/api/rooms/${id}/file`, {
               headers: { 'Authorization': `Bearer ${token}` }
           });
           
@@ -279,9 +280,9 @@ const RoomPage = () => {
     setSubmitMessage('');
 
     try {
-      let url = `http://localhost:8080/api/rooms/${id}/solve`;
+      let url = `${API_URL}/api/rooms/${id}/solve`;
       if (isArenaMode) {
-          url = `http://localhost:8080/api/arena/game/${arenaGameId}/solve`;
+          url = `${API_URL}/api/arena/game/${arenaGameId}/solve`;
       }
 
       const response = await fetch(url, {
@@ -354,7 +355,7 @@ const RoomPage = () => {
   const confirmSurrender = async () => {
       setShowSurrenderModal(false);
       try {
-          const response = await fetch(`http://localhost:8080/api/arena/game/${arenaGameId}/surrender`, {
+          const response = await fetch(`${API_URL}/api/arena/game/${arenaGameId}/surrender`, {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` }
           });

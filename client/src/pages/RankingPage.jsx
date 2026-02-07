@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import Leaderboard from '../components/Leaderboard';
 import { useAuth } from '../context/AuthContext';
+import API_URL from '../apiConfig';
 
 const RankingPage = () => {
   const { token } = useAuth();
@@ -19,7 +20,7 @@ const RankingPage = () => {
           ...(token && { 'Authorization': `Bearer ${token}` })
         };
 
-        const response = await fetch('http://localhost:8080/api/user/ranking', {
+        const response = await fetch(`${API_URL}/api/user/ranking`, {
           method: 'GET',
           headers: headers,
         });
