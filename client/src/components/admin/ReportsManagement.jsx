@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import AlertModal from '../common/AlertModal';
 import API_URL from '../../apiConfig';
 
 const ReportsManagement = () => {
@@ -12,6 +13,14 @@ const ReportsManagement = () => {
     const [selectedUserId, setSelectedUserId] = useState(null);
     const [selectedReportId, setSelectedReportId] = useState(null); // Track which report triggered the mute
     const [muteDuration, setMuteDuration] = useState(3600); // Default 1 hour
+
+    // Alert Modal State
+    const [alertState, setAlertState] = useState({
+        isOpen: false,
+        type: 'success',
+        message: '',
+        subMessage: ''
+    });
 
     useEffect(() => {
         fetchReports();
@@ -75,7 +84,12 @@ const ReportsManagement = () => {
                 body: JSON.stringify({ duration: muteDuration })
             });
             
-            alert("Użytkownik został wyciszony.");
+            setAlertState({
+                isOpen: true,
+                type: 'success',
+                message: 'Sukces',
+                subMessage: 'Użytkownik został wyciszony.'
+            });
             
             // Remove the report from the list after muting
             if (selectedReportId) {
@@ -85,7 +99,12 @@ const ReportsManagement = () => {
             setMuteModalOpen(false);
         } catch (err) {
             console.error("Error muting user", err);
-            alert("Błąd podczas wyciszania użytkownika.");
+            setAlertState({
+                isOpen: true,
+                type: 'danger',
+                message: 'Błąd',
+                subMessage: 'Nie udało się wyciszyć użytkownika.'
+            });
         }
     };
 
@@ -194,6 +213,14 @@ const ReportsManagement = () => {
                     </div>
                 </div>
             )}
+
+            <AlertModal 
+                isOpen={alertState.isOpen}
+                onClose={() => setAlertState({ ...alertState, isOpen: false })}
+                type={alertState.type}
+                message={alertState.message}
+                subMessage={alertState.subMessage}
+            />
         </div>
     );
 };

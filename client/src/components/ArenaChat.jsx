@@ -11,6 +11,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
     const [newMessage, setNewMessage] = useState('');
     const messagesEndRef = useRef(null);
     const [userData, setUserData] = useState(null);
+    const [isSending, setIsSending] = useState(false);
     
     // Modal states
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
@@ -66,26 +67,35 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
     }, [messages, isOpen]);
 
     const formatTimeRemaining = (mutedUntil) => {
-        const end = new Date(mutedUntil);
+        // Ensure the date string is treated as UTC if it doesn't have timezone info
+        let dateStr = mutedUntil;
+        if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
+            dateStr += 'Z';
+        }
+
+        const end = new Date(dateStr);
         const now = new Date();
         const diff = end - now;
 
-        if (diff <= 0) return "Blokada wygasła.";
+        if (diff <= 0) return "Blokada wygasła (odśwież stronę).";
 
         const days = Math.floor(diff / (1000 * 60 * 60 * 24));
         const hours = Math.floor((diff % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
         const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        const seconds = Math.floor((diff % (1000 * 60)) / 1000);
 
         if (days > 365) return "Blokada stała.";
         if (days > 0) return `${days} dni, ${hours} godz.`;
         if (hours > 0) return `${hours} godz., ${minutes} min.`;
-        return `${minutes} min.`;
+        if (minutes > 0) return `${minutes} min., ${seconds} sek.`;
+        return `${seconds} sek.`;
     };
 
     const handleSendMessage = async (e) => {
         e.preventDefault();
-        if (!newMessage.trim()) return;
+        if (!newMessage.trim() || isSending) return;
 
+        setIsSending(true);
         try {
             const response = await fetch(`${API_URL}/api/chat/${gameId}/send`, {
                 method: 'POST',
@@ -122,6 +132,8 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
             }
         } catch (err) {
             console.error("Failed to send message", err);
+        } finally {
+            setIsSending(false);
         }
     };
 
@@ -210,8 +222,9 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
                             onChange={(e) => setNewMessage(e.target.value)}
                             placeholder="Napisz wiadomość..."
                             maxLength={500}
+                            disabled={isSending}
                         />
-                        <button type="submit">
+                        <button type="submit" disabled={isSending} style={{ opacity: isSending ? 0.5 : 1 }}>
                             <i className="fas fa-paper-plane"></i>
                         </button>
                     </form>

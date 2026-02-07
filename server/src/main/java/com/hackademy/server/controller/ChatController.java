@@ -40,6 +40,10 @@ public class ChatController {
             // Check if it's a mute message
             if (e.getMessage().startsWith("User is muted until")) {
                 String dateStr = e.getMessage().replace("User is muted until ", "");
+                // Append Z to indicate UTC if not present, so frontend parses it correctly as UTC
+                if (!dateStr.endsWith("Z")) {
+                    dateStr += "Z";
+                }
                 return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
                     "message", "User is muted",
                     "mutedUntil", dateStr
