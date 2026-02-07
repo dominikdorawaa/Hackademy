@@ -26,11 +26,13 @@ com\hackademy\server\dto\CreateRoomRequest.class
 com\hackademy\server\service\BadgeService.class
 com\hackademy\server\config\SecurityConfig.class
 com\hackademy\server\model\UserSolvedRoom.class
+com\hackademy\server\model\ChatMessage$ChatMessageBuilder.class
 com\hackademy\server\dto\RoomAdminDto$RoomAdminDtoBuilder.class
 com\hackademy\server\model\Friendship.class
 com\hackademy\server\dto\UserProfileDto$UserProfileDtoBuilder.class
 com\hackademy\server\service\MatchmakingServiceImpl.class
 com\hackademy\server\repository\FriendshipRepository.class
+com\hackademy\server\service\ChatService.class
 com\hackademy\server\ServerApplication.class
 com\hackademy\server\repository\UserBadgeRepository.class
 com\hackademy\server\controller\BadgeController.class
@@ -46,6 +48,7 @@ com\hackademy\server\service\MatchmakingServiceImpl$PlayerInfo.class
 com\hackademy\server\dto\BadgeDto.class
 com\hackademy\server\model\UserBadge.class
 com\hackademy\server\model\UserUnlockedHint.class
+com\hackademy\server\repository\ChatMessageRepository.class
 com\hackademy\server\service\FriendshipServiceImpl.class
 com\hackademy\server\service\UserServiceImpl.class
 com\hackademy\server\model\RoomFile.class
@@ -65,6 +68,7 @@ com\hackademy\server\controller\AuthController.class
 com\hackademy\server\model\FriendshipStatus.class
 com\hackademy\server\model\DifficultyLevel.class
 com\hackademy\server\dto\RoomDetailDto.class
+com\hackademy\server\model\ChatMessage.class
 com\hackademy\server\dto\RoomDto$RoomDtoBuilder.class
 com\hackademy\server\service\RoomServiceImpl.class
 com\hackademy\server\dto\RoomAdminDto.class
@@ -73,6 +77,8 @@ com\hackademy\server\dto\RankingEntry.class
 com\hackademy\server\dto\UserProfileDto.class
 com\hackademy\server\controller\FriendshipController.class
 com\hackademy\server\dto\UpdateUserRoleRequest.class
+com\hackademy\server\service\ChatServiceImpl.class
+com\hackademy\server\controller\ChatController.class
 com\hackademy\server\service\JwtService.class
 com\hackademy\server\dto\UpdateRoomRequest.class
 com\hackademy\server\controller\RoomController.class

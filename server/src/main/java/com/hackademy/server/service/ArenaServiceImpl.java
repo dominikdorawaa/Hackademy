@@ -28,6 +28,7 @@ public class ArenaServiceImpl implements ArenaService {
     private final RoomRepository roomRepository;
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
+    private final ChatService chatService;
 
     // In-memory storage
     private final Map<String, GameSession> activeGames = new ConcurrentHashMap<>();
@@ -76,6 +77,9 @@ public class ArenaServiceImpl implements ArenaService {
                     friendshipRepository.save(f);
                 }
             }
+            
+            // Cleanup chat (keep reported messages)
+            chatService.cleanupChat(gameId);
         }
     }
 

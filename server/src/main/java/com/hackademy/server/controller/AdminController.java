@@ -4,7 +4,9 @@ import com.hackademy.server.dto.CreateRoomRequest;
 import com.hackademy.server.dto.RoomAdminDto;
 import com.hackademy.server.dto.UpdateUserRoleRequest;
 import com.hackademy.server.dto.UserAdminView;
+import com.hackademy.server.model.ChatMessage;
 import com.hackademy.server.model.Room;
+import com.hackademy.server.service.ChatService;
 import com.hackademy.server.service.RoomService;
 import com.hackademy.server.service.UserService;
 import jakarta.validation.Valid;
@@ -17,6 +19,7 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -27,6 +30,7 @@ public class AdminController {
 
     private final RoomService roomService;
     private final UserService userService;
+    private final ChatService chatService;
 
     @PostMapping(value = "/rooms", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
     @ResponseStatus(HttpStatus.CREATED)
@@ -78,6 +82,33 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public UserAdminView updateUserRole(@PathVariable Long id, @Valid @RequestBody UpdateUserRoleRequest request) {
         return userService.updateUserRole(id, request.getRole());
+    }
+
+    @PostMapping("/users/{id}/mute")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void muteUser(@PathVariable Long id, @RequestBody Map<String, Long> payload) {
+        Long duration = payload.get("duration"); // in seconds
+        userService.muteUser(id, duration);
+    }
+
+    // Chat Reports Endpoints
+
+    @GetMapping("/reports")
+    @PreAuthorize("hasRole('ADMIN')")
+    public List<ChatMessage> getReportedMessages() {
+        return chatService.getReportedMessages();
+    }
+
+    @DeleteMapping("/reports/{messageId}")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deleteReportedMessage(@PathVariable Long messageId) {
+        chatService.deleteMessage(messageId);
+    }
+
+    @PostMapping("/reports/{messageId}/dismiss")
+    @PreAuthorize("hasRole('ADMIN')")
+    public void dismissReport(@PathVariable Long messageId) {
+        chatService.dismissReport(messageId);
     }
 
     private RoomAdminDto mapToAdminDto(Room room) {

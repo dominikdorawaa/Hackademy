@@ -156,6 +156,39 @@ public class DatabaseMigration implements CommandLineRunner {
                     "END $$;");
             System.out.println("Migration 12 completed.");
 
+            // Migration 13: Create chat_messages table
+            System.out.println("Migration 13: Creating chat_messages table...");
+            jdbcTemplate.execute("CREATE TABLE IF NOT EXISTS chat_messages (" +
+                    "id BIGSERIAL PRIMARY KEY, " +
+                    "game_id VARCHAR(255) NOT NULL, " +
+                    "sender_id BIGINT NOT NULL, " +
+                    "sender_username VARCHAR(255) NOT NULL, " +
+                    "content VARCHAR(500) NOT NULL, " +
+                    "reported BOOLEAN NOT NULL DEFAULT FALSE, " +
+                    "timestamp TIMESTAMP NOT NULL DEFAULT NOW()" +
+                    ")");
+            System.out.println("Migration 13 completed.");
+
+            // Migration 14: Add reported column to chat_messages if missing (Fix for existing tables)
+            System.out.println("Migration 14: Checking for reported column in chat_messages...");
+            jdbcTemplate.execute("DO $$ " +
+                    "BEGIN " +
+                    "    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='chat_messages' AND column_name='reported') THEN " +
+                    "        ALTER TABLE chat_messages ADD COLUMN reported BOOLEAN NOT NULL DEFAULT FALSE; " +
+                    "    END IF; " +
+                    "END $$;");
+            System.out.println("Migration 14 completed.");
+
+            // Migration 15: Add muted_until column to users
+            System.out.println("Migration 15: Adding muted_until column to users...");
+            jdbcTemplate.execute("DO $$ " +
+                    "BEGIN " +
+                    "    IF NOT EXISTS (SELECT 1 FROM information_schema.columns WHERE table_name='users' AND column_name='muted_until') THEN " +
+                    "        ALTER TABLE users ADD COLUMN muted_until TIMESTAMP; " +
+                    "    END IF; " +
+                    "END $$;");
+            System.out.println("Migration 15 completed.");
+
             System.out.println("All migrations completed successfully.");
 
         } catch (Exception e) {

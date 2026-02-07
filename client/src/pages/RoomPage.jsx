@@ -5,6 +5,7 @@ import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
 import ArenaResultModal from '../components/common/ArenaResultModal';
+import ArenaChat from '../components/ArenaChat';
 import API_URL from '../apiConfig';
 import './RoomPage.css';
 
@@ -42,6 +43,7 @@ const RoomPage = () => {
   const [elapsedTime, setElapsedTime] = useState(0);
   const [penaltyTime, setPenaltyTime] = useState(0);
   const [userData, setUserData] = useState(null);
+  const [isChatOpen, setIsChatOpen] = useState(false);
   
   // Training Mode State
   const [isTrainingMode, setIsTrainingMode] = useState(false);
@@ -400,6 +402,13 @@ const RoomPage = () => {
 
   return (
     <div className="room-page-container container">
+      {isArenaMode && (
+          <ArenaChat 
+              gameId={arenaGameId} 
+              isOpen={isChatOpen} 
+              toggleChat={() => setIsChatOpen(!isChatOpen)} 
+          />
+      )}
       <div className="room-header">
         <button onClick={() => navigate(isArenaMode ? '/arena' : '/dashboard')} className="back-btn">
             &larr; Powrót

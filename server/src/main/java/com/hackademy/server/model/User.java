@@ -76,6 +76,9 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role = Role.USER;
 
+    @Column(name = "muted_until")
+    private LocalDateTime mutedUntil;
+
     // REMOVED @ManyToMany relation to use manual UserSolvedRoom entity management
 
     @Override

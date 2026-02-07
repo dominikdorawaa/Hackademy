@@ -18,6 +18,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 
+import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -174,6 +175,20 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return user.getId();
+    }
+
+    @Override
+    public void muteUser(Long userId, long durationInSeconds) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        
+        if (durationInSeconds == -1) {
+            // Permanent mute (e.g., 100 years)
+            user.setMutedUntil(LocalDateTime.now().plusYears(100));
+        } else {
+            user.setMutedUntil(LocalDateTime.now().plusSeconds(durationInSeconds));
+        }
+        userRepository.save(user);
     }
 
     private UserAdminView mapUserToUserAdminView(User user) {
