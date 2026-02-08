@@ -294,12 +294,20 @@ const PublicProfilePage = () => {
                                         justifyContent: 'center',
                                         color: '#ffd700',
                                         border: '2px solid #444',
-                                        fontSize: '1.5rem'
+                                        fontSize: '1.5rem',
+                                        cursor: 'pointer', // Changed from help to pointer
+                                        position: 'relative' // Ensure tooltip positioning context
                                     }}>
-                                        <i className={badge.icon}></i>
-                                        <div className="badge-tooltip">
+                                        <i className={badge.icon} style={{
+                                            opacity: badge.earned ? 1 : 0.3, // Apply opacity only to icon
+                                            filter: badge.earned ? 'none' : 'grayscale(100%)'
+                                        }}></i>
+                                        <div className="badge-tooltip"> {/* Removed inline styles that hid tooltip */}
                                             <span className="badge-name">{badge.name}</span>
                                             <span className="badge-desc">{badge.description}</span>
+                                            <span className="badge-rarity" style={{ display: 'block', marginTop: '5px', fontSize: '0.8rem', color: '#aaa' }}>
+                                                Posiada: {badge.rarityPercentage ? badge.rarityPercentage.toFixed(1) : 0}% graczy
+                                            </span>
                                         </div>
                                     </div>
                                 ))

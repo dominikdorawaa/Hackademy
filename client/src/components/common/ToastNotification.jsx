@@ -11,6 +11,12 @@ const ToastNotification = ({ message, type = 'success', onClose }) => {
 
   const bgColor = type === 'success' ? '#2ecc71' : '#e74c3c';
   const icon = type === 'success' ? 'fas fa-trophy' : 'fas fa-exclamation-circle';
+  
+  // Determine title based on message content or type
+  let title = "Powiadomienie";
+  if (message.includes("odznakę")) title = "Nowa Odznaka!";
+  else if (type === 'success') title = "Sukces";
+  else if (type === 'error') title = "Błąd";
 
   return (
     <div style={{
@@ -25,7 +31,7 @@ const ToastNotification = ({ message, type = 'success', onClose }) => {
       display: 'flex',
       alignItems: 'center',
       gap: '15px',
-      zIndex: 1000,
+      zIndex: 2000, /* Increased z-index to be above modals */
       animation: 'slideIn 0.3s ease-out'
     }}>
       <div style={{ 
@@ -41,7 +47,7 @@ const ToastNotification = ({ message, type = 'success', onClose }) => {
         <i className={icon}></i>
       </div>
       <div>
-        <h4 style={{ margin: '0 0 5px 0', fontSize: '1rem', color: 'white' }}>Nowa Odznaka!</h4>
+        <h4 style={{ margin: '0 0 5px 0', fontSize: '1rem', color: 'white' }}>{title}</h4>
         <p style={{ margin: 0, fontSize: '0.9rem', color: '#ccc' }}>{message}</p>
       </div>
       <button onClick={onClose} style={{ background: 'none', border: 'none', color: '#aaa', cursor: 'pointer', fontSize: '1rem' }}>

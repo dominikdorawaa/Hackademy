@@ -257,7 +257,7 @@ const ProfilePage = () => {
                                 <p style={{ fontSize: '0.8rem', color: '#666' }}>Brak odznak</p>
                             ) : (
                                 badges.map(badge => (
-                                    <div key={badge.id} title={`${badge.name}: ${badge.description}`} style={{ 
+                                    <div key={badge.id} className="badge-container" style={{ 
                                         width: '40px', 
                                         height: '40px', 
                                         backgroundColor: badge.earned ? '#333' : '#222', 
@@ -267,11 +267,20 @@ const ProfilePage = () => {
                                         justifyContent: 'center',
                                         color: badge.earned ? '#ffd700' : '#555',
                                         border: badge.earned ? '1px solid #444' : '1px dashed #333',
-                                        cursor: 'help',
-                                        opacity: badge.earned ? 1 : 0.5,
-                                        filter: badge.earned ? 'none' : 'grayscale(100%)'
+                                        cursor: 'pointer',
+                                        position: 'relative' // Ensure tooltip positioning context
                                     }}>
-                                        <i className={badge.icon}></i>
+                                        <i className={badge.icon} style={{
+                                            opacity: badge.earned ? 1 : 0.3, // Apply opacity only to icon
+                                            filter: badge.earned ? 'none' : 'grayscale(100%)'
+                                        }}></i>
+                                        <div className="badge-tooltip"> {/* Removed inline styles that hid tooltip */}
+                                            <span className="badge-name">{badge.name}</span>
+                                            <span className="badge-desc">{badge.description}</span>
+                                            <span className="badge-rarity" style={{ display: 'block', marginTop: '5px', fontSize: '0.8rem', color: '#aaa' }}>
+                                                Posiada: {badge.rarityPercentage ? badge.rarityPercentage.toFixed(1) : 0}% graczy
+                                            </span>
+                                        </div>
                                     </div>
                                 ))
                             )}

@@ -324,8 +324,23 @@ const FriendsPage = () => {
                                     </div>
                                     
                                     <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-                                        <Link to={`/profile/${friend.username}`} className="btn btn-outline" style={{ flex: 1, fontSize: '0.8rem', padding: '8px' }}>
-                                            Profil
+                                        <Link 
+                                            to={`/profile/${friend.username}`} 
+                                            className="btn" 
+                                            style={{ 
+                                                flex: 1, 
+                                                fontSize: '0.8rem', 
+                                                padding: '8px',
+                                                backgroundColor: '#333',
+                                                color: '#fff',
+                                                border: '1px solid #555',
+                                                display: 'flex',
+                                                alignItems: 'center',
+                                                justifyContent: 'center',
+                                                gap: '5px'
+                                            }}
+                                        >
+                                            <i className="fas fa-user"></i> Profil
                                         </Link>
                                         <button 
                                             onClick={() => handleChallenge(friend.username)} 

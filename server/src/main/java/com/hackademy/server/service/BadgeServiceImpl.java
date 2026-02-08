@@ -6,6 +6,7 @@ import com.hackademy.server.model.User;
 import com.hackademy.server.model.UserBadge;
 import com.hackademy.server.repository.BadgeRepository;
 import com.hackademy.server.repository.UserBadgeRepository;
+import com.hackademy.server.repository.UserRepository;
 import com.hackademy.server.repository.UserSolvedRoomRepository;
 import com.hackademy.server.repository.FriendshipRepository;
 import com.hackademy.server.model.FriendshipStatus;
@@ -14,6 +15,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.stream.Collectors;
@@ -26,19 +28,32 @@ public class BadgeServiceImpl implements BadgeService {
     private final UserBadgeRepository userBadgeRepository;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
     private final FriendshipRepository friendshipRepository;
+    private final UserRepository userRepository;
 
     @Override
     @Transactional(readOnly = true)
     public List<BadgeDto> getUserBadges(Long userId) {
+        long totalUsers = userRepository.count();
+        if (totalUsers == 0) totalUsers = 1;
+
+        // Fetch all badge counts in one query
+        Map<Long, Long> badgeCounts = getBadgeCountsMap();
+
+        long finalTotalUsers = totalUsers;
         return userBadgeRepository.findByUser_Id(userId).stream()
-                .map(ub -> new BadgeDto(
-                        ub.getBadge().getId(),
-                        ub.getBadge().getName(),
-                        ub.getBadge().getDescription(),
-                        ub.getBadge().getIcon(),
-                        ub.getEarnedAt(),
-                        true
-                ))
+                .map(ub -> {
+                    long count = badgeCounts.getOrDefault(ub.getBadge().getId(), 0L);
+                    double rarity = ((double) count / finalTotalUsers) * 100.0;
+                    return new BadgeDto(
+                            ub.getBadge().getId(),
+                            ub.getBadge().getName(),
+                            ub.getBadge().getDescription(),
+                            ub.getBadge().getIcon(),
+                            ub.getEarnedAt(),
+                            true,
+                            rarity
+                    );
+                })
                 .collect(Collectors.toList());
     }
 
@@ -51,16 +66,27 @@ public class BadgeServiceImpl implements BadgeService {
         Map<Long, UserBadge> earnedMap = userBadges.stream()
                 .collect(Collectors.toMap(ub -> ub.getBadge().getId(), ub -> ub));
 
+        long totalUsers = userRepository.count();
+        if (totalUsers == 0) totalUsers = 1;
+
+        // Fetch all badge counts in one query
+        Map<Long, Long> badgeCounts = getBadgeCountsMap();
+
+        long finalTotalUsers = totalUsers;
         return allBadges.stream()
                 .map(badge -> {
                     UserBadge ub = earnedMap.get(badge.getId());
+                    long count = badgeCounts.getOrDefault(badge.getId(), 0L);
+                    double rarity = ((double) count / finalTotalUsers) * 100.0;
+                    
                     return new BadgeDto(
                             badge.getId(),
                             badge.getName(),
                             badge.getDescription(),
                             badge.getIcon(),
                             ub != null ? ub.getEarnedAt() : null,
-                            ub != null
+                            ub != null,
+                            rarity
                     );
                 })
                 .collect(Collectors.toList());
@@ -71,6 +97,11 @@ public class BadgeServiceImpl implements BadgeService {
     public List<BadgeDto> checkAndAwardBadges(User user) {
         List<Badge> allBadges = badgeRepository.findAll();
         List<BadgeDto> newBadges = new ArrayList<>();
+        long totalUsers = userRepository.count();
+        if (totalUsers == 0) totalUsers = 1;
+
+        // Fetch counts once
+        Map<Long, Long> badgeCounts = getBadgeCountsMap();
 
         for (Badge badge : allBadges) {
             if (userBadgeRepository.existsByUser_IdAndBadge_Id(user.getId(), badge.getId())) {
@@ -106,17 +137,34 @@ public class BadgeServiceImpl implements BadgeService {
             if (earned) {
                 UserBadge userBadge = new UserBadge(user, badge);
                 userBadgeRepository.save(userBadge);
+                
+                long count = badgeCounts.getOrDefault(badge.getId(), 0L);
+                // Add +1 for the current user who just earned it
+                double rarity = ((double) (count + 1) / totalUsers) * 100.0;
+
                 newBadges.add(new BadgeDto(
                         badge.getId(),
                         badge.getName(),
                         badge.getDescription(),
                         badge.getIcon(),
                         userBadge.getEarnedAt(),
-                        true
+                        true,
+                        rarity
                 ));
             }
         }
 
         return newBadges;
+    }
+
+    private Map<Long, Long> getBadgeCountsMap() {
+        List<Object[]> results = userBadgeRepository.countAllBadges();
+        Map<Long, Long> counts = new HashMap<>();
+        for (Object[] result : results) {
+            Long badgeId = (Long) result[0];
+            Long count = (Long) result[1];
+            counts.put(badgeId, count);
+        }
+        return counts;
     }
 }
