@@ -24,4 +24,5 @@ public interface UserService {
     List<UserSearchDto> searchUsers(String query, Long currentUserId);
     Long getUserIdByUsername(String username);
     void muteUser(Long userId, long durationInSeconds);
+    RankingEntry getUserRank(Long userId); // New method
 }

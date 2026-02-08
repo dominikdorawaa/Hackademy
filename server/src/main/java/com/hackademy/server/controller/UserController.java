@@ -92,6 +92,13 @@ public class UserController {
         return ResponseEntity.ok(ranking);
     }
 
+    @GetMapping("/me/rank")
+    public ResponseEntity<RankingEntry> getMyRank() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        RankingEntry rank = userService.getUserRank(user.getId());
+        return ResponseEntity.ok(rank);
+    }
+
     @GetMapping("/{username}")
     public ResponseEntity<UserProfileDto> getPublicProfile(@PathVariable String username) {
         UserProfileDto profile = userService.getPublicProfile(username);

@@ -105,7 +105,8 @@ public class UserServiceImpl implements UserService {
                 .sorted((u1, u2) -> Integer.compare(u2.getPoints(), u1.getPoints()))
                 .limit(100)
                 .map(user -> new RankingEntry(
-                        0, // Rank placeholder, frontend will calculate
+                        0, // Rank Points placeholder
+                        0, // Rank Elo placeholder
                         user.getUsername(),
                         user.getPoints(),
                         user.getElo()
@@ -191,6 +192,20 @@ public class UserServiceImpl implements UserService {
             user.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).plusSeconds(durationInSeconds));
         }
         userRepository.save(user);
+    }
+
+    @Override
+    public RankingEntry getUserRank(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        
+        // Calculate rank based on points
+        long rankPoints = userRepository.countByPointsGreaterThan(user.getPoints()) + 1;
+        
+        // Calculate rank based on ELO
+        long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
+        
+        return new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo());
     }
 
     private UserAdminView mapUserToUserAdminView(User user) {
