@@ -160,11 +160,13 @@ const Navbar = () => {
         });
         if (res.ok) {
             const session = await res.json();
-            navigate(`/arena?game=${session.id}`);
             setIsNotificationsOpen(false);
             // Remove from list
             setNotifications(prev => prev.filter(n => !(n.type === 'CHALLENGE' && n.id === challengeId)));
             setUnreadCount(prev => Math.max(0, prev - 1));
+            
+            // Force full page reload to ensure clean state and navigation
+            window.location.href = `/rooms/${session.roomId}?arena=${session.id}`;
         }
     } catch (err) {
         console.error(err);

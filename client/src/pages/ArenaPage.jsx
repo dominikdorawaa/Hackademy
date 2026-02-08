@@ -101,6 +101,14 @@ const ArenaPage = () => {
                                     setGameSession(null);
                                 }
                             } else {
+                                // Active game found!
+                                
+                                // If we were CHALLENGING (waiting for friend to accept), auto-join!
+                                if (status === 'CHALLENGING') {
+                                    window.location.href = `/rooms/${session.roomId}?arena=${session.id}`;
+                                    return; // Stop processing
+                                }
+
                                 // Active game or other status
                                 setGameSession(session);
                                 setStatus('GAME');
@@ -227,6 +235,7 @@ const ArenaPage = () => {
     };
 
     const handleAcceptChallenge = async (challengeId) => {
+        console.log("Accepting challenge:", challengeId);
         if (processingChallengeId === challengeId || acceptedChallenges.includes(challengeId)) return; // Prevent double click
         setProcessingChallengeId(challengeId);
 
@@ -235,16 +244,21 @@ const ArenaPage = () => {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
+            
+            console.log("Accept response status:", response.status);
+            
             if (response.ok) {
                 const session = await response.json();
+                console.log("Session created:", session);
+                
                 setAcceptedChallenges(prev => [...prev, challengeId]);
-                setGameSession(session);
-                setStatus('GAME');
-                finishedGameIdRef.current = null;
-                // Remove accepted challenge from list
-                setChallenges(prev => prev.filter(c => c.id !== challengeId));
+                
+                // Force full page reload to ensure clean state and navigation
+                window.location.href = `/rooms/${session.roomId}?arena=${session.id}`;
+                
             } else {
                 const data = await response.json();
+                console.error("Accept failed:", data);
                 alert(data.message);
             }
         } catch (err) {

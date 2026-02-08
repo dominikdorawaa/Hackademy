@@ -82,11 +82,11 @@ public class ArenaController {
             // Check if game is finished or waiting
             GameSession session = arenaService.getGameSession(gameId);
             if ("WAITING_FOR_OPPONENT".equals(session.getStatus())) {
-                 return ResponseEntity.ok(Map.of("message", "Correct flag! Waiting for opponent to finish...", "success", true, "status", "WAITING"));
+                 return ResponseEntity.ok(Map.of("message", "Poprawna flaga! Czekanie na wynik przeciwnika (z powodu Twoich kar czasowych)...", "success", true, "status", "WAITING"));
             }
-            return ResponseEntity.ok(Map.of("message", "Correct flag! You won!", "success", true, "status", "FINISHED"));
+            return ResponseEntity.ok(Map.of("message", "Poprawna flaga! Wygrałeś!", "success", true, "status", "FINISHED"));
         } else {
-            return ResponseEntity.badRequest().body(Map.of("message", "Incorrect flag", "success", false));
+            return ResponseEntity.badRequest().body(Map.of("message", "Niepoprawna flaga", "success", false));
         }
     }
     

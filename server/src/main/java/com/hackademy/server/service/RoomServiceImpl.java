@@ -232,7 +232,7 @@ public class RoomServiceImpl implements RoomService {
         if (room.getFlag().equals(flag)) {
             if (alreadySolved) {
                 // If already solved, return success but 0 points and no new badges
-                return new SolveRoomResponse(true, "Correct flag! (Training mode - 0 points)", 0, new ArrayList<>());
+                return new SolveRoomResponse(true, "Poprawna flaga! (Tryb treningowy - 0 pkt)", 0, new ArrayList<>());
             }
 
             long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), room.getId());
@@ -270,10 +270,10 @@ public class RoomServiceImpl implements RoomService {
             // Check for badges
             List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
 
-            return new SolveRoomResponse(true, "Correct flag!", (int) pointsToAward, newBadges);
+            return new SolveRoomResponse(true, "Poprawna flaga!", (int) pointsToAward, newBadges);
         }
 
-        return new SolveRoomResponse(false, "Incorrect flag", 0, new ArrayList<>());
+        return new SolveRoomResponse(false, "Niepoprawna flaga", 0, new ArrayList<>());
     }
 
     @Override

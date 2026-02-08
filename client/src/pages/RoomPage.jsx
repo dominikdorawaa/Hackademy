@@ -342,11 +342,11 @@ const RoomPage = () => {
         
       } else {
         setSubmitStatus('error');
-        setSubmitMessage(data.message || 'Incorrect flag');
+        setSubmitMessage(data.message || 'Niepoprawna flaga'); // Changed default message to Polish
       }
     } catch (err) {
       setSubmitStatus('error');
-      setSubmitMessage('Network error');
+      setSubmitMessage('Błąd sieci'); // Changed to Polish
     }
   };
 

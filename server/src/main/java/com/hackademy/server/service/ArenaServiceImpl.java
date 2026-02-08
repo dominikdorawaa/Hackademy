@@ -166,8 +166,9 @@ public class ArenaServiceImpl implements ArenaService {
         }
 
         if (room.getFlag().equals(flag)) {
+            LocalDateTime now = LocalDateTime.now();
             // Mark user as finished
-            session.getFinishTimes().put(userId, LocalDateTime.now());
+            session.getFinishTimes().put(userId, now);
             
             Long opponentId = session.getPlayer1Id().equals(userId) ? session.getPlayer2Id() : session.getPlayer1Id();
             
@@ -184,10 +185,24 @@ public class ArenaServiceImpl implements ArenaService {
                 }
             } else {
                 // Opponent hasn't finished yet.
-                // We ALWAYS wait for opponent unless they already lost by time.
-                // But since we don't know if they will take hints or finish instantly, we just wait.
-                // The scheduled task will handle the timeout logic.
-                session.setStatus("WAITING_FOR_OPPONENT");
+                // Calculate scores to see if we can declare winner immediately
+                long userDuration = java.time.Duration.between(session.getStartTime(), now).getSeconds();
+                long userPenalties = session.getPenaltiesInSeconds().getOrDefault(userId, 0L);
+                long userTotalScore = userDuration + userPenalties;
+                
+                long opponentCurrentDuration = java.time.Duration.between(session.getStartTime(), now).getSeconds();
+                long opponentPenalties = session.getPenaltiesInSeconds().getOrDefault(opponentId, 0L);
+                long opponentMinPossibleScore = opponentCurrentDuration + opponentPenalties;
+                
+                // If my score is better (lower) OR EQUAL to opponent's minimum possible score, I win immediately.
+                // Opponent's score can only increase from now on.
+                if (userTotalScore <= opponentMinPossibleScore) {
+                    finishGame(gameId, userId);
+                } else {
+                    // I have penalties that make my time worse than opponent's current time.
+                    // Opponent still has a chance to beat me if they finish quickly.
+                    session.setStatus("WAITING_FOR_OPPONENT");
+                }
             }
             return true;
         }
