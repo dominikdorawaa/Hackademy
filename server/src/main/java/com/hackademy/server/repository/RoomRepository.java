@@ -8,6 +8,7 @@ import org.springframework.data.jpa.repository.Query;
 import org.springframework.stereotype.Repository;
 
 import java.util.List;
+import java.util.Optional;
 
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
@@ -21,4 +22,11 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
            "r.id, r.title, r.category, r.difficulty, r.points) " +
            "FROM Room r")
     List<RoomAdminSummaryDto> findAllAdminSummaries();
+
+    // Native query for random room (PostgreSQL specific)
+    @Query(value = "SELECT * FROM rooms ORDER BY RANDOM() LIMIT 1", nativeQuery = true)
+    Optional<Room> findRandomRoom();
+
+    @Query("SELECT r.id FROM Room r")
+    List<Long> findAllIds();
 }

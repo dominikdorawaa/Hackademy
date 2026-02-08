@@ -36,41 +36,65 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     public void joinQueue(Long userId, String username) {
         // Check if already in queue
         if (queue.stream().noneMatch(p -> p.id.equals(userId))) {
+            System.out.println("Adding user to queue: " + username);
             queue.add(new PlayerInfo(userId, username));
+        } else {
+            System.out.println("User already in queue: " + username);
         }
     }
 
     @Override
     public void leaveQueue(Long userId) {
+        System.out.println("Removing user from queue: " + userId);
         queue.removeIf(p -> p.id.equals(userId));
     }
 
     @Override
-    public GameSession checkForMatch() {
-        if (queue.size() >= 2) {
+    public List<GameSession> checkForMatches() {
+        List<GameSession> newSessions = new ArrayList<>();
+        
+        if (queue.size() < 2) {
+            return newSessions;
+        }
+
+        System.out.println("Queue size: " + queue.size() + ". Attempting to match...");
+
+        // Fetch all room IDs (lightweight)
+        List<Long> roomIds = roomRepository.findAllIds();
+        if (roomIds.isEmpty()) {
+            System.out.println("No rooms found in database!");
+            return newSessions;
+        }
+
+        // Process queue until less than 2 players remain
+        while (queue.size() >= 2) {
+            // Select random room ID
+            Long randomRoomId = roomIds.get(new Random().nextInt(roomIds.size()));
+            Room randomRoom = roomRepository.findById(randomRoomId).orElse(null);
+            
+            if (randomRoom == null) {
+                System.out.println("Failed to fetch room with ID: " + randomRoomId);
+                break; 
+            }
+            
             PlayerInfo p1 = queue.poll();
             PlayerInfo p2 = queue.poll();
             
-            if (p1 == null || p2 == null) return null; // Should not happen
-
-            // Select random room
-            List<Room> rooms = roomRepository.findAll();
-            if (rooms.isEmpty()) {
-                // Put players back if no rooms
-                queue.add(p1);
-                queue.add(p2);
-                return null;
+            if (p1 == null || p2 == null) {
+                if (p1 != null) queue.add(p1);
+                if (p2 != null) queue.add(p2);
+                break;
             }
             
-            Room randomRoom = rooms.get(new Random().nextInt(rooms.size()));
-            
+            System.out.println("Matching " + p1.username + " vs " + p2.username);
+
             // Fetch users to get ELO
             User user1 = userRepository.findById(p1.id).orElse(null);
             User user2 = userRepository.findById(p2.id).orElse(null);
             
             if (user1 == null || user2 == null) {
-                 // Handle error case, maybe put valid user back
-                 return null;
+                 System.out.println("One of the users not found in DB");
+                 continue;
             }
 
             GameSession session = new GameSession();
@@ -93,8 +117,9 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             session.setFinishTimes(new HashMap<>());
             session.setPenaltiesInSeconds(new HashMap<>());
             
-            return session;
+            newSessions.add(session);
         }
-        return null;
+        
+        return newSessions;
     }
 }

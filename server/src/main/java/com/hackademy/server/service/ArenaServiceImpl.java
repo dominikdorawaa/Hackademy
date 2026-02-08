@@ -252,12 +252,15 @@ public class ArenaServiceImpl implements ArenaService {
             throw new IllegalArgumentException("Invalid challenge");
         }
 
-        // Create game session
-        List<Room> rooms = roomRepository.findAll();
-        if (rooms.isEmpty()) {
+        // Optimized: Fetch all room IDs and pick random one in Java
+        List<Long> roomIds = roomRepository.findAllIds();
+        if (roomIds.isEmpty()) {
             throw new IllegalStateException("No rooms available");
         }
-        Room randomRoom = rooms.get(new Random().nextInt(rooms.size()));
+        
+        Long randomRoomId = roomIds.get(new Random().nextInt(roomIds.size()));
+        Room randomRoom = roomRepository.findById(randomRoomId)
+                .orElseThrow(() -> new IllegalStateException("Failed to fetch room"));
         
         // Fetch users to get ELO
         User challenger = userRepository.findById(challenge.getChallengerId()).orElse(null);

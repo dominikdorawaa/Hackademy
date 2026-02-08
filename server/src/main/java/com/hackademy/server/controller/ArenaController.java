@@ -56,10 +56,10 @@ public class ArenaController {
         return ResponseEntity.noContent().build();
     }
 
-    @Scheduled(fixedRate = 2000)
+    @Scheduled(fixedRate = 500) // Check every 500ms
     public void processMatchmaking() {
-        GameSession session = matchmakingService.checkForMatch();
-        if (session != null) {
+        List<GameSession> sessions = matchmakingService.checkForMatches();
+        for (GameSession session : sessions) {
             arenaService.addGame(session);
         }
     }
