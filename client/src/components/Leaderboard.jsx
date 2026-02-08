@@ -1,8 +1,11 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 
-const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top Hakerzy' }) => {
+const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top Hakerzy', currentUsername, myRank }) => {
   const rankClasses = ['rank-1', 'rank-2', 'rank-3', 'rank-4'];
+
+  // Check if current user is in the top list
+  const isCurrentUserInTop = players.some(p => (p.username || p.name) === currentUsername);
 
   return (
     <section className="leaderboard-section" id="leaderboard" style={{ padding: showTitle ? '80px 0' : '0' }}>
@@ -22,38 +25,84 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
           {players.length === 0 ? (
             <p style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Brak graczy w rankingu.</p>
           ) : (
-            players.map((player, index) => (
-              <div key={index} className="leaderboard-card">
+            players.map((player, index) => {
+              const playerName = player.username || player.name;
+              const isMe = currentUsername && playerName === currentUsername;
+              const profileLink = isMe ? '/profile' : `/profile/${playerName}`;
+
+              return (
+                <div key={index} className={`leaderboard-card ${isMe ? 'highlight-me' : ''}`} style={isMe ? { border: '1px solid var(--primary-blue)' } : {}}>
+                  <div className="card-left">
+                    <div className={`rank-badge ${rankClasses[index] || rankClasses[3]}`}>{index + 1}</div>
+                    <div
+                      className="player-info"
+                      style={{ display: 'flex', alignItems: 'center' }}
+                    >
+                      <div className="player-avatar">
+                        <img
+                          src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${player.avatarSeed || playerName}`}
+                          alt="Avatar"
+                        />
+                      </div>
+                      <div className="player-details">
+                        <Link to={profileLink} style={{ textDecoration: 'none', color: 'inherit' }}>
+                          <h3 style={{ cursor: 'pointer' }}>
+                            {playerName} {isMe && <span style={{ fontSize: '0.8rem', color: 'var(--primary-blue)', marginLeft: '5px' }}>(Ty)</span>}
+                          </h3>
+                        </Link>
+                        <p>{player.title || 'Gracz'}</p>
+                      </div>
+                    </div>
+                  </div>
+                  <div className="player-score">
+                    <span>
+                        {type === 'points' 
+                            ? (player.points || player.score || 0).toLocaleString() 
+                            : (player.elo || 500).toLocaleString()}
+                    </span>
+                    <small>{type === 'points' ? 'punktów' : 'ELO'}</small>
+                  </div>
+                </div>
+              );
+            })
+          )}
+
+          {/* Show current user rank if not in top list and myRank is available */}
+          {!isCurrentUserInTop && myRank && (
+            <>
+              <div style={{ textAlign: 'center', margin: '10px 0', color: '#666' }}>...</div>
+              <div className="leaderboard-card highlight-me" style={{ border: '1px solid var(--primary-blue)', marginTop: '0' }}>
                 <div className="card-left">
-                  <div className={`rank-badge ${rankClasses[index] || rankClasses[3]}`}>{index + 1}</div>
-                  <div
-                    className="player-info"
-                    style={{ display: 'flex', alignItems: 'center' }}
-                  >
+                  <div className="rank-badge rank-4" style={{ backgroundColor: '#333', color: '#aaa' }}>
+                      {type === 'points' ? myRank.rankPoints : myRank.rankElo}
+                  </div>
+                  <div className="player-info" style={{ display: 'flex', alignItems: 'center' }}>
                     <div className="player-avatar">
                       <img
-                        src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${player.avatarSeed || player.username}`}
+                        src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${currentUsername}`}
                         alt="Avatar"
                       />
                     </div>
                     <div className="player-details">
-                      <Link to={`/profile/${player.username || player.name}`} style={{ textDecoration: 'none', color: 'inherit' }}>
-                        <h3 style={{ cursor: 'pointer' }}>{player.username || player.name}</h3>
+                      <Link to="/profile" style={{ textDecoration: 'none', color: 'inherit' }}>
+                        <h3 style={{ cursor: 'pointer' }}>
+                          {currentUsername} <span style={{ fontSize: '0.8rem', color: 'var(--primary-blue)', marginLeft: '5px' }}>(Ty)</span>
+                        </h3>
                       </Link>
-                      <p>{player.title || 'Gracz'}</p>
+                      <p>Gracz</p>
                     </div>
                   </div>
                 </div>
                 <div className="player-score">
                   <span>
                       {type === 'points' 
-                          ? (player.points || player.score || 0).toLocaleString() 
-                          : (player.elo || 500).toLocaleString()}
+                          ? myRank.points.toLocaleString() 
+                          : myRank.elo.toLocaleString()}
                   </span>
                   <small>{type === 'points' ? 'punktów' : 'ELO'}</small>
                 </div>
               </div>
-            ))
+            </>
           )}
         </div>
 

@@ -6,11 +6,13 @@ import API_URL from '../apiConfig';
 const RankingPage = () => {
   const { token } = useAuth();
   const [players, setPlayers] = useState([]);
+  const [currentUser, setCurrentUser] = useState(null);
+  const [myRank, setMyRank] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
   useEffect(() => {
-    const fetchRanking = async () => {
+    const fetchData = async () => {
       try {
         setLoading(true);
         setError(null);
@@ -20,28 +22,50 @@ const RankingPage = () => {
           ...(token && { 'Authorization': `Bearer ${token}` })
         };
 
-        const response = await fetch(`${API_URL}/api/user/ranking`, {
+        // Fetch Ranking
+        const rankingPromise = fetch(`${API_URL}/api/user/ranking`, {
           method: 'GET',
           headers: headers,
+        }).then(res => {
+            if (!res.ok) throw new Error('Failed to fetch ranking');
+            return res.json();
         });
 
-        if (response.ok) {
-          const data = await response.json();
-          setPlayers(data || []);
-        } else {
-          const errorMessage = await response.text();
-          console.error('Ranking fetch error:', response.status, errorMessage);
-          setError(`Failed to fetch ranking: ${errorMessage}`);
+        // Fetch Current User (if logged in)
+        let userPromise = Promise.resolve(null);
+        let rankPromise = Promise.resolve(null);
+        
+        if (token) {
+            userPromise = fetch(`${API_URL}/api/user/me`, {
+                headers: headers
+            }).then(res => {
+                if (!res.ok) return null;
+                return res.json();
+            });
+
+            rankPromise = fetch(`${API_URL}/api/user/me/rank`, {
+                headers: headers
+            }).then(res => {
+                if (!res.ok) return null;
+                return res.json();
+            });
         }
+
+        const [rankingData, userData, rankData] = await Promise.all([rankingPromise, userPromise, rankPromise]);
+
+        setPlayers(rankingData || []);
+        setCurrentUser(userData);
+        setMyRank(rankData);
+
       } catch (err) {
-        console.error("Failed to fetch ranking:", err);
+        console.error("Failed to fetch data:", err);
         setError('Network error: Could not connect to the server.');
       } finally {
         setLoading(false);
       }
     };
 
-    fetchRanking();
+    fetchData();
   }, [token]);
 
   if (loading) {
@@ -63,10 +87,12 @@ const RankingPage = () => {
   }
 
   // Sort players for Points Leaderboard
-  const pointsRanking = [...players].sort((a, b) => (b.points || 0) - (a.points || 0)).slice(0, 10);
+  const pointsRanking = [...players].sort((a, b) => (b.points || 0) - (a.points || 0));
+  const top10Points = pointsRanking.slice(0, 10);
 
   // Sort players for ELO Leaderboard
-  const eloRanking = [...players].sort((a, b) => (b.elo || 500) - (a.elo || 500)).slice(0, 10);
+  const eloRanking = [...players].sort((a, b) => (b.elo || 500) - (a.elo || 500));
+  const top10Elo = eloRanking.slice(0, 10);
 
   return (
     <div style={{ paddingTop: '40px', paddingBottom: '40px' }}>
@@ -81,18 +107,22 @@ const RankingPage = () => {
         }}>
             <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
                 <Leaderboard 
-                    players={pointsRanking} 
+                    players={top10Points} 
                     showTitle={false} 
                     type="points" 
                     title="Ranking Punktowy" 
+                    currentUsername={currentUser?.username}
+                    myRank={myRank}
                 />
             </div>
             <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
                 <Leaderboard 
-                    players={eloRanking} 
+                    players={top10Elo} 
                     showTitle={false} 
                     type="elo" 
                     title="Ranking Areny (ELO)" 
+                    currentUsername={currentUser?.username}
+                    myRank={myRank}
                 />
             </div>
         </div>
