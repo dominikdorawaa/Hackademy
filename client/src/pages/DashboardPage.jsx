@@ -5,6 +5,8 @@ import { useNavigate } from 'react-router-dom';
 import API_URL from '../apiConfig';
 import './DashboardPage.css';
 
+const ITEMS_PER_PAGE = 12;
+
 const DashboardPage = () => {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
@@ -20,6 +22,9 @@ const DashboardPage = () => {
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, UNSOLVED, SOLVED
   const [sortOption, setSortOption] = useState('NEWEST'); // NEWEST, OLDEST, POPULAR, POINTS_DESC, POINTS_ASC
+  
+  // Pagination State
+  const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -98,6 +103,7 @@ const DashboardPage = () => {
         return [...prev, difficulty];
       }
     });
+    setCurrentPage(1); // Reset to first page on filter change
   };
 
   const handleCategoryChange = (category) => {
@@ -108,6 +114,17 @@ const DashboardPage = () => {
         return [...prev, category];
       }
     });
+    setCurrentPage(1);
+  };
+
+  const handleStatusChange = (status) => {
+      setStatusFilter(status);
+      setCurrentPage(1);
+  };
+
+  const handleSortChange = (e) => {
+      setSortOption(e.target.value);
+      setCurrentPage(1);
   };
 
   // Filtering Logic
@@ -147,6 +164,16 @@ const DashboardPage = () => {
     }
   });
 
+  // Pagination Logic
+  const totalPages = Math.ceil(sortedRooms.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const currentRooms = sortedRooms.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handlePageChange = (pageNumber) => {
+      setCurrentPage(pageNumber);
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
   // Extract unique categories from rooms for filter options
   const availableCategories = [...new Set(rooms.map(room => room.category))].sort();
   // Default categories if none exist yet or to ensure order
@@ -180,127 +207,164 @@ const DashboardPage = () => {
   }
 
   return (
-    <div className="container dashboard-container">
-      {/* Sidebar Filters */}
-      <aside className="filters-sidebar">
-        <div className="filter-group">
-          <h3 className="filter-title"><i className="fas fa-layer-group"></i> Poziom Trudności</h3>
-          <div className="filter-options">
-            {['EASY', 'MEDIUM', 'HARD', 'INSANE'].map(diff => (
-              <label key={diff} className="filter-label">
+    <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      {/* Header Section - Full Width */}
+      <header className="rooms-header">
+        <div>
+          <h1 style={{ fontSize: '2rem', margin: 0 }}>Wyzwania CTF</h1>
+          <p className="results-count">Znaleziono: {sortedRooms.length}</p>
+        </div>
+        
+        <select 
+          className="sort-select"
+          value={sortOption}
+          onChange={handleSortChange}
+        >
+          <option value="NEWEST">Najnowsze</option>
+          <option value="OLDEST">Najstarsze</option>
+          <option value="POPULAR">Najpopularniejsze</option>
+          <option value="POINTS_DESC">Najwięcej punktów</option>
+          <option value="POINTS_ASC">Najmniej punktów</option>
+        </select>
+      </header>
+
+      {/* Main Grid Layout */}
+      <div className="dashboard-content-grid">
+        {/* Sidebar Filters */}
+        <aside className="filters-sidebar">
+          <div className="filter-group">
+            <h3 className="filter-title"><i className="fas fa-layer-group"></i> Poziom Trudności</h3>
+            <div className="filter-options">
+              {['EASY', 'MEDIUM', 'HARD', 'INSANE'].map(diff => (
+                <label key={diff} className="filter-label">
+                  <input 
+                    type="checkbox" 
+                    className="filter-checkbox"
+                    checked={selectedDifficulties.includes(diff)}
+                    onChange={() => handleDifficultyChange(diff)}
+                  />
+                  {diff === 'EASY' && 'Łatwy'}
+                  {diff === 'MEDIUM' && 'Średni'}
+                  {diff === 'HARD' && 'Trudny'}
+                  {diff === 'INSANE' && 'Niemożliwy'}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <h3 className="filter-title"><i className="fas fa-folder"></i> Kategoria</h3>
+            <div className="filter-options">
+              {categoriesToDisplay.map(cat => (
+                <label key={cat} className="filter-label">
+                  <input 
+                    type="checkbox" 
+                    className="filter-checkbox"
+                    checked={selectedCategories.includes(cat)}
+                    onChange={() => handleCategoryChange(cat)}
+                  />
+                  {cat}
+                </label>
+              ))}
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <h3 className="filter-title"><i className="fas fa-tasks"></i> Status</h3>
+            <div className="filter-options">
+              <label className="filter-label">
                 <input 
-                  type="checkbox" 
-                  className="filter-checkbox"
-                  checked={selectedDifficulties.includes(diff)}
-                  onChange={() => handleDifficultyChange(diff)}
+                  type="radio" 
+                  name="status"
+                  className="filter-checkbox" // Reusing checkbox style for radio
+                  style={{ borderRadius: '50%' }}
+                  checked={statusFilter === 'ALL'}
+                  onChange={() => handleStatusChange('ALL')}
                 />
-                {diff === 'EASY' && 'Łatwy'}
-                {diff === 'MEDIUM' && 'Średni'}
-                {diff === 'HARD' && 'Trudny'}
-                {diff === 'INSANE' && 'Niemożliwy'}
+                Wszystkie
               </label>
-            ))}
-          </div>
-        </div>
-
-        <div className="filter-group">
-          <h3 className="filter-title"><i className="fas fa-folder"></i> Kategoria</h3>
-          <div className="filter-options">
-            {categoriesToDisplay.map(cat => (
-              <label key={cat} className="filter-label">
+              <label className="filter-label">
                 <input 
-                  type="checkbox" 
+                  type="radio" 
+                  name="status"
                   className="filter-checkbox"
-                  checked={selectedCategories.includes(cat)}
-                  onChange={() => handleCategoryChange(cat)}
+                  style={{ borderRadius: '50%' }}
+                  checked={statusFilter === 'UNSOLVED'}
+                  onChange={() => handleStatusChange('UNSOLVED')}
                 />
-                {cat}
+                Do zrobienia
               </label>
-            ))}
+              <label className="filter-label">
+                <input 
+                  type="radio" 
+                  name="status"
+                  className="filter-checkbox"
+                  style={{ borderRadius: '50%' }}
+                  checked={statusFilter === 'SOLVED'}
+                  onChange={() => handleStatusChange('SOLVED')}
+                />
+                Ukończone
+              </label>
+            </div>
           </div>
-        </div>
+        </aside>
 
-        <div className="filter-group">
-          <h3 className="filter-title"><i className="fas fa-tasks"></i> Status</h3>
-          <div className="filter-options">
-            <label className="filter-label">
-              <input 
-                type="radio" 
-                name="status"
-                className="filter-checkbox" // Reusing checkbox style for radio
-                style={{ borderRadius: '50%' }}
-                checked={statusFilter === 'ALL'}
-                onChange={() => setStatusFilter('ALL')}
-              />
-              Wszystkie
-            </label>
-            <label className="filter-label">
-              <input 
-                type="radio" 
-                name="status"
-                className="filter-checkbox"
-                style={{ borderRadius: '50%' }}
-                checked={statusFilter === 'UNSOLVED'}
-                onChange={() => setStatusFilter('UNSOLVED')}
-              />
-              Do zrobienia
-            </label>
-            <label className="filter-label">
-              <input 
-                type="radio" 
-                name="status"
-                className="filter-checkbox"
-                style={{ borderRadius: '50%' }}
-                checked={statusFilter === 'SOLVED'}
-                onChange={() => setStatusFilter('SOLVED')}
-              />
-              Ukończone
-            </label>
-          </div>
-        </div>
-      </aside>
+        {/* Rooms Grid */}
+        <main className="rooms-list-container">
+          {roomsLoading ? (
+            <h2>Ładowanie pokoi...</h2>
+          ) : roomsError ? (
+            <h2>Błąd: {roomsError}</h2>
+          ) : (
+            <>
+              {sortedRooms.length === 0 ? (
+                <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)', backgroundColor: '#1e1e1e', borderRadius: '12px' }}>
+                  <h3>Brak pokoi spełniających kryteria.</h3>
+                </div>
+              ) : (
+                <>
+                    <div className="rooms-grid">
+                      {currentRooms.map(challenge => (
+                        <CTFCard key={challenge.id} challenge={challenge} />
+                      ))}
+                    </div>
 
-      {/* Main Content */}
-      <main className="rooms-content">
-        <header className="rooms-header">
-          <div>
-            <h1 style={{ fontSize: '2rem', margin: 0 }}>Wyzwania CTF</h1>
-            <p className="results-count">Znaleziono: {sortedRooms.length}</p>
-          </div>
-          
-          <select 
-            className="sort-select"
-            value={sortOption}
-            onChange={(e) => setSortOption(e.target.value)}
-          >
-            <option value="NEWEST">Najnowsze</option>
-            <option value="OLDEST">Najstarsze</option>
-            <option value="POPULAR">Najpopularniejsze</option>
-            <option value="POINTS_DESC">Najwięcej punktów</option>
-            <option value="POINTS_ASC">Najmniej punktów</option>
-          </select>
-        </header>
+                    {/* Pagination Controls */}
+                    {totalPages > 1 && (
+                        <div className="pagination-container">
+                            <button 
+                                onClick={() => handlePageChange(currentPage - 1)}
+                                disabled={currentPage === 1}
+                                className="pagination-btn"
+                            >
+                                <i className="fas fa-chevron-left"></i>
+                            </button>
+                            
+                            {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
+                                <button
+                                    key={page}
+                                    onClick={() => handlePageChange(page)}
+                                    className={`pagination-btn ${currentPage === page ? 'active' : ''}`}
+                                >
+                                    {page}
+                                </button>
+                            ))}
 
-        {roomsLoading ? (
-          <h2>Ładowanie pokoi...</h2>
-        ) : roomsError ? (
-          <h2>Błąd: {roomsError}</h2>
-        ) : (
-          <>
-            {sortedRooms.length === 0 ? (
-              <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)', backgroundColor: '#1e1e1e', borderRadius: '12px' }}>
-                <h3>Brak pokoi spełniających kryteria.</h3>
-              </div>
-            ) : (
-              <div className="rooms-grid">
-                {sortedRooms.map(challenge => (
-                  <CTFCard key={challenge.id} challenge={challenge} />
-                ))}
-              </div>
-            )}
-          </>
-        )}
-      </main>
+                            <button 
+                                onClick={() => handlePageChange(currentPage + 1)}
+                                disabled={currentPage === totalPages}
+                                className="pagination-btn"
+                            >
+                                <i className="fas fa-chevron-right"></i>
+                            </button>
+                        </div>
+                    )}
+                </>
+              )}
+            </>
+          )}
+        </main>
+      </div>
     </div>
   );
 };
