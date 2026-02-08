@@ -8,7 +8,7 @@ const ArenaPage = () => {
     const { token } = useAuth();
     const navigate = useNavigate();
     const [userData, setUserData] = useState(null);
-    const [status, setStatus] = useState('IDLE'); // IDLE, QUEUE, GAME, FINISHED
+    const [status, setStatus] = useState('IDLE'); // IDLE, QUEUE, GAME, FINISHED, CHALLENGING
     const [gameSession, setGameSession] = useState(null);
     const [error, setError] = useState(null);
     const [challenges, setChallenges] = useState([]);
@@ -71,11 +71,15 @@ const ArenaPage = () => {
     useEffect(() => {
         let interval;
         if (token) {
+            // Determine polling interval based on status
+            // Fast polling (500ms) when in QUEUE or CHALLENGING to find match quickly
+            // Slower polling (2000ms) when in GAME or IDLE
+            const pollInterval = (status === 'QUEUE' || status === 'CHALLENGING') ? 500 : 2000;
+
             interval = setInterval(async () => {
                 try {
-                    // Check game status ONLY if we are in QUEUE or GAME state
-                    // If IDLE, we don't want to accidentally join a game we just cancelled
-                    if (status === 'QUEUE' || status === 'GAME') {
+                    // Check game status ONLY if we are in QUEUE, GAME or CHALLENGING state
+                    if (status === 'QUEUE' || status === 'GAME' || status === 'CHALLENGING') {
                         const response = await fetch(`${API_URL}/api/arena/status`, {
                             headers: { 'Authorization': `Bearer ${token}` }
                         });
@@ -84,7 +88,7 @@ const ArenaPage = () => {
                             const session = await response.json();
                             
                             // Jeśli szukamy gry, interesują nas tylko aktywne sesje
-                            if (status === 'QUEUE' && session.status === 'FINISHED') {
+                            if ((status === 'QUEUE' || status === 'CHALLENGING') && session.status === 'FINISHED') {
                                 return; // Ignoruj stare zakończone gry
                             }
 
@@ -125,7 +129,7 @@ const ArenaPage = () => {
                 } catch (err) {
                     console.error("Polling error", err);
                 }
-            }, 2000);
+            }, pollInterval);
         }
         return () => clearInterval(interval);
     }, [status, token]);
@@ -167,9 +171,14 @@ const ArenaPage = () => {
                 setChallengedFriends(prev => [...prev, username]);
                 setShowFriendModal(false); // Close modal after successful challenge
                 
+                // Set status to CHALLENGING to enable polling for game start
+                setStatus('CHALLENGING');
+
                 // Remove from challenged list after 10 seconds to allow re-challenge if rejected
                 setTimeout(() => {
                     setChallengedFriends(prev => prev.filter(name => name !== username));
+                    // If still challenging after timeout, maybe reset status? 
+                    // For now let's keep it, user can cancel manually or wait.
                 }, 10000);
             } else {
                 const data = await response.json();
@@ -357,6 +366,18 @@ const ArenaPage = () => {
                                     Anuluj
                                 </button>
                                 <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
+                            </div>
+                        ) : status === 'CHALLENGING' ? (
+                            <div style={{ textAlign: 'center', margin: '40px 0' }}>
+                                <div className="spinner" style={{ 
+                                    width: '50px', height: '50px', border: '5px solid rgba(255,152,0,0.1)', 
+                                    borderTop: '5px solid #ff9800', borderRadius: '50%', 
+                                    animation: 'spin 1s linear infinite', margin: '0 auto 20px' 
+                                }}></div>
+                                <p>Oczekiwanie na akceptację wyzwania...</p>
+                                <button onClick={() => setStatus('IDLE')} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
+                                    Anuluj
+                                </button>
                             </div>
                         ) : (
                             <>
