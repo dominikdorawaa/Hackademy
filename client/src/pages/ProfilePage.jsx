@@ -10,6 +10,10 @@ const ProfilePage = () => {
     const [badges, setBadges] = useState([]);
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState(null);
+    
+    // UI State
+    const [showAllBadges, setShowAllBadges] = useState(false);
+    const BADGES_LIMIT = 6;
 
     // Form states
     const [newUsername, setNewUsername] = useState('');
@@ -191,6 +195,8 @@ const ProfilePage = () => {
     const nextLevelPoints = userLevel * 100;
     const progress = ((userPoints % 100) / 100) * 100;
 
+    const visibleBadges = showAllBadges ? badges : badges.slice(0, BADGES_LIMIT);
+
     return (
         <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', textAlign: 'center' }}>Twój Profil</h1>
@@ -256,7 +262,7 @@ const ProfilePage = () => {
                             {badges.length === 0 ? (
                                 <p style={{ fontSize: '0.8rem', color: '#666' }}>Brak odznak</p>
                             ) : (
-                                badges.map(badge => (
+                                visibleBadges.map(badge => (
                                     <div key={badge.id} className="badge-container" style={{ 
                                         width: '40px', 
                                         height: '40px', 
@@ -274,7 +280,7 @@ const ProfilePage = () => {
                                             opacity: badge.earned ? 1 : 0.3, // Apply opacity only to icon
                                             filter: badge.earned ? 'none' : 'grayscale(100%)'
                                         }}></i>
-                                        <div className="badge-tooltip"> {/* Removed inline styles that hid tooltip */}
+                                        <div className="badge-tooltip">
                                             <span className="badge-name">{badge.name}</span>
                                             <span className="badge-desc">{badge.description}</span>
                                             <span className="badge-rarity" style={{ display: 'block', marginTop: '5px', fontSize: '0.8rem', color: '#aaa' }}>
@@ -285,6 +291,36 @@ const ProfilePage = () => {
                                 ))
                             )}
                         </div>
+                        
+                        {/* Show More / Show Less Button */}
+                        {badges.length > BADGES_LIMIT && (
+                            <button 
+                                onClick={() => setShowAllBadges(!showAllBadges)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--primary-blue, #3498db)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem',
+                                    marginTop: '10px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '100%',
+                                    gap: '5px'
+                                }}
+                            >
+                                {showAllBadges ? (
+                                    <>
+                                        <i className="fas fa-chevron-up"></i> Zwiń
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-chevron-down"></i> Pokaż więcej ({badges.length - BADGES_LIMIT})
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
 
                     {/* Rank Info */}

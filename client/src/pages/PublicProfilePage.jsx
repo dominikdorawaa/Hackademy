@@ -14,6 +14,10 @@ const PublicProfilePage = () => {
     const [friendshipStatus, setFriendshipStatus] = useState('NONE'); // NONE, FRIENDS, REQUEST_SENT, REQUEST_RECEIVED
     const [friendshipStats, setFriendshipStats] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
+    
+    // UI State
+    const [showAllBadges, setShowAllBadges] = useState(false);
+    const BADGES_LIMIT = 6;
 
     useEffect(() => {
         const fetchProfile = async () => {
@@ -117,6 +121,8 @@ const PublicProfilePage = () => {
     const nextLevelPoints = userLevel * 100;
     const progress = ((profile.points % 100) / 100) * 100;
     const badges = profile.badges || []; // Use badges from profile DTO
+    
+    const visibleBadges = showAllBadges ? badges : badges.slice(0, BADGES_LIMIT);
 
     return (
         <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
@@ -283,7 +289,7 @@ const PublicProfilePage = () => {
                             {badges.length === 0 ? (
                                 <p style={{ color: '#aaa' }}>Brak odznak</p>
                             ) : (
-                                badges.map(badge => (
+                                visibleBadges.map(badge => (
                                     <div key={badge.id} className="badge-container" style={{ 
                                         width: '60px', 
                                         height: '60px', 
@@ -295,14 +301,14 @@ const PublicProfilePage = () => {
                                         color: '#ffd700',
                                         border: '2px solid #444',
                                         fontSize: '1.5rem',
-                                        cursor: 'pointer', // Changed from help to pointer
+                                        cursor: 'pointer',
                                         position: 'relative' // Ensure tooltip positioning context
                                     }}>
                                         <i className={badge.icon} style={{
                                             opacity: badge.earned ? 1 : 0.3, // Apply opacity only to icon
                                             filter: badge.earned ? 'none' : 'grayscale(100%)'
                                         }}></i>
-                                        <div className="badge-tooltip"> {/* Removed inline styles that hid tooltip */}
+                                        <div className="badge-tooltip">
                                             <span className="badge-name">{badge.name}</span>
                                             <span className="badge-desc">{badge.description}</span>
                                             <span className="badge-rarity" style={{ display: 'block', marginTop: '5px', fontSize: '0.8rem', color: '#aaa' }}>
@@ -313,6 +319,36 @@ const PublicProfilePage = () => {
                                 ))
                             )}
                         </div>
+                        
+                        {/* Show More / Show Less Button */}
+                        {badges.length > BADGES_LIMIT && (
+                            <button 
+                                onClick={() => setShowAllBadges(!showAllBadges)}
+                                style={{
+                                    background: 'none',
+                                    border: 'none',
+                                    color: 'var(--primary-blue, #3498db)',
+                                    cursor: 'pointer',
+                                    fontSize: '0.8rem',
+                                    marginTop: '10px',
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    justifyContent: 'center',
+                                    width: '100%',
+                                    gap: '5px'
+                                }}
+                            >
+                                {showAllBadges ? (
+                                    <>
+                                        <i className="fas fa-chevron-up"></i> Zwiń
+                                    </>
+                                ) : (
+                                    <>
+                                        <i className="fas fa-chevron-down"></i> Pokaż więcej ({badges.length - BADGES_LIMIT})
+                                    </>
+                                )}
+                            </button>
+                        )}
                     </div>
                 </div>
             </div>
