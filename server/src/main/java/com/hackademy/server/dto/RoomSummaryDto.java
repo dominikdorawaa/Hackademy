@@ -21,10 +21,12 @@ public class RoomSummaryDto {
     private int points;
     private int solutionsCount;
     private boolean solved;
+    private boolean locked;
+    private boolean requiresVpn; // New field
     private LocalDateTime createdAt;
     
-    // Constructor for JPQL query (without solved status, which is calculated later)
-    public RoomSummaryDto(Long id, String title, String shortDescription, DifficultyLevel difficulty, String category, int points, int solutionsCount, LocalDateTime createdAt) {
+    // Constructor for JPQL query
+    public RoomSummaryDto(Long id, String title, String shortDescription, DifficultyLevel difficulty, String category, int points, int solutionsCount, boolean requiresVpn, LocalDateTime createdAt) {
         this.id = id;
         this.title = title;
         this.shortDescription = shortDescription;
@@ -32,7 +34,9 @@ public class RoomSummaryDto {
         this.category = category;
         this.points = points;
         this.solutionsCount = solutionsCount;
+        this.requiresVpn = requiresVpn;
         this.createdAt = createdAt;
         this.solved = false; // Default
+        this.locked = false; // Default
     }
 }

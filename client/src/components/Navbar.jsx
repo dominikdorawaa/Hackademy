@@ -160,6 +160,7 @@ const Navbar = () => {
         });
         if (res.ok) {
             const session = await res.json();
+            
             setIsNotificationsOpen(false);
             // Remove from list
             setNotifications(prev => prev.filter(n => !(n.type === 'CHALLENGE' && n.id === challengeId)));
@@ -209,6 +210,7 @@ const Navbar = () => {
                   <Link to="/dashboard">Pokoje CTF</Link>
                   <Link to="/arena">Tryb Rankingowy</Link>
                   <Link to="/ranking">Ranking</Link>
+                  <Link to="/vpn" style={{ color: '#3498db' }}>VPN</Link>
                 </>
               ) : (
                 <>

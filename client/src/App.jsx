@@ -14,6 +14,7 @@ import ProfilePage from './pages/ProfilePage';
 import PublicProfilePage from './pages/PublicProfilePage'; // Import PublicProfilePage
 import FriendsPage from './pages/FriendsPage'; // Import FriendsPage
 import RoomPage from './pages/RoomPage'; // Import RoomPage
+import VpnPage from './pages/VpnPage'; // Import VpnPage
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import AdminRoute from './components/auth/AdminRoute'; // Import AdminRoute
 import ExpertRoute from './components/auth/ExpertRoute'; // Import ExpertRoute
@@ -74,6 +75,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <FriendsPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/vpn" 
+              element={
+                <ProtectedRoute>
+                  <VpnPage />
                 </ProtectedRoute>
               } 
             />

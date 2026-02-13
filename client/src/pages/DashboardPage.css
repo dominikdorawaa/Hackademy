@@ -31,7 +31,7 @@
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
-    padding: 25px;
+    padding: 15px; /* Zmniejszony padding */
 
     /* STICKY BEHAVIOR FIX */
     position: sticky;
@@ -68,8 +68,8 @@
 }
 
 .filter-group {
-    margin-bottom: 25px;
-    padding-bottom: 20px;
+    margin-bottom: 15px; /* Zmniejszony margines */
+    padding-bottom: 10px; /* Zmniejszony padding */
     border-bottom: 1px solid rgba(255, 255, 255, 0.08);
 }
 
@@ -80,13 +80,13 @@
 }
 
 .filter-title {
-    font-size: 0.9rem;
+    font-size: 0.85rem; /* Zmniejszona czcionka */
     font-weight: 800;
     color: #fff;
-    margin-bottom: 15px;
+    margin-bottom: 10px; /* Zmniejszony margines */
     display: flex;
     align-items: center;
-    gap: 10px;
+    gap: 8px; /* Zmniejszony odstęp */
     text-transform: uppercase;
     letter-spacing: 1px;
 }
@@ -96,22 +96,22 @@
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 1rem;
+    font-size: 0.9rem; /* Zmniejszona ikona */
 }
 
 .filter-options {
     display: flex;
     flex-direction: column;
-    gap: 12px;
+    gap: 8px; /* Zmniejszony odstęp między opcjami */
 }
 
 .filter-label {
     display: flex;
     align-items: center;
-    gap: 12px;
+    gap: 8px; /* Zmniejszony odstęp */
     cursor: pointer;
     color: #aaa;
-    font-size: 0.9rem;
+    font-size: 0.85rem; /* Zmniejszona czcionka */
     transition: all 0.3s ease;
     user-select: none;
 }
@@ -125,10 +125,10 @@
 .filter-checkbox {
     appearance: none;
     -webkit-appearance: none;
-    width: 20px;
-    height: 20px;
+    width: 16px; /* Zmniejszony checkbox */
+    height: 16px; /* Zmniejszony checkbox */
     border: 2px solid #444;
-    border-radius: 6px;
+    border-radius: 4px; /* Zmniejszony border-radius */
     background-color: rgba(0, 0, 0, 0.3);
     cursor: pointer;
     position: relative;
@@ -152,7 +152,7 @@
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     color: white;
-    font-size: 11px;
+    font-size: 9px; /* Zmniejszona ikona "ptaszka" */
     position: absolute;
     top: 50%;
     left: 50%;
@@ -166,8 +166,8 @@ input[type="radio"].filter-checkbox {
 
 input[type="radio"].filter-checkbox:checked::after {
     content: '';
-    width: 8px;
-    height: 8px;
+    width: 6px; /* Zmniejszona kropka w radio */
+    height: 6px; /* Zmniejszona kropka w radio */
     background-color: white;
     border-radius: 50%;
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);

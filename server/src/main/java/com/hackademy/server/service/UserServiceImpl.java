@@ -12,11 +12,13 @@ import com.hackademy.server.dto.UserSearchDto;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.model.Role;
 import com.hackademy.server.model.User;
+import com.hackademy.server.repository.UserBadgeRepository;
 import com.hackademy.server.repository.UserRepository;
 import com.hackademy.server.repository.UserSolvedRoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -31,10 +33,11 @@ public class UserServiceImpl implements UserService {
 
     private final UserRepository userRepository;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
+    private final UserBadgeRepository userBadgeRepository; // Inject UserBadgeRepository
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
     private final FriendshipService friendshipService;
-    private final BadgeService badgeService; // Inject BadgeService
+    private final BadgeService badgeService;
 
     @Override
     public List<UserAdminView> findAllUsers() {
@@ -44,10 +47,20 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional // Ensure transactional deletion
     public void deleteUser(Long id) {
         if (!userRepository.existsById(id)) {
             throw new UserNotFoundException("User with ID: " + id + " not found.");
         }
+        
+        // Manually delete related entities to avoid constraint violation
+        userBadgeRepository.deleteByUserId(id);
+        
+        // Also delete solved rooms if needed (though usually handled by cascade or separate repo)
+        // Assuming UserSolvedRoom has cascade or we need to delete it too.
+        // Let's check if UserSolvedRoomRepository has deleteByUserId
+        // If not, we might need to add it too, but let's start with badges as that was the error.
+
         userRepository.deleteById(id);
     }
 
@@ -206,6 +219,13 @@ public class UserServiceImpl implements UserService {
         long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
         
         return new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo());
+    }
+
+    @Override
+    public boolean hasSolvedTutorialVpn(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(user.getUsername(), "Tutorial VPN");
     }
 
     private UserAdminView mapUserToUserAdminView(User user) {

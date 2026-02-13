@@ -246,7 +246,7 @@ public class ArenaServiceImpl implements ArenaService {
     }
 
     @Override
-    public Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername) {
+    public Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername, boolean vpnEnabled) {
         Challenge challenge = new Challenge(
                 UUID.randomUUID().toString(),
                 challengerId,
@@ -254,7 +254,8 @@ public class ArenaServiceImpl implements ArenaService {
                 targetId,
                 targetUsername,
                 LocalDateTime.now(),
-                "PENDING"
+                "PENDING",
+                vpnEnabled
         );
         challenges.put(challenge.getId(), challenge);
         return challenge;
@@ -267,15 +268,14 @@ public class ArenaServiceImpl implements ArenaService {
             throw new IllegalArgumentException("Invalid challenge");
         }
 
-        // Optimized: Fetch all room IDs and pick random one in Java
-        List<Long> roomIds = roomRepository.findAllIds();
+        // Optimized: Fetch only IDs based on VPN requirement
+        List<Long> roomIds = roomRepository.findIdsByVpnRequirement(challenge.isVpnEnabled());
+        
         if (roomIds.isEmpty()) {
-            throw new IllegalStateException("No rooms available");
+            throw new IllegalStateException("No eligible rooms available for this challenge");
         }
         
         Long randomRoomId = roomIds.get(new Random().nextInt(roomIds.size()));
-        Room randomRoom = roomRepository.findById(randomRoomId)
-                .orElseThrow(() -> new IllegalStateException("Failed to fetch room"));
         
         // Fetch users to get ELO
         User challenger = userRepository.findById(challenge.getChallengerId()).orElse(null);
@@ -295,7 +295,7 @@ public class ArenaServiceImpl implements ArenaService {
         session.setPlayer2Username(challenge.getTargetUsername());
         session.setPlayer2Elo(target.getElo());
 
-        session.setRoomId(randomRoom.getId());
+        session.setRoomId(randomRoomId);
         session.setStartTime(LocalDateTime.now());
         session.setStatus("ACTIVE");
         

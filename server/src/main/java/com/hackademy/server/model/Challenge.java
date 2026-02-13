@@ -17,4 +17,5 @@ public class Challenge {
     private String targetUsername;
     private LocalDateTime createdAt;
     private String status; // PENDING, ACCEPTED, REJECTED, EXPIRED
+    private boolean vpnEnabled; // New field
 }

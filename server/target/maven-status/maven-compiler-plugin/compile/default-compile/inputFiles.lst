@@ -1,4 +1,5 @@
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\config\ApplicationConfig.java
+C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\config\DatabaseFixer.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\config\DatabaseMigration.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\config\SecurityConfig.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\config\WebSocketConfig.java
@@ -11,6 +12,7 @@ C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackadem
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\controller\FriendshipController.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\controller\RoomController.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\controller\UserController.java
+C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\controller\VpnController.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\dto\AuthResponse.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\dto\BadgeDto.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\dto\ChangePasswordRequest.java
@@ -81,3 +83,4 @@ C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackadem
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\service\RoomServiceImpl.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\service\UserService.java
 C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\service\UserServiceImpl.java
+C:\Users\patry\OneDrive\Desktop\Hack\Hackademy\server\src\main\java\com\hackademy\server\service\VpnService.java

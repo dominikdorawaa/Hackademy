@@ -1,7 +1,51 @@
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Link } from 'react-router-dom';
+import API_URL from '../apiConfig';
 
 const Rooms = () => {
+  const [rooms, setRooms] = useState([]);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const fetchTopRooms = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/rooms/top3`);
+        if (response.ok) {
+          const data = await response.json();
+          setRooms(data);
+        } else {
+          console.error('Failed to fetch top rooms');
+        }
+      } catch (error) {
+        console.error('Error fetching top rooms:', error);
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchTopRooms();
+  }, []);
+
+  const difficultyClass = (difficulty) => {
+    switch (difficulty) {
+      case 'EASY': return 'diff-easy';
+      case 'MEDIUM': return 'diff-medium';
+      case 'HARD': return 'diff-hard';
+      case 'INSANE': return 'diff-insane';
+      default: return 'diff-easy';
+    }
+  };
+
+  const difficultyTranslation = (difficulty) => {
+    switch (difficulty) {
+      case 'EASY': return 'Łatwy';
+      case 'MEDIUM': return 'Średni';
+      case 'HARD': return 'Trudny';
+      case 'INSANE': return 'Niemożliwy';
+      default: return 'Łatwy';
+    }
+  };
+
   return (
     <section className="rooms-showcase" id="rooms">
       <div className="container">
@@ -11,59 +55,34 @@ const Rooms = () => {
         </p>
 
         <div className="rooms-grid">
-          <Link to="/register" className="room-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
-            <div className="room-top-badge"><i className="fas fa-lock"></i></div>
-            <div className="room-image-placeholder">
-              <span className="difficulty-badge diff-easy">Łatwy</span>
-            </div>
-            <div className="room-body">
-              <h3 className="room-title">Podstawy Pentestingu</h3>
-              <div className="room-tags">Web • OWASP • Security</div>
+          {loading ? (
+            <p style={{ color: 'var(--text-gray)', textAlign: 'center', width: '100%' }}>Ładowanie pokoi...</p>
+          ) : rooms.length > 0 ? (
+            rooms.map((room) => (
+              <Link key={room.id} to="/register" className="room-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
+                <div className="room-top-badge"><i className="fas fa-lock"></i></div>
+                <div className="room-image-placeholder">
+                  <span className={`difficulty-badge ${difficultyClass(room.difficulty)}`}>
+                    {difficultyTranslation(room.difficulty)}
+                  </span>
+                </div>
+                <div className="room-body">
+                  <h3 className="room-title">{room.title}</h3>
+                  <div className="room-tags">{room.category} • Security</div>
 
-              <div className="room-locked-footer">
-                <span className="lock-info"
-                  ><i className="fas fa-user-lock"></i> Wymagane konto</span
-                >
-                <span>2,403 graczy</span>
-              </div>
-            </div>
-          </Link>
-
-          <Link to="/register" className="room-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
-            <div className="room-top-badge"><i className="fas fa-lock"></i></div>
-            <div className="room-image-placeholder">
-              <span className="difficulty-badge diff-medium">Średni</span>
-            </div>
-            <div className="room-body">
-              <h3 className="room-title">Eskalacja Linuxa</h3>
-              <div className="room-tags">Linux • PrivEsc • Bash</div>
-
-              <div className="room-locked-footer">
-                <span className="lock-info"
-                  ><i className="fas fa-user-lock"></i> Wymagane konto</span
-                >
-                <span>1,100 graczy</span>
-              </div>
-            </div>
-          </Link>
-
-          <Link to="/register" className="room-card" style={{ textDecoration: 'none', color: 'inherit', cursor: 'pointer' }}>
-            <div className="room-top-badge"><i className="fas fa-lock"></i></div>
-            <div className="room-image-placeholder">
-              <span className="difficulty-badge diff-hard">Trudny</span>
-            </div>
-            <div className="room-body">
-              <h3 className="room-title">Buffer Overflow Prep</h3>
-              <div className="room-tags">Binary • Exploit • Reverse</div>
-
-              <div className="room-locked-footer">
-                <span className="lock-info"
-                  ><i className="fas fa-user-lock"></i> Wymagane konto</span
-                >
-                <span>850 graczy</span>
-              </div>
-            </div>
-          </Link>
+                  <div className="room-locked-footer">
+                    <span className="lock-info">
+                      <i className="fas fa-user-lock"></i> Wymagane konto
+                    </span>
+                    <span>{room.solutionsCount} rozwiązań</span>
+                  </div>
+                </div>
+              </Link>
+            ))
+          ) : (
+            // Fallback if no rooms found (or DB empty)
+            <p style={{ color: 'var(--text-gray)', textAlign: 'center', width: '100%' }}>Brak dostępnych pokoi.</p>
+          )}
         </div>
       </div>
     </section>

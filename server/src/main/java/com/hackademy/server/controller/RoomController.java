@@ -36,6 +36,11 @@ public class RoomController {
         return ResponseEntity.ok(roomService.getAllRooms(username));
     }
 
+    @GetMapping("/top3")
+    public ResponseEntity<List<RoomSummaryDto>> getTop3Rooms() {
+        return ResponseEntity.ok(roomService.getTop3Rooms());
+    }
+
     @GetMapping("/{id}")
     public ResponseEntity<?> getRoomDetail(@PathVariable Long id) {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();

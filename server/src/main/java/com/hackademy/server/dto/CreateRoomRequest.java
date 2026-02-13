@@ -29,7 +29,7 @@ public class CreateRoomRequest {
     private DifficultyLevel difficulty;
 
     @NotBlank(message = "Category is required")
-    private String category; // New field
+    private String category;
 
     @NotNull(message = "Points are required")
     @Min(value = 0, message = "Points must be non-negative")
@@ -37,6 +37,8 @@ public class CreateRoomRequest {
 
     @NotBlank(message = "Flag is required")
     private String flag;
+
+    private boolean requiresVpn; // New field
 
     private List<String> hints;
 }

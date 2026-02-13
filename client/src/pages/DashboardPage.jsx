@@ -21,6 +21,7 @@ const DashboardPage = () => {
   const [selectedDifficulties, setSelectedDifficulties] = useState([]);
   const [selectedCategories, setSelectedCategories] = useState([]);
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, UNSOLVED, SOLVED
+  const [vpnFilter, setVpnFilter] = useState('ALL'); // ALL, VPN_REQUIRED, NO_VPN
   const [sortOption, setSortOption] = useState('NEWEST'); // NEWEST, OLDEST, POPULAR, POINTS_DESC, POINTS_ASC
   
   // Pagination State
@@ -122,6 +123,11 @@ const DashboardPage = () => {
       setCurrentPage(1);
   };
 
+  const handleVpnFilterChange = (filter) => {
+      setVpnFilter(filter);
+      setCurrentPage(1);
+  };
+
   const handleSortChange = (e) => {
       setSortOption(e.target.value);
       setCurrentPage(1);
@@ -142,6 +148,10 @@ const DashboardPage = () => {
     // Status Filter
     if (statusFilter === 'SOLVED' && !room.solved) return false;
     if (statusFilter === 'UNSOLVED' && room.solved) return false;
+
+    // VPN Filter
+    if (vpnFilter === 'VPN_REQUIRED' && !room.requiresVpn) return false;
+    if (vpnFilter === 'NO_VPN' && room.requiresVpn) return false;
 
     return true;
   });
@@ -183,7 +193,7 @@ const DashboardPage = () => {
   if (loading) {
     return (
       <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-        <h1>Ładowanie danych użytkownika...</h1>
+        <h1>Ładowanie danych pokoi...</h1>
       </div>
     );
   }
@@ -266,6 +276,45 @@ const DashboardPage = () => {
                   {cat}
                 </label>
               ))}
+            </div>
+          </div>
+
+          <div className="filter-group">
+            <h3 className="filter-title"><i className="fas fa-network-wired"></i> Wymagania</h3>
+            <div className="filter-options">
+              <label className="filter-label">
+                <input 
+                  type="radio" 
+                  name="vpn"
+                  className="filter-checkbox"
+                  style={{ borderRadius: '50%' }}
+                  checked={vpnFilter === 'ALL'}
+                  onChange={() => handleVpnFilterChange('ALL')}
+                />
+                Wszystkie
+              </label>
+              <label className="filter-label">
+                <input 
+                  type="radio" 
+                  name="vpn"
+                  className="filter-checkbox"
+                  style={{ borderRadius: '50%' }}
+                  checked={vpnFilter === 'VPN_REQUIRED'}
+                  onChange={() => handleVpnFilterChange('VPN_REQUIRED')}
+                />
+                Wymaga VPN
+              </label>
+              <label className="filter-label">
+                <input 
+                  type="radio" 
+                  name="vpn"
+                  className="filter-checkbox"
+                  style={{ borderRadius: '50%' }}
+                  checked={vpnFilter === 'NO_VPN'}
+                  onChange={() => handleVpnFilterChange('NO_VPN')}
+                />
+                Bez VPN
+              </label>
             </div>
           </div>
 

@@ -5,12 +5,14 @@ import com.hackademy.server.model.Room;
 import com.hackademy.server.model.User;
 import com.hackademy.server.repository.RoomRepository;
 import com.hackademy.server.repository.UserRepository;
+import com.hackademy.server.repository.UserSolvedRoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
 import java.util.*;
 import java.util.concurrent.ConcurrentLinkedQueue;
+import java.util.stream.Collectors;
 
 @Service
 @RequiredArgsConstructor
@@ -18,26 +20,29 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
-    
+    private final UserSolvedRoomRepository userSolvedRoomRepository;
+
     // Queue stores user IDs
     private final Queue<PlayerInfo> queue = new ConcurrentLinkedQueue<>();
-    
+
     private static class PlayerInfo {
         Long id;
         String username;
-        
-        PlayerInfo(Long id, String username) {
+        boolean vpnEnabled; // New field to track if user wants VPN rooms
+
+        PlayerInfo(Long id, String username, boolean vpnEnabled) {
             this.id = id;
             this.username = username;
+            this.vpnEnabled = vpnEnabled;
         }
     }
 
     @Override
-    public void joinQueue(Long userId, String username) {
+    public void joinQueue(Long userId, String username, boolean vpnEnabled) {
         // Check if already in queue
         if (queue.stream().noneMatch(p -> p.id.equals(userId))) {
-            System.out.println("Adding user to queue: " + username);
-            queue.add(new PlayerInfo(userId, username));
+            System.out.println("Adding user to queue: " + username + " (VPN: " + vpnEnabled + ")");
+            queue.add(new PlayerInfo(userId, username, vpnEnabled));
         } else {
             System.out.println("User already in queue: " + username);
         }
@@ -52,74 +57,99 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     @Override
     public List<GameSession> checkForMatches() {
         List<GameSession> newSessions = new ArrayList<>();
-        
+
         if (queue.size() < 2) {
             return newSessions;
         }
 
         System.out.println("Queue size: " + queue.size() + ". Attempting to match...");
 
-        // Fetch all room IDs (lightweight)
-        List<Long> roomIds = roomRepository.findAllIds();
-        if (roomIds.isEmpty()) {
+        // Convert queue to list for easier manipulation
+        List<PlayerInfo> players = new ArrayList<>(queue);
+        Set<Long> matchedPlayerIds = new HashSet<>();
+
+        // Fetch all rooms once
+        List<Room> allRooms = roomRepository.findAll();
+        if (allRooms.isEmpty()) {
             System.out.println("No rooms found in database!");
             return newSessions;
         }
 
-        // Process queue until less than 2 players remain
-        while (queue.size() >= 2) {
-            // Select random room ID
-            Long randomRoomId = roomIds.get(new Random().nextInt(roomIds.size()));
-            Room randomRoom = roomRepository.findById(randomRoomId).orElse(null);
-            
-            if (randomRoom == null) {
-                System.out.println("Failed to fetch room with ID: " + randomRoomId);
-                break; 
-            }
-            
-            PlayerInfo p1 = queue.poll();
-            PlayerInfo p2 = queue.poll();
-            
-            if (p1 == null || p2 == null) {
-                if (p1 != null) queue.add(p1);
-                if (p2 != null) queue.add(p2);
-                break;
-            }
-            
-            System.out.println("Matching " + p1.username + " vs " + p2.username);
+        // Try to match players
+        for (int i = 0; i < players.size(); i++) {
+            PlayerInfo p1 = players.get(i);
+            if (matchedPlayerIds.contains(p1.id)) continue;
 
-            // Fetch users to get ELO
-            User user1 = userRepository.findById(p1.id).orElse(null);
-            User user2 = userRepository.findById(p2.id).orElse(null);
-            
-            if (user1 == null || user2 == null) {
-                 System.out.println("One of the users not found in DB");
-                 continue;
+            for (int j = i + 1; j < players.size(); j++) {
+                PlayerInfo p2 = players.get(j);
+                if (matchedPlayerIds.contains(p2.id)) continue;
+
+                // Check compatibility
+                // If either player has VPN disabled, we MUST pick a non-VPN room.
+                // If both have VPN enabled, we CAN pick a VPN room (or non-VPN).
+                boolean canUseVpn = p1.vpnEnabled && p2.vpnEnabled;
+
+                // Filter rooms based on VPN requirement
+                List<Room> eligibleRooms = allRooms.stream()
+                        .filter(r -> !r.isRequiresVpn() || canUseVpn)
+                        .collect(Collectors.toList());
+
+                if (eligibleRooms.isEmpty()) {
+                    System.out.println("No eligible rooms for " + p1.username + " and " + p2.username);
+                    continue;
+                }
+
+                // Select random room from eligible ones
+                Room selectedRoom = eligibleRooms.get(new Random().nextInt(eligibleRooms.size()));
+
+                System.out.println("Matching " + p1.username + " vs " + p2.username + " in room: " + selectedRoom.getTitle());
+
+                // Create session
+                GameSession session = createGameSession(p1, p2, selectedRoom);
+                if (session != null) {
+                    newSessions.add(session);
+                    matchedPlayerIds.add(p1.id);
+                    matchedPlayerIds.add(p2.id);
+                    break; // Move to next p1
+                }
             }
-
-            GameSession session = new GameSession();
-            session.setId(UUID.randomUUID().toString());
-            session.setPlayer1Id(p1.id);
-            session.setPlayer1Username(p1.username);
-            session.setPlayer1Elo(user1.getElo());
-            
-            session.setPlayer2Id(p2.id);
-            session.setPlayer2Username(p2.username);
-            session.setPlayer2Elo(user2.getElo());
-
-            session.setRoomId(randomRoom.getId());
-            session.setStartTime(LocalDateTime.now());
-            session.setStatus("ACTIVE");
-            session.setWinnerId(null);
-            
-            // Initialize maps
-            session.setHintsUsed(new HashMap<>());
-            session.setFinishTimes(new HashMap<>());
-            session.setPenaltiesInSeconds(new HashMap<>());
-            
-            newSessions.add(session);
         }
-        
+
+        // Remove matched players from queue
+        queue.removeIf(p -> matchedPlayerIds.contains(p.id));
+
         return newSessions;
+    }
+
+    private GameSession createGameSession(PlayerInfo p1, PlayerInfo p2, Room room) {
+        User user1 = userRepository.findById(p1.id).orElse(null);
+        User user2 = userRepository.findById(p2.id).orElse(null);
+
+        if (user1 == null || user2 == null) {
+            System.out.println("One of the users not found in DB");
+            return null;
+        }
+
+        GameSession session = new GameSession();
+        session.setId(UUID.randomUUID().toString());
+        session.setPlayer1Id(p1.id);
+        session.setPlayer1Username(p1.username);
+        session.setPlayer1Elo(user1.getElo());
+
+        session.setPlayer2Id(p2.id);
+        session.setPlayer2Username(p2.username);
+        session.setPlayer2Elo(user2.getElo());
+
+        session.setRoomId(room.getId());
+        session.setStartTime(LocalDateTime.now());
+        session.setStatus("ACTIVE");
+        session.setWinnerId(null);
+
+        // Initialize maps
+        session.setHintsUsed(new HashMap<>());
+        session.setFinishTimes(new HashMap<>());
+        session.setPenaltiesInSeconds(new HashMap<>());
+
+        return session;
     }
 }

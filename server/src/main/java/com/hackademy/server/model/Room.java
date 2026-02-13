@@ -41,7 +41,7 @@ public class Room {
     private DifficultyLevel difficulty;
 
     @Column(nullable = false)
-    private String category; // New field
+    private String category;
 
     @Min(0)
     @Column(nullable = false)
@@ -55,6 +55,9 @@ public class Room {
     @Min(0)
     @Column(name = "solutions_count", nullable = false)
     private int solutionsCount;
+
+    @Column(name = "requires_vpn", nullable = false)
+    private boolean requiresVpn = false; // New field
 
     @Builder.Default
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)

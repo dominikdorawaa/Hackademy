@@ -16,7 +16,7 @@ public interface ArenaService {
     void surrenderGame(String gameId, Long userId); // New method
     
     // Challenge methods
-    Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername);
+    Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername, boolean vpnEnabled);
     GameSession acceptChallenge(String challengeId, Long userId);
     void rejectChallenge(String challengeId, Long userId);
     List<Challenge> getPendingChallenges(Long userId);

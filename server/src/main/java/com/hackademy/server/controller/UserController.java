@@ -50,6 +50,9 @@ public class UserController {
             effectiveStreak = 0;
         }
 
+        // Check if user has solved Tutorial VPN
+        boolean hasVpnAccess = userService.hasSolvedTutorialVpn(userDetails.getId());
+
         // Return a map or a DTO with user details, excluding sensitive info like password
         Map<String, Object> userInfo = Map.of(
                 "id", userDetails.getId(),
@@ -59,7 +62,8 @@ public class UserController {
                 "points", userDetails.getPoints(),
                 "streak", effectiveStreak,
                 "bio", userDetails.getBio() != null ? userDetails.getBio() : "",
-                "createdAt", userDetails.getCreatedAt()
+                "createdAt", userDetails.getCreatedAt(),
+                "hasVpnAccess", hasVpnAccess // New field
         );
 
         return ResponseEntity.ok(userInfo);

@@ -28,13 +28,15 @@ public class UpdateRoomRequest {
     private DifficultyLevel difficulty;
 
     @NotBlank(message = "Category cannot be empty")
-    private String category; // New field
+    private String category;
 
     @Min(value = 0, message = "Points must be non-negative")
     private int points;
 
     @NotBlank(message = "Flag cannot be empty")
     private String flag;
+
+    private boolean requiresVpn; // New field
 
     private List<String> hints;
 }

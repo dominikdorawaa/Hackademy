@@ -20,6 +20,7 @@ import com.hackademy.server.repository.UserRepository;
 import com.hackademy.server.repository.UserSolvedRoomRepository;
 import com.hackademy.server.repository.UserUnlockedHintRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
@@ -45,6 +46,40 @@ public class RoomServiceImpl implements RoomService {
     private final BadgeService badgeService;
     private final RoomFileRepository roomFileRepository;
 
+    // Simple in-memory cache
+    private List<RoomSummaryDto> cachedRooms;
+    private long lastCacheTime = 0;
+    private static final long CACHE_DURATION = 10000; // 10 seconds cache
+
+    private synchronized List<RoomSummaryDto> getCachedRooms() {
+        long now = System.currentTimeMillis();
+        if (cachedRooms == null || now - lastCacheTime > CACHE_DURATION) {
+            cachedRooms = roomRepository.findAllSummaries();
+            lastCacheTime = now;
+        }
+        // Return deep copy to avoid modification of cached objects
+        return cachedRooms.stream()
+                .map(this::cloneRoomSummaryDto)
+                .collect(Collectors.toList());
+    }
+
+    private synchronized void invalidateCache() {
+        cachedRooms = null;
+    }
+
+    private RoomSummaryDto cloneRoomSummaryDto(RoomSummaryDto original) {
+        return new RoomSummaryDto(
+            original.getId(),
+            original.getTitle(),
+            original.getShortDescription(),
+            original.getDifficulty(),
+            original.getCategory(),
+            original.getPoints(),
+            original.getSolutionsCount(),
+            original.isRequiresVpn(),
+            original.getCreatedAt()
+        );
+    }
 
     @Override
     @Transactional
@@ -57,6 +92,7 @@ public class RoomServiceImpl implements RoomService {
                 .category(createRoomRequest.getCategory())
                 .points(createRoomRequest.getPoints())
                 .flag(createRoomRequest.getFlag())
+                .requiresVpn(createRoomRequest.isRequiresVpn()) // Set requiresVpn
                 .build();
 
         if (createRoomRequest.getHints() != null && !createRoomRequest.getHints().isEmpty()) {
@@ -73,15 +109,19 @@ public class RoomServiceImpl implements RoomService {
             roomFileRepository.save(roomFile);
         }
 
+        invalidateCache();
         return savedRoom;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<RoomSummaryDto> getAllRooms(String username) {
-        // Use projection to fetch only necessary fields
-        List<RoomSummaryDto> rooms = roomRepository.findAllSummaries();
+        // Use cached rooms
+        List<RoomSummaryDto> rooms = getCachedRooms();
+        
         Set<Long> solvedRoomIds;
+        boolean hasTutorialVPN = false;
+        boolean hasTutorialVM = false;
 
         if (username != null) {
             User user = userRepository.findByUsername(username)
@@ -91,12 +131,33 @@ public class RoomServiceImpl implements RoomService {
             solvedRoomIds = userSolvedRoomRepository.findByUser_Id(user.getId()).stream()
                     .map(usr -> usr.getRoom().getId())
                     .collect(Collectors.toSet());
+            
+            // Check if Tutorial VPN is solved (needed for VPN-required rooms)
+            hasTutorialVPN = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VPN");
+            
+            // Check if Tutorial VM is solved (needed for Tutorial VPN)
+            hasTutorialVM = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VM");
         } else {
             solvedRoomIds = Set.of();
         }
 
-        // Set solved status in memory
-        rooms.forEach(room -> room.setSolved(solvedRoomIds.contains(room.getId())));
+        // Set solved and locked status in memory
+        boolean finalHasTutorialVPN = hasTutorialVPN;
+        boolean finalHasTutorialVM = hasTutorialVM;
+        
+        rooms.forEach(room -> {
+            room.setSolved(solvedRoomIds.contains(room.getId()));
+            
+            // Lock Tutorial VPN if Tutorial VM is not solved
+            if ("Tutorial VPN".equals(room.getTitle()) && !finalHasTutorialVM) {
+                room.setLocked(true);
+            }
+            
+            // Lock rooms that require VPN if Tutorial VPN is not solved
+            if (room.isRequiresVpn() && !finalHasTutorialVPN) {
+                room.setLocked(true);
+            }
+        });
         
         return rooms;
     }
@@ -121,6 +182,7 @@ public class RoomServiceImpl implements RoomService {
         room.setCategory(updateRoomRequest.getCategory());
         room.setPoints(updateRoomRequest.getPoints());
         room.setFlag(updateRoomRequest.getFlag());
+        room.setRequiresVpn(updateRoomRequest.isRequiresVpn()); // Update requiresVpn
 
         // Update hints logic to preserve existing ones if possible
         List<String> newHintDescriptions = updateRoomRequest.getHints();
@@ -164,7 +226,8 @@ public class RoomServiceImpl implements RoomService {
                 roomFileRepository.save(roomFile);
             }
         }
-
+        
+        invalidateCache();
         return savedRoom;
     }
 
@@ -174,6 +237,7 @@ public class RoomServiceImpl implements RoomService {
             throw new IllegalArgumentException("Room not found with ID: " + id);
         }
         roomRepository.deleteById(id);
+        invalidateCache();
     }
 
     @Override
@@ -184,6 +248,22 @@ public class RoomServiceImpl implements RoomService {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        // Check requirements for Tutorial VPN
+        if ("Tutorial VPN".equals(room.getTitle())) {
+            boolean hasTutorialVM = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VM");
+            if (!hasTutorialVM) {
+                throw new IllegalStateException("Musisz najpierw ukończyć pokój 'Tutorial VM', aby odblokować ten pokój.");
+            }
+        }
+        
+        // Check requirements for VPN rooms
+        if (room.isRequiresVpn()) {
+            boolean hasTutorialVPN = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VPN");
+            if (!hasTutorialVPN) {
+                throw new IllegalStateException("Ten pokój wymaga połączenia VPN. Musisz najpierw ukończyć pokój 'Tutorial VPN'.");
+            }
+        }
 
         // Use new repository to check if solved
         boolean isSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
@@ -211,6 +291,7 @@ public class RoomServiceImpl implements RoomService {
                 .solutionsCount(room.getSolutionsCount())
                 .createdAt(room.getCreatedAt())
                 .solved(isSolved)
+                .requiresVpn(room.isRequiresVpn()) // Set requiresVpn
                 .hints(hintDtos)
                 .unlockedHintIds(unlockedHintIds)
                 .fileName(fileName)
@@ -269,7 +350,8 @@ public class RoomServiceImpl implements RoomService {
 
             // Check for badges
             List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
-
+            
+            invalidateCache(); // Invalidate cache to update solutionsCount
             return new SolveRoomResponse(true, "Poprawna flaga!", (int) pointsToAward, newBadges);
         }
 
@@ -346,6 +428,12 @@ public class RoomServiceImpl implements RoomService {
                 .orElseThrow(() -> new IllegalArgumentException("File not found for room ID: " + roomId));
     }
 
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoomSummaryDto> getTop3Rooms() {
+        return roomRepository.findTop3ByCategoryNot("Tutorial", PageRequest.of(0, 3));
+    }
+
     private com.hackademy.server.dto.HintDto mapToDto(com.hackademy.server.model.Hint hint) {
         return new com.hackademy.server.dto.HintDto(hint.getId(), hint.getDescription());
     }
@@ -361,6 +449,7 @@ public class RoomServiceImpl implements RoomService {
                 .points(room.getPoints())
                 .solutionsCount(room.getSolutionsCount())
                 .solved(solved)
+                .requiresVpn(room.isRequiresVpn()) // Set requiresVpn
                 .createdAt(room.getCreatedAt())
                 .updatedAt(room.getUpdatedAt())
                 .build();

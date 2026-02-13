@@ -18,10 +18,11 @@ public class RoomDto {
     private String description;
     private String shortDescription;
     private DifficultyLevel difficulty;
-    private String category; // New field
+    private String category;
     private int points;
     private int solutionsCount;
     private boolean solved;
+    private boolean requiresVpn; // New field
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

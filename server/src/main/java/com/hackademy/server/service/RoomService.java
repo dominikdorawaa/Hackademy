@@ -26,4 +26,5 @@ public interface RoomService {
     // For admin to get the raw entity including flag
     Room getRoomById(Long id);
     RoomFile getRoomFile(Long roomId);
+    List<RoomSummaryDto> getTop3Rooms(); // New method for landing page
 }

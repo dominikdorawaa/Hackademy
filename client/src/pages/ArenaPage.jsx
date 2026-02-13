@@ -19,9 +19,16 @@ const ArenaPage = () => {
     const [friendsLoading, setFriendsLoading] = useState(false);
     const [challengedFriends, setChallengedFriends] = useState([]);
     
+    // Error Modal State
+    const [showErrorModal, setShowErrorModal] = useState(false);
+    const [errorMessage, setErrorMessage] = useState('');
+
     // Processing state to prevent double clicks
     const [processingChallengeId, setProcessingChallengeId] = useState(null);
     const [acceptedChallenges, setAcceptedChallenges] = useState([]);
+
+    // VPN Preference
+    const [vpnEnabled, setVpnEnabled] = useState(false);
 
     // Ref to track if we have already shown the finished screen for a specific game
     const finishedGameIdRef = useRef(null);
@@ -172,7 +179,10 @@ const ArenaPage = () => {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
                 },
-                body: JSON.stringify({ targetUsername: username })
+                body: JSON.stringify({ 
+                    targetUsername: username,
+                    vpnEnabled: vpnEnabled // Send vpnEnabled status
+                })
             });
             
             if (response.ok) {
@@ -190,11 +200,16 @@ const ArenaPage = () => {
                 }, 10000);
             } else {
                 const data = await response.json();
-                alert(`Błąd: ${data.message}`);
+                // Close friend modal and show error modal
+                setShowFriendModal(false);
+                setErrorMessage(data.message);
+                setShowErrorModal(true);
             }
         } catch (err) {
             console.error("Failed to send challenge", err);
-            alert("Błąd sieci.");
+            setShowFriendModal(false);
+            setErrorMessage("Błąd sieci.");
+            setShowErrorModal(true);
         }
     };
 
@@ -202,7 +217,11 @@ const ArenaPage = () => {
         try {
             const response = await fetch(`${API_URL}/api/arena/join`, {
                 method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
+                headers: { 
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}` 
+                },
+                body: JSON.stringify({ vpnEnabled })
             });
             
             if (response.ok) {
@@ -407,6 +426,29 @@ const ArenaPage = () => {
                                 
                                 {canPlay ? (
                                     <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+                                        <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
+                                            <label style={{ 
+                                                display: 'flex', 
+                                                alignItems: 'center', 
+                                                gap: '10px', 
+                                                cursor: userData.hasVpnAccess ? 'pointer' : 'not-allowed', 
+                                                color: userData.hasVpnAccess ? '#aaa' : '#555', 
+                                                fontSize: '0.9rem' 
+                                            }}
+                                            title={!userData.hasVpnAccess ? 'Ukończ "Tutorial VPN", aby odblokować.' : ''}
+                                            >
+                                                <input 
+                                                    type="checkbox" 
+                                                    checked={vpnEnabled} 
+                                                    onChange={(e) => setVpnEnabled(e.target.checked)}
+                                                    disabled={!userData.hasVpnAccess}
+                                                    style={{ width: '18px', height: '18px', cursor: userData.hasVpnAccess ? 'pointer' : 'not-allowed' }}
+                                                />
+                                                Uwzględnij zadania VPN
+                                                {!userData.hasVpnAccess && <i className="fas fa-lock" style={{ fontSize: '0.8rem', marginLeft: '5px' }}></i>}
+                                            </label>
+                                        </div>
+
                                         <button onClick={handleJoinQueue} className="elo-btn">
                                             <i className="fas fa-search"></i> Znajdź Przeciwnika
                                         </button>
@@ -486,6 +528,32 @@ const ArenaPage = () => {
                                 ))}
                             </div>
                         )}
+                    </div>
+                </div>
+            )}
+
+            {/* Error Modal */}
+            {showErrorModal && (
+                <div style={{
+                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
+                    backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100
+                }}>
+                    <div style={{
+                        backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px',
+                        border: '1px solid #e74c3c', textAlign: 'center'
+                    }}>
+                        <div style={{ fontSize: '3rem', color: '#e74c3c', marginBottom: '20px' }}>
+                            <i className="fas fa-exclamation-circle"></i>
+                        </div>
+                        <h2 style={{ margin: '0 0 15px 0', color: '#fff' }}>Błąd</h2>
+                        <p style={{ color: '#aaa', marginBottom: '25px' }}>{errorMessage}</p>
+                        <button 
+                            onClick={() => setShowErrorModal(false)}
+                            className="btn btn-primary"
+                            style={{ padding: '10px 30px' }}
+                        >
+                            OK
+                        </button>
                     </div>
                 </div>
             )}

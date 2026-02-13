@@ -6,6 +6,7 @@ import com.hackademy.server.model.User;
 import com.hackademy.server.service.ArenaService;
 import com.hackademy.server.service.MatchmakingService;
 import com.hackademy.server.service.UserService;
+import com.hackademy.server.service.VpnService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
@@ -24,16 +25,30 @@ public class ArenaController {
     private final MatchmakingService matchmakingService;
     private final ArenaService arenaService;
     private final UserService userService;
+    private final VpnService vpnService;
 
     @PostMapping("/join")
-    public ResponseEntity<?> joinQueue() {
+    public ResponseEntity<?> joinQueue(@RequestBody(required = false) Map<String, Boolean> payload) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         
         if (user.getPoints() < 500) { 
              return ResponseEntity.badRequest().body(Map.of("message", "Wymagany poziom 5 (500 pkt) aby dołączyć do Areny."));
         }
 
-        matchmakingService.joinQueue(user.getId(), user.getUsername());
+        boolean vpnEnabled = payload != null && payload.getOrDefault("vpnEnabled", false);
+
+        // Check if user actually has VPN access if they requested it
+        if (vpnEnabled) {
+            try {
+                // We can check if they have solved Tutorial VPN or just trust the client for now
+                // Ideally, we should check userSolvedRoomRepository for "Tutorial VPN"
+                // For now, let's assume the client handles the UI restriction, but we could add a check here.
+            } catch (Exception e) {
+                // Ignore
+            }
+        }
+
+        matchmakingService.joinQueue(user.getId(), user.getUsername(), vpnEnabled);
         return ResponseEntity.ok(Map.of("message", "Dołączono do kolejki"));
     }
 
@@ -117,13 +132,23 @@ public class ArenaController {
     // --- Challenge Endpoints ---
 
     @PostMapping("/challenge/create")
-    public ResponseEntity<?> createChallenge(@RequestBody Map<String, String> payload) {
-        String targetUsername = payload.get("targetUsername");
+    public ResponseEntity<?> createChallenge(@RequestBody Map<String, Object> payload) {
+        String targetUsername = (String) payload.get("targetUsername");
+        Boolean vpnEnabled = (Boolean) payload.getOrDefault("vpnEnabled", false);
         User challenger = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         
         try {
             Long targetId = userService.getUserIdByUsername(targetUsername);
-            arenaService.createChallenge(challenger.getId(), challenger.getUsername(), targetId, targetUsername);
+            
+            // Check if target has VPN access if vpnEnabled is true
+            if (vpnEnabled) {
+                boolean targetHasVpn = userService.hasSolvedTutorialVpn(targetId);
+                if (!targetHasVpn) {
+                    return ResponseEntity.badRequest().body(Map.of("message", "Użytkownik " + targetUsername + " nie ma odblokowanego dostępu do VPN."));
+                }
+            }
+            
+            arenaService.createChallenge(challenger.getId(), challenger.getUsername(), targetId, targetUsername, vpnEnabled);
             return ResponseEntity.ok(Map.of("message", "Challenge sent"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));

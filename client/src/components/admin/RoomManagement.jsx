@@ -11,9 +11,10 @@ const RoomManagement = () => {
     const [shortDescription, setShortDescription] = useState('');
     const [description, setDescription] = useState('');
     const [difficulty, setDifficulty] = useState('EASY');
-    const [category, setCategory] = useState('Web'); // New field
+    const [category, setCategory] = useState('Web');
     const [points, setPoints] = useState(0);
     const [flag, setFlag] = useState('');
+    const [requiresVpn, setRequiresVpn] = useState(false); // New field
     const [hints, setHints] = useState([]);
     const [currentHint, setCurrentHint] = useState('');
     const [file, setFile] = useState(null); // New state for file
@@ -54,6 +55,7 @@ const RoomManagement = () => {
         setCategory('Web');
         setPoints(0);
         setFlag('');
+        setRequiresVpn(false);
         setHints([]);
         setCurrentHint('');
         setFile(null);
@@ -77,6 +79,7 @@ const RoomManagement = () => {
             setCategory(room.category || 'Web');
             setPoints(room.points);
             setFlag(room.flag || '');
+            setRequiresVpn(room.requiresVpn || false);
             setHints(room.hints || []);
             setFile(null); // Reset file input
             setIsEditing(true);
@@ -120,7 +123,17 @@ const RoomManagement = () => {
         setError(null);
         setSuccess(null);
 
-        const roomData = { title, shortDescription, description, difficulty, category, points: Number(points), flag, hints };
+        const roomData = { 
+            title, 
+            shortDescription, 
+            description, 
+            difficulty, 
+            category, 
+            points: Number(points), 
+            flag, 
+            requiresVpn,
+            hints 
+        };
 
         try {
             // Use FormData to send file and JSON
@@ -189,6 +202,8 @@ const RoomManagement = () => {
                         <option value="Forensics">Forensics</option>
                         <option value="Reverse">Reverse</option>
                         <option value="OSINT">OSINT</option>
+                        <option value="Network">Network</option>
+                        <option value="Tutorial">Tutorial</option>
                         <option value="Misc">Misc</option>
                     </select>
                 </div>
@@ -208,7 +223,7 @@ const RoomManagement = () => {
                     required
                     style={{ fontFamily: 'monospace' }}
                 />
-                <div style={{ display: 'flex', gap: '1rem' }}>
+                <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
                     <input
                         type="number"
                         placeholder="Punkty"
@@ -228,6 +243,16 @@ const RoomManagement = () => {
                         <option value="HARD">Trudny</option>
                         <option value="INSANE">Niemożliwy</option>
                     </select>
+                    
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flex: 1 }}>
+                        <input 
+                            type="checkbox" 
+                            checked={requiresVpn}
+                            onChange={(e) => setRequiresVpn(e.target.checked)}
+                            style={{ width: 'auto', margin: 0 }}
+                        />
+                        Wymaga VPN
+                    </label>
                 </div>
 
                 {/* File Upload */}
@@ -297,6 +322,7 @@ const RoomManagement = () => {
                             <th>Nazwa</th>
                             <th>Kategoria</th>
                             <th>Trudność</th>
+                            <th>VPN</th>
                             <th>Punkty</th>
                             <th>Akcje</th>
                         </tr>
@@ -311,6 +337,13 @@ const RoomManagement = () => {
                                     <span className={`difficulty-badge ${room.difficulty.toLowerCase()}`}>
                                         {room.difficulty}
                                     </span>
+                                </td>
+                                <td>
+                                    {room.requiresVpn ? (
+                                        <span style={{ color: '#e74c3c' }}><i className="fas fa-lock"></i> Tak</span>
+                                    ) : (
+                                        <span style={{ color: '#2ecc71' }}>Nie</span>
+                                    )}
                                 </td>
                                 <td>{room.points}</td>
                                 <td>
@@ -335,7 +368,7 @@ const RoomManagement = () => {
                         ))}
                         {rooms.length === 0 && (
                             <tr>
-                                <td colSpan="6" style={{ textAlign: 'center' }}>Brak pokoi.</td>
+                                <td colSpan="7" style={{ textAlign: 'center' }}>Brak pokoi.</td>
                             </tr>
                         )}
                     </tbody>

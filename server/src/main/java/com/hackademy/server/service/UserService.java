@@ -25,4 +25,5 @@ public interface UserService {
     Long getUserIdByUsername(String username);
     void muteUser(Long userId, long durationInSeconds);
     RankingEntry getUserRank(Long userId); // New method
+    boolean hasSolvedTutorialVpn(Long userId); // New method
 }
