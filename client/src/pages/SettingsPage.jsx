@@ -1,8 +1,10 @@
 import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 
 const SettingsPage = () => {
   const { user } = useAuth();
+  const { theme, toggleTheme } = useTheme();
   const [activeTab, setActiveTab] = useState('profile');
 
   const renderContent = () => {
@@ -10,10 +12,10 @@ const SettingsPage = () => {
       case 'profile':
         return (
           <div>
-            <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>Profil</h2>
+            <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', color: 'var(--text-light)' }}>Profil</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '8px', color: '#aaa' }}>Nazwa użytkownika</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-gray)' }}>Nazwa użytkownika</label>
                 <input 
                   type="text" 
                   value={user?.sub || ''} 
@@ -21,29 +23,28 @@ const SettingsPage = () => {
                   style={{ 
                     width: '100%', 
                     padding: '10px', 
-                    backgroundColor: '#2d2d2d', 
-                    border: '1px solid #444', 
+                    backgroundColor: 'var(--input-bg)', 
+                    border: '1px solid var(--input-border)', 
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--text-light)',
                     cursor: 'not-allowed'
                   }} 
                 />
-                <p style={{ fontSize: '0.8rem', color: '#666', marginTop: '5px' }}>Nazwy użytkownika nie można zmienić.</p>
+                <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginTop: '5px' }}>Nazwy użytkownika nie można zmienić.</p>
               </div>
               
-              {/* Placeholder for Bio update - functionality exists in ProfilePage but could be moved here */}
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '8px', color: '#aaa' }}>Bio</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-gray)' }}>Bio</label>
                 <textarea 
                   placeholder="Opowiedz coś o sobie..."
                   rows="4"
                   style={{ 
                     width: '100%', 
                     padding: '10px', 
-                    backgroundColor: '#0a0e1a', 
-                    border: '1px solid #444', 
+                    backgroundColor: 'var(--input-bg)', 
+                    border: '1px solid var(--input-border)', 
                     borderRadius: '6px',
-                    color: '#fff'
+                    color: 'var(--text-light)'
                   }} 
                 ></textarea>
                 <button className="btn btn-primary" style={{ marginTop: '10px' }}>Zapisz zmiany</button>
@@ -51,23 +52,74 @@ const SettingsPage = () => {
             </div>
           </div>
         );
+      case 'appearance':
+        return (
+          <div>
+            <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', color: 'var(--text-light)' }}>Wygląd</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
+              <div className="form-group">
+                <label style={{ display: 'block', marginBottom: '15px', color: 'var(--text-gray)' }}>Motyw aplikacji</label>
+                <div style={{ display: 'flex', gap: '20px' }}>
+                  <button 
+                    onClick={() => theme !== 'dark' && toggleTheme()}
+                    style={{ 
+                      flex: 1,
+                      padding: '20px', 
+                      backgroundColor: 'var(--bg-dark)', 
+                      border: theme === 'dark' ? '2px solid var(--primary-blue)' : '1px solid var(--border-color)', 
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '10px',
+                      color: 'var(--text-light)'
+                    }}
+                  >
+                    <i className="fas fa-moon" style={{ fontSize: '1.5rem' }}></i>
+                    <span>Ciemny</span>
+                  </button>
+                  <button 
+                    onClick={() => theme !== 'light' && toggleTheme()}
+                    style={{ 
+                      flex: 1,
+                      padding: '20px', 
+                      backgroundColor: '#f3f4f6', 
+                      border: theme === 'light' ? '2px solid var(--primary-blue)' : '1px solid var(--border-color)', 
+                      borderRadius: '8px',
+                      cursor: 'pointer',
+                      display: 'flex',
+                      flexDirection: 'column',
+                      alignItems: 'center',
+                      gap: '10px',
+                      color: '#1f2937'
+                    }}
+                  >
+                    <i className="fas fa-sun" style={{ fontSize: '1.5rem', color: '#f59e0b' }}></i>
+                    <span>Jasny</span>
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+        );
       case 'security':
         return (
           <div>
-            <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>Bezpieczeństwo</h2>
+            <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', color: 'var(--text-light)' }}>Bezpieczeństwo</h2>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '20px' }}>
               <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '8px', color: '#aaa' }}>Zmiana hasła</label>
+                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-gray)' }}>Zmiana hasła</label>
                 <input 
                   type="password" 
                   placeholder="Obecne hasło"
                   style={{ 
                     width: '100%', 
                     padding: '10px', 
-                    backgroundColor: '#0a0e1a', 
-                    border: '1px solid #444', 
+                    backgroundColor: 'var(--input-bg)', 
+                    border: '1px solid var(--input-border)', 
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--text-light)',
                     marginBottom: '10px'
                   }} 
                 />
@@ -77,10 +129,10 @@ const SettingsPage = () => {
                   style={{ 
                     width: '100%', 
                     padding: '10px', 
-                    backgroundColor: '#0a0e1a', 
-                    border: '1px solid #444', 
+                    backgroundColor: 'var(--input-bg)', 
+                    border: '1px solid var(--input-border)', 
                     borderRadius: '6px',
-                    color: '#fff',
+                    color: 'var(--text-light)',
                     marginBottom: '10px'
                   }} 
                 />
@@ -90,10 +142,10 @@ const SettingsPage = () => {
                   style={{ 
                     width: '100%', 
                     padding: '10px', 
-                    backgroundColor: '#0a0e1a', 
-                    border: '1px solid #444', 
+                    backgroundColor: 'var(--input-bg)', 
+                    border: '1px solid var(--input-border)', 
                     borderRadius: '6px',
-                    color: '#fff'
+                    color: 'var(--text-light)'
                   }} 
                 />
                 <button className="btn btn-primary" style={{ marginTop: '15px' }}>Zmień hasło</button>
@@ -104,8 +156,8 @@ const SettingsPage = () => {
       case 'notifications':
         return (
           <div>
-            <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>Powiadomienia</h2>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px' }}>
+            <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', color: 'var(--text-light)' }}>Powiadomienia</h2>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '15px', color: 'var(--text-light)' }}>
               <label style={{ display: 'flex', alignItems: 'center', gap: '10px', cursor: 'pointer' }}>
                 <input type="checkbox" defaultChecked style={{ width: '18px', height: '18px' }} />
                 <span>Powiadomienia o wyzwaniach</span>
@@ -128,7 +180,7 @@ const SettingsPage = () => {
 
   return (
     <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-      <h1 style={{ fontSize: '2.5rem', marginBottom: '30px' }}>Ustawienia</h1>
+      <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', color: 'var(--text-light)' }}>Ustawienia</h1>
       
       <div style={{ 
         display: 'grid', 
@@ -138,11 +190,11 @@ const SettingsPage = () => {
       }}>
         {/* Sidebar */}
         <div style={{ 
-          backgroundColor: '#1e1e1e', 
+          backgroundColor: 'var(--bg-panel)', 
           borderRadius: '12px',
           padding: '20px',
           height: 'fit-content',
-          border: '1px solid #333'
+          border: '1px solid var(--border-color)'
         }}>
           <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
             <li style={{ marginBottom: '10px' }}>
@@ -153,7 +205,7 @@ const SettingsPage = () => {
                   textAlign: 'left', 
                   padding: '12px 15px', 
                   backgroundColor: activeTab === 'profile' ? 'rgba(52, 152, 219, 0.1)' : 'transparent', 
-                  color: activeTab === 'profile' ? '#3498db' : '#aaa', 
+                  color: activeTab === 'profile' ? 'var(--primary-blue)' : 'var(--text-gray)', 
                   border: 'none', 
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -169,13 +221,35 @@ const SettingsPage = () => {
             </li>
             <li style={{ marginBottom: '10px' }}>
               <button 
+                onClick={() => setActiveTab('appearance')}
+                style={{ 
+                  width: '100%', 
+                  textAlign: 'left', 
+                  padding: '12px 15px', 
+                  backgroundColor: activeTab === 'appearance' ? 'rgba(52, 152, 219, 0.1)' : 'transparent', 
+                  color: activeTab === 'appearance' ? 'var(--primary-blue)' : 'var(--text-gray)', 
+                  border: 'none', 
+                  borderRadius: '8px',
+                  cursor: 'pointer',
+                  fontWeight: activeTab === 'appearance' ? 'bold' : 'normal',
+                  display: 'flex',
+                  alignItems: 'center',
+                  gap: '10px',
+                  transition: 'all 0.2s'
+                }}
+              >
+                <i className="fas fa-paint-brush"></i> Wygląd
+              </button>
+            </li>
+            <li style={{ marginBottom: '10px' }}>
+              <button 
                 onClick={() => setActiveTab('security')}
                 style={{ 
                   width: '100%', 
                   textAlign: 'left', 
                   padding: '12px 15px', 
                   backgroundColor: activeTab === 'security' ? 'rgba(52, 152, 219, 0.1)' : 'transparent', 
-                  color: activeTab === 'security' ? '#3498db' : '#aaa', 
+                  color: activeTab === 'security' ? 'var(--primary-blue)' : 'var(--text-gray)', 
                   border: 'none', 
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -197,7 +271,7 @@ const SettingsPage = () => {
                   textAlign: 'left', 
                   padding: '12px 15px', 
                   backgroundColor: activeTab === 'notifications' ? 'rgba(52, 152, 219, 0.1)' : 'transparent', 
-                  color: activeTab === 'notifications' ? '#3498db' : '#aaa', 
+                  color: activeTab === 'notifications' ? 'var(--primary-blue)' : 'var(--text-gray)', 
                   border: 'none', 
                   borderRadius: '8px',
                   cursor: 'pointer',
@@ -216,10 +290,10 @@ const SettingsPage = () => {
 
         {/* Content Area */}
         <div style={{ 
-          backgroundColor: '#1e1e1e', 
+          backgroundColor: 'var(--bg-panel)', 
           borderRadius: '12px',
           padding: '30px',
-          border: '1px solid #333'
+          border: '1px solid var(--border-color)'
         }}>
           {renderContent()}
         </div>

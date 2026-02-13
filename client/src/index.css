@@ -4,15 +4,18 @@
 
 /* --- ZMIENNE I RESET --- */
 :root {
+  /* Default Dark Mode */
   --bg-dark: #0f1724;
   --bg-panel: #111827;
   --bg-panel-lighter: #1f2937;
+  --text-light: #e6eef8;
+  --text-gray: #94a3b8;
+  --border-color: rgba(255, 255, 255, 0.1);
+  --input-bg: #0a0e1a;
+  --input-border: #444;
 
   --primary-blue: #0b63ff;
   --primary-red: #ff2d55;
-
-  --text-light: #e6eef8;
-  --text-gray: #94a3b8;
 
   --gradient-main: linear-gradient(
     135deg,
@@ -26,13 +29,25 @@
   font-weight: 400;
 
   color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  color: var(--text-light);
+  background-color: var(--bg-dark);
 
   font-synthesis: none;
   text-rendering: optimizeLegibility;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
+}
+
+/* Light Mode Overrides - "Card on Table" look */
+[data-theme='light'] {
+  --bg-dark: #e5e7eb;       /* Wyraźne szare tło strony (Gray-200) */
+  --bg-panel: #f9fafb;      /* Złamana biel dla kart (Gray-50) */
+  --bg-panel-lighter: #ffffff; /* Czysta biel dla nagłówków/wyróżnień */
+  --text-light: #111827;    /* Prawie czarny tekst (Gray-900) */
+  --text-gray: #4b5563;     /* Ciemniejszy szary tekst (Gray-600) */
+  --border-color: #d1d5db;  /* Wyraźniejszy border (Gray-300) */
+  --input-bg: #ffffff;      /* Białe inputy */
+  --input-border: #9ca3af;  /* Szary border inputów (Gray-400) */
 }
 
 * {
@@ -50,6 +65,10 @@ body {
   display: flex;
   flex-direction: column;
   min-height: 100vh;
+  margin: 0;
+  display: block; /* Overwrite vite default */
+  place-items: initial; /* Overwrite vite default */
+  min-width: 320px;
 }
 
 h1,
@@ -57,7 +76,7 @@ h2,
 h3,
 h4 {
   font-family: "Poppins", sans-serif;
-  color: #fff;
+  color: var(--text-light);
 }
 
 .container {
@@ -101,7 +120,68 @@ a {
   color: var(--text-gray);
 }
 .btn-text:hover {
-  color: white;
+  color: var(--text-light);
+}
+
+/* --- BUTTON OUTLINE (Dla "Wyzwij Znajomego") --- */
+.btn-outline {
+    background: transparent;
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
+    padding: 8px 20px;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.3s ease;
+}
+
+.btn-outline:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+}
+
+[data-theme='light'] .btn-outline {
+    border-color: #9ca3af; /* Ciemniejszy border w light mode */
+    color: var(--text-gray);
+}
+
+[data-theme='light'] .btn-outline:hover {
+    border-color: var(--primary-blue);
+    color: var(--primary-blue);
+    background-color: rgba(11, 99, 255, 0.05);
+}
+
+/* --- ELO BUTTON OUTLINE (Specjalny dla Areny) --- */
+.elo-btn-outline {
+    background: transparent;
+    border: 1px solid rgba(255, 255, 255, 0.2); /* Domyślnie jasny border dla dark mode */
+    color: white; /* Domyślnie biały tekst dla dark mode */
+    width: 100%;
+    padding: 15px;
+    font-weight: 700;
+    border-radius: 8px;
+    cursor: pointer;
+    margin-top: 20px;
+    transition: 0.3s;
+    font-family: "Poppins", sans-serif;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+}
+
+.elo-btn-outline:hover {
+    background: rgba(255, 255, 255, 0.05);
+    border-color: white;
+}
+
+[data-theme='light'] .elo-btn-outline {
+    border: 1px solid var(--border-color); /* Ciemniejszy border w light mode */
+    color: var(--text-light); /* Ciemny tekst w light mode */
+}
+
+[data-theme='light'] .elo-btn-outline:hover {
+    background: rgba(0, 0, 0, 0.05);
+    border-color: var(--text-light);
 }
 
 /* --- SECTION TITLES --- */
@@ -125,11 +205,20 @@ a {
   position: sticky;
   top: 0;
   width: 100%;
-  background: rgba(15, 23, 36, 0.9);
+  background: var(--bg-panel);
   backdrop-filter: blur(10px);
-  border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+  border-bottom: 1px solid var(--border-color);
   z-index: 1000;
   padding: 15px 0;
+}
+
+[data-theme='dark'] .navbar {
+    background: rgba(15, 23, 36, 0.9);
+}
+
+[data-theme='light'] .navbar {
+    background: rgba(249, 250, 251, 0.95); /* Dopasowane do --bg-panel */
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05); /* Delikatny cień w light mode */
 }
 
 .nav-content {
@@ -142,10 +231,15 @@ a {
   font-family: "JetBrains Mono", monospace;
   font-weight: 700;
   font-size: 1.5rem;
-  color: white;
+  color: var(--text-light);
 }
 .logo span {
   color: var(--primary-red);
+}
+
+/* Logo Invert for Light Mode */
+[data-theme='light'] .logo img {
+    filter: invert(1);
 }
 
 .nav-links {
@@ -158,7 +252,7 @@ a {
   font-weight: 500;
 }
 .nav-links a:hover {
-  color: white;
+  color: var(--text-light);
 }
 
 .nav-auth {
@@ -218,7 +312,7 @@ a {
   display: flex;
   gap: 2rem;
   padding-top: 2rem;
-  border-top: 1px solid rgba(255, 255, 255, 0.1);
+  border-top: 1px solid var(--border-color);
 }
 
 .stat-item span {
@@ -237,13 +331,13 @@ a {
 .terminal-window {
   background: var(--bg-panel);
   border-radius: 12px;
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.5);
   overflow: hidden;
   font-family: "JetBrains Mono", monospace;
 }
 .terminal-header {
-  background: #1f2937;
+  background: var(--bg-panel-lighter);
   padding: 10px 15px;
   display: flex;
   gap: 8px;
@@ -283,7 +377,7 @@ a {
 /* --- HOW IT WORKS (ZMODYFIKOWANE) --- */
 .how-it-works {
   padding: 100px 0;
-  background: #0b111d;
+  background: var(--bg-dark);
   text-align: center;
 }
 
@@ -352,7 +446,7 @@ a {
   background: var(--bg-panel);
   border-radius: 16px;
   overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
   transition: 0.3s;
   position: relative;
   display: flex;
@@ -360,7 +454,7 @@ a {
 }
 
 .room-card:hover {
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-blue);
   transform: translateY(-3px);
 }
 
@@ -372,7 +466,7 @@ a {
   height: 100%;
   background: rgba(15, 23, 36, 0.95);
   backdrop-filter: blur(4px);
-  color: var(--text-light);
+  color: #e6eef8; /* Always light text on dark tooltip */
   padding: 20px;
   display: flex;
   align-items: center;
@@ -382,6 +476,11 @@ a {
   transition: opacity 0.3s ease;
   z-index: 10;
   border-radius: 16px;
+}
+
+[data-theme='light'] .room-description-tooltip {
+    background: rgba(255, 255, 255, 0.95);
+    color: #111827;
 }
 
 .room-card:hover .room-description-tooltip {
@@ -398,7 +497,7 @@ a {
   padding: 4px 10px;
   border-radius: 6px;
   font-size: 0.75rem;
-  color: var(--text-gray);
+  color: #94a3b8;
   display: flex;
   align-items: center;
   gap: 5px;
@@ -440,6 +539,24 @@ a {
   color: #a855f7;
 }
 
+/* Light Mode Difficulty Badges - High Contrast */
+[data-theme='light'] .diff-easy {
+  background: #10b981;
+  color: white;
+}
+[data-theme='light'] .diff-medium {
+  background: #f59e0b;
+  color: white;
+}
+[data-theme='light'] .diff-hard {
+  background: #ef4444;
+  color: white;
+}
+[data-theme='light'] .diff-insane {
+  background: #a855f7;
+  color: white;
+}
+
 .room-body {
   padding: 20px;
   flex-grow: 1;
@@ -450,7 +567,7 @@ a {
 .room-title {
   font-size: 1.2rem;
   margin-bottom: 0.5rem;
-  color: white;
+  color: var(--text-light);
 }
 
 .room-tags {
@@ -463,11 +580,11 @@ a {
 .room-locked-footer {
   margin-top: auto;
   padding-top: 15px;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-color);
   display: flex;
   justify-content: space-between;
   align-items: center;
-  color: #64748b;
+  color: var(--text-gray);
   font-size: 0.85rem;
 }
 
@@ -480,17 +597,13 @@ a {
 /* --- LEADERBOARD (ZACHOWANE Z POPRZEDNIEJ WERSJI) --- */
 .leaderboard-section {
   padding: 80px 0;
-  background: radial-gradient(
-    circle at 50% 50%,
-    #162032 0%,
-    #0f1724 100%
-  );
+  background: var(--bg-dark);
   text-align: center;
 }
 .leaderboard-section .section-title {
   font-size: 3rem;
   margin-bottom: 1rem;
-  color: white;
+  color: var(--text-light);
   display: inline-block;
 }
 .leaderboard-section .section-title span {
@@ -512,12 +625,12 @@ a {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  border: 1px solid rgba(255, 255, 255, 0.05);
+  border: 1px solid var(--border-color);
   transition: 0.3s;
 }
 .leaderboard-card:hover {
   transform: translateY(-3px);
-  border-color: rgba(255, 255, 255, 0.1);
+  border-color: var(--primary-blue);
 }
 .card-left {
   display: flex;
@@ -567,7 +680,7 @@ a {
 .player-details h3 {
   font-size: 1rem;
   margin: 0;
-  color: white;
+  color: var(--text-light);
 }
 .player-details p {
   font-size: 0.8rem;
@@ -590,9 +703,9 @@ a {
 
 /* --- FOOTER --- */
 footer {
-  background: #05090f;
+  background: var(--bg-panel);
   padding: 40px 0;
-  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  border-top: 1px solid var(--border-color);
   font-size: 0.9rem;
   color: var(--text-gray);
   margin-top: 4rem;
@@ -612,7 +725,7 @@ footer {
 /* --- COMPETITION / ARENA SECTION --- */
 .arena-section {
   padding: 100px 0;
-  background: linear-gradient(to bottom, #0f1724, #131b2e);
+  background: var(--bg-dark);
   position: relative;
   overflow: hidden;
 }
@@ -632,6 +745,13 @@ footer {
   background-size: 30px 30px;
   opacity: 0.5;
   pointer-events: none;
+}
+
+[data-theme='light'] .arena-section::before {
+    background-image: radial-gradient(
+        rgba(0, 0, 0, 0.05) 1px,
+        transparent 1px
+    );
 }
 
 .arena-grid {
@@ -677,10 +797,14 @@ footer {
   font-size: 1.2rem;
 }
 
+[data-theme='light'] .af-icon {
+    background: rgba(0, 0, 0, 0.05);
+}
+
 .arena-feature-item h4 {
   font-size: 1.1rem;
   margin-bottom: 5px;
-  color: white;
+  color: var(--text-light);
 }
 
 .arena-feature-item p {
@@ -716,14 +840,22 @@ footer {
 }
 
 .elo-card {
-  background: rgba(17, 24, 39, 0.8);
+  background: var(--bg-panel);
   backdrop-filter: blur(10px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
+  border: 1px solid var(--border-color);
   border-radius: 20px;
   padding: 30px;
   text-align: center;
   position: relative;
   overflow: hidden;
+}
+
+[data-theme='dark'] .elo-card {
+    background: rgba(17, 24, 39, 0.8);
+}
+
+[data-theme='light'] .elo-card {
+    background: rgba(255, 255, 255, 0.8);
 }
 
 /* Gradientowy border na górze karty */
@@ -793,7 +925,7 @@ footer {
   font-family: "JetBrains Mono", monospace;
   font-weight: 800;
   font-size: 1.5rem;
-  color: white;
+  color: var(--text-light);
   font-style: italic;
   text-shadow: 0 0 10px rgba(255, 255, 255, 0.5);
 }
@@ -828,7 +960,7 @@ footer {
 }
 
 .elo-btn:hover {
-  background: var(--text-light);
+  background: #f3f4f6;
   transform: translateY(-2px);
   box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
 }
@@ -878,14 +1010,6 @@ footer {
   }
 }
 
-body {
-  margin: 0;
-  display: block; /* Overwrite vite default */
-  place-items: initial; /* Overwrite vite default */
-  min-width: 320px;
-  min-height: 100vh;
-}
-
 /* --- PROFILE DROPDOWN --- */
 .dropdown-item a,
 .dropdown-item button {
@@ -913,5 +1037,5 @@ body {
 
 .dropdown-item:hover a,
 .dropdown-item:hover button {
-  color: white;
+  color: var(--text-light);
 }

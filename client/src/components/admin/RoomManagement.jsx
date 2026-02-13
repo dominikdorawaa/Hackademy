@@ -244,7 +244,7 @@ const RoomManagement = () => {
                         <option value="INSANE">Niemożliwy</option>
                     </select>
                     
-                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flex: 1 }}>
+                    <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flex: 1, color: 'var(--text-light)' }}>
                         <input 
                             type="checkbox" 
                             checked={requiresVpn}
@@ -257,14 +257,14 @@ const RoomManagement = () => {
 
                 {/* File Upload */}
                 <div style={{ marginTop: '1rem' }}>
-                    <label>Plik do pobrania (opcjonalnie)</label>
+                    <label style={{ color: 'var(--text-light)' }}>Plik do pobrania (opcjonalnie)</label>
                     <input 
                         type="file" 
                         onChange={handleFileChange} 
                         style={{ marginTop: '0.5rem' }}
                     />
                     {isEditing && !file && (
-                        <p style={{ fontSize: '0.8rem', color: '#aaa' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>
                             Pozostaw puste, aby zachować obecny plik (jeśli istnieje).
                         </p>
                     )}
@@ -272,7 +272,7 @@ const RoomManagement = () => {
 
                 {/* Hint Management */}
                 <div style={{ marginTop: '1rem' }}>
-                    <label>Podpowiedzi</label>
+                    <label style={{ color: 'var(--text-light)' }}>Podpowiedzi</label>
                     <div style={{ display: 'flex', gap: '1rem', marginBottom: '0.5rem' }}>
                         <input
                             type="text"
@@ -285,8 +285,8 @@ const RoomManagement = () => {
                     </div>
                     <ul style={{ listStyle: 'none', padding: 0, margin: 0 }}>
                         {hints.map((hint, index) => (
-                            <li key={index} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: '#333', padding: '5px 10px', borderRadius: '4px', marginBottom: '5px' }}>
-                                <span style={{ flex: 1 }}>{hint}</span>
+                            <li key={index} style={{ display: 'flex', alignItems: 'center', gap: '1rem', background: 'var(--bg-panel-lighter)', padding: '5px 10px', borderRadius: '4px', marginBottom: '5px', border: '1px solid var(--border-color)' }}>
+                                <span style={{ flex: 1, color: 'var(--text-light)' }}>{hint}</span>
                                 <button type="button" onClick={() => handleRemoveHint(index)} style={{ background: '#e74c3c', color: 'white', border: 'none', padding: '3px 8px', borderRadius: '4px', cursor: 'pointer' }}>
                                     Usuń
                                 </button>
@@ -311,9 +311,9 @@ const RoomManagement = () => {
                 </div>
             </form>
 
-            <h3 style={{ marginTop: '3rem', marginBottom: '1rem' }}>Lista Pokoi</h3>
+            <h3 style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--text-light)' }}>Lista Pokoi</h3>
             {loading ? (
-                <p>Ładowanie pokoi...</p>
+                <p style={{ color: 'var(--text-light)' }}>Ładowanie pokoi...</p>
             ) : (
                 <table className="management-table">
                     <thead>
@@ -368,7 +368,7 @@ const RoomManagement = () => {
                         ))}
                         {rooms.length === 0 && (
                             <tr>
-                                <td colSpan="7" style={{ textAlign: 'center' }}>Brak pokoi.</td>
+                                <td colSpan="7" style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Brak pokoi.</td>
                             </tr>
                         )}
                     </tbody>

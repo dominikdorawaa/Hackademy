@@ -335,14 +335,15 @@ const ArenaPage = () => {
                                         display: 'flex', 
                                         justifyContent: 'space-between', 
                                         alignItems: 'center',
-                                        backgroundColor: '#1e1e1e',
+                                        backgroundColor: 'var(--bg-panel)',
                                         padding: '15px',
-                                        borderRadius: '8px'
+                                        borderRadius: '8px',
+                                        border: '1px solid var(--border-color)'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${challenge.challengerUsername}`} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
-                                            <span style={{ fontWeight: 'bold' }}>{challenge.challengerUsername}</span>
-                                            <span style={{ color: '#aaa', fontSize: '0.9rem' }}>wyzywa Cię!</span>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--text-light)' }}>{challenge.challengerUsername}</span>
+                                            <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem' }}>wyzywa Cię!</span>
                                         </div>
                                         <div style={{ display: 'flex', gap: '10px' }}>
                                             <button 
@@ -382,7 +383,7 @@ const ArenaPage = () => {
                     <div className="elo-card">
                         <span className="elo-badge">TRYB RANKINGOWY</span>
 
-                        <h3 style={{ marginBottom: '10px' }}>Pojedynki 1v1</h3>
+                        <h3 style={{ marginBottom: '10px', color: 'var(--text-light)' }}>Pojedynki 1v1</h3>
                         <p style={{ color: 'var(--text-gray)', fontSize: '0.9rem', marginBottom: '30px' }}>
                             Pnij się w drabinie rankingowej. System dobierze Ci przeciwnika o równym poziomie – wygrywa ten, kto szybciej przełamie zabezpieczenia systemu.
                         </p>
@@ -394,7 +395,7 @@ const ArenaPage = () => {
                                     borderTop: '5px solid var(--primary-blue)', borderRadius: '50%', 
                                     animation: 'spin 1s linear infinite', margin: '0 auto 20px' 
                                 }}></div>
-                                <p>Szukanie przeciwnika...</p>
+                                <p style={{ color: 'var(--text-light)' }}>Szukanie przeciwnika...</p>
                                 <button onClick={handleLeaveQueue} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
                                     Anuluj
                                 </button>
@@ -407,7 +408,7 @@ const ArenaPage = () => {
                                     borderTop: '5px solid #ff9800', borderRadius: '50%', 
                                     animation: 'spin 1s linear infinite', margin: '0 auto 20px' 
                                 }}></div>
-                                <p>Oczekiwanie na akceptację wyzwania...</p>
+                                <p style={{ color: 'var(--text-light)' }}>Oczekiwanie na akceptację wyzwania...</p>
                                 <button onClick={() => setStatus('IDLE')} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
                                     Anuluj
                                 </button>
@@ -432,7 +433,7 @@ const ArenaPage = () => {
                                                 alignItems: 'center', 
                                                 gap: '10px', 
                                                 cursor: userData.hasVpnAccess ? 'pointer' : 'not-allowed', 
-                                                color: userData.hasVpnAccess ? '#aaa' : '#555', 
+                                                color: userData.hasVpnAccess ? 'var(--text-gray)' : '#555', 
                                                 fontSize: '0.9rem' 
                                             }}
                                             title={!userData.hasVpnAccess ? 'Ukończ "Tutorial VPN", aby odblokować.' : ''}
@@ -452,7 +453,7 @@ const ArenaPage = () => {
                                         <button onClick={handleJoinQueue} className="elo-btn">
                                             <i className="fas fa-search"></i> Znajdź Przeciwnika
                                         </button>
-                                        <button onClick={handleOpenFriendModal} className="elo-btn" style={{ background: 'transparent', border: '1px solid rgba(255,255,255,0.2)', color: 'white' }}>
+                                        <button onClick={handleOpenFriendModal} className="elo-btn elo-btn-outline">
                                             <i className="fas fa-swords"></i> Wyzwij Znajomego
                                         </button>
                                     </div>
@@ -489,28 +490,28 @@ const ArenaPage = () => {
                     backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
                 }}>
                     <div style={{
-                        backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '500px',
-                        border: '1px solid #333', maxHeight: '80vh', overflowY: 'auto'
+                        backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '500px',
+                        border: '1px solid var(--border-color)', maxHeight: '80vh', overflowY: 'auto'
                     }}>
                         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0 }}>Wybierz Znajomego</h2>
-                            <button onClick={() => setShowFriendModal(false)} style={{ background: 'none', border: 'none', color: '#aaa', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                            <h2 style={{ margin: 0, color: 'var(--text-light)' }}>Wybierz Znajomego</h2>
+                            <button onClick={() => setShowFriendModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-gray)', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
                         </div>
 
                         {friendsLoading ? (
-                            <p>Ładowanie znajomych...</p>
+                            <p style={{ color: 'var(--text-light)' }}>Ładowanie znajomych...</p>
                         ) : friends.length === 0 ? (
-                            <p style={{ color: '#aaa' }}>Nie masz jeszcze znajomych.</p>
+                            <p style={{ color: 'var(--text-gray)' }}>Nie masz jeszcze znajomych.</p>
                         ) : (
                             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
                                 {friends.map(friend => (
                                     <div key={friend.id} style={{
                                         display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                        padding: '15px', backgroundColor: '#2d2d2d', borderRadius: '8px'
+                                        padding: '15px', backgroundColor: 'var(--bg-panel-lighter)', borderRadius: '8px'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
                                             <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${friend.username}`} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
-                                            <span style={{ fontWeight: 'bold' }}>{friend.username}</span>
+                                            <span style={{ fontWeight: 'bold', color: 'var(--text-light)' }}>{friend.username}</span>
                                         </div>
                                         <button 
                                             onClick={() => handleChallengeFriend(friend.username)}
@@ -539,14 +540,14 @@ const ArenaPage = () => {
                     backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100
                 }}>
                     <div style={{
-                        backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px',
+                        backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px',
                         border: '1px solid #e74c3c', textAlign: 'center'
                     }}>
                         <div style={{ fontSize: '3rem', color: '#e74c3c', marginBottom: '20px' }}>
                             <i className="fas fa-exclamation-circle"></i>
                         </div>
-                        <h2 style={{ margin: '0 0 15px 0', color: '#fff' }}>Błąd</h2>
-                        <p style={{ color: '#aaa', marginBottom: '25px' }}>{errorMessage}</p>
+                        <h2 style={{ margin: '0 0 15px 0', color: 'var(--text-light)' }}>Błąd</h2>
+                        <p style={{ color: 'var(--text-gray)', marginBottom: '25px' }}>{errorMessage}</p>
                         <button 
                             onClick={() => setShowErrorModal(false)}
                             className="btn btn-primary"

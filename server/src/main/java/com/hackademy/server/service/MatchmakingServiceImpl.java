@@ -68,9 +68,12 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         List<PlayerInfo> players = new ArrayList<>(queue);
         Set<Long> matchedPlayerIds = new HashSet<>();
 
-        // Fetch all rooms once
-        List<Room> allRooms = roomRepository.findAll();
-        if (allRooms.isEmpty()) {
+        // Pre-fetch room IDs to avoid fetching full entities
+        // We fetch two lists: all rooms (if both players want VPN) and non-VPN rooms (if at least one doesn't)
+        List<Long> allRoomIds = roomRepository.findIdsByVpnRequirement(true);
+        List<Long> noVpnRoomIds = roomRepository.findIdsByVpnRequirement(false);
+
+        if (allRoomIds.isEmpty() && noVpnRoomIds.isEmpty()) {
             System.out.println("No rooms found in database!");
             return newSessions;
         }
@@ -85,22 +88,26 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 if (matchedPlayerIds.contains(p2.id)) continue;
 
                 // Check compatibility
-                // If either player has VPN disabled, we MUST pick a non-VPN room.
-                // If both have VPN enabled, we CAN pick a VPN room (or non-VPN).
                 boolean canUseVpn = p1.vpnEnabled && p2.vpnEnabled;
 
-                // Filter rooms based on VPN requirement
-                List<Room> eligibleRooms = allRooms.stream()
-                        .filter(r -> !r.isRequiresVpn() || canUseVpn)
-                        .collect(Collectors.toList());
+                // Select eligible room IDs
+                List<Long> eligibleRoomIds = canUseVpn ? allRoomIds : noVpnRoomIds;
 
-                if (eligibleRooms.isEmpty()) {
+                if (eligibleRoomIds.isEmpty()) {
                     System.out.println("No eligible rooms for " + p1.username + " and " + p2.username);
                     continue;
                 }
 
-                // Select random room from eligible ones
-                Room selectedRoom = eligibleRooms.get(new Random().nextInt(eligibleRooms.size()));
+                // Select random room ID
+                Long randomRoomId = eligibleRoomIds.get(new Random().nextInt(eligibleRoomIds.size()));
+                
+                // Fetch the single room entity
+                Room selectedRoom = roomRepository.findById(randomRoomId).orElse(null);
+                
+                if (selectedRoom == null) {
+                     System.out.println("Failed to fetch room with ID: " + randomRoomId);
+                     continue;
+                }
 
                 System.out.println("Matching " + p1.username + " vs " + p2.username + " in room: " + selectedRoom.getTitle());
 

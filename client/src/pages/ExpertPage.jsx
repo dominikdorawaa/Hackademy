@@ -6,7 +6,7 @@ const ExpertPage = () => {
     return (
         <div className="admin-container">
             <h1>Expert Panel</h1>
-            <p style={{ color: '#aaa', marginBottom: '20px' }}>
+            <p style={{ color: 'var(--text-gray)', marginBottom: '20px' }}>
                 Welcome, Expert. You can manage rooms here.
             </p>
             <div className="admin-content">

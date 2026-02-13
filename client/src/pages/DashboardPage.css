@@ -16,7 +16,7 @@
 /* --- Sidebar Styling (Arena Style) --- */
 .filters-sidebar {
     /* Tło wewnętrzne */
-    background-color: #121212;
+    background-color: var(--bg-panel);
 
     /* Gradientowy Border Trick */
     border: 2px solid transparent; /* Rezerwujemy miejsce na border */
@@ -26,7 +26,7 @@
        1. Kolor tła panelu (padding-box)
        2. Gradient (border-box) - to on "wystaje" spod spodu tworząc ramkę
     */
-    background-image: linear-gradient(#121212, #121212),
+    background-image: linear-gradient(var(--bg-panel), var(--bg-panel)),
                       var(--gradient-primary);
     background-origin: border-box;
     background-clip: padding-box, border-box;
@@ -43,7 +43,7 @@
 
     /* Custom Scrollbar dla paska */
     scrollbar-width: thin;
-    scrollbar-color: #333 #121212;
+    scrollbar-color: #333 var(--bg-panel);
 
     /* Subtelna poświata (Glow) pasująca do gradientu */
     box-shadow: 0 0 30px rgba(52, 152, 219, 0.1),
@@ -56,7 +56,7 @@
     width: 6px;
 }
 .filters-sidebar::-webkit-scrollbar-track {
-    background: #121212;
+    background: var(--bg-panel);
     border-radius: 4px;
 }
 .filters-sidebar::-webkit-scrollbar-thumb {
@@ -70,7 +70,7 @@
 .filter-group {
     margin-bottom: 15px; /* Zmniejszony margines */
     padding-bottom: 10px; /* Zmniejszony padding */
-    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .filter-group:last-child {
@@ -82,7 +82,7 @@
 .filter-title {
     font-size: 0.85rem; /* Zmniejszona czcionka */
     font-weight: 800;
-    color: #fff;
+    color: var(--text-light);
     margin-bottom: 10px; /* Zmniejszony margines */
     display: flex;
     align-items: center;
@@ -110,14 +110,14 @@
     align-items: center;
     gap: 8px; /* Zmniejszony odstęp */
     cursor: pointer;
-    color: #aaa;
+    color: var(--text-gray);
     font-size: 0.85rem; /* Zmniejszona czcionka */
     transition: all 0.3s ease;
     user-select: none;
 }
 
 .filter-label:hover {
-    color: #fff;
+    color: var(--text-light);
     transform: translateX(3px);
 }
 
@@ -127,9 +127,9 @@
     -webkit-appearance: none;
     width: 16px; /* Zmniejszony checkbox */
     height: 16px; /* Zmniejszony checkbox */
-    border: 2px solid #444;
+    border: 2px solid var(--input-border);
     border-radius: 4px; /* Zmniejszony border-radius */
-    background-color: rgba(0, 0, 0, 0.3);
+    background-color: var(--input-bg);
     cursor: pointer;
     position: relative;
     transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
@@ -137,7 +137,7 @@
 }
 
 .filter-checkbox:hover {
-    border-color: #666;
+    border-color: var(--text-gray);
 }
 
 /* Checked State - Gradient */
@@ -186,20 +186,20 @@ input[type="radio"].filter-checkbox:checked::after {
     align-items: flex-end;
     margin-bottom: 30px;
     padding-bottom: 15px;
-    border-bottom: 1px solid rgba(255, 255, 255, 0.1);
+    border-bottom: 1px solid var(--border-color);
 }
 
 .rooms-header h1 {
     font-size: 2.2rem;
     margin: 0 0 5px 0;
     font-weight: 800;
-    background: linear-gradient(90deg, #fff, #ccc);
+    background: linear-gradient(90deg, var(--text-light), var(--text-gray));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
 }
 
 .results-count {
-    color: #666;
+    color: var(--text-gray);
     font-size: 0.9rem;
     margin: 0;
     font-family: monospace;
@@ -207,9 +207,9 @@ input[type="radio"].filter-checkbox:checked::after {
 
 /* Sort Select Styling */
 .sort-select {
-    background-color: #121212;
-    color: #e0e0e0;
-    border: 1px solid #333;
+    background-color: var(--bg-panel);
+    color: var(--text-light);
+    border: 1px solid var(--input-border);
     padding: 10px 20px;
     border-radius: 20px; /* Pill shape */
     outline: none;
@@ -238,9 +238,9 @@ input[type="radio"].filter-checkbox:checked::after {
 }
 
 .pagination-btn {
-    background-color: #1e1e1e;
-    border: 1px solid #333;
-    color: #fff;
+    background-color: var(--bg-panel);
+    border: 1px solid var(--input-border);
+    color: var(--text-light);
     width: 40px;
     height: 40px;
     border-radius: 8px;
@@ -268,7 +268,7 @@ input[type="radio"].filter-checkbox:checked::after {
 .pagination-btn:disabled {
     opacity: 0.5;
     cursor: not-allowed;
-    background-color: #121212;
+    background-color: var(--bg-panel);
 }
 
 /* Responsive */

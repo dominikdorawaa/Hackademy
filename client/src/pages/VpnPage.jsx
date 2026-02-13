@@ -67,33 +67,33 @@ const VpnPage = () => {
 
     return (
         <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px', maxWidth: '800px' }}>
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', textAlign: 'center' }}>Dostęp VPN</h1>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', textAlign: 'center', color: 'var(--text-light)' }}>Dostęp VPN</h1>
             
-            <div style={{ backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', border: '1px solid #333' }}>
-                <h2 style={{ marginTop: 0, color: '#3498db' }}>Jak to działa?</h2>
-                <p style={{ lineHeight: '1.6', color: '#ccc' }}>
+            <div style={{ backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                <h2 style={{ marginTop: 0, color: 'var(--primary-blue)' }}>Jak to działa?</h2>
+                <p style={{ lineHeight: '1.6', color: 'var(--text-gray)' }}>
                     Aby rozwiązywać zadania CTF, musisz połączyć się z naszą prywatną siecią VPN.
                     Dzięki temu uzyskasz dostęp do maszyn wirtualnych z zadaniami, które są niedostępne z publicznego internetu.
                 </p>
 
-                <h3 style={{ marginTop: '30px', marginBottom: '15px' }}>Wymagania:</h3>
-                <div style={{ backgroundColor: '#2d2d2d', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
+                <h3 style={{ marginTop: '30px', marginBottom: '15px', color: 'var(--text-light)' }}>Wymagania:</h3>
+                <div style={{ backgroundColor: 'var(--bg-panel-lighter)', padding: '15px', borderRadius: '8px', marginBottom: '20px' }}>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px', marginBottom: '10px' }}>
-                        <i className={`fas ${status?.levelRequirementMet ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'}`}></i>
+                        <i className={`fas ${status?.levelRequirementMet ? 'fa-check-circle' : 'fa-times-circle'}`} style={{ color: status?.levelRequirementMet ? '#2ecc71' : '#e74c3c' }}></i>
                         <span style={{ color: status?.levelRequirementMet ? '#2ecc71' : '#e74c3c' }}>
                             Poziom 10 (Twój poziom: {status?.currentLevel})
                         </span>
                     </div>
                     <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                        <i className={`fas ${status?.tutorialRequirementMet ? 'fa-check-circle text-green-500' : 'fa-times-circle text-red-500'}`}></i>
+                        <i className={`fas ${status?.tutorialRequirementMet ? 'fa-check-circle' : 'fa-times-circle'}`} style={{ color: status?.tutorialRequirementMet ? '#2ecc71' : '#e74c3c' }}></i>
                         <span style={{ color: status?.tutorialRequirementMet ? '#2ecc71' : '#e74c3c' }}>
                             Ukończony pokój "Tutorial VM"
                         </span>
                     </div>
                 </div>
 
-                <h3 style={{ marginTop: '30px', marginBottom: '15px' }}>Instrukcja:</h3>
-                <ol style={{ lineHeight: '1.8', color: '#ccc', paddingLeft: '20px' }}>
+                <h3 style={{ marginTop: '30px', marginBottom: '15px', color: 'var(--text-light)' }}>Instrukcja:</h3>
+                <ol style={{ lineHeight: '1.8', color: 'var(--text-gray)', paddingLeft: '20px' }}>
                     <li>Pobierz i zainstaluj klienta <strong>OpenVPN</strong> (Windows/Mac/Linux).</li>
                     <li>Kliknij przycisk poniżej, aby wygenerować swój unikalny plik konfiguracyjny.</li>
                     <li>Zaimportuj pobrany plik <code>.ovpn</code> do klienta OpenVPN.</li>
@@ -146,7 +146,7 @@ const VpnPage = () => {
                         </button>
                     )}
                     
-                    <p style={{ marginTop: '10px', fontSize: '0.9rem', color: '#666' }}>
+                    <p style={{ marginTop: '10px', fontSize: '0.9rem', color: 'var(--text-gray)' }}>
                         {status?.canDownload ? 'Generowanie może potrwać kilka sekund.' : 'Spełnij wymagania, aby odblokować.'}
                     </p>
                 </div>

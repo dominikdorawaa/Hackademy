@@ -29,11 +29,19 @@ const ArenaResultModal = ({ isOpen, onClose, session, currentUserId }) => {
 
     return (
         <div className="modal-overlay">
-            <div className="modal-content" style={{ width: '600px', maxWidth: '90vw', textAlign: 'center', padding: '40px', background: '#1e1e1e', border: '1px solid #333' }}>
+            <div className="modal-content" style={{ 
+                width: '600px', 
+                maxWidth: '90vw', 
+                textAlign: 'center', 
+                padding: '40px', 
+                background: 'var(--bg-panel)', 
+                border: '1px solid var(--border-color)',
+                boxShadow: '0 20px 60px rgba(0,0,0,0.3)' // Added shadow for depth
+            }}>
                 <h1 style={{ fontSize: '3rem', color: isWinner ? '#2ecc71' : '#e74c3c', marginBottom: '10px', marginTop: 0 }}>
                     {isWinner ? 'ZWYCIĘSTWO!' : 'PORAŻKA'}
                 </h1>
-                <p style={{ color: '#aaa', marginBottom: '20px' }}>
+                <p style={{ color: 'var(--text-gray)', marginBottom: '20px' }}>
                     {isWinner ? 'Gratulacje! Pokonałeś przeciwnika.' : 'Niestety, tym razem się nie udało.'}
                 </p>
                 
@@ -44,16 +52,28 @@ const ArenaResultModal = ({ isOpen, onClose, session, currentUserId }) => {
                         fontWeight: 'bold', 
                         color: myEloChange >= 0 ? '#2ecc71' : '#e74c3c',
                         marginBottom: '40px',
-                        padding: '10px',
-                        backgroundColor: 'rgba(0,0,0,0.2)',
-                        borderRadius: '8px',
-                        display: 'inline-block'
+                        padding: '15px 30px',
+                        backgroundColor: 'var(--bg-panel-lighter)', // Changed to variable
+                        border: '1px solid var(--border-color)', // Added border
+                        borderRadius: '12px',
+                        display: 'inline-block',
+                        boxShadow: '0 4px 10px rgba(0,0,0,0.05)' // Subtle shadow
                     }}>
                         {myEloChange >= 0 ? '+' : ''}{myEloChange} ELO
                     </div>
                 )}
 
-                <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', marginBottom: '40px' }}>
+                <div style={{ 
+                    display: 'flex', 
+                    justifyContent: 'center', 
+                    alignItems: 'center', 
+                    gap: '40px', 
+                    marginBottom: '40px',
+                    padding: '20px',
+                    backgroundColor: 'var(--bg-dark)', // Darker background for players section
+                    borderRadius: '16px',
+                    border: '1px solid var(--border-color)'
+                }}>
                     {/* Winner */}
                     <div style={{ textAlign: 'center', width: '150px' }}>
                         <div style={{ position: 'relative', display: 'inline-block' }}>
@@ -65,8 +85,8 @@ const ArenaResultModal = ({ isOpen, onClose, session, currentUserId }) => {
                             <i className="fas fa-crown" style={{ position: 'absolute', top: '-20px', left: '50%', transform: 'translateX(-50%)', color: '#ffd700', fontSize: '2rem' }}></i>
                         </div>
                         <h3 style={{ marginTop: '15px', color: '#ffd700', fontSize: '1.2rem', marginBottom: '5px' }}>ZWYCIĘZCA</h3>
-                        <p style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0 }}>{winnerName}</p>
-                        <p style={{ fontSize: '0.9rem', color: '#aaa', marginTop: '5px' }}>ELO: {winnerElo}</p>
+                        <p style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0, color: 'var(--text-light)' }}>{winnerName}</p>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-gray)', marginTop: '5px' }}>ELO: {winnerElo}</p>
                     </div>
 
                     {/* Loser */}
@@ -77,8 +97,8 @@ const ArenaResultModal = ({ isOpen, onClose, session, currentUserId }) => {
                             style={{ width: '80px', borderRadius: '50%', border: '4px solid #e74c3c', filter: 'grayscale(50%)' }} 
                         />
                         <h3 style={{ marginTop: '15px', color: '#e74c3c', fontSize: '1.2rem', marginBottom: '5px' }}>PRZEGRANY</h3>
-                        <p style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0 }}>{loserName}</p>
-                        <p style={{ fontSize: '0.9rem', color: '#aaa', marginTop: '5px' }}>ELO: {loserElo}</p>
+                        <p style={{ fontSize: '1rem', fontWeight: 'bold', margin: 0, color: 'var(--text-light)' }}>{loserName}</p>
+                        <p style={{ fontSize: '0.9rem', color: 'var(--text-gray)', marginTop: '5px' }}>ELO: {loserElo}</p>
                     </div>
                 </div>
 

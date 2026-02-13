@@ -108,15 +108,15 @@ const ReportsManagement = () => {
         }
     };
 
-    if (loading) return <p>Ładowanie zgłoszeń...</p>;
+    if (loading) return <p style={{ color: 'var(--text-light)' }}>Ładowanie zgłoszeń...</p>;
 
     return (
         <div>
-            <h2>Zgłoszone Wiadomości</h2>
+            <h2 style={{ color: 'var(--text-light)' }}>Zgłoszone Wiadomości</h2>
             {reports.length === 0 ? (
-                <p>Brak zgłoszeń.</p>
+                <p style={{ color: 'var(--text-gray)' }}>Brak zgłoszeń.</p>
             ) : (
-                <table className="admin-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
+                <table className="management-table" style={{ width: '100%', borderCollapse: 'collapse' }}>
                     <thead>
                         <tr>
                             <th style={{ textAlign: 'left', padding: '12px' }}>ID</th>
@@ -128,20 +128,21 @@ const ReportsManagement = () => {
                     </thead>
                     <tbody>
                         {reports.map(report => (
-                            <tr key={report.id} style={{ borderBottom: '1px solid #333' }}>
+                            <tr key={report.id} style={{ borderBottom: '1px solid var(--border-color)' }}>
                                 <td style={{ padding: '12px' }}>{report.id}</td>
-                                <td style={{ padding: '12px', fontWeight: 'bold', color: '#ddd' }}>{report.senderUsername}</td>
+                                <td style={{ padding: '12px', fontWeight: 'bold', color: 'var(--text-light)' }}>{report.senderUsername}</td>
                                 <td style={{ 
                                     padding: '12px', 
                                     maxWidth: '400px', 
                                     wordWrap: 'break-word', 
                                     lineHeight: '1.6',
-                                    backgroundColor: 'rgba(255,255,255,0.05)',
-                                    borderRadius: '4px'
+                                    backgroundColor: 'var(--bg-panel-lighter)',
+                                    borderRadius: '4px',
+                                    color: 'var(--text-light)'
                                 }}>
                                     {report.content}
                                 </td>
-                                <td style={{ padding: '12px', color: '#aaa', fontSize: '0.9rem' }}>
+                                <td style={{ padding: '12px', color: 'var(--text-gray)', fontSize: '0.9rem' }}>
                                     {new Date(report.timestamp).toLocaleString()}
                                 </td>
                                 <td style={{ padding: '12px' }}>
@@ -149,19 +150,21 @@ const ReportsManagement = () => {
                                         <button 
                                             onClick={() => handleDeleteMessage(report.id)} 
                                             className="btn btn-danger btn-sm"
+                                            style={{ backgroundColor: '#e53935', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
                                         >
                                             Usuń
                                         </button>
                                         <button 
                                             onClick={() => openMuteModal(report.senderId, report.id)} 
                                             className="btn btn-warning btn-sm"
-                                            style={{ backgroundColor: '#ff9800', borderColor: '#ff9800', color: 'black' }}
+                                            style={{ backgroundColor: '#ff9800', borderColor: '#ff9800', color: 'black', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
                                         >
                                             Wycisz
                                         </button>
                                         <button 
                                             onClick={() => handleDismissReport(report.id)} 
                                             className="btn btn-secondary btn-sm"
+                                            style={{ backgroundColor: '#666', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
                                         >
                                             Odrzuć
                                         </button>
@@ -175,11 +178,11 @@ const ReportsManagement = () => {
 
             {muteModalOpen && (
                 <div className="modal-overlay">
-                    <div className="modal-content" style={{ backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', border: '1px solid #333', maxWidth: '500px', width: '90%' }}>
-                        <h3 style={{ marginTop: 0 }}>Wycisz Użytkownika</h3>
-                        <p style={{ color: '#ccc', marginBottom: '20px' }}>Wybierz czas trwania blokady czatu dla tego użytkownika. Zgłoszenie zostanie automatycznie usunięte z listy.</p>
+                    <div className="modal-content" style={{ backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border-color)', maxWidth: '500px', width: '90%' }}>
+                        <h3 style={{ marginTop: 0, color: 'var(--text-light)' }}>Wycisz Użytkownika</h3>
+                        <p style={{ color: 'var(--text-gray)', marginBottom: '20px' }}>Wybierz czas trwania blokady czatu dla tego użytkownika. Zgłoszenie zostanie automatycznie usunięte z listy.</p>
                         
-                        <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold' }}>Czas trwania:</label>
+                        <label style={{ display: 'block', marginBottom: '10px', fontWeight: 'bold', color: 'var(--text-light)' }}>Czas trwania:</label>
                         <select 
                             value={muteDuration} 
                             onChange={(e) => setMuteDuration(Number(e.target.value))}
@@ -187,9 +190,9 @@ const ReportsManagement = () => {
                                 width: '100%', 
                                 padding: '12px', 
                                 marginBottom: '30px', 
-                                backgroundColor: '#2d2d2d', 
-                                color: 'white', 
-                                border: '1px solid #555', 
+                                backgroundColor: 'var(--input-bg)', 
+                                color: 'var(--text-light)', 
+                                border: '1px solid var(--input-border)',
                                 borderRadius: '6px',
                                 fontSize: '1rem'
                             }}

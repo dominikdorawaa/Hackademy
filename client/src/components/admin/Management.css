@@ -1,36 +1,40 @@
 .management-container {
-    background-color: #222;
+    background-color: var(--bg-panel);
     padding: 2rem;
     border-radius: 8px;
+    color: var(--text-light);
+    border: 1px solid var(--border-color);
 }
 
 .management-container h2 {
     margin-top: 0;
     margin-bottom: 1.5rem;
     text-align: center;
+    color: var(--text-light);
 }
 
 .management-table {
     width: 100%;
     border-collapse: collapse;
     text-align: left;
+    color: var(--text-light);
 }
 
 .management-table th,
 .management-table td {
     padding: 0.75rem 1rem;
-    border-bottom: 1px solid #444;
+    border-bottom: 1px solid var(--border-color);
 }
 
 .management-table thead {
-    background-color: #333;
+    background-color: var(--bg-panel-lighter);
 }
 
 .management-table select {
     padding: 0.5rem;
-    background-color: #444;
-    color: #fff;
-    border: 1px solid #666;
+    background-color: var(--input-bg);
+    color: var(--text-light);
+    border: 1px solid var(--input-border);
     border-radius: 4px;
 }
 
@@ -68,9 +72,9 @@
 .management-form select {
     width: 100%;
     padding: 0.75rem;
-    background-color: #333;
-    border: 1px solid #555;
-    color: #fff;
+    background-color: var(--input-bg);
+    border: 1px solid var(--input-border);
+    color: var(--text-light);
     border-radius: 4px;
     font-size: 1rem;
 }
@@ -83,8 +87,8 @@
 .management-form button {
     padding: 0.75rem;
     border: none;
-    background-color: #61dafb;
-    color: #1a1a1a;
+    background-color: var(--primary-blue);
+    color: white;
     font-size: 1.1rem;
     font-weight: bold;
     border-radius: 4px;
@@ -93,5 +97,5 @@
 }
 
 .management-form button:hover {
-    background-color: #38bdf8;
+    opacity: 0.9;
 }

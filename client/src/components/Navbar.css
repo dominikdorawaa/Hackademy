@@ -228,12 +228,25 @@
 
 .nav-icon-wrapper i {
   font-size: 1.2rem;
-  color: #ccc;
+  color: var(--text-gray); /* Use variable for theme support */
   transition: color 0.2s;
 }
 
 .nav-icon-wrapper:hover i {
-  color: #fff;
+  color: var(--text-light); /* Use variable for theme support */
+}
+
+/* Light Mode Specifics for Bell */
+[data-theme='light'] .nav-icon-wrapper i {
+    color: #4b5563; /* Dark gray for visibility */
+}
+
+[data-theme='light'] .nav-icon-wrapper:hover {
+    background: rgba(0, 0, 0, 0.05);
+}
+
+[data-theme='light'] .nav-icon-wrapper:hover i {
+    color: #111827; /* Almost black on hover */
 }
 
 .notification-badge {
@@ -241,7 +254,7 @@
   top: 8px;
   right: 8px;
   background: #ff2d55;
-  border: 2px solid #121212; /* Match navbar bg */
+  border: 2px solid var(--bg-panel); /* Match navbar bg */
   width: 10px;
   height: 10px;
   border-radius: 50%;

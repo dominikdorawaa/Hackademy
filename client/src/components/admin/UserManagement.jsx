@@ -81,9 +81,9 @@ const UserManagement = () => {
                         width: '100%',
                         maxWidth: '300px',
                         borderRadius: '5px',
-                        border: '1px solid #444',
-                        backgroundColor: '#222',
-                        color: '#fff'
+                        border: '1px solid var(--input-border)',
+                        backgroundColor: 'var(--input-bg)',
+                        color: 'var(--text-light)'
                     }}
                 />
             </div>
@@ -109,6 +109,13 @@ const UserManagement = () => {
                                 <select 
                                     value={user.role} 
                                     onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                                    style={{
+                                        backgroundColor: 'var(--input-bg)',
+                                        color: 'var(--text-light)',
+                                        border: '1px solid var(--input-border)',
+                                        padding: '5px',
+                                        borderRadius: '4px'
+                                    }}
                                 >
                                     <option value="USER">USER</option>
                                     <option value="ADMIN">ADMIN</option>
@@ -129,7 +136,7 @@ const UserManagement = () => {
                 </tbody>
             </table>
             {filteredUsers.length === 0 && (
-                <p style={{ textAlign: 'center', marginTop: '20px', color: '#aaa' }}>Nie znaleziono użytkowników.</p>
+                <p style={{ textAlign: 'center', marginTop: '20px', color: 'var(--text-gray)' }}>Nie znaleziono użytkowników.</p>
             )}
         </div>
     );

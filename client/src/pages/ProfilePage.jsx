@@ -102,7 +102,7 @@ const ProfilePage = () => {
 
     return (
         <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-            <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', textAlign: 'center' }}>Twój Profil</h1>
+            <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', textAlign: 'center', color: 'var(--text-light)' }}>Twój Profil</h1>
 
             <div style={{ 
                 display: 'flex', 
@@ -114,11 +114,12 @@ const ProfilePage = () => {
             }}>
                 {/* Left Column: User Info & Rank */}
                 <div style={{ 
-                    flex: '1', 
-                    backgroundColor: '#1e1e1e', 
+                    flex: '1.2', // Increased width
+                    minWidth: '300px', // Ensure minimum width
+                    backgroundColor: 'var(--bg-panel)', 
                     padding: '30px', 
                     borderRadius: '12px', 
-                    border: '1px solid #333',
+                    border: '1px solid var(--border-color)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
@@ -138,8 +139,8 @@ const ProfilePage = () => {
                         }}
                     />
                     
-                    <h2 style={{ margin: '0 0 5px 0', fontSize: '1.8rem' }}>{userData?.username}</h2>
-                    <p style={{ color: '#aaa', margin: '0 0 20px 0' }}>{userData?.email}</p>
+                    <h2 style={{ margin: '0 0 5px 0', fontSize: '1.8rem', color: 'var(--text-light)' }}>{userData?.username}</h2>
+                    <p style={{ color: 'var(--text-gray)', margin: '0 0 20px 0' }}>{userData?.email}</p>
                     
                     {/* Streak Info */}
                     <div style={{ 
@@ -150,7 +151,8 @@ const ProfilePage = () => {
                         backgroundColor: 'rgba(255, 152, 0, 0.1)',
                         padding: '8px 16px',
                         borderRadius: '20px',
-                        border: '1px solid rgba(255, 152, 0, 0.3)'
+                        border: '1px solid rgba(255, 152, 0, 0.3)',
+                        whiteSpace: 'nowrap' // Prevent wrapping
                     }}>
                         <i className="fas fa-fire" style={{ color: '#ff9800', fontSize: '1.2rem' }}></i>
                         <span style={{ color: '#ff9800', fontWeight: 'bold', fontSize: '1.1rem' }}>
@@ -159,7 +161,7 @@ const ProfilePage = () => {
                     </div>
 
                     {/* Rank Info */}
-                    <div style={{ width: '100%', borderTop: '1px solid #333', paddingTop: '20px' }}>
+                    <div style={{ width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
                         <div style={{ 
                             fontSize: '1.4rem', 
                             fontWeight: 'bold', 
@@ -168,18 +170,18 @@ const ProfilePage = () => {
                         }}>
                             {rank.name}
                         </div>
-                        <div style={{ fontSize: '1rem', color: '#fff', marginBottom: '15px' }}>
+                        <div style={{ fontSize: '1rem', color: 'var(--text-light)', marginBottom: '15px' }}>
                             Poziom {userLevel}
                         </div>
                         
-                        <div style={{ marginBottom: '5px', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: '#aaa' }}>
+                        <div style={{ marginBottom: '5px', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-gray)' }}>
                             <span>{userPoints} XP</span>
                             <span>{nextLevelPoints} XP</span>
                         </div>
                         <div style={{ 
                             width: '100%', 
                             height: '8px', 
-                            backgroundColor: '#333', 
+                            backgroundColor: 'var(--bg-panel-lighter)', 
                             borderRadius: '4px',
                             overflow: 'hidden',
                             marginBottom: '5px'
@@ -191,12 +193,12 @@ const ProfilePage = () => {
                                 transition: 'width 0.5s ease-in-out'
                             }}></div>
                         </div>
-                        <p style={{ fontSize: '0.8rem', color: '#666' }}>
+                        <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)' }}>
                             Do awansu: {nextLevelPoints - userPoints} XP
                         </p>
                     </div>
                     
-                    <div style={{ marginTop: '20px', color: '#666', fontSize: '0.9rem' }}>
+                    <div style={{ marginTop: '20px', color: 'var(--text-gray)', fontSize: '0.9rem' }}>
                         Dołączył: {new Date(userData?.createdAt).toLocaleDateString()}
                     </div>
                 </div>
@@ -205,21 +207,21 @@ const ProfilePage = () => {
                 <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '20px' }}>
                     
                     {/* Bio Section */}
-                    <div style={{ backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', border: '1px solid #333' }}>
-                        <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>
+                    <div style={{ backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', color: 'var(--text-light)' }}>
                             O mnie
                         </h2>
                         
                         {userData?.bio ? (
-                            <p style={{ whiteSpace: 'pre-line', lineHeight: '1.6', color: '#ddd' }}>{userData.bio}</p>
+                            <p style={{ whiteSpace: 'pre-line', lineHeight: '1.6', color: 'var(--text-light)' }}>{userData.bio}</p>
                         ) : (
-                            <p style={{ color: '#aaa', fontStyle: 'italic' }}>Nie napisałeś jeszcze nic o sobie. Przejdź do ustawień, aby dodać opis.</p>
+                            <p style={{ color: 'var(--text-gray)', fontStyle: 'italic' }}>Nie napisałeś jeszcze nic o sobie. Przejdź do ustawień, aby dodać opis.</p>
                         )}
                     </div>
 
                     {/* Activity Calendar */}
-                    <div style={{ backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', border: '1px solid #333' }}>
-                        <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>
+                    <div style={{ backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', color: 'var(--text-light)' }}>
                             Aktywność (ostatni rok)
                         </h2>
                         <div style={{ overflowX: 'auto' }}>
@@ -228,25 +230,25 @@ const ProfilePage = () => {
                     </div>
 
                     {/* Badges Section */}
-                    <div style={{ backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', border: '1px solid #333' }}>
-                        <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>
+                    <div style={{ backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
+                        <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', color: 'var(--text-light)' }}>
                             Odznaki ({badges.filter(b => b.earned).length}/{badges.length})
                         </h2>
                         <div style={{ display: 'flex', flexWrap: 'wrap', gap: '15px' }}>
                             {badges.length === 0 ? (
-                                <p style={{ color: '#aaa' }}>Brak odznak</p>
+                                <p style={{ color: 'var(--text-gray)' }}>Brak odznak</p>
                             ) : (
                                 visibleBadges.map(badge => (
                                     <div key={badge.id} className="badge-container" style={{ 
                                         width: '60px', 
                                         height: '60px', 
-                                        backgroundColor: badge.earned ? '#2d2d2d' : '#222', 
+                                        backgroundColor: badge.earned ? 'var(--bg-panel-lighter)' : 'var(--bg-dark)', 
                                         borderRadius: '50%', 
                                         display: 'flex', 
                                         alignItems: 'center', 
                                         justifyContent: 'center',
-                                        color: badge.earned ? '#ffd700' : '#555',
-                                        border: badge.earned ? '2px solid #444' : '2px dashed #333',
+                                        color: badge.earned ? '#ffd700' : 'var(--text-gray)',
+                                        border: badge.earned ? '2px solid #444' : '2px dashed var(--border-color)',
                                         fontSize: '1.5rem',
                                         cursor: 'pointer',
                                         position: 'relative' // Ensure tooltip positioning context
@@ -274,7 +276,7 @@ const ProfilePage = () => {
                                 style={{
                                     background: 'none',
                                     border: 'none',
-                                    color: 'var(--primary-blue, #3498db)',
+                                    color: 'var(--primary-blue)',
                                     cursor: 'pointer',
                                     fontSize: '0.8rem',
                                     marginTop: '10px',

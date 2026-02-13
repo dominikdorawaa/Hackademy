@@ -1,11 +1,13 @@
 import React, { useState, useEffect, useRef } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useTheme } from '../context/ThemeContext';
 import API_URL from '../apiConfig';
 import './Navbar.css';
 
 const Navbar = () => {
   const { isAuthenticated, logout, token } = useAuth();
+  const { theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -231,22 +233,23 @@ const Navbar = () => {
                     <div 
                         className="nav-icon-wrapper"
                         onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
+                        style={{ color: 'var(--text-gray)' }}
                     >
                         <i className="fas fa-bell"></i>
                         {unreadCount > 0 && <span className="notification-badge"></span>}
                     </div>
 
                     {isNotificationsOpen && (
-                        <div className="notifications-dropdown">
-                            <div className="notifications-header">
-                                <h3>Powiadomienia</h3>
+                        <div className="notifications-dropdown" style={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)' }}>
+                            <div className="notifications-header" style={{ borderBottom: '1px solid var(--border-color)' }}>
+                                <h3 style={{ color: 'var(--text-light)' }}>Powiadomienia</h3>
                                 {unreadCount > 0 && (
                                     <span className="notifications-count-badge">{unreadCount} nowe</span>
                                 )}
                             </div>
                             
                             {notifications.length === 0 ? (
-                                <div className="notifications-empty">
+                                <div className="notifications-empty" style={{ color: 'var(--text-gray)' }}>
                                     <i className="far fa-bell-slash"></i>
                                     <span>Brak nowych powiadomień</span>
                                 </div>
@@ -255,28 +258,28 @@ const Navbar = () => {
                                     {notifications.map(notif => {
                                         const isProcessed = processedNotifications.includes(`${notif.type}-${notif.id}`);
                                         return (
-                                            <li key={`${notif.type}-${notif.id}`} className="notification-item">
+                                            <li key={`${notif.type}-${notif.id}`} className="notification-item" style={{ borderBottom: '1px solid var(--border-color)' }}>
                                                 <div className="notification-content">
                                                     <div className="notification-avatar">
                                                         <img 
                                                             src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${notif.from}`} 
                                                             alt="Avatar" 
-                                                            style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid #333' }} 
+                                                            style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} 
                                                         />
                                                     </div>
                                                     <div className="notification-text-wrapper">
-                                                        <p className="notification-message">
+                                                        <p className="notification-message" style={{ color: 'var(--text-light)' }}>
                                                             <strong>{notif.from}</strong>
                                                             {notif.type === 'CHALLENGE' ? ' wyzywa Cię na pojedynek!' : ' wysłał zaproszenie.'}
                                                         </p>
-                                                        <span className="notification-type">
+                                                        <span className="notification-type" style={{ color: 'var(--text-gray)' }}>
                                                             {notif.type === 'CHALLENGE' ? 'Tryb Rankingowy' : 'Znajomi'}
                                                         </span>
                                                     </div>
                                                 </div>
                                                 <div className="notification-actions">
                                                     {isProcessed ? (
-                                                        <span style={{ color: '#aaa', fontSize: '0.9rem', fontStyle: 'italic' }}>Przetwarzanie...</span>
+                                                        <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem', fontStyle: 'italic' }}>Przetwarzanie...</span>
                                                     ) : (
                                                         <>
                                                             <button 
@@ -348,7 +351,7 @@ const Navbar = () => {
                       boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
                     }}>
                       <div className="dropdown-header" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
-                        <p style={{ margin: 0, fontWeight: 'bold', color: 'white' }}>{userData.username}</p>
+                        <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-light)' }}>{userData.username}</p>
                         <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-gray)' }}>{userData.email}</p>
                       </div>
                       <ul style={{ listStyle: 'none', padding: '8px 0 0 0', margin: 0 }}>
