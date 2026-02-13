@@ -5,8 +5,11 @@ import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
+import org.hibernate.annotations.CreationTimestamp;
 import org.hibernate.annotations.OnDelete;
 import org.hibernate.annotations.OnDeleteAction;
+
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_solved_rooms", uniqueConstraints = {
@@ -31,6 +34,10 @@ public class UserSolvedRoom {
     @JoinColumn(name = "room_id", nullable = false)
     @OnDelete(action = OnDeleteAction.CASCADE)
     private Room room;
+
+    @CreationTimestamp
+    @Column(name = "solved_at", nullable = false, updatable = false)
+    private LocalDateTime solvedAt;
 
     public UserSolvedRoom(User user, Room room) {
         this.user = user;

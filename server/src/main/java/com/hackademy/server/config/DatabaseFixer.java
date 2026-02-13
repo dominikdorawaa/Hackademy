@@ -15,8 +15,17 @@ public class DatabaseFixer {
     public void fixDatabase() {
         try {
             System.out.println("Attempting to manually fix database schema...");
+            
+            // Fix 1: requires_vpn in rooms
             jdbcTemplate.execute("ALTER TABLE rooms ADD COLUMN IF NOT EXISTS requires_vpn BOOLEAN NOT NULL DEFAULT FALSE");
-            System.out.println("Database schema fixed: requires_vpn column added.");
+            
+            // Fix 2: solved_at in user_solved_rooms
+            jdbcTemplate.execute("ALTER TABLE user_solved_rooms ADD COLUMN IF NOT EXISTS solved_at TIMESTAMP DEFAULT NOW()");
+            // We can't easily set NOT NULL on existing data without default, but DEFAULT NOW() handles it for new rows.
+            // For existing rows, the default value will be applied if we use a separate UPDATE statement, 
+            // but ADD COLUMN with DEFAULT fills existing rows in Postgres.
+            
+            System.out.println("Database schema fixed.");
         } catch (Exception e) {
             System.err.println("Failed to fix database schema: " + e.getMessage());
             // Don't throw exception to allow app to start if column already exists or other error

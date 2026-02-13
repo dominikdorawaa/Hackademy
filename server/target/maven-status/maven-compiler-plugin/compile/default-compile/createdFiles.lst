@@ -72,6 +72,7 @@ com\hackademy\server\model\RoomFile.class
 com\hackademy\server\model\User.class
 com\hackademy\server\service\ArenaService.class
 com\hackademy\server\service\RoomService.class
+com\hackademy\server\dto\ActivityDto.class
 com\hackademy\server\config\WebSocketConfig.class
 com\hackademy\server\controller\FileController.class
 com\hackademy\server\dto\AuthResponse.class

@@ -1,5 +1,6 @@
 package com.hackademy.server.controller;
 
+import com.hackademy.server.dto.ActivityDto;
 import com.hackademy.server.dto.AuthResponse;
 import com.hackademy.server.dto.ChangePasswordRequest;
 import com.hackademy.server.dto.RankingEntry;
@@ -114,5 +115,19 @@ public class UserController {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         List<UserSearchDto> results = userService.searchUsers(query, user.getId());
         return ResponseEntity.ok(results);
+    }
+
+    @GetMapping("/me/activity")
+    public ResponseEntity<List<ActivityDto>> getMyActivity() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        List<ActivityDto> activity = userService.getUserActivity(user.getId());
+        return ResponseEntity.ok(activity);
+    }
+
+    @GetMapping("/{username}/activity")
+    public ResponseEntity<List<ActivityDto>> getUserActivity(@PathVariable String username) {
+        Long userId = userService.getUserIdByUsername(username);
+        List<ActivityDto> activity = userService.getUserActivity(userId);
+        return ResponseEntity.ok(activity);
     }
 }

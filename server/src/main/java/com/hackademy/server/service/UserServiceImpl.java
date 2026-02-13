@@ -1,5 +1,6 @@
 package com.hackademy.server.service;
 
+import com.hackademy.server.dto.ActivityDto;
 import com.hackademy.server.dto.AuthResponse;
 import com.hackademy.server.dto.BadgeDto;
 import com.hackademy.server.dto.ChangePasswordRequest;
@@ -226,6 +227,13 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(user.getUsername(), "Tutorial VPN");
+    }
+
+    @Override
+    public List<ActivityDto> getUserActivity(Long userId) {
+        // Get activity for the last year
+        LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
+        return userSolvedRoomRepository.findUserActivity(userId, oneYearAgo);
     }
 
     private UserAdminView mapUserToUserAdminView(User user) {

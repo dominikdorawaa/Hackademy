@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../apiConfig';
+import ActivityCalendar from '../components/ActivityCalendar';
 import './ProfilePage.css';
 
 const PublicProfilePage = () => {
@@ -14,6 +15,7 @@ const PublicProfilePage = () => {
     const [friendshipStatus, setFriendshipStatus] = useState('NONE'); // NONE, FRIENDS, REQUEST_SENT, REQUEST_RECEIVED
     const [friendshipStats, setFriendshipStats] = useState(null);
     const [actionLoading, setActionLoading] = useState(false);
+    const [activityData, setActivityData] = useState([]);
     
     // UI State
     const [showAllBadges, setShowAllBadges] = useState(false);
@@ -34,6 +36,7 @@ const PublicProfilePage = () => {
                     setProfile(data);
                     fetchFriendshipStatus(data.username);
                     fetchFriendshipStats(data.username);
+                    fetchActivityData(data.username);
                 } else {
                     setError('Nie znaleziono użytkownika');
                 }
@@ -78,6 +81,22 @@ const PublicProfilePage = () => {
             }
         } catch (err) {
             console.error("Failed to fetch friendship stats", err);
+        }
+    };
+
+    const fetchActivityData = async (targetUsername) => {
+        try {
+            const response = await fetch(`${API_URL}/api/user/${targetUsername}/activity`, {
+                headers: {
+                    'Authorization': `Bearer ${token}`
+                }
+            });
+            if (response.ok) {
+                const data = await response.json();
+                setActivityData(data);
+            }
+        } catch (err) {
+            console.error("Failed to fetch activity data", err);
         }
     };
 
@@ -278,6 +297,16 @@ const PublicProfilePage = () => {
                         ) : (
                             <p style={{ color: '#aaa', fontStyle: 'italic' }}>Ten użytkownik nie napisał jeszcze nic o sobie.</p>
                         )}
+                    </div>
+
+                    {/* Activity Calendar */}
+                    <div style={{ backgroundColor: '#1e1e1e', padding: '30px', borderRadius: '12px', border: '1px solid #333' }}>
+                        <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid #333', paddingBottom: '10px' }}>
+                            Aktywność (ostatni rok)
+                        </h2>
+                        <div style={{ overflowX: 'auto' }}>
+                            <ActivityCalendar data={activityData} />
+                        </div>
                     </div>
 
                     {/* Badges Section */}

@@ -1,5 +1,6 @@
 package com.hackademy.server.service;
 
+import com.hackademy.server.dto.ActivityDto;
 import com.hackademy.server.dto.AuthResponse;
 import com.hackademy.server.dto.ChangePasswordRequest;
 import com.hackademy.server.dto.RankingEntry;
@@ -26,4 +27,5 @@ public interface UserService {
     void muteUser(Long userId, long durationInSeconds);
     RankingEntry getUserRank(Long userId); // New method
     boolean hasSolvedTutorialVpn(Long userId); // New method
+    List<ActivityDto> getUserActivity(Long userId); // New method
 }

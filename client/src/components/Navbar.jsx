@@ -381,6 +381,12 @@ const Navbar = () => {
                           </li>
                         )}
                         <li className="dropdown-item">
+                          <Link to="/settings" onClick={() => setIsMenuOpen(false)}>
+                            <i className="fas fa-cog" style={{ marginRight: '10px', width: '15px' }}></i>
+                            <span>Ustawienia</span>
+                          </Link>
+                        </li>
+                        <li className="dropdown-item">
                           <button onClick={handleLogout}>
                             <i className="fas fa-sign-out-alt" style={{ marginRight: '10px', width: '15px' }}></i>
                             <span>Wyloguj</span>
