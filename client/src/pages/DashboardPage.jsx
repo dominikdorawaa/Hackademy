@@ -5,6 +5,134 @@ import { useNavigate } from 'react-router-dom';
 import API_URL from '../apiConfig';
 import './DashboardPage.css';
 
+// ─── Active Path Widget ────────────────────────────────────────────────────────
+const ActivePathWidget = ({ token, navigate }) => {
+  const [pathData, setPathData] = useState(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        // 1. Pobierz listę wszystkich ścieżek
+        const listRes = await fetch(`${API_URL}/api/paths`, {
+          headers: { Authorization: `Bearer ${token}` },
+        });
+        if (!listRes.ok) return;
+        const paths = await listRes.json();
+        if (!Array.isArray(paths) || paths.length === 0) return;
+
+        // 2. Znajdź ścieżkę "w trakcie" – pierwszą z pokojami częściowo ukończonymi
+        //    Strategia: pobierz szczegóły każdej po kolei i wybierz tę, w której
+        //    jest co najmniej 1 solved=true ORAZ co najmniej 1 locked=false && solved=false.
+        let found = null;
+        for (const p of paths) {
+          const detRes = await fetch(`${API_URL}/api/paths/${p.id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (!detRes.ok) continue;
+          const det = await detRes.json();
+          const rooms = Array.isArray(det.rooms) ? det.rooms : [];
+          const solvedCount = rooms.filter(r => r.solved).length;
+          const inProgress = rooms.some(r => !r.locked && !r.solved);
+          if (solvedCount > 0 || inProgress) {
+            found = { ...det, solvedCount, totalCount: rooms.length };
+            break;
+          }
+        }
+
+        // Fallback: jeśli żadna nie jest "w trakcie", weź pierwszą
+        if (!found) {
+          const detRes = await fetch(`${API_URL}/api/paths/${paths[0].id}`, {
+            headers: { Authorization: `Bearer ${token}` },
+          });
+          if (detRes.ok) {
+            const det = await detRes.json();
+            const rooms = Array.isArray(det.rooms) ? det.rooms : [];
+            found = { ...det, solvedCount: 0, totalCount: rooms.length };
+          }
+        }
+
+        setPathData(found);
+      } catch (e) {
+        console.error('ActivePathWidget error:', e);
+      } finally {
+        setLoading(false);
+      }
+    };
+    if (token) load();
+  }, [token]);
+
+  if (loading) return (
+    <div className="active-path-widget">
+      <div className="apw-loading">Ładowanie aktywnej ścieżki...</div>
+    </div>
+  );
+
+  if (!pathData) return null;
+
+  const rooms = Array.isArray(pathData.rooms) ? pathData.rooms : [];
+  const solved = pathData.solvedCount ?? rooms.filter(r => r.solved).length;
+  const total = pathData.totalCount ?? rooms.length;
+  const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
+  const previewRooms = rooms.slice(0, 4);
+
+  const statusLabel = (r) => {
+    if (r.solved) return { label: 'Ukończone', cls: 'apw-done' };
+    if (r.locked) return { label: 'Zablokowane', cls: 'apw-locked' };
+    return { label: 'W trakcie', cls: 'apw-active' };
+  };
+
+  return (
+    <div className="active-path-widget">
+      <div className="apw-header">
+        <div className="apw-title-row">
+          <span className="apw-label"><i className="fas fa-route" /> Ścieżka nauki:</span>
+          <span className="apw-name">{pathData.title}</span>
+          <button
+            className="apw-goto-btn"
+            onClick={() => navigate(`/learn/paths/${pathData.id}`)}
+          >
+            Przejdź <i className="fas fa-arrow-right" />
+          </button>
+        </div>
+        <div className="apw-progress-wrap">
+          <div className="apw-progress-bar">
+            <div className="apw-progress-fill" style={{ width: `${pct}%` }} />
+          </div>
+          <span className="apw-pct">{solved}/{total} pokoi &bull; {pct}%</span>
+        </div>
+      </div>
+
+      <div className="apw-rooms">
+        {previewRooms.map((r) => {
+          const { label, cls } = statusLabel(r);
+          return (
+            <div key={r.id} className={`apw-room-row ${r.locked ? 'apw-row-locked' : ''}`}>
+              <div className={`apw-room-dot ${cls}`}>
+                {r.solved
+                  ? <i className="fas fa-check" />
+                  : r.locked
+                  ? <i className="fas fa-lock" />
+                  : <i className="fas fa-play" />}
+              </div>
+              <span className="apw-room-title">{r.title}</span>
+              <span className={`apw-room-status ${cls}`}>{label}</span>
+              {!r.locked && (
+                <button
+                  className="apw-room-btn"
+                  onClick={() => navigate(`/rooms/${r.id}`)}
+                >
+                  {r.solved ? 'Powtórz' : 'Start'}
+                </button>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
 const ITEMS_PER_PAGE = 12;
 
 const DashboardPage = () => {
