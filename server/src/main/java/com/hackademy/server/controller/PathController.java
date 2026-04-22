@@ -1,6 +1,8 @@
 package com.hackademy.server.controller;
 
 import com.hackademy.server.dto.PathDetailDto;
+import com.hackademy.server.dto.PathProgressDto;
+import com.hackademy.server.dto.PathRoomsMiniResponse;
 import com.hackademy.server.dto.PathSummaryDto;
 import com.hackademy.server.service.PathService;
 import lombok.RequiredArgsConstructor;
@@ -33,6 +35,29 @@ public class PathController {
             username = ((UserDetails) principal).getUsername();
         }
         return ResponseEntity.ok(pathService.getPathDetail(id, username));
+    }
+
+    @GetMapping("/{id}/rooms-mini")
+    public ResponseEntity<PathRoomsMiniResponse> getPathRoomsMini(
+            @PathVariable Long id,
+            @RequestParam(name = "limit", defaultValue = "5") int limit
+    ) {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = null;
+        if (principal instanceof UserDetails) {
+            username = ((UserDetails) principal).getUsername();
+        }
+        return ResponseEntity.ok(pathService.getPathRoomsMini(id, username, limit));
+    }
+
+    @GetMapping("/me/progress")
+    public ResponseEntity<List<PathProgressDto>> myProgress() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        String username = null;
+        if (principal instanceof UserDetails) {
+            username = ((UserDetails) principal).getUsername();
+        }
+        return ResponseEntity.ok(pathService.getMyPathsProgress(username));
     }
 
     @GetMapping("/{id}/banner")

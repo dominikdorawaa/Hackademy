@@ -10,6 +10,7 @@ const PathDetailPage = () => {
   const navigate = useNavigate();
 
   const [path, setPath] = useState(null);
+  const [rooms, setRooms] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -18,7 +19,7 @@ const PathDetailPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`${API_URL}/api/paths/${id}`, {
+        const res = await fetch(`${API_URL}/api/paths/${id}/rooms-mini?limit=0`, {
           headers: { Authorization: `Bearer ${token}` },
         });
         if (res.status === 401 || res.status === 403) {
@@ -28,7 +29,8 @@ const PathDetailPage = () => {
         }
         if (!res.ok) throw new Error('Failed to fetch path');
         const data = await res.json();
-        setPath(data);
+        setPath({ id: data?.pathId });
+        setRooms(Array.isArray(data?.rooms) ? data.rooms : []);
       } catch (e) {
         console.error(e);
         setError('Nie udało się pobrać ścieżki.');
@@ -44,8 +46,7 @@ const PathDetailPage = () => {
   if (error) return <div className="container" style={{ paddingTop: '40px' }}>Błąd: {error}</div>;
   if (!path) return <div className="container" style={{ paddingTop: '40px' }}>Nie znaleziono ścieżki</div>;
 
-  const rooms = Array.isArray(path.rooms) ? path.rooms : [];
-  // Hero section removed intentionally; keep only rooms list.
+  // Minimal rooms payload; full room loads only when entering /rooms/:id
 
   return (
     <div className="container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
@@ -81,12 +82,9 @@ const PathDetailPage = () => {
                     </div>
                   </div>
 
-                  <div className="pd-step-desc">{r.shortDescription || r.description || '—'}</div>
-
                   <div className="pd-step-bottom">
                     <div className="pd-step-meta">
                       <span className={`pd-status ${status}`}>{statusLabel}</span>
-                      <span className="pd-muted">{r.points} XP</span>
                     </div>
                     <button
                       className={`btn ${r.locked ? 'btn-outline' : 'btn-primary'}`}

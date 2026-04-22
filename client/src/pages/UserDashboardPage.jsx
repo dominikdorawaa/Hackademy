@@ -73,6 +73,9 @@ const UserDashboardPage = () => {
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
   const [recommendedPath, setRecommendedPath] = useState(null);
+  const [pathsProgress, setPathsProgress] = useState([]);
+  const [currentPath, setCurrentPath] = useState(null);
+  const [currentPathRoomsMini, setCurrentPathRoomsMini] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -97,11 +100,6 @@ const UserDashboardPage = () => {
         const userPromise = fetch(`${API_URL}/api/user/me`, { headers }).then((res) => {
           if (res.status === 401 || res.status === 403) return null;
           if (!res.ok) throw new Error('Failed to fetch user');
-          return res.json();
-        });
-
-        const roomsPromise = fetch(`${API_URL}/api/rooms`, { headers }).then((res) => {
-          if (!res.ok) throw new Error('Failed to fetch rooms');
           return res.json();
         });
 
@@ -135,11 +133,15 @@ const UserDashboardPage = () => {
           return res.json();
         });
 
+        const pathsProgressPromise = fetch(`${API_URL}/api/paths/me/progress`, { headers }).then((res) => {
+          if (!res.ok) return [];
+          return res.json();
+        });
+
         const recentSolvedPromise = fetchRecentSolved();
 
-        const [u, r, rk, mr, recent, activeTime, badges, friends, paths] = await Promise.all([
+        const [u, rk, mr, recent, activeTime, badges, friends, paths, progressList] = await Promise.all([
           userPromise,
-          roomsPromise,
           rankingPromise,
           myRankPromise,
           recentSolvedPromise,
@@ -147,6 +149,7 @@ const UserDashboardPage = () => {
           badgesPromise,
           friendsPromise,
           pathsPromise,
+          pathsProgressPromise,
         ]);
 
         if (!u) {
@@ -157,7 +160,6 @@ const UserDashboardPage = () => {
 
         if (isCancelled) return;
         setUserData(u);
-        setRooms(Array.isArray(r) ? r : []);
         setRanking(Array.isArray(rk) ? rk : []);
         setMyRank(mr);
         setRecentSolved(Array.isArray(recent) ? recent : []);
@@ -171,6 +173,27 @@ const UserDashboardPage = () => {
           setRecommendedPath(random || null);
         } else {
           setRecommendedPath(null);
+        }
+
+        const safeProgress = Array.isArray(progressList) ? progressList : [];
+        setPathsProgress(safeProgress);
+        const inProgress = safeProgress.find((p) => !p?.completed) || safeProgress[0] || null;
+        setCurrentPath(inProgress);
+
+        if (inProgress?.id) {
+          try {
+            const res = await fetch(`${API_URL}/api/paths/${inProgress.id}/rooms-mini?limit=5`, { headers });
+            if (res.ok) {
+              const detail = await res.json();
+              setCurrentPathRoomsMini(Array.isArray(detail?.rooms) ? detail.rooms : []);
+            } else {
+              setCurrentPathRoomsMini([]);
+            }
+          } catch {
+            setCurrentPathRoomsMini([]);
+          }
+        } else {
+          setCurrentPathRoomsMini([]);
         }
       } catch (e) {
         console.error(e);
@@ -269,9 +292,9 @@ const UserDashboardPage = () => {
   }, [token]);
 
   const stats = useMemo(() => {
-    const totalRooms = rooms.length;
-    const solvedRooms = rooms.filter((x) => x?.solved).length;
-    const globalProgress = totalRooms > 0 ? solvedRooms / totalRooms : 0;
+    const totalPaths = pathsProgress.length;
+    const completedPaths = pathsProgress.filter((p) => p?.completed).length;
+    const globalProgress = totalPaths > 0 ? completedPaths / totalPaths : 0;
 
     const username = userData?.username || 'Użytkowniku';
     const points = userData?.points ?? userData?.xp ?? 0;
@@ -288,8 +311,8 @@ const UserDashboardPage = () => {
 
     return {
       username,
-      totalRooms,
-      solvedRooms,
+      totalPaths,
+      completedPaths,
       globalProgress: clamp01(globalProgress),
       points,
       level,
@@ -300,7 +323,7 @@ const UserDashboardPage = () => {
       badges,
       elo,
     };
-  }, [rooms, userData, badgesEarnedCount, ranking]);
+  }, [pathsProgress, userData, badgesEarnedCount, ranking]);
 
   const rankingWindow = useMemo(() => {
     const sorted = [...ranking].sort((a, b) => (b?.points || 0) - (a?.points || 0));
@@ -371,9 +394,9 @@ const UserDashboardPage = () => {
 
             <div className="ud-stats-2col">
               <div className="ud-mini-card">
-                <div className="ud-mini-label">Ukończone pokoje</div>
+                <div className="ud-mini-label">Ukończone ścieżki</div>
                 <div className="ud-mini-big">
-                  {stats.solvedRooms} <span className="ud-mini-muted">/ {stats.totalRooms}</span>
+                  {stats.completedPaths} <span className="ud-mini-muted">/ {stats.totalPaths}</span>
                 </div>
               </div>
               <div className="ud-mini-card">
@@ -383,65 +406,78 @@ const UserDashboardPage = () => {
             </div>
           </section>
 
-          <section className="ud-card">
+          <section
+            className="ud-card ud-card-clickable"
+            role="button"
+            tabIndex={0}
+            onClick={() => currentPath?.id && navigate(`/learn/paths/${currentPath.id}`)}
+            onKeyDown={(e) => {
+              if (!currentPath?.id) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate(`/learn/paths/${currentPath.id}`);
+              }
+            }}
+            style={{ cursor: currentPath?.id ? 'pointer' : 'default' }}
+          >
             <div className="ud-card-header">
               <h2>
-                Ścieżka nauki: <span className="ud-accent">Web Fundamentals</span>
+                Ścieżka nauki:{' '}
+                <span className="ud-accent">{currentPath?.title || '—'}</span>
               </h2>
             </div>
 
             <div className="ud-progress-row" style={{ marginTop: 0 }}>
               <div className="ud-progress-bar">
-                <div className="ud-progress-fill" style={{ width: '45%' }} />
+                <div
+                  className="ud-progress-fill"
+                  style={{
+                    width: `${
+                      currentPath?.totalRooms > 0
+                        ? Math.round(((currentPath?.solvedRooms || 0) / currentPath.totalRooms) * 100)
+                        : 0
+                    }%`,
+                  }}
+                />
               </div>
             </div>
 
             <div className="ud-path-list">
-              <div className="ud-path-item done">
-                <div className="ud-path-icon">
-                  <i className="fas fa-check" />
+              {!currentPath ? (
+                <div className="ud-empty" style={{ padding: 18 }}>
+                  Brak ścieżek do wyświetlenia.
                 </div>
-                <div className="ud-path-text">
-                  <div className="ud-path-title">Intro to Web</div>
-                </div>
-                <div className="ud-path-status">Ukończone</div>
-              </div>
-              <div className="ud-path-item done">
-                <div className="ud-path-icon">
-                  <i className="fas fa-check" />
-                </div>
-                <div className="ud-path-text">
-                  <div className="ud-path-title">HTTP Protocol</div>
-                </div>
-                <div className="ud-path-status">Ukończone</div>
-              </div>
-              <div className="ud-path-item inprogress">
-                <div className="ud-path-icon">
-                  <i className="fas fa-play" />
-                </div>
-                <div className="ud-path-text">
-                  <div className="ud-path-title">Burp Suite Basics</div>
-                </div>
-                <div className="ud-path-status">W trakcie</div>
-              </div>
-              <div className="ud-path-item locked">
-                <div className="ud-path-icon">
-                  <i className="fas fa-lock" />
-                </div>
-                <div className="ud-path-text">
-                  <div className="ud-path-title">SQL Injection</div>
-                </div>
-                <div className="ud-path-status">Zablokowane</div>
-              </div>
-              <div className="ud-path-item locked">
-                <div className="ud-path-icon">
-                  <i className="fas fa-lock" />
-                </div>
-                <div className="ud-path-text">
-                  <div className="ud-path-title">XSS Attacks</div>
-                </div>
-                <div className="ud-path-status">Zablokowane</div>
-              </div>
+              ) : (
+                currentPathRoomsMini
+                  .map((r) => {
+                    const status = r.locked ? 'locked' : r.solved ? 'done' : 'inprogress';
+                    const statusLabel = r.locked ? 'Zablokowane' : r.solved ? 'Ukończone' : 'W trakcie';
+                    return (
+                      <div
+                        key={r.id}
+                        className={`ud-path-item ${status}`}
+                        role="button"
+                        tabIndex={0}
+                        onClick={() => !r.locked && navigate(`/rooms/${r.id}`)}
+                        onKeyDown={(e) => {
+                          if ((e.key === 'Enter' || e.key === ' ') && !r.locked) {
+                            e.preventDefault();
+                            navigate(`/rooms/${r.id}`);
+                          }
+                        }}
+                        style={{ cursor: r.locked ? 'default' : 'pointer' }}
+                      >
+                        <div className="ud-path-icon">
+                          {status === 'done' ? <i className="fas fa-check" /> : status === 'locked' ? <i className="fas fa-lock" /> : <i className="fas fa-play" />}
+                        </div>
+                        <div className="ud-path-text">
+                          <div className="ud-path-title">{r.title}</div>
+                        </div>
+                        <div className="ud-path-status">{statusLabel}</div>
+                      </div>
+                    );
+                  })
+              )}
             </div>
           </section>
 
@@ -575,7 +611,20 @@ const UserDashboardPage = () => {
             </div>
           </section>
 
-          <section className="ud-card">
+          <section
+            className="ud-card ud-card-clickable"
+            role="button"
+            tabIndex={0}
+            onClick={() => recommendedPath?.id && navigate(`/learn/paths/${recommendedPath.id}`)}
+            onKeyDown={(e) => {
+              if (!recommendedPath?.id) return;
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate(`/learn/paths/${recommendedPath.id}`);
+              }
+            }}
+            style={{ cursor: recommendedPath?.id ? 'pointer' : 'default' }}
+          >
             <div className="ud-card-header">
               <h2>Rekomendowane</h2>
             </div>
@@ -583,17 +632,11 @@ const UserDashboardPage = () => {
               <>
                 <div className="ud-reco-title">{recommendedPath?.title || 'Ścieżka'}</div>
                 <p className="ud-reco-desc">{recommendedPath?.description || 'Losowo wybrana ścieżka z dostępnych.'}</p>
-                <button className="btn btn-outline ud-reco-btn" onClick={() => navigate(`/learn/paths/${recommendedPath.id}`)}>
-                  Start <i className="fas fa-play" style={{ marginLeft: '8px' }} />
-                </button>
               </>
             ) : (
               <>
                 <div className="ud-reco-title">Brak ścieżek</div>
                 <p className="ud-reco-desc">Dodaj pierwszą ścieżkę w panelu admina, a pojawi się tutaj rekomendacja.</p>
-                <button className="btn btn-outline ud-reco-btn" onClick={() => navigate('/learn')}>
-                  Przejdź do „Ucz się” <i className="fas fa-arrow-right" style={{ marginLeft: '8px' }} />
-                </button>
               </>
             )}
           </section>

@@ -3,6 +3,9 @@ package com.hackademy.server.service;
 import com.hackademy.server.dto.CreatePathRequest;
 import com.hackademy.server.dto.PathAdminDetailDto;
 import com.hackademy.server.dto.PathDetailDto;
+import com.hackademy.server.dto.PathProgressDto;
+import com.hackademy.server.dto.PathRoomMiniDto;
+import com.hackademy.server.dto.PathRoomsMiniResponse;
 import com.hackademy.server.dto.PathSummaryDto;
 import com.hackademy.server.dto.RoomSummaryDto;
 import com.hackademy.server.dto.UpdatePathMetaRequest;
@@ -35,19 +38,39 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional(readOnly = true)
     public List<PathSummaryDto> listPaths() {
-        List<Path> paths = pathRepository.findAll();
-        Map<Long, Long> counts = paths.stream()
-                .collect(Collectors.toMap(Path::getId, p -> pathRoomRepository.countByPathId(p.getId())));
-
-        return paths.stream()
-                .map(p -> PathSummaryDto.builder()
-                        .id(p.getId())
-                        .title(p.getTitle())
-                        .description(p.getDescription())
-                        .bannerUrl(p.getBannerData() != null ? "/api/paths/" + p.getId() + "/banner" : p.getBannerUrl())
-                        .hasBanner(p.getBannerData() != null)
-                        .roomsCount(counts.getOrDefault(p.getId(), 0L).intValue())
+        return pathRepository.findAllListViews().stream()
+                .map(v -> PathSummaryDto.builder()
+                        .id(v.getId())
+                        .title(v.getTitle())
+                        .description(v.getDescription())
+                        // If banner is stored in DB, frontend can request it lazily via /api/paths/{id}/banner
+                        .bannerUrl(v.getBannerUrl())
+                        .hasBanner(Boolean.TRUE.equals(v.getHasBanner()))
+                        .roomsCount(v.getRoomsCount() == null ? 0 : v.getRoomsCount())
                         .build())
+                .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<PathProgressDto> getMyPathsProgress(String username) {
+        if (username == null || username.isBlank()) return List.of();
+        return pathRepository.findProgressForUsername(username).stream()
+                .map(v -> {
+                    int total = v.getTotalRooms() == null ? 0 : v.getTotalRooms();
+                    int solved = v.getSolvedRooms() == null ? 0 : v.getSolvedRooms();
+                    boolean completed = total > 0 && solved >= total;
+                    return PathProgressDto.builder()
+                            .id(v.getId())
+                            .title(v.getTitle())
+                            .description(v.getDescription())
+                            // Use URL banner if provided; DB banner is available via /api/paths/{id}/banner
+                            .bannerUrl(v.getBannerUrl())
+                            .totalRooms(total)
+                            .solvedRooms(solved)
+                            .completed(completed)
+                            .build();
+                })
                 .toList();
     }
 
@@ -73,6 +96,38 @@ public class PathServiceImpl implements PathService {
                 .description(path.getDescription())
                 .bannerUrl(path.getBannerData() != null ? "/api/paths/" + path.getId() + "/banner" : path.getBannerUrl())
                 .hasBanner(path.getBannerData() != null)
+                .rooms(rooms)
+                .build();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public PathRoomsMiniResponse getPathRoomsMini(Long id, String username, int limit) {
+        int safeLimit = Math.max(0, Math.min(500, limit));
+        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        List<Long> roomIds = pathRoomRepository.findRoomIdsOrdered(id);
+
+        // Reuse existing solved/locked logic, but return a minimal payload for dashboards.
+        List<RoomSummaryDto> allRooms = roomService.getAllRoomsByType(username, RoomType.PATH);
+        Map<Long, RoomSummaryDto> byId = allRooms.stream()
+                .collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
+
+        List<PathRoomMiniDto> rooms = new ArrayList<>();
+        for (Long roomId : roomIds) {
+            RoomSummaryDto dto = byId.get(roomId);
+            if (dto == null) continue;
+            rooms.add(PathRoomMiniDto.builder()
+                    .id(dto.getId())
+                    .title(dto.getTitle())
+                    .solved(dto.isSolved())
+                    .locked(dto.isLocked())
+                    .requiresVpn(dto.isRequiresVpn())
+                    .build());
+            if (safeLimit > 0 && rooms.size() >= safeLimit) break;
+        }
+
+        return PathRoomsMiniResponse.builder()
+                .pathId(path.getId())
                 .rooms(rooms)
                 .build();
     }
