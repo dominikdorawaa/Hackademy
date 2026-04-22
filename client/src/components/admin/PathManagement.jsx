@@ -9,6 +9,8 @@ const PathManagement = () => {
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [bannerUrl, setBannerUrl] = useState('');
+  const [bannerFile, setBannerFile] = useState(null);
   const [rooms, setRooms] = useState([]);
   const [selectedRoomIds, setSelectedRoomIds] = useState([]);
   const [roomQuery, setRoomQuery] = useState('');
@@ -17,6 +19,8 @@ const PathManagement = () => {
   const [activePathId, setActivePathId] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
+  const [editBannerUrl, setEditBannerUrl] = useState('');
+  const [editBannerFile, setEditBannerFile] = useState(null);
   const [editRoomIds, setEditRoomIds] = useState([]);
   const [savingEdit, setSavingEdit] = useState(false);
   const [status, setStatus] = useState(null);
@@ -66,6 +70,7 @@ const PathManagement = () => {
       const data = await res.json();
       setEditTitle(data?.title || '');
       setEditDescription(data?.description || '');
+      setEditBannerUrl(data?.bannerUrl || '');
       setEditRoomIds(Array.isArray(data?.roomIds) ? data.roomIds : []);
     } catch {
       // ignore
@@ -131,6 +136,7 @@ const PathManagement = () => {
         body: JSON.stringify({
           title,
           description,
+          bannerUrl: bannerUrl || null,
           roomIds: selectedRoomIds,
         }),
       });
@@ -140,8 +146,26 @@ const PathManagement = () => {
         throw new Error(msg || 'Nie udało się dodać ścieżki');
       }
 
+      const created = await res.json();
+      const newId = created?.id;
+      if (newId && bannerFile) {
+        const fd = new FormData();
+        fd.append('file', bannerFile);
+        const up = await fetch(`${API_URL}/api/admin/paths/${newId}/banner`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        if (!up.ok) {
+          const msg = await up.text();
+          throw new Error(msg || 'Nie udało się wgrać banera');
+        }
+      }
+
       setTitle('');
       setDescription('');
+      setBannerUrl('');
+      setBannerFile(null);
       setSelectedRoomIds([]);
       setStatus('Ścieżka dodana.');
       fetchPaths();
@@ -176,6 +200,38 @@ const PathManagement = () => {
     setStatus(null);
     setSavingEdit(true);
     try {
+      if (editBannerFile) {
+        const fd = new FormData();
+        fd.append('file', editBannerFile);
+        const up = await fetch(`${API_URL}/api/admin/paths/${activePathId}/banner`, {
+          method: 'PUT',
+          headers: { Authorization: `Bearer ${token}` },
+          body: fd,
+        });
+        if (!up.ok) {
+          const msg = await up.text();
+          throw new Error(msg || 'Nie udało się wgrać banera');
+        }
+        setEditBannerFile(null);
+      }
+
+      const metaRes = await fetch(`${API_URL}/api/admin/paths/${activePathId}`, {
+        method: 'PUT',
+        headers: {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          title: editTitle,
+          description: editDescription,
+          bannerUrl: editBannerUrl || null,
+        }),
+      });
+      if (!metaRes.ok) {
+        const msg = await metaRes.text();
+        throw new Error(msg || 'Nie udało się zapisać danych ścieżki');
+      }
+
       const res = await fetch(`${API_URL}/api/admin/paths/${activePathId}/rooms`, {
         method: 'PUT',
         headers: {
@@ -250,10 +306,24 @@ const PathManagement = () => {
 
             {activePathId ? (
               <>
-                <div className="pm-edit-meta">
-                  <div className="pm-edit-title">{editTitle || '—'}</div>
-                  <div className="pm-edit-desc">{editDescription || '—'}</div>
-                </div>
+                <label className="pm-label" style={{ marginTop: 12 }}>
+                  Tytuł
+                  <input value={editTitle} onChange={(e) => setEditTitle(e.target.value)} placeholder="np. Web Fundamentals" />
+                </label>
+
+                <label className="pm-label">
+                  Opis
+                  <textarea value={editDescription} onChange={(e) => setEditDescription(e.target.value)} placeholder="Krótki opis ścieżki (opcjonalnie)" />
+                </label>
+
+                <label className="pm-label">
+                  Baner (URL obrazka)
+                  <input value={editBannerUrl} onChange={(e) => setEditBannerUrl(e.target.value)} placeholder="https://..." />
+                </label>
+                <label className="pm-label">
+                  Baner (plik)
+                  <input type="file" accept="image/*" onChange={(e) => setEditBannerFile(e.target.files?.[0] || null)} />
+                </label>
 
                 <div className="pm-selected-header" style={{ marginTop: '12px' }}>
                   <span>Pokoje w ścieżce</span>
@@ -347,6 +417,15 @@ const PathManagement = () => {
           <label className="pm-label">
             Opis
             <textarea value={description} onChange={(e) => setDescription(e.target.value)} placeholder="Krótki opis ścieżki (opcjonalnie)" />
+          </label>
+
+          <label className="pm-label">
+            Baner (URL obrazka)
+            <input value={bannerUrl} onChange={(e) => setBannerUrl(e.target.value)} placeholder="https://..." />
+          </label>
+          <label className="pm-label">
+            Baner (plik)
+            <input type="file" accept="image/*" onChange={(e) => setBannerFile(e.target.files?.[0] || null)} />
           </label>
 
           <div className="pm-selected-header">

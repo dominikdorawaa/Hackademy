@@ -2,6 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import API_URL from '../apiConfig';
+import './PathsPage.css';
 
 const PathsPage = () => {
   const { token, logout } = useAuth();
@@ -10,6 +11,14 @@ const PathsPage = () => {
   const [paths, setPaths] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
+
+  const resolveBannerSrc = (bannerUrl) => {
+    if (!bannerUrl) return null;
+    const s = String(bannerUrl);
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    if (s.startsWith('/')) return `${API_URL}${s}`;
+    return `${API_URL}/${s}`;
+  };
 
   useEffect(() => {
     const fetchPaths = async () => {
@@ -57,15 +66,15 @@ const PathsPage = () => {
   }
 
   return (
-    <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-      <header className="rooms-header">
+    <div className="container paths-wrap">
+      <header className="paths-header">
         <div>
-          <h1 style={{ fontSize: '2rem', margin: 0 }}>Ścieżki</h1>
-          <p className="results-count">Dostępne: {paths.length}</p>
+          <h1 className="paths-title">Ścieżki</h1>
+          <p className="paths-count">Dostępne: {paths.length}</p>
         </div>
       </header>
 
-      <div className="rooms-grid">
+      <div className="paths-grid">
         {paths.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)', backgroundColor: '#1e1e1e', borderRadius: '12px' }}>
             <h3>Brak ścieżek.</h3>
@@ -74,7 +83,7 @@ const PathsPage = () => {
           paths.map((p) => (
             <div
               key={p.id}
-              className="room-card"
+              className="path-card"
               role="button"
               tabIndex={0}
               onClick={() => navigate(`/learn/paths/${p.id}`)}
@@ -85,14 +94,22 @@ const PathsPage = () => {
                 }
               }}
             >
-              <div className="room-image-placeholder">
-                <span className="difficulty-badge diff-medium" style={{ background: 'rgba(11, 99, 255, 0.15)', color: 'var(--primary-blue)' }}>
-                  {p.roomsCount ?? 0} pokoi
-                </span>
+              <div className="path-card-media">
+                {p.bannerUrl ? <img src={resolveBannerSrc(p.bannerUrl)} alt="" loading="lazy" /> : null}
               </div>
-              <div className="room-body">
-                <div className="room-title">{p.title}</div>
-                <div className="room-tags">{p.description || '—'}</div>
+              <div className="path-card-body">
+                <div className="path-card-kicker">COURSE</div>
+                <div className="path-card-title">{p.title}</div>
+                <p className="path-card-desc">{p.description || '—'}</p>
+              </div>
+              <div className="path-card-footer">
+                <div className="path-pill">
+                  <span className="path-pill-dot">
+                    <i className="fas fa-layer-group" />
+                  </span>
+                  {p.roomsCount ?? 0} pokoi
+                </div>
+                <div className="path-pill-sub">BEGINNER</div>
               </div>
             </div>
           ))

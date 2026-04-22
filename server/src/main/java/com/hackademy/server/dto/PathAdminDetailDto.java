@@ -15,6 +15,8 @@ public class PathAdminDetailDto {
     private Long id;
     private String title;
     private String description;
+    private String bannerUrl;
+    private boolean hasBanner;
     private List<Long> roomIds;
 }
 

@@ -34,6 +34,15 @@ public class Path {
     @Column(columnDefinition = "TEXT")
     private String description;
 
+    @Column(name = "banner_url", columnDefinition = "TEXT")
+    private String bannerUrl;
+
+    @Column(name = "banner_data", columnDefinition = "bytea")
+    private byte[] bannerData;
+
+    @Column(name = "banner_mime", length = 120)
+    private String bannerMime;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

@@ -8,6 +8,7 @@ import com.hackademy.server.dto.RoomAdminDto;
 import com.hackademy.server.dto.RoomAdminSummaryDto;
 import com.hackademy.server.dto.UpdateUserRoleRequest;
 import com.hackademy.server.dto.UpdatePathRoomsRequest;
+import com.hackademy.server.dto.UpdatePathMetaRequest;
 import com.hackademy.server.dto.UserAdminView;
 import com.hackademy.server.model.ChatMessage;
 import com.hackademy.server.model.Room;
@@ -149,6 +150,16 @@ public class AdminController {
     @PutMapping("/paths/{id}/rooms")
     public void updatePathRooms(@PathVariable Long id, @RequestBody UpdatePathRoomsRequest request) {
         pathService.updatePathRooms(id, request.getRoomIds());
+    }
+
+    @PutMapping("/paths/{id}")
+    public void updatePathMeta(@PathVariable Long id, @Valid @RequestBody UpdatePathMetaRequest request) {
+        pathService.updatePathMeta(id, request);
+    }
+
+    @PutMapping(value = "/paths/{id}/banner", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
+    public void uploadPathBanner(@PathVariable Long id, @RequestPart("file") MultipartFile file) {
+        pathService.uploadBanner(id, file);
     }
 
     private RoomAdminDto mapToAdminDto(Room room) {

@@ -69,6 +69,7 @@ public class SecurityConfig {
                 .requestMatchers(antMatcher("/api/auth/**")).permitAll()
                 .requestMatchers(antMatcher("/api/user/ranking")).permitAll()
                 .requestMatchers(antMatcher("/api/rooms/top3")).permitAll() // Allow public access to top 3 rooms
+                .requestMatchers(antMatcher("/api/paths/**/banner")).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Set session management to stateless

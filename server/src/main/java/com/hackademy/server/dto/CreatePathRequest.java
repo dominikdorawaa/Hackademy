@@ -18,6 +18,9 @@ public class CreatePathRequest {
 
     private String description;
 
+    // Optional: URL of the banner image displayed on path cards
+    private String bannerUrl;
+
     // Optional: initial set of room IDs in order
     private List<Long> roomIds;
 }

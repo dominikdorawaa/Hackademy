@@ -5,6 +5,7 @@ import com.hackademy.server.dto.PathAdminDetailDto;
 import com.hackademy.server.dto.PathDetailDto;
 import com.hackademy.server.dto.PathSummaryDto;
 import com.hackademy.server.dto.RoomSummaryDto;
+import com.hackademy.server.dto.UpdatePathMetaRequest;
 import com.hackademy.server.model.Path;
 import com.hackademy.server.model.PathRoom;
 import com.hackademy.server.repository.PathRepository;
@@ -13,6 +14,7 @@ import com.hackademy.server.repository.RoomRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -42,6 +44,8 @@ public class PathServiceImpl implements PathService {
                         .id(p.getId())
                         .title(p.getTitle())
                         .description(p.getDescription())
+                        .bannerUrl(p.getBannerData() != null ? "/api/paths/" + p.getId() + "/banner" : p.getBannerUrl())
+                        .hasBanner(p.getBannerData() != null)
                         .roomsCount(counts.getOrDefault(p.getId(), 0L).intValue())
                         .build())
                 .toList();
@@ -67,6 +71,8 @@ public class PathServiceImpl implements PathService {
                 .id(path.getId())
                 .title(path.getTitle())
                 .description(path.getDescription())
+                .bannerUrl(path.getBannerData() != null ? "/api/paths/" + path.getId() + "/banner" : path.getBannerUrl())
+                .hasBanner(path.getBannerData() != null)
                 .rooms(rooms)
                 .build();
     }
@@ -77,6 +83,7 @@ public class PathServiceImpl implements PathService {
         Path path = Path.builder()
                 .title(request.getTitle())
                 .description(request.getDescription())
+                .bannerUrl(request.getBannerUrl())
                 .build();
 
         Path saved = pathRepository.save(path);
@@ -95,6 +102,7 @@ public class PathServiceImpl implements PathService {
                 .id(saved.getId())
                 .title(saved.getTitle())
                 .description(saved.getDescription())
+                .bannerUrl(saved.getBannerUrl())
                 .roomsCount(order)
                 .build();
     }
@@ -117,8 +125,20 @@ public class PathServiceImpl implements PathService {
                 .id(path.getId())
                 .title(path.getTitle())
                 .description(path.getDescription())
+                .bannerUrl(path.getBannerData() != null ? "/api/paths/" + path.getId() + "/banner" : path.getBannerUrl())
+                .hasBanner(path.getBannerData() != null)
                 .roomIds(roomIds)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public void updatePathMeta(Long id, UpdatePathMetaRequest request) {
+        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        path.setTitle(request.getTitle());
+        path.setDescription(request.getDescription());
+        path.setBannerUrl(request.getBannerUrl());
+        pathRepository.save(path);
     }
 
     @Override
@@ -138,6 +158,34 @@ public class PathServiceImpl implements PathService {
             if (room == null || room.getRoomType() != RoomType.PATH) continue;
             pathRoomRepository.save(new PathRoom(id, roomId, order++));
         }
+    }
+
+    @Override
+    @Transactional
+    public void uploadBanner(Long id, MultipartFile file) {
+        if (file == null || file.isEmpty()) return;
+        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        try {
+            path.setBannerData(file.getBytes());
+            path.setBannerMime(file.getContentType());
+            pathRepository.save(path);
+        } catch (Exception e) {
+            throw new RuntimeException("Failed to save banner", e);
+        }
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public byte[] getBannerData(Long id) {
+        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        return path.getBannerData();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public String getBannerMime(Long id) {
+        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        return path.getBannerMime();
     }
 }
 

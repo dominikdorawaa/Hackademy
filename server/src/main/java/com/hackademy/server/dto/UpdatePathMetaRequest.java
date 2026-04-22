@@ -1,20 +1,21 @@
 package com.hackademy.server.dto;
 
+import jakarta.validation.constraints.NotBlank;
+import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
-import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
 @Data
-@Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PathSummaryDto {
-    private Long id;
+public class UpdatePathMetaRequest {
+    @NotBlank
+    @Size(max = 120)
     private String title;
+
     private String description;
+
     private String bannerUrl;
-    private boolean hasBanner;
-    private int roomsCount;
 }
 
