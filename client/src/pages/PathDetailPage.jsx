@@ -63,12 +63,6 @@ const PathDetailPage = () => {
           {rooms.map((r, idx) => {
             const status = r.locked ? 'locked' : r.solved ? 'done' : 'todo';
             const statusLabel = r.locked ? 'Zablokowane' : r.solved ? 'Ukończone' : 'Do zrobienia';
-            const badgeClass = {
-              EASY: 'diff-easy',
-              MEDIUM: 'diff-medium',
-              HARD: 'diff-hard',
-              INSANE: 'diff-insane',
-            }[r.difficulty] || 'diff-easy';
 
             return (
               <div key={r.id} className={`pd-step ${status}`}>
@@ -83,12 +77,6 @@ const PathDetailPage = () => {
                   <div className="pd-step-top">
                     <div className="pd-step-title">{r.title}</div>
                     <div className="pd-step-tags">
-                      <span className={`difficulty-badge ${badgeClass}`}>
-                        {r.difficulty === 'EASY' && 'Łatwy'}
-                        {r.difficulty === 'MEDIUM' && 'Średni'}
-                        {r.difficulty === 'HARD' && 'Trudny'}
-                        {r.difficulty === 'INSANE' && 'Niemożliwy'}
-                      </span>
                       {r.requiresVpn && <span className="pd-tag">VPN</span>}
                     </div>
                   </div>
