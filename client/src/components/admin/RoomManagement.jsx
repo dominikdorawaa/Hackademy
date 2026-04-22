@@ -4,16 +4,16 @@ import * as adminApi from '../../services/adminApi';
 import API_URL from '../../apiConfig';
 import './Management.css';
 
-const RoomManagement = () => {
+const RoomManagement = ({ forcedRoomType = null }) => {
     // Form state
     const [id, setId] = useState(null); // For edit mode
     const [title, setTitle] = useState('');
     const [shortDescription, setShortDescription] = useState('');
     const [description, setDescription] = useState('');
     const [difficulty, setDifficulty] = useState('EASY');
-    const [category, setCategory] = useState('Web');
-    const [roomType, setRoomType] = useState('CTF');
-    const [points, setPoints] = useState(0);
+    const [category, setCategory] = useState(forcedRoomType === 'PATH' ? 'Path' : 'Web');
+    const [roomType, setRoomType] = useState(forcedRoomType || 'CTF');
+    const [points, setPoints] = useState(forcedRoomType === 'PATH' ? 0 : 0);
     const [flag, setFlag] = useState('');
     const [requiresVpn, setRequiresVpn] = useState(false); // New field
     const [hints, setHints] = useState([]);
@@ -32,13 +32,15 @@ const RoomManagement = () => {
     // Fetch rooms on mount
     useEffect(() => {
         fetchRooms();
-    }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [forcedRoomType, token]);
 
     const fetchRooms = async () => {
         setLoading(true);
         try {
             const data = await adminApi.getAllRoomsAdmin(token);
-            setRooms(data);
+            const list = Array.isArray(data) ? data : [];
+            setRooms(forcedRoomType ? list.filter((r) => r?.roomType === forcedRoomType) : list);
         } catch (err) {
             console.error("Failed to fetch rooms", err);
             // Don't set global error here to avoid blocking the create form
@@ -47,14 +49,24 @@ const RoomManagement = () => {
         }
     };
 
+    useEffect(() => {
+        if (!forcedRoomType) return;
+        setRoomType(forcedRoomType);
+        if (forcedRoomType === 'PATH') {
+            setCategory('Path');
+            setPoints(0);
+            setDifficulty('EASY');
+        }
+    }, [forcedRoomType]);
+
     const resetForm = () => {
         setId(null);
         setTitle('');
         setShortDescription('');
         setDescription('');
         setDifficulty('EASY');
-        setCategory('Web');
-        setRoomType('CTF');
+        setCategory(forcedRoomType === 'PATH' ? 'Path' : 'Web');
+        setRoomType(forcedRoomType || 'CTF');
         setPoints(0);
         setFlag('');
         setRequiresVpn(false);
@@ -77,12 +89,12 @@ const RoomManagement = () => {
             setTitle(room.title);
             setShortDescription(room.shortDescription || '');
             setDescription(room.description);
-            setDifficulty(room.difficulty);
-            setCategory(room.category || 'Web');
-            setPoints(room.points);
+            setDifficulty(forcedRoomType === 'PATH' ? 'EASY' : room.difficulty);
+            setCategory(forcedRoomType === 'PATH' ? 'Path' : room.category || 'Web');
+            setPoints(forcedRoomType === 'PATH' ? 0 : room.points);
             setFlag(room.flag || '');
             setRequiresVpn(room.requiresVpn || false);
-            setRoomType(room.roomType || 'CTF');
+            setRoomType(forcedRoomType || room.roomType || 'CTF');
             setHints(room.hints || []);
             setFile(null); // Reset file input
             setIsEditing(true);
@@ -126,6 +138,21 @@ const RoomManagement = () => {
         return 'CTF';
     };
 
+    const pointsFromDifficulty = (diff) => {
+        switch (diff) {
+            case 'EASY':
+                return 50;
+            case 'MEDIUM':
+                return 100;
+            case 'HARD':
+                return 150;
+            case 'INSANE':
+                return 200;
+            default:
+                return 50;
+        }
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -135,12 +162,17 @@ const RoomManagement = () => {
             title, 
             shortDescription, 
             description, 
-            difficulty, 
-            category, 
-            points: Number(points), 
+            difficulty: forcedRoomType === 'PATH' ? 'EASY' : difficulty, 
+            category: forcedRoomType === 'PATH' ? 'Path' : category, 
+            points:
+                forcedRoomType === 'PATH'
+                    ? Number(points)
+                    : forcedRoomType === 'CTF'
+                        ? pointsFromDifficulty(difficulty)
+                        : Number(points),
             flag, 
             requiresVpn,
-            roomType,
+            roomType: forcedRoomType || roomType,
             hints 
         };
 
@@ -178,7 +210,10 @@ const RoomManagement = () => {
 
     return (
         <div className="management-container">
-            <h2>{isEditing ? 'Edytuj Pokój' : 'Stwórz Nowy Pokój'}</h2>
+            <h2>
+                {isEditing ? 'Edytuj Pokój' : 'Stwórz Nowy Pokój'}
+                {forcedRoomType ? ` (${roomTypeLabel(forcedRoomType)})` : ''}
+            </h2>
             
             <form onSubmit={handleSubmit} className="management-form">
                 {error && <div className="error-message">{error}</div>}
@@ -201,29 +236,33 @@ const RoomManagement = () => {
                         maxLength="100"
                         style={{ flex: 2 }}
                     />
-                    <select
-                        value={category}
-                        onChange={(e) => setCategory(e.target.value)}
-                        style={{ flex: 1 }}
-                    >
-                        <option value="Web">Web</option>
-                        <option value="Crypto">Crypto</option>
-                        <option value="Forensics">Forensics</option>
-                        <option value="Reverse">Reverse</option>
-                        <option value="OSINT">OSINT</option>
-                        <option value="Network">Network</option>
-                        <option value="Tutorial">Tutorial</option>
-                        <option value="Misc">Misc</option>
-                    </select>
-                    <select
-                        value={roomType}
-                        onChange={(e) => setRoomType(e.target.value)}
-                        style={{ flex: 1 }}
-                        title="CTF = arena/ranking, Ścieżka = tylko w ścieżkach"
-                    >
-                        <option value="CTF">CTF (Arena)</option>
-                        <option value="PATH">Ścieżka</option>
-                    </select>
+                    {forcedRoomType !== 'PATH' && (
+                        <select
+                            value={category}
+                            onChange={(e) => setCategory(e.target.value)}
+                            style={{ flex: 1 }}
+                        >
+                            <option value="Web">Web</option>
+                            <option value="Crypto">Crypto</option>
+                            <option value="Forensics">Forensics</option>
+                            <option value="Reverse">Reverse</option>
+                            <option value="OSINT">OSINT</option>
+                            <option value="Network">Network</option>
+                            <option value="Tutorial">Tutorial</option>
+                            <option value="Misc">Misc</option>
+                        </select>
+                    )}
+                    {!forcedRoomType && (
+                        <select
+                            value={roomType}
+                            onChange={(e) => setRoomType(e.target.value)}
+                            style={{ flex: 1 }}
+                            title="CTF = arena/ranking, Ścieżka = tylko w ścieżkach"
+                        >
+                            <option value="CTF">CTF (Arena)</option>
+                            <option value="PATH">Ścieżka</option>
+                        </select>
+                    )}
                 </div>
 
                 <textarea
@@ -242,25 +281,29 @@ const RoomManagement = () => {
                     style={{ fontFamily: 'monospace' }}
                 />
                 <div style={{ display: 'flex', gap: '1rem', alignItems: 'center' }}>
-                    <input
-                        type="number"
-                        placeholder="Punkty"
-                        value={points}
-                        onChange={(e) => setPoints(e.target.value)}
-                        required
-                        min="0"
-                        style={{ flex: 1 }}
-                    />
-                    <select
-                        value={difficulty}
-                        onChange={(e) => setDifficulty(e.target.value)}
-                        style={{ flex: 1 }}
-                    >
-                        <option value="EASY">Łatwy</option>
-                        <option value="MEDIUM">Średni</option>
-                        <option value="HARD">Trudny</option>
-                        <option value="INSANE">Niemożliwy</option>
-                    </select>
+                    {forcedRoomType !== 'CTF' && (
+                        <input
+                            type="number"
+                            placeholder="Punkty"
+                            value={points}
+                            onChange={(e) => setPoints(e.target.value)}
+                            required
+                            min="0"
+                            style={{ flex: 1 }}
+                        />
+                    )}
+                    {forcedRoomType !== 'PATH' && (
+                        <select
+                            value={difficulty}
+                            onChange={(e) => setDifficulty(e.target.value)}
+                            style={{ flex: 1 }}
+                        >
+                            <option value="EASY">Łatwy</option>
+                            <option value="MEDIUM">Średni</option>
+                            <option value="HARD">Trudny</option>
+                            <option value="INSANE">Niemożliwy</option>
+                        </select>
+                    )}
                     
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flex: 1, color: 'var(--text-light)' }}>
                         <input 
@@ -338,10 +381,10 @@ const RoomManagement = () => {
                         <tr>
                             <th>ID</th>
                             <th>Nazwa</th>
-                            <th>Kategoria</th>
-                            <th>Trudność</th>
+                            {forcedRoomType !== 'PATH' && <th>Kategoria</th>}
+                            {forcedRoomType !== 'PATH' && <th>Trudność</th>}
                             <th>VPN</th>
-                            <th>Punkty</th>
+                            {forcedRoomType !== 'CTF' && <th>Punkty</th>}
                             <th>Akcje</th>
                         </tr>
                     </thead>
@@ -350,12 +393,14 @@ const RoomManagement = () => {
                             <tr key={room.id}>
                                 <td>{room.id}</td>
                                 <td>{room.title}</td>
-                                <td>{room.category || 'Web'}</td>
-                                <td>
-                                    <span className={`difficulty-badge ${room.difficulty.toLowerCase()}`}>
-                                        {room.difficulty}
-                                    </span>
-                                </td>
+                                {forcedRoomType !== 'PATH' && <td>{room.category || 'Web'}</td>}
+                                {forcedRoomType !== 'PATH' && (
+                                    <td>
+                                        <span className={`difficulty-badge ${room.difficulty.toLowerCase()}`}>
+                                            {room.difficulty}
+                                        </span>
+                                    </td>
+                                )}
                                 <td>
                                     {room.requiresVpn ? (
                                         <span style={{ color: '#e74c3c' }}><i className="fas fa-lock"></i> Tak</span>
@@ -363,7 +408,7 @@ const RoomManagement = () => {
                                         <span style={{ color: '#2ecc71' }}>Nie</span>
                                     )}
                                 </td>
-                                <td>{room.points}</td>
+                                {forcedRoomType !== 'CTF' && <td>{room.points}</td>}
                                 <td>
                                     <button 
                                         className="btn-edit"
@@ -386,7 +431,12 @@ const RoomManagement = () => {
                         ))}
                         {rooms.length === 0 && (
                             <tr>
-                                <td colSpan="7" style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Brak pokoi.</td>
+                                <td
+                                    colSpan={forcedRoomType === 'PATH' ? 6 : forcedRoomType === 'CTF' ? 6 : 7}
+                                    style={{ textAlign: 'center', color: 'var(--text-gray)' }}
+                                >
+                                    Brak pokoi.
+                                </td>
                             </tr>
                         )}
                     </tbody>

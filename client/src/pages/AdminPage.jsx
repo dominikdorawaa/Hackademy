@@ -19,16 +19,16 @@ const AdminPage = () => {
                     Zarządzaj użytkownikami
                 </button>
                 <button 
-                    onClick={() => setActiveTab('rooms')}
-                    className={activeTab === 'rooms' ? 'active' : ''}
+                    onClick={() => setActiveTab('rooms_ctf')}
+                    className={activeTab === 'rooms_ctf' ? 'active' : ''}
                 >
-                    Zarządzaj pokojami
+                    Zarządzaj pokojami CTF
                 </button>
                 <button 
-                    onClick={() => setActiveTab('reports')}
-                    className={activeTab === 'reports' ? 'active' : ''}
+                    onClick={() => setActiveTab('rooms_paths')}
+                    className={activeTab === 'rooms_paths' ? 'active' : ''}
                 >
-                    Zgłoszenia
+                    Zarządzaj pokojami ścieżek
                 </button>
                 <button 
                     onClick={() => setActiveTab('paths')}
@@ -36,10 +36,17 @@ const AdminPage = () => {
                 >
                     Ścieżki
                 </button>
+                <button 
+                    onClick={() => setActiveTab('reports')}
+                    className={activeTab === 'reports' ? 'active' : ''}
+                >
+                    Zgłoszenia
+                </button>
             </div>
             <div className="admin-content">
                 {activeTab === 'users' && <UserManagement />}
-                {activeTab === 'rooms' && <RoomManagement />}
+                {activeTab === 'rooms_ctf' && <RoomManagement forcedRoomType="CTF" />}
+                {activeTab === 'rooms_paths' && <RoomManagement forcedRoomType="PATH" />}
                 {activeTab === 'reports' && <ReportsManagement />}
                 {activeTab === 'paths' && <PathManagement />}
             </div>

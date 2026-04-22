@@ -72,6 +72,7 @@ const UserDashboardPage = () => {
   const [activeSecondsThisWeek, setActiveSecondsThisWeek] = useState(0);
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
+  const [recommendedPath, setRecommendedPath] = useState(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -129,9 +130,14 @@ const UserDashboardPage = () => {
           return res.json();
         });
 
+        const pathsPromise = fetch(`${API_URL}/api/paths`, { headers }).then((res) => {
+          if (!res.ok) return [];
+          return res.json();
+        });
+
         const recentSolvedPromise = fetchRecentSolved();
 
-        const [u, r, rk, mr, recent, activeTime, badges, friends] = await Promise.all([
+        const [u, r, rk, mr, recent, activeTime, badges, friends, paths] = await Promise.all([
           userPromise,
           roomsPromise,
           rankingPromise,
@@ -140,6 +146,7 @@ const UserDashboardPage = () => {
           activeTimePromise,
           badgesPromise,
           friendsPromise,
+          pathsPromise,
         ]);
 
         if (!u) {
@@ -157,6 +164,14 @@ const UserDashboardPage = () => {
         setActiveSecondsThisWeek(Number(activeTime?.secondsThisWeek) || 0);
         setBadgesEarnedCount(Array.isArray(badges) ? badges.filter((b) => b?.earned).length : 0);
         setFriendsCount(Array.isArray(friends) ? friends.length : 0);
+
+        const safePaths = Array.isArray(paths) ? paths : [];
+        if (safePaths.length > 0) {
+          const random = safePaths[Math.floor(Math.random() * safePaths.length)];
+          setRecommendedPath(random || null);
+        } else {
+          setRecommendedPath(null);
+        }
       } catch (e) {
         console.error(e);
         setError('Nie udało się wczytać dashboardu. Sprawdź połączenie z backendem.');
@@ -564,14 +579,26 @@ const UserDashboardPage = () => {
             <div className="ud-card-header">
               <h2>Rekomendowane</h2>
             </div>
-            <div className="ud-reco-title">Buffer Overflow</div>
-            <p className="ud-reco-desc">
-              Naucz się podstaw przepełnienia bufora i jak wykorzystać tę podatność w prostych aplikacjach.
-            </p>
-            <button className="btn btn-outline ud-reco-btn" onClick={() => navigate('/learn')}>
-              Start <i className="fas fa-play" style={{ marginLeft: '8px' }} />
-            </button>
+            {recommendedPath ? (
+              <>
+                <div className="ud-reco-title">{recommendedPath?.title || 'Ścieżka'}</div>
+                <p className="ud-reco-desc">{recommendedPath?.description || 'Losowo wybrana ścieżka z dostępnych.'}</p>
+                <button className="btn btn-outline ud-reco-btn" onClick={() => navigate(`/learn/paths/${recommendedPath.id}`)}>
+                  Start <i className="fas fa-play" style={{ marginLeft: '8px' }} />
+                </button>
+              </>
+            ) : (
+              <>
+                <div className="ud-reco-title">Brak ścieżek</div>
+                <p className="ud-reco-desc">Dodaj pierwszą ścieżkę w panelu admina, a pojawi się tutaj rekomendacja.</p>
+                <button className="btn btn-outline ud-reco-btn" onClick={() => navigate('/learn')}>
+                  Przejdź do „Ucz się” <i className="fas fa-arrow-right" style={{ marginLeft: '8px' }} />
+                </button>
+              </>
+            )}
           </section>
+
+          <div className="ud-right-spacer" aria-hidden="true" />
         </aside>
       </div>
     </div>

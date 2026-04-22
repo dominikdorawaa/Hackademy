@@ -2,116 +2,8 @@
   margin-bottom: 18px;
 }
 
-.pd-hero {
-  border-radius: 18px;
-  border: 1px solid var(--border-color);
-  background: linear-gradient(135deg, rgba(11, 99, 255, 0.15), rgba(255, 45, 85, 0.12));
-  padding: 18px;
-  box-shadow: 0 20px 60px rgba(0, 0, 0, 0.35);
-  overflow: hidden;
-}
-
-.pd-hero-inner {
-  display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 18px;
-  align-items: start;
-  background: rgba(17, 24, 39, 0.65);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  border-radius: 16px;
-  padding: 18px;
-}
-
-.pd-pill {
-  display: inline-flex;
-  align-items: center;
-  gap: 8px;
-  padding: 6px 12px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.08);
-  color: var(--text-gray);
-  font-weight: 900;
-  font-size: 0.8rem;
-  margin-bottom: 10px;
-}
-
-.pd-title {
-  margin: 0 0 8px 0;
-  font-size: 2rem;
-  font-weight: 900;
-  letter-spacing: -0.02em;
-}
-
-.pd-desc {
-  margin: 0 0 14px 0;
-  color: var(--text-gray);
-  line-height: 1.5;
-}
-
-.pd-progress-row {
-  display: flex;
-  justify-content: space-between;
-  color: var(--text-gray);
-  font-size: 0.85rem;
-  font-weight: 800;
-  margin-bottom: 8px;
-}
-
-.pd-progress-meta {
-  color: var(--text-light);
-}
-
-.pd-bar {
-  height: 10px;
-  border-radius: 999px;
-  background: rgba(255, 255, 255, 0.06);
-  overflow: hidden;
-  border: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.pd-bar-fill {
-  height: 100%;
-  width: 0%;
-  background: linear-gradient(90deg, var(--primary-blue), var(--primary-red));
-  box-shadow: 0 0 25px rgba(11, 99, 255, 0.25);
-}
-
-.pd-actions {
-  display: flex;
-  gap: 12px;
-  flex-wrap: wrap;
-  margin-top: 16px;
-}
-
-.pd-hero-right {
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-
-.pd-mini {
-  border-radius: 14px;
-  background: rgba(255, 255, 255, 0.03);
-  border: 1px solid rgba(255, 255, 255, 0.06);
-  padding: 14px;
-}
-
-.pd-mini-label {
-  color: var(--text-gray);
-  font-weight: 900;
-  font-size: 0.75rem;
-  letter-spacing: 0.08em;
-  margin-bottom: 8px;
-}
-
-.pd-mini-value {
-  font-weight: 900;
-  font-size: 1.3rem;
-}
-
 .pd-list {
-  margin-top: 18px;
+  margin-top: 10px;
 }
 
 .pd-list-header {
@@ -271,15 +163,5 @@
   background: rgba(231, 76, 60, 0.12);
 }
 
-@media (max-width: 1000px) {
-  .pd-hero-inner {
-    grid-template-columns: 1fr;
-  }
-  .pd-hero-right {
-    flex-direction: row;
-  }
-  .pd-mini {
-    flex: 1;
-  }
-}
+/* Hero removed */
 

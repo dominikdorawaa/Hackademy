@@ -45,67 +45,13 @@ const PathDetailPage = () => {
   if (!path) return <div className="container" style={{ paddingTop: '40px' }}>Nie znaleziono ścieżki</div>;
 
   const rooms = Array.isArray(path.rooms) ? path.rooms : [];
-  const solvedCount = rooms.filter((r) => r?.solved).length;
-  const totalCount = rooms.length;
-  const progress = totalCount > 0 ? Math.round((solvedCount / totalCount) * 100) : 0;
-
-  const firstPlayable = rooms.find((r) => !r.locked && !r.solved) || rooms.find((r) => !r.locked) || null;
+  // Hero section removed intentionally; keep only rooms list.
 
   return (
     <div className="container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
       <button onClick={() => navigate('/learn')} className="back-btn">
         &larr; Wróć do ścieżek
       </button>
-
-      <section className="pd-hero">
-        <div className="pd-hero-inner">
-          <div className="pd-hero-left">
-            <div className="pd-pill">Ścieżka</div>
-            <h1 className="pd-title">{path.title}</h1>
-            <p className="pd-desc">{path.description || '—'}</p>
-
-            <div className="pd-progress">
-              <div className="pd-progress-row">
-                <span>Postęp</span>
-                <span className="pd-progress-meta">
-                  {solvedCount}/{totalCount} • {progress}%
-                </span>
-              </div>
-              <div className="pd-bar" aria-label="Postęp ścieżki">
-                <div className="pd-bar-fill" style={{ width: `${progress}%` }} />
-              </div>
-            </div>
-
-            <div className="pd-actions">
-              <button
-                className="btn btn-primary"
-                disabled={!firstPlayable}
-                onClick={() => firstPlayable && navigate(`/rooms/${firstPlayable.id}`)}
-              >
-                {firstPlayable?.solved ? 'Kontynuuj' : 'Start'} <i className="fas fa-play" style={{ marginLeft: '8px' }} />
-              </button>
-              <button className="btn btn-outline" onClick={() => document.getElementById('pd-rooms')?.scrollIntoView({ behavior: 'smooth' })}>
-                Zobacz pokoje <i className="fas fa-arrow-down" style={{ marginLeft: '8px' }} />
-              </button>
-            </div>
-          </div>
-
-          <div className="pd-hero-right">
-            <div className="pd-mini">
-              <div className="pd-mini-label">Liczba pokoi</div>
-              <div className="pd-mini-value">{totalCount}</div>
-            </div>
-            <div className="pd-mini">
-              <div className="pd-mini-label">Ukończone</div>
-              <div className="pd-mini-value">{solvedCount}</div>
-            </div>
-            <div className="pd-mini">
-              <div className="pd-mini-label">Do zrobienia</div>
-              <div className="pd-mini-value">{Math.max(0, totalCount - solvedCount)}</div>
-            </div>
-          </div>
-        </div>
-      </section>
 
       <section id="pd-rooms" className="pd-list">
         <div className="pd-list-header">

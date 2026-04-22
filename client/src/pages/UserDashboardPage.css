@@ -44,7 +44,7 @@
   display: grid;
   grid-template-columns: 1fr 360px;
   gap: 20px;
-  align-items: start;
+  align-items: stretch;
 }
 
 .ud-left,
@@ -52,6 +52,15 @@
   display: flex;
   flex-direction: column;
   gap: 16px;
+}
+
+.ud-right {
+  height: 100%;
+  align-self: stretch;
+}
+
+.ud-right-spacer {
+  flex: 1;
 }
 
 .ud-card {
