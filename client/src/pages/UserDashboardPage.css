@@ -328,6 +328,99 @@
   font-size: 1.25rem;
 }
 
+.ud-profile-mini {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 14px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+  margin-bottom: 12px;
+}
+
+.ud-profile-avatar {
+  width: 44px;
+  height: 44px;
+  border-radius: 50%;
+  background: #374151;
+  border: 2px solid rgba(11, 99, 255, 0.35);
+}
+
+.ud-profile-name {
+  font-weight: 900;
+  line-height: 1.1;
+}
+
+.ud-profile-rank {
+  color: var(--text-gray);
+  font-weight: 900;
+  font-size: 0.95rem;
+}
+
+.ud-profile-level {
+  margin-top: 8px;
+}
+
+.ud-profile-level-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 10px;
+  color: var(--text-gray);
+  font-size: 0.85rem;
+  font-weight: 700;
+}
+
+.ud-profile-level-points {
+  font-family: "JetBrains Mono", monospace;
+  font-size: 0.8rem;
+  opacity: 0.9;
+}
+
+.ud-profile-level-bar {
+  margin-top: 8px;
+  height: 8px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.06);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.ud-profile-level-fill {
+  height: 100%;
+  width: 0%;
+  background: linear-gradient(90deg, var(--primary-blue), var(--primary-red));
+  box-shadow: 0 0 20px rgba(11, 99, 255, 0.22);
+}
+
+.ud-mini-metrics {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  gap: 10px;
+}
+
+.ud-metric {
+  text-align: center;
+  padding: 12px 10px;
+  border-radius: 12px;
+  background: rgba(255, 255, 255, 0.02);
+  border: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.ud-metric-label {
+  color: var(--text-gray);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  font-weight: 900;
+  margin-bottom: 6px;
+}
+
+.ud-metric-value {
+  font-weight: 900;
+  font-size: 1.1rem;
+}
+
 .ud-rank-pill {
   background: rgba(11, 99, 255, 0.12);
   border: 1px solid rgba(11, 99, 255, 0.25);

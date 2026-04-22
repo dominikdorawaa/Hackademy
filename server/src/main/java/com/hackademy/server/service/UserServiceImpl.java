@@ -18,6 +18,7 @@ import com.hackademy.server.repository.UserBadgeRepository;
 import com.hackademy.server.repository.UserRepository;
 import com.hackademy.server.repository.UserSolvedRoomRepository;
 import com.hackademy.server.repository.RecentSolvedRoomView;
+import com.hackademy.server.repository.UserWeeklyActiveTimeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -26,7 +27,9 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
+import java.time.temporal.WeekFields;
 import java.util.List;
+import java.util.Locale;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -41,6 +44,7 @@ public class UserServiceImpl implements UserService {
     private final JwtService jwtService;
     private final FriendshipService friendshipService;
     private final BadgeService badgeService;
+    private final UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
 
     @Override
     public List<UserAdminView> findAllUsers() {
@@ -251,6 +255,35 @@ public class UserServiceImpl implements UserService {
                         r.getSolvedAt()
                 ))
                 .collect(Collectors.toList());
+    }
+
+    private String currentWeekKey() {
+        LocalDate today = LocalDate.now();
+        WeekFields wf = WeekFields.of(Locale.getDefault());
+        int week = today.get(wf.weekOfWeekBasedYear());
+        int year = today.get(wf.weekBasedYear());
+        return String.format("%d-W%02d", year, week);
+    }
+
+    @Override
+    public int addActiveSecondsThisWeek(Long userId, int deltaSeconds) {
+        int safeDelta = Math.max(0, Math.min(deltaSeconds, 60));
+        if (safeDelta == 0) return getActiveSecondsThisWeek(userId);
+
+        String weekKey = currentWeekKey();
+        var id = new com.hackademy.server.model.UserWeeklyActiveTimeId(userId, weekKey);
+        var row = userWeeklyActiveTimeRepository.findById(id)
+                .orElseGet(() -> new com.hackademy.server.model.UserWeeklyActiveTime(userId, weekKey, 0, null));
+
+        row.setSeconds(row.getSeconds() + safeDelta);
+        return userWeeklyActiveTimeRepository.save(row).getSeconds();
+    }
+
+    @Override
+    public int getActiveSecondsThisWeek(Long userId) {
+        String weekKey = currentWeekKey();
+        var id = new com.hackademy.server.model.UserWeeklyActiveTimeId(userId, weekKey);
+        return userWeeklyActiveTimeRepository.findById(id).map(com.hackademy.server.model.UserWeeklyActiveTime::getSeconds).orElse(0);
     }
 
     private UserAdminView mapUserToUserAdminView(User user) {

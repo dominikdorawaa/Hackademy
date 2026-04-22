@@ -30,4 +30,6 @@ public interface UserService {
     boolean hasSolvedTutorialVpn(Long userId); // New method
     List<ActivityDto> getUserActivity(Long userId); // New method
     List<RecentSolvedRoomDto> getRecentSolvedRooms(Long userId, int limit);
+    int addActiveSecondsThisWeek(Long userId, int deltaSeconds);
+    int getActiveSecondsThisWeek(Long userId);
 }

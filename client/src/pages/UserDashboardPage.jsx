@@ -16,16 +16,6 @@ const formatDuration = (totalSeconds) => {
   return `${h}h ${pad2(m)}m`;
 };
 
-const toWeekKey = (d = new Date()) => {
-  // ISO week key: YYYY-Www
-  const date = new Date(Date.UTC(d.getFullYear(), d.getMonth(), d.getDate()));
-  const dayNum = date.getUTCDay() || 7;
-  date.setUTCDate(date.getUTCDate() + 4 - dayNum);
-  const yearStart = new Date(Date.UTC(date.getUTCFullYear(), 0, 1));
-  const weekNo = Math.ceil(((date - yearStart) / 86400000 + 1) / 7);
-  return `${date.getUTCFullYear()}-W${pad2(weekNo)}`;
-};
-
 const formatRelativeTimePL = (isoDateTime) => {
   if (!isoDateTime) return '';
   const t = new Date(isoDateTime).getTime();
@@ -58,6 +48,18 @@ const difficultyBadge = (difficulty) => {
   }
 };
 
+const rankTitleFromPoints = (points) => {
+  const p = Number(points) || 0;
+  const level = Math.floor(p / 100) + 1;
+  if (level >= 1 && level <= 3) return 'Freshman';
+  if (level >= 4 && level <= 6) return 'Junior';
+  if (level >= 7 && level <= 10) return 'Apprentice';
+  if (level >= 11 && level <= 15) return 'Developer';
+  if (level >= 16 && level <= 20) return 'Senior';
+  if (level >= 21) return 'Architect';
+  return 'Freshman';
+};
+
 const UserDashboardPage = () => {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
@@ -68,6 +70,8 @@ const UserDashboardPage = () => {
   const [recentSolved, setRecentSolved] = useState([]);
   const [myRank, setMyRank] = useState(null);
   const [activeSecondsThisWeek, setActiveSecondsThisWeek] = useState(0);
+  const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
+  const [friendsCount, setFriendsCount] = useState(0);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
 
@@ -110,14 +114,32 @@ const UserDashboardPage = () => {
           return res.json();
         });
 
+        const activeTimePromise = fetch(`${API_URL}/api/user/me/active-time`, { headers }).then((res) => {
+          if (!res.ok) return { secondsThisWeek: 0 };
+          return res.json();
+        });
+
+        const badgesPromise = fetch(`${API_URL}/api/badges/all`, { headers }).then((res) => {
+          if (!res.ok) return [];
+          return res.json();
+        });
+
+        const friendsPromise = fetch(`${API_URL}/api/friends`, { headers }).then((res) => {
+          if (!res.ok) return [];
+          return res.json();
+        });
+
         const recentSolvedPromise = fetchRecentSolved();
 
-        const [u, r, rk, mr, recent] = await Promise.all([
+        const [u, r, rk, mr, recent, activeTime, badges, friends] = await Promise.all([
           userPromise,
           roomsPromise,
           rankingPromise,
           myRankPromise,
           recentSolvedPromise,
+          activeTimePromise,
+          badgesPromise,
+          friendsPromise,
         ]);
 
         if (!u) {
@@ -132,6 +154,9 @@ const UserDashboardPage = () => {
         setRanking(Array.isArray(rk) ? rk : []);
         setMyRank(mr);
         setRecentSolved(Array.isArray(recent) ? recent : []);
+        setActiveSecondsThisWeek(Number(activeTime?.secondsThisWeek) || 0);
+        setBadgesEarnedCount(Array.isArray(badges) ? badges.filter((b) => b?.earned).length : 0);
+        setFriendsCount(Array.isArray(friends) ? friends.length : 0);
       } catch (e) {
         console.error(e);
         setError('Nie udało się wczytać dashboardu. Sprawdź połączenie z backendem.');
@@ -190,32 +215,36 @@ const UserDashboardPage = () => {
   }, [token]);
 
   useEffect(() => {
-    const userId = userData?.id;
-    if (!userId) return;
+    if (!token) return;
 
-    const weekKey = toWeekKey(new Date());
-    const storageKey = `hackademy_active_${userId}_${weekKey}`;
-    const readSeconds = () => {
-      const raw = localStorage.getItem(storageKey);
-      const n = raw ? Number(raw) : 0;
-      return Number.isFinite(n) ? Math.max(0, Math.floor(n)) : 0;
+    const headers = {
+      'Content-Type': 'application/json',
+      Authorization: `Bearer ${token}`,
     };
 
-    setActiveSecondsThisWeek(readSeconds());
-
-    let interval = null;
-    const tick = () => {
+    let inFlight = false;
+    const tick = async () => {
       if (document.visibilityState !== 'visible') return;
-      const next = readSeconds() + 15;
-      localStorage.setItem(storageKey, String(next));
-      setActiveSecondsThisWeek(next);
+      if (inFlight) return;
+      inFlight = true;
+      try {
+        const res = await fetch(`${API_URL}/api/user/me/active-time`, {
+          method: 'POST',
+          headers,
+          body: JSON.stringify({ deltaSeconds: 15 }),
+        });
+        if (res.ok) {
+          const data = await res.json();
+          setActiveSecondsThisWeek(Number(data?.secondsThisWeek) || 0);
+        }
+      } finally {
+        inFlight = false;
+      }
     };
 
-    interval = window.setInterval(tick, 15000);
-    return () => {
-      if (interval) window.clearInterval(interval);
-    };
-  }, [userData?.id]);
+    const interval = window.setInterval(tick, 15000);
+    return () => window.clearInterval(interval);
+  }, [token]);
 
   const stats = useMemo(() => {
     const totalRooms = rooms.length;
@@ -224,9 +253,16 @@ const UserDashboardPage = () => {
 
     const username = userData?.username || 'Użytkowniku';
     const points = userData?.points ?? userData?.xp ?? 0;
-    const level = userData?.level ?? 1;
+    const safePoints = Number(points) || 0;
+    const level = Math.floor(safePoints / 100) + 1;
+    const nextLevelPoints = level * 100;
+    const levelProgress = safePoints <= 0 ? 0 : (safePoints % 100) / 100;
+    const rankTitle = rankTitleFromPoints(safePoints);
     const streak = userData?.streak ?? 0;
-    const badges = userData?.badgesCount ?? userData?.badges?.length ?? 0;
+    const badges = badgesEarnedCount;
+
+    const myRankingEntry = userData?.username ? ranking.find((x) => x?.username === userData.username) : null;
+    const elo = myRankingEntry?.elo ?? 500;
 
     return {
       username,
@@ -235,15 +271,25 @@ const UserDashboardPage = () => {
       globalProgress: clamp01(globalProgress),
       points,
       level,
+      nextLevelPoints,
+      levelProgress: clamp01(levelProgress),
+      rankTitle,
       streak,
       badges,
+      elo,
     };
-  }, [rooms, userData]);
+  }, [rooms, userData, badgesEarnedCount, ranking]);
 
-  const topRanking = useMemo(() => {
+  const rankingWindow = useMemo(() => {
     const sorted = [...ranking].sort((a, b) => (b?.points || 0) - (a?.points || 0));
-    return sorted.slice(0, 5);
-  }, [ranking]);
+    const me = userData?.username;
+    const idx = me ? sorted.findIndex((x) => x?.username === me) : -1;
+    if (idx < 0) return sorted.slice(0, 5).map((x, i) => ({ ...x, _pos: i + 1 }));
+
+    const start = Math.max(0, idx - 2);
+    const end = Math.min(sorted.length, idx + 3);
+    return sorted.slice(start, end).map((x, i) => ({ ...x, _pos: start + i + 1 }));
+  }, [ranking, userData?.username]);
 
   if (loading) {
     return (
@@ -259,7 +305,7 @@ const UserDashboardPage = () => {
         <h1 style={{ margin: 0, marginBottom: '10px' }}>Błąd</h1>
         <p style={{ color: 'var(--text-gray)' }}>{error}</p>
         <button className="btn btn-outline" onClick={() => navigate('/learn')}>
-          Przejdź do Learn
+          Przejdź do „Ucz się”
         </button>
       </div>
     );
@@ -425,26 +471,45 @@ const UserDashboardPage = () => {
               <h2>Statystyki</h2>
             </div>
 
-            <div className="ud-kpi-grid">
-              <div className="ud-kpi">
-                <div className="ud-kpi-label">XP</div>
-                <div className="ud-kpi-value">{stats.points?.toLocaleString?.('pl-PL') ?? stats.points}</div>
-              </div>
-              <div className="ud-kpi">
-                <div className="ud-kpi-label">LEVEL</div>
-                <div className="ud-kpi-value">{stats.level}</div>
-              </div>
-              <div className="ud-kpi">
-                <div className="ud-kpi-label">STREAK</div>
-                <div className="ud-kpi-value">
-                  {stats.streak} <i className="fas fa-fire" style={{ color: '#ff9800', marginLeft: '6px' }} />
+            <div className="ud-profile-mini">
+              <img
+                className="ud-profile-avatar"
+                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(stats.username)}`}
+                alt="Avatar"
+              />
+              <div className="ud-profile-meta">
+                <div className="ud-profile-name">
+                  {stats.username} <span className="ud-profile-rank">[{stats.rankTitle}]</span>
+                </div>
+                <div className="ud-profile-level">
+                  <div className="ud-profile-level-row">
+                    <span>Poziom {stats.level}</span>
+                    <span className="ud-profile-level-points">
+                      {stats.points?.toLocaleString?.('pl-PL') ?? stats.points} / {stats.nextLevelPoints} XP
+                    </span>
+                  </div>
+                  <div className="ud-profile-level-bar" aria-label="Postęp levelu">
+                    <div
+                      className="ud-profile-level-fill"
+                      style={{ width: `${Math.round(stats.levelProgress * 100)}%` }}
+                    />
+                  </div>
                 </div>
               </div>
-              <div className="ud-kpi">
-                <div className="ud-kpi-label">ODZNAKI</div>
-                <div className="ud-kpi-value">
-                  {stats.badges} <i className="fas fa-award" style={{ color: '#ffd700', marginLeft: '6px' }} />
-                </div>
+            </div>
+
+            <div className="ud-mini-metrics">
+              <div className="ud-metric">
+                <div className="ud-metric-label">ELO</div>
+                <div className="ud-metric-value">{stats.elo}</div>
+              </div>
+              <div className="ud-metric">
+                <div className="ud-metric-label">ODZNAKI</div>
+                <div className="ud-metric-value">{stats.badges}</div>
+              </div>
+              <div className="ud-metric">
+                <div className="ud-metric-label">ZNAJOMI</div>
+                <div className="ud-metric-value">{friendsCount}</div>
               </div>
             </div>
           </section>
@@ -456,11 +521,11 @@ const UserDashboardPage = () => {
             </div>
 
             <div className="ud-ranking-list">
-              {topRanking.map((p, idx) => {
+              {rankingWindow.map((p) => {
                 const isMe = p?.username && p.username === userData?.username;
                 return (
-                  <div key={`${p?.username || idx}`} className={`ud-ranking-item ${isMe ? 'me' : ''}`}>
-                    <div className="ud-ranking-pos">{idx + 1}</div>
+                  <div key={`${p?._pos}-${p?.username}`} className={`ud-ranking-item ${isMe ? 'me' : ''}`}>
+                    <div className="ud-ranking-pos">{p?._pos}</div>
                     <div className="ud-ranking-name">{p?.username || '—'}</div>
                     <div className="ud-ranking-score">{(p?.points || 0).toLocaleString?.('pl-PL') ?? p?.points} XP</div>
                   </div>

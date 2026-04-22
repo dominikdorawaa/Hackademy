@@ -132,6 +132,25 @@ public class UserController {
         return ResponseEntity.ok(recent);
     }
 
+    @GetMapping("/me/active-time")
+    public ResponseEntity<Map<String, Object>> getMyActiveTimeThisWeek() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        int seconds = userService.getActiveSecondsThisWeek(user.getId());
+        return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
+    }
+
+    @PostMapping("/me/active-time")
+    public ResponseEntity<Map<String, Object>> addMyActiveTimeThisWeek(@RequestBody Map<String, Object> payload) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        Object deltaObj = payload.get("deltaSeconds");
+        int delta = 0;
+        if (deltaObj instanceof Number) {
+            delta = ((Number) deltaObj).intValue();
+        }
+        int seconds = userService.addActiveSecondsThisWeek(user.getId(), delta);
+        return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
+    }
+
     @GetMapping("/{username}/activity")
     public ResponseEntity<List<ActivityDto>> getUserActivity(@PathVariable String username) {
         Long userId = userService.getUserIdByUsername(username);
