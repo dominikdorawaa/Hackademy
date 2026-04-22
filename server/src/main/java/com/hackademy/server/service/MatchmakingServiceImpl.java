@@ -70,8 +70,8 @@ public class MatchmakingServiceImpl implements MatchmakingService {
 
         // Pre-fetch room IDs to avoid fetching full entities
         // We fetch two lists: all rooms (if both players want VPN) and non-VPN rooms (if at least one doesn't)
-        List<Long> allRoomIds = roomRepository.findIdsByVpnRequirement(true);
-        List<Long> noVpnRoomIds = roomRepository.findIdsByVpnRequirement(false);
+        List<Long> allRoomIds = roomRepository.findCtfIdsByVpnRequirement(true);
+        List<Long> noVpnRoomIds = roomRepository.findCtfIdsByVpnRequirement(false);
 
         if (allRoomIds.isEmpty() && noVpnRoomIds.isEmpty()) {
             System.out.println("No rooms found in database!");

@@ -135,8 +135,13 @@ public class UserController {
     @GetMapping("/me/active-time")
     public ResponseEntity<Map<String, Object>> getMyActiveTimeThisWeek() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        int seconds = userService.getActiveSecondsThisWeek(user.getId());
-        return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
+        try {
+            int seconds = userService.getActiveSecondsThisWeek(user.getId());
+            return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
+        } catch (RuntimeException e) {
+            // If migrations weren't applied yet, don't break the client.
+            return ResponseEntity.ok(Map.of("secondsThisWeek", 0));
+        }
     }
 
     @PostMapping("/me/active-time")
@@ -147,8 +152,13 @@ public class UserController {
         if (deltaObj instanceof Number) {
             delta = ((Number) deltaObj).intValue();
         }
-        int seconds = userService.addActiveSecondsThisWeek(user.getId(), delta);
-        return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
+        try {
+            int seconds = userService.addActiveSecondsThisWeek(user.getId(), delta);
+            return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
+        } catch (RuntimeException e) {
+            // If migrations weren't applied yet, don't break the client.
+            return ResponseEntity.ok(Map.of("secondsThisWeek", 0));
+        }
     }
 
     @GetMapping("/{username}/activity")

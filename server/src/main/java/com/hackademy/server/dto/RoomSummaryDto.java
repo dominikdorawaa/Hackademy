@@ -1,6 +1,7 @@
 package com.hackademy.server.dto;
 
 import com.hackademy.server.model.DifficultyLevel;
+import com.hackademy.server.model.RoomType;
 import lombok.AllArgsConstructor;
 import lombok.Builder;
 import lombok.Data;
@@ -23,10 +24,11 @@ public class RoomSummaryDto {
     private boolean solved;
     private boolean locked;
     private boolean requiresVpn; // New field
+    private RoomType roomType;
     private LocalDateTime createdAt;
     
     // Constructor for JPQL query
-    public RoomSummaryDto(Long id, String title, String shortDescription, DifficultyLevel difficulty, String category, int points, int solutionsCount, boolean requiresVpn, LocalDateTime createdAt) {
+    public RoomSummaryDto(Long id, String title, String shortDescription, DifficultyLevel difficulty, String category, int points, int solutionsCount, boolean requiresVpn, RoomType roomType, LocalDateTime createdAt) {
         this.id = id;
         this.title = title;
         this.shortDescription = shortDescription;
@@ -35,6 +37,7 @@ public class RoomSummaryDto {
         this.points = points;
         this.solutionsCount = solutionsCount;
         this.requiresVpn = requiresVpn;
+        this.roomType = roomType;
         this.createdAt = createdAt;
         this.solved = false; // Default
         this.locked = false; // Default

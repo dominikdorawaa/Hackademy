@@ -12,6 +12,7 @@ const RoomManagement = () => {
     const [description, setDescription] = useState('');
     const [difficulty, setDifficulty] = useState('EASY');
     const [category, setCategory] = useState('Web');
+    const [roomType, setRoomType] = useState('CTF');
     const [points, setPoints] = useState(0);
     const [flag, setFlag] = useState('');
     const [requiresVpn, setRequiresVpn] = useState(false); // New field
@@ -53,6 +54,7 @@ const RoomManagement = () => {
         setDescription('');
         setDifficulty('EASY');
         setCategory('Web');
+        setRoomType('CTF');
         setPoints(0);
         setFlag('');
         setRequiresVpn(false);
@@ -80,6 +82,7 @@ const RoomManagement = () => {
             setPoints(room.points);
             setFlag(room.flag || '');
             setRequiresVpn(room.requiresVpn || false);
+            setRoomType(room.roomType || 'CTF');
             setHints(room.hints || []);
             setFile(null); // Reset file input
             setIsEditing(true);
@@ -118,6 +121,11 @@ const RoomManagement = () => {
         }
     };
 
+    const roomTypeLabel = (value) => {
+        if (value === 'PATH') return 'Ścieżka';
+        return 'CTF';
+    };
+
     const handleSubmit = async (e) => {
         e.preventDefault();
         setError(null);
@@ -132,6 +140,7 @@ const RoomManagement = () => {
             points: Number(points), 
             flag, 
             requiresVpn,
+            roomType,
             hints 
         };
 
@@ -205,6 +214,15 @@ const RoomManagement = () => {
                         <option value="Network">Network</option>
                         <option value="Tutorial">Tutorial</option>
                         <option value="Misc">Misc</option>
+                    </select>
+                    <select
+                        value={roomType}
+                        onChange={(e) => setRoomType(e.target.value)}
+                        style={{ flex: 1 }}
+                        title="CTF = arena/ranking, Ścieżka = tylko w ścieżkach"
+                    >
+                        <option value="CTF">CTF (Arena)</option>
+                        <option value="PATH">Ścieżka</option>
                     </select>
                 </div>
 

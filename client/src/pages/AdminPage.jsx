@@ -2,6 +2,7 @@ import React, { useState } from 'react';
 import UserManagement from '../components/admin/UserManagement';
 import RoomManagement from '../components/admin/RoomManagement';
 import ReportsManagement from '../components/admin/ReportsManagement';
+import PathManagement from '../components/admin/PathManagement';
 import './AdminPage.css';
 
 const AdminPage = () => {
@@ -29,11 +30,18 @@ const AdminPage = () => {
                 >
                     Zgłoszenia
                 </button>
+                <button 
+                    onClick={() => setActiveTab('paths')}
+                    className={activeTab === 'paths' ? 'active' : ''}
+                >
+                    Ścieżki
+                </button>
             </div>
             <div className="admin-content">
                 {activeTab === 'users' && <UserManagement />}
                 {activeTab === 'rooms' && <RoomManagement />}
                 {activeTab === 'reports' && <ReportsManagement />}
+                {activeTab === 'paths' && <PathManagement />}
             </div>
         </div>
     );

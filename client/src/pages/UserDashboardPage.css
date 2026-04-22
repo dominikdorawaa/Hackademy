@@ -62,6 +62,24 @@
   box-shadow: 0 20px 50px rgba(0, 0, 0, 0.35);
 }
 
+.ud-card-clickable {
+  cursor: pointer;
+  user-select: none;
+  outline: none;
+  transition: transform 0.18s ease, border-color 0.18s ease, background 0.18s ease;
+}
+
+.ud-card-clickable:hover {
+  border-color: rgba(11, 99, 255, 0.35);
+  background: rgba(11, 99, 255, 0.04);
+  transform: translateY(-2px);
+}
+
+.ud-card-clickable:focus-visible {
+  border-color: rgba(11, 99, 255, 0.5);
+  box-shadow: 0 0 0 3px rgba(11, 99, 255, 0.18);
+}
+
 .ud-card-header {
   display: flex;
   align-items: center;
@@ -477,6 +495,11 @@
   font-weight: 800;
   cursor: pointer;
   padding: 10px 0 2px 0;
+}
+
+.ud-link-compact {
+  margin-top: 12px;
+  padding-top: 6px;
 }
 
 .ud-link:hover {

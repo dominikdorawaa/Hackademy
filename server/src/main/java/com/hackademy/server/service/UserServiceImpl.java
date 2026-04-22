@@ -272,18 +272,30 @@ public class UserServiceImpl implements UserService {
 
         String weekKey = currentWeekKey();
         var id = new com.hackademy.server.model.UserWeeklyActiveTimeId(userId, weekKey);
-        var row = userWeeklyActiveTimeRepository.findById(id)
-                .orElseGet(() -> new com.hackademy.server.model.UserWeeklyActiveTime(userId, weekKey, 0, null));
+        try {
+            var row = userWeeklyActiveTimeRepository.findById(id)
+                    .orElseGet(() -> new com.hackademy.server.model.UserWeeklyActiveTime(userId, weekKey, 0, null));
 
-        row.setSeconds(row.getSeconds() + safeDelta);
-        return userWeeklyActiveTimeRepository.save(row).getSeconds();
+            row.setSeconds(row.getSeconds() + safeDelta);
+            return userWeeklyActiveTimeRepository.save(row).getSeconds();
+        } catch (RuntimeException e) {
+            // If the table isn't present (e.g. migrations not applied yet), don't break the whole app.
+            return 0;
+        }
     }
 
     @Override
     public int getActiveSecondsThisWeek(Long userId) {
         String weekKey = currentWeekKey();
         var id = new com.hackademy.server.model.UserWeeklyActiveTimeId(userId, weekKey);
-        return userWeeklyActiveTimeRepository.findById(id).map(com.hackademy.server.model.UserWeeklyActiveTime::getSeconds).orElse(0);
+        try {
+            return userWeeklyActiveTimeRepository.findById(id)
+                    .map(com.hackademy.server.model.UserWeeklyActiveTime::getSeconds)
+                    .orElse(0);
+        } catch (RuntimeException e) {
+            // If the table isn't present (e.g. migrations not applied yet), return 0 instead of throwing.
+            return 0;
+        }
     }
 
     private UserAdminView mapUserToUserAdminView(User user) {

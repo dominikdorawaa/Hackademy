@@ -33,6 +33,7 @@ import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
+import com.hackademy.server.model.RoomType;
 
 @Service
 @RequiredArgsConstructor
@@ -77,6 +78,7 @@ public class RoomServiceImpl implements RoomService {
             original.getPoints(),
             original.getSolutionsCount(),
             original.isRequiresVpn(),
+            original.getRoomType(),
             original.getCreatedAt()
         );
     }
@@ -93,6 +95,7 @@ public class RoomServiceImpl implements RoomService {
                 .points(createRoomRequest.getPoints())
                 .flag(createRoomRequest.getFlag())
                 .requiresVpn(createRoomRequest.isRequiresVpn()) // Set requiresVpn
+                .roomType(createRoomRequest.getRoomType() == null ? RoomType.CTF : createRoomRequest.getRoomType())
                 .build();
 
         if (createRoomRequest.getHints() != null && !createRoomRequest.getHints().isEmpty()) {
@@ -116,6 +119,12 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomSummaryDto> getAllRooms(String username) {
+        return getAllRoomsByType(username, RoomType.CTF);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<RoomSummaryDto> getAllRoomsByType(String username, RoomType roomType) {
         // Use cached rooms
         List<RoomSummaryDto> rooms = getCachedRooms();
         
@@ -158,8 +167,10 @@ public class RoomServiceImpl implements RoomService {
                 room.setLocked(true);
             }
         });
-        
-        return rooms;
+
+        return rooms.stream()
+                .filter(r -> roomType == null || r.getRoomType() == roomType)
+                .collect(Collectors.toList());
     }
 
     @Override
@@ -183,6 +194,7 @@ public class RoomServiceImpl implements RoomService {
         room.setPoints(updateRoomRequest.getPoints());
         room.setFlag(updateRoomRequest.getFlag());
         room.setRequiresVpn(updateRoomRequest.isRequiresVpn()); // Update requiresVpn
+        room.setRoomType(updateRoomRequest.getRoomType() == null ? RoomType.CTF : updateRoomRequest.getRoomType());
 
         // Update hints logic to preserve existing ones if possible
         List<String> newHintDescriptions = updateRoomRequest.getHints();

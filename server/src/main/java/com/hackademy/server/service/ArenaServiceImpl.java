@@ -268,8 +268,8 @@ public class ArenaServiceImpl implements ArenaService {
             throw new IllegalArgumentException("Invalid challenge");
         }
 
-        // Optimized: Fetch only IDs based on VPN requirement
-        List<Long> roomIds = roomRepository.findIdsByVpnRequirement(challenge.isVpnEnabled());
+        // Optimized: Fetch only CTF room IDs based on VPN requirement
+        List<Long> roomIds = roomRepository.findCtfIdsByVpnRequirement(challenge.isVpnEnabled());
         
         if (roomIds.isEmpty()) {
             throw new IllegalStateException("No eligible rooms available for this challenge");

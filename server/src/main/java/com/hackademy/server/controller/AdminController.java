@@ -1,13 +1,18 @@
 package com.hackademy.server.controller;
 
 import com.hackademy.server.dto.CreateRoomRequest;
+import com.hackademy.server.dto.CreatePathRequest;
+import com.hackademy.server.dto.PathAdminDetailDto;
+import com.hackademy.server.dto.PathSummaryDto;
 import com.hackademy.server.dto.RoomAdminDto;
 import com.hackademy.server.dto.RoomAdminSummaryDto;
 import com.hackademy.server.dto.UpdateUserRoleRequest;
+import com.hackademy.server.dto.UpdatePathRoomsRequest;
 import com.hackademy.server.dto.UserAdminView;
 import com.hackademy.server.model.ChatMessage;
 import com.hackademy.server.model.Room;
 import com.hackademy.server.service.ChatService;
+import com.hackademy.server.service.PathService;
 import com.hackademy.server.service.RoomService;
 import com.hackademy.server.service.UserService;
 import jakarta.validation.Valid;
@@ -30,6 +35,7 @@ import java.util.stream.Collectors;
 public class AdminController {
 
     private final RoomService roomService;
+    private final PathService pathService;
     private final UserService userService;
     private final ChatService chatService;
 
@@ -117,6 +123,34 @@ public class AdminController {
         chatService.dismissReport(messageId);
     }
 
+    @PostMapping("/paths")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PathSummaryDto createPath(@Valid @RequestBody CreatePathRequest request) {
+        return pathService.createPath(request);
+    }
+
+    @GetMapping("/paths")
+    public List<PathSummaryDto> listPaths() {
+        return pathService.listPaths();
+    }
+
+    @DeleteMapping("/paths/{id}")
+    @ResponseStatus(HttpStatus.NO_CONTENT)
+    @PreAuthorize("hasRole('ADMIN')")
+    public void deletePath(@PathVariable Long id) {
+        pathService.deletePath(id);
+    }
+
+    @GetMapping("/paths/{id}")
+    public PathAdminDetailDto getPathDetail(@PathVariable Long id) {
+        return pathService.getAdminDetail(id);
+    }
+
+    @PutMapping("/paths/{id}/rooms")
+    public void updatePathRooms(@PathVariable Long id, @RequestBody UpdatePathRoomsRequest request) {
+        pathService.updatePathRooms(id, request.getRoomIds());
+    }
+
     private RoomAdminDto mapToAdminDto(Room room) {
         List<String> hintDescriptions = room.getHints().stream()
                 .map(com.hackademy.server.model.Hint::getDescription)
@@ -129,8 +163,11 @@ public class AdminController {
                 .shortDescription(room.getShortDescription())
                 .difficulty(room.getDifficulty())
                 .points(room.getPoints())
+                .category(room.getCategory())
                 .flag(room.getFlag())
                 .solutionsCount(room.getSolutionsCount())
+                .requiresVpn(room.isRequiresVpn())
+                .roomType(room.getRoomType())
                 .hints(hintDescriptions)
                 .createdAt(room.getCreatedAt())
                 .updatedAt(room.getUpdatedAt())

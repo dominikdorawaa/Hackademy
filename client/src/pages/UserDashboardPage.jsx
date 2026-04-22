@@ -223,8 +223,10 @@ const UserDashboardPage = () => {
     };
 
     let inFlight = false;
+    let disabled = false;
     const tick = async () => {
       if (document.visibilityState !== 'visible') return;
+      if (disabled) return;
       if (inFlight) return;
       inFlight = true;
       try {
@@ -236,7 +238,12 @@ const UserDashboardPage = () => {
         if (res.ok) {
           const data = await res.json();
           setActiveSecondsThisWeek(Number(data?.secondsThisWeek) || 0);
+        } else {
+          // If backend can't persist yet (e.g. missing table), stop spamming.
+          disabled = true;
         }
+      } catch {
+        disabled = true;
       } finally {
         inFlight = false;
       }
@@ -323,9 +330,6 @@ const UserDashboardPage = () => {
         <div className="ud-actions">
           <button className="btn btn-primary ud-btn" onClick={() => navigate('/learn')}>
             Kontynuuj ścieżkę <i className="fas fa-arrow-right" style={{ marginLeft: '8px' }} />
-          </button>
-          <button className="btn btn-outline ud-btn" onClick={() => navigate('/learn')}>
-            Znajdź pokój <i className="fas fa-search" style={{ marginLeft: '8px' }} />
           </button>
         </div>
       </div>
@@ -466,7 +470,18 @@ const UserDashboardPage = () => {
         </div>
 
         <aside className="ud-right">
-          <section className="ud-card">
+          <section
+            className="ud-card ud-card-clickable"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/profile')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/profile');
+              }
+            }}
+          >
             <div className="ud-card-header">
               <h2>Statystyki</h2>
             </div>
@@ -514,7 +529,18 @@ const UserDashboardPage = () => {
             </div>
           </section>
 
-          <section className="ud-card">
+          <section
+            className="ud-card ud-card-clickable"
+            role="button"
+            tabIndex={0}
+            onClick={() => navigate('/ranking')}
+            onKeyDown={(e) => {
+              if (e.key === 'Enter' || e.key === ' ') {
+                e.preventDefault();
+                navigate('/ranking');
+              }
+            }}
+          >
             <div className="ud-card-header">
               <h2>Ranking</h2>
               <div className="ud-rank-pill">{typeof myRank === 'number' ? `#${myRank}` : myRank?.rank ? `#${myRank.rank}` : ''}</div>
@@ -532,10 +558,6 @@ const UserDashboardPage = () => {
                 );
               })}
             </div>
-
-            <button className="ud-link" onClick={() => navigate('/ranking')}>
-              Zobacz pełny ranking
-            </button>
           </section>
 
           <section className="ud-card">

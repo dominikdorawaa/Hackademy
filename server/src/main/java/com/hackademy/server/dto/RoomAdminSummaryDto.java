@@ -1,6 +1,7 @@
 package com.hackademy.server.dto;
 
 import com.hackademy.server.model.DifficultyLevel;
+import com.hackademy.server.model.RoomType;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -15,4 +16,5 @@ public class RoomAdminSummaryDto {
     private DifficultyLevel difficulty;
     private int points;
     private boolean requiresVpn; // New field
+    private RoomType roomType;
 }

@@ -1,6 +1,7 @@
 package com.hackademy.server.dto;
 
 import com.hackademy.server.model.DifficultyLevel;
+import com.hackademy.server.model.RoomType;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.NotNull;
@@ -37,6 +38,8 @@ public class UpdateRoomRequest {
     private String flag;
 
     private boolean requiresVpn; // New field
+
+    private RoomType roomType = RoomType.CTF;
 
     private List<String> hints;
 }

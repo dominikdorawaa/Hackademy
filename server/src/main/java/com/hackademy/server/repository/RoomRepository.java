@@ -16,12 +16,12 @@ import java.util.Optional;
 public interface RoomRepository extends JpaRepository<Room, Long> {
     
     @Query("SELECT new com.hackademy.server.dto.RoomSummaryDto(" +
-           "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.createdAt) " +
+           "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
            "FROM Room r")
     List<RoomSummaryDto> findAllSummaries();
 
     @Query("SELECT new com.hackademy.server.dto.RoomAdminSummaryDto(" +
-           "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn) " +
+           "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn, r.roomType) " +
            "FROM Room r")
     List<RoomAdminSummaryDto> findAllAdminSummaries();
 
@@ -37,9 +37,12 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT r.id FROM Room r WHERE r.category != 'Tutorial' AND (:vpnEnabled = true OR r.requiresVpn = false)")
     List<Long> findIdsByVpnRequirement(@Param("vpnEnabled") boolean vpnEnabled);
 
+    @Query("SELECT r.id FROM Room r WHERE r.roomType = com.hackademy.server.model.RoomType.CTF AND r.category != 'Tutorial' AND (:vpnEnabled = true OR r.requiresVpn = false)")
+    List<Long> findCtfIdsByVpnRequirement(@Param("vpnEnabled") boolean vpnEnabled);
+
     // Fetch top 3 rooms excluding Tutorial category using projection
     @Query("SELECT new com.hackademy.server.dto.RoomSummaryDto(" +
-           "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.createdAt) " +
+           "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
            "FROM Room r WHERE r.category != :category ORDER BY r.solutionsCount DESC")
     List<RoomSummaryDto> findTop3ByCategoryNot(@Param("category") String category, Pageable pageable);
 }

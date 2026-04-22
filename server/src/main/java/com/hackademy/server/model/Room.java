@@ -60,6 +60,11 @@ public class Room {
     private boolean requiresVpn = false; // New field
 
     @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "room_type", nullable = false, length = 16)
+    private RoomType roomType = RoomType.CTF;
+
+    @Builder.Default
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Hint> hints = new ArrayList<>();
 

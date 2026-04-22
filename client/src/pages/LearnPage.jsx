@@ -1,8 +1,8 @@
 import React from 'react';
-import DashboardPage from './DashboardPage';
+import PathsPage from './PathsPage';
 
 const LearnPage = () => {
-  return <DashboardPage />;
+  return <PathsPage />;
 };
 
 export default LearnPage;

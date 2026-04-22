@@ -8,6 +8,7 @@ import RegisterPage from './pages/RegisterPage';
 import DashboardPage from './pages/DashboardPage';
 import LearnPage from './pages/LearnPage';
 import UserDashboardPage from './pages/UserDashboardPage';
+import PathDetailPage from './pages/PathDetailPage';
 import ArenaPage from './pages/ArenaPage';
 import RankingPage from './pages/RankingPage';
 import AdminPage from './pages/AdminPage'; // Import AdminPage
@@ -54,6 +55,14 @@ function App() {
               element={
                 <ProtectedRoute>
                   <LearnPage />
+                </ProtectedRoute>
+              } 
+            />
+            <Route 
+              path="/learn/paths/:id" 
+              element={
+                <ProtectedRoute>
+                  <PathDetailPage />
                 </ProtectedRoute>
               } 
             />
