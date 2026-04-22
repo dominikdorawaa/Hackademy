@@ -4,6 +4,7 @@ import com.hackademy.server.dto.ActivityDto;
 import com.hackademy.server.dto.AuthResponse;
 import com.hackademy.server.dto.BadgeDto;
 import com.hackademy.server.dto.ChangePasswordRequest;
+import com.hackademy.server.dto.RecentSolvedRoomDto;
 import com.hackademy.server.dto.RankingEntry;
 import com.hackademy.server.dto.UpdateBioRequest;
 import com.hackademy.server.dto.UpdateUsernameRequest;
@@ -16,6 +17,7 @@ import com.hackademy.server.model.User;
 import com.hackademy.server.repository.UserBadgeRepository;
 import com.hackademy.server.repository.UserRepository;
 import com.hackademy.server.repository.UserSolvedRoomRepository;
+import com.hackademy.server.repository.RecentSolvedRoomView;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -234,6 +236,21 @@ public class UserServiceImpl implements UserService {
         // Get activity for the last year
         LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
         return userSolvedRoomRepository.findUserActivity(userId, oneYearAgo);
+    }
+
+    @Override
+    public List<RecentSolvedRoomDto> getRecentSolvedRooms(Long userId, int limit) {
+        int safeLimit = Math.max(1, Math.min(limit, 20));
+        List<RecentSolvedRoomView> rows = userSolvedRoomRepository.findRecentSolvedRooms(userId, safeLimit);
+        return rows.stream()
+                .map(r -> new RecentSolvedRoomDto(
+                        r.getRoomId(),
+                        r.getTitle(),
+                        r.getDifficulty(),
+                        r.getPoints() != null ? r.getPoints() : 0,
+                        r.getSolvedAt()
+                ))
+                .collect(Collectors.toList());
     }
 
     private UserAdminView mapUserToUserAdminView(User user) {

@@ -16,6 +16,22 @@ public interface UserSolvedRoomRepository extends JpaRepository<UserSolvedRoom, 
     boolean existsByUser_UsernameAndRoom_Title(String username, String roomTitle);
     long countByUser_Id(Long userId);
     List<UserSolvedRoom> findByUser_Id(Long userId);
+    List<UserSolvedRoom> findTop10ByUser_IdOrderBySolvedAtDesc(Long userId);
+    
+    @Query(value = """
+            SELECT 
+              usr.room_id AS roomId,
+              r.title AS title,
+              r.difficulty AS difficulty,
+              r.points AS points,
+              usr.solved_at AS solvedAt
+            FROM user_solved_rooms usr
+            JOIN rooms r ON r.id = usr.room_id
+            WHERE usr.user_id = :userId
+            ORDER BY usr.solved_at DESC
+            LIMIT :limit
+            """, nativeQuery = true)
+    List<RecentSolvedRoomView> findRecentSolvedRooms(@Param("userId") Long userId, @Param("limit") int limit);
 
     // Use native query for date casting to be safe with Postgres
     @Query(value = "SELECT CAST(solved_at AS date) as date, COUNT(*) as count " +

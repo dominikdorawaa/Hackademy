@@ -3,6 +3,7 @@ package com.hackademy.server.controller;
 import com.hackademy.server.dto.ActivityDto;
 import com.hackademy.server.dto.AuthResponse;
 import com.hackademy.server.dto.ChangePasswordRequest;
+import com.hackademy.server.dto.RecentSolvedRoomDto;
 import com.hackademy.server.dto.RankingEntry;
 import com.hackademy.server.dto.UpdateBioRequest;
 import com.hackademy.server.dto.UpdateUsernameRequest;
@@ -122,6 +123,13 @@ public class UserController {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         List<ActivityDto> activity = userService.getUserActivity(user.getId());
         return ResponseEntity.ok(activity);
+    }
+
+    @GetMapping("/me/recent-solved")
+    public ResponseEntity<List<RecentSolvedRoomDto>> getMyRecentSolved(@RequestParam(defaultValue = "3") int limit) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        List<RecentSolvedRoomDto> recent = userService.getRecentSolvedRooms(user.getId(), limit);
+        return ResponseEntity.ok(recent);
     }
 
     @GetMapping("/{username}/activity")

@@ -193,6 +193,8 @@ const Navbar = () => {
   };
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
+  const isActive = (path) => location.pathname === path;
+  const isActivePrefix = (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
 
   return (
     <nav className="navbar">
@@ -209,10 +211,11 @@ const Navbar = () => {
             <div className="nav-links">
               {isAuthenticated ? (
                 <>
-                  <Link to="/dashboard">Pokoje CTF</Link>
-                  <Link to="/arena">Tryb Rankingowy</Link>
-                  <Link to="/ranking">Ranking</Link>
-                  <Link to="/vpn" style={{ color: '#3498db' }}>VPN</Link>
+                  <Link to="/dashboard" className={isActivePrefix('/dashboard') ? 'active' : ''}>Dashboard</Link>
+                  <Link to="/learn" className={isActivePrefix('/learn') ? 'active' : ''}>Learn</Link>
+                  <Link to="/arena" className={isActivePrefix('/arena') ? 'active' : ''}>Tryb Rankingowy</Link>
+                  <Link to="/ranking" className={isActivePrefix('/ranking') ? 'active' : ''}>Ranking</Link>
+                  <Link to="/vpn" className={isActivePrefix('/vpn') ? 'active' : ''} style={{ color: '#3498db' }}>VPN</Link>
                 </>
               ) : (
                 <>

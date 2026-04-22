@@ -410,7 +410,7 @@ const RoomPage = () => {
           />
       )}
       <div className="room-header">
-        <button onClick={() => navigate(isArenaMode ? '/arena' : '/dashboard')} className="back-btn">
+        <button onClick={() => navigate(isArenaMode ? '/arena' : '/learn')} className="back-btn">
             &larr; Powrót
         </button>
         <div className="room-meta-top">

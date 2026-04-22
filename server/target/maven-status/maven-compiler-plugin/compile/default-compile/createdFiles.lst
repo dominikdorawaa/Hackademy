@@ -2,6 +2,7 @@ com\hackademy\server\config\DatabaseFixer.class
 com\hackademy\server\model\Room.class
 com\hackademy\server\dto\LoginRequest.class
 com\hackademy\server\model\Challenge.class
+com\hackademy\server\dto\RecentSolvedRoomDto.class
 com\hackademy\server\repository\UserRepository.class
 com\hackademy\server\handler\GlobalExceptionHandler.class
 com\hackademy\server\config\ApplicationConfig.class
@@ -15,6 +16,7 @@ com\hackademy\server\repository\HintRepository.class
 com\hackademy\server\exception\UserNotFoundException.class
 com\hackademy\server\repository\UserUnlockedHintRepository.class
 com\hackademy\server\dto\RoomSummaryDto.class
+com\hackademy\server\repository\RecentSolvedRoomView.class
 com\hackademy\server\model\UserSolvedRoom.class
 com\hackademy\server\dto\RoomAdminDto$RoomAdminDtoBuilder.class
 com\hackademy\server\model\Friendship.class

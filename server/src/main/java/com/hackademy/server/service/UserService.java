@@ -3,6 +3,7 @@ package com.hackademy.server.service;
 import com.hackademy.server.dto.ActivityDto;
 import com.hackademy.server.dto.AuthResponse;
 import com.hackademy.server.dto.ChangePasswordRequest;
+import com.hackademy.server.dto.RecentSolvedRoomDto;
 import com.hackademy.server.dto.RankingEntry;
 import com.hackademy.server.dto.UpdateBioRequest;
 import com.hackademy.server.dto.UpdateUsernameRequest;
@@ -28,4 +29,5 @@ public interface UserService {
     RankingEntry getUserRank(Long userId); // New method
     boolean hasSolvedTutorialVpn(Long userId); // New method
     List<ActivityDto> getUserActivity(Long userId); // New method
+    List<RecentSolvedRoomDto> getRecentSolvedRooms(Long userId, int limit);
 }
