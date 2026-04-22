@@ -29,4 +29,5 @@ public interface RoomService {
     Room getRoomById(Long id);
     RoomFile getRoomFile(Long roomId);
     List<RoomSummaryDto> getTop3Rooms(); // New method for landing page
+    SolveRoomResponse solveTask(Long roomId, Long taskId, String answer, String username);
 }

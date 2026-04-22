@@ -210,3 +210,181 @@
         grid-template-columns: 1fr;
     }
 }
+
+/* Room Progress Bar */
+.room-progress-container {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background: #111827;
+  padding: 10px 0;
+  margin-bottom: 20px;
+  border-bottom: 1px solid rgba(255,255,255,0.05);
+}
+
+.room-progress-bar {
+  height: 8px;
+  background: rgba(255,255,255,0.05);
+  border-radius: 4px;
+  overflow: hidden;
+  position: relative;
+}
+
+.room-progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #10b981, #34d399);
+  transition: width 0.5s ease;
+  box-shadow: 0 0 15px rgba(16, 185, 129, 0.4);
+}
+
+.room-progress-text {
+  text-align: center;
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-top: 6px;
+  color: #10b981;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+}
+
+/* Tasks */
+.tasks-list {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  margin-top: 24px;
+}
+
+.task-card {
+  background: rgba(31, 41, 55, 0.5);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 12px;
+  overflow: hidden;
+  transition: all 0.2s ease;
+}
+
+.task-card.completed {
+  border-color: rgba(16, 185, 129, 0.3);
+}
+
+.task-header {
+  padding: 16px 20px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  cursor: pointer;
+  user-select: none;
+  background: rgba(31, 41, 55, 0.8);
+}
+
+.task-header:hover {
+  background: rgba(55, 65, 81, 0.8);
+}
+
+.task-title-wrap {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.task-number {
+  font-weight: 900;
+  color: var(--text-gray);
+  font-size: 0.9rem;
+}
+
+.task-check {
+  color: #10b981;
+  font-size: 1.1rem;
+}
+
+.task-title {
+  font-weight: 700;
+  font-size: 1.05rem;
+  color: var(--text-light);
+}
+
+.task-body {
+  padding: 20px;
+  border-top: 1px solid rgba(255, 255, 255, 0.05);
+  background: rgba(17, 24, 39, 0.4);
+}
+
+.task-content {
+  line-height: 1.6;
+  color: var(--text-gray);
+  margin-bottom: 24px;
+}
+
+.task-content p {
+  margin-bottom: 12px;
+}
+
+.task-question-box {
+  background: rgba(0, 0, 0, 0.2);
+  border-left: 4px solid #3b82f6;
+  padding: 16px;
+  border-radius: 0 8px 8px 0;
+}
+
+.task-question-text {
+  font-weight: 600;
+  margin-bottom: 12px;
+  color: var(--text-light);
+}
+
+.task-input-group {
+  display: flex;
+  gap: 10px;
+}
+
+.task-input {
+  flex: 1;
+  background: rgba(255, 255, 255, 0.05);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  padding: 10px 14px;
+  border-radius: 8px;
+  color: white;
+  font-family: inherit;
+  transition: border-color 0.2s;
+}
+
+.task-input:focus {
+  border-color: #3b82f6;
+  outline: none;
+}
+
+.task-input.success {
+  border-color: #10b981;
+  background: rgba(16, 185, 129, 0.1);
+  color: #10b981;
+}
+
+.btn-task-submit {
+  padding: 10px 20px;
+  background: #10b981;
+  border: none;
+  border-radius: 8px;
+  color: white;
+  font-weight: 700;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  transition: transform 0.1s;
+}
+
+.btn-task-submit:hover {
+  filter: brightness(1.1);
+}
+
+.btn-task-submit:active {
+  transform: scale(0.96);
+}
+
+.btn-task-submit.completed {
+  background: rgba(16, 185, 129, 0.2);
+  color: #10b981;
+  border: 1px solid rgba(16, 185, 129, 0.3);
+  cursor: default;
+}

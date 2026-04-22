@@ -132,7 +132,7 @@ public class AdminController {
 
     @GetMapping("/paths")
     public List<PathSummaryDto> listPaths() {
-        return pathService.listPaths();
+        return pathService.listPaths(null);
     }
 
     @DeleteMapping("/paths/{id}")

@@ -1,24 +1,9 @@
 package com.hackademy.server.service;
 
-import com.hackademy.server.dto.BadgeDto;
-import com.hackademy.server.dto.CreateRoomRequest;
-import com.hackademy.server.dto.RoomAdminSummaryDto;
-import com.hackademy.server.dto.RoomDetailDto;
-import com.hackademy.server.dto.RoomDto;
-import com.hackademy.server.dto.RoomSummaryDto;
-import com.hackademy.server.dto.SolveRoomResponse;
+import com.hackademy.server.repository.*;
+import com.hackademy.server.model.*;
+import com.hackademy.server.dto.*;
 import com.hackademy.server.exception.UserNotFoundException;
-import com.hackademy.server.model.Room;
-import com.hackademy.server.model.RoomFile;
-import com.hackademy.server.model.User;
-import com.hackademy.server.model.UserSolvedRoom;
-import com.hackademy.server.model.UserUnlockedHint;
-import com.hackademy.server.repository.HintRepository;
-import com.hackademy.server.repository.RoomFileRepository;
-import com.hackademy.server.repository.RoomRepository;
-import com.hackademy.server.repository.UserRepository;
-import com.hackademy.server.repository.UserSolvedRoomRepository;
-import com.hackademy.server.repository.UserUnlockedHintRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
@@ -27,13 +12,13 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
 import java.util.stream.Collectors;
-import com.hackademy.server.model.RoomType;
 
 @Service
 @RequiredArgsConstructor
@@ -46,6 +31,8 @@ public class RoomServiceImpl implements RoomService {
     private final UserSolvedRoomRepository userSolvedRoomRepository;
     private final BadgeService badgeService;
     private final RoomFileRepository roomFileRepository;
+    private final RoomTaskRepository roomTaskRepository;
+    private final UserCompletedTaskRepository userCompletedTaskRepository;
 
     // Simple in-memory cache
     private List<RoomSummaryDto> cachedRooms;
@@ -94,7 +81,7 @@ public class RoomServiceImpl implements RoomService {
                 .category(createRoomRequest.getCategory())
                 .points(createRoomRequest.getPoints())
                 .flag(createRoomRequest.getFlag())
-                .requiresVpn(createRoomRequest.isRequiresVpn()) // Set requiresVpn
+                .requiresVpn(createRoomRequest.isRequiresVpn())
                 .roomType(createRoomRequest.getRoomType() == null ? RoomType.CTF : createRoomRequest.getRoomType())
                 .build();
 
@@ -176,7 +163,6 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomAdminSummaryDto> getAllRoomsForAdmin() {
-        // Use projection to fetch only necessary fields directly from DB
         return roomRepository.findAllAdminSummaries();
     }
 
@@ -193,10 +179,9 @@ public class RoomServiceImpl implements RoomService {
         room.setCategory(updateRoomRequest.getCategory());
         room.setPoints(updateRoomRequest.getPoints());
         room.setFlag(updateRoomRequest.getFlag());
-        room.setRequiresVpn(updateRoomRequest.isRequiresVpn()); // Update requiresVpn
+        room.setRequiresVpn(updateRoomRequest.isRequiresVpn());
         room.setRoomType(updateRoomRequest.getRoomType() == null ? RoomType.CTF : updateRoomRequest.getRoomType());
 
-        // Update hints logic to preserve existing ones if possible
         List<String> newHintDescriptions = updateRoomRequest.getHints();
         if (newHintDescriptions == null) {
             newHintDescriptions = new ArrayList<>();
@@ -207,7 +192,6 @@ public class RoomServiceImpl implements RoomService {
         
         for (String desc : newHintDescriptions) {
             boolean found = false;
-            // Try to find a hint in oldHints with the same description
             for (int i = 0; i < oldHints.size(); i++) {
                 if (oldHints.get(i).getDescription().equals(desc)) {
                     room.getHints().add(oldHints.get(i));
@@ -216,9 +200,7 @@ public class RoomServiceImpl implements RoomService {
                     break;
                 }
             }
-            
             if (!found) {
-                // Create new
                 room.getHints().add(new com.hackademy.server.model.Hint(desc, room));
             }
         }
@@ -226,7 +208,6 @@ public class RoomServiceImpl implements RoomService {
         Room savedRoom = roomRepository.save(room);
 
         if (file != null && !file.isEmpty()) {
-            // Check if file already exists
             RoomFile existingFile = roomFileRepository.findByRoomId(id).orElse(null);
             if (existingFile != null) {
                 existingFile.setFileName(file.getOriginalFilename());
@@ -251,7 +232,6 @@ public class RoomServiceImpl implements RoomService {
         roomRepository.deleteById(id);
         invalidateCache();
     }
-
     @Override
     @Transactional(readOnly = true)
     public RoomDetailDto getRoomDetail(Long id, String username) {
@@ -293,6 +273,18 @@ public class RoomServiceImpl implements RoomService {
         
         String fileName = room.getRoomFile() != null ? room.getRoomFile().getFileName() : null;
 
+        // Fetch Tasks
+        List<Long> completedTaskIds = userCompletedTaskRepository.findCompletedTaskIdsByUserId(user.getId());
+        List<RoomTaskDto> taskDtos = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(id).stream()
+                .map(t -> RoomTaskDto.builder()
+                        .id(t.getId())
+                        .title(t.getTitle())
+                        .content(t.getContent())
+                        .question(t.getQuestion())
+                        .completed(completedTaskIds.contains(t.getId()))
+                        .build())
+                .collect(Collectors.toList());
+
         return RoomDetailDto.builder()
                 .id(room.getId())
                 .title(room.getTitle())
@@ -303,11 +295,78 @@ public class RoomServiceImpl implements RoomService {
                 .solutionsCount(room.getSolutionsCount())
                 .createdAt(room.getCreatedAt())
                 .solved(isSolved)
-                .requiresVpn(room.isRequiresVpn()) // Set requiresVpn
+                .requiresVpn(room.isRequiresVpn())
                 .hints(hintDtos)
                 .unlockedHintIds(unlockedHintIds)
                 .fileName(fileName)
+                .tasks(taskDtos)
                 .build();
+    }
+
+    @Override
+    @Transactional
+    public SolveRoomResponse solveTask(Long roomId, Long taskId, String answer, String username) {
+        Room room = roomRepository.findById(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+        RoomTask task = roomTaskRepository.findById(taskId)
+                .orElseThrow(() -> new IllegalArgumentException("Task not found"));
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+
+        if (!task.getRoom().getId().equals(roomId)) {
+            throw new IllegalArgumentException("Task does not belong to this room");
+        }
+
+        // Check answer
+        if (task.getAnswer() != null && !task.getAnswer().equalsIgnoreCase(answer)) {
+            return new SolveRoomResponse(false, "Niepoprawna odpowiedź", 0, new ArrayList<>());
+        }
+
+        // Save completion if not already completed
+        if (!userCompletedTaskRepository.existsByUserIdAndTaskId(user.getId(), taskId)) {
+            userCompletedTaskRepository.save(new UserCompletedTask(null, user.getId(), taskId, LocalDateTime.now()));
+        }
+
+        // Check if all tasks in room are completed
+        List<RoomTask> allTasks = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(roomId);
+        long completedCount = userCompletedTaskRepository.countByUserIdAndTaskIdIn(user.getId(), 
+                allTasks.stream().map(RoomTask::getId).collect(Collectors.toList()));
+
+        if (completedCount == allTasks.size()) {
+            // Check if already solved
+            if (!userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
+                // Award points only once
+                long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), roomId);
+                double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
+                if (pointsToAward < 0) pointsToAward = 0;
+
+                UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room);
+                userSolvedRoomRepository.save(userSolvedRoom);
+
+                user.setPoints(user.getPoints() + (int) pointsToAward);
+                room.setSolutionsCount(room.getSolutionsCount() + 1);
+
+                // Streak logic
+                LocalDate today = LocalDate.now();
+                LocalDate lastSolved = user.getLastSolvedDate();
+                if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
+                    user.setStreak(user.getStreak() + 1);
+                } else if (!lastSolved.equals(today)) {
+                    user.setStreak(1);
+                }
+                user.setLastSolvedDate(today);
+
+                userRepository.save(user);
+                roomRepository.save(room);
+                invalidateCache();
+
+                List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
+                return new SolveRoomResponse(true, "Poprawna odpowiedź! Pokój ukończony!", (int) pointsToAward, newBadges);
+            }
+            return new SolveRoomResponse(true, "Poprawna odpowiedź! (Pokój już ukończony)", 0, new ArrayList<>());
+        }
+
+        return new SolveRoomResponse(true, "Poprawna odpowiedź!", 0, new ArrayList<>());
     }
 
     @Override

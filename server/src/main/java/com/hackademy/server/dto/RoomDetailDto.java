@@ -27,4 +27,5 @@ public class RoomDetailDto {
     private List<HintDto> hints;
     private List<Long> unlockedHintIds;
     private String fileName; // Name of the attached file, if any
+    private List<RoomTaskDto> tasks;
 }

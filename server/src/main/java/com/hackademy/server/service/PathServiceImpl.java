@@ -10,10 +10,14 @@ import com.hackademy.server.dto.PathSummaryDto;
 import com.hackademy.server.dto.RoomSummaryDto;
 import com.hackademy.server.dto.UpdatePathMetaRequest;
 import com.hackademy.server.model.Path;
+import com.hackademy.server.model.PathEnrollment;
 import com.hackademy.server.model.PathRoom;
+import com.hackademy.server.model.User;
+import com.hackademy.server.repository.PathEnrollmentRepository;
 import com.hackademy.server.repository.PathRepository;
 import com.hackademy.server.repository.PathRoomRepository;
 import com.hackademy.server.repository.RoomRepository;
+import com.hackademy.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -22,6 +26,7 @@ import org.springframework.web.multipart.MultipartFile;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import com.hackademy.server.model.RoomType;
@@ -34,22 +39,42 @@ public class PathServiceImpl implements PathService {
     private final PathRoomRepository pathRoomRepository;
     private final RoomRepository roomRepository;
     private final RoomService roomService;
+    private final PathEnrollmentRepository pathEnrollmentRepository;
+    private final UserRepository userRepository;
 
-    @Override
-    @Transactional(readOnly = true)
-    public List<PathSummaryDto> listPaths() {
-        return pathRepository.findAllListViews().stream()
-                .map(v -> PathSummaryDto.builder()
-                        .id(v.getId())
-                        .title(v.getTitle())
-                        .description(v.getDescription())
-                        // If banner is stored in DB, frontend can request it lazily via /api/paths/{id}/banner
-                        .bannerUrl(v.getBannerUrl())
-                        .hasBanner(Boolean.TRUE.equals(v.getHasBanner()))
-                        .roomsCount(v.getRoomsCount() == null ? 0 : v.getRoomsCount())
+    // ── helpers ─────────────────────────────────────────────────────────────
+
+    private Long resolveUserId(String username) {
+        if (username == null) return null;
+        return userRepository.findByUsername(username).map(User::getId).orElse(null);
+    }
+
+    // ── list paths ──────────────────────────────────────────────────────────
+
+    public List<PathSummaryDto> listPaths(String username) {
+        List<Path> paths = pathRepository.findAll();
+        Map<Long, Long> counts = paths.stream()
+                .collect(Collectors.toMap(Path::getId, p -> pathRoomRepository.countByPathId(p.getId())));
+
+        Long userId = resolveUserId(username);
+        Set<Long> enrolledIds = userId != null
+                ? pathEnrollmentRepository.findPathIdsByUserId(userId)
+                : Set.of();
+
+        return paths.stream()
+                .map(p -> PathSummaryDto.builder()
+                        .id(p.getId())
+                        .title(p.getTitle())
+                        .description(p.getDescription())
+                        .bannerUrl(p.getBannerData() != null ? "/api/paths/" + p.getId() + "/banner" : p.getBannerUrl())
+                        .hasBanner(p.getBannerData() != null)
+                        .roomsCount(counts.getOrDefault(p.getId(), 0L).intValue())
+                        .enrolled(enrolledIds.contains(p.getId()))
                         .build())
                 .toList();
     }
+
+    // ── path detail ─────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -80,14 +105,34 @@ public class PathServiceImpl implements PathService {
         Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
         List<Long> roomIds = pathRoomRepository.findRoomIdsOrdered(id);
 
-        // Build room summaries (with solved/locked flags) and filter to PATH rooms only.
-        List<RoomSummaryDto> allRooms = roomService.getAllRoomsByType(username, RoomType.PATH);
-        Map<Long, RoomSummaryDto> byId = allRooms.stream().collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
+        Long userId = resolveUserId(username);
+        boolean enrolled = userId != null && pathEnrollmentRepository.existsByUserIdAndPathId(userId, id);
 
-        List<RoomSummaryDto> rooms = new ArrayList<>();
-        for (Long roomId : roomIds) {
-            RoomSummaryDto dto = byId.get(roomId);
-            if (dto != null) rooms.add(dto);
+        List<RoomSummaryDto> rooms;
+        if (enrolled) {
+            // Pobierz pokoje z flagami solved/locked
+            List<RoomSummaryDto> allRooms = roomService.getAllRoomsByType(username, RoomType.PATH);
+            Map<Long, RoomSummaryDto> byId = allRooms.stream()
+                    .collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
+            rooms = new ArrayList<>();
+            for (Long roomId : roomIds) {
+                RoomSummaryDto dto = byId.get(roomId);
+                if (dto != null) rooms.add(dto);
+            }
+        } else {
+            // Niezapisany – wszystkie pokoje zablokowane
+            List<RoomSummaryDto> allRooms = roomService.getAllRoomsByType(username, RoomType.PATH);
+            Map<Long, RoomSummaryDto> byId = allRooms.stream()
+                    .collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
+            rooms = new ArrayList<>();
+            for (Long roomId : roomIds) {
+                RoomSummaryDto dto = byId.get(roomId);
+                if (dto != null) {
+                    dto.setSolved(false);
+                    dto.setLocked(true);
+                    rooms.add(dto);
+                }
+            }
         }
 
         return PathDetailDto.builder()
@@ -96,9 +141,46 @@ public class PathServiceImpl implements PathService {
                 .description(path.getDescription())
                 .bannerUrl(path.getBannerData() != null ? "/api/paths/" + path.getId() + "/banner" : path.getBannerUrl())
                 .hasBanner(path.getBannerData() != null)
+                .enrolled(enrolled)
                 .rooms(rooms)
                 .build();
     }
+
+    // ── enrollment ──────────────────────────────────────────────────────────
+
+    @Override
+    @Transactional
+    public void enrollUser(Long pathId, String username) {
+        if (!pathRepository.existsById(pathId)) {
+            throw new IllegalArgumentException("Path not found");
+        }
+        Long userId = resolveUserId(username);
+        if (userId == null) throw new IllegalStateException("User not found: " + username);
+        if (!pathEnrollmentRepository.existsByUserIdAndPathId(userId, pathId)) {
+            pathEnrollmentRepository.save(PathEnrollment.builder()
+                    .userId(userId)
+                    .pathId(pathId)
+                    .build());
+        }
+    }
+
+    @Override
+    @Transactional
+    public void unenrollUser(Long pathId, String username) {
+        Long userId = resolveUserId(username);
+        if (userId == null) return;
+        pathEnrollmentRepository.deleteByUserIdAndPathId(userId, pathId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public boolean isEnrolled(Long pathId, String username) {
+        Long userId = resolveUserId(username);
+        if (userId == null) return false;
+        return pathEnrollmentRepository.existsByUserIdAndPathId(userId, pathId);
+    }
+
+    // ── admin / CRUD ─────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -146,7 +228,6 @@ public class PathServiceImpl implements PathService {
         List<Long> roomIds = request.getRoomIds() != null ? request.getRoomIds() : List.of();
         int order = 0;
         for (Long roomId : roomIds) {
-            // Validate room exists (fast exists check)
             if (roomId == null) continue;
             var room = roomRepository.findById(roomId).orElse(null);
             if (room == null || room.getRoomType() != RoomType.PATH) continue;
@@ -159,6 +240,7 @@ public class PathServiceImpl implements PathService {
                 .description(saved.getDescription())
                 .bannerUrl(saved.getBannerUrl())
                 .roomsCount(order)
+                .enrolled(false)
                 .build();
     }
 
@@ -243,4 +325,3 @@ public class PathServiceImpl implements PathService {
         return path.getBannerMime();
     }
 }
-

@@ -48,6 +48,10 @@ const RoomPage = () => {
   // Training Mode State
   const [isTrainingMode, setIsTrainingMode] = useState(false);
 
+  // Tasks State
+  const [taskAnswers, setTaskAnswers] = useState({});
+  const [expandedTasks, setExpandedTasks] = useState({});
+
   // Toast state
   const [toast, setToast] = useState(null);
 
@@ -71,19 +75,14 @@ const RoomPage = () => {
   // Timer for Arena
   useEffect(() => {
     let timer;
-    // Timer should run if game is ACTIVE OR WAITING_FOR_OPPONENT
     if (isArenaMode && arenaSession && userData) {
         const startTime = new Date(arenaSession.startTime).getTime();
-        
-        // Check if current user has finished
         const userFinishTime = arenaSession.finishTimes && arenaSession.finishTimes[userData.id];
         
         if (userFinishTime) {
-            // User finished, time is fixed
             const finishTime = new Date(userFinishTime).getTime();
             setElapsedTime(Math.floor((finishTime - startTime) / 1000));
         } else if (arenaSession.status === 'ACTIVE' || arenaSession.status === 'WAITING_FOR_OPPONENT') {
-            // User still playing, time ticks
             timer = setInterval(() => {
                 const now = new Date().getTime();
                 setElapsedTime(Math.floor((now - startTime) / 1000));
@@ -93,22 +92,17 @@ const RoomPage = () => {
     return () => clearInterval(timer);
   }, [isArenaMode, arenaSession, userData]);
 
-  // Polling for Arena Game Status
+  // Polling for Arena
   useEffect(() => {
     let interval;
     if (isArenaMode && token && userData) {
-        // Initial fetch
         fetch(`${API_URL}/api/arena/game/${arenaGameId}`, {
             headers: { 'Authorization': `Bearer ${token}` }
         }).then(res => res.json()).then(data => {
             setArenaSession(data);
-            // Sync unlocked hints from session
             if (data.hintsUsed && data.hintsUsed[userData.id]) {
                 setUnlockedHints(data.hintsUsed[userData.id]);
                 setPenaltyTime(data.hintsUsed[userData.id].length * 120);
-            } else {
-                setUnlockedHints([]);
-                setPenaltyTime(0);
             }
         });
 
@@ -117,69 +111,20 @@ const RoomPage = () => {
                 const response = await fetch(`${API_URL}/api/arena/game/${arenaGameId}`, {
                     headers: { 'Authorization': `Bearer ${token}` }
                 });
-                
                 if (response.ok) {
                     const session = await response.json();
                     setArenaSession(session);
-                    
-                    // Sync unlocked hints from session (in case of refresh)
                     if (session.hintsUsed && session.hintsUsed[userData.id]) {
                         setUnlockedHints(session.hintsUsed[userData.id]);
                         setPenaltyTime(session.hintsUsed[userData.id].length * 120);
                     }
-                    
-                    if (session.status === 'FINISHED') {
-                        setShowArenaResultModal(true);
-                    }
+                    if (session.status === 'FINISHED') setShowArenaResultModal(true);
                 }
-            } catch (err) {
-                console.error("Polling error", err);
-            }
-        }, 2000); 
+            } catch (err) { console.error(err); }
+        }, 2000);
     }
     return () => clearInterval(interval);
-  }, [isArenaMode, arenaGameId, token, navigate, userData]);
-
-  useEffect(() => {
-    const fetchRoom = async () => {
-      try {
-        const response = await fetch(`${API_URL}/api/rooms/${id}`, {
-          headers: {
-            'Authorization': `Bearer ${token}`
-          }
-        });
-        
-        if (!response.ok) {
-          throw new Error('Failed to fetch room details');
-        }
-        
-        const data = await response.json();
-        setRoom(data);
-        
-        // Only set unlocked hints from room data if NOT in Arena mode
-        if (!isArenaMode) {
-            if (data.unlockedHintIds) {
-              setUnlockedHints(data.unlockedHintIds);
-              const unlockedCount = data.unlockedHintIds.length;
-              setPotentialPoints(Math.max(0, data.points * (1 - unlockedCount * 0.25)));
-            } else {
-              setPotentialPoints(data.points);
-            }
-        } else {
-            // In Arena mode, hints are managed via arenaSession state (see above useEffect)
-            setPotentialPoints(0); // Points don't matter in Arena
-        }
-      } catch (err) {
-        setError(err.message);
-      } finally {
-        setLoading(false);
-      }
-    };
-    
-    if (token) {
-      fetchRoom();
-    }
-  }, [id, token, isArenaMode]);
+  }, [isArenaMode, arenaGameId, token, userData]);
 
   const handleUnlockHint = (hintId) => {
     setHintToUnlock(hintId);
@@ -191,7 +136,6 @@ const RoomPage = () => {
     if (!hintToUnlock) return; 
 
     try {
-        // If Arena Mode, call arena hint endpoint
         if (isArenaMode) {
             const response = await fetch(`${API_URL}/api/arena/game/${arenaGameId}/hint`, {
                 method: 'POST',
@@ -202,32 +146,21 @@ const RoomPage = () => {
                 body: JSON.stringify({ hintId: hintToUnlock })
             });
             if (!response.ok) throw new Error("Failed to use hint in arena");
-            
-            setPenaltyTime(prev => prev + 120); // +2 minutes locally
+            setPenaltyTime(prev => prev + 120);
             setUnlockedHints(prev => [...prev, hintToUnlock]);
-            setSubmitMessage('Podpowiedź odblokowana! +2 minuty kary.');
-            setSubmitStatus('warning');
+            setToast({ message: 'Podpowiedź odblokowana! +2 minuty kary.', type: 'warning' });
         } else {
-            // Normal mode
             const response = await fetch(`${API_URL}/api/rooms/${id}/hints/${hintToUnlock}/unlock`, {
                 method: 'POST',
                 headers: { 'Authorization': `Bearer ${token}` }
             });
-
-            if (!response.ok) {
-                const errorData = await response.json();
-                throw new Error(errorData.message || 'Failed to unlock hint');
-            }
-
+            if (!response.ok) throw new Error('Failed to unlock hint');
             setUnlockedHints([...unlockedHints, hintToUnlock]);
             setPotentialPoints(Math.max(0, room.points * (1 - (unlockedHints.length + 1) * 0.25)));
-            setSubmitMessage('Podpowiedź odblokowana!');
-            setSubmitStatus('success');
+            setToast({ message: 'Podpowiedź odblokowana!', type: 'success' });
         }
-
     } catch (err) {
-        setSubmitMessage(err.message);
-        setSubmitStatus('error');
+        setToast({ message: err.message, type: 'error' });
     } finally {
         setHintToUnlock(null);
     }
@@ -243,37 +176,17 @@ const RoomPage = () => {
           const response = await fetch(`${API_URL}/api/rooms/${id}/file`, {
               headers: { 'Authorization': `Bearer ${token}` }
           });
-          
           if (response.ok) {
               const blob = await response.blob();
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              // Try to get filename from Content-Disposition header
-              const contentDisposition = response.headers.get('Content-Disposition');
-              let fileName = 'plik_do_pobrania';
-              if (contentDisposition) {
-                  const fileNameMatch = contentDisposition.match(/filename="?([^"]+)"?/);
-                  if (fileNameMatch && fileNameMatch.length === 2)
-                      fileName = fileNameMatch[1];
-              } else if (room.fileName) {
-                  fileName = room.fileName;
-              }
-              
-              a.download = fileName;
+              a.download = room.fileName || 'plik';
               document.body.appendChild(a);
               a.click();
               a.remove();
-              window.URL.revokeObjectURL(url);
-          } else {
-              setSubmitMessage("Błąd pobierania pliku.");
-              setSubmitStatus('error');
           }
-      } catch (err) {
-          console.error("Download error", err);
-          setSubmitMessage("Błąd sieci podczas pobierania.");
-          setSubmitStatus('error');
-      }
+      } catch (err) { console.error(err); }
   };
 
   const handleSubmit = async (e) => {
@@ -282,11 +195,7 @@ const RoomPage = () => {
     setSubmitMessage('');
 
     try {
-      let url = `${API_URL}/api/rooms/${id}/solve`;
-      if (isArenaMode) {
-          url = `${API_URL}/api/arena/game/${arenaGameId}/solve`;
-      }
-
+      let url = isArenaMode ? `${API_URL}/api/arena/game/${arenaGameId}/solve` : `${API_URL}/api/rooms/${id}/solve`;
       const response = await fetch(url, {
         method: 'POST',
         headers: {
@@ -297,62 +206,28 @@ const RoomPage = () => {
       });
 
       const data = await response.json();
-
       if (response.ok) { 
         setSubmitStatus('success');
         setSubmitMessage(data.message);
-        
         if (!isArenaMode) {
-            if (!isTrainingMode) {
-                setRoom(prev => ({ ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 }));
-                
-                // Show Success Modal
-                setEarnedPoints(data.pointsEarned || 0);
-                setSuccessMessage("Misja zakończona sukcesem!");
-                setShowSuccessModal(true);
-
-                if (data.newBadges && data.newBadges.length > 0) {
-                    data.newBadges.forEach((badge, index) => {
-                        setTimeout(() => {
-                            setToast({
-                                message: `Zdobyłeś odznakę: ${badge.name}`,
-                                type: 'success'
-                            });
-                        }, index * 5500);
-                    });
-                }
-            } else {
-                // Training mode success
-                setSubmitMessage("Poprawna flaga! (Tryb treningowy - 0 pkt)");
-                setEarnedPoints(0);
-                setSuccessMessage("Trening ukończony pomyślnie!");
-                setShowSuccessModal(true);
-            }
-        } else {
-            // Arena logic
-            if (data.status === 'WAITING') {
-                setSubmitMessage("Poprawna flaga! Czekanie na wynik przeciwnika (z powodu Twoich kar czasowych)...");
-            } else {
-                // Instant win (or loss if opponent finished faster)
-                if (data.status === 'FINISHED') {
-                     setShowArenaResultModal(true);
-                }
-            }
+            setRoom(prev => ({ ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 }));
+            setEarnedPoints(data.pointsEarned || 0);
+            setSuccessMessage("Misja zakończona sukcesem!");
+            setShowSuccessModal(true);
+        } else if (data.status === 'FINISHED') {
+            setShowArenaResultModal(true);
         }
-        
       } else {
         setSubmitStatus('error');
-        setSubmitMessage(data.message || 'Niepoprawna flaga'); // Changed default message to Polish
+        setSubmitMessage(data.message || 'Niepoprawna flaga');
       }
     } catch (err) {
       setSubmitStatus('error');
-      setSubmitMessage('Błąd sieci'); // Changed to Polish
+      setSubmitMessage('Błąd sieci');
     }
   };
 
-  const handleSurrender = () => {
-      setShowSurrenderModal(true);
-  };
+  const handleSurrender = () => setShowSurrenderModal(true);
 
   const confirmSurrender = async () => {
       setShowSurrenderModal(false);
@@ -361,22 +236,13 @@ const RoomPage = () => {
               method: 'POST',
               headers: { 'Authorization': `Bearer ${token}` }
           });
-          
-          if (response.ok) {
-              setSubmitMessage("Poddano grę.");
-          } else {
-              setSubmitMessage("Błąd podczas poddawania gry.");
-          }
-      } catch (err) {
-          console.error("Surrender error", err);
-      }
+          if (response.ok) navigate('/arena');
+      } catch (err) { console.error(err); }
   };
 
   const handleCloseSuccessModal = () => {
       setShowSuccessModal(false);
-      if (isArenaMode) {
-          navigate('/arena');
-      }
+      if (isArenaMode) navigate('/arena');
   };
   
   const handleCloseArenaResultModal = () => {
@@ -390,18 +256,94 @@ const RoomPage = () => {
       return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
+  useEffect(() => {
+    const fetchRoom = async () => {
+      try {
+        const response = await fetch(`${API_URL}/api/rooms/${id}`, {
+          headers: { 'Authorization': `Bearer ${token}` }
+        });
+        if (!response.ok) throw new Error('Failed to fetch room details');
+        const data = await response.json();
+        setRoom(data);
+        if (data.tasks && data.tasks.length > 0) {
+            const firstIncomplete = data.tasks.find(t => !t.completed);
+            setExpandedTasks({ [firstIncomplete ? firstIncomplete.id : data.tasks[0].id]: true });
+        }
+        if (!isArenaMode) {
+            if (data.unlockedHintIds) {
+              setUnlockedHints(data.unlockedHintIds);
+              setPotentialPoints(Math.max(0, data.points * (1 - data.unlockedHintIds.length * 0.25)));
+            } else {
+              setPotentialPoints(data.points);
+            }
+        }
+      } catch (err) { setError(err.message); }
+      finally { setLoading(false); }
+    };
+    if (token) fetchRoom();
+  }, [id, token, isArenaMode]);
+
+  const toggleTask = (taskId) => {
+    setExpandedTasks(prev => ({ ...prev, [taskId]: !prev[taskId] }));
+  };
+
+  const handleTaskSubmit = async (e, taskId) => {
+    e.preventDefault();
+    const answer = taskAnswers[taskId] || '';
+    if (!answer) return;
+
+    try {
+        const response = await fetch(`${API_URL}/api/rooms/${id}/tasks/${taskId}/solve`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            },
+            body: JSON.stringify({ answer })
+        });
+        const data = await response.json();
+        if (response.ok) {
+            setToast({ message: data.message, type: 'success' });
+            setRoom(prev => ({
+                ...prev,
+                tasks: prev.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t),
+                solved: data.message.includes('Pokój ukończony') ? true : prev.solved
+            }));
+            if (data.message.includes('Pokój ukończony')) {
+                setEarnedPoints(data.pointsEarned || 0);
+                setSuccessMessage("Wszystkie zadania wykonane! Pokój ukończony.");
+                setShowSuccessModal(true);
+            }
+        } else {
+            setToast({ message: data.message || 'Niepoprawna odpowiedź', type: 'error' });
+        }
+    } catch (err) { setToast({ message: 'Błąd połączenia', type: 'error' }); }
+  };
+
+
   if (loading) return <div className="container" style={{paddingTop: '40px'}}>Ładowanie pokoju...</div>;
   if (error) return <div className="container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
   if (!room) return <div className="container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
 
   const pointsToDeduct = room.points * 0.25;
   const isSolved = isArenaMode ? false : room.solved; 
-  
-  // Show content if not solved OR if in training mode OR if in Arena mode (always show content until game over)
   const showContent = !isSolved || isTrainingMode || isArenaMode;
+
+  const tasks = room.tasks || [];
+  const completedTasksCount = tasks.filter(t => t.completed).length;
+  const progressPercent = tasks.length > 0 ? Math.round((completedTasksCount / tasks.length) * 100) : (isSolved ? 100 : 0);
 
   return (
     <div className="room-page-container container">
+      {tasks.length > 0 && (
+          <div className="room-progress-container">
+            <div className="room-progress-bar">
+                <div className="room-progress-fill" style={{ width: `${progressPercent}%` }}></div>
+            </div>
+            <div className="room-progress-text">Postęp pokoju: {progressPercent}%</div>
+          </div>
+      )}
+
       {isArenaMode && (
           <ArenaChat 
               gameId={arenaGameId} 
@@ -409,6 +351,7 @@ const RoomPage = () => {
               toggleChat={() => setIsChatOpen(!isChatOpen)} 
           />
       )}
+
       <div className="room-header">
         <button onClick={() => navigate(isArenaMode ? '/arena' : '/learn')} className="back-btn">
             &larr; Powrót
@@ -435,7 +378,6 @@ const RoomPage = () => {
             <h3>Opis Wyzwania</h3>
             <p style={{ whiteSpace: 'pre-line' }}>{room.description}</p>
             
-            {/* Download Button */}
             {room.fileName && (
                 <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#1e1e1e', borderRadius: '8px', border: '1px solid #333' }}>
                     <h4 style={{ marginTop: 0 }}>Materiały do misji</h4>
@@ -444,6 +386,51 @@ const RoomPage = () => {
                         <i className="fas fa-download" style={{ marginRight: '8px' }}></i>
                         Pobierz Plik
                     </button>
+                </div>
+            )}
+
+            {tasks.length > 0 && (
+                <div className="tasks-list">
+                    {tasks.map((task, idx) => (
+                        <div key={task.id} className={`task-card ${task.completed ? 'completed' : ''}`}>
+                            <div className="task-header" onClick={() => toggleTask(task.id)}>
+                                <div className="task-title-wrap">
+                                    <span className="task-number">TASK {idx + 1}</span>
+                                    {task.completed && <i className="fas fa-check-circle task-check" />}
+                                    <span className="task-title">{task.title}</span>
+                                </div>
+                                <i className={`fas fa-chevron-${expandedTasks[task.id] ? 'up' : 'down'}`} style={{ color: '#aaa' }} />
+                            </div>
+                            {expandedTasks[task.id] && (
+                                <div className="task-body">
+                                    <div className="task-content" dangerouslySetInnerHTML={{ __html: task.content.replace(/\n/g, '<br/>') }} />
+                                    {task.question && (
+                                        <div className="task-question-box">
+                                            <div className="task-question-text">{task.question}</div>
+                                            <form className="task-input-group" onSubmit={(e) => handleTaskSubmit(e, task.id)}>
+                                                <input 
+                                                    type="text" 
+                                                    className={`task-input ${task.completed ? 'success' : ''}`}
+                                                    placeholder={task.completed ? 'Ukończono' : 'Twoja odpowiedź...'}
+                                                    value={task.completed ? '' : (taskAnswers[task.id] || '')}
+                                                    onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
+                                                    disabled={task.completed}
+                                                />
+                                                <button 
+                                                    type="submit" 
+                                                    className={`btn-task-submit ${task.completed ? 'completed' : ''}`}
+                                                    disabled={task.completed}
+                                                >
+                                                    {task.completed ? 'Poprawne' : 'Wyślij'}
+                                                    {!task.completed && <i className="fas fa-paper-plane" />}
+                                                </button>
+                                            </form>
+                                        </div>
+                                    )}
+                                </div>
+                            )}
+                        </div>
+                    ))}
                 </div>
             )}
         </div>
@@ -467,9 +454,6 @@ const RoomPage = () => {
                 <div className="hints-section">
                     <h3>Podpowiedzi</h3>
                     {!isArenaMode && !isTrainingMode && <div className="potential-points">Punkty do zdobycia: <strong>{Math.round(potentialPoints)}</strong></div>}
-                    {isTrainingMode && <div className="potential-points" style={{color: '#aaa'}}>Tryb treningowy (0 pkt)</div>}
-                    {isArenaMode && <div className="potential-points" style={{color: '#ff9800'}}>Uwaga: Każda podpowiedź to +2 minuty kary czasowej!</div>}
-                    
                     {room.hints.map((hint, index) => {
                         const isUnlocked = unlockedHints.includes(hint.id);
                         const isPreviousUnlocked = index === 0 || unlockedHints.includes(room.hints[index - 1].id);
@@ -498,51 +482,34 @@ const RoomPage = () => {
                 </div>
             )}
 
-            {showContent ? (
-                <form onSubmit={handleSubmit} className="flag-form">
-                    <h3>Zgłoś Flagę</h3>
-                    <input 
-                        type="text" 
-                        placeholder="Wklej flagę tutaj..." 
-                        value={flag}
-                        onChange={(e) => setFlag(e.target.value)}
-                        className={submitStatus === 'error' ? 'input-error' : ''}
-                    />
-                    <div style={{ display: 'flex', gap: '10px', marginTop: '10px' }}>
-                        <button type="submit" className="btn btn-primary" style={{ flex: 1 }}>Zatwierdź</button>
-                        {isArenaMode && (
-                            <button 
-                                type="button" 
-                                onClick={handleSurrender} 
-                                className="btn btn-outline" 
-                                style={{ borderColor: '#e74c3c', color: '#e74c3c', flex: 1 }}
-                            >
-                                <i className="fas fa-flag" style={{ marginRight: '5px' }}></i> Poddaj się
-                            </button>
-                        )}
+            {tasks.length === 0 && (
+                showContent ? (
+                    <form onSubmit={handleSubmit} className="flag-form">
+                        <h3>Zgłoś Flagę</h3>
+                        <input 
+                            type="text" 
+                            placeholder="Wklej flagę tutaj..." 
+                            value={flag}
+                            onChange={(e) => setFlag(e.target.value)}
+                            className={submitStatus === 'error' ? 'input-error' : ''}
+                        />
+                        <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>Zatwierdź</button>
+                        {submitMessage && <p className={`submit-message ${submitStatus}`}>{submitMessage}</p>}
+                    </form>
+                ) : (
+                    <div className="solved-message">
+                        <h3>Gratulacje!</h3>
+                        <p>Ukończyłeś to wyzwanie i zdobyłeś {room.points} punktów.</p>
+                        <button onClick={() => setIsTrainingMode(true)} className="btn btn-outline" style={{marginTop: '15px'}}>
+                            <i className="fas fa-redo" style={{marginRight: '8px'}}></i>
+                            Rozwiąż ponownie (Trening)
+                        </button>
                     </div>
-                    {submitMessage && (
-                        <p className={`submit-message ${submitStatus}`}>
-                            {submitMessage}
-                        </p>
-                    )}
-                </form>
-            ) : (
-                <div className="solved-message">
-                    <h3>Gratulacje!</h3>
-                    <p>Ukończyłeś to wyzwanie i zdobyłeś {room.points} punktów.</p>
-                    <button 
-                        onClick={() => setIsTrainingMode(true)} 
-                        className="btn btn-outline" 
-                        style={{marginTop: '15px'}}
-                    >
-                        <i className="fas fa-redo" style={{marginRight: '8px'}}></i>
-                        Rozwiąż ponownie (Trening)
-                    </button>
-                </div>
+                )
             )}
         </div>
       </div>
+      
       <ConfirmationModal 
         isOpen={isModalOpen}
         message={isArenaMode 
@@ -550,13 +517,6 @@ const RoomPage = () => {
             : (isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - brak kosztu punktowego)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${pointsToDeduct} punktów.`)}
         onConfirm={confirmUnlockHint}
         onCancel={cancelUnlockHint}
-      />
-      <ConfirmationModal 
-        isOpen={showSurrenderModal}
-        message="Czy na pewno chcesz się poddać? To zostanie uznane za przegraną i stracisz punkty ELO."
-        confirmText="Poddaj się"
-        onConfirm={confirmSurrender}
-        onCancel={() => setShowSurrenderModal(false)}
       />
       <SuccessModal 
         isOpen={showSuccessModal}

@@ -22,19 +22,24 @@ public class PathController {
 
     private final PathService pathService;
 
+    // ── helpers ─────────────────────────────────────────────────────────────
+
+    private String currentUsername() {
+        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (principal instanceof UserDetails ud) return ud.getUsername();
+        return null;
+    }
+
+    // ── public endpoints ─────────────────────────────────────────────────────
+
     @GetMapping
     public ResponseEntity<List<PathSummaryDto>> listPaths() {
-        return ResponseEntity.ok(pathService.listPaths());
+        return ResponseEntity.ok(pathService.listPaths(currentUsername()));
     }
 
     @GetMapping("/{id}")
     public ResponseEntity<PathDetailDto> getPath(@PathVariable Long id) {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = null;
-        if (principal instanceof UserDetails) {
-            username = ((UserDetails) principal).getUsername();
-        }
-        return ResponseEntity.ok(pathService.getPathDetail(id, username));
+        return ResponseEntity.ok(pathService.getPathDetail(id, currentUsername()));
     }
 
     @GetMapping("/{id}/rooms-mini")
@@ -73,5 +78,28 @@ public class PathController {
                 .contentType(mt)
                 .body(data);
     }
-}
 
+    // ── enrollment endpoints ─────────────────────────────────────────────────
+
+    @PostMapping("/{id}/enroll")
+    public ResponseEntity<Void> enroll(@PathVariable Long id) {
+        String username = currentUsername();
+        if (username == null) return ResponseEntity.status(401).build();
+        pathService.enrollUser(id, username);
+        return ResponseEntity.ok().build();
+    }
+
+    @DeleteMapping("/{id}/enroll")
+    public ResponseEntity<Void> unenroll(@PathVariable Long id) {
+        String username = currentUsername();
+        if (username == null) return ResponseEntity.status(401).build();
+        pathService.unenrollUser(id, username);
+        return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/{id}/enrolled")
+    public ResponseEntity<Boolean> checkEnrolled(@PathVariable Long id) {
+        String username = currentUsername();
+        return ResponseEntity.ok(pathService.isEnrolled(id, username));
+    }
+}

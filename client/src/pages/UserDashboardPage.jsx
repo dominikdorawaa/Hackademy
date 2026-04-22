@@ -175,6 +175,7 @@ const UserDashboardPage = () => {
           setRecommendedPath(null);
         }
 
+
         const safeProgress = Array.isArray(progressList) ? progressList : [];
         setPathsProgress(safeProgress);
         const inProgress = safeProgress.find((p) => !p?.completed) || safeProgress[0] || null;

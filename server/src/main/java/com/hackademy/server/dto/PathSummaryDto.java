@@ -16,5 +16,6 @@ public class PathSummaryDto {
     private String bannerUrl;
     private boolean hasBanner;
     private int roomsCount;
+    private boolean enrolled;
 }
 

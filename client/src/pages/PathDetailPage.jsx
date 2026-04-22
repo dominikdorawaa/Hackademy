@@ -42,6 +42,24 @@ const PathDetailPage = () => {
     if (token) fetchPath();
   }, [token, id, logout, navigate]);
 
+  const handleEnroll = async () => {
+    try {
+      const res = await fetch(`${API_URL}/api/paths/${id}/enroll`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setPath({ ...path, enrolled: true });
+        // After enrollment, backend should return real locked/solved states on next fetch,
+        // but for now we can just trigger a re-fetch or let the user see the change.
+        // Re-fetching is safer to get the correct locked/solved states.
+        window.location.reload(); 
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
+
   if (loading) return <div className="container" style={{ paddingTop: '40px' }}>Ładowanie ścieżki...</div>;
   if (error) return <div className="container" style={{ paddingTop: '40px' }}>Błąd: {error}</div>;
   if (!path) return <div className="container" style={{ paddingTop: '40px' }}>Nie znaleziono ścieżki</div>;
@@ -54,10 +72,28 @@ const PathDetailPage = () => {
         &larr; Wróć do ścieżek
       </button>
 
-      <section id="pd-rooms" className="pd-list">
+      {!path.enrolled && (
+        <section className="pd-hero-enroll">
+          <div className="pd-hero-content">
+            <h1 className="pd-hero-title">{path.title}</h1>
+            <p className="pd-hero-desc">{path.description}</p>
+            <div className="pd-hero-meta">
+              <span><i className="fas fa-layer-group" /> {rooms.length} pokoi</span>
+              <span><i className="fas fa-signal" /> Beginner Friendly</span>
+            </div>
+            <button className="btn btn-primary btn-lg pd-enroll-btn" onClick={handleEnroll}>
+              Zacznij tę ścieżkę <i className="fas fa-bolt" style={{ marginLeft: '10px' }} />
+            </button>
+          </div>
+        </section>
+      )}
+
+      <section id="pd-rooms" className={`pd-list ${!path.enrolled ? 'pd-list-locked' : ''}`}>
         <div className="pd-list-header">
           <h2>Pokoje w ścieżce</h2>
-          <span className="pd-muted">Ułóż progres i przechodź krok po kroku.</span>
+          <span className="pd-muted">
+            {path.enrolled ? 'Ułóż progres i przechodź krok po kroku.' : 'Musisz dołączyć do ścieżki, aby odblokować zadania.'}
+          </span>
         </div>
 
         <div className="pd-steps">

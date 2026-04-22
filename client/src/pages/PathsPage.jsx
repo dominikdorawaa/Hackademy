@@ -64,7 +64,14 @@ const PathsPage = () => {
           }
         }}
       >
-        <div className="path-card-media">{src ? <img src={src} alt="" loading="lazy" /> : null}</div>
+        <div className="path-card-media">
+          {src ? <img src={src} alt="" loading="lazy" /> : null}
+          {p.enrolled && (
+            <div className="path-badge-enrolled">
+              <i className="fas fa-check-circle" /> Zapisany
+            </div>
+          )}
+        </div>
         <div className="path-card-body">
           <div className="path-card-kicker">COURSE</div>
           <div className="path-card-title">{p.title}</div>
@@ -77,7 +84,13 @@ const PathsPage = () => {
             </span>
             {p.roomsCount ?? 0} pokoi
           </div>
-          <div className="path-pill-sub">BEGINNER</div>
+          {!p.enrolled ? (
+            <button className="btn btn-primary btn-sm" onClick={(e) => handleEnroll(e, p.id)}>
+              Dołącz
+            </button>
+          ) : (
+            <div className="path-pill-sub">BEGINNER</div>
+          )}
         </div>
       </div>
     );
@@ -109,6 +122,21 @@ const PathsPage = () => {
 
     if (token) fetchPaths();
   }, [token, logout, navigate]);
+
+  const handleEnroll = async (e, pathId) => {
+    e.stopPropagation(); // Zapobiegaj nawigacji do szczegółów
+    try {
+      const res = await fetch(`${API_URL}/api/paths/${pathId}/enroll`, {
+        method: 'POST',
+        headers: { Authorization: `Bearer ${token}` },
+      });
+      if (res.ok) {
+        setPaths(paths.map(p => p.id === pathId ? { ...p, enrolled: true } : p));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  };
 
   if (loading) {
     return (

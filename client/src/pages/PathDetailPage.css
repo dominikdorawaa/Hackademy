@@ -163,5 +163,62 @@
   background: rgba(231, 76, 60, 0.12);
 }
 
-/* Hero removed */
+.pd-hero-enroll {
+  background: linear-gradient(135deg, rgba(11, 99, 255, 0.25), rgba(255, 45, 85, 0.15));
+  border-radius: 20px;
+  padding: 40px;
+  margin-bottom: 30px;
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  display: flex;
+  justify-content: center;
+  text-align: center;
+  backdrop-filter: blur(10px);
+}
+
+.pd-hero-content {
+  max-width: 600px;
+}
+
+.pd-hero-title {
+  font-size: 2.2rem;
+  font-weight: 900;
+  margin-bottom: 12px;
+  letter-spacing: -0.02em;
+}
+
+.pd-hero-desc {
+  color: var(--text-gray);
+  font-size: 1.1rem;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+.pd-hero-meta {
+  display: flex;
+  justify-content: center;
+  gap: 20px;
+  margin-bottom: 30px;
+  font-weight: 700;
+  color: var(--text-light);
+}
+
+.pd-hero-meta i {
+  color: #0b63ff;
+  margin-right: 6px;
+}
+
+.pd-enroll-btn {
+  padding: 14px 32px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  border-radius: 14px;
+  box-shadow: 0 10px 25px rgba(11, 99, 255, 0.35);
+}
+
+.pd-list-locked .pd-step-card {
+  opacity: 0.6;
+  filter: grayscale(0.5);
+  pointer-events: none;
+}
+
 

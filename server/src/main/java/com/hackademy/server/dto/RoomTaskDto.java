@@ -5,19 +5,14 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
-import java.util.List;
-
 @Data
 @Builder
 @NoArgsConstructor
 @AllArgsConstructor
-public class PathDetailDto {
+public class RoomTaskDto {
     private Long id;
     private String title;
-    private String description;
-    private String bannerUrl;
-    private boolean hasBanner;
-    private boolean enrolled;
-    private List<RoomSummaryDto> rooms;
+    private String content;
+    private String question;
+    private boolean completed;
 }
-
