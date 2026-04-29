@@ -55,8 +55,20 @@ public class UserServiceImpl implements UserService {
         CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
     }
     private final ConcurrentHashMap<Long, CacheEntry<RankingEntry>> rankCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, CacheEntry<Boolean>> tutorialVpnSolvedCache = new ConcurrentHashMap<>();
     private volatile long rankingCacheTimeMs = 0;
     private volatile List<RankingEntry> rankingCache = null;
+
+    public void invalidateUserComputedCaches(Long userId) {
+        if (userId == null) return;
+        rankCache.remove(userId);
+        tutorialVpnSolvedCache.remove(userId);
+    }
+
+    public void invalidateGlobalRankingCache() {
+        rankingCacheTimeMs = 0;
+        rankingCache = null;
+    }
 
     @Override
     public List<UserAdminView> findAllUsers() {
@@ -273,7 +285,14 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public boolean hasSolvedTutorialVpn(Long userId) {
-        return userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VPN");
+        long now = System.currentTimeMillis();
+        CacheEntry<Boolean> cached = tutorialVpnSolvedCache.get(userId);
+        if (cached != null && now - cached.timeMs <= CACHE_MS) {
+            return cached.value;
+        }
+        boolean solved = userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VPN");
+        tutorialVpnSolvedCache.put(userId, new CacheEntry<>(now, solved));
+        return solved;
     }
 
     @Override

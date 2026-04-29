@@ -33,11 +33,13 @@ public class RoomServiceImpl implements RoomService {
     private final RoomFileRepository roomFileRepository;
     private final RoomTaskRepository roomTaskRepository;
     private final UserCompletedTaskRepository userCompletedTaskRepository;
+    private final UserServiceImpl userServiceImpl;
+    private final DashboardSummaryCache dashboardSummaryCache;
 
     // Simple in-memory cache
     private List<RoomSummaryDto> cachedRooms;
     private long lastCacheTime = 0;
-    private static final long CACHE_DURATION = 10000; // 10 seconds cache
+    private static final long CACHE_DURATION = 30000; // 30 seconds cache
 
     private synchronized List<RoomSummaryDto> getCachedRooms() {
         long now = System.currentTimeMillis();
@@ -360,6 +362,9 @@ public class RoomServiceImpl implements RoomService {
                 userRepository.save(user);
                 roomRepository.save(room);
                 invalidateCache();
+                userServiceImpl.invalidateUserComputedCaches(user.getId());
+                userServiceImpl.invalidateGlobalRankingCache();
+                dashboardSummaryCache.invalidateUser(user.getId());
 
                 List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
                 return new SolveRoomResponse(true, "Poprawna odpowiedź! Pokój ukończony!", (int) pointsToAward, newBadges);
@@ -424,6 +429,9 @@ public class RoomServiceImpl implements RoomService {
             List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
             
             invalidateCache(); // Invalidate cache to update solutionsCount
+            userServiceImpl.invalidateUserComputedCaches(user.getId());
+            userServiceImpl.invalidateGlobalRankingCache();
+            dashboardSummaryCache.invalidateUser(user.getId());
             return new SolveRoomResponse(true, "Poprawna flaga!", (int) pointsToAward, newBadges);
         }
 

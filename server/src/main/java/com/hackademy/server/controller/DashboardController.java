@@ -7,6 +7,7 @@ import com.hackademy.server.model.User;
 import com.hackademy.server.model.FriendshipStatus;
 import com.hackademy.server.repository.FriendshipRepository;
 import com.hackademy.server.repository.UserBadgeRepository;
+import com.hackademy.server.service.DashboardSummaryCache;
 import com.hackademy.server.service.PathService;
 import com.hackademy.server.service.UserService;
 import com.hackademy.server.service.UserServiceImpl;
@@ -22,7 +23,6 @@ import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.CompletableFuture;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ThreadLocalRandom;
 
 @RestController
@@ -36,14 +36,7 @@ public class DashboardController {
     private final FriendshipRepository friendshipRepository;
     private final UserBadgeRepository userBadgeRepository;
     private final TaskExecutor dashboardTaskExecutor;
-
-    private static final long CACHE_MS = 30_000; // 30 seconds
-    private static final class CacheEntry<T> {
-        final long timeMs;
-        final T value;
-        CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
-    }
-    private final ConcurrentHashMap<Long, CacheEntry<DashboardSummaryDto>> summaryCache = new ConcurrentHashMap<>();
+    private final DashboardSummaryCache dashboardSummaryCache;
 
     @GetMapping("/summary")
     public ResponseEntity<DashboardSummaryDto> getSummary() {
@@ -55,11 +48,13 @@ public class DashboardController {
         String username = user.getUsername();
         Long userId = user.getId();
 
-        long now = System.currentTimeMillis();
-        CacheEntry<DashboardSummaryDto> cached = summaryCache.get(userId);
-        if (cached != null && now - cached.timeMs <= CACHE_MS) {
-            return ResponseEntity.ok(cached.value);
+        DashboardSummaryDto cached = dashboardSummaryCache.getIfFresh(userId);
+        if (cached != null) {
+            // Refresh the most frequently changing field with a single cheap query.
+            cached.setActiveSecondsThisWeek(userService.getActiveSecondsThisWeek(userId));
+            return ResponseEntity.ok(cached);
         }
+        long now = System.currentTimeMillis();
 
         int effectiveStreak = user.getStreak();
         LocalDate lastSolved = user.getLastSolvedDate();
@@ -125,7 +120,7 @@ public class DashboardController {
                 .currentPathRoomsMini((List<com.hackademy.server.dto.PathRoomMiniDto>) roomsMiniF.join())
                 .build();
 
-        summaryCache.put(userId, new CacheEntry<>(now, out));
+        dashboardSummaryCache.put(userId, out);
         return ResponseEntity.ok(out);
     }
 }

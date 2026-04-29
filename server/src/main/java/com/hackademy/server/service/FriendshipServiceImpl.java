@@ -25,6 +25,7 @@ public class FriendshipServiceImpl implements FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final BadgeService badgeService; // Inject BadgeService
+    private final DashboardSummaryCache dashboardSummaryCache;
 
     private static final long CACHE_MS = 30_000; // 30 seconds
     private static final class CacheEntry<T> {
@@ -39,6 +40,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         if (userId == null) return;
         friendsCache.remove(userId);
         requestsCache.remove(userId);
+        dashboardSummaryCache.invalidateUser(userId);
     }
 
     @Override

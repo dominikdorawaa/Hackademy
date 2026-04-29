@@ -29,6 +29,8 @@ public class ArenaServiceImpl implements ArenaService {
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final ChatService chatService;
+    private final UserServiceImpl userServiceImpl;
+    private final DashboardSummaryCache dashboardSummaryCache;
 
     // In-memory storage
     private final Map<String, GameSession> activeGames = new ConcurrentHashMap<>();
@@ -64,6 +66,11 @@ public class ArenaServiceImpl implements ArenaService {
                 updateElo(winner, loser, session);
                 userRepository.save(winner);
                 userRepository.save(loser);
+                userServiceImpl.invalidateUserComputedCaches(winnerId);
+                userServiceImpl.invalidateUserComputedCaches(loserId);
+                userServiceImpl.invalidateGlobalRankingCache();
+                dashboardSummaryCache.invalidateUser(winnerId);
+                dashboardSummaryCache.invalidateUser(loserId);
 
                 // Update friendship stats if they are friends
                 Optional<Friendship> friendship = friendshipRepository.findFriendshipBetween(winner, loser);

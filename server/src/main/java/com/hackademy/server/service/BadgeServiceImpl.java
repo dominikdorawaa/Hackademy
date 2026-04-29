@@ -30,6 +30,7 @@ public class BadgeServiceImpl implements BadgeService {
     private final UserSolvedRoomRepository userSolvedRoomRepository;
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
+    private final DashboardSummaryCache dashboardSummaryCache;
 
     private static final long CACHE_MS = 30_000; // 30 seconds
     private final AtomicLong cacheTimeMs = new AtomicLong(0);
@@ -185,6 +186,7 @@ public class BadgeServiceImpl implements BadgeService {
 
         if (!newBadges.isEmpty()) {
             invalidateCache();
+            dashboardSummaryCache.invalidateUser(user.getId());
         }
         return newBadges;
     }
