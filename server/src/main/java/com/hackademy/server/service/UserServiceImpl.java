@@ -20,6 +20,7 @@ import com.hackademy.server.repository.UserSolvedRoomRepository;
 import com.hackademy.server.repository.RecentSolvedRoomView;
 import com.hackademy.server.repository.UserWeeklyActiveTimeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -30,6 +31,7 @@ import java.time.ZoneOffset;
 import java.time.temporal.WeekFields;
 import java.util.List;
 import java.util.Locale;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
 
@@ -45,6 +47,16 @@ public class UserServiceImpl implements UserService {
     private final FriendshipService friendshipService;
     private final BadgeService badgeService;
     private final UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
+
+    private static final long CACHE_MS = 30_000; // 30 seconds
+    private static final class CacheEntry<T> {
+        final long timeMs;
+        final T value;
+        CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
+    }
+    private final ConcurrentHashMap<Long, CacheEntry<RankingEntry>> rankCache = new ConcurrentHashMap<>();
+    private volatile long rankingCacheTimeMs = 0;
+    private volatile List<RankingEntry> rankingCache = null;
 
     @Override
     public List<UserAdminView> findAllUsers() {
@@ -118,12 +130,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<RankingEntry> getTop10Ranking() {
-        List<User> allUsers = userRepository.findAll();
-        
-        // Return top 100 users sorted by points, but include ELO so frontend can re-sort
-        return allUsers.stream()
-                .sorted((u1, u2) -> Integer.compare(u2.getPoints(), u1.getPoints()))
-                .limit(100)
+        long now = System.currentTimeMillis();
+        List<RankingEntry> cached = rankingCache;
+        if (cached != null && now - rankingCacheTimeMs <= CACHE_MS) {
+            return cached;
+        }
+
+        // Return top 100 users sorted by points, but include ELO so frontend can re-sort.
+        // Query-side ordering avoids loading the entire users table.
+        List<User> top = userRepository.findTopByPointsDesc(PageRequest.of(0, 100));
+        List<RankingEntry> out = top.stream()
                 .map(user -> new RankingEntry(
                         0, // Rank Points placeholder
                         0, // Rank Elo placeholder
@@ -132,6 +148,9 @@ public class UserServiceImpl implements UserService {
                         user.getElo()
                 ))
                 .collect(Collectors.toList());
+        rankingCache = out;
+        rankingCacheTimeMs = now;
+        return out;
     }
 
     @Override
@@ -216,6 +235,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public RankingEntry getUserRank(Long userId) {
+        long now = System.currentTimeMillis();
+        CacheEntry<RankingEntry> cached = rankCache.get(userId);
+        if (cached != null && now - cached.timeMs <= CACHE_MS) {
+            return cached.value;
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         
@@ -225,14 +250,30 @@ public class UserServiceImpl implements UserService {
         // Calculate rank based on ELO
         long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
         
-        return new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo());
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo());
+        rankCache.put(userId, new CacheEntry<>(now, out));
+        return out;
+    }
+
+    public RankingEntry getUserRankFast(Long userId, String username, Integer points, Integer elo) {
+        long now = System.currentTimeMillis();
+        CacheEntry<RankingEntry> cached = rankCache.get(userId);
+        if (cached != null && now - cached.timeMs <= CACHE_MS) {
+            return cached.value;
+        }
+
+        int p = points == null ? 0 : points;
+        int e = elo == null ? 500 : elo;
+        long rankPoints = userRepository.countByPointsGreaterThan(p) + 1;
+        long rankElo = userRepository.countByEloGreaterThan(e) + 1;
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e);
+        rankCache.put(userId, new CacheEntry<>(now, out));
+        return out;
     }
 
     @Override
     public boolean hasSolvedTutorialVpn(Long userId) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        return userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(user.getUsername(), "Tutorial VPN");
+        return userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VPN");
     }
 
     @Override

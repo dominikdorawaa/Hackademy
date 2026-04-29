@@ -13,46 +13,41 @@ const ActivePathWidget = ({ token, navigate }) => {
   useEffect(() => {
     const load = async () => {
       try {
-        // 1. Pobierz listę wszystkich ścieżek
-        const listRes = await fetch(`${API_URL}/api/paths`, {
-          headers: { Authorization: `Bearer ${token}` },
+        const headers = { Authorization: `Bearer ${token}` };
+
+        // Zamiast odpytania każdej ścieżki po kolei (/api/paths/{id}),
+        // bierzemy zagregowany progres i dociągamy tylko mini-listę pokoi.
+        const progressRes = await fetch(`${API_URL}/api/paths/me/progress`, { headers });
+        const progressList = progressRes.ok ? await progressRes.json() : [];
+        const safeProgress = Array.isArray(progressList) ? progressList : [];
+
+        let active = safeProgress.find((p) => p && !p.completed) || safeProgress[0] || null;
+
+        // Fallback: jeśli użytkownik nie ma jeszcze progresu (brak enroll),
+        // weź pierwszą ścieżkę z listy.
+        if (!active) {
+          const listRes = await fetch(`${API_URL}/api/paths`, { headers });
+          const paths = listRes.ok ? await listRes.json() : [];
+          const safePaths = Array.isArray(paths) ? paths : [];
+          active = safePaths[0] || null;
+        }
+
+        if (!active?.id) return;
+
+        const roomsMiniRes = await fetch(`${API_URL}/api/paths/${active.id}/rooms-mini?limit=4`, { headers });
+        const roomsMini = roomsMiniRes.ok ? await roomsMiniRes.json() : null;
+        const rooms = Array.isArray(roomsMini?.rooms) ? roomsMini.rooms : [];
+
+        const solvedCount = Number(active?.solvedRooms) || rooms.filter((r) => r?.solved).length;
+        const totalCount = Number(active?.totalRooms) || rooms.length;
+
+        setPathData({
+          id: active.id,
+          title: active.title,
+          rooms,
+          solvedCount,
+          totalCount,
         });
-        if (!listRes.ok) return;
-        const paths = await listRes.json();
-        if (!Array.isArray(paths) || paths.length === 0) return;
-
-        // 2. Znajdź ścieżkę "w trakcie" – pierwszą z pokojami częściowo ukończonymi
-        //    Strategia: pobierz szczegóły każdej po kolei i wybierz tę, w której
-        //    jest co najmniej 1 solved=true ORAZ co najmniej 1 locked=false && solved=false.
-        let found = null;
-        for (const p of paths) {
-          const detRes = await fetch(`${API_URL}/api/paths/${p.id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (!detRes.ok) continue;
-          const det = await detRes.json();
-          const rooms = Array.isArray(det.rooms) ? det.rooms : [];
-          const solvedCount = rooms.filter(r => r.solved).length;
-          const inProgress = rooms.some(r => !r.locked && !r.solved);
-          if (solvedCount > 0 || inProgress) {
-            found = { ...det, solvedCount, totalCount: rooms.length };
-            break;
-          }
-        }
-
-        // Fallback: jeśli żadna nie jest "w trakcie", weź pierwszą
-        if (!found) {
-          const detRes = await fetch(`${API_URL}/api/paths/${paths[0].id}`, {
-            headers: { Authorization: `Bearer ${token}` },
-          });
-          if (detRes.ok) {
-            const det = await detRes.json();
-            const rooms = Array.isArray(det.rooms) ? det.rooms : [];
-            found = { ...det, solvedCount: 0, totalCount: rooms.length };
-          }
-        }
-
-        setPathData(found);
       } catch (e) {
         console.error('ActivePathWidget error:', e);
       } finally {

@@ -91,111 +91,31 @@ const UserDashboardPage = () => {
           ...(token && { Authorization: `Bearer ${token}` }),
         };
 
-        const fetchRecentSolved = () =>
-          fetch(`${API_URL}/api/user/me/recent-solved?limit=3`, { headers }).then((res) => {
-            if (!res.ok) return [];
-            return res.json();
-          });
-
-        const userPromise = fetch(`${API_URL}/api/user/me`, { headers }).then((res) => {
-          if (res.status === 401 || res.status === 403) return null;
-          if (!res.ok) throw new Error('Failed to fetch user');
-          return res.json();
-        });
-
-        const rankingPromise = fetch(`${API_URL}/api/user/ranking`, { headers }).then((res) => {
-          if (!res.ok) return [];
-          return res.json();
-        });
-
-        const myRankPromise = fetch(`${API_URL}/api/user/me/rank`, { headers }).then((res) => {
-          if (!res.ok) return null;
-          return res.json();
-        });
-
-        const activeTimePromise = fetch(`${API_URL}/api/user/me/active-time`, { headers }).then((res) => {
-          if (!res.ok) return { secondsThisWeek: 0 };
-          return res.json();
-        });
-
-        const badgesPromise = fetch(`${API_URL}/api/badges/all`, { headers }).then((res) => {
-          if (!res.ok) return [];
-          return res.json();
-        });
-
-        const friendsPromise = fetch(`${API_URL}/api/friends`, { headers }).then((res) => {
-          if (!res.ok) return [];
-          return res.json();
-        });
-
-        const pathsPromise = fetch(`${API_URL}/api/paths`, { headers }).then((res) => {
-          if (!res.ok) return [];
-          return res.json();
-        });
-
-        const pathsProgressPromise = fetch(`${API_URL}/api/paths/me/progress`, { headers }).then((res) => {
-          if (!res.ok) return [];
-          return res.json();
-        });
-
-        const recentSolvedPromise = fetchRecentSolved();
-
-        const [u, rk, mr, recent, activeTime, badges, friends, paths, progressList] = await Promise.all([
-          userPromise,
-          rankingPromise,
-          myRankPromise,
-          recentSolvedPromise,
-          activeTimePromise,
-          badgesPromise,
-          friendsPromise,
-          pathsPromise,
-          pathsProgressPromise,
-        ]);
-
-        if (!u) {
+        const res = await fetch(`${API_URL}/api/dashboard/summary`, { headers });
+        if (res.status === 401 || res.status === 403) {
           logout();
           navigate('/login');
           return;
         }
+        if (!res.ok) {
+          throw new Error('Failed to fetch dashboard summary');
+        }
+        const data = await res.json();
 
         if (isCancelled) return;
-        setUserData(u);
-        setRanking(Array.isArray(rk) ? rk : []);
-        setMyRank(mr);
-        setRecentSolved(Array.isArray(recent) ? recent : []);
-        setActiveSecondsThisWeek(Number(activeTime?.secondsThisWeek) || 0);
-        setBadgesEarnedCount(Array.isArray(badges) ? badges.filter((b) => b?.earned).length : 0);
-        setFriendsCount(Array.isArray(friends) ? friends.length : 0);
+        setUserData(data?.user ?? null);
+        setRanking(Array.isArray(data?.ranking) ? data.ranking : []);
+        setMyRank(data?.myRank ?? null);
+        setRecentSolved(Array.isArray(data?.recentSolved) ? data.recentSolved : []);
+        setActiveSecondsThisWeek(Number(data?.activeSecondsThisWeek) || 0);
+        setBadgesEarnedCount(Number(data?.badgesEarnedCount) || 0);
+        setFriendsCount(Number(data?.friendsCount) || 0);
+        setRecommendedPath(data?.recommendedPath ?? null);
 
-        const safePaths = Array.isArray(paths) ? paths : [];
-        if (safePaths.length > 0) {
-          const random = safePaths[Math.floor(Math.random() * safePaths.length)];
-          setRecommendedPath(random || null);
-        } else {
-          setRecommendedPath(null);
-        }
-
-
-        const safeProgress = Array.isArray(progressList) ? progressList : [];
+        const safeProgress = Array.isArray(data?.pathsProgress) ? data.pathsProgress : [];
         setPathsProgress(safeProgress);
-        const inProgress = safeProgress.find((p) => !p?.completed) || safeProgress[0] || null;
-        setCurrentPath(inProgress);
-
-        if (inProgress?.id) {
-          try {
-            const res = await fetch(`${API_URL}/api/paths/${inProgress.id}/rooms-mini?limit=5`, { headers });
-            if (res.ok) {
-              const detail = await res.json();
-              setCurrentPathRoomsMini(Array.isArray(detail?.rooms) ? detail.rooms : []);
-            } else {
-              setCurrentPathRoomsMini([]);
-            }
-          } catch {
-            setCurrentPathRoomsMini([]);
-          }
-        } else {
-          setCurrentPathRoomsMini([]);
-        }
+        setCurrentPath(data?.currentPath ?? (safeProgress[0] || null));
+        setCurrentPathRoomsMini(Array.isArray(data?.currentPathRoomsMini) ? data.currentPathRoomsMini : []);
       } catch (e) {
         console.error(e);
         setError('Nie udało się wczytać dashboardu. Sprawdź połączenie z backendem.');

@@ -18,6 +18,7 @@ import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.stream.Collectors;
 
 @Service
@@ -30,14 +31,43 @@ public class BadgeServiceImpl implements BadgeService {
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
 
+    private static final long CACHE_MS = 30_000; // 30 seconds
+    private final AtomicLong cacheTimeMs = new AtomicLong(0);
+    private volatile List<Badge> cachedAllBadges = null;
+    private volatile Map<Long, Long> cachedBadgeCounts = null;
+    private volatile long cachedTotalUsers = 0;
+
+    private void invalidateCache() {
+        cacheTimeMs.set(0);
+        cachedAllBadges = null;
+        cachedBadgeCounts = null;
+        cachedTotalUsers = 0;
+    }
+
+    private void ensureCache() {
+        long now = System.currentTimeMillis();
+        if (cachedAllBadges != null && cachedBadgeCounts != null && now - cacheTimeMs.get() <= CACHE_MS) {
+            return;
+        }
+        synchronized (this) {
+            now = System.currentTimeMillis();
+            if (cachedAllBadges != null && cachedBadgeCounts != null && now - cacheTimeMs.get() <= CACHE_MS) {
+                return;
+            }
+            cachedAllBadges = badgeRepository.findAll();
+            cachedBadgeCounts = getBadgeCountsMap();
+            long total = userRepository.count();
+            cachedTotalUsers = total == 0 ? 1 : total;
+            cacheTimeMs.set(now);
+        }
+    }
+
     @Override
     @Transactional(readOnly = true)
     public List<BadgeDto> getUserBadges(Long userId) {
-        long totalUsers = userRepository.count();
-        if (totalUsers == 0) totalUsers = 1;
-
-        // Fetch all badge counts in one query
-        Map<Long, Long> badgeCounts = getBadgeCountsMap();
+        ensureCache();
+        long totalUsers = cachedTotalUsers;
+        Map<Long, Long> badgeCounts = cachedBadgeCounts;
 
         long finalTotalUsers = totalUsers;
         return userBadgeRepository.findByUser_Id(userId).stream()
@@ -60,22 +90,20 @@ public class BadgeServiceImpl implements BadgeService {
     @Override
     @Transactional(readOnly = true)
     public List<BadgeDto> getAllBadgesWithStatus(Long userId) {
-        List<Badge> allBadges = badgeRepository.findAll();
-        List<UserBadge> userBadges = userBadgeRepository.findByUser_Id(userId);
-        
-        Map<Long, UserBadge> earnedMap = userBadges.stream()
-                .collect(Collectors.toMap(ub -> ub.getBadge().getId(), ub -> ub));
+        ensureCache();
+        List<Badge> allBadges = cachedAllBadges;
+        List<UserBadgeRepository.EarnedBadgeRow> earnedRows = userBadgeRepository.findEarnedBadgeRowsByUserId(userId);
 
-        long totalUsers = userRepository.count();
-        if (totalUsers == 0) totalUsers = 1;
+        Map<Long, UserBadgeRepository.EarnedBadgeRow> earnedMap = earnedRows.stream()
+                .collect(Collectors.toMap(UserBadgeRepository.EarnedBadgeRow::getBadgeId, r -> r));
 
-        // Fetch all badge counts in one query
-        Map<Long, Long> badgeCounts = getBadgeCountsMap();
+        long totalUsers = cachedTotalUsers;
+        Map<Long, Long> badgeCounts = cachedBadgeCounts;
 
         long finalTotalUsers = totalUsers;
         return allBadges.stream()
                 .map(badge -> {
-                    UserBadge ub = earnedMap.get(badge.getId());
+                    UserBadgeRepository.EarnedBadgeRow ub = earnedMap.get(badge.getId());
                     long count = badgeCounts.getOrDefault(badge.getId(), 0L);
                     double rarity = ((double) count / finalTotalUsers) * 100.0;
                     
@@ -95,6 +123,7 @@ public class BadgeServiceImpl implements BadgeService {
     @Override
     @Transactional
     public List<BadgeDto> checkAndAwardBadges(User user) {
+        // This mutates user_badges, so invalidate caches after awarding.
         List<Badge> allBadges = badgeRepository.findAll();
         List<BadgeDto> newBadges = new ArrayList<>();
         long totalUsers = userRepository.count();
@@ -154,6 +183,9 @@ public class BadgeServiceImpl implements BadgeService {
             }
         }
 
+        if (!newBadges.isEmpty()) {
+            invalidateCache();
+        }
         return newBadges;
     }
 

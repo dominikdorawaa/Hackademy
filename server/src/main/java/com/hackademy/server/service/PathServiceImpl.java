@@ -17,6 +17,7 @@ import com.hackademy.server.repository.PathEnrollmentRepository;
 import com.hackademy.server.repository.PathRepository;
 import com.hackademy.server.repository.PathRoomRepository;
 import com.hackademy.server.repository.RoomRepository;
+import com.hackademy.server.repository.UserSolvedRoomRepository;
 import com.hackademy.server.repository.UserRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -27,6 +28,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import com.hackademy.server.model.RoomType;
@@ -41,34 +43,68 @@ public class PathServiceImpl implements PathService {
     private final RoomService roomService;
     private final PathEnrollmentRepository pathEnrollmentRepository;
     private final UserRepository userRepository;
+    private final UserSolvedRoomRepository userSolvedRoomRepository;
+
+    // ── simple in-memory caches (good enough for single instance / dev) ──────
+
+    private static final long CACHE_MS = 30_000; // 30 seconds
+
+    private volatile long pathsCacheTime = 0;
+    private volatile List<PathRepository.PathListView> cachedPathListViews = null;
+
+    private record CacheKey(Long pathId, Long userId, int limit) {}
+    private static final class CacheEntry<T> {
+        final long timeMs;
+        final T value;
+        CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
+    }
+    private final ConcurrentHashMap<CacheKey, CacheEntry<List<PathRoomMiniDto>>> roomsMiniCache = new ConcurrentHashMap<>();
 
     // ── helpers ─────────────────────────────────────────────────────────────
 
     private Long resolveUserId(String username) {
         if (username == null) return null;
-        return userRepository.findByUsername(username).map(User::getId).orElse(null);
+        return userRepository.findIdByUsername(username).orElse(null);
+    }
+
+    private List<PathRepository.PathListView> getCachedPathListViews() {
+        long now = System.currentTimeMillis();
+        List<PathRepository.PathListView> local = cachedPathListViews;
+        if (local == null || now - pathsCacheTime > CACHE_MS) {
+            synchronized (this) {
+                local = cachedPathListViews;
+                if (local == null || now - pathsCacheTime > CACHE_MS) {
+                    cachedPathListViews = pathRepository.findAllListViews();
+                    pathsCacheTime = now;
+                    local = cachedPathListViews;
+                }
+            }
+        }
+        return local;
+    }
+
+    private void invalidateCaches() {
+        cachedPathListViews = null;
+        pathsCacheTime = 0;
+        roomsMiniCache.clear();
     }
 
     // ── list paths ──────────────────────────────────────────────────────────
 
     public List<PathSummaryDto> listPaths(String username) {
-        List<Path> paths = pathRepository.findAll();
-        Map<Long, Long> counts = paths.stream()
-                .collect(Collectors.toMap(Path::getId, p -> pathRoomRepository.countByPathId(p.getId())));
-
         Long userId = resolveUserId(username);
         Set<Long> enrolledIds = userId != null
                 ? pathEnrollmentRepository.findPathIdsByUserId(userId)
                 : Set.of();
 
-        return paths.stream()
+        return getCachedPathListViews().stream()
                 .map(p -> PathSummaryDto.builder()
                         .id(p.getId())
                         .title(p.getTitle())
                         .description(p.getDescription())
-                        .bannerUrl(p.getBannerData() != null ? "/api/paths/" + p.getId() + "/banner" : p.getBannerUrl())
-                        .hasBanner(p.getBannerData() != null)
-                        .roomsCount(counts.getOrDefault(p.getId(), 0L).intValue())
+                        .bannerUrl(Boolean.TRUE.equals(p.getHasBanner()) ? "/api/paths/" + p.getId() + "/banner" : p.getBannerUrl())
+                        .hasBanner(Boolean.TRUE.equals(p.getHasBanner()))
+                        .roomsCount(p.getRoomsCount() == null ? 0 : p.getRoomsCount())
                         .enrolled(enrolledIds.contains(p.getId()))
                         .build())
                 .toList();
@@ -161,6 +197,7 @@ public class PathServiceImpl implements PathService {
                     .userId(userId)
                     .pathId(pathId)
                     .build());
+            invalidateCaches();
         }
     }
 
@@ -170,6 +207,7 @@ public class PathServiceImpl implements PathService {
         Long userId = resolveUserId(username);
         if (userId == null) return;
         pathEnrollmentRepository.deleteByUserIdAndPathId(userId, pathId);
+        invalidateCaches();
     }
 
     @Override
@@ -186,32 +224,82 @@ public class PathServiceImpl implements PathService {
     @Transactional(readOnly = true)
     public PathRoomsMiniResponse getPathRoomsMini(Long id, String username, int limit) {
         int safeLimit = Math.max(0, Math.min(500, limit));
-        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
-        List<Long> roomIds = pathRoomRepository.findRoomIdsOrdered(id);
+        if (!pathRepository.existsById(id)) {
+            throw new IllegalArgumentException("Path not found");
+        }
+        Long userId = resolveUserId(username);
 
-        // Reuse existing solved/locked logic, but return a minimal payload for dashboards.
-        List<RoomSummaryDto> allRooms = roomService.getAllRoomsByType(username, RoomType.PATH);
-        Map<Long, RoomSummaryDto> byId = allRooms.stream()
-                .collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
-
-        List<PathRoomMiniDto> rooms = new ArrayList<>();
-        for (Long roomId : roomIds) {
-            RoomSummaryDto dto = byId.get(roomId);
-            if (dto == null) continue;
-            rooms.add(PathRoomMiniDto.builder()
-                    .id(dto.getId())
-                    .title(dto.getTitle())
-                    .solved(dto.isSolved())
-                    .locked(dto.isLocked())
-                    .requiresVpn(dto.isRequiresVpn())
-                    .build());
-            if (safeLimit > 0 && rooms.size() >= safeLimit) break;
+        CacheKey key = new CacheKey(id, userId, safeLimit);
+        long now = System.currentTimeMillis();
+        CacheEntry<List<PathRoomMiniDto>> cached = roomsMiniCache.get(key);
+        if (cached != null && now - cached.timeMs <= CACHE_MS) {
+            return PathRoomsMiniResponse.builder()
+                    .pathId(id)
+                    .rooms(cached.value)
+                    .build();
         }
 
+        boolean hasTutorialVPN = false;
+        boolean hasTutorialVM = false;
+        if (userId != null) {
+            List<String> solvedTitles = userSolvedRoomRepository.findSolvedRoomTitlesByUserId(
+                    userId,
+                    List.of("Tutorial VPN", "Tutorial VM")
+            );
+            hasTutorialVPN = solvedTitles.contains("Tutorial VPN");
+            hasTutorialVM = solvedTitles.contains("Tutorial VM");
+        }
+
+        List<PathRoomMiniDto> rooms = new ArrayList<>();
+        if (safeLimit == 0) {
+            // Keep behavior: limit=0 means "return all"
+            List<Long> roomIds = pathRoomRepository.findRoomIdsOrdered(id);
+            int effectiveLimit = roomIds.size();
+            rooms.addAll(mapMiniRooms(id, userId, effectiveLimit, hasTutorialVPN, hasTutorialVM));
+        } else {
+            rooms.addAll(mapMiniRooms(id, userId, safeLimit, hasTutorialVPN, hasTutorialVM));
+        }
+
+        roomsMiniCache.put(key, new CacheEntry<>(now, rooms));
+
         return PathRoomsMiniResponse.builder()
-                .pathId(path.getId())
+                .pathId(id)
                 .rooms(rooms)
                 .build();
+    }
+
+    private List<PathRoomMiniDto> mapMiniRooms(
+            Long pathId,
+            Long userId,
+            int limit,
+            boolean hasTutorialVPN,
+            boolean hasTutorialVM
+    ) {
+        Long safeUserId = userId != null ? userId : -1L; // ensures LEFT JOIN condition matches nothing
+        List<PathRoomRepository.PathRoomMiniRow> rows = pathRoomRepository.findMiniRoomsForUser(pathId, safeUserId, limit);
+        List<PathRoomMiniDto> out = new ArrayList<>(rows.size());
+        for (var r : rows) {
+            boolean requiresVpn = Boolean.TRUE.equals(r.getRequiresVpn());
+            boolean solved = Boolean.TRUE.equals(r.getSolved());
+            boolean locked = false;
+
+            // Keep the same gating rules as rooms listing:
+            if ("Tutorial VPN".equals(r.getTitle()) && !hasTutorialVM) {
+                locked = true;
+            }
+            if (requiresVpn && !hasTutorialVPN) {
+                locked = true;
+            }
+
+            out.add(PathRoomMiniDto.builder()
+                    .id(r.getId())
+                    .title(r.getTitle())
+                    .solved(solved)
+                    .locked(locked)
+                    .requiresVpn(requiresVpn)
+                    .build());
+        }
+        return out;
     }
 
     @Override
@@ -233,6 +321,7 @@ public class PathServiceImpl implements PathService {
             if (room == null || room.getRoomType() != RoomType.PATH) continue;
             pathRoomRepository.save(new PathRoom(saved.getId(), roomId, order++));
         }
+        invalidateCaches();
 
         return PathSummaryDto.builder()
                 .id(saved.getId())
@@ -251,6 +340,7 @@ public class PathServiceImpl implements PathService {
             throw new IllegalArgumentException("Path not found");
         }
         pathRepository.deleteById(id);
+        invalidateCaches();
     }
 
     @Override
@@ -276,6 +366,7 @@ public class PathServiceImpl implements PathService {
         path.setDescription(request.getDescription());
         path.setBannerUrl(request.getBannerUrl());
         pathRepository.save(path);
+        invalidateCaches();
     }
 
     @Override
@@ -295,6 +386,7 @@ public class PathServiceImpl implements PathService {
             if (room == null || room.getRoomType() != RoomType.PATH) continue;
             pathRoomRepository.save(new PathRoom(id, roomId, order++));
         }
+        invalidateCaches();
     }
 
     @Override
@@ -306,6 +398,7 @@ public class PathServiceImpl implements PathService {
             path.setBannerData(file.getBytes());
             path.setBannerMime(file.getContentType());
             pathRepository.save(path);
+            invalidateCaches();
         } catch (Exception e) {
             throw new RuntimeException("Failed to save banner", e);
         }

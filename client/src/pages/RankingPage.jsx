@@ -22,40 +22,13 @@ const RankingPage = () => {
           ...(token && { 'Authorization': `Bearer ${token}` })
         };
 
-        // Fetch Ranking
-        const rankingPromise = fetch(`${API_URL}/api/user/ranking`, {
-          method: 'GET',
-          headers: headers,
-        }).then(res => {
-            if (!res.ok) throw new Error('Failed to fetch ranking');
-            return res.json();
-        });
+        const res = await fetch(`${API_URL}/api/ranking/summary`, { method: 'GET', headers });
+        if (!res.ok) throw new Error('Failed to fetch ranking summary');
+        const data = await res.json();
 
-        // Fetch Current User (if logged in)
-        let userPromise = Promise.resolve(null);
-        let rankPromise = Promise.resolve(null);
-        
-        if (token) {
-            userPromise = fetch(`${API_URL}/api/user/me`, {
-                headers: headers
-            }).then(res => {
-                if (!res.ok) return null;
-                return res.json();
-            });
-
-            rankPromise = fetch(`${API_URL}/api/user/me/rank`, {
-                headers: headers
-            }).then(res => {
-                if (!res.ok) return null;
-                return res.json();
-            });
-        }
-
-        const [rankingData, userData, rankData] = await Promise.all([rankingPromise, userPromise, rankPromise]);
-
-        setPlayers(rankingData || []);
-        setCurrentUser(userData);
-        setMyRank(rankData);
+        setPlayers(Array.isArray(data?.ranking) ? data.ranking : []);
+        setCurrentUser(data?.user ?? null);
+        setMyRank(data?.myRank ?? null);
 
       } catch (err) {
         console.error("Failed to fetch data:", err);

@@ -14,9 +14,16 @@ import java.util.List;
 public interface UserSolvedRoomRepository extends JpaRepository<UserSolvedRoom, Long> {
     boolean existsByUser_IdAndRoom_Id(Long userId, Long roomId);
     boolean existsByUser_UsernameAndRoom_Title(String username, String roomTitle);
+    boolean existsByUser_IdAndRoom_Title(Long userId, String roomTitle);
     long countByUser_Id(Long userId);
     List<UserSolvedRoom> findByUser_Id(Long userId);
     List<UserSolvedRoom> findTop10ByUser_IdOrderBySolvedAtDesc(Long userId);
+
+    @Query("SELECT usr.room.id FROM UserSolvedRoom usr WHERE usr.user.id = :userId")
+    List<Long> findSolvedRoomIdsByUserId(@Param("userId") Long userId);
+
+    @Query("SELECT usr.room.title FROM UserSolvedRoom usr WHERE usr.user.id = :userId AND usr.room.title IN :titles")
+    List<String> findSolvedRoomTitlesByUserId(@Param("userId") Long userId, @Param("titles") List<String> titles);
     
     @Query(value = """
             SELECT 

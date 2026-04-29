@@ -120,19 +120,20 @@ public class RoomServiceImpl implements RoomService {
         boolean hasTutorialVM = false;
 
         if (username != null) {
-            User user = userRepository.findByUsername(username)
+            Long userId = userRepository.findIdByUsername(username)
                     .orElseThrow(() -> new UserNotFoundException("User not found"));
             
             // Optimized: Fetch only IDs of solved rooms
-            solvedRoomIds = userSolvedRoomRepository.findByUser_Id(user.getId()).stream()
-                    .map(usr -> usr.getRoom().getId())
+            solvedRoomIds = userSolvedRoomRepository.findSolvedRoomIdsByUserId(userId).stream()
                     .collect(Collectors.toSet());
             
-            // Check if Tutorial VPN is solved (needed for VPN-required rooms)
-            hasTutorialVPN = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VPN");
-            
-            // Check if Tutorial VM is solved (needed for Tutorial VPN)
-            hasTutorialVM = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VM");
+            // Check tutorial unlocks in one query
+            List<String> solvedTitles = userSolvedRoomRepository.findSolvedRoomTitlesByUserId(
+                    userId,
+                    List.of("Tutorial VPN", "Tutorial VM")
+            );
+            hasTutorialVPN = solvedTitles.contains("Tutorial VPN");
+            hasTutorialVM = solvedTitles.contains("Tutorial VM");
         } else {
             solvedRoomIds = Set.of();
         }

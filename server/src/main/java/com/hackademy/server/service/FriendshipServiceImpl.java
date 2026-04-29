@@ -15,6 +15,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
 import java.util.Optional;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 
 @Service
@@ -24,6 +25,21 @@ public class FriendshipServiceImpl implements FriendshipService {
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final BadgeService badgeService; // Inject BadgeService
+
+    private static final long CACHE_MS = 30_000; // 30 seconds
+    private static final class CacheEntry<T> {
+        final long timeMs;
+        final T value;
+        CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
+    }
+    private final ConcurrentHashMap<Long, CacheEntry<List<FriendDto>>> friendsCache = new ConcurrentHashMap<>();
+    private final ConcurrentHashMap<Long, CacheEntry<List<FriendRequestDto>>> requestsCache = new ConcurrentHashMap<>();
+
+    private void invalidateCachesFor(Long userId) {
+        if (userId == null) return;
+        friendsCache.remove(userId);
+        requestsCache.remove(userId);
+    }
 
     @Override
     @Transactional
@@ -44,6 +60,8 @@ public class FriendshipServiceImpl implements FriendshipService {
 
         Friendship friendship = new Friendship(requester, receiver, FriendshipStatus.PENDING);
         friendshipRepository.save(friendship);
+        invalidateCachesFor(requesterId);
+        invalidateCachesFor(receiver.getId());
     }
 
     @Override
@@ -62,6 +80,9 @@ public class FriendshipServiceImpl implements FriendshipService {
         // Check badges for both users
         badgeService.checkAndAwardBadges(friendship.getReceiver());
         badgeService.checkAndAwardBadges(friendship.getRequester());
+
+        invalidateCachesFor(friendship.getReceiver().getId());
+        invalidateCachesFor(friendship.getRequester().getId());
     }
 
     @Override
@@ -75,6 +96,8 @@ public class FriendshipServiceImpl implements FriendshipService {
         }
 
         friendshipRepository.delete(friendship);
+        invalidateCachesFor(friendship.getReceiver().getId());
+        invalidateCachesFor(friendship.getRequester().getId());
     }
 
     @Override
@@ -89,33 +112,53 @@ public class FriendshipServiceImpl implements FriendshipService {
                 .orElseThrow(() -> new IllegalArgumentException("Friendship not found"));
 
         friendshipRepository.delete(friendship);
+        invalidateCachesFor(userId);
+        invalidateCachesFor(friendId);
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<FriendDto> getFriends(Long userId) {
+        long now = System.currentTimeMillis();
+        CacheEntry<List<FriendDto>> cached = friendsCache.get(userId);
+        if (cached != null && now - cached.timeMs <= CACHE_MS) {
+            return cached.value;
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         List<Friendship> friendships = friendshipRepository.findByUserAndStatus(user, FriendshipStatus.ACCEPTED);
 
-        return friendships.stream()
+        List<FriendDto> out = friendships.stream()
                 .map(f -> {
                     User friend = f.getRequester().getId().equals(userId) ? f.getReceiver() : f.getRequester();
                     return new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak());
                 })
                 .collect(Collectors.toList());
+
+        friendsCache.put(userId, new CacheEntry<>(now, out));
+        return out;
     }
 
     @Override
     @Transactional(readOnly = true)
     public List<FriendRequestDto> getPendingRequests(Long userId) {
+        long now = System.currentTimeMillis();
+        CacheEntry<List<FriendRequestDto>> cached = requestsCache.get(userId);
+        if (cached != null && now - cached.timeMs <= CACHE_MS) {
+            return cached.value;
+        }
+
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        return friendshipRepository.findPendingRequestsForUser(user).stream()
+        List<FriendRequestDto> out = friendshipRepository.findPendingRequestsForUser(user).stream()
                 .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt()))
                 .collect(Collectors.toList());
+
+        requestsCache.put(userId, new CacheEntry<>(now, out));
+        return out;
     }
 
     @Override
