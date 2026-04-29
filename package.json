@@ -1,4 +1,5 @@
 {
+  "//": "DEADCODE_CANDIDATE: root package.json deps appear unused; see DEAD_CODE_CANDIDATES.md",
   "devDependencies": {
     "autoprefixer": "^10.4.22",
     "postcss": "^8.5.6",

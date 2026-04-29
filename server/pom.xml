@@ -80,6 +80,7 @@
             <artifactId>sshd-common</artifactId>
             <version>2.12.1</version>
         </dependency>
+        <!-- DEADCODE_CANDIDATE: seems unused in code; remove only after verifying VPN/SSH flow -->
         <!-- JZlib for compression (optional but good) -->
         <dependency>
             <groupId>com.jcraft</groupId>

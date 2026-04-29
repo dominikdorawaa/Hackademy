@@ -79,6 +79,7 @@ public class ArenaController {
         }
     }
     
+    // DEADCODE_CANDIDATE: frontend doesn't call /win (it uses /solve + polling /game/{gameId}).
     @PostMapping("/game/{gameId}/win")
     public ResponseEntity<?> reportWin(@PathVariable String gameId) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();

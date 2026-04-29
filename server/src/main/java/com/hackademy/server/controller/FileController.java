@@ -18,6 +18,7 @@ import java.nio.charset.StandardCharsets;
 @CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.OPTIONS})
 public class FileController {
 
+    // DEADCODE_CANDIDATE: frontend currently doesn't call this endpoint.
     @GetMapping("/mission-brief")
     public ResponseEntity<Resource> downloadMissionBrief() {
         // Tutaj normalnie pobierałbyś plik z dysku lub bazy danych

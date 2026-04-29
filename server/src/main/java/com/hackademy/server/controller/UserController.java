@@ -98,6 +98,7 @@ public class UserController {
         return ResponseEntity.ok(ranking);
     }
 
+    // DEADCODE_CANDIDATE: frontend moved to /api/ranking/summary (no calls to /api/user/me/rank).
     @GetMapping("/me/rank")
     public ResponseEntity<RankingEntry> getMyRank() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
