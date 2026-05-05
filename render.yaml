@@ -32,8 +32,7 @@ services:
         - client/**
     buildCommand: npm install && npm run build
     staticPublishPath: dist
-    # SPA: wszystkie ścieżki (np. /login, /dashboard) muszą serwować index.html.
-    # Jeśli nadal 404 – dodaj tę regułę ręcznie w Dashboard → Redirects/Rewrites.
+  
     routes:
       - type: rewrite
         source: /*
