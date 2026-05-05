@@ -50,7 +50,6 @@ public class DashboardController {
 
         DashboardSummaryDto cached = dashboardSummaryCache.getIfFresh(userId);
         if (cached != null) {
-            // Refresh the most frequently changing field with a single cheap query.
             cached.setActiveSecondsThisWeek(userService.getActiveSecondsThisWeek(userId));
             return ResponseEntity.ok(cached);
         }

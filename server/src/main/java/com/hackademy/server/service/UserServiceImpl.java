@@ -290,7 +290,8 @@ public class UserServiceImpl implements UserService {
         if (cached != null && now - cached.timeMs <= CACHE_MS) {
             return cached.value;
         }
-        boolean solved = userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VPN");
+        boolean solved = userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VPN")
+                || userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VM");
         tutorialVpnSolvedCache.put(userId, new CacheEntry<>(now, solved));
         return solved;
     }

@@ -2,7 +2,7 @@ package com.hackademy.server.controller;
 
 import com.hackademy.server.model.User;
 import com.hackademy.server.repository.UserRepository;
-import com.hackademy.server.repository.UserSolvedRoomRepository;
+import com.hackademy.server.service.UserService;
 import com.hackademy.server.service.VpnService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.Resource;
@@ -26,7 +26,7 @@ public class VpnController {
 
     private final VpnService vpnService;
     private final UserRepository userRepository;
-    private final UserSolvedRoomRepository userSolvedRoomRepository;
+    private final UserService userService;
 
     @GetMapping("/status")
     public ResponseEntity<?> getVpnStatus() {
@@ -39,8 +39,7 @@ public class VpnController {
 
         int userLevel = (user.getPoints() / 100) + 1;
         boolean hasLevel = userLevel >= 10;
-        // Changed requirement to Tutorial VM
-        boolean hasTutorial = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VM");
+        boolean hasTutorial = userService.hasSolvedTutorialVpn(user.getId());
 
         Map<String, Object> status = new HashMap<>();
         status.put("canDownload", hasLevel && hasTutorial);
@@ -63,12 +62,11 @@ public class VpnController {
         // Check requirements
         int userLevel = (user.getPoints() / 100) + 1;
         boolean hasLevel = userLevel >= 10;
-        // Changed requirement to Tutorial VM
-        boolean hasTutorial = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VM");
+        boolean hasTutorial = userService.hasSolvedTutorialVpn(user.getId());
 
         if (!hasLevel || !hasTutorial) {
             return ResponseEntity.status(HttpStatus.FORBIDDEN)
-                    .body("Nie spełniasz wymagań: Poziom 10+ oraz ukończony pokój 'Tutorial VM'.");
+                    .body("Nie spełniasz wymagań: Poziom 10+ oraz ukończony pokój 'Tutorial VPN/VM'.");
         }
 
         try {

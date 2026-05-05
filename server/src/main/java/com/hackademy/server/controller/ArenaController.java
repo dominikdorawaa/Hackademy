@@ -37,15 +37,11 @@ public class ArenaController {
 
         boolean vpnEnabled = payload != null && payload.getOrDefault("vpnEnabled", false);
 
-        // Check if user actually has VPN access if they requested it
-        if (vpnEnabled) {
-            try {
-                // We can check if they have solved Tutorial VPN or just trust the client for now
-                // Ideally, we should check userSolvedRoomRepository for "Tutorial VPN"
-                // For now, let's assume the client handles the UI restriction, but we could add a check here.
-            } catch (Exception e) {
-                // Ignore
-            }
+
+        if (vpnEnabled && !userService.hasSolvedTutorialVpn(user.getId())) {
+            return ResponseEntity.badRequest().body(
+                    Map.of("message", "Aby grać w Arenie z VPN, musisz najpierw ukończyć pokój Tutorial VPN.")
+            );
         }
 
         matchmakingService.joinQueue(user.getId(), user.getUsername(), vpnEnabled);
@@ -62,7 +58,7 @@ public class ArenaController {
     @GetMapping("/status")
     public ResponseEntity<?> checkStatus() {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        // Use findCurrentGameForUser to get ACTIVE or recently FINISHED games
+        
         GameSession session = arenaService.findCurrentGameForUser(user.getId());
         
         if (session != null) {
@@ -71,7 +67,7 @@ public class ArenaController {
         return ResponseEntity.noContent().build();
     }
 
-    @Scheduled(fixedRate = 500) // Check every 500ms
+    @Scheduled(fixedRate = 500) 
     public void processMatchmaking() {
         List<GameSession> sessions = matchmakingService.checkForMatches();
         for (GameSession session : sessions) {
@@ -79,7 +75,7 @@ public class ArenaController {
         }
     }
     
-    // DEADCODE_CANDIDATE: frontend doesn't call /win (it uses /solve + polling /game/{gameId}).
+    
     @PostMapping("/game/{gameId}/win")
     public ResponseEntity<?> reportWin(@PathVariable String gameId) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -95,7 +91,7 @@ public class ArenaController {
         boolean solved = arenaService.submitFlag(gameId, user.getId(), flag);
         
         if (solved) {
-            // Check if game is finished or waiting
+            
             GameSession session = arenaService.getGameSession(gameId);
             if ("WAITING_FOR_OPPONENT".equals(session.getStatus())) {
                  return ResponseEntity.ok(Map.of("message", "Poprawna flaga! Czekanie na wynik przeciwnika (z powodu Twoich kar czasowych)...", "success", true, "status", "WAITING"));
@@ -111,14 +107,14 @@ public class ArenaController {
         Long hintId = payload.get("hintId");
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         arenaService.useHint(gameId, user.getId(), hintId);
-        return ResponseEntity.ok(Map.of("message", "Hint used, +2 min penalty added"));
+        return ResponseEntity.ok(Map.of("message", "Podpowiedź odblokowana! +2 minuty kary."));
     }
     
     @PostMapping("/game/{gameId}/surrender")
     public ResponseEntity<?> surrenderGame(@PathVariable String gameId) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         arenaService.surrenderGame(gameId, user.getId());
-        return ResponseEntity.ok(Map.of("message", "You surrendered"));
+        return ResponseEntity.ok(Map.of("message", "Poddałeś się!"));
     }
     
     @GetMapping("/game/{gameId}")
@@ -150,7 +146,7 @@ public class ArenaController {
             }
             
             arenaService.createChallenge(challenger.getId(), challenger.getUsername(), targetId, targetUsername, vpnEnabled);
-            return ResponseEntity.ok(Map.of("message", "Challenge sent"));
+            return ResponseEntity.ok(Map.of("message", "Propozycja została wysłana!"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -177,6 +173,6 @@ public class ArenaController {
     public ResponseEntity<?> rejectChallenge(@PathVariable String challengeId) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         arenaService.rejectChallenge(challengeId, user.getId());
-        return ResponseEntity.ok(Map.of("message", "Challenge rejected"));
+        return ResponseEntity.ok(Map.of("message", "Propozycja została odrzucona!"));
     }
 }
