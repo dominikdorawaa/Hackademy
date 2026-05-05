@@ -12,6 +12,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateUserRoleRequest {
-    @NotNull(message = "Role cannot be null")
+    @NotNull(message = "Rola nie może być pusta")
     private Role role;
 }

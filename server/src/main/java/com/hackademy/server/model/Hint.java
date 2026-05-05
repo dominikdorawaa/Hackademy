@@ -1,9 +1,15 @@
 package com.hackademy.server.model;
 
 import jakarta.persistence.*;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
 
 @Entity
 @Table(name = "hints")
+@Getter
+@Setter
+@NoArgsConstructor
 public class Hint {
 
     @Id
@@ -17,37 +23,8 @@ public class Hint {
     @JoinColumn(name = "room_id", nullable = false)
     private Room room;
 
-    public Hint() {
-    }
-
     public Hint(String description, Room room) {
         this.description = description;
-        this.room = room;
-    }
-
-    // Getters and Setters
-
-    public Long getId() {
-        return id;
-    }
-
-    public void setId(Long id) {
-        this.id = id;
-    }
-
-    public String getDescription() {
-        return description;
-    }
-
-    public void setDescription(String description) {
-        this.description = description;
-    }
-
-    public Room getRoom() {
-        return room;
-    }
-
-    public void setRoom(Room room) {
         this.room = room;
     }
 }

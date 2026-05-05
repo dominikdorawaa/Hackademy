@@ -15,6 +15,6 @@ public class RoomAdminSummaryDto {
     private String category;
     private DifficultyLevel difficulty;
     private int points;
-    private boolean requiresVpn; // New field
+    private boolean requiresVpn;
     private RoomType roomType;
 }

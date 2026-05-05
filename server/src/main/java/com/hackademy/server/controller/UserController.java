@@ -7,7 +7,6 @@ import com.hackademy.server.dto.RecentSolvedRoomDto;
 import com.hackademy.server.dto.RankingEntry;
 import com.hackademy.server.dto.UpdateBioRequest;
 import com.hackademy.server.dto.UpdateUsernameRequest;
-import com.hackademy.server.dto.UserAdminView;
 import com.hackademy.server.dto.UserProfileDto;
 import com.hackademy.server.dto.UserSearchDto;
 import com.hackademy.server.model.User;
@@ -26,7 +25,8 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
+@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = { RequestMethod.GET, RequestMethod.POST,
+        RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS })
 public class UserController {
 
     private final UserService userService;
@@ -35,38 +35,33 @@ public class UserController {
     public ResponseEntity<?> getCurrentUser() {
         Authentication authentication = SecurityContextHolder.getContext().getAuthentication();
 
-        if (authentication == null || !authentication.isAuthenticated() || "anonymousUser".equals(authentication.getPrincipal())) {
+        if (authentication == null || !authentication.isAuthenticated()
+                || "anonymousUser".equals(authentication.getPrincipal())) {
             return ResponseEntity.status(401).body("No authenticated user found");
         }
 
         User userDetails = (User) authentication.getPrincipal();
 
-        // Calculate effective streak for display
         int effectiveStreak = userDetails.getStreak();
         LocalDate lastSolved = userDetails.getLastSolvedDate();
         LocalDate today = LocalDate.now();
-        
-        // If last solved was before yesterday, streak is effectively 0 (broken)
-        // unless it's 0 already.
+
         if (lastSolved != null && lastSolved.isBefore(today.minusDays(1))) {
             effectiveStreak = 0;
         }
 
-        // Check if user has solved Tutorial VPN
         boolean hasVpnAccess = userService.hasSolvedTutorialVpn(userDetails.getId());
 
-        // Return a map or a DTO with user details, excluding sensitive info like password
         Map<String, Object> userInfo = Map.of(
                 "id", userDetails.getId(),
-                "username", userDetails.getUsername(), // Use the actual username
+                "username", userDetails.getUsername(),
                 "email", userDetails.getEmail(),
                 "role", userDetails.getRole(),
                 "points", userDetails.getPoints(),
                 "streak", effectiveStreak,
                 "bio", userDetails.getBio() != null ? userDetails.getBio() : "",
                 "createdAt", userDetails.getCreatedAt(),
-                "hasVpnAccess", hasVpnAccess // New field
-        );
+                "hasVpnAccess", hasVpnAccess);
 
         return ResponseEntity.ok(userInfo);
     }
@@ -96,14 +91,6 @@ public class UserController {
     public ResponseEntity<List<RankingEntry>> getRanking() {
         List<RankingEntry> ranking = userService.getTop10Ranking();
         return ResponseEntity.ok(ranking);
-    }
-
-    // DEADCODE_CANDIDATE: frontend moved to /api/ranking/summary (no calls to /api/user/me/rank).
-    @GetMapping("/me/rank")
-    public ResponseEntity<RankingEntry> getMyRank() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        RankingEntry rank = userService.getUserRank(user.getId());
-        return ResponseEntity.ok(rank);
     }
 
     @GetMapping("/{username}")
@@ -140,7 +127,6 @@ public class UserController {
             int seconds = userService.getActiveSecondsThisWeek(user.getId());
             return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
         } catch (RuntimeException e) {
-            // If migrations weren't applied yet, don't break the client.
             return ResponseEntity.ok(Map.of("secondsThisWeek", 0));
         }
     }
@@ -157,7 +143,6 @@ public class UserController {
             int seconds = userService.addActiveSecondsThisWeek(user.getId(), delta);
             return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
         } catch (RuntimeException e) {
-            // If migrations weren't applied yet, don't break the client.
             return ResponseEntity.ok(Map.of("secondsThisWeek", 0));
         }
     }

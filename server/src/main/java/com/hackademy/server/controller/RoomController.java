@@ -1,7 +1,5 @@
 package com.hackademy.server.controller;
 
-import com.hackademy.server.dto.RoomDetailDto;
-import com.hackademy.server.dto.RoomDto;
 import com.hackademy.server.dto.RoomSummaryDto;
 import com.hackademy.server.dto.SolveRoomResponse;
 import com.hackademy.server.model.RoomFile;
@@ -44,24 +42,24 @@ public class RoomController {
     @GetMapping("/{id}")
     public ResponseEntity<?> getRoomDetail(@PathVariable Long id) {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        
+
         if (principal instanceof UserDetails) {
             UserDetails userDetails = (UserDetails) principal;
             return ResponseEntity.ok(roomService.getRoomDetail(id, userDetails.getUsername()));
         } else {
-             // Should be handled by Security filter, but just in case
+            // Should be handled by Security filter, but just in case
             return ResponseEntity.status(401).body(Map.of("message", "User not authenticated"));
         }
     }
 
     @PostMapping("/{id}/solve")
-    public ResponseEntity<SolveRoomResponse> solveRoom(@PathVariable Long id, @RequestBody Map<String, String> payload) {
+    public ResponseEntity<SolveRoomResponse> solveRoom(@PathVariable Long id,
+            @RequestBody Map<String, String> payload) {
         String flag = payload.get("flag");
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        
+
         SolveRoomResponse response = roomService.solveRoom(id, flag, userDetails.getUsername());
-        
-        // Always return OK if success is true, even if it's training mode (0 points)
+
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         } else {
@@ -71,14 +69,14 @@ public class RoomController {
 
     @PostMapping("/{roomId}/tasks/{taskId}/solve")
     public ResponseEntity<SolveRoomResponse> solveTask(
-            @PathVariable Long roomId, 
-            @PathVariable Long taskId, 
+            @PathVariable Long roomId,
+            @PathVariable Long taskId,
             @RequestBody Map<String, String> payload) {
         String answer = payload.get("answer");
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        
+
         SolveRoomResponse response = roomService.solveTask(roomId, taskId, answer, userDetails.getUsername());
-        
+
         if (response.isSuccess()) {
             return ResponseEntity.ok(response);
         } else {
@@ -92,7 +90,8 @@ public class RoomController {
         try {
             boolean unlocked = roomService.unlockHint(roomId, hintId, userDetails.getUsername());
             // If unlocked is false, it means hint was already unlocked.
-            // In training mode, we want to treat this as success or at least not an error that blocks UI.
+            // In training mode, we want to treat this as success or at least not an error
+            // that blocks UI.
             if (unlocked) {
                 return ResponseEntity.ok(Map.of("message", "Hint unlocked."));
             } else {
@@ -100,14 +99,14 @@ public class RoomController {
                 return ResponseEntity.ok(Map.of("message", "Hint already unlocked."));
             }
         } catch (Exception e) {
-             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
     }
 
     @GetMapping("/{id}/file")
     public ResponseEntity<Resource> downloadRoomFile(@PathVariable Long id) {
         RoomFile roomFile = roomService.getRoomFile(id);
-        
+
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + roomFile.getFileName() + "\"")
                 .contentType(MediaType.parseMediaType(roomFile.getFileType()))

@@ -22,7 +22,7 @@ public class RoomAdminDto {
     private DifficultyLevel difficulty;
     private String category;
     private int points;
-    private String flag; // Included for Admin
+    private String flag;
     private int solutionsCount;
     private boolean requiresVpn;
     private RoomType roomType;

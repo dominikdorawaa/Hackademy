@@ -22,7 +22,7 @@ public class RoomDto {
     private int points;
     private int solutionsCount;
     private boolean solved;
-    private boolean requiresVpn; // New field
+    private boolean requiresVpn;
     private LocalDateTime createdAt;
     private LocalDateTime updatedAt;
 }

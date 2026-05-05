@@ -14,7 +14,7 @@ public class BadgeDto {
     private String name;
     private String description;
     private String icon;
-    private LocalDateTime earnedAt; // Null if not earned
+    private LocalDateTime earnedAt;
     private boolean earned;
-    private double rarityPercentage; // Percentage of users who have this badge
+    private double rarityPercentage;
 }

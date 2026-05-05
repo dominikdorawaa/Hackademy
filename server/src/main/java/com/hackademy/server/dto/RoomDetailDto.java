@@ -23,9 +23,9 @@ public class RoomDetailDto {
     private int solutionsCount;
     private LocalDateTime createdAt;
     private boolean solved;
-    private boolean requiresVpn; // New field
+    private boolean requiresVpn;
     private List<HintDto> hints;
     private List<Long> unlockedHintIds;
-    private String fileName; // Name of the attached file, if any
+    private String fileName;
     private List<RoomTaskDto> tasks;
 }

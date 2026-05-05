@@ -11,6 +11,6 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateBioRequest {
-    @Size(max = 500, message = "Bio cannot exceed 500 characters")
+    @Size(max = 500, message = "Bio nie może przekraczać 500 znaków")
     private String bio;
 }

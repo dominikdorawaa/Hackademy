@@ -23,7 +23,6 @@ public class RoomFile {
     private String fileType;
 
     @Lob
-    // Removed MySQL specific columnDefinition. Hibernate + PostgreSQL dialect should handle byte[] as bytea or OID.
     private byte[] data;
 
     @OneToOne(fetch = FetchType.LAZY)

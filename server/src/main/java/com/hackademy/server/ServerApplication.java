@@ -13,4 +13,3 @@ public class ServerApplication {
 	}
 
 }
-// Trigger restart for DB schema update - attempt 2 with default value

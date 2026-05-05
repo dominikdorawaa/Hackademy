@@ -10,8 +10,8 @@ import lombok.Setter;
 @NoArgsConstructor
 @AllArgsConstructor
 public class RankingEntry {
-    private Integer rankPoints; // Rank based on XP points
-    private Integer rankElo;    // Rank based on ELO
+    private Integer rankPoints;
+    private Integer rankElo;
     private String username;
     private Integer points;
     private Integer elo;

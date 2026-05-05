@@ -16,8 +16,7 @@ import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
 
-
-@Getter  
+@Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
@@ -63,7 +62,7 @@ public class User implements UserDetails {
     @Builder.Default
     @Column(nullable = false)
     private Integer streak = 0;
-    
+
     @Builder.Default
     @Column(nullable = false, columnDefinition = "integer default 500")
     private Integer elo = 500;
@@ -78,8 +77,6 @@ public class User implements UserDetails {
 
     @Column(name = "muted_until")
     private LocalDateTime mutedUntil;
-
-    // REMOVED @ManyToMany relation to use manual UserSolvedRoom entity management
 
     @Override
     public String getUsername() {

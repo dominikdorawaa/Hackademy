@@ -46,7 +46,7 @@ public class VpnController {
         status.put("levelRequirementMet", hasLevel);
         status.put("tutorialRequirementMet", hasTutorial);
         status.put("currentLevel", userLevel);
-        
+
         return ResponseEntity.ok(status);
     }
 
@@ -59,7 +59,6 @@ public class VpnController {
         String username = ((UserDetails) principal).getUsername();
         User user = userRepository.findByUsername(username).orElseThrow();
 
-        // Check requirements
         int userLevel = (user.getPoints() / 100) + 1;
         boolean hasLevel = userLevel >= 10;
         boolean hasTutorial = userService.hasSolvedTutorialVpn(user.getId());
@@ -71,7 +70,7 @@ public class VpnController {
 
         try {
             Resource resource = vpnService.generateVpnConfig(username);
-            
+
             return ResponseEntity.ok()
                     .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + username + ".ovpn\"")
                     .contentType(MediaType.APPLICATION_OCTET_STREAM)

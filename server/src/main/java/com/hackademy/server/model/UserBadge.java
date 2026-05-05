@@ -11,7 +11,7 @@ import java.time.LocalDateTime;
 
 @Entity
 @Table(name = "user_badges", uniqueConstraints = {
-    @UniqueConstraint(columnNames = {"user_id", "badge_id"})
+        @UniqueConstraint(columnNames = { "user_id", "badge_id" })
 })
 @Getter
 @Setter
@@ -27,7 +27,7 @@ public class UserBadge {
     @JoinColumn(name = "user_id", nullable = false)
     private User user;
 
-    @ManyToOne(fetch = FetchType.EAGER) // Eager fetch to get badge details easily
+    @ManyToOne(fetch = FetchType.EAGER)
     @JoinColumn(name = "badge_id", nullable = false)
     private Badge badge;
 

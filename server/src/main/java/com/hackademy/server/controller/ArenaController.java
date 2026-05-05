@@ -75,13 +75,6 @@ public class ArenaController {
         }
     }
     
-    
-    @PostMapping("/game/{gameId}/win")
-    public ResponseEntity<?> reportWin(@PathVariable String gameId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        arenaService.finishGame(gameId, user.getId());
-        return ResponseEntity.ok().build();
-    }
 
     @PostMapping("/game/{gameId}/solve")
     public ResponseEntity<?> solveArenaRoom(@PathVariable String gameId, @RequestBody Map<String, String> payload) {

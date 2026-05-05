@@ -18,28 +18,28 @@ import java.util.List;
 @AllArgsConstructor
 public class CreateRoomRequest {
 
-    @NotBlank(message = "Title is required")
+    @NotBlank(message = "Tytuł jest wymagany")
     private String title;
 
-    @NotBlank(message = "Description is required")
+    @NotBlank(message = "Opis jest wymagany")
     private String description;
 
     private String shortDescription;
 
-    @NotNull(message = "Difficulty level is required")
+    @NotNull(message = "Poziom trudności jest wymagany")
     private DifficultyLevel difficulty;
 
-    @NotBlank(message = "Category is required")
+    @NotBlank(message = "Kategoria jest wymagana")
     private String category;
 
-    @NotNull(message = "Points are required")
-    @Min(value = 0, message = "Points must be non-negative")
+    @NotNull(message = "Punkty są wymagane")
+    @Min(value = 0, message = "Liczba punktów nie może być ujemna")
     private Integer points;
 
-    @NotBlank(message = "Flag is required")
+    @NotBlank(message = "Flaga jest wymagana")
     private String flag;
 
-    private boolean requiresVpn; // New field
+    private boolean requiresVpn;
     // CTF rooms appear in Arena; PATH rooms are only inside learning paths
     private RoomType roomType = RoomType.CTF;
 

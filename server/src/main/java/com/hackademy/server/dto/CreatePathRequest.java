@@ -12,16 +12,13 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class CreatePathRequest {
-    @NotBlank
-    @Size(max = 120)
+    @NotBlank(message = "Tytuł jest wymagany")
+    @Size(max = 120, message = "Tytuł nie może przekraczać 120 znaków")
     private String title;
 
     private String description;
 
-    // Optional: URL of the banner image displayed on path cards
     private String bannerUrl;
 
-    // Optional: initial set of room IDs in order
     private List<Long> roomIds;
 }
-

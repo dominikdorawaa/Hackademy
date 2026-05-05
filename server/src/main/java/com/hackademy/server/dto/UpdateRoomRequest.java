@@ -17,27 +17,27 @@ import java.util.List;
 @NoArgsConstructor
 @AllArgsConstructor
 public class UpdateRoomRequest {
-    @NotBlank(message = "Title cannot be empty")
+    @NotBlank(message = "Tytuł nie może być pusty")
     private String title;
 
-    @NotBlank(message = "Description cannot be empty")
+    @NotBlank(message = "Opis nie może być pusty")
     private String description;
 
     private String shortDescription;
 
-    @NotNull(message = "Difficulty cannot be null")
+    @NotNull(message = "Poziom trudności nie może być pusty")
     private DifficultyLevel difficulty;
 
-    @NotBlank(message = "Category cannot be empty")
+    @NotBlank(message = "Kategoria nie może być pusta")
     private String category;
 
-    @Min(value = 0, message = "Points must be non-negative")
+    @Min(value = 0, message = "Liczba punktów nie może być ujemna")
     private int points;
 
-    @NotBlank(message = "Flag cannot be empty")
+    @NotBlank(message = "Flaga nie może być pusta")
     private String flag;
 
-    private boolean requiresVpn; // New field
+    private boolean requiresVpn;
 
     private RoomType roomType = RoomType.CTF;
 

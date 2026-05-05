@@ -25,9 +25,8 @@ public class Badge {
     private String description;
 
     @Column(nullable = false)
-    private String icon; // FontAwesome class (e.g., "fas fa-trophy") or image URL
+    private String icon;
 
-    // Optional: Condition type for automatic checking (e.g., "POINTS", "STREAK", "SOLVED_COUNT")
     @Column(name = "condition_type")
     private String conditionType;
 

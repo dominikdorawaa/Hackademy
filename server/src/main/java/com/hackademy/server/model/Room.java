@@ -48,7 +48,7 @@ public class Room {
     private int points;
 
     @NotBlank
-    @JsonIgnore // Prevent flag from being sent to client by default
+    @JsonIgnore
     @Column(nullable = false)
     private String flag;
 
@@ -57,7 +57,7 @@ public class Room {
     private int solutionsCount;
 
     @Column(name = "requires_vpn", nullable = false)
-    private boolean requiresVpn = false; // New field
+    private boolean requiresVpn = false;
 
     @Builder.Default
     @Enumerated(EnumType.STRING)
@@ -85,8 +85,10 @@ public class Room {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
         Room room = (Room) o;
         return id != null && id.equals(room.id);
     }
