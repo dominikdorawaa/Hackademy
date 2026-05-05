@@ -8,6 +8,12 @@ Hackademy wypełnia lukę na polskim rynku edukacji w zakresie cyberbezpieczeńs
 - Polskojęzyczne ścieżki edukacyjne
 - Praktyczne zadania w bezpiecznym, izolowanym środowisku
 - Interaktywną metodę nauczania przez praktykę
+
+## 🌍 Wersja Live
+
+Platforma jest dostępna online! Możesz ją przetestować pod adresem:
+👉 **[https://hackademy-front.onrender.com](https://hackademy-front.onrender.com)**
+
 ---
 
 ## ✨ Funkcjonalności
@@ -78,3 +84,17 @@ Hackademy wypełnia lukę na polskim rynku edukacji w zakresie cyberbezpieczeńs
 ### Baza danych
 - PostgreSQL
 
+---
+
+## 🚀 Uruchamianie lokalne
+
+Aby uruchomić projekt na swoim komputerze:
+
+1. Sklonuj repozytorium: `git clone https://github.com/dominikdorawaa/Hackademy.git`
+2. W głównym folderze projektu utwórz plik `.env` i skopiuj do niego zawartość z pliku `.env.example`.
+3. Podmień dane dostępowe w pliku `.env` na właściwe (zapytaj autora o hasła).
+4. **Backend (Java/Spring Boot):** 
+   - W VS Code odpal projekt za pomocą klawisza `F5` (gotowa konfiguracja załaduje plik `.env`).
+   - W IntelliJ zainstaluj wtyczkę **EnvFile** i wskaż jej plik `.env` w ustawieniach *Edit Configurations*.
+5. **Frontend (React/Vite):** 
+   - Wejdź do folderu `client`, wpisz `npm install`, a następnie `npm run dev`.
