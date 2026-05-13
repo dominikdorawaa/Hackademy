@@ -1,12 +1,13 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import API_URL from '../apiConfig';
+import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import './Navbar.css';
 
 const Navbar = () => {
-  const { isAuthenticated, logout, token } = useAuth();
+  const { isAuthenticated, logout, token, loading } = useAuth();
   const { theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
@@ -196,11 +197,30 @@ const Navbar = () => {
   const isActive = (path) => location.pathname === path;
   const isActivePrefix = (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
 
+  const landingScrollEnabled =
+    !isAuthPage && !loading && !isAuthenticated && location.pathname === '/';
+  const landingActiveSection = useLandingScrollSpy(landingScrollEnabled);
+
+  const landingHashHref = useCallback(
+    (id) => (location.pathname === '/' ? `#${id}` : `/#${id}`),
+    [location.pathname]
+  );
+
   return (
     <nav className="navbar">
       <div className="container">
         <div className="nav-content">
-          <Link to="/" className="logo" onClick={() => window.scrollTo(0, 0)}>
+          <Link
+            to="/"
+            className="logo"
+            onClick={(e) => {
+              if (location.pathname === '/') {
+                e.preventDefault();
+                window.history.replaceState(null, '', '#start');
+                window.scrollTo({ top: 0, behavior: 'smooth' });
+              }
+            }}
+          >
             <img
               src="/biale_hackademy_logo.png"
               alt="Hackademy Logo"
@@ -219,10 +239,37 @@ const Navbar = () => {
                 </>
               ) : (
                 <>
-                  <Link to="/" className="active" onClick={() => window.scrollTo(0, 0)}>Start</Link>
-                  <a href="/#rooms">Pokoje</a>
-                  <a href="/#arena">Tryb Rankingowy</a>
-                  <a href="/#leaderboard">Ranking</a>
+                  <a
+                    href={landingHashHref('start')}
+                    className={landingActiveSection === 'start' ? 'active' : ''}
+                    onClick={(e) => {
+                      if (location.pathname === '/') {
+                        e.preventDefault();
+                        window.history.replaceState(null, '', '#start');
+                        window.scrollTo({ top: 0, behavior: 'smooth' });
+                      }
+                    }}
+                  >
+                    Start
+                  </a>
+                  <a
+                    href={landingHashHref('arena')}
+                    className={landingActiveSection === 'arena' ? 'active' : ''}
+                  >
+                    Tryb Rankingowy
+                  </a>
+                  <a
+                    href={landingHashHref('rooms')}
+                    className={landingActiveSection === 'rooms' ? 'active' : ''}
+                  >
+                    Pokoje
+                  </a>
+                  <a
+                    href={landingHashHref('leaderboard')}
+                    className={landingActiveSection === 'leaderboard' ? 'active' : ''}
+                  >
+                    Ranking
+                  </a>
                 </>
               )}
             </div>

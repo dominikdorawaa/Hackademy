@@ -1,0 +1,27 @@
+# Lokalnie: utwórz plik .env w katalogu głównym repozytorium (obok folderu server/) albo w server/.
+# Format jak w pliku .properties (np. DB_URL=..., JWT_SECRET=...).
+spring:
+  application:
+    name: server
+  config:
+    import:
+      - optional:file:../.env[.properties]
+      - optional:file:./.env[.properties]
+  datasource:
+    url: ${DB_URL:${DATABASE_URL:}}
+    username: ${DB_USERNAME:}
+    password: ${DB_PASSWORD:}
+
+application:
+  frontend:
+    url: ${FRONTEND_URL:http://localhost:5173}
+  security:
+    jwt:
+      secret-key: ${JWT_SECRET:}
+      expiration: ${JWT_EXPIRATION_MS:86400000}
+
+vpn:
+  server:
+    host: ${VPN_SERVER_HOST:127.0.0.1}
+    user: ${VPN_SERVER_USER:dev}
+    private-key-path: ${VPN_SERVER_PRIVATE_KEY_PATH:classpath:gcp_key.pem}

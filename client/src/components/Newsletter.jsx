@@ -1,6 +1,25 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const Newsletter = () => {
+  const wrapRef = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = wrapRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.12, rootMargin: '0px 0px -4% 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
     <section
       style={{
@@ -10,7 +29,10 @@ const Newsletter = () => {
         background: 'linear-gradient(to bottom, var(--bg-dark), #08101c)',
       }}
     >
-      <div className="container">
+      <div
+        ref={wrapRef}
+        className={`container nl-reveal${inView ? ' nl-reveal--inview' : ''}`}
+      >
         <h2 className="section-title" style={{ fontSize: '2rem' }}>Bądź na bieżąco</h2>
         <p style={{ color: 'var(--text-gray)', marginBottom: '2rem' }}>
           Otrzymuj nowe wyzwania i poradniki prosto na maila.
@@ -28,7 +50,7 @@ const Newsletter = () => {
               color: 'white',
             }}
           />
-          <button className="btn btn-primary">Subskrybuj</button>
+          <button type="button" className="btn btn-primary">Subskrybuj</button>
         </div>
       </div>
     </section>

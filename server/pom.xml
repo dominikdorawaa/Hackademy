@@ -82,11 +82,15 @@
         </dependency>
     </dependencies>
 
+	<!-- Uruchamianie z server/: workingDirectory = moduł, żeby optional:file:../.env w application.yml wskazywało na .env w korzeniu repo. -->
 	<build>
 		<plugins>
 			<plugin>
 				<groupId>org.springframework.boot</groupId>
 				<artifactId>spring-boot-maven-plugin</artifactId>
+				<configuration>
+					<workingDirectory>${project.basedir}</workingDirectory>
+				</configuration>
 			</plugin>
 		</plugins>
 	</build>

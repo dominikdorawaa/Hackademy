@@ -1,0 +1,318 @@
+/* Kotwice pod sticky navbar + płynne przewijanie z linków */
+html {
+  scroll-behavior: smooth;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html {
+    scroll-behavior: auto;
+  }
+}
+
+#start,
+#arena,
+#rooms,
+#leaderboard {
+  scroll-margin-top: clamp(5rem, 12vh, 7.5rem);
+}
+
+/* --- Ujawnianie sekcji --- */
+.landing-reveal {
+  opacity: 0;
+  transform: translate3d(0, 36px, 0) scale(0.985);
+  filter: blur(6px);
+  transition:
+    opacity 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.75s cubic-bezier(0.22, 1, 0.36, 1),
+    filter 0.65s ease;
+  will-change: opacity, transform, filter;
+}
+
+.landing-reveal--visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+  filter: blur(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .landing-reveal {
+    opacity: 1;
+    transform: none;
+    filter: none;
+    transition: none;
+  }
+}
+
+/* --- Hero: wejście tytułu i terminala --- */
+.hero-entrance .hero-content > * {
+  opacity: 0;
+  transform: translateY(22px);
+  animation: heroFadeUp 0.75s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hero-entrance .hero-content h1 {
+  animation-delay: 0.08s;
+}
+
+.hero-entrance .hero-content > p {
+  animation-delay: 0.2s;
+}
+
+.hero-entrance .hero-buttons {
+  animation-delay: 0.32s;
+}
+
+.hero-entrance .stats-bar {
+  animation-delay: 0.42s;
+}
+
+.hero-entrance .hero-visual {
+  opacity: 0;
+  transform: translateY(28px) scale(0.97);
+  animation: heroFadeUp 0.85s cubic-bezier(0.22, 1, 0.36, 1) 0.12s forwards;
+}
+
+.hero-entrance .terminal-body p {
+  opacity: 0;
+  transform: translateX(-8px);
+  animation: termLineIn 0.45s cubic-bezier(0.22, 1, 0.36, 1) forwards;
+}
+
+.hero-entrance .terminal-body p:nth-child(1) {
+  animation-delay: 0.55s;
+}
+
+.hero-entrance .terminal-body p:nth-child(2) {
+  animation-delay: 0.68s;
+}
+
+.hero-entrance .terminal-body p:nth-child(3) {
+  animation-delay: 0.8s;
+}
+
+.hero-entrance .terminal-body p:nth-child(4) {
+  animation-delay: 0.92s;
+}
+
+.hero-entrance .terminal-body p:nth-child(5) {
+  animation-delay: 1.04s;
+}
+
+@keyframes heroFadeUp {
+  to {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+@keyframes termLineIn {
+  to {
+    opacity: 1;
+    transform: translateX(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hero-entrance .hero-content > *,
+  .hero-entrance .hero-visual,
+  .hero-entrance .terminal-body p {
+    animation: none !important;
+    opacity: 1 !important;
+    transform: none !important;
+  }
+}
+
+/* --- How it works: kroki --- */
+.hiw-reveal .section-title,
+.hiw-reveal .section-subtitle {
+  opacity: 0;
+  transform: translateY(18px);
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hiw-reveal--inview .section-title,
+.hiw-reveal--inview .section-subtitle {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+.hiw-reveal--inview .section-subtitle {
+  transition-delay: 0.08s;
+}
+
+.hiw-reveal .step-item {
+  opacity: 0;
+  transform: translateY(28px);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.hiw-reveal--inview .steps-grid .step-item:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.12s;
+}
+
+.hiw-reveal--inview .steps-grid .step-item:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.24s;
+}
+
+.hiw-reveal--inview .steps-grid .step-item:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0);
+  transition-delay: 0.36s;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hiw-reveal .section-title,
+  .hiw-reveal .section-subtitle,
+  .hiw-reveal .step-item {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* --- Arena: karta ELO --- */
+.arena-reveal .elo-card {
+  transition:
+    transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.45s ease;
+}
+
+.arena-reveal--inview .elo-card {
+  animation: eloCardPop 0.65s cubic-bezier(0.34, 1.56, 0.64, 1) both;
+}
+
+@keyframes eloCardPop {
+  from {
+    opacity: 0;
+    transform: perspective(800px) rotateX(8deg) translateY(24px);
+  }
+  to {
+    opacity: 1;
+    transform: perspective(800px) rotateX(0) translateY(0);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-reveal--inview .elo-card {
+    animation: none;
+    opacity: 1;
+  }
+}
+
+/* --- Pokoje: karty --- */
+.rooms-stagger .room-card {
+  opacity: 0;
+  transform: translateY(32px) scale(0.96);
+  transition:
+    opacity 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.55s cubic-bezier(0.22, 1, 0.36, 1),
+    box-shadow 0.35s ease,
+    border-color 0.35s ease;
+}
+
+.rooms-stagger--inview .room-card:nth-child(1) {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition-delay: 0.06s;
+}
+
+.rooms-stagger--inview .room-card:nth-child(2) {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition-delay: 0.16s;
+}
+
+.rooms-stagger--inview .room-card:nth-child(3) {
+  opacity: 1;
+  transform: translateY(0) scale(1);
+  transition-delay: 0.26s;
+}
+
+.rooms-stagger .room-card:hover {
+  transform: translateY(-6px) scale(1.01);
+  box-shadow: 0 18px 40px rgba(11, 99, 255, 0.12), 0 0 0 1px rgba(255, 45, 85, 0.15);
+}
+
+.rooms-stagger--inview .room-card:hover {
+  transform: translateY(-6px) scale(1.02);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .rooms-stagger .room-card {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* --- Ranking: karty --- */
+.lb-stagger .leaderboard-card {
+  opacity: 0;
+  transform: translateX(-20px);
+  transition:
+    opacity 0.5s cubic-bezier(0.22, 1, 0.36, 1),
+    transform 0.5s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.lb-stagger--inview .leaderboard-card:nth-child(1) {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.08s;
+}
+
+.lb-stagger--inview .leaderboard-card:nth-child(2) {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.18s;
+}
+
+.lb-stagger--inview .leaderboard-card:nth-child(3) {
+  opacity: 1;
+  transform: translateX(0);
+  transition-delay: 0.28s;
+}
+
+.lb-stagger .leaderboard-card:hover {
+  transform: translateX(4px);
+  box-shadow: 0 0 0 1px rgba(11, 99, 255, 0.35);
+}
+
+.lb-stagger--inview .leaderboard-card:hover {
+  transform: translateX(6px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .lb-stagger .leaderboard-card {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
+
+/* --- Newsletter --- */
+.nl-reveal {
+  opacity: 0;
+  transform: translateY(24px);
+  transition: opacity 0.65s ease, transform 0.65s cubic-bezier(0.22, 1, 0.36, 1);
+}
+
+.nl-reveal--inview {
+  opacity: 1;
+  transform: translateY(0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nl-reveal {
+    opacity: 1;
+    transform: none;
+    transition: none;
+  }
+}
