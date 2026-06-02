@@ -1,9 +1,32 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
 const Arena = () => {
+  const sectionRef = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -8% 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <section className="arena-section" id="arena">
+    <section
+      ref={sectionRef}
+      className={`arena-section arena-reveal${inView ? ' arena-reveal--inview' : ''}`}
+      id="arena"
+    >
       <div className="container">
         <div className="arena-grid">
           <div className="arena-content">

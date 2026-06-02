@@ -1,7 +1,27 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top Hakerzy', currentUsername, myRank }) => {
+const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top Hakerzy', currentUsername, myRank, guestLanding = false }) => {
+  const cardsRef = useRef(null);
+  const [cardsInView, setCardsInView] = useState(false);
+
+  useEffect(() => {
+    if (!guestLanding) return;
+    const el = cardsRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setCardsInView(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.08, rootMargin: '0px 0px -6% 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, [guestLanding]);
+
   const rankClasses = ['rank-1', 'rank-2', 'rank-3', 'rank-4'];
 
   // Check if current user is in the top list
@@ -21,14 +41,17 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
         
         {!showTitle && <h3 style={{ textAlign: 'center', marginBottom: '20px', color: type === 'elo' ? '#ff9800' : '#3498db' }}>{title}</h3>}
 
-        <div className="leaderboard-cards">
+        <div
+          ref={cardsRef}
+          className={`leaderboard-cards${guestLanding ? ` lb-stagger${cardsInView ? ' lb-stagger--inview' : ''}` : ''}`}
+        >
           {players.length === 0 ? (
             <p style={{ textAlign: 'center', color: 'var(--text-gray)' }}>Brak graczy w rankingu.</p>
           ) : (
             players.map((player, index) => {
               const playerName = player.username || player.name;
               const isMe = currentUsername && playerName === currentUsername;
-              const profileLink = isMe ? '/profile' : `/profile/${playerName}`;
+              const profileLink = guestLanding ? '/register' : (isMe ? '/profile' : `/profile/${playerName}`);
 
               return (
                 <div key={index} className={`leaderboard-card ${isMe ? 'highlight-me' : ''}`} style={isMe ? { border: '1px solid var(--primary-blue)' } : {}}>

@@ -1,8 +1,30 @@
-import React from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 
 const HowItWorks = () => {
+  const sectionRef = useRef(null);
+  const [inView, setInView] = useState(false);
+
+  useEffect(() => {
+    const el = sectionRef.current;
+    if (!el) return;
+    const obs = new IntersectionObserver(
+      ([entry]) => {
+        if (entry.isIntersecting) {
+          setInView(true);
+          obs.disconnect();
+        }
+      },
+      { threshold: 0.1, rootMargin: '0px 0px -5% 0px' }
+    );
+    obs.observe(el);
+    return () => obs.disconnect();
+  }, []);
+
   return (
-    <section className="how-it-works">
+    <section
+      ref={sectionRef}
+      className={`how-it-works hiw-reveal${inView ? ' hiw-reveal--inview' : ''}`}
+    >
       <div className="container">
         <h2 className="section-title">Jak To Działa?</h2>
         <p className="section-subtitle">

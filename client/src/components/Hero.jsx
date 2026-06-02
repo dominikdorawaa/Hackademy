@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom';
 
 const Hero = () => {
   return (
-    <header className="hero">
+    <header className="hero hero-entrance">
       <div className="container">
         <div className="hero-grid">
           <div className="hero-content">

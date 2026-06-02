@@ -21,6 +21,24 @@
   box-shadow: 0 0 12px rgba(11, 99, 255, 0.25);
 }
 
+.nav-links a:not(.active) {
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.nav-links a:not(.active):hover {
+  color: var(--text-light);
+  transform: translateY(-1px);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .nav-links a:not(.active) {
+    transition: none;
+  }
+  .nav-links a:not(.active):hover {
+    transform: none;
+  }
+}
+
 /* --- Notifications Dropdown Container --- */
 .notifications-dropdown {
   position: absolute;
