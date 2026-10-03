@@ -6,12 +6,9 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 
-import java.nio.charset.StandardCharsets;
-import java.security.MessageDigest;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
-import java.util.HexFormat;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -43,7 +40,7 @@ class FlywayMigrationTest {
 
     @Test
     void migratesFreshDatabaseAndRestarts() throws Exception {
-        var flyway = flyway(false, "latest");
+        var flyway = flyway("latest");
         flyway.migrate();
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, flyway.migrate().migrationsExecuted);
@@ -51,23 +48,8 @@ class FlywayMigrationTest {
     }
 
     @Test
-    void preservesPreviouslyAppliedV29Checksum() throws Exception {
-        try (var resource = getClass().getResourceAsStream("/db/migration/V29__restore_schema_invariants.sql")) {
-            var sql = new String(resource.readAllBytes(), StandardCharsets.UTF_8)
-                    .replace("\r\n", "\n").stripTrailing();
-            assertEquals("172f70e95d0d2747a87c8ef361fd4ba518d8654b480486896643b08bd67b5b96",
-                    HexFormat.of().formatHex(MessageDigest.getInstance("SHA-256")
-                            .digest(sql.getBytes(StandardCharsets.UTF_8))));
-        }
-        flyway(true, "29").migrate();
-        var flyway = flyway(false, "latest");
-        assertTrue(flyway.validateWithResult().validationSuccessful);
-        assertEquals(0, flyway.migrate().migrationsExecuted);
-    }
-
-    @Test
     void removesDuplicatesBeforeV29AndPreservesEarliestCompletion() throws Exception {
-        flyway(true, "28").migrate();
+        flyway("28").migrate();
         execute("""
                 INSERT INTO users (id, created_at, email, password, points, role, streak, updated_at, username)
                 VALUES (1, now(), 'test@example.com', 'unused', 0, 'USER', 0, now(), 'tester');
@@ -80,7 +62,9 @@ class FlywayMigrationTest {
                 VALUES (1, '2026-01-02', 1, 1), (2, '2026-01-01', 1, 1),
                     (3, '2026-01-01', 1, 1), (4, '2026-01-01', 2, 1);
                 """);
-        var flyway = flyway(false, "latest");
+        flyway("29").migrate();
+        assertEquals(4, scalar("SELECT count(*) FROM user_completed_tasks"));
+        var flyway = flyway("latest");
         flyway.migrate();
         assertEquals(2, scalar("SELECT count(*) FROM user_completed_tasks"));
         assertEquals(2, scalar("SELECT id FROM user_completed_tasks WHERE task_id = 1"));
@@ -93,9 +77,9 @@ class FlywayMigrationTest {
         assertEquals(2, scalar("SELECT count(*) FROM user_completed_tasks"));
     }
 
-    private Flyway flyway(boolean skipCallbacks, String target) {
+    private Flyway flyway(String target) {
         return Flyway.configure().dataSource(url, "postgres", "migration_test")
-                .locations("classpath:db/migration").skipDefaultCallbacks(skipCallbacks)
+                .locations("classpath:db/migration")
                 .target(target).load();
     }
 

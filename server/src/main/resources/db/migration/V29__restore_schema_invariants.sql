@@ -71,20 +71,3 @@ BEGIN
         END IF;
     END LOOP;
 END $$;
-
-DO $$
-BEGIN
-    IF NOT EXISTS (
-        SELECT 1
-        FROM pg_constraint AS constraint_name
-        WHERE constraint_name.conrelid = 'public.user_completed_tasks'::regclass
-            AND constraint_name.contype = 'u'
-            AND constraint_name.conkey = ARRAY[
-                (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.user_completed_tasks'::regclass AND attname = 'user_id'),
-                (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.user_completed_tasks'::regclass AND attname = 'task_id')
-            ]
-    ) THEN
-        ALTER TABLE public.user_completed_tasks
-            ADD CONSTRAINT uq_user_completed_tasks_user_task UNIQUE (user_id, task_id);
-    END IF;
-END $$;
