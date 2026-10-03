@@ -101,3 +101,9 @@ Uruchom bazę poleceniem `docker compose up -d --wait postgres`, a backend uruch
 Zmienne `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` i `FRONTEND_URL` dla wdrożeń ustawiaj w panelu hostingu. Nie dodawaj pliku `.env` ani kluczy VPN do repozytorium. Jeśli korzystasz z VPN, podaj `VPN_SERVER_HOST`, `VPN_SERVER_USER` i `VPN_SERVER_PRIVATE_KEY_PATH` wskazujący na plik zamontowany poza obrazem, np. `file:/run/secrets/vpn_key`.
 
 `VITE_API_URL` jest publicznym adresem API wpisywanym do frontendu podczas budowania; nigdy nie umieszczaj w zmiennych `VITE_` haseł ani tokenów serwera. Lokalny Compose ustawia ten adres na `http://localhost:8080`.
+
+## Testy migracji
+
+`FlywayMigrationTest` wymaga osobnego PostgreSQL z użytkownikiem `postgres` i hasłem `migration_test`. Ustaw `MIGRATION_TEST_URL` na adres JDBC tej instancji, np. `jdbc:postgresql://127.0.0.1:55439/postgres`, i uruchom `mvn test` w katalogu `server`. Testy tworzą i usuwają własne bazy o losowych nazwach. Bez tej zmiennej testy migracji są pomijane.
+
+V29 zachowuje pierwotną treść z commita `6beecaa`. Skrypt `beforeEachMigrate__deduplicate_task_completions.sql` usuwa powtórzone zaliczenia przed dodaniem ograniczenia unikalności, zachowując najwcześniejsze zaliczenie. Bazy, które wykonały przejściową, zmienioną V29 z commita `46f13c1`, wymagają osobnego sprawdzenia historii i sumy kontrolnej przed naprawą metadanych Flyway. Nie wyłączaj walidacji ani nie uruchamiaj automatycznie `repair`.

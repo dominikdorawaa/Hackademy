@@ -84,19 +84,6 @@ BEGIN
                 (SELECT attnum FROM pg_attribute WHERE attrelid = 'public.user_completed_tasks'::regclass AND attname = 'task_id')
             ]
     ) THEN
-        DELETE FROM public.user_completed_tasks
-        WHERE id IN (
-            SELECT id
-            FROM (
-                SELECT id, ROW_NUMBER() OVER (
-                    PARTITION BY user_id, task_id
-                    ORDER BY completed_at, id
-                ) AS duplicate_number
-                FROM public.user_completed_tasks
-            ) AS completions
-            WHERE duplicate_number > 1
-        );
-
         ALTER TABLE public.user_completed_tasks
             ADD CONSTRAINT uq_user_completed_tasks_user_task UNIQUE (user_id, task_id);
     END IF;
