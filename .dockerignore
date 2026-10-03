@@ -2,3 +2,15 @@ target/
 .idea/
 .git/
 *.iml
+client/
+.env
+server/target/
+.env*
+**/.env*
+**/*.pem
+**/*.key
+**/*.p12
+**/*.pfx
+**/application.properties
+**/node_modules/
+**/dist/

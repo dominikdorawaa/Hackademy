@@ -11,7 +11,7 @@ Hackademy wypełnia lukę na polskim rynku edukacji w zakresie cyberbezpieczeńs
 
 ## 🌍 Wersja Live
 
-Platforma jest dostępna online! Możesz ją przetestować pod adresem:
+Platforma jest dostępna online Możesz ją przetestować pod adresem:
 👉 **[https://hackademy-front.onrender.com](https://hackademy-front.onrender.com)**
 
 ---
@@ -86,15 +86,14 @@ Platforma jest dostępna online! Możesz ją przetestować pod adresem:
 
 ---
 
-## 🚀 Uruchamianie lokalne
+## Uruchomienie lokalne przez Docker Compose
 
-Aby uruchomić projekt na swoim komputerze:
+1. Skopiuj `.env.example` do `.env` w katalogu głównym i ustaw własne `DB_PASSWORD` oraz `JWT_SECRET`. Jeżeli masz już `.env`, nie nadpisuj go; sprawdź tylko te dwie zmienne. Sekret JWT musi być losową wartością Base64 o co najmniej 32 bajtach. W PowerShell można go wygenerować poleceniem `[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`.
+2. Uruchom `docker compose up --build -d` z katalogu głównego projektu.
+3. Otwórz `http://localhost:5173`. Backend odpowiada pod `http://localhost:8080/health`.
 
-1. Sklonuj repozytorium: `git clone https://github.com/dominikdorawaa/Hackademy.git`
-2. W głównym folderze projektu utwórz plik `.env` i skopiuj do niego zawartość z pliku `.env.example`.
-3. Podmień dane dostępowe w pliku `.env` na właściwe (zapytaj autora o hasła).
-4. **Backend (Java/Spring Boot):** 
-   - W VS Code odpal projekt za pomocą klawisza `F5` (gotowa konfiguracja załaduje plik `.env`).
-   - W IntelliJ zainstaluj wtyczkę **EnvFile** i wskaż jej plik `.env` w ustawieniach *Edit Configurations*.
-5. **Frontend (React/Vite):** 
-   - Wejdź do folderu `client`, wpisz `npm install`, a następnie `npm run dev`.
+Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zewnętrznej bazy z istniejącego `.env`, więc lokalne uruchomienie nie zmieni danych produkcyjnych. Profil `local` tworzy i aktualizuje schemat w tej lokalnej bazie. Zatrzymaj usługi przez `docker compose down`; wolumen bazy zostaje zachowany.
+
+Zmienne `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` i `FRONTEND_URL` dla wdrożeń ustawiaj w panelu hostingu. Nie dodawaj pliku `.env` ani kluczy VPN do repozytorium. Jeśli korzystasz z VPN, podaj `VPN_SERVER_HOST`, `VPN_SERVER_USER` i `VPN_SERVER_PRIVATE_KEY_PATH` wskazujący na plik zamontowany poza obrazem, np. `file:/run/secrets/vpn_key`.
+
+`VITE_API_URL` jest publicznym adresem API wpisywanym do frontendu podczas budowania; nigdy nie umieszczaj w zmiennych `VITE_` haseł ani tokenów serwera. Lokalny Compose ustawia ten adres na `http://localhost:8080`.

@@ -1,20 +1,46 @@
 services:
+  db:
+    image: postgres:16.15-alpine
+    environment:
+      POSTGRES_DB: hackademy
+      POSTGRES_USER: hackademy
+      POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U hackademy -d hackademy"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+    restart: unless-stopped
+
   backend:
     build: .
-    container_name: hackademy-backend
     ports:
       - "8080:8080"
-    env_file:
-      - .env
+    environment:
+      PORT: "8080"
+      SPRING_PROFILES_ACTIVE: local
+      DB_URL: jdbc:postgresql://db:5432/hackademy
+      DB_USERNAME: hackademy
+      DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
+      JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      FRONTEND_URL: http://localhost:5173
+    depends_on:
+      db:
+        condition: service_healthy
     restart: unless-stopped
 
   frontend:
-    build: ./client
-    container_name: hackademy-frontend
+    build:
+      context: ./client
+      args:
+        VITE_API_URL: http://localhost:8080
     ports:
-      - "5173:5173"
-    environment:
-      VITE_API_URL: http://localhost:8080
+      - "5173:80"
     depends_on:
       - backend
     restart: unless-stopped
+
+volumes:
+  postgres_data:

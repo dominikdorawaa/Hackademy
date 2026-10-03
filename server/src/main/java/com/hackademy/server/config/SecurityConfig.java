@@ -14,6 +14,7 @@ import org.springframework.security.config.annotation.web.configurers.AbstractHt
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 import org.springframework.web.cors.CorsConfiguration;
 import org.springframework.web.cors.CorsConfigurationSource;
 import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
@@ -21,7 +22,6 @@ import org.springframework.web.cors.UrlBasedCorsConfigurationSource;
 import java.util.Arrays;
 import java.util.List;
 
-import static org.springframework.security.web.util.matcher.AntPathRequestMatcher.antMatcher;
 
 @Configuration
 @EnableWebSecurity
@@ -65,12 +65,13 @@ public class SecurityConfig {
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authorize -> authorize
-                .requestMatchers(antMatcher("/")).permitAll()
-                .requestMatchers(antMatcher("/api/auth/**")).permitAll()
-                .requestMatchers(antMatcher("/api/user/ranking")).permitAll()
-                .requestMatchers(antMatcher("/api/ranking/**")).permitAll()
-                .requestMatchers(antMatcher("/api/rooms/top3")).permitAll() // Allow public access to top 3 rooms
-                .requestMatchers(antMatcher("/api/paths/**/banner")).permitAll()
+                .requestMatchers("/").permitAll()
+                .requestMatchers("/health").permitAll()
+                .requestMatchers("/api/auth/**").permitAll()
+                .requestMatchers("/api/user/ranking").permitAll()
+                .requestMatchers("/api/ranking/**").permitAll()
+                .requestMatchers("/api/rooms/top3").permitAll() // Allow public access to top 3 rooms
+                .requestMatchers(RegexRequestMatcher.regexMatcher("^/api/paths/.*/banner$")).permitAll()
                 .anyRequest().authenticated()
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Set session management to stateless
