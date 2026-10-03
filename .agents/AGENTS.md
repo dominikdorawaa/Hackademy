@@ -7,3 +7,4 @@
 - Tickety (issues, opisy PR) też mają być krótkie i treściwe, bez atrybucji AI.
 - Przy tworzeniu PR na GitHubie użyj tytułu ticketa jako tytułu PR i automatycznie przygotuj krótki opis na podstawie rzeczywistych zmian oraz wyników weryfikacji.
 - Przed rozpoczęciem zmian utwórz osobną gałąź od aktualnego `main`. Jeśli istnieje ticket, nazwij gałąź zgodnie z jego nazwą. Nie commituj ani nie pushuj bezpośrednio z `main`.
+- Nigdy nie edytuj, nie usuwaj ani nie zmieniaj nazwy migracji, która kiedykolwiek trafiła na `main`. Każdą kolejną zmianę schematu lub danych wprowadzaj w nowej migracji. Przed zmianą istniejącej migracji sprawdź historię `main`; jeśli migracja została już wykonana na jakiejkolwiek bazie, również zachowaj jej treść bez zmian.
