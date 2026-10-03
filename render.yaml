@@ -7,11 +7,11 @@ services:
     repo: https://github.com/dominikdorawaa/Hackademy.git
     autoDeploy: true
     dockerfilePath: Dockerfile
-    healthCheckPath: /api/rooms
+    healthCheckPath: /health
     buildFilter:
       paths:
         - server/**
-        - pom.xml
+        - server/pom.xml
         - Dockerfile
     envVars:
       - key: JWT_SECRET

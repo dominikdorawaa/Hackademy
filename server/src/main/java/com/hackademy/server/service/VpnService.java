@@ -9,6 +9,7 @@ import org.apache.sshd.common.util.security.SecurityUtils;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Service;
 import org.springframework.util.StreamUtils;
 
@@ -23,6 +24,12 @@ import java.util.concurrent.TimeUnit;
 @Service
 public class VpnService {
 
+    private final ResourceLoader resourceLoader;
+
+    public VpnService(ResourceLoader resourceLoader) {
+        this.resourceLoader = resourceLoader;
+    }
+
     @Value("${vpn.server.host}")
     private String vpnHost;
 
@@ -36,12 +43,14 @@ public class VpnService {
         try (SshClient client = SshClient.setUpDefaultClient()) {
             client.start();
             
-            InputStream keyStream = getClass().getClassLoader().getResourceAsStream("gcp_key.pem");
-            if (keyStream == null) {
-                throw new IOException("Private key not found in classpath");
+            if (privateKeyPath == null || privateKeyPath.isBlank()) {
+                throw new IOException("VPN private key is not configured");
             }
-            
-            byte[] keyBytes = StreamUtils.copyToByteArray(keyStream);
+
+            byte[] keyBytes;
+            try (InputStream keyStream = resourceLoader.getResource(privateKeyPath).getInputStream()) {
+                keyBytes = StreamUtils.copyToByteArray(keyStream);
+            }
             
             Iterable<KeyPair> keys = SecurityUtils.loadKeyPairIdentities(
                     null,
