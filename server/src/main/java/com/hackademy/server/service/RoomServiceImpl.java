@@ -309,12 +309,12 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public SolveRoomResponse solveTask(Long roomId, Long taskId, String answer, String username) {
+        User user = userRepository.findByUsernameForUpdate(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found"));
         RoomTask task = roomTaskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found"));
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         if (!task.getRoom().getId().equals(roomId)) {
             throw new IllegalArgumentException("Task does not belong to this room");
