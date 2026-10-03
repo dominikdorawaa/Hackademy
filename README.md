@@ -92,8 +92,18 @@ Platforma jest dostępna online Możesz ją przetestować pod adresem:
 2. Uruchom `docker compose up --build -d` z katalogu głównego projektu.
 3. Otwórz `http://localhost:5173`. Backend odpowiada pod `http://localhost:8080/health`.
 
-Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zewnętrznej bazy z istniejącego `.env`, więc lokalne uruchomienie nie zmieni danych produkcyjnych. Profil `local` tworzy i aktualizuje schemat w tej lokalnej bazie. Zatrzymaj usługi przez `docker compose down`; wolumen bazy zostaje zachowany.
+Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zewnętrznej bazy z istniejącego `.env`, więc lokalne uruchomienie nie zmieni danych produkcyjnych. Flyway przygotowuje schemat bazy przy starcie backendu, a Hibernate sprawdza jego zgodność. Zatrzymaj usługi przez `docker compose down`; wolumen bazy zostaje zachowany.
+
+## Backend w IntelliJ z bazą w Dockerze
+
+Uruchom bazę poleceniem `docker compose up -d --wait postgres`, a backend uruchamiaj w IntelliJ jako `com.hackademy.server.ServerApplication` z modułu `server`. Nie ustawiaj aktywnego profilu. Ustaw w konfiguracji Spring Boot zmienne `DB_URL=jdbc:postgresql://localhost:15432/hackademy`, `DB_USERNAME=hackademy`, `DB_PASSWORD` i `JWT_SECRET`. Hasło i sekret pobierz ze swojego `.env`; nie zapisuj ich w plikach projektu. Baza korzysta z portu `15432` na komputerze, ponieważ port `5433` jest niedostępny na tym komputerze.
 
 Zmienne `DB_URL`, `DB_USERNAME`, `DB_PASSWORD`, `JWT_SECRET` i `FRONTEND_URL` dla wdrożeń ustawiaj w panelu hostingu. Nie dodawaj pliku `.env` ani kluczy VPN do repozytorium. Jeśli korzystasz z VPN, podaj `VPN_SERVER_HOST`, `VPN_SERVER_USER` i `VPN_SERVER_PRIVATE_KEY_PATH` wskazujący na plik zamontowany poza obrazem, np. `file:/run/secrets/vpn_key`.
 
 `VITE_API_URL` jest publicznym adresem API wpisywanym do frontendu podczas budowania; nigdy nie umieszczaj w zmiennych `VITE_` haseł ani tokenów serwera. Lokalny Compose ustawia ten adres na `http://localhost:8080`.
+
+## Testy migracji
+
+`FlywayMigrationTest` wymaga osobnego PostgreSQL z użytkownikiem `postgres` i hasłem `migration_test`. Ustaw `MIGRATION_TEST_URL` na adres JDBC tej instancji, np. `jdbc:postgresql://127.0.0.1:55439/postgres`, i uruchom `mvn test` w katalogu `server`. Testy tworzą i usuwają własne bazy o losowych nazwach. Bez tej zmiennej testy migracji są pomijane.
+
+V30 usuwa powtórzone zaliczenia, zachowując najwcześniejsze, i dodaje ograniczenie unikalności. V29 nie jest jeszcze na `main`; jej ograniczenie unikalności zostało przeniesione do V30, aby istniejące duplikaty nie blokowały startu. Bazy, które wykonały wcześniejszą wersję V29 z tej gałęzi PR, wymagają osobnego sprawdzenia sumy kontrolnej Flyway. Nie wyłączaj walidacji ani nie uruchamiaj automatycznie `repair`.
