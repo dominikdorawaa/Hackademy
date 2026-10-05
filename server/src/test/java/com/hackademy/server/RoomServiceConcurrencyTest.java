@@ -1,14 +1,14 @@
 package com.hackademy.server;
 
-import com.hackademy.server.model.DifficultyLevel;
-import com.hackademy.server.model.Room;
-import com.hackademy.server.model.RoomTask;
-import com.hackademy.server.model.User;
-import com.hackademy.server.repository.RoomRepository;
-import com.hackademy.server.repository.RoomTaskRepository;
-import com.hackademy.server.repository.UserCompletedTaskRepository;
-import com.hackademy.server.repository.UserRepository;
-import com.hackademy.server.service.RoomService;
+import com.hackademy.server.room.DifficultyLevel;
+import com.hackademy.server.room.Room;
+import com.hackademy.server.room.RoomTask;
+import com.hackademy.server.user.User;
+import com.hackademy.server.room.RoomRepository;
+import com.hackademy.server.room.RoomTaskRepository;
+import com.hackademy.server.room.UserCompletedTaskRepository;
+import com.hackademy.server.user.UserRepository;
+import com.hackademy.server.room.RoomService;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
@@ -90,7 +90,7 @@ class RoomServiceConcurrencyTest {
             );
             start.countDown();
             for (var result : results) {
-                assertTrue(result.get(10, TimeUnit.SECONDS).isSuccess());
+                assertTrue(result.get(10, TimeUnit.SECONDS).success());
             }
         } finally {
             pool.shutdownNow();

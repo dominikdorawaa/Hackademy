@@ -1,0 +1,38 @@
+package com.hackademy.server.room;
+
+import jakarta.persistence.*;
+import lombok.AllArgsConstructor;
+import lombok.Getter;
+import lombok.NoArgsConstructor;
+import lombok.Setter;
+
+@Entity
+@Table(name = "room_files")
+@Getter
+@Setter
+@NoArgsConstructor
+@AllArgsConstructor
+public class RoomFile {
+
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
+    private Long id;
+
+    private String fileName;
+
+    private String fileType;
+
+    @Column(columnDefinition = "bytea")
+    private byte[] data;
+
+    @OneToOne(fetch = FetchType.LAZY)
+    @JoinColumn(name = "room_id", nullable = false, unique = true)
+    private Room room;
+
+    public RoomFile(String fileName, String fileType, byte[] data, Room room) {
+        this.fileName = fileName;
+        this.fileType = fileType;
+        this.data = data;
+        this.room = room;
+    }
+}
