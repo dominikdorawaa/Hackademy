@@ -1,6 +1,6 @@
 package com.hackademy.server.filter;
 
-import com.hackademy.server.service.JwtService;
+import com.hackademy.server.auth.JwtService;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
