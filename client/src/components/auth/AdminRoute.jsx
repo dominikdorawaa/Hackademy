@@ -1,21 +1,46 @@
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
+import API_URL from '../../apiConfig';
 
 const AdminRoute = ({ children }) => {
-  const { isAuthenticated, user, loading } = useAuth();
+  const { isAuthenticated, token, loading } = useAuth();
+  const [access, setAccess] = useState({ token: null, status: 'checking' });
 
-  if (loading) {
-    return <div>Loading...</div>; // Or a spinner component
+  useEffect(() => {
+    if (!isAuthenticated || !token) return;
+
+    const controller = new AbortController();
+
+    fetch(`${API_URL}/api/user/me`, {
+      headers: { Authorization: `Bearer ${token}` },
+      signal: controller.signal,
+    })
+      .then((response) => {
+        if (!response.ok) throw new Error(`HTTP ${response.status}`);
+        return response.json();
+      })
+      .then((currentUser) => setAccess({ token, status: currentUser.role === 'ADMIN' ? 'allowed' : 'denied' }))
+      .catch((error) => {
+        if (error.name !== 'AbortError') setAccess({ token, status: 'error' });
+      });
+
+    return () => controller.abort();
+  }, [isAuthenticated, token]);
+
+  if (loading || (isAuthenticated && (access.token !== token || access.status === 'checking'))) {
+    return <div>Loading...</div>;
   }
 
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
   
-  // Check if user is loaded and if their roles include 'ROLE_ADMIN'
-  if (!user || !user.roles.includes('ROLE_ADMIN')) {
-    // Redirect non-admin users to the dashboard or another appropriate page
+  if (access.status === 'error') {
+    return <div>Nie udało się sprawdzić uprawnień. Odśwież stronę i spróbuj ponownie.</div>;
+  }
+
+  if (access.status !== 'allowed') {
     return <Navigate to="/dashboard" replace />;
   }
 
