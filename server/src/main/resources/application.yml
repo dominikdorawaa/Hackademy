@@ -14,9 +14,8 @@ spring:
       ddl-auto: validate
   flyway:
     enabled: true
-    locations: classpath:db/migration
-    baseline-on-migrate: true
-    baseline-version: 27
+    locations: classpath:db/schema
+    baseline-on-migrate: false
   servlet:
     multipart:
       max-file-size: 50MB

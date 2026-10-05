@@ -153,9 +153,7 @@ class SchemaMigrationTest {
                 "--DB_USERNAME=" + username,
                 "--DB_PASSWORD=" + password,
                 "--JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
-                "--server.port=0",
-                "--spring.flyway.locations=classpath:db/schema",
-                "--spring.flyway.baseline-on-migrate=false"
+                "--server.port=0"
         );
     }
 
