@@ -1,13 +1,13 @@
 services:
   postgres:
-    image: postgres:16.15-alpine
+    image: postgres:17.11-alpine
     container_name: postgres
     environment:
       POSTGRES_DB: hackademy
       POSTGRES_USER: hackademy
       POSTGRES_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
     volumes:
-      - postgres_data:/var/lib/postgresql/data
+      - postgres_data_v1:/var/lib/postgresql/data
     ports:
       - "127.0.0.1:15432:5432"
     healthcheck:
@@ -27,6 +27,8 @@ services:
       DB_USERNAME: hackademy
       DB_PASSWORD: ${DB_PASSWORD:?Set DB_PASSWORD in .env}
       JWT_SECRET: ${JWT_SECRET:?Set JWT_SECRET in .env}
+      SPRING_FLYWAY_LOCATIONS: classpath:db/schema
+      SPRING_FLYWAY_BASELINE_ON_MIGRATE: "false"
       FRONTEND_URL: http://localhost:5173
     depends_on:
       postgres:
@@ -45,4 +47,4 @@ services:
     restart: unless-stopped
 
 volumes:
-  postgres_data:
+  postgres_data_v1:

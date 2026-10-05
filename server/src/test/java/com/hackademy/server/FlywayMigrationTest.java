@@ -15,7 +15,7 @@ import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@EnabledIfEnvironmentVariable(named = "MIGRATION_TEST_URL", matches = ".+")
+@EnabledIfEnvironmentVariable(named = "LEGACY_MIGRATION_TEST_URL", matches = ".+")
 class FlywayMigrationTest {
     private String database;
     private String url;
@@ -23,16 +23,16 @@ class FlywayMigrationTest {
     @BeforeEach
     void createDatabase() throws Exception {
         database = "migration_test_" + UUID.randomUUID().toString().replace("-", "");
-        try (var connection = connect(System.getenv("MIGRATION_TEST_URL"));
+        try (var connection = connect(System.getenv("LEGACY_MIGRATION_TEST_URL"));
              var statement = connection.createStatement()) {
             statement.execute("CREATE DATABASE " + database);
         }
-        url = System.getenv("MIGRATION_TEST_URL").replaceFirst("/[^/]+$", "/" + database);
+        url = System.getenv("LEGACY_MIGRATION_TEST_URL").replaceFirst("/[^/]+$", "/" + database);
     }
 
     @AfterEach
     void dropDatabase() throws Exception {
-        try (var connection = connect(System.getenv("MIGRATION_TEST_URL"));
+        try (var connection = connect(System.getenv("LEGACY_MIGRATION_TEST_URL"));
              var statement = connection.createStatement()) {
             statement.execute("DROP DATABASE " + database + " WITH (FORCE)");
         }
