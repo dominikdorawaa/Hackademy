@@ -50,7 +50,7 @@ const VpnPage = () => {
             } else {
                 setError("Nie udało się wygenerować pliku. Spróbuj ponownie później.");
             }
-        } catch (err) {
+        } catch {
             setError("Błąd sieci.");
         } finally {
             setLoading(false);

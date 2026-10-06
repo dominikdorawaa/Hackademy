@@ -94,3 +94,7 @@ Platforma jest dostępna online Możesz ją przetestować pod adresem:
 
 Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zewnętrznej bazy z istniejącego `.env`, więc lokalne uruchomienie nie zmieni danych produkcyjnych. Flyway przygotowuje schemat bazy przy starcie backendu z migracji w `db/schema`, a Hibernate sprawdza jego zgodność. Nowa baza zawiera tylko definicje odznak; pierwsze konto administratora nadaj ręcznie po rejestracji poleceniem `UPDATE users SET role = 'ADMIN' WHERE username = '...'`. Zatrzymaj usługi przez `docker compose down`; wolumen bazy zostaje zachowany.
 
+## Testy backendu
+
+Uruchom Docker Engine, a następnie wykonaj `mvn -B -ntp verify` w katalogu `server`. Testcontainers sam uruchamia PostgreSQL, a Flyway przygotowuje schemat testowej bazy; nie trzeba ustawiać `DB_URL` ani używać bazy z `.env`. Ten sam zestaw testów wykonuje workflow `Backend` dla każdego pull requestu. Wynik i logi są dostępne w zakładce Actions oraz w Checks danego PR.
+

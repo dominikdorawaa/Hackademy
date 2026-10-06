@@ -8,7 +8,7 @@ import { useNavigate } from 'react-router-dom';
 import './DashboardPage.css';
 
 // ─── Active Path Widget ────────────────────────────────────────────────────────
-const ActivePathWidget = ({ token, navigate }) => {
+export const ActivePathWidget = ({ token, navigate }) => {
   const [pathData, setPathData] = useState(null);
   const [loading, setLoading] = useState(true);
 

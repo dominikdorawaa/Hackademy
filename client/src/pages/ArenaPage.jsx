@@ -217,7 +217,7 @@ const ArenaPage = () => {
                 const data = await response.json();
                 setError(data.message);
             }
-        } catch (err) {
+        } catch {
             setError("Błąd sieci");
         }
     };
@@ -277,13 +277,6 @@ const ArenaPage = () => {
         } finally {
             setProcessingChallengeId(null);
         }
-    };
-
-    const handleBackToArena = () => {
-        setStatus('IDLE');
-        setGameSession(null);
-        // finishedGameIdRef.current is already set for this game, so polling won't show it again
-        // But if we want to be sure, we keep it set until a new game starts
     };
 
     if (!userData) return <div className="container" style={{ paddingTop: '40px' }}>Ładowanie...</div>;

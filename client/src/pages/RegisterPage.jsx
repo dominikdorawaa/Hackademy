@@ -60,7 +60,7 @@ const RegisterPage = () => {
         await delay(3000);
         setIsSubmitting(false); // Reset form to allow user to try again
       }
-    } catch (err) {
+    } catch {
       setRegisterSequence(prev => [...prev, '[ERROR] Nie można połączyć z serwerem.']);
       await delay(3000);
       setIsSubmitting(false); // Reset form

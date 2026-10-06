@@ -5,7 +5,6 @@ import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import DashboardPage from './pages/DashboardPage';
 import LearnPage from './pages/LearnPage';
 import UserDashboardPage from './pages/UserDashboardPage';
 import PathDetailPage from './pages/PathDetailPage';

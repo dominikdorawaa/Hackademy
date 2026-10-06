@@ -39,7 +39,7 @@ const PublicProfilePage = () => {
                 } else {
                     setError('Nie znaleziono użytkownika');
                 }
-            } catch (err) {
+            } catch {
                 setError('Błąd sieci');
             } finally {
                 setLoading(false);

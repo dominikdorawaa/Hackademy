@@ -7,9 +7,11 @@ import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
-import org.junit.jupiter.api.condition.EnabledIfEnvironmentVariable;
 import org.springframework.boot.builder.SpringApplicationBuilder;
 import org.springframework.context.ConfigurableApplicationContext;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
 
 import java.sql.Connection;
 import java.sql.DriverManager;
@@ -21,8 +23,11 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
-@EnabledIfEnvironmentVariable(named = "MIGRATION_TEST_URL", matches = ".+")
+@Testcontainers
 class SchemaMigrationTest {
+    @Container
+    private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
+
     private String schema;
     private String url;
     private String username;
@@ -31,13 +36,13 @@ class SchemaMigrationTest {
     @BeforeEach
     void createSchema() throws Exception {
         schema = "schema_test_" + UUID.randomUUID().toString().replace("-", "");
-        username = System.getenv().getOrDefault("MIGRATION_TEST_USERNAME", "postgres");
-        password = System.getenv().getOrDefault("MIGRATION_TEST_PASSWORD", "migration_test");
-        try (var connection = connect(System.getenv("MIGRATION_TEST_URL"));
+        username = postgres.getUsername();
+        password = postgres.getPassword();
+        var baseUrl = postgres.getJdbcUrl();
+        try (var connection = connect(baseUrl);
              var statement = connection.createStatement()) {
             statement.execute("CREATE SCHEMA " + schema);
         }
-        var baseUrl = System.getenv("MIGRATION_TEST_URL");
         url = baseUrl + (baseUrl.contains("?") ? "&" : "?") + "currentSchema=" + schema;
     }
 
@@ -46,7 +51,7 @@ class SchemaMigrationTest {
         if (schema == null) {
             return;
         }
-        try (var connection = connect(System.getenv("MIGRATION_TEST_URL"));
+        try (var connection = connect(postgres.getJdbcUrl());
              var statement = connection.createStatement()) {
             statement.execute("DROP SCHEMA " + schema + " CASCADE");
         }

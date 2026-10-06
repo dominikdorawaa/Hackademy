@@ -30,8 +30,7 @@ class WebSocketService {
                 connectHeaders: {
                     Authorization: `Bearer ${token}`
                 },
-                debug: (str) => {
-
+                debug: () => {
                 },
                 reconnectDelay: 5000,
                 heartbeatIncoming: 4000,

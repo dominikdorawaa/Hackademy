@@ -50,7 +50,7 @@ const LoginPage = () => {
         setEmail('');
         setPassword('');
       }
-    } catch (err) {
+    } catch {
       setLoginSequence(prev => [...prev, '[ERROR] Nie można połączyć z serwerem.']);
       await delay(2000);
       setIsSubmitting(false);
