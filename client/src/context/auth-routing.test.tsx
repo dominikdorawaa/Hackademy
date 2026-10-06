@@ -119,7 +119,9 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
     await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
     expect(screen.queryByText('private content') !== null).toBe(allowed);
     if (!allowed) {
-      expect(screen.getByTestId('location').textContent).toBe(Guard === AdminRoute ? '/dashboard:REPLACE' : '/:PUSH');
+      await waitFor(() => {
+        expect(screen.getByTestId('location').textContent).toBe(Guard === AdminRoute ? '/dashboard:REPLACE' : '/:PUSH');
+      });
     }
   });
 
