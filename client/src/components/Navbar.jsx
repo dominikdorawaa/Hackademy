@@ -1,14 +1,12 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useTheme } from '../context/ThemeContext';
 import API_URL from '../apiConfig';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import './Navbar.css';
 
 const Navbar = () => {
   const { isAuthenticated, logout, token, loading } = useAuth();
-  const { theme } = useTheme();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -194,7 +192,6 @@ const Navbar = () => {
   };
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isActive = (path) => location.pathname === path;
   const isActivePrefix = (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
 
   const landingScrollEnabled =

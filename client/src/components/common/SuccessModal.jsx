@@ -2,16 +2,17 @@ import React, { useEffect } from 'react';
 import './SuccessModal.css';
 
 const SuccessModal = ({ isOpen, onClose, points, message }) => {
-  if (!isOpen) return null;
-
   // Close on Escape key
   useEffect(() => {
+    if (!isOpen) return;
     const handleEsc = (e) => {
       if (e.key === 'Escape') onClose();
     };
     window.addEventListener('keydown', handleEsc);
     return () => window.removeEventListener('keydown', handleEsc);
-  }, [onClose]);
+  }, [isOpen, onClose]);
+
+  if (!isOpen) return null;
 
   return (
     <div className="success-modal-overlay" onClick={onClose}>

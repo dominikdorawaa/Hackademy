@@ -65,7 +65,6 @@ const UserDashboardPage = () => {
   const navigate = useNavigate();
 
   const [userData, setUserData] = useState(null);
-  const [rooms, setRooms] = useState([]);
   const [ranking, setRanking] = useState([]);
   const [recentSolved, setRecentSolved] = useState([]);
   const [myRank, setMyRank] = useState(null);

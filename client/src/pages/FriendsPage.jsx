@@ -1,11 +1,10 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import API_URL from '../apiConfig';
 
 const FriendsPage = () => {
     const { token } = useAuth();
-    const navigate = useNavigate();
     const [friends, setFriends] = useState([]);
     const [requests, setRequests] = useState([]);
     const [loading, setLoading] = useState(true);
@@ -39,7 +38,7 @@ const FriendsPage = () => {
             } else {
                 setError('Nie udało się pobrać listy znajomych.');
             }
-        } catch (err) {
+        } catch {
             setError('Błąd sieci.');
         } finally {
             setLoading(false);

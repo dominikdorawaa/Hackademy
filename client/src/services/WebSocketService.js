@@ -26,7 +26,7 @@ class WebSocketService {
                 connectHeaders: {
                     Authorization: `Bearer ${token}`
                 },
-                debug: (str) => {
+                debug: () => {
                     // console.log(str);
                 },
                 reconnectDelay: 5000,
