@@ -1,7 +1,7 @@
+import * as pathApi from '../services/pathApi';
 import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API_URL from '../apiConfig';
 import './PathDetailPage.css';
 
 const PathDetailPage = () => {
@@ -19,9 +19,7 @@ const PathDetailPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`${API_URL}/api/paths/${id}/rooms-mini?limit=0`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await pathApi.getRoomsMini(id, 0, { Authorization: `Bearer ${token}` });
         if (res.status === 401 || res.status === 403) {
           logout();
           navigate('/login');
@@ -44,10 +42,7 @@ const PathDetailPage = () => {
 
   const handleEnroll = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/paths/${id}/enroll`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await pathApi.enroll(id, { Authorization: `Bearer ${token}` });
       if (res.ok) {
         setPath({ ...path, enrolled: true });
         // After enrollment, backend should return real locked/solved states on next fetch,

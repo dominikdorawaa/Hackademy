@@ -1,8 +1,10 @@
+import * as pathApi from '../services/pathApi';
+import * as userApi from '../services/userApi';
+import * as roomApi from '../services/roomApi';
 import React, { useState, useEffect } from 'react';
 import CTFCard from '../components/CTFCard';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import API_URL from '../apiConfig';
 import './DashboardPage.css';
 
 // ─── Active Path Widget ────────────────────────────────────────────────────────
@@ -17,7 +19,7 @@ const ActivePathWidget = ({ token, navigate }) => {
 
         // Zamiast odpytania każdej ścieżki po kolei (/api/paths/{id}),
         // bierzemy zagregowany progres i dociągamy tylko mini-listę pokoi.
-        const progressRes = await fetch(`${API_URL}/api/paths/me/progress`, { headers });
+        const progressRes = await pathApi.getProgress(headers);
         const progressList = progressRes.ok ? await progressRes.json() : [];
         const safeProgress = Array.isArray(progressList) ? progressList : [];
 
@@ -26,7 +28,7 @@ const ActivePathWidget = ({ token, navigate }) => {
         // Fallback: jeśli użytkownik nie ma jeszcze progresu (brak enroll),
         // weź pierwszą ścieżkę z listy.
         if (!active) {
-          const listRes = await fetch(`${API_URL}/api/paths`, { headers });
+          const listRes = await pathApi.getPaths(headers);
           const paths = listRes.ok ? await listRes.json() : [];
           const safePaths = Array.isArray(paths) ? paths : [];
           active = safePaths[0] || null;
@@ -34,7 +36,7 @@ const ActivePathWidget = ({ token, navigate }) => {
 
         if (!active?.id) return;
 
-        const roomsMiniRes = await fetch(`${API_URL}/api/paths/${active.id}/rooms-mini?limit=4`, { headers });
+        const roomsMiniRes = await pathApi.getRoomsMini(active.id, 4, headers);
         const roomsMini = roomsMiniRes.ok ? await roomsMiniRes.json() : null;
         const rooms = Array.isArray(roomsMini?.rooms) ? roomsMini.rooms : [];
 
@@ -156,13 +158,10 @@ const DashboardPage = () => {
         setLoading(true);
         setError(null);
 
-        const response = await fetch(`${API_URL}/api/user/me`, {
-          method: 'GET',
-          headers: {
+        const response = await userApi.getCurrentUser({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
-          },
-        });
+          });
 
         if (response.ok) {
           const data = await response.json();
@@ -187,13 +186,10 @@ const DashboardPage = () => {
         setRoomsLoading(true);
         setRoomsError(null);
 
-        const response = await fetch(`${API_URL}/api/rooms`, {
-          method: 'GET',
-          headers: {
+        const response = await roomApi.getRooms({
             'Content-Type': 'application/json',
             'Authorization': `Bearer ${token}`
-          },
-        });
+          });
 
         if (response.ok) {
           const data = await response.json();

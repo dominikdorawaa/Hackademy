@@ -1,8 +1,8 @@
+import * as authApi from '../services/authApi';
 import React, { useState, useEffect } from 'react';
 import { useNavigate, Link, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/auth/AuthLayout';
-import API_URL from '../apiConfig';
 
 // Helper function to add delay
 const delay = (ms) => new Promise(res => setTimeout(res, ms));
@@ -34,11 +34,7 @@ const LoginPage = () => {
       await delay(500);
       setLoginSequence(prev => [...prev, '[INFO] Weryfikacja poświadczeń...']);
 
-      const response = await fetch(`${API_URL}/api/auth/login`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email, password }),
-      });
+      const response = await authApi.login({ email, password }, { 'Content-Type': 'application/json' });
 
       if (response.ok) {
         const data = await response.json(); // { "token": "..." }

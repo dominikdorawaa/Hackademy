@@ -1,6 +1,6 @@
+import * as adminRequests from '../../services/adminRequests';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import API_URL from '../../apiConfig';
 import './Management.css';
 import './PathManagement.css';
 
@@ -29,9 +29,7 @@ const PathManagement = () => {
   useEffect(() => {
     const fetchRooms = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/admin/rooms`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await adminRequests.getRooms({ Authorization: `Bearer ${token}` });
         if (!res.ok) return;
         const data = await res.json();
         setRooms(Array.isArray(data) ? data : []);
@@ -44,9 +42,7 @@ const PathManagement = () => {
 
   const fetchPaths = async () => {
     try {
-      const res = await fetch(`${API_URL}/api/admin/paths`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await adminRequests.getPaths({ Authorization: `Bearer ${token}` });
       if (!res.ok) return;
       const data = await res.json();
       setPaths(Array.isArray(data) ? data : []);
@@ -63,9 +59,7 @@ const PathManagement = () => {
   const fetchPathDetail = async (pathId) => {
     if (!pathId) return;
     try {
-      const res = await fetch(`${API_URL}/api/admin/paths/${pathId}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await adminRequests.getPath(pathId, { Authorization: `Bearer ${token}` });
       if (!res.ok) return;
       const data = await res.json();
       setEditTitle(data?.title || '');
@@ -127,19 +121,15 @@ const PathManagement = () => {
     setStatus(null);
 
     try {
-      const res = await fetch(`${API_URL}/api/admin/paths`, {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const res = await adminRequests.createPath({
           title,
           description,
           bannerUrl: bannerUrl || null,
           roomIds: selectedRoomIds,
-        }),
-      });
+        }, {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        });
 
       if (!res.ok) {
         const msg = await res.text();
@@ -149,13 +139,7 @@ const PathManagement = () => {
       const created = await res.json();
       const newId = created?.id;
       if (newId && bannerFile) {
-        const fd = new FormData();
-        fd.append('file', bannerFile);
-        const up = await fetch(`${API_URL}/api/admin/paths/${newId}/banner`, {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
+        const up = await adminRequests.uploadBanner(newId, bannerFile, { Authorization: `Bearer ${token}` });
         if (!up.ok) {
           const msg = await up.text();
           throw new Error(msg || 'Nie udało się wgrać banera');
@@ -179,10 +163,7 @@ const PathManagement = () => {
     setError(null);
     setStatus(null);
     try {
-      const res = await fetch(`${API_URL}/api/admin/paths/${pathId}`, {
-        method: 'DELETE',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await adminRequests.deletePath(pathId, { Authorization: `Bearer ${token}` });
       if (!res.ok) {
         const msg = await res.text();
         throw new Error(msg || 'Nie udało się usunąć ścieżki');
@@ -201,13 +182,7 @@ const PathManagement = () => {
     setSavingEdit(true);
     try {
       if (editBannerFile) {
-        const fd = new FormData();
-        fd.append('file', editBannerFile);
-        const up = await fetch(`${API_URL}/api/admin/paths/${activePathId}/banner`, {
-          method: 'PUT',
-          headers: { Authorization: `Bearer ${token}` },
-          body: fd,
-        });
+        const up = await adminRequests.uploadBanner(activePathId, editBannerFile, { Authorization: `Bearer ${token}` });
         if (!up.ok) {
           const msg = await up.text();
           throw new Error(msg || 'Nie udało się wgrać banera');
@@ -215,31 +190,23 @@ const PathManagement = () => {
         setEditBannerFile(null);
       }
 
-      const metaRes = await fetch(`${API_URL}/api/admin/paths/${activePathId}`, {
-        method: 'PUT',
-        headers: {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({
+      const metaRes = await adminRequests.updatePath(activePathId, {
           title: editTitle,
           description: editDescription,
           bannerUrl: editBannerUrl || null,
-        }),
-      });
+        }, {
+          'Content-Type': 'application/json',
+          Authorization: `Bearer ${token}`,
+        });
       if (!metaRes.ok) {
         const msg = await metaRes.text();
         throw new Error(msg || 'Nie udało się zapisać danych ścieżki');
       }
 
-      const res = await fetch(`${API_URL}/api/admin/paths/${activePathId}/rooms`, {
-        method: 'PUT',
-        headers: {
+      const res = await adminRequests.updatePathRooms(activePathId, { roomIds: editRoomIds }, {
           'Content-Type': 'application/json',
           Authorization: `Bearer ${token}`,
-        },
-        body: JSON.stringify({ roomIds: editRoomIds }),
-      });
+        });
       if (!res.ok) {
         const msg = await res.text();
         throw new Error(msg || 'Nie udało się zapisać zmian');
@@ -498,4 +465,3 @@ const PathManagement = () => {
 };
 
 export default PathManagement;
-

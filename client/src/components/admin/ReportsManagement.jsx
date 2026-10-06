@@ -1,7 +1,7 @@
+import * as adminRequests from '../../services/adminRequests';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import AlertModal from '../common/AlertModal';
-import API_URL from '../../apiConfig';
 
 const ReportsManagement = () => {
     const { token } = useAuth();
@@ -28,9 +28,7 @@ const ReportsManagement = () => {
 
     const fetchReports = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/admin/reports`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await adminRequests.getReports({ 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 const data = await response.json();
                 setReports(data);
@@ -45,10 +43,7 @@ const ReportsManagement = () => {
     const handleDeleteMessage = async (messageId) => {
         if (!window.confirm("Czy na pewno usunąć tę wiadomość?")) return;
         try {
-            await fetch(`${API_URL}/api/admin/reports/${messageId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await adminRequests.deleteReport(messageId, { 'Authorization': `Bearer ${token}` });
             setReports(reports.filter(r => r.id !== messageId));
         } catch (err) {
             console.error("Error deleting message", err);
@@ -57,10 +52,7 @@ const ReportsManagement = () => {
 
     const handleDismissReport = async (messageId) => {
         try {
-            await fetch(`${API_URL}/api/admin/reports/${messageId}/dismiss`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await adminRequests.dismissReport(messageId, { 'Authorization': `Bearer ${token}` });
             setReports(reports.filter(r => r.id !== messageId));
         } catch (err) {
             console.error("Error dismissing report", err);
@@ -75,14 +67,10 @@ const ReportsManagement = () => {
 
     const handleMuteUser = async () => {
         try {
-            await fetch(`${API_URL}/api/admin/users/${selectedUserId}/mute`, {
-                method: 'POST',
-                headers: { 
+            await adminRequests.muteUser(selectedUserId, { duration: muteDuration }, {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify({ duration: muteDuration })
-            });
+                });
             
             setAlertState({
                 isOpen: true,

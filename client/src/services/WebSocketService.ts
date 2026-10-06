@@ -1,15 +1,19 @@
+import type { StompSubscription } from '@stomp/stompjs';
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import API_URL from '../apiConfig';
 
 class WebSocketService {
+    client: Client | null;
+    subscriptions: Map<string, StompSubscription>;
+    connectionPromise: Promise<void> | null;
     constructor() {
         this.client = null;
         this.subscriptions = new Map();
         this.connectionPromise = null;
     }
 
-    connect(token) {
+    connect(token: string) {
         if (this.client && this.client.active) {
             return Promise.resolve();
         }
@@ -18,16 +22,16 @@ class WebSocketService {
             return this.connectionPromise;
         }
 
-        this.connectionPromise = new Promise((resolve, reject) => {
+        this.connectionPromise = new Promise<void>((resolve, reject) => {
             const socketUrl = `${API_URL}/ws`;
-            
+
             this.client = new Client({
                 webSocketFactory: () => new SockJS(socketUrl),
                 connectHeaders: {
                     Authorization: `Bearer ${token}`
                 },
                 debug: (str) => {
-                    // console.log(str);
+
                 },
                 reconnectDelay: 5000,
                 heartbeatIncoming: 4000,
@@ -53,7 +57,7 @@ class WebSocketService {
         return this.connectionPromise;
     }
 
-    subscribe(destination, callback) {
+    subscribe(destination: string, callback: (body: unknown) => void) {
         if (!this.client || !this.client.active) {
             console.error('WebSocket is not connected. Call connect() first.');
             return null;
@@ -61,7 +65,7 @@ class WebSocketService {
 
         const subscription = this.client.subscribe(destination, (message) => {
             try {
-                const parsedBody = JSON.parse(message.body);
+                const parsedBody: unknown = JSON.parse(message.body);
                 callback(parsedBody);
             } catch (e) {
                 console.error('Error parsing message body:', e);
@@ -74,7 +78,7 @@ class WebSocketService {
         return subId;
     }
 
-    unsubscribe(subId) {
+    unsubscribe(subId: string) {
         const subscription = this.subscriptions.get(subId);
         if (subscription) {
             subscription.unsubscribe();
@@ -82,7 +86,7 @@ class WebSocketService {
         }
     }
 
-    send(destination, body = {}) {
+    send(destination: string, body: unknown = {}) {
         if (!this.client || !this.client.active) {
             console.error('WebSocket is not connected');
             return;

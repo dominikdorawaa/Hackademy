@@ -1,8 +1,10 @@
+import * as userApi from '../services/userApi';
+import * as friendApi from '../services/friendApi';
+import * as arenaApi from '../services/arenaApi';
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import API_URL from '../apiConfig';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import './Navbar.css';
 
@@ -24,11 +26,9 @@ const Navbar = () => {
     const fetchUserData = async () => {
       if (isAuthenticated && token) {
         try {
-          const response = await fetch(`${API_URL}/api/user/me`, {
-            headers: {
+          const response = await userApi.getCurrentUser({
               'Authorization': `Bearer ${token}`
-            }
-          });
+            });
           if (response.ok) {
             const data = await response.json();
             setUserData(data);
@@ -50,15 +50,11 @@ const Navbar = () => {
       if (isAuthenticated && token) {
         try {
           // Fetch friend requests
-          const friendsRes = await fetch(`${API_URL}/api/friends/requests`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const friendsRes = await friendApi.getRequests({ 'Authorization': `Bearer ${token}` });
           const friendRequests = await friendsRes.json();
 
           // Fetch challenges
-          const challengesRes = await fetch(`${API_URL}/api/arena/challenges`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const challengesRes = await arenaApi.getChallenges({ 'Authorization': `Bearer ${token}` });
           const challenges = await challengesRes.json();
 
           // Combine and format notifications
@@ -122,10 +118,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
     try {
-        await fetch(`${API_URL}/api/friends/accept/${requestId}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        await friendApi.acceptRequest(requestId, { 'Authorization': `Bearer ${token}` });
         // Remove from list after success
         setNotifications(prev => prev.filter(n => !(n.type === 'FRIEND_REQUEST' && n.id === requestId)));
         setUnreadCount(prev => Math.max(0, prev - 1));
@@ -141,10 +134,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
     try {
-        await fetch(`${API_URL}/api/friends/reject/${requestId}`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        await friendApi.rejectRequest(requestId, { 'Authorization': `Bearer ${token}` });
         setNotifications(prev => prev.filter(n => !(n.type === 'FRIEND_REQUEST' && n.id === requestId)));
         setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {
@@ -157,10 +147,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
     try {
-        const res = await fetch(`${API_URL}/api/arena/challenge/${challengeId}/accept`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const res = await arenaApi.acceptChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
         if (res.ok) {
             const session = await res.json();
             
@@ -182,10 +169,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
     try {
-        await fetch(`${API_URL}/api/arena/challenge/${challengeId}/reject`, {
-            method: 'POST',
-            headers: { 'Authorization': `Bearer ${token}` }
-        });
+        await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
         setNotifications(prev => prev.filter(n => !(n.type === 'CHALLENGE' && n.id === challengeId)));
         setUnreadCount(prev => Math.max(0, prev - 1));
     } catch (err) {

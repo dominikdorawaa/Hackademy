@@ -1,7 +1,8 @@
+import * as dashboardApi from '../services/dashboardApi';
+import * as userApi from '../services/userApi';
 import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API_URL from '../apiConfig';
 import './UserDashboardPage.css';
 
 const clamp01 = (n) => Math.min(1, Math.max(0, n));
@@ -91,7 +92,7 @@ const UserDashboardPage = () => {
           ...(token && { Authorization: `Bearer ${token}` }),
         };
 
-        const res = await fetch(`${API_URL}/api/dashboard/summary`, { headers });
+        const res = await dashboardApi.getSummary(headers);
         if (res.status === 401 || res.status === 403) {
           logout();
           navigate('/login');
@@ -146,7 +147,7 @@ const UserDashboardPage = () => {
 
     const refreshRecentSolved = async () => {
       try {
-        const res = await fetch(`${API_URL}/api/user/me/recent-solved?limit=3`, { headers });
+        const res = await userApi.getRecentSolved(3, headers);
         if (!res.ok) return;
         const data = await res.json();
         setRecentSolved(Array.isArray(data) ? data : []);
@@ -189,11 +190,7 @@ const UserDashboardPage = () => {
       if (inFlight) return;
       inFlight = true;
       try {
-        const res = await fetch(`${API_URL}/api/user/me/active-time`, {
-          method: 'POST',
-          headers,
-          body: JSON.stringify({ deltaSeconds: 15 }),
-        });
+        const res = await userApi.addActiveTime({ deltaSeconds: 15 }, headers);
         if (res.ok) {
           const data = await res.json();
           setActiveSecondsThisWeek(Number(data?.secondsThisWeek) || 0);
