@@ -8,7 +8,9 @@ import AdminRoute from '../components/auth/AdminRoute';
 import ExpertRoute from '../components/auth/ExpertRoute';
 import LoginPage from '../pages/LoginPage';
 
-function jwt(roles: string[] = ['ROLE_USER'], exp = 1) {
+const validExpiration = Math.floor(Date.now() / 1000) + 3600;
+
+function jwt(roles: string[] = ['ROLE_USER'], exp = validExpiration) {
 
   return `${btoa('{}')}.${btoa(JSON.stringify({ sub: 'tester', roles, exp }))}.signature`;
 }
@@ -45,6 +47,15 @@ describe('auth persistence', () => {
     expect(localStorage.getItem('token')).toBeNull();
     expect(screen.getByTestId('session').textContent).toContain('"user":null');
     expect(screen.getByTestId('session').textContent).toContain('"token":null');
+  });
+
+  it('restores an expired token because the client only decodes it', () => {
+    const expiredToken = jwt(['ROLE_USER'], 1);
+    localStorage.setItem('token', expiredToken);
+    render(<AuthProvider><Session /></AuthProvider>);
+    expect(localStorage.getItem('token')).toBe(expiredToken);
+    expect(screen.getByTestId('session').textContent).toContain('"isAuthenticated":true');
+    expect(screen.getByTestId('session').textContent).toContain('"exp":1');
   });
 
   it('clears an undecodable stored token and completes loading', () => {
