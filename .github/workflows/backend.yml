@@ -3,6 +3,10 @@ name: Backend
 on:
   pull_request:
 
+concurrency:
+  group: ${{ github.workflow }}-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
 permissions:
   contents: read
 
@@ -21,3 +25,11 @@ jobs:
       - name: Build and test backend
         working-directory: server
         run: mvn -B -ntp verify
+      - name: Upload test reports on failure
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-test-reports
+          path: server/target/surefire-reports/
+          if-no-files-found: ignore
+          retention-days: 7
