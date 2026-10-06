@@ -1,7 +1,9 @@
+import * as friendApi from '../services/friendApi';
+import * as userApi from '../services/userApi';
+import * as arenaApi from '../services/arenaApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
-import API_URL from '../apiConfig';
 
 const FriendsPage = () => {
     const { token } = useAuth();
@@ -26,8 +28,8 @@ const FriendsPage = () => {
         setLoading(true);
         try {
             const [friendsRes, requestsRes] = await Promise.all([
-                fetch(`${API_URL}/api/friends`, { headers: { 'Authorization': `Bearer ${token}` } }),
-                fetch(`${API_URL}/api/friends/requests`, { headers: { 'Authorization': `Bearer ${token}` } })
+                friendApi.getFriends({ 'Authorization': `Bearer ${token}` }),
+                friendApi.getRequests({ 'Authorization': `Bearer ${token}` })
             ]);
 
             if (friendsRes.ok && requestsRes.ok) {
@@ -51,9 +53,7 @@ const FriendsPage = () => {
 
         setIsSearching(true);
         try {
-            const response = await fetch(`${API_URL}/api/user/search?query=${searchQuery}`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await userApi.searchUsers(searchQuery, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 const data = await response.json();
                 setSearchResults(data);
@@ -67,10 +67,7 @@ const FriendsPage = () => {
 
     const handleSendRequest = async (username) => {
         try {
-            const response = await fetch(`${API_URL}/api/friends/request/${username}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await friendApi.sendRequest(username, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 // Update search results to reflect sent request
                 setSearchResults(prev => prev.map(user => 
@@ -84,10 +81,7 @@ const FriendsPage = () => {
 
     const handleAccept = async (requestId) => {
         try {
-            const response = await fetch(`${API_URL}/api/friends/accept/${requestId}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await friendApi.acceptRequest(requestId, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 fetchData(); // Refresh lists
             }
@@ -98,10 +92,7 @@ const FriendsPage = () => {
 
     const handleReject = async (requestId) => {
         try {
-            const response = await fetch(`${API_URL}/api/friends/reject/${requestId}`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await friendApi.rejectRequest(requestId, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 setRequests(requests.filter(req => req.id !== requestId));
             }
@@ -114,10 +105,7 @@ const FriendsPage = () => {
         if (!window.confirm("Czy na pewno chcesz usunąć tego użytkownika ze znajomych?")) return;
 
         try {
-            const response = await fetch(`${API_URL}/api/friends/${friendId}`, {
-                method: 'DELETE',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await friendApi.removeFriend(friendId, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 setFriends(friends.filter(f => f.id !== friendId));
             }
@@ -128,14 +116,10 @@ const FriendsPage = () => {
 
     const handleChallenge = async (username) => {
         try {
-            const response = await fetch(`${API_URL}/api/arena/challenge/create`, {
-                method: 'POST',
-                headers: { 
+            const response = await arenaApi.createChallenge({ targetUsername: username }, {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify({ targetUsername: username })
-            });
+                });
             
             if (response.ok) {
                 setChallengedFriends(prev => [...prev, username]);

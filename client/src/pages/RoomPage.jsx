@@ -1,3 +1,6 @@
+import * as userApi from '../services/userApi';
+import * as arenaApi from '../services/arenaApi';
+import * as roomApi from '../services/roomApi';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -6,7 +9,6 @@ import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
 import ArenaResultModal from '../components/common/ArenaResultModal';
 import ArenaChat from '../components/ArenaChat';
-import API_URL from '../apiConfig';
 import './RoomPage.css';
 
 const RoomPage = () => {
@@ -60,9 +62,7 @@ const RoomPage = () => {
   // Fetch user data to know current user ID
   useEffect(() => {
       if (token) {
-          fetch(`${API_URL}/api/user/me`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-          })
+          userApi.getCurrentUser({ 'Authorization': `Bearer ${token}` })
           .then(res => res.json())
           .then(data => setUserData(data))
           .catch(err => console.error(err));
@@ -93,9 +93,7 @@ const RoomPage = () => {
   useEffect(() => {
     let interval;
     if (isArenaMode && token && userData) {
-        fetch(`${API_URL}/api/arena/game/${arenaGameId}`, {
-            headers: { 'Authorization': `Bearer ${token}` }
-        }).then(res => res.json()).then(data => {
+        arenaApi.getGame(arenaGameId, { 'Authorization': `Bearer ${token}` }).then(res => res.json()).then(data => {
             setArenaSession(data);
             if (data.hintsUsed && data.hintsUsed[userData.id]) {
                 setUnlockedHints(data.hintsUsed[userData.id]);
@@ -105,9 +103,7 @@ const RoomPage = () => {
 
         interval = setInterval(async () => {
             try {
-                const response = await fetch(`${API_URL}/api/arena/game/${arenaGameId}`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await arenaApi.getGame(arenaGameId, { 'Authorization': `Bearer ${token}` });
                 if (response.ok) {
                     const session = await response.json();
                     setArenaSession(session);
@@ -134,23 +130,16 @@ const RoomPage = () => {
 
     try {
         if (isArenaMode) {
-            const response = await fetch(`${API_URL}/api/arena/game/${arenaGameId}/hint`, {
-                method: 'POST',
-                headers: { 
+            const response = await arenaApi.useHint(arenaGameId, { hintId: hintToUnlock }, {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify({ hintId: hintToUnlock })
-            });
+                });
             if (!response.ok) throw new Error("Failed to use hint in arena");
             setPenaltyTime(prev => prev + 120);
             setUnlockedHints(prev => [...prev, hintToUnlock]);
             setToast({ message: 'Podpowiedź odblokowana! +2 minuty kary.', type: 'warning' });
         } else {
-            const response = await fetch(`${API_URL}/api/rooms/${id}/hints/${hintToUnlock}/unlock`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await roomApi.unlockHint(id, hintToUnlock, { 'Authorization': `Bearer ${token}` });
             if (!response.ok) throw new Error('Failed to unlock hint');
             setUnlockedHints([...unlockedHints, hintToUnlock]);
             setPotentialPoints(Math.max(0, room.points * (1 - (unlockedHints.length + 1) * 0.25)));
@@ -170,9 +159,7 @@ const RoomPage = () => {
 
   const handleDownloadFile = async () => {
       try {
-          const response = await fetch(`${API_URL}/api/rooms/${id}/file`, {
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
+          const response = await roomApi.downloadFile(id, { 'Authorization': `Bearer ${token}` });
           if (response.ok) {
               const blob = await response.blob();
               const url = window.URL.createObjectURL(blob);
@@ -192,15 +179,15 @@ const RoomPage = () => {
     setSubmitMessage('');
 
     try {
-      let url = isArenaMode ? `${API_URL}/api/arena/game/${arenaGameId}/solve` : `${API_URL}/api/rooms/${id}/solve`;
-      const response = await fetch(url, {
-        method: 'POST',
-        headers: {
+      const response = await (isArenaMode
+        ? arenaApi.solveGame(arenaGameId, { flag }, {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
-        },
-        body: JSON.stringify({ flag })
-      });
+        })
+        : roomApi.solveRoom(id, { flag }, {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`
+        }));
 
       const data = await response.json();
       if (response.ok) { 
@@ -243,9 +230,7 @@ const RoomPage = () => {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const response = await fetch(`${API_URL}/api/rooms/${id}`, {
-          headers: { 'Authorization': `Bearer ${token}` }
-        });
+        const response = await roomApi.getRoom(id, { 'Authorization': `Bearer ${token}` });
         if (!response.ok) throw new Error('Failed to fetch room details');
         const data = await response.json();
         setRoom(data);
@@ -277,14 +262,10 @@ const RoomPage = () => {
     if (!answer) return;
 
     try {
-        const response = await fetch(`${API_URL}/api/rooms/${id}/tasks/${taskId}/solve`, {
-            method: 'POST',
-            headers: {
+        const response = await roomApi.solveTask(id, taskId, { answer }, {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
-            },
-            body: JSON.stringify({ answer })
-        });
+            });
         const data = await response.json();
         if (response.ok) {
             setToast({ message: data.message, type: 'success' });

@@ -10,17 +10,17 @@ import UserDashboardPage from './pages/UserDashboardPage';
 import PathDetailPage from './pages/PathDetailPage';
 import ArenaPage from './pages/ArenaPage';
 import RankingPage from './pages/RankingPage';
-import AdminPage from './pages/AdminPage'; // Import AdminPage
-import ExpertPage from './pages/ExpertPage'; // Import ExpertPage
+import AdminPage from './pages/AdminPage';
+import ExpertPage from './pages/ExpertPage';
 import ProfilePage from './pages/ProfilePage';
-import PublicProfilePage from './pages/PublicProfilePage'; // Import PublicProfilePage
-import FriendsPage from './pages/FriendsPage'; // Import FriendsPage
-import RoomPage from './pages/RoomPage'; // Import RoomPage
-import VpnPage from './pages/VpnPage'; // Import VpnPage
-import SettingsPage from './pages/SettingsPage'; // Import SettingsPage
+import PublicProfilePage from './pages/PublicProfilePage';
+import FriendsPage from './pages/FriendsPage';
+import RoomPage from './pages/RoomPage';
+import VpnPage from './pages/VpnPage';
+import SettingsPage from './pages/SettingsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
-import AdminRoute from './components/auth/AdminRoute'; // Import AdminRoute
-import ExpertRoute from './components/auth/ExpertRoute'; // Import ExpertRoute
+import AdminRoute from './components/auth/AdminRoute';
+import ExpertRoute from './components/auth/ExpertRoute';
 
 function App() {
   return (
@@ -32,88 +32,88 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
-            <Route 
-              path="/arena" 
+            <Route
+              path="/arena"
               element={
                 <ProtectedRoute>
                   <ArenaPage />
                 </ProtectedRoute>
-              } 
+              }
             />
             <Route path="/ranking" element={<RankingPage />} />
-            <Route 
-              path="/dashboard" 
+            <Route
+              path="/dashboard"
               element={
                 <ProtectedRoute>
                   <UserDashboardPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/learn" 
+            <Route
+              path="/learn"
               element={
                 <ProtectedRoute>
                   <LearnPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/learn/paths/:id" 
+            <Route
+              path="/learn/paths/:id"
               element={
                 <ProtectedRoute>
                   <PathDetailPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/rooms/:id" 
+            <Route
+              path="/rooms/:id"
               element={
                 <ProtectedRoute>
                   <RoomPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/profile" 
+            <Route
+              path="/profile"
               element={
                 <ProtectedRoute>
                   <ProfilePage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/profile/:username" 
+            <Route
+              path="/profile/:username"
               element={
                 <ProtectedRoute>
                   <PublicProfilePage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/friends" 
+            <Route
+              path="/friends"
               element={
                 <ProtectedRoute>
                   <FriendsPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/vpn" 
+            <Route
+              path="/vpn"
               element={
                 <ProtectedRoute>
                   <VpnPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
-              path="/settings" 
+            <Route
+              path="/settings"
               element={
                 <ProtectedRoute>
                   <SettingsPage />
                 </ProtectedRoute>
-              } 
+              }
             />
-            <Route 
+            <Route
               path="/admin"
               element={
                 <AdminRoute>
@@ -121,7 +121,7 @@ function App() {
                 </AdminRoute>
               }
             />
-            <Route 
+            <Route
               path="/expert"
               element={
                 <ExpertRoute>

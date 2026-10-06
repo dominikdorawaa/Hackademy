@@ -1,8 +1,8 @@
-import React from 'react';
+import type { PropsWithChildren } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
 
-const ExpertRoute = ({ children }) => {
+const ExpertRoute = ({ children }: PropsWithChildren) => {
     const { user, loading } = useAuth();
 
     if (loading) {

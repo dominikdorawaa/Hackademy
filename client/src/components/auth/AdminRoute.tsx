@@ -1,28 +1,31 @@
-import React, { useEffect, useState } from 'react';
+import { useEffect, useState } from 'react';
+import type { PropsWithChildren } from 'react';
 import { Navigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
-import API_URL from '../../apiConfig';
+import { getCurrentUser } from '../../services/userApi';
 
-const AdminRoute = ({ children }) => {
+const AdminRoute = ({ children }: PropsWithChildren) => {
   const { isAuthenticated, token, loading } = useAuth();
-  const [access, setAccess] = useState({ token: null, status: 'checking' });
+  const [access, setAccess] = useState<{
+    token: string | null;
+    status: 'checking' | 'allowed' | 'denied' | 'error';
+  }>({ token: null, status: 'checking' });
 
   useEffect(() => {
     if (!isAuthenticated || !token) return;
 
     const controller = new AbortController();
 
-    fetch(`${API_URL}/api/user/me`, {
-      headers: { Authorization: `Bearer ${token}` },
-      signal: controller.signal,
-    })
+    getCurrentUser({ Authorization: `Bearer ${token}` }, controller.signal)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json();
       })
       .then((currentUser) => setAccess({ token, status: currentUser.role === 'ADMIN' ? 'allowed' : 'denied' }))
-      .catch((error) => {
-        if (error.name !== 'AbortError') setAccess({ token, status: 'error' });
+      .catch((error: unknown) => {
+        if (!(error instanceof Error && error.name === 'AbortError')) {
+          setAccess({ token, status: 'error' });
+        }
       });
 
     return () => controller.abort();
@@ -35,12 +38,13 @@ const AdminRoute = ({ children }) => {
   if (!isAuthenticated) {
     return <Navigate to="/login" replace />;
   }
-  
+
   if (access.status === 'error') {
     return <div>Nie udało się sprawdzić uprawnień. Odśwież stronę i spróbuj ponownie.</div>;
   }
 
   if (access.status !== 'allowed') {
+
     return <Navigate to="/dashboard" replace />;
   }
 

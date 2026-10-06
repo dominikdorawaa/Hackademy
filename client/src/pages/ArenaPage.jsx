@@ -1,8 +1,10 @@
+import * as userApi from '../services/userApi';
+import * as arenaApi from '../services/arenaApi';
+import * as friendApi from '../services/friendApi';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
 import GameFoundModal from '../components/common/GameFoundModal';
-import API_URL from '../apiConfig';
 
 const ArenaPage = () => {
     const { token } = useAuth();
@@ -36,9 +38,7 @@ const ArenaPage = () => {
     useEffect(() => {
         const fetchUserData = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/user/me`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await userApi.getCurrentUser({ 'Authorization': `Bearer ${token}` });
                 if (response.ok) {
                     const data = await response.json();
                     setUserData(data);
@@ -55,9 +55,7 @@ const ArenaPage = () => {
         const checkInitialStatus = async () => {
             if (token) {
                 try {
-                    const response = await fetch(`${API_URL}/api/arena/status`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await arenaApi.getStatus({ 'Authorization': `Bearer ${token}` });
                     
                     if (response.status === 200) {
                         const session = await response.json();
@@ -87,9 +85,7 @@ const ArenaPage = () => {
                 try {
                     // Check game status ONLY if we are in QUEUE, GAME or CHALLENGING state
                     if (status === 'QUEUE' || status === 'GAME' || status === 'CHALLENGING') {
-                        const response = await fetch(`${API_URL}/api/arena/status`, {
-                            headers: { 'Authorization': `Bearer ${token}` }
-                        });
+                        const response = await arenaApi.getStatus({ 'Authorization': `Bearer ${token}` });
                         
                         if (response.status === 200) {
                             const session = await response.json();
@@ -133,9 +129,7 @@ const ArenaPage = () => {
                     }
 
                     // Check challenges (always check for challenges)
-                    const challengesRes = await fetch(`${API_URL}/api/arena/challenges`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const challengesRes = await arenaApi.getChallenges({ 'Authorization': `Bearer ${token}` });
                     if (challengesRes.ok) {
                         const data = await challengesRes.json();
                         setChallenges(data);
@@ -152,9 +146,7 @@ const ArenaPage = () => {
     const fetchFriends = async () => {
         setFriendsLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/friends`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await friendApi.getFriends({ 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 const data = await response.json();
                 setFriends(data);
@@ -173,17 +165,13 @@ const ArenaPage = () => {
 
     const handleChallengeFriend = async (username) => {
         try {
-            const response = await fetch(`${API_URL}/api/arena/challenge/create`, {
-                method: 'POST',
-                headers: { 
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify({ 
+            const response = await arenaApi.createChallenge({
                     targetUsername: username,
                     vpnEnabled: vpnEnabled // Send vpnEnabled status
-                })
-            });
+                }, {
+                    'Content-Type': 'application/json',
+                    'Authorization': `Bearer ${token}`
+                });
             
             if (response.ok) {
                 setChallengedFriends(prev => [...prev, username]);
@@ -215,14 +203,10 @@ const ArenaPage = () => {
 
     const handleJoinQueue = async () => {
         try {
-            const response = await fetch(`${API_URL}/api/arena/join`, {
-                method: 'POST',
-                headers: { 
+            const response = await arenaApi.joinQueue({ vpnEnabled }, {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}` 
-                },
-                body: JSON.stringify({ vpnEnabled })
-            });
+                });
             
             if (response.ok) {
                 setStatus('QUEUE');
@@ -244,10 +228,7 @@ const ArenaPage = () => {
         setGameSession(null);
         
         try {
-            await fetch(`${API_URL}/api/arena/leave`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await arenaApi.leaveQueue({ 'Authorization': `Bearer ${token}` });
         } catch (err) {
             console.error("Error leaving queue", err);
         }
@@ -259,10 +240,7 @@ const ArenaPage = () => {
         setProcessingChallengeId(challengeId);
 
         try {
-            const response = await fetch(`${API_URL}/api/arena/challenge/${challengeId}/accept`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await arenaApi.acceptChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
             
             console.log("Accept response status:", response.status);
             
@@ -292,10 +270,7 @@ const ArenaPage = () => {
         setProcessingChallengeId(challengeId);
 
         try {
-            await fetch(`${API_URL}/api/arena/challenge/${challengeId}/reject`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
             setChallenges(challenges.filter(c => c.id !== challengeId));
         } catch (err) {
             console.error("Error rejecting challenge", err);

@@ -1,35 +1,50 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 import { jwtDecode } from 'jwt-decode';
 
-// Create the context with a default value
-const AuthContext = createContext(undefined);
+import type { PropsWithChildren } from 'react';
+import type { JwtPayload } from 'jwt-decode';
 
-// Create the provider component
-export const AuthProvider = ({ children }) => {
-  const [token, setToken] = useState(null);
-  const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true); // Add loading state
+export interface AuthUser extends JwtPayload {
+  sub: string;
+  roles: string[];
+}
+
+export interface AuthContextValue {
+  token: string | null;
+  user: AuthUser | null;
+  login: (newToken: string) => void;
+  logout: () => void;
+  isAuthenticated: boolean;
+  loading: boolean;
+}
+
+const AuthContext = createContext<AuthContextValue | undefined>(undefined);
+
+export const AuthProvider = ({ children }: PropsWithChildren) => {
+  const [token, setToken] = useState<string | null>(null);
+  const [user, setUser] = useState<AuthUser | null>(null);
+  const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     try {
       const storedToken = localStorage.getItem('token');
       if (storedToken) {
-        const decodedUser = jwtDecode(storedToken);
+        const decodedUser = jwtDecode<AuthUser>(storedToken);
         setUser(decodedUser);
         setToken(storedToken);
       }
     } catch (error) {
       console.error("Failed to process token from localStorage:", error);
-      // Clear potentially corrupted token
+
       localStorage.removeItem('token');
     } finally {
-      setLoading(false); // Set loading to false after checking localStorage
+      setLoading(false);
     }
   }, []);
 
-  const login = (newToken) => {
+  const login = (newToken: string) => {
     try {
-      const decodedUser = jwtDecode(newToken);
+      const decodedUser = jwtDecode<AuthUser>(newToken);
       localStorage.setItem('token', newToken);
       setToken(newToken);
       setUser(decodedUser);
@@ -57,7 +72,6 @@ export const AuthProvider = ({ children }) => {
   );
 };
 
-// Create a custom hook for easy access to the context
 export const useAuth = () => {
   const context = useContext(AuthContext);
   if (context === undefined) {

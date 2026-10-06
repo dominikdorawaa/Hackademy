@@ -1,8 +1,9 @@
+import * as userApi from '../services/userApi';
+import * as chatApi from '../services/chatApi';
 import React, { useState, useEffect, useRef } from 'react';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from './common/ConfirmationModal';
 import AlertModal from './common/AlertModal';
-import API_URL from '../apiConfig';
 import './ArenaChat.css';
 
 const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
@@ -28,9 +29,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
     // Fetch user data to identify own messages
     useEffect(() => {
         if (token) {
-            fetch(`${API_URL}/api/user/me`, {
-                headers: { 'Authorization': `Bearer ${token}` }
-            })
+            userApi.getCurrentUser({ 'Authorization': `Bearer ${token}` })
             .then(res => res.json())
             .then(data => setUserData(data))
             .catch(err => console.error(err));
@@ -43,9 +42,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
         if (gameId && token && isOpen) {
             const fetchMessages = async () => {
                 try {
-                    const response = await fetch(`${API_URL}/api/chat/${gameId}`, {
-                        headers: { 'Authorization': `Bearer ${token}` }
-                    });
+                    const response = await chatApi.getMessages(gameId, { 'Authorization': `Bearer ${token}` });
                     if (response.ok) {
                         const data = await response.json();
                         setMessages(data);
@@ -97,14 +94,10 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
 
         setIsSending(true);
         try {
-            const response = await fetch(`${API_URL}/api/chat/${gameId}/send`, {
-                method: 'POST',
-                headers: {
+            const response = await chatApi.sendMessage(gameId, { content: newMessage }, {
                     'Content-Type': 'application/json',
                     'Authorization': `Bearer ${token}`
-                },
-                body: JSON.stringify({ content: newMessage })
-            });
+                });
 
             if (response.ok) {
                 const sentMsg = await response.json();
@@ -147,10 +140,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
         if (!messageToReport) return;
 
         try {
-            const response = await fetch(`${API_URL}/api/chat/message/${messageToReport}/report`, {
-                method: 'POST',
-                headers: { 'Authorization': `Bearer ${token}` }
-            });
+            const response = await chatApi.reportMessage(messageToReport, { 'Authorization': `Bearer ${token}` });
             
             if (response.ok) {
                 setAlertState({

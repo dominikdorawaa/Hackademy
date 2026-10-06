@@ -9,6 +9,107 @@ export interface AuthResponse {
   token: string
 }
 
+export type ApiId = string | number
+
+export interface ApiError {
+  message?: string
+  mutedUntil?: ApiDateTime
+  [key: string]: unknown
+}
+
+export interface MessageResponse {
+  message: string
+}
+
+export interface LoginRequest {
+  email: string
+  password: string
+}
+
+export interface RegisterRequest extends LoginRequest {
+  username: string
+}
+
+export interface RoomWriteRequest {
+  title: string
+  description: string
+  shortDescription?: string | null
+  difficulty: DifficultyLevel
+  category: string
+  points: number
+  flag: string
+  requiresVpn: boolean
+  roomType?: RoomType
+  hints?: string[] | null
+}
+
+export interface PathMetaRequest {
+  title: string
+  description: string
+  bannerUrl: string | null
+}
+
+export interface CreatePathRequest extends PathMetaRequest {
+  roomIds: number[]
+}
+
+export interface ChallengeRequest {
+  targetUsername: string
+  vpnEnabled?: boolean
+}
+
+export interface Challenge {
+  id: string
+  challengerId: number
+  challengerUsername: string
+  targetId: number
+  targetUsername: string
+  createdAt: ApiDateTime
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
+  vpnEnabled: boolean
+}
+
+export interface GameSession {
+  id: string
+  player1Id: number
+  player1Username: string
+  player1Elo: number | null
+  player2Id: number
+  player2Username: string
+  player2Elo: number | null
+  roomId: number
+  startTime: ApiDateTime
+  status: 'ACTIVE' | 'FINISHED' | 'WAITING_FOR_OPPONENT'
+  winnerId: number | null
+  player1EloChange: number | null
+  player2EloChange: number | null
+  hintsUsed: Record<string, number[]>
+  finishTimes: Record<string, ApiDateTime>
+  penaltiesInSeconds: Record<string, number>
+}
+
+export interface ArenaSolveResponse extends MessageResponse {
+  success: boolean
+  status?: 'WAITING' | 'FINISHED'
+}
+
+export interface ChatMessage {
+  id: number
+  gameId: string
+  senderId: number
+  senderUsername: string
+  content: string
+  reported: boolean
+  timestamp: ApiDateTime
+}
+
+export interface VpnStatus {
+  canDownload: boolean
+  levelRequirementMet: boolean
+  tutorialRequirementMet: boolean
+  currentLevel: number
+}
+
 export interface ActivityDto {
   date: ApiDate
   count: number

@@ -1,19 +1,27 @@
-import React, { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect } from 'react';
 
-const ThemeContext = createContext();
+import type { PropsWithChildren } from 'react';
 
-export const ThemeProvider = ({ children }) => {
-  // Sprawdź localStorage lub ustaw domyślnie 'dark'
+export interface ThemeContextValue {
+
+  theme: string;
+  toggleTheme: () => void;
+  resetTheme: () => void;
+}
+
+const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
+
+export const ThemeProvider = ({ children }: PropsWithChildren) => {
+
   const [theme, setTheme] = useState(() => {
     const savedTheme = localStorage.getItem('app-theme');
     return savedTheme || 'dark';
   });
 
   useEffect(() => {
-    // Zapisz do localStorage
+
     localStorage.setItem('app-theme', theme);
-    
-    // Ustaw atrybut na elemencie <html> (root)
+
     document.documentElement.setAttribute('data-theme', theme);
   }, [theme]);
 

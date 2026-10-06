@@ -1,7 +1,8 @@
+import * as pathApi from '../services/pathApi';
+import API_URL from '../apiConfig';
 import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API_URL from '../apiConfig';
 import './PathsPage.css';
 
 const PathsPage = () => {
@@ -101,9 +102,7 @@ const PathsPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await fetch(`${API_URL}/api/paths`, {
-          headers: { Authorization: `Bearer ${token}` },
-        });
+        const res = await pathApi.getPaths({ Authorization: `Bearer ${token}` });
         if (res.status === 401 || res.status === 403) {
           logout();
           navigate('/login');
@@ -126,10 +125,7 @@ const PathsPage = () => {
   const handleEnroll = async (e, pathId) => {
     e.stopPropagation(); // Zapobiegaj nawigacji do szczegółów
     try {
-      const res = await fetch(`${API_URL}/api/paths/${pathId}/enroll`, {
-        method: 'POST',
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      const res = await pathApi.enroll(pathId, { Authorization: `Bearer ${token}` });
       if (res.ok) {
         setPaths(paths.map(p => p.id === pathId ? { ...p, enrolled: true } : p));
       }

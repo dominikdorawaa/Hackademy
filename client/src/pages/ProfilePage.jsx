@@ -1,7 +1,8 @@
+import * as userApi from '../services/userApi';
+import * as badgeApi from '../services/badgeApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
-import API_URL from '../apiConfig';
 import ActivityCalendar from '../components/ActivityCalendar';
 
 const ProfilePage = () => {
@@ -24,27 +25,18 @@ const ProfilePage = () => {
                 setError(null);
 
                 const [userRes, badgesRes, activityRes] = await Promise.all([
-                    fetch(`${API_URL}/api/user/me`, {
-                        method: 'GET',
-                        headers: {
+                    userApi.getCurrentUser({
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
-                        },
-                    }),
-                    fetch(`${API_URL}/api/badges/all`, { // Fetch ALL badges with status
-                        method: 'GET',
-                        headers: {
+                        }),
+                    badgeApi.getAll({
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
-                        },
-                    }),
-                    fetch(`${API_URL}/api/user/me/activity`, {
-                        method: 'GET',
-                        headers: {
+                        }),
+                    userApi.getMyActivity({
                             'Content-Type': 'application/json',
                             'Authorization': `Bearer ${token}`
-                        },
-                    })
+                        })
                 ]);
 
                 if (userRes.ok && badgesRes.ok && activityRes.ok) {

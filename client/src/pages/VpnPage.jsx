@@ -1,6 +1,6 @@
+import * as vpnApi from '../services/vpnApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
-import API_URL from '../apiConfig';
 
 const VpnPage = () => {
     const { token, user } = useAuth();
@@ -12,9 +12,7 @@ const VpnPage = () => {
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                const response = await fetch(`${API_URL}/api/vpn/status`, {
-                    headers: { 'Authorization': `Bearer ${token}` }
-                });
+                const response = await vpnApi.getStatus({ 'Authorization': `Bearer ${token}` });
                 if (response.ok) {
                     const data = await response.json();
                     setStatus(data);
@@ -32,11 +30,9 @@ const VpnPage = () => {
         setLoading(true);
         setError(null);
         try {
-            const response = await fetch(`${API_URL}/api/vpn/download`, {
-                headers: {
+            const response = await vpnApi.downloadConfig({
                     'Authorization': `Bearer ${token}`
-                }
-            });
+                });
 
             if (response.ok) {
                 const blob = await response.blob();

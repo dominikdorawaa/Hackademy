@@ -1,7 +1,8 @@
+import * as userApi from '../services/userApi';
+import * as friendApi from '../services/friendApi';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import API_URL from '../apiConfig';
 import ActivityCalendar from '../components/ActivityCalendar';
 import './ProfilePage.css';
 
@@ -25,11 +26,9 @@ const PublicProfilePage = () => {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const response = await fetch(`${API_URL}/api/user/${username}`, {
-                    headers: {
+                const response = await userApi.getProfile(username, {
                         'Authorization': `Bearer ${token}`
-                    }
-                });
+                    });
 
                 if (response.ok) {
                     const data = await response.json();
@@ -54,11 +53,9 @@ const PublicProfilePage = () => {
 
     const fetchFriendshipStatus = async (targetUsername) => {
         try {
-            const response = await fetch(`${API_URL}/api/friends/status/${targetUsername}`, {
-                headers: {
+            const response = await friendApi.getStatus(targetUsername, {
                     'Authorization': `Bearer ${token}`
-                }
-            });
+                });
             if (response.ok) {
                 const data = await response.json();
                 setFriendshipStatus(data.status);
@@ -70,11 +67,9 @@ const PublicProfilePage = () => {
 
     const fetchFriendshipStats = async (targetUsername) => {
         try {
-            const response = await fetch(`${API_URL}/api/friends/stats/${targetUsername}`, {
-                headers: {
+            const response = await friendApi.getStats(targetUsername, {
                     'Authorization': `Bearer ${token}`
-                }
-            });
+                });
             if (response.ok) {
                 const data = await response.json();
                 setFriendshipStats(data);
@@ -86,11 +81,9 @@ const PublicProfilePage = () => {
 
     const fetchActivityData = async (targetUsername) => {
         try {
-            const response = await fetch(`${API_URL}/api/user/${targetUsername}/activity`, {
-                headers: {
+            const response = await userApi.getActivity(targetUsername, {
                     'Authorization': `Bearer ${token}`
-                }
-            });
+                });
             if (response.ok) {
                 const data = await response.json();
                 setActivityData(data);
@@ -103,12 +96,9 @@ const PublicProfilePage = () => {
     const handleSendRequest = async () => {
         setActionLoading(true);
         try {
-            const response = await fetch(`${API_URL}/api/friends/request/${profile.username}`, {
-                method: 'POST',
-                headers: {
+            const response = await friendApi.sendRequest(profile.username, {
                     'Authorization': `Bearer ${token}`
-                }
-            });
+                });
             if (response.ok) {
                 setFriendshipStatus('REQUEST_SENT');
             }

@@ -1,7 +1,7 @@
+import * as adminRequests from '../../services/adminRequests';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
-import API_URL from '../../apiConfig';
 import './Management.css';
 
 const RoomManagement = ({ forcedRoomType = null }) => {
@@ -177,23 +177,13 @@ const RoomManagement = ({ forcedRoomType = null }) => {
         };
 
         try {
-            // Use FormData to send file and JSON
-            const formData = new FormData();
-            formData.append('room', new Blob([JSON.stringify(roomData)], { type: 'application/json' }));
-            if (file) {
-                formData.append('file', file);
-            }
-
-            let url = isEditing ? `${API_URL}/api/admin/rooms/${id}` : `${API_URL}/api/admin/rooms`;
-            let method = isEditing ? 'PUT' : 'POST';
-
-            const response = await fetch(url, {
-                method: method,
-                headers: {
+            const response = await (isEditing
+                ? adminRequests.updateRoom(id, roomData, file, {
                     'Authorization': `Bearer ${token}`
-                },
-                body: formData
-            });
+                })
+                : adminRequests.createRoom(roomData, file, {
+                    'Authorization': `Bearer ${token}`
+                }));
 
             if (!response.ok) {
                 const errorData = await response.json();

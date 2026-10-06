@@ -1,7 +1,7 @@
+import * as rankingApi from '../services/rankingApi';
 import React, { useState, useEffect } from 'react';
 import Leaderboard from '../components/Leaderboard';
 import { useAuth } from '../context/AuthContext';
-import API_URL from '../apiConfig';
 
 const RankingPage = () => {
   const { token } = useAuth();
@@ -22,7 +22,7 @@ const RankingPage = () => {
           ...(token && { 'Authorization': `Bearer ${token}` })
         };
 
-        const res = await fetch(`${API_URL}/api/ranking/summary`, { method: 'GET', headers });
+        const res = await rankingApi.getSummary(headers);
         if (!res.ok) throw new Error('Failed to fetch ranking summary');
         const data = await res.json();
 
