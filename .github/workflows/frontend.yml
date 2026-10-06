@@ -7,7 +7,7 @@ permissions:
   contents: read
 
 jobs:
-  build-and-test:
+  frontend-tests:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     defaults:
