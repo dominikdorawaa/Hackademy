@@ -35,9 +35,6 @@ const RoomPage = () => {
   // Arena Result Modal State
   const [showArenaResultModal, setShowArenaResultModal] = useState(false);
 
-  // Surrender Modal State
-  const [showSurrenderModal, setShowSurrenderModal] = useState(false);
-
   // Arena specific state
   const [arenaSession, setArenaSession] = useState(null);
   const [elapsedTime, setElapsedTime] = useState(0);
@@ -221,23 +218,10 @@ const RoomPage = () => {
         setSubmitStatus('error');
         setSubmitMessage(data.message || 'Niepoprawna flaga');
       }
-    } catch (err) {
+    } catch {
       setSubmitStatus('error');
       setSubmitMessage('Błąd sieci');
     }
-  };
-
-  const handleSurrender = () => setShowSurrenderModal(true);
-
-  const confirmSurrender = async () => {
-      setShowSurrenderModal(false);
-      try {
-          const response = await fetch(`${API_URL}/api/arena/game/${arenaGameId}/surrender`, {
-              method: 'POST',
-              headers: { 'Authorization': `Bearer ${token}` }
-          });
-          if (response.ok) navigate('/arena');
-      } catch (err) { console.error(err); }
   };
 
   const handleCloseSuccessModal = () => {
@@ -317,7 +301,7 @@ const RoomPage = () => {
         } else {
             setToast({ message: data.message || 'Niepoprawna odpowiedź', type: 'error' });
         }
-    } catch (err) { setToast({ message: 'Błąd połączenia', type: 'error' }); }
+    } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
   };
 
 

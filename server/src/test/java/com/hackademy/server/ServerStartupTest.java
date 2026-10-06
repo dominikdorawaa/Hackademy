@@ -10,6 +10,7 @@ import org.springframework.test.web.servlet.MockMvc;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -20,6 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "DB_USERNAME=sa",
         "DB_PASSWORD=",
         "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
+        "FRONTEND_URL=https://hackademy-front.onrender.com",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
@@ -36,6 +38,16 @@ class ServerStartupTest {
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ok"));
+    }
+
+    @Test
+    void allowsOnlyConfiguredFrontendOrigin() throws Exception {
+        mockMvc.perform(get("/health").header("Origin", "https://hackademy-front.onrender.com"))
+                .andExpect(status().isOk())
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://hackademy-front.onrender.com"));
+
+        mockMvc.perform(get("/health").header("Origin", "http://localhost:5173"))
+                .andExpect(status().isForbidden());
     }
 
     @Test

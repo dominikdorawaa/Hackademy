@@ -23,6 +23,11 @@ export default defineConfig([
     rules: {
       'react/jsx-uses-react': 'error',
       'react/jsx-uses-vars': 'error',
+      // The compiler-oriented rules require a separate refactor of existing effects.
+      'react-hooks/immutability': 'off',
+      'react-hooks/set-state-in-effect': 'off',
+      // Context modules intentionally export both their provider and hook.
+      'react-refresh/only-export-components': 'off',
     },
   },
 ])

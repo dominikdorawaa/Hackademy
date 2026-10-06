@@ -61,7 +61,7 @@ const ProfilePage = () => {
                     const errorMessage = await userRes.text();
                     setError(`Failed to fetch user data: ${errorMessage}`);
                 }
-            } catch (err) {
+            } catch {
                 setError('Network error: Could not connect to the server.');
             } finally {
                 setLoading(false);
