@@ -15,7 +15,7 @@ let outputDir
 before(async () => {
   outputDir = await mkdtemp(join('node_modules', '.hackademy-client-test-'))
   const result = await build({
-    entryPoints: ['src/components/CTFCard.jsx', 'src/components/Leaderboard.jsx'],
+    entryPoints: ['src/components/CTFCard.tsx', 'src/components/Leaderboard.tsx'],
     bundle: true,
     platform: 'node',
     format: 'esm',

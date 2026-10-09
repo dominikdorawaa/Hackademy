@@ -1,7 +1,7 @@
 import React from 'react';
 import './ConfirmationModal.css'; // We will create this CSS file
 
-const ConfirmationModal = ({ message, isOpen, onConfirm, onCancel, confirmText = "Tak, odblokuj" }) => {
+const ConfirmationModal = ({ message, isOpen, onConfirm, onCancel, confirmText = "Tak, odblokuj" }: { message: string; isOpen: boolean; onConfirm: () => void; onCancel: () => void; confirmText?: string }) => {
   if (!isOpen) return null;
 
   return (

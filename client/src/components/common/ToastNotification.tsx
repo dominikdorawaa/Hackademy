@@ -1,6 +1,6 @@
 import React, { useEffect } from 'react';
 
-const ToastNotification = ({ message, type = 'success', onClose }) => {
+const ToastNotification = ({ message, type = 'success', onClose }: { message: string; type?: string; onClose: () => void }) => {
   useEffect(() => {
     const timer = setTimeout(() => {
       onClose();
@@ -11,7 +11,7 @@ const ToastNotification = ({ message, type = 'success', onClose }) => {
 
   const bgColor = type === 'success' ? '#2ecc71' : '#e74c3c';
   const icon = type === 'success' ? 'fas fa-trophy' : 'fas fa-exclamation-circle';
-  
+
   // Determine title based on message content or type
   let title = "Powiadomienie";
   if (message.includes("odznakę")) title = "Nowa Odznaka!";
@@ -34,13 +34,13 @@ const ToastNotification = ({ message, type = 'success', onClose }) => {
       zIndex: 2000, /* Increased z-index to be above modals */
       animation: 'slideIn 0.3s ease-out'
     }}>
-      <div style={{ 
-        width: '30px', 
-        height: '30px', 
-        borderRadius: '50%', 
-        backgroundColor: bgColor, 
-        display: 'flex', 
-        alignItems: 'center', 
+      <div style={{
+        width: '30px',
+        height: '30px',
+        borderRadius: '50%',
+        backgroundColor: bgColor,
+        display: 'flex',
+        alignItems: 'center',
         justifyContent: 'center',
         color: 'white'
       }}>

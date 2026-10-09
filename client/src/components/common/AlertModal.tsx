@@ -1,7 +1,7 @@
 import React from 'react';
 import './AlertModal.css';
 
-const AlertModal = ({ isOpen, onClose, message, type = 'success', subMessage }) => {
+const AlertModal = ({ isOpen, onClose, message, type = 'success', subMessage }: { isOpen: boolean; onClose: () => void; message: string; type?: string; subMessage?: string }) => {
     if (!isOpen) return null;
 
     return (
