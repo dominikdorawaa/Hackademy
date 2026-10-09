@@ -98,3 +98,10 @@ Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zew
 
 Uruchom Docker Engine, a następnie wykonaj `mvn -B -ntp verify` w katalogu `server`. Testcontainers sam uruchamia PostgreSQL, a Flyway przygotowuje schemat testowej bazy; nie trzeba ustawiać `DB_URL` ani używać bazy z `.env`. Ten sam zestaw testów wykonuje workflow `Backend` dla każdego pull requestu. Wynik i logi są dostępne w zakładce Actions oraz w Checks danego PR.
 
+## Testy frontendu
+
+W katalogu `client` wykonaj `npm ci`, a następnie `npm test`. Sam zestaw testów logowania i chronionych tras uruchomisz przez `npm run test:integration`. Workflow `Frontend` wykonuje lint, build z kontrolą typów i pełny zestaw testów na każdym pull requeście.
+
+Testy korzystają z Vitest, React Testing Library, `user-event` i matcherów `jest-dom`. Helper `src/test/renderWithAuth.tsx` renderuje trasy z `MemoryRouter` i prawdziwym `AuthProvider`. Sesję można przygotować przez zapis tokena z `src/test/fixtures/auth.ts` do `localStorage` przed renderowaniem.
+
+MSW przechwytuje API bez uruchamiania backendu. Handlery w `src/test/mocks/handlers.ts` używają typów z `src/types/api.ts` i adresu z `apiConfig.ts`. Nadpisuj odpowiedzi dla danego scenariusza przez `server.use(...)`; konfiguracja automatycznie resetuje handlery, czyści DOM i storage po każdym teście. Żądanie bez handlera jest błędem.

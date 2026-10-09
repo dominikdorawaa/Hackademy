@@ -43,7 +43,8 @@ const LoginPage = () => {
         await delay(1000);
         navigate('/dashboard');
       } else {
-        const errorMessage = await response.text();
+        const error = await response.json();
+        const errorMessage = error.message || 'Logowanie nie powiodło się.';
         setLoginSequence(prev => [...prev, `[ERROR] ${errorMessage}`]);
         await delay(2000);
         setIsSubmitting(false);
