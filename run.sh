@@ -52,7 +52,9 @@ done
 frontend_pid=''
 cleanup() {
     status=$?
-    trap - EXIT INT TERM
+    set +e
+    trap - EXIT
+    trap '' INT TERM HUP PIPE
     if [[ -n "$frontend_pid" ]]; then
         info 'Zatrzymywanie frontendu...'
         kill -TERM -- "-$frontend_pid" 2>/dev/null || true
@@ -67,6 +69,7 @@ cleanup() {
 trap cleanup EXIT
 trap 'exit 130' INT
 trap 'exit 143' TERM
+trap 'exit 129' HUP
 
 info 'Uruchamianie PostgreSQL i backendu w Dockerze...'
 "${compose[@]}" up --build -d postgres backend
