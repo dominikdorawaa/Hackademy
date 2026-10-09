@@ -11,7 +11,7 @@ const ActivityCalendar = ({ data }: { data: ActivityDto[] }) => {
     // But for simplicity, let's stick to "one year ago" logic and handle alignment
 
     const dates = [];
-    let currentDate = new Date(oneYearAgo);
+    const currentDate = new Date(oneYearAgo);
 
     while (currentDate <= today) {
         dates.push(new Date(currentDate));

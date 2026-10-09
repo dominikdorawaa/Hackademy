@@ -5,18 +5,18 @@ import AuthLayout from '../components/auth/AuthLayout';
 import { useAuth } from '../context/AuthContext';
 
 // Helper function to add delay
-const delay = (ms) => new Promise(res => setTimeout(res, ms));
+const delay = (ms: number) => new Promise<void>(res => setTimeout(res, ms));
 
 const RegisterPage = () => {
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [registerSequence, setRegisterSequence] = useState([]);
+  const [registerSequence, setRegisterSequence] = useState<string[]>([]);
   const navigate = useNavigate();
   const { login } = useAuth(); // Get login function from AuthContext
 
-  const handleRegisterSubmit = async (e) => {
+  const handleRegisterSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setRegisterSequence([]);
