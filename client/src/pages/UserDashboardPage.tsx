@@ -4,12 +4,13 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './UserDashboardPage.css';
+import type { DashboardUser, RankingEntry, RecentSolvedRoomDto, PathSummaryDto, PathProgressDto, PathRoomMiniDto } from '../types/api';
 
-const clamp01 = (n) => Math.min(1, Math.max(0, n));
+const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
-const pad2 = (n) => String(n).padStart(2, '0');
+const pad2 = (n: number) => String(n).padStart(2, '0');
 
-const formatDuration = (totalSeconds) => {
+const formatDuration = (totalSeconds: number) => {
   const s = Math.max(0, Math.floor(totalSeconds || 0));
   const h = Math.floor(s / 3600);
   const m = Math.floor((s % 3600) / 60);
@@ -17,7 +18,7 @@ const formatDuration = (totalSeconds) => {
   return `${h}h ${pad2(m)}m`;
 };
 
-const formatRelativeTimePL = (isoDateTime) => {
+const formatRelativeTimePL = (isoDateTime: string) => {
   if (!isoDateTime) return '';
   const t = new Date(isoDateTime).getTime();
   if (Number.isNaN(t)) return '';
@@ -34,7 +35,7 @@ const formatRelativeTimePL = (isoDateTime) => {
   return `${diffDay} dni temu`;
 };
 
-const difficultyBadge = (difficulty) => {
+const difficultyBadge = (difficulty: string) => {
   switch (difficulty) {
     case 'EASY':
       return { label: 'Łatwy', cls: 'easy' };
@@ -49,7 +50,7 @@ const difficultyBadge = (difficulty) => {
   }
 };
 
-const rankTitleFromPoints = (points) => {
+const rankTitleFromPoints = (points: number) => {
   const p = Number(points) || 0;
   const level = Math.floor(p / 100) + 1;
   if (level >= 1 && level <= 3) return 'Freshman';
@@ -65,19 +66,19 @@ const UserDashboardPage = () => {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [userData, setUserData] = useState(null);
-  const [ranking, setRanking] = useState([]);
-  const [recentSolved, setRecentSolved] = useState([]);
-  const [myRank, setMyRank] = useState(null);
+  const [userData, setUserData] = useState<(DashboardUser & { xp?: number }) | null>(null);
+  const [ranking, setRanking] = useState<RankingEntry[]>([]);
+  const [recentSolved, setRecentSolved] = useState<RecentSolvedRoomDto[]>([]);
+  const [myRank, setMyRank] = useState<(RankingEntry & { rank?: number }) | null>(null);
   const [activeSecondsThisWeek, setActiveSecondsThisWeek] = useState(0);
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
-  const [recommendedPath, setRecommendedPath] = useState(null);
-  const [pathsProgress, setPathsProgress] = useState([]);
-  const [currentPath, setCurrentPath] = useState(null);
-  const [currentPathRoomsMini, setCurrentPathRoomsMini] = useState([]);
+  const [recommendedPath, setRecommendedPath] = useState<PathSummaryDto | null>(null);
+  const [pathsProgress, setPathsProgress] = useState<PathProgressDto[]>([]);
+  const [currentPath, setCurrentPath] = useState<PathProgressDto | null>(null);
+  const [currentPathRoomsMini, setCurrentPathRoomsMini] = useState<PathRoomMiniDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     let isCancelled = false;
@@ -350,8 +351,8 @@ const UserDashboardPage = () => {
                   className="ud-progress-fill"
                   style={{
                     width: `${
-                      currentPath?.totalRooms > 0
-                        ? Math.round(((currentPath?.solvedRooms || 0) / currentPath.totalRooms) * 100)
+                      (currentPath?.totalRooms ?? 0) > 0
+                        ? Math.round(((currentPath?.solvedRooms || 0) / (currentPath?.totalRooms ?? 1)) * 100)
                         : 0
                     }%`,
                   }}
@@ -566,4 +567,3 @@ const UserDashboardPage = () => {
 };
 
 export default UserDashboardPage;
-
