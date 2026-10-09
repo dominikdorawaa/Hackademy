@@ -6,7 +6,7 @@ import { describe, expect, it } from 'vitest';
 import LoginPage from './LoginPage';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import { useAuth } from '../context/AuthContext';
-import type { AuthResponse, LoginRequest, Role } from '../types/api';
+import type { ApiError, AuthResponse, LoginRequest, Role } from '../types/api';
 import { credentials, createToken } from '../test/fixtures/auth';
 import { loginUrl } from '../test/mocks/handlers';
 import { server } from '../test/mocks/server';
@@ -60,7 +60,7 @@ describe('login page integration', () => {
   it('shows rejected credentials and allows a successful retry', async () => {
     mount();
     await submit('wrong-password');
-    expect(await screen.findByText('[ERROR] Invalid credentials', {}, { timeout: 3500 })).toBeInTheDocument();
+    expect(await screen.findByText('[ERROR] Invalid credentials!', {}, { timeout: 3500 })).toBeInTheDocument();
     expect(localStorage.getItem('token')).toBeNull();
     expect(screen.getByTestId('location')).toHaveTextContent('/login:POP');
     await screen.findByRole('button', { name: 'Zaloguj' }, { timeout: 3000 });
@@ -69,6 +69,16 @@ describe('login page integration', () => {
     await submit();
     expect(await screen.findByRole('heading', { name: 'Dashboard' }, { timeout: 3500 })).toBeInTheDocument();
   }, 10000);
+
+  it('shows a fallback when the error response has no message', async () => {
+    server.use(http.post(loginUrl, () => HttpResponse.json<ApiError>({}, { status: 401 })));
+    mount();
+    await submit();
+    expect(await screen.findByText('[ERROR] Logowanie nie powiodło się.', {}, { timeout: 3500 })).toBeInTheDocument();
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(screen.getByTestId('location')).toHaveTextContent('/login:POP');
+    expect(await screen.findByRole('button', { name: 'Zaloguj' }, { timeout: 3000 })).toBeInTheDocument();
+  });
 
   it('shows a connection failure without creating a session', async () => {
     server.use(http.post(loginUrl, () => HttpResponse.error()));
