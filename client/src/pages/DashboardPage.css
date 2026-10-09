@@ -1,3 +1,4 @@
+@layer components {
 :root {
     --neon-blue: #3498db;
     --neon-red: #e74c3c;
@@ -508,4 +509,4 @@ input[type="radio"].filter-checkbox:checked::after {
     .apw-name { font-size: 0.95rem; }
     .apw-room-status { display: none; }
 }
-
+}

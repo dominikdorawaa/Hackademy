@@ -313,7 +313,7 @@ const DashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <h1>Ładowanie danych pokoi...</h1>
       </div>
     );
@@ -321,7 +321,7 @@ const DashboardPage = () => {
 
   if (error) {
     return (
-      <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <h1>Błąd: {error}</h1>
         <button onClick={logout}>Wyloguj</button>
       </div>
@@ -330,7 +330,7 @@ const DashboardPage = () => {
 
   if (!userData) {
     return (
-      <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <h1>Brak danych użytkownika.</h1>
         <button onClick={logout}>Wyloguj</button>
       </div>
@@ -338,7 +338,7 @@ const DashboardPage = () => {
   }
 
   return (
-    <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+    <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
       {/* Header Section - Full Width */}
       <header className="rooms-header">
         <div>

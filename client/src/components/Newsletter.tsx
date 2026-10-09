@@ -31,7 +31,7 @@ const Newsletter = () => {
     >
       <div
         ref={wrapRef}
-        className={`container nl-reveal${inView ? ' nl-reveal--inview' : ''}`}
+        className={`hackademy-container nl-reveal${inView ? ' nl-reveal--inview' : ''}`}
       >
         <h2 className="section-title" style={{ fontSize: '2rem' }}>Bądź na bieżąco</h2>
         <p style={{ color: 'var(--text-gray)', marginBottom: '2rem' }}>

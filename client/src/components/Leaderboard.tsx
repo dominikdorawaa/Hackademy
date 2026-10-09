@@ -47,7 +47,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
 
   return (
     <section className="leaderboard-section" id="leaderboard" style={{ padding: showTitle ? '80px 0' : '0' }}>
-      <div className="container">
+      <div className="hackademy-container">
         {showTitle && (
           <>
             <h2 className="section-title" dangerouslySetInnerHTML={{ __html: title }}></h2>

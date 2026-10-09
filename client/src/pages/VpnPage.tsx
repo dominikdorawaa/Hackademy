@@ -59,11 +59,11 @@ const VpnPage = () => {
     };
 
     if (checkingStatus) {
-        return <div className="container" style={{ paddingTop: '40px', textAlign: 'center' }}>Sprawdzanie uprawnień...</div>;
+        return <div className="hackademy-container" style={{ paddingTop: '40px', textAlign: 'center' }}>Sprawdzanie uprawnień...</div>;
     }
 
     return (
-        <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px', maxWidth: '800px' }}>
+        <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px', maxWidth: '800px' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', textAlign: 'center', color: 'var(--text-light)' }}>Dostęp VPN</h1>
 
             <div style={{ backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>

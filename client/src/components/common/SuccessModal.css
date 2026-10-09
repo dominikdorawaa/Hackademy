@@ -1,3 +1,4 @@
+@layer components {
 .success-modal-overlay {
   position: fixed;
   top: 0;
@@ -141,4 +142,5 @@
   0% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0.4); }
   70% { box-shadow: 0 0 0 15px rgba(0, 255, 136, 0); }
   100% { box-shadow: 0 0 0 0 rgba(0, 255, 136, 0); }
+}
 }

@@ -25,7 +25,7 @@ const HowItWorks = () => {
       ref={sectionRef}
       className={`how-it-works hiw-reveal${inView ? ' hiw-reveal--inview' : ''}`}
     >
-      <div className="container">
+      <div className="hackademy-container">
         <h2 className="section-title">Jak To Działa?</h2>
         <p className="section-subtitle">
           Rozpocznij swoją przygodę w 3 prostych krokach.

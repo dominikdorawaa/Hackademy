@@ -194,7 +194,7 @@ const Navbar = () => {
 
   return (
     <nav className="navbar">
-      <div className="container">
+      <div className="hackademy-container">
         <div className="nav-content">
           <Link
             to="/"

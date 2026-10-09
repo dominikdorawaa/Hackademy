@@ -69,7 +69,7 @@ const Rooms = () => {
 
   return (
     <section className="rooms-showcase" id="rooms">
-      <div className="container">
+      <div className="hackademy-container">
         <h2 className="section-title">Przegląd Pokoi</h2>
         <p className="section-subtitle">
           Zobacz, nad czym pracują inni. Zarejestruj się, aby uzyskać dostęp.

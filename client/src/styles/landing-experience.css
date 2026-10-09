@@ -1,3 +1,4 @@
+@layer components {
 /* Kotwice pod sticky navbar + płynne przewijanie z linków */
 html {
   scroll-behavior: smooth;
@@ -315,4 +316,5 @@ html {
     transform: none;
     transition: none;
   }
+}
 }

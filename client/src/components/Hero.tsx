@@ -4,7 +4,7 @@ import { Link } from 'react-router-dom';
 const Hero = () => {
   return (
     <header className="hero hero-entrance">
-      <div className="container">
+      <div className="hackademy-container">
         <div className="hero-grid">
           <div className="hero-content">
             <h1>Zdobywaj flagi.<br />Ucz się. Rywalizuj.</h1>

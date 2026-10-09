@@ -58,14 +58,14 @@ const PathDetailPage = () => {
     }
   };
 
-  if (loading) return <div className="container" style={{ paddingTop: '40px' }}>Ładowanie ścieżki...</div>;
-  if (error) return <div className="container" style={{ paddingTop: '40px' }}>Błąd: {error}</div>;
-  if (!path) return <div className="container" style={{ paddingTop: '40px' }}>Nie znaleziono ścieżki</div>;
+  if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Ładowanie ścieżki...</div>;
+  if (error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Błąd: {error}</div>;
+  if (!path) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Nie znaleziono ścieżki</div>;
 
   // Minimal rooms payload; full room loads only when entering /rooms/:id
 
   return (
-    <div className="container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
+    <div className="hackademy-container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
       <button onClick={() => navigate('/learn')} className="back-btn">
         &larr; Wróć do ścieżek
       </button>

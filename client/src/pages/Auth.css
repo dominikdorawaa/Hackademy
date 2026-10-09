@@ -1,3 +1,4 @@
+@layer components {
 /* Auth.css */
 
 .auth-container {
@@ -95,4 +96,4 @@
 .auth-info-line .keyword-error {
   color: #ef4444; /* red */
 }
-
+}

@@ -1,3 +1,4 @@
+@layer components {
 .paths-wrap {
   padding-top: 40px;
   padding-bottom: 40px;
@@ -166,4 +167,5 @@
   padding: 6px 14px;
   font-size: 0.8rem;
   height: auto;
+}
 }
