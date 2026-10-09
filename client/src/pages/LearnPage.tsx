@@ -6,4 +6,3 @@ const LearnPage = () => {
 };
 
 export default LearnPage;
-

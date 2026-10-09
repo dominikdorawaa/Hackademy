@@ -3,23 +3,26 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './PathDetailPage.css';
+import type { PathDetailDto, PathRoomMiniDto } from '../types/api';
+
+type PathView = Partial<PathDetailDto> & { id: number };
 
 const PathDetailPage = () => {
   const { id } = useParams();
   const { token, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [path, setPath] = useState(null);
-  const [rooms, setRooms] = useState([]);
+  const [path, setPath] = useState<PathView | null>(null);
+  const [rooms, setRooms] = useState<PathRoomMiniDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchPath = async () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await pathApi.getRoomsMini(id, 0, { Authorization: `Bearer ${token}` });
+        const res = await pathApi.getRoomsMini(id ?? '', 0, { Authorization: `Bearer ${token}` });
         if (res.status === 401 || res.status === 403) {
           logout();
           navigate('/login');
@@ -42,13 +45,13 @@ const PathDetailPage = () => {
 
   const handleEnroll = async () => {
     try {
-      const res = await pathApi.enroll(id, { Authorization: `Bearer ${token}` });
+      const res = await pathApi.enroll(id ?? '', { Authorization: `Bearer ${token}` });
       if (res.ok) {
-        setPath({ ...path, enrolled: true });
+        setPath(path ? { ...path, enrolled: true } : null);
         // After enrollment, backend should return real locked/solved states on next fetch,
         // but for now we can just trigger a re-fetch or let the user see the change.
         // Re-fetching is safer to get the correct locked/solved states.
-        window.location.reload(); 
+        window.location.reload();
       }
     } catch (e) {
       console.error(e);
@@ -137,4 +140,3 @@ const PathDetailPage = () => {
 };
 
 export default PathDetailPage;
-
