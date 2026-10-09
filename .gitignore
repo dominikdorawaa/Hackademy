@@ -15,6 +15,7 @@ bin/
 !**/src/main/**/bin/
 !**/src/test/**/bin/
 .env
+.run.lock
 node_modules
 dist
 dist-ssr
