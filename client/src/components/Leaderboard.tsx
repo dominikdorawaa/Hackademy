@@ -1,8 +1,26 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import type { RankingEntry } from '../types/api';
 
-const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top Hakerzy', currentUsername, myRank, guestLanding = false }) => {
-  const cardsRef = useRef(null);
+type LeaderboardPlayer = Partial<RankingEntry> & {
+  name?: string;
+  avatarSeed?: string;
+  title?: string;
+  score?: number;
+};
+
+type LeaderboardProps = {
+  players: LeaderboardPlayer[];
+  showTitle?: boolean;
+  type?: 'points' | 'elo';
+  title?: string;
+  currentUsername?: string;
+  myRank?: RankingEntry | null;
+  guestLanding?: boolean;
+};
+
+const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top Hakerzy', currentUsername, myRank, guestLanding = false }: LeaderboardProps) => {
+  const cardsRef = useRef<HTMLDivElement>(null);
   const [cardsInView, setCardsInView] = useState(false);
 
   useEffect(() => {
@@ -38,7 +56,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
             </p>
           </>
         )}
-        
+
         {!showTitle && <h3 style={{ textAlign: 'center', marginBottom: '20px', color: type === 'elo' ? '#ff9800' : '#3498db' }}>{title}</h3>}
 
         <div
@@ -79,8 +97,8 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                   </div>
                   <div className="player-score">
                     <span>
-                        {type === 'points' 
-                            ? (player.points || player.score || 0).toLocaleString() 
+                        {type === 'points'
+                            ? (player.points || player.score || 0).toLocaleString()
                             : (player.elo || 500).toLocaleString()}
                     </span>
                     <small>{type === 'points' ? 'punktów' : 'ELO'}</small>
@@ -118,8 +136,8 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                 </div>
                 <div className="player-score">
                   <span>
-                      {type === 'points' 
-                          ? myRank.points.toLocaleString() 
+                      {type === 'points'
+                          ? myRank.points.toLocaleString()
                           : myRank.elo.toLocaleString()}
                   </span>
                   <small>{type === 'points' ? 'punktów' : 'ELO'}</small>

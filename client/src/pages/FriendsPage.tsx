@@ -4,21 +4,22 @@ import * as arenaApi from '../services/arenaApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { Link } from 'react-router-dom';
+import type { FriendDto, FriendRequestDto, UserSearchDto } from '../types/api';
 
 const FriendsPage = () => {
     const { token } = useAuth();
-    const [friends, setFriends] = useState([]);
-    const [requests, setRequests] = useState([]);
+    const [friends, setFriends] = useState<FriendDto[]>([]);
+    const [requests, setRequests] = useState<FriendRequestDto[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    
+    const [error, setError] = useState<string | null>(null);
+
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
-    const [searchResults, setSearchResults] = useState([]);
+    const [searchResults, setSearchResults] = useState<UserSearchDto[]>([]);
     const [isSearching, setIsSearching] = useState(false);
 
     // Challenge state
-    const [challengedFriends, setChallengedFriends] = useState([]);
+    const [challengedFriends, setChallengedFriends] = useState<string[]>([]);
 
     useEffect(() => {
         fetchData();
@@ -47,7 +48,7 @@ const FriendsPage = () => {
         }
     };
 
-    const handleSearch = async (e) => {
+    const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!searchQuery.trim()) return;
 
@@ -65,12 +66,12 @@ const FriendsPage = () => {
         }
     };
 
-    const handleSendRequest = async (username) => {
+    const handleSendRequest = async (username: string) => {
         try {
             const response = await friendApi.sendRequest(username, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 // Update search results to reflect sent request
-                setSearchResults(prev => prev.map(user => 
+                setSearchResults(prev => prev.map(user =>
                     user.username === username ? { ...user, friendshipStatus: 'REQUEST_SENT' } : user
                 ));
             }
@@ -79,7 +80,7 @@ const FriendsPage = () => {
         }
     };
 
-    const handleAccept = async (requestId) => {
+    const handleAccept = async (requestId: number) => {
         try {
             const response = await friendApi.acceptRequest(requestId, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
@@ -90,7 +91,7 @@ const FriendsPage = () => {
         }
     };
 
-    const handleReject = async (requestId) => {
+    const handleReject = async (requestId: number) => {
         try {
             const response = await friendApi.rejectRequest(requestId, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
@@ -101,7 +102,7 @@ const FriendsPage = () => {
         }
     };
 
-    const handleRemove = async (friendId) => {
+    const handleRemove = async (friendId: number) => {
         if (!window.confirm("Czy na pewno chcesz usunąć tego użytkownika ze znajomych?")) return;
 
         try {
@@ -114,13 +115,13 @@ const FriendsPage = () => {
         }
     };
 
-    const handleChallenge = async (username) => {
+    const handleChallenge = async (username: string) => {
         try {
             const response = await arenaApi.createChallenge({ targetUsername: username }, {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}`
                 });
-            
+
             if (response.ok) {
                 setChallengedFriends(prev => [...prev, username]);
             } else {
@@ -133,7 +134,7 @@ const FriendsPage = () => {
         }
     };
 
-    const calculateRankColor = (points) => {
+    const calculateRankColor = (points: number) => {
         const level = Math.floor(points / 100) + 1;
         if (level >= 1 && level <= 3) return '#4CAF50';
         if (level >= 4 && level <= 6) return '#2196F3';
@@ -155,18 +156,18 @@ const FriendsPage = () => {
             <div style={{ marginBottom: '40px', backgroundColor: 'var(--bg-panel)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                 <h2 style={{ fontSize: '1.2rem', marginBottom: '15px', color: 'var(--text-light)' }}>Znajdź znajomych</h2>
                 <form onSubmit={handleSearch} style={{ display: 'flex', gap: '10px' }}>
-                    <input 
-                        type="text" 
-                        placeholder="Wpisz nazwę użytkownika..." 
+                    <input
+                        type="text"
+                        placeholder="Wpisz nazwę użytkownika..."
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        style={{ 
-                            flex: 1, 
-                            padding: '10px', 
-                            borderRadius: '6px', 
-                            border: '1px solid var(--input-border)', 
-                            backgroundColor: 'var(--input-bg)', 
-                            color: 'var(--text-light)' 
+                        style={{
+                            flex: 1,
+                            padding: '10px',
+                            borderRadius: '6px',
+                            border: '1px solid var(--input-border)',
+                            backgroundColor: 'var(--input-bg)',
+                            color: 'var(--text-light)'
                         }}
                     />
                     <button type="submit" className="btn btn-primary" disabled={isSearching}>
@@ -177,16 +178,16 @@ const FriendsPage = () => {
                 {searchResults.length > 0 && (
                     <div style={{ marginTop: '20px', display: 'flex', flexDirection: 'column', gap: '10px' }}>
                         {searchResults.map(user => (
-                            <div key={user.id} style={{ 
-                                display: 'flex', 
-                                justifyContent: 'space-between', 
+                            <div key={user.id} style={{
+                                display: 'flex',
+                                justifyContent: 'space-between',
                                 alignItems: 'center',
                                 padding: '10px',
                                 backgroundColor: 'var(--bg-panel-lighter)',
                                 borderRadius: '8px'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <img 
+                                    <img
                                         src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.username}`}
                                         alt="Avatar"
                                         style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#333' }}
@@ -229,17 +230,17 @@ const FriendsPage = () => {
                     </h2>
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
                         {requests.map(req => (
-                            <div key={req.id} style={{ 
-                                backgroundColor: 'var(--bg-panel)', 
-                                padding: '20px', 
-                                borderRadius: '12px', 
+                            <div key={req.id} style={{
+                                backgroundColor: 'var(--bg-panel)',
+                                padding: '20px',
+                                borderRadius: '12px',
                                 border: '1px solid #ffd700',
                                 display: 'flex',
                                 alignItems: 'center',
                                 justifyContent: 'space-between'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <img 
+                                    <img
                                         src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${req.requesterUsername}`}
                                         alt="Avatar"
                                         style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#333' }}
@@ -271,7 +272,7 @@ const FriendsPage = () => {
                     <i className="fas fa-users" style={{ marginRight: '10px' }}></i>
                     Twoi Znajomi ({friends.length})
                 </h2>
-                
+
                 {friends.length === 0 ? (
                     <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)', backgroundColor: 'var(--bg-panel)', borderRadius: '12px' }}>
                         <p>Nie masz jeszcze żadnych znajomych.</p>
@@ -279,22 +280,22 @@ const FriendsPage = () => {
                 ) : (
                     <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(250px, 1fr))', gap: '20px' }}>
                         {friends.map(friend => (
-                            <div key={friend.id} style={{ 
-                                backgroundColor: 'var(--bg-panel)', 
-                                padding: '20px', 
-                                borderRadius: '12px', 
+                            <div key={friend.id} style={{
+                                backgroundColor: 'var(--bg-panel)',
+                                padding: '20px',
+                                borderRadius: '12px',
                                 border: '1px solid var(--border-color)',
                                 position: 'relative'
                             }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                                    <img 
+                                    <img
                                         src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${friend.username}`}
                                         alt="Avatar"
-                                        style={{ 
-                                            width: '80px', 
-                                            height: '80px', 
-                                            borderRadius: '50%', 
-                                            backgroundColor: '#333', 
+                                        style={{
+                                            width: '80px',
+                                            height: '80px',
+                                            borderRadius: '50%',
+                                            backgroundColor: '#333',
                                             marginBottom: '15px',
                                             border: `3px solid ${calculateRankColor(friend.points)}`
                                         }}
@@ -305,14 +306,14 @@ const FriendsPage = () => {
                                     <div style={{ fontSize: '0.9rem', color: 'var(--text-gray)', marginBottom: '15px' }}>
                                         {friend.points} XP • {friend.streak} dni 🔥
                                     </div>
-                                    
+
                                     <div style={{ display: 'flex', gap: '10px', width: '100%' }}>
-                                        <Link 
-                                            to={`/profile/${friend.username}`} 
-                                            className="btn" 
-                                            style={{ 
-                                                flex: 1, 
-                                                fontSize: '0.8rem', 
+                                        <Link
+                                            to={`/profile/${friend.username}`}
+                                            className="btn"
+                                            style={{
+                                                flex: 1,
+                                                fontSize: '0.8rem',
                                                 padding: '8px',
                                                 backgroundColor: 'var(--bg-panel-lighter)',
                                                 color: 'var(--text-light)',
@@ -325,9 +326,9 @@ const FriendsPage = () => {
                                         >
                                             <i className="fas fa-user"></i> Profil
                                         </Link>
-                                        <button 
-                                            onClick={() => handleChallenge(friend.username)} 
-                                            className="btn btn-outline" 
+                                        <button
+                                            onClick={() => handleChallenge(friend.username)}
+                                            className="btn btn-outline"
                                             style={{ flex: 1, fontSize: '0.8rem', padding: '8px', borderColor: '#ff2d55', color: '#ff2d55' }}
                                             title="Wyzwij na pojedynek"
                                             disabled={challengedFriends.includes(friend.username)}
@@ -338,9 +339,9 @@ const FriendsPage = () => {
                                                 </>
                                             )}
                                         </button>
-                                        <button 
-                                            onClick={() => handleRemove(friend.id)} 
-                                            className="btn btn-outline" 
+                                        <button
+                                            onClick={() => handleRemove(friend.id)}
+                                            className="btn btn-outline"
                                             style={{ borderColor: '#e74c3c', color: '#e74c3c', padding: '8px 12px' }}
                                             title="Usuń ze znajomych"
                                         >

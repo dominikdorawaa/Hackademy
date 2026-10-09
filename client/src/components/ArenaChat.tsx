@@ -5,19 +5,20 @@ import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from './common/ConfirmationModal';
 import AlertModal from './common/AlertModal';
 import './ArenaChat.css';
+import type { ApiError, ChatMessage, DashboardUser } from '../types/api';
 
-const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
+const ArenaChat = ({ gameId, isOpen, toggleChat }: { gameId: string; isOpen: boolean; toggleChat: () => void }) => {
     const { token } = useAuth();
-    const [messages, setMessages] = useState([]);
+    const [messages, setMessages] = useState<ChatMessage[]>([]);
     const [newMessage, setNewMessage] = useState('');
-    const messagesEndRef = useRef(null);
-    const [userData, setUserData] = useState(null);
+    const messagesEndRef = useRef<HTMLDivElement>(null);
+    const [userData, setUserData] = useState<DashboardUser | null>(null);
     const [isSending, setIsSending] = useState(false);
-    
+
     // Modal states
     const [isReportModalOpen, setIsReportModalOpen] = useState(false);
-    const [messageToReport, setMessageToReport] = useState(null);
-    
+    const [messageToReport, setMessageToReport] = useState<number | null>(null);
+
     // Alert Modal State
     const [alertState, setAlertState] = useState({
         isOpen: false,
@@ -30,7 +31,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
     useEffect(() => {
         if (token) {
             userApi.getCurrentUser({ 'Authorization': `Bearer ${token}` })
-            .then(res => res.json())
+            .then(res => res.json() as Promise<DashboardUser>)
             .then(data => setUserData(data))
             .catch(err => console.error(err));
         }
@@ -38,7 +39,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
 
     // Poll for messages
     useEffect(() => {
-        let interval;
+        let interval: ReturnType<typeof setInterval> | undefined;
         if (gameId && token && isOpen) {
             const fetchMessages = async () => {
                 try {
@@ -63,7 +64,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
         messagesEndRef.current?.scrollIntoView({ behavior: "smooth" });
     }, [messages, isOpen]);
 
-    const formatTimeRemaining = (mutedUntil) => {
+    const formatTimeRemaining = (mutedUntil: string) => {
         // Ensure the date string is treated as UTC if it doesn't have timezone info
         let dateStr = mutedUntil;
         if (!dateStr.endsWith('Z') && !dateStr.includes('+')) {
@@ -72,7 +73,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
 
         const end = new Date(dateStr);
         const now = new Date();
-        const diff = end - now;
+        const diff = end.getTime() - now.getTime();
 
         if (diff <= 0) return "Blokada wygasła (odśwież stronę).";
 
@@ -88,7 +89,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
         return `${seconds} sek.`;
     };
 
-    const handleSendMessage = async (e) => {
+    const handleSendMessage = async (e: React.FormEvent) => {
         e.preventDefault();
         if (!newMessage.trim() || isSending) return;
 
@@ -104,8 +105,8 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
                 setMessages(prev => [...prev, sentMsg]);
                 setNewMessage('');
             } else {
-                const errorData = await response.json().catch(() => ({}));
-                
+                const errorData: ApiError = await response.json().catch(() => ({}));
+
                 if (response.status === 403 && errorData.mutedUntil) {
                     const timeRemaining = formatTimeRemaining(errorData.mutedUntil);
                     setAlertState({
@@ -130,7 +131,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
         }
     };
 
-    const openReportModal = (messageId) => {
+    const openReportModal = (messageId: number) => {
         setMessageToReport(messageId);
         setIsReportModalOpen(true);
     };
@@ -141,7 +142,7 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
 
         try {
             const response = await chatApi.reportMessage(messageToReport, { 'Authorization': `Bearer ${token}` });
-            
+
             if (response.ok) {
                 setAlertState({
                     isOpen: true,
@@ -190,8 +191,8 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
                                             <p>{msg.content}</p>
                                         </div>
                                         {!isOwn && (
-                                            <button 
-                                                className="report-btn" 
+                                            <button
+                                                className="report-btn"
                                                 onClick={() => openReportModal(msg.id)}
                                                 title="Zgłoś wiadomość"
                                             >
@@ -221,15 +222,15 @@ const ArenaChat = ({ gameId, isOpen, toggleChat }) => {
                 </div>
             </div>
 
-            <ConfirmationModal 
+            <ConfirmationModal
                 isOpen={isReportModalOpen}
                 message="Czy na pewno chcesz zgłosić tę wiadomość do administratora? Nadużywanie tej funkcji może skutkować blokadą konta."
                 onConfirm={confirmReport}
                 onCancel={() => setIsReportModalOpen(false)}
                 confirmText="Zgłoś"
             />
-            
-            <AlertModal 
+
+            <AlertModal
                 isOpen={alertState.isOpen}
                 onClose={() => setAlertState({ ...alertState, isOpen: false })}
                 type={alertState.type}

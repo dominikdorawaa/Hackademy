@@ -4,16 +4,17 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './PathsPage.css';
+import type { PathSummaryDto } from '../types/api';
 
 const PathsPage = () => {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [paths, setPaths] = useState([]);
+  const [paths, setPaths] = useState<PathSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
-  const resolveBannerSrc = (p) => {
+  const resolveBannerSrc = (p: PathSummaryDto | null) => {
     if (!p) return null;
     // Prefer external URL if provided; otherwise use DB banner endpoint lazily.
     const bannerUrl = p.bannerUrl;
@@ -27,9 +28,9 @@ const PathsPage = () => {
     return null;
   };
 
-  const PathCard = ({ p }) => {
+  const PathCard = ({ p }: { p: PathSummaryDto }) => {
     const [inView, setInView] = useState(false);
-    const ref = React.useRef(null);
+    const ref = React.useRef<HTMLDivElement>(null);
 
     useEffect(() => {
       const el = ref.current;
@@ -122,7 +123,7 @@ const PathsPage = () => {
     if (token) fetchPaths();
   }, [token, logout, navigate]);
 
-  const handleEnroll = async (e, pathId) => {
+  const handleEnroll = async (e: React.MouseEvent, pathId: number) => {
     e.stopPropagation(); // Zapobiegaj nawigacji do szczegółów
     try {
       const res = await pathApi.enroll(pathId, { Authorization: `Bearer ${token}` });
@@ -177,4 +178,3 @@ const PathsPage = () => {
 };
 
 export default PathsPage;
-

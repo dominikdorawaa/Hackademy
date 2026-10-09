@@ -10,25 +10,26 @@ import SuccessModal from '../components/common/SuccessModal';
 import ArenaResultModal from '../components/common/ArenaResultModal';
 import ArenaChat from '../components/ArenaChat';
 import './RoomPage.css';
+import type { DashboardUser, GameSession, RoomDetailDto } from '../types/api';
 
 const RoomPage = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = useAuth();
-  
-  const [room, setRoom] = useState(null);
+
+  const [room, setRoom] = useState<RoomDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [unlockedHints, setUnlockedHints] = useState([]);
+  const [error, setError] = useState<string | null>(null);
+  const [unlockedHints, setUnlockedHints] = useState<number[]>([]);
   const [potentialPoints, setPotentialPoints] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
-  const [hintToUnlock, setHintToUnlock] = useState(null);
-  
+  const [hintToUnlock, setHintToUnlock] = useState<number | null>(null);
+
   const [flag, setFlag] = useState('');
-  const [submitStatus, setSubmitStatus] = useState(null); // 'success', 'error', null
+  const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null); // 'success', 'error', null
   const [submitMessage, setSubmitMessage] = useState('');
-  
+
   // Success Modal State (Normal Mode)
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
@@ -38,21 +39,21 @@ const RoomPage = () => {
   const [showArenaResultModal, setShowArenaResultModal] = useState(false);
 
   // Arena specific state
-  const [arenaSession, setArenaSession] = useState(null);
+  const [arenaSession, setArenaSession] = useState<GameSession | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [penaltyTime, setPenaltyTime] = useState(0);
-  const [userData, setUserData] = useState(null);
+  const [userData, setUserData] = useState<DashboardUser | null>(null);
   const [isChatOpen, setIsChatOpen] = useState(false);
-  
+
   // Training Mode State
   const [isTrainingMode, setIsTrainingMode] = useState(false);
 
   // Tasks State
-  const [taskAnswers, setTaskAnswers] = useState({});
-  const [expandedTasks, setExpandedTasks] = useState({});
+  const [taskAnswers, setTaskAnswers] = useState<Record<number, string>>({});
+  const [expandedTasks, setExpandedTasks] = useState<Record<number, boolean>>({});
 
   // Toast state
-  const [toast, setToast] = useState(null);
+  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
   // Arena Mode
   const queryParams = new URLSearchParams(location.search);
@@ -63,7 +64,7 @@ const RoomPage = () => {
   useEffect(() => {
       if (token) {
           userApi.getCurrentUser({ 'Authorization': `Bearer ${token}` })
-          .then(res => res.json())
+          .then(res => res.json() as Promise<DashboardUser>)
           .then(data => setUserData(data))
           .catch(err => console.error(err));
       }
@@ -71,11 +72,11 @@ const RoomPage = () => {
 
   // Timer for Arena
   useEffect(() => {
-    let timer;
+    let timer: ReturnType<typeof setInterval> | undefined;
     if (isArenaMode && arenaSession && userData) {
         const startTime = new Date(arenaSession.startTime).getTime();
         const userFinishTime = arenaSession.finishTimes && arenaSession.finishTimes[userData.id];
-        
+
         if (userFinishTime) {
             const finishTime = new Date(userFinishTime).getTime();
             setElapsedTime(Math.floor((finishTime - startTime) / 1000));
@@ -91,9 +92,9 @@ const RoomPage = () => {
 
   // Polling for Arena
   useEffect(() => {
-    let interval;
+    let interval: ReturnType<typeof setInterval> | undefined;
     if (isArenaMode && token && userData) {
-        arenaApi.getGame(arenaGameId, { 'Authorization': `Bearer ${token}` }).then(res => res.json()).then(data => {
+        arenaApi.getGame(arenaGameId ?? '', { 'Authorization': `Bearer ${token}` }).then(res => res.json() as Promise<GameSession>).then(data => {
             setArenaSession(data);
             if (data.hintsUsed && data.hintsUsed[userData.id]) {
                 setUnlockedHints(data.hintsUsed[userData.id]);
@@ -103,7 +104,7 @@ const RoomPage = () => {
 
         interval = setInterval(async () => {
             try {
-                const response = await arenaApi.getGame(arenaGameId, { 'Authorization': `Bearer ${token}` });
+                const response = await arenaApi.getGame(arenaGameId ?? '', { 'Authorization': `Bearer ${token}` });
                 if (response.ok) {
                     const session = await response.json();
                     setArenaSession(session);
@@ -119,34 +120,34 @@ const RoomPage = () => {
     return () => clearInterval(interval);
   }, [isArenaMode, arenaGameId, token, userData]);
 
-  const handleUnlockHint = (hintId) => {
+  const handleUnlockHint = (hintId: number) => {
     setHintToUnlock(hintId);
     setIsModalOpen(true);
   };
 
   const confirmUnlockHint = async () => {
-    setIsModalOpen(false); 
-    if (!hintToUnlock) return; 
+    setIsModalOpen(false);
+    if (!hintToUnlock) return;
 
     try {
         if (isArenaMode) {
-            const response = await arenaApi.useHint(arenaGameId, { hintId: hintToUnlock }, {
+            const response = await arenaApi.useHint(arenaGameId ?? '', { hintId: hintToUnlock }, {
                     'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}` 
+                    'Authorization': `Bearer ${token}`
                 });
             if (!response.ok) throw new Error("Failed to use hint in arena");
             setPenaltyTime(prev => prev + 120);
             setUnlockedHints(prev => [...prev, hintToUnlock]);
             setToast({ message: 'Podpowiedź odblokowana! +2 minuty kary.', type: 'warning' });
         } else {
-            const response = await roomApi.unlockHint(id, hintToUnlock, { 'Authorization': `Bearer ${token}` });
+            const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { 'Authorization': `Bearer ${token}` });
             if (!response.ok) throw new Error('Failed to unlock hint');
             setUnlockedHints([...unlockedHints, hintToUnlock]);
-            setPotentialPoints(Math.max(0, room.points * (1 - (unlockedHints.length + 1) * 0.25)));
+            setPotentialPoints(Math.max(0, (room?.points ?? 0) * (1 - (unlockedHints.length + 1) * 0.25)));
             setToast({ message: 'Podpowiedź odblokowana!', type: 'success' });
         }
     } catch (err) {
-        setToast({ message: err.message, type: 'error' });
+        setToast({ message: err instanceof Error ? err.message : String(err), type: 'error' });
     } finally {
         setHintToUnlock(null);
     }
@@ -159,13 +160,13 @@ const RoomPage = () => {
 
   const handleDownloadFile = async () => {
       try {
-          const response = await roomApi.downloadFile(id, { 'Authorization': `Bearer ${token}` });
+          const response = await roomApi.downloadFile(id ?? '', { 'Authorization': `Bearer ${token}` });
           if (response.ok) {
               const blob = await response.blob();
               const url = window.URL.createObjectURL(blob);
               const a = document.createElement('a');
               a.href = url;
-              a.download = room.fileName || 'plik';
+              a.download = room?.fileName || 'plik';
               document.body.appendChild(a);
               a.click();
               a.remove();
@@ -173,32 +174,32 @@ const RoomPage = () => {
       } catch (err) { console.error(err); }
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setSubmitStatus(null);
     setSubmitMessage('');
 
     try {
       const response = await (isArenaMode
-        ? arenaApi.solveGame(arenaGameId, { flag }, {
+        ? arenaApi.solveGame(arenaGameId ?? '', { flag }, {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         })
-        : roomApi.solveRoom(id, { flag }, {
+        : roomApi.solveRoom(id ?? '', { flag }, {
           'Content-Type': 'application/json',
           'Authorization': `Bearer ${token}`
         }));
 
       const data = await response.json();
-      if (response.ok) { 
+      if (response.ok) {
         setSubmitStatus('success');
-        setSubmitMessage(data.message);
+        setSubmitMessage(data.message ?? '');
         if (!isArenaMode) {
-            setRoom(prev => ({ ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 }));
-            setEarnedPoints(data.pointsEarned || 0);
+            setRoom(prev => prev ? { ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 } : null);
+            setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
             setSuccessMessage("Misja zakończona sukcesem!");
             setShowSuccessModal(true);
-        } else if (data.status === 'FINISHED') {
+        } else if ('status' in data && data.status === 'FINISHED') {
             setShowArenaResultModal(true);
         }
       } else {
@@ -215,13 +216,13 @@ const RoomPage = () => {
       setShowSuccessModal(false);
       if (isArenaMode) navigate('/arena');
   };
-  
+
   const handleCloseArenaResultModal = () => {
       setShowArenaResultModal(false);
       navigate('/arena');
   };
 
-  const formatTime = (seconds) => {
+  const formatTime = (seconds: number) => {
       const mins = Math.floor(seconds / 60);
       const secs = seconds % 60;
       return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
@@ -230,7 +231,7 @@ const RoomPage = () => {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const response = await roomApi.getRoom(id, { 'Authorization': `Bearer ${token}` });
+        const response = await roomApi.getRoom(id ?? '', { 'Authorization': `Bearer ${token}` });
         if (!response.ok) throw new Error('Failed to fetch room details');
         const data = await response.json();
         setRoom(data);
@@ -246,36 +247,36 @@ const RoomPage = () => {
               setPotentialPoints(data.points);
             }
         }
-      } catch (err) { setError(err.message); }
+      } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
       finally { setLoading(false); }
     };
     if (token) fetchRoom();
   }, [id, token, isArenaMode]);
 
-  const toggleTask = (taskId) => {
+  const toggleTask = (taskId: number) => {
     setExpandedTasks(prev => ({ ...prev, [taskId]: !prev[taskId] }));
   };
 
-  const handleTaskSubmit = async (e, taskId) => {
+  const handleTaskSubmit = async (e: React.FormEvent, taskId: number) => {
     e.preventDefault();
     const answer = taskAnswers[taskId] || '';
     if (!answer) return;
 
     try {
-        const response = await roomApi.solveTask(id, taskId, { answer }, {
+        const response = await roomApi.solveTask(id ?? '', taskId, { answer }, {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             });
         const data = await response.json();
         if (response.ok) {
-            setToast({ message: data.message, type: 'success' });
-            setRoom(prev => ({
+            setToast({ message: data.message ?? '', type: 'success' });
+            setRoom(prev => prev ? ({
                 ...prev,
                 tasks: prev.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t),
-                solved: data.message.includes('Pokój ukończony') ? true : prev.solved
-            }));
-            if (data.message.includes('Pokój ukończony')) {
-                setEarnedPoints(data.pointsEarned || 0);
+                solved: data.message?.includes('Pokój ukończony') ? true : prev.solved
+            }) : null);
+            if (data.message?.includes('Pokój ukończony')) {
+                setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
                 setSuccessMessage("Wszystkie zadania wykonane! Pokój ukończony.");
                 setShowSuccessModal(true);
             }
@@ -291,7 +292,7 @@ const RoomPage = () => {
   if (!room) return <div className="container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
 
   const pointsToDeduct = room.points * 0.25;
-  const isSolved = isArenaMode ? false : room.solved; 
+  const isSolved = isArenaMode ? false : room.solved;
   const showContent = !isSolved || isTrainingMode || isArenaMode;
 
   const tasks = room.tasks || [];
@@ -310,10 +311,10 @@ const RoomPage = () => {
       )}
 
       {isArenaMode && (
-          <ArenaChat 
-              gameId={arenaGameId} 
-              isOpen={isChatOpen} 
-              toggleChat={() => setIsChatOpen(!isChatOpen)} 
+          <ArenaChat
+              gameId={arenaGameId}
+              isOpen={isChatOpen}
+              toggleChat={() => setIsChatOpen(!isChatOpen)}
           />
       )}
 
@@ -342,7 +343,7 @@ const RoomPage = () => {
         <div className="room-description">
             <h3>Opis Wyzwania</h3>
             <p style={{ whiteSpace: 'pre-line' }}>{room.description}</p>
-            
+
             {room.fileName && (
                 <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#1e1e1e', borderRadius: '8px', border: '1px solid #333' }}>
                     <h4 style={{ marginTop: 0 }}>Materiały do misji</h4>
@@ -373,16 +374,16 @@ const RoomPage = () => {
                                         <div className="task-question-box">
                                             <div className="task-question-text">{task.question}</div>
                                             <form className="task-input-group" onSubmit={(e) => handleTaskSubmit(e, task.id)}>
-                                                <input 
-                                                    type="text" 
+                                                <input
+                                                    type="text"
                                                     className={`task-input ${task.completed ? 'success' : ''}`}
                                                     placeholder={task.completed ? 'Ukończono' : 'Twoja odpowiedź...'}
                                                     value={task.completed ? '' : (taskAnswers[task.id] || '')}
                                                     onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
                                                     disabled={task.completed}
                                                 />
-                                                <button 
-                                                    type="submit" 
+                                                <button
+                                                    type="submit"
                                                     className={`btn-task-submit ${task.completed ? 'completed' : ''}`}
                                                     disabled={task.completed}
                                                 >
@@ -432,8 +433,8 @@ const RoomPage = () => {
                                         <p>{hint.description}</p>
                                     </div>
                                 ) : (
-                                    <button 
-                                        onClick={() => handleUnlockHint(hint.id)} 
+                                    <button
+                                        onClick={() => handleUnlockHint(hint.id)}
                                         className="btn-unlock-hint"
                                         disabled={!canUnlock}
                                         style={{ opacity: canUnlock ? 1 : 0.5, cursor: canUnlock ? 'pointer' : 'not-allowed' }}
@@ -451,9 +452,9 @@ const RoomPage = () => {
                 showContent ? (
                     <form onSubmit={handleSubmit} className="flag-form">
                         <h3>Zgłoś Flagę</h3>
-                        <input 
-                            type="text" 
-                            placeholder="Wklej flagę tutaj..." 
+                        <input
+                            type="text"
+                            placeholder="Wklej flagę tutaj..."
                             value={flag}
                             onChange={(e) => setFlag(e.target.value)}
                             className={submitStatus === 'error' ? 'input-error' : ''}
@@ -474,32 +475,32 @@ const RoomPage = () => {
             )}
         </div>
       </div>
-      
-      <ConfirmationModal 
+
+      <ConfirmationModal
         isOpen={isModalOpen}
-        message={isArenaMode 
-            ? "Czy na pewno chcesz odblokować podpowiedź? Zostanie doliczone 2 minuty kary do Twojego czasu!" 
+        message={isArenaMode
+            ? "Czy na pewno chcesz odblokować podpowiedź? Zostanie doliczone 2 minuty kary do Twojego czasu!"
             : (isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - brak kosztu punktowego)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${pointsToDeduct} punktów.`)}
         onConfirm={confirmUnlockHint}
         onCancel={cancelUnlockHint}
       />
-      <SuccessModal 
+      <SuccessModal
         isOpen={showSuccessModal}
         onClose={handleCloseSuccessModal}
         points={earnedPoints}
         message={successMessage}
       />
-      <ArenaResultModal 
+      <ArenaResultModal
         isOpen={showArenaResultModal}
         onClose={handleCloseArenaResultModal}
         session={arenaSession}
         currentUserId={userData ? userData.id : null}
       />
       {toast && (
-        <ToastNotification 
-            message={toast.message} 
-            type={toast.type} 
-            onClose={() => setToast(null)} 
+        <ToastNotification
+            message={toast.message}
+            type={toast.type}
+            onClose={() => setToast(null)}
         />
       )}
     </div>

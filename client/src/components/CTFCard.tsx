@@ -1,17 +1,18 @@
 import React from 'react';
 import { useNavigate } from 'react-router-dom';
+import type { RoomSummaryDto } from '../types/api';
 
-const CTFCard = ({ challenge }) => {
+const CTFCard = ({ challenge }: { challenge: RoomSummaryDto & { description?: string } }) => {
   const navigate = useNavigate();
 
-  const difficultyClass = {
+  const difficultyClass = ({
     'EASY': 'diff-easy',
     'MEDIUM': 'diff-medium',
     'HARD': 'diff-hard',
     'INSANE': 'diff-insane',
-  }[challenge.difficulty] || 'diff-easy';
+  } as Record<string, string>)[challenge.difficulty] || 'diff-easy';
 
-  const difficultyTranslations = {
+  const difficultyTranslations: Record<string, string> = {
     'EASY': 'Łatwy',
     'MEDIUM': 'Średni',
     'HARD': 'Trudny',
@@ -31,9 +32,9 @@ const CTFCard = ({ challenge }) => {
   }
 
   return (
-    <div 
-        className={`room-card ${challenge.locked ? 'locked' : ''}`} 
-        onClick={handleCardClick} 
+    <div
+        className={`room-card ${challenge.locked ? 'locked' : ''}`}
+        onClick={handleCardClick}
         style={{ cursor: challenge.locked ? 'not-allowed' : 'pointer', opacity: challenge.locked ? 0.7 : 1 }}
     >
       {challenge.locked && (
@@ -41,22 +42,22 @@ const CTFCard = ({ challenge }) => {
               <i className="fas fa-lock"></i>
           </div>
       )}
-      
+
       <div className="room-description-tooltip">
          <p>{challenge.locked ? lockMessage : (challenge.shortDescription || challenge.description)}</p>
       </div>
       <div className="room-image-placeholder">
         <span className={`difficulty-badge ${difficultyClass}`}>{difficultyTranslations[challenge.difficulty]}</span>
-        
+
         {/* VPN Badge */}
-        <div 
-            className="vpn-badge" 
-            style={{ 
-                position: 'absolute', 
-                top: '10px', 
-                left: '10px', 
-                backgroundColor: 'rgba(0,0,0,0.6)', 
-                padding: '4px 8px', 
+        <div
+            className="vpn-badge"
+            style={{
+                position: 'absolute',
+                top: '10px',
+                left: '10px',
+                backgroundColor: 'rgba(0,0,0,0.6)',
+                padding: '4px 8px',
                 borderRadius: '4px',
                 color: challenge.requiresVpn ? '#2ecc71' : '#e74c3c',
                 fontSize: '0.8rem',

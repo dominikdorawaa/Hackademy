@@ -5,11 +5,13 @@ import React, { useState, useEffect } from 'react';
 import CTFCard from '../components/CTFCard';
 import { useAuth } from '../context/AuthContext';
 import { useNavigate } from 'react-router-dom';
+import type { NavigateFunction } from 'react-router-dom';
+import type { DashboardUser, PathProgressDto, PathRoomMiniDto, PathSummaryDto, RoomSummaryDto } from '../types/api';
 import './DashboardPage.css';
 
 // ─── Active Path Widget ────────────────────────────────────────────────────────
-export const ActivePathWidget = ({ token, navigate }) => {
-  const [pathData, setPathData] = useState(null);
+export const ActivePathWidget = ({ token, navigate }: { token: string | null; navigate: NavigateFunction }) => {
+  const [pathData, setPathData] = useState<{ id: number; title: string; rooms: PathRoomMiniDto[]; solvedCount: number; totalCount: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
@@ -23,7 +25,7 @@ export const ActivePathWidget = ({ token, navigate }) => {
         const progressList = progressRes.ok ? await progressRes.json() : [];
         const safeProgress = Array.isArray(progressList) ? progressList : [];
 
-        let active = safeProgress.find((p) => p && !p.completed) || safeProgress[0] || null;
+        let active: PathProgressDto | PathSummaryDto | null = safeProgress.find((p) => p && !p.completed) || safeProgress[0] || null;
 
         // Fallback: jeśli użytkownik nie ma jeszcze progresu (brak enroll),
         // weź pierwszą ścieżkę z listy.
@@ -40,8 +42,8 @@ export const ActivePathWidget = ({ token, navigate }) => {
         const roomsMini = roomsMiniRes.ok ? await roomsMiniRes.json() : null;
         const rooms = Array.isArray(roomsMini?.rooms) ? roomsMini.rooms : [];
 
-        const solvedCount = Number(active?.solvedRooms) || rooms.filter((r) => r?.solved).length;
-        const totalCount = Number(active?.totalRooms) || rooms.length;
+        const solvedCount = Number('solvedRooms' in active ? active.solvedRooms : undefined) || rooms.filter((r) => r?.solved).length;
+        const totalCount = Number('totalRooms' in active ? active.totalRooms : undefined) || rooms.length;
 
         setPathData({
           id: active.id,
@@ -73,7 +75,7 @@ export const ActivePathWidget = ({ token, navigate }) => {
   const pct = total > 0 ? Math.round((solved / total) * 100) : 0;
   const previewRooms = rooms.slice(0, 4);
 
-  const statusLabel = (r) => {
+  const statusLabel = (r: PathRoomMiniDto) => {
     if (r.solved) return { label: 'Ukończone', cls: 'apw-done' };
     if (r.locked) return { label: 'Zablokowane', cls: 'apw-locked' };
     return { label: 'W trakcie', cls: 'apw-active' };
@@ -135,20 +137,20 @@ const ITEMS_PER_PAGE = 12;
 const DashboardPage = () => {
   const { token, logout } = useAuth();
   const navigate = useNavigate();
-  const [userData, setUserData] = useState(null);
-  const [rooms, setRooms] = useState([]);
+  const [userData, setUserData] = useState<DashboardUser | null>(null);
+  const [rooms, setRooms] = useState<RoomSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [roomsLoading, setRoomsLoading] = useState(true);
-  const [error, setError] = useState(null);
-  const [roomsError, setRoomsError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
+  const [roomsError, setRoomsError] = useState<string | null>(null);
 
   // Filters State
-  const [selectedDifficulties, setSelectedDifficulties] = useState([]);
-  const [selectedCategories, setSelectedCategories] = useState([]);
+  const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
+  const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, UNSOLVED, SOLVED
   const [vpnFilter, setVpnFilter] = useState('ALL'); // ALL, VPN_REQUIRED, NO_VPN
   const [sortOption, setSortOption] = useState('NEWEST'); // NEWEST, OLDEST, POPULAR, POINTS_DESC, POINTS_ASC
-  
+
   // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
 
@@ -215,7 +217,7 @@ const DashboardPage = () => {
     }
   }, [token, logout, navigate]);
 
-  const handleDifficultyChange = (difficulty) => {
+  const handleDifficultyChange = (difficulty: string) => {
     setSelectedDifficulties(prev => {
       if (prev.includes(difficulty)) {
         return prev.filter(d => d !== difficulty);
@@ -226,7 +228,7 @@ const DashboardPage = () => {
     setCurrentPage(1); // Reset to first page on filter change
   };
 
-  const handleCategoryChange = (category) => {
+  const handleCategoryChange = (category: string) => {
     setSelectedCategories(prev => {
       if (prev.includes(category)) {
         return prev.filter(c => c !== category);
@@ -237,17 +239,17 @@ const DashboardPage = () => {
     setCurrentPage(1);
   };
 
-  const handleStatusChange = (status) => {
+  const handleStatusChange = (status: string) => {
       setStatusFilter(status);
       setCurrentPage(1);
   };
 
-  const handleVpnFilterChange = (filter) => {
+  const handleVpnFilterChange = (filter: string) => {
       setVpnFilter(filter);
       setCurrentPage(1);
   };
 
-  const handleSortChange = (e) => {
+  const handleSortChange = (e: React.ChangeEvent<HTMLSelectElement>) => {
       setSortOption(e.target.value);
       setCurrentPage(1);
   };
@@ -279,9 +281,9 @@ const DashboardPage = () => {
   const sortedRooms = [...filteredRooms].sort((a, b) => {
     switch (sortOption) {
       case 'NEWEST':
-        return new Date(b.createdAt) - new Date(a.createdAt);
+        return new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime();
       case 'OLDEST':
-        return new Date(a.createdAt) - new Date(b.createdAt);
+        return new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime();
       case 'POPULAR':
         return b.solutionsCount - a.solutionsCount;
       case 'POINTS_DESC':
@@ -298,7 +300,7 @@ const DashboardPage = () => {
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentRooms = sortedRooms.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  const handlePageChange = (pageNumber) => {
+  const handlePageChange = (pageNumber: number) => {
       setCurrentPage(pageNumber);
       window.scrollTo({ top: 0, behavior: 'smooth' });
   };
@@ -343,8 +345,8 @@ const DashboardPage = () => {
           <h1 style={{ fontSize: '2rem', margin: 0 }}>Wyzwania CTF</h1>
           <p className="results-count">Znaleziono: {sortedRooms.length}</p>
         </div>
-        
-        <select 
+
+        <select
           className="sort-select"
           value={sortOption}
           onChange={handleSortChange}
@@ -366,8 +368,8 @@ const DashboardPage = () => {
             <div className="filter-options">
               {['EASY', 'MEDIUM', 'HARD', 'INSANE'].map(diff => (
                 <label key={diff} className="filter-label">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className="filter-checkbox"
                     checked={selectedDifficulties.includes(diff)}
                     onChange={() => handleDifficultyChange(diff)}
@@ -386,8 +388,8 @@ const DashboardPage = () => {
             <div className="filter-options">
               {categoriesToDisplay.map(cat => (
                 <label key={cat} className="filter-label">
-                  <input 
-                    type="checkbox" 
+                  <input
+                    type="checkbox"
                     className="filter-checkbox"
                     checked={selectedCategories.includes(cat)}
                     onChange={() => handleCategoryChange(cat)}
@@ -402,8 +404,8 @@ const DashboardPage = () => {
             <h3 className="filter-title"><i className="fas fa-network-wired"></i> Wymagania</h3>
             <div className="filter-options">
               <label className="filter-label">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name="vpn"
                   className="filter-checkbox"
                   style={{ borderRadius: '50%' }}
@@ -413,8 +415,8 @@ const DashboardPage = () => {
                 Wszystkie
               </label>
               <label className="filter-label">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name="vpn"
                   className="filter-checkbox"
                   style={{ borderRadius: '50%' }}
@@ -424,8 +426,8 @@ const DashboardPage = () => {
                 Wymaga VPN
               </label>
               <label className="filter-label">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name="vpn"
                   className="filter-checkbox"
                   style={{ borderRadius: '50%' }}
@@ -441,8 +443,8 @@ const DashboardPage = () => {
             <h3 className="filter-title"><i className="fas fa-tasks"></i> Status</h3>
             <div className="filter-options">
               <label className="filter-label">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name="status"
                   className="filter-checkbox" // Reusing checkbox style for radio
                   style={{ borderRadius: '50%' }}
@@ -452,8 +454,8 @@ const DashboardPage = () => {
                 Wszystkie
               </label>
               <label className="filter-label">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name="status"
                   className="filter-checkbox"
                   style={{ borderRadius: '50%' }}
@@ -463,8 +465,8 @@ const DashboardPage = () => {
                 Do zrobienia
               </label>
               <label className="filter-label">
-                <input 
-                  type="radio" 
+                <input
+                  type="radio"
                   name="status"
                   className="filter-checkbox"
                   style={{ borderRadius: '50%' }}
@@ -500,14 +502,14 @@ const DashboardPage = () => {
                     {/* Pagination Controls */}
                     {totalPages > 1 && (
                         <div className="pagination-container">
-                            <button 
+                            <button
                                 onClick={() => handlePageChange(currentPage - 1)}
                                 disabled={currentPage === 1}
                                 className="pagination-btn"
                             >
                                 <i className="fas fa-chevron-left"></i>
                             </button>
-                            
+
                             {Array.from({ length: totalPages }, (_, i) => i + 1).map(page => (
                                 <button
                                     key={page}
@@ -518,7 +520,7 @@ const DashboardPage = () => {
                                 </button>
                             ))}
 
-                            <button 
+                            <button
                                 onClick={() => handlePageChange(currentPage + 1)}
                                 disabled={currentPage === totalPages}
                                 className="pagination-btn"

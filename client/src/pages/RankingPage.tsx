@@ -2,14 +2,15 @@ import * as rankingApi from '../services/rankingApi';
 import React, { useState, useEffect } from 'react';
 import Leaderboard from '../components/Leaderboard';
 import { useAuth } from '../context/AuthContext';
+import type { RankingEntry, RankingUser } from '../types/api';
 
 const RankingPage = () => {
   const { token } = useAuth();
-  const [players, setPlayers] = useState([]);
-  const [currentUser, setCurrentUser] = useState(null);
-  const [myRank, setMyRank] = useState(null);
+  const [players, setPlayers] = useState<RankingEntry[]>([]);
+  const [currentUser, setCurrentUser] = useState<RankingUser | null>(null);
+  const [myRank, setMyRank] = useState<RankingEntry | null>(null);
   const [loading, setLoading] = useState(true);
-  const [error, setError] = useState(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchData = async () => {
@@ -71,29 +72,29 @@ const RankingPage = () => {
     <div style={{ paddingTop: '40px', paddingBottom: '40px' }}>
       <div className="container">
         <h1 style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
-        
-        <div style={{ 
-            display: 'flex', 
-            flexWrap: 'wrap', 
-            gap: '40px', 
-            justifyContent: 'center' 
+
+        <div style={{
+            display: 'flex',
+            flexWrap: 'wrap',
+            gap: '40px',
+            justifyContent: 'center'
         }}>
             <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
-                <Leaderboard 
-                    players={top10Points} 
-                    showTitle={false} 
-                    type="points" 
-                    title="Ranking Punktowy" 
+                <Leaderboard
+                    players={top10Points}
+                    showTitle={false}
+                    type="points"
+                    title="Ranking Punktowy"
                     currentUsername={currentUser?.username}
                     myRank={myRank}
                 />
             </div>
             <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
-                <Leaderboard 
-                    players={top10Elo} 
-                    showTitle={false} 
-                    type="elo" 
-                    title="Ranking Areny (ELO)" 
+                <Leaderboard
+                    players={top10Elo}
+                    showTitle={false}
+                    type="elo"
+                    title="Ranking Areny (ELO)"
                     currentUsername={currentUser?.username}
                     myRank={myRank}
                 />

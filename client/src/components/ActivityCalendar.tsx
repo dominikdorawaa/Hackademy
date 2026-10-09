@@ -1,14 +1,15 @@
 import React from 'react';
+import type { ActivityDto } from '../types/api';
 
-const ActivityCalendar = ({ data }) => {
+const ActivityCalendar = ({ data }: { data: ActivityDto[] }) => {
     // Generate dates for the last year
     const today = new Date();
     const oneYearAgo = new Date();
     oneYearAgo.setFullYear(today.getFullYear() - 1);
-    
+
     // Adjust start date to be exactly 52 weeks ago or start of week to align grid
     // But for simplicity, let's stick to "one year ago" logic and handle alignment
-    
+
     const dates = [];
     let currentDate = new Date(oneYearAgo);
 
@@ -18,14 +19,14 @@ const ActivityCalendar = ({ data }) => {
     }
 
     // Map data to a dictionary for easy lookup
-    const activityMap = {};
+    const activityMap: Record<string, number> = {};
     if (data) {
         data.forEach(item => {
             activityMap[item.date] = item.count;
         });
     }
 
-    const getColor = (count) => {
+    const getColor = (count: number) => {
         if (!count) return '#161b22'; // Empty
         if (count === 1) return '#0e4429'; // Level 1
         if (count === 2) return '#006d32'; // Level 2
@@ -33,16 +34,16 @@ const ActivityCalendar = ({ data }) => {
         return '#39d353'; // Level 4
     };
 
-    const getTooltip = (date, count) => {
+    const getTooltip = (date: Date, count: number) => {
         const dateString = date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
         if (!count) return `Brak aktywności w dniu ${dateString}`;
         return `${count} rozwiązanych zadań w dniu ${dateString}`;
     };
 
     // Group dates by week
-    const weeks = [];
-    let currentWeek = [];
-    
+    const weeks: (Date | null)[][] = [];
+    let currentWeek: (Date | null)[] = [];
+
     // Fill first week with empty days if needed to align with Sunday
     const firstDay = dates[0].getDay(); // 0 = Sunday
     for (let i = 0; i < firstDay; i++) {
@@ -56,15 +57,15 @@ const ActivityCalendar = ({ data }) => {
             currentWeek = [];
         }
     });
-    
+
     if (currentWeek.length > 0) {
         weeks.push(currentWeek);
     }
 
     // Calculate month labels positions
-    const monthLabels = [];
+    const monthLabels: { month: string; index: number }[] = [];
     let currentMonth = -1;
-    
+
     weeks.forEach((week, index) => {
         // Check the first valid day in the week
         const firstDayInWeek = week.find(day => day !== null);
@@ -87,11 +88,11 @@ const ActivityCalendar = ({ data }) => {
             {/* Month Labels */}
             <div style={{ display: 'flex', marginLeft: '30px', marginBottom: '5px', fontSize: '0.75rem', color: '#aaa' }}>
                 {monthLabels.map((label, i) => (
-                    <div key={i} style={{ 
+                    <div key={i} style={{
                         width: '14px', // Width of a cell + gap (approx)
-                        marginRight: i < monthLabels.length - 1 
-                            ? `${(monthLabels[i+1].index - label.index - 1) * 16}px` 
-                            : '0' 
+                        marginRight: i < monthLabels.length - 1
+                            ? `${(monthLabels[i+1].index - label.index - 1) * 16}px`
+                            : '0'
                     }}>
                         {label.month}
                     </div>
@@ -116,14 +117,14 @@ const ActivityCalendar = ({ data }) => {
                                 // Skip day 0 (Sunday) if we want to start from Monday, but JS getDay() 0 is Sunday.
                                 // GitHub starts with Sunday at top usually, or Monday depending on locale.
                                 // Let's stick to standard 7 days column.
-                                
+
                                 if (!date) return <div key={dayIndex} style={{ width: '12px', height: '12px' }}></div>;
-                                
+
                                 const dateStr = date.toISOString().split('T')[0];
                                 const count = activityMap[dateStr] || 0;
-                                
+
                                 return (
-                                    <div 
+                                    <div
                                         key={dateStr}
                                         title={getTooltip(date, count)}
                                         style={{
@@ -140,7 +141,7 @@ const ActivityCalendar = ({ data }) => {
                     ))}
                 </div>
             </div>
-            
+
             {/* Legend */}
             <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#aaa', marginTop: '10px', marginLeft: '30px' }}>
                 <span>Mniej</span>
