@@ -1,7 +1,8 @@
 import React from 'react';
 import '../../pages/Auth.css';
+import type { PropsWithChildren } from 'react';
 
-const AuthLayout = ({ children, title }) => {
+const AuthLayout = ({ children, title }: PropsWithChildren<{ title: string }>) => {
   return (
     <div className="auth-container">
       <div className="auth-terminal">

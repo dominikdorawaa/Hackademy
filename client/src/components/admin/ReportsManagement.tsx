@@ -2,16 +2,17 @@ import * as adminRequests from '../../services/adminRequests';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import AlertModal from '../common/AlertModal';
+import type { ChatMessage } from '../../types/api';
 
 const ReportsManagement = () => {
     const { token } = useAuth();
-    const [reports, setReports] = useState([]);
+    const [reports, setReports] = useState<ChatMessage[]>([]);
     const [loading, setLoading] = useState(true);
     
     // Mute Modal State
     const [muteModalOpen, setMuteModalOpen] = useState(false);
-    const [selectedUserId, setSelectedUserId] = useState(null);
-    const [selectedReportId, setSelectedReportId] = useState(null); // Track which report triggered the mute
+    const [selectedUserId, setSelectedUserId] = useState<number | null>(null);
+    const [selectedReportId, setSelectedReportId] = useState<number | null>(null); // Track which report triggered the mute
     const [muteDuration, setMuteDuration] = useState(3600); // Default 1 hour
 
     // Alert Modal State
@@ -40,7 +41,7 @@ const ReportsManagement = () => {
         }
     };
 
-    const handleDeleteMessage = async (messageId) => {
+    const handleDeleteMessage = async (messageId: number) => {
         if (!window.confirm("Czy na pewno usunąć tę wiadomość?")) return;
         try {
             await adminRequests.deleteReport(messageId, { 'Authorization': `Bearer ${token}` });
@@ -50,7 +51,7 @@ const ReportsManagement = () => {
         }
     };
 
-    const handleDismissReport = async (messageId) => {
+    const handleDismissReport = async (messageId: number) => {
         try {
             await adminRequests.dismissReport(messageId, { 'Authorization': `Bearer ${token}` });
             setReports(reports.filter(r => r.id !== messageId));
@@ -59,13 +60,14 @@ const ReportsManagement = () => {
         }
     };
 
-    const openMuteModal = (userId, reportId) => {
+    const openMuteModal = (userId: number, reportId: number) => {
         setSelectedUserId(userId);
         setSelectedReportId(reportId);
         setMuteModalOpen(true);
     };
 
     const handleMuteUser = async () => {
+        if (selectedUserId === null) return;
         try {
             await adminRequests.muteUser(selectedUserId, { duration: muteDuration }, {
                     'Content-Type': 'application/json',

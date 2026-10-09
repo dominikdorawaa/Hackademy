@@ -1,7 +1,8 @@
 import React from 'react';
 import './SuccessModal.css'; // Reuse styles for consistency
+import type { DashboardUser, GameSession } from '../../types/api';
 
-const GameFoundModal = ({ isOpen, gameSession, userData, onAccept }) => {
+const GameFoundModal = ({ isOpen, gameSession, userData, onAccept }: { isOpen: boolean; gameSession: GameSession | null; userData: DashboardUser | null; onAccept: () => void }) => {
     if (!isOpen || !gameSession || !userData) return null;
 
     const isPlayer1 = gameSession.player1Id === userData.id;

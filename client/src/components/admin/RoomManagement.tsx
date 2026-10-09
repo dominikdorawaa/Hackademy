@@ -3,30 +3,31 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import './Management.css';
+import type { DifficultyLevel, RoomAdminSummaryDto, RoomType, RoomWriteRequest } from '../../types/api';
 
-const RoomManagement = ({ forcedRoomType = null }) => {
+const RoomManagement = ({ forcedRoomType = null }: { forcedRoomType?: RoomType | null; canDelete?: boolean }) => {
     // Form state
-    const [id, setId] = useState(null); // For edit mode
+    const [id, setId] = useState<number | null>(null); // For edit mode
     const [title, setTitle] = useState('');
     const [shortDescription, setShortDescription] = useState('');
     const [description, setDescription] = useState('');
-    const [difficulty, setDifficulty] = useState('EASY');
+    const [difficulty, setDifficulty] = useState<DifficultyLevel>('EASY');
     const [category, setCategory] = useState(forcedRoomType === 'PATH' ? 'Path' : 'Web');
-    const [roomType, setRoomType] = useState(forcedRoomType || 'CTF');
-    const [points, setPoints] = useState(forcedRoomType === 'PATH' ? 0 : 0);
+    const [roomType, setRoomType] = useState<RoomType>(forcedRoomType || 'CTF');
+    const [points, setPoints] = useState<number | string>(forcedRoomType === 'PATH' ? 0 : 0);
     const [flag, setFlag] = useState('');
     const [requiresVpn, setRequiresVpn] = useState(false); // New field
-    const [hints, setHints] = useState([]);
+    const [hints, setHints] = useState<string[]>([]);
     const [currentHint, setCurrentHint] = useState('');
-    const [file, setFile] = useState(null); // New state for file
-    
+    const [file, setFile] = useState<File | null>(null); // New state for file
+
     // UI state
-    const [rooms, setRooms] = useState([]);
+    const [rooms, setRooms] = useState<RoomAdminSummaryDto[]>([]);
     const [isEditing, setIsEditing] = useState(false);
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [success, setSuccess] = useState(null);
-    
+    const [error, setError] = useState<string | null>(null);
+    const [success, setSuccess] = useState<string | null>(null);
+
     const { token, user } = useAuth();
 
     // Fetch rooms on mount
@@ -78,13 +79,14 @@ const RoomManagement = ({ forcedRoomType = null }) => {
         setError(null);
     };
 
-    const handleEditClick = async (roomSummary) => {
+    const handleEditClick = async (roomSummary: RoomAdminSummaryDto) => {
         setError(null);
         setSuccess(null);
         try {
             // Fetch full details including flag
             const room = await adminApi.getRoomAdmin(roomSummary.id, token);
-            
+            if (!room) return;
+
             setId(room.id);
             setTitle(room.title);
             setShortDescription(room.shortDescription || '');
@@ -100,19 +102,19 @@ const RoomManagement = ({ forcedRoomType = null }) => {
             setIsEditing(true);
             window.scrollTo(0, 0); // Scroll to form
         } catch (err) {
-            setError("Failed to fetch room details: " + err.message);
+            setError("Failed to fetch room details: " + (err instanceof Error ? err.message : String(err)));
         }
     };
 
-    const handleDeleteClick = async (roomId) => {
+    const handleDeleteClick = async (roomId: number) => {
         if (!window.confirm('Czy na pewno chcesz usunąć ten pokój?')) return;
-        
+
         try {
             await adminApi.deleteRoom(roomId, token);
             setSuccess('Pokój został usunięty.');
             fetchRooms(); // Refresh list
         } catch (err) {
-            setError(err.message);
+            setError(err instanceof Error ? err.message : String(err));
         }
     };
 
@@ -123,22 +125,22 @@ const RoomManagement = ({ forcedRoomType = null }) => {
         }
     };
 
-    const handleRemoveHint = (index) => {
+    const handleRemoveHint = (index: number) => {
         setHints(hints.filter((_, i) => i !== index));
     };
 
-    const handleFileChange = (e) => {
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         if (e.target.files && e.target.files[0]) {
             setFile(e.target.files[0]);
         }
     };
 
-    const roomTypeLabel = (value) => {
+    const roomTypeLabel = (value: RoomType) => {
         if (value === 'PATH') return 'Ścieżka';
         return 'CTF';
     };
 
-    const pointsFromDifficulty = (diff) => {
+    const pointsFromDifficulty = (diff: DifficultyLevel) => {
         switch (diff) {
             case 'EASY':
                 return 50;
@@ -153,32 +155,33 @@ const RoomManagement = ({ forcedRoomType = null }) => {
         }
     };
 
-    const handleSubmit = async (e) => {
+    const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
         e.preventDefault();
         setError(null);
         setSuccess(null);
 
-        const roomData = { 
-            title, 
-            shortDescription, 
-            description, 
-            difficulty: forcedRoomType === 'PATH' ? 'EASY' : difficulty, 
-            category: forcedRoomType === 'PATH' ? 'Path' : category, 
+        const roomData: RoomWriteRequest = {
+            title,
+            shortDescription,
+            description,
+            difficulty: forcedRoomType === 'PATH' ? 'EASY' : difficulty,
+            category: forcedRoomType === 'PATH' ? 'Path' : category,
             points:
                 forcedRoomType === 'PATH'
                     ? Number(points)
                     : forcedRoomType === 'CTF'
                         ? pointsFromDifficulty(difficulty)
                         : Number(points),
-            flag, 
+            flag,
             requiresVpn,
             roomType: forcedRoomType || roomType,
-            hints 
+            hints
         };
 
         try {
+            if (isEditing && id === null) return;
             const response = await (isEditing
-                ? adminRequests.updateRoom(id, roomData, file, {
+                ? adminRequests.updateRoom(id as number, roomData, file, {
                     'Authorization': `Bearer ${token}`
                 })
                 : adminRequests.createRoom(roomData, file, {
@@ -194,7 +197,7 @@ const RoomManagement = ({ forcedRoomType = null }) => {
             resetForm();
             fetchRooms(); // Refresh list
         } catch (err) {
-            setError(err.message);
+            setError(err instanceof Error ? err.message : String(err));
         }
     };
 
@@ -204,11 +207,11 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                 {isEditing ? 'Edytuj Pokój' : 'Stwórz Nowy Pokój'}
                 {forcedRoomType ? ` (${roomTypeLabel(forcedRoomType)})` : ''}
             </h2>
-            
+
             <form onSubmit={handleSubmit} className="management-form">
                 {error && <div className="error-message">{error}</div>}
                 {success && <div style={{ color: 'lightgreen', textAlign: 'center', margin: '1rem 0' }}>{success}</div>}
-                
+
                 <input
                     type="text"
                     placeholder="Nazwa pokoju"
@@ -216,14 +219,14 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                     onChange={(e) => setTitle(e.target.value)}
                     required
                 />
-                
+
                 <div style={{ display: 'flex', gap: '1rem' }}>
                     <input
                         type="text"
                         placeholder="Krótki opis (zajawka)"
                         value={shortDescription}
                         onChange={(e) => setShortDescription(e.target.value)}
-                        maxLength="100"
+                        maxLength={100}
                         style={{ flex: 2 }}
                     />
                     {forcedRoomType !== 'PATH' && (
@@ -245,7 +248,7 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                     {!forcedRoomType && (
                         <select
                             value={roomType}
-                            onChange={(e) => setRoomType(e.target.value)}
+                            onChange={(e) => setRoomType(e.target.value as RoomType)}
                             style={{ flex: 1 }}
                             title="CTF = arena/ranking, Ścieżka = tylko w ścieżkach"
                         >
@@ -285,7 +288,7 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                     {forcedRoomType !== 'PATH' && (
                         <select
                             value={difficulty}
-                            onChange={(e) => setDifficulty(e.target.value)}
+                            onChange={(e) => setDifficulty(e.target.value as DifficultyLevel)}
                             style={{ flex: 1 }}
                         >
                             <option value="EASY">Łatwy</option>
@@ -294,10 +297,10 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                             <option value="INSANE">Niemożliwy</option>
                         </select>
                     )}
-                    
+
                     <label style={{ display: 'flex', alignItems: 'center', gap: '0.5rem', cursor: 'pointer', flex: 1, color: 'var(--text-light)' }}>
-                        <input 
-                            type="checkbox" 
+                        <input
+                            type="checkbox"
                             checked={requiresVpn}
                             onChange={(e) => setRequiresVpn(e.target.checked)}
                             style={{ width: 'auto', margin: 0 }}
@@ -309,9 +312,9 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                 {/* File Upload */}
                 <div style={{ marginTop: '1rem' }}>
                     <label style={{ color: 'var(--text-light)' }}>Plik do pobrania (opcjonalnie)</label>
-                    <input 
-                        type="file" 
-                        onChange={handleFileChange} 
+                    <input
+                        type="file"
+                        onChange={handleFileChange}
                         style={{ marginTop: '0.5rem' }}
                     />
                     {isEditing && !file && (
@@ -345,14 +348,14 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                         ))}
                     </ul>
                 </div>
-                
+
                 <div style={{ display: 'flex', gap: '1rem', marginTop: '1rem' }}>
                     <button type="submit" style={{ flex: 1 }}>
                         {isEditing ? 'Zapisz Zmiany' : 'Stwórz Pokój'}
                     </button>
                     {isEditing && (
-                        <button 
-                            type="button" 
+                        <button
+                            type="button"
                             onClick={resetForm}
                             style={{ flex: 1, backgroundColor: '#666' }}
                         >
@@ -400,7 +403,7 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                                 </td>
                                 {forcedRoomType !== 'CTF' && <td>{room.points}</td>}
                                 <td>
-                                    <button 
+                                    <button
                                         className="btn-edit"
                                         onClick={() => handleEditClick(room)}
                                         style={{ marginRight: '0.5rem', backgroundColor: '#3498db', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}
@@ -408,7 +411,7 @@ const RoomManagement = ({ forcedRoomType = null }) => {
                                         Edytuj
                                     </button>
                                     {user && user.roles && user.roles.includes('ROLE_ADMIN') && (
-                                        <button 
+                                        <button
                                             className="btn-delete"
                                             onClick={() => handleDeleteClick(room.id)}
                                             style={{ backgroundColor: '#e74c3c', color: 'white', border: 'none', padding: '5px 10px', borderRadius: '4px', cursor: 'pointer' }}

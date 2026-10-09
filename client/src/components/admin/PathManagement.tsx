@@ -1,6 +1,7 @@
 import * as adminRequests from '../../services/adminRequests';
 import React, { useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
+import type { PathSummaryDto, RoomAdminSummaryDto } from '../../types/api';
 import './Management.css';
 import './PathManagement.css';
 
@@ -10,21 +11,21 @@ const PathManagement = () => {
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [bannerUrl, setBannerUrl] = useState('');
-  const [bannerFile, setBannerFile] = useState(null);
-  const [rooms, setRooms] = useState([]);
-  const [selectedRoomIds, setSelectedRoomIds] = useState([]);
+  const [bannerFile, setBannerFile] = useState<File | null>(null);
+  const [rooms, setRooms] = useState<RoomAdminSummaryDto[]>([]);
+  const [selectedRoomIds, setSelectedRoomIds] = useState<number[]>([]);
   const [roomQuery, setRoomQuery] = useState('');
-  const [paths, setPaths] = useState([]);
+  const [paths, setPaths] = useState<PathSummaryDto[]>([]);
   const [mode, setMode] = useState('edit'); // edit | create
   const [activePathId, setActivePathId] = useState('');
   const [editTitle, setEditTitle] = useState('');
   const [editDescription, setEditDescription] = useState('');
   const [editBannerUrl, setEditBannerUrl] = useState('');
-  const [editBannerFile, setEditBannerFile] = useState(null);
-  const [editRoomIds, setEditRoomIds] = useState([]);
+  const [editBannerFile, setEditBannerFile] = useState<File | null>(null);
+  const [editRoomIds, setEditRoomIds] = useState<number[]>([]);
   const [savingEdit, setSavingEdit] = useState(false);
-  const [status, setStatus] = useState(null);
-  const [error, setError] = useState(null);
+  const [status, setStatus] = useState<string | null>(null);
+  const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     const fetchRooms = async () => {
@@ -56,7 +57,7 @@ const PathManagement = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token]);
 
-  const fetchPathDetail = async (pathId) => {
+  const fetchPathDetail = async (pathId: string) => {
     if (!pathId) return;
     try {
       const res = await adminRequests.getPath(pathId, { Authorization: `Bearer ${token}` });
@@ -71,11 +72,11 @@ const PathManagement = () => {
     }
   };
 
-  const toggleRoom = (roomId) => {
+  const toggleRoom = (roomId: number) => {
     setSelectedRoomIds((prev) => (prev.includes(roomId) ? prev.filter((x) => x !== roomId) : [...prev, roomId]));
   };
 
-  const moveSelected = (roomId, dir) => {
+  const moveSelected = (roomId: number, dir: number) => {
     setSelectedRoomIds((prev) => {
       const idx = prev.indexOf(roomId);
       if (idx < 0) return prev;
@@ -89,15 +90,15 @@ const PathManagement = () => {
     });
   };
 
-  const removeSelected = (roomId) => {
+  const removeSelected = (roomId: number) => {
     setSelectedRoomIds((prev) => prev.filter((x) => x !== roomId));
   };
 
-  const toggleEditRoom = (roomId) => {
+  const toggleEditRoom = (roomId: number) => {
     setEditRoomIds((prev) => (prev.includes(roomId) ? prev.filter((x) => x !== roomId) : [...prev, roomId]));
   };
 
-  const moveEdit = (roomId, dir) => {
+  const moveEdit = (roomId: number, dir: number) => {
     setEditRoomIds((prev) => {
       const idx = prev.indexOf(roomId);
       if (idx < 0) return prev;
@@ -111,11 +112,11 @@ const PathManagement = () => {
     });
   };
 
-  const removeEdit = (roomId) => {
+  const removeEdit = (roomId: number) => {
     setEditRoomIds((prev) => prev.filter((x) => x !== roomId));
   };
 
-  const handleSubmit = async (e) => {
+  const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setError(null);
     setStatus(null);
@@ -154,11 +155,11 @@ const PathManagement = () => {
       setStatus('Ścieżka dodana.');
       fetchPaths();
     } catch (err) {
-      setError(err.message || 'Błąd');
+      setError(err instanceof Error ? err.message : 'Błąd');
     }
   };
 
-  const handleDeletePath = async (pathId) => {
+  const handleDeletePath = async (pathId: string) => {
     if (!window.confirm('Usunąć ścieżkę?')) return;
     setError(null);
     setStatus(null);
@@ -171,7 +172,7 @@ const PathManagement = () => {
       setStatus('Ścieżka usunięta.');
       fetchPaths();
     } catch (err) {
-      setError(err.message || 'Błąd');
+      setError(err instanceof Error ? err.message : 'Błąd');
     }
   };
 
@@ -214,7 +215,7 @@ const PathManagement = () => {
       setStatus('Zapisano zmiany w ścieżce.');
       fetchPaths();
     } catch (err) {
-      setError(err.message || 'Błąd');
+      setError(err instanceof Error ? err.message : 'Błąd');
     } finally {
       setSavingEdit(false);
     }
@@ -231,8 +232,8 @@ const PathManagement = () => {
     .slice(0, 200);
 
   const byId = new Map(rooms.map((r) => [r.id, r]));
-  const selectedRooms = selectedRoomIds.map((id) => byId.get(id)).filter(Boolean);
-  const editRooms = editRoomIds.map((id) => byId.get(id)).filter(Boolean);
+  const selectedRooms = selectedRoomIds.map((id) => byId.get(id)).filter((room): room is RoomAdminSummaryDto => room !== undefined);
+  const editRooms = editRoomIds.map((id) => byId.get(id)).filter((room): room is RoomAdminSummaryDto => room !== undefined);
 
   return (
     <div className="management-container">

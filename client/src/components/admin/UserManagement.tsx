@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
+import type { Role, UserAdminView } from '../../types/api';
 import './Management.css';
 
 const UserManagement = () => {
-    const [users, setUsers] = useState([]);
-    const [filteredUsers, setFilteredUsers] = useState([]);
+    const [users, setUsers] = useState<UserAdminView[]>([]);
+    const [filteredUsers, setFilteredUsers] = useState<UserAdminView[]>([]);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const [error, setError] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
     const { token } = useAuth();
 
@@ -15,10 +16,10 @@ const UserManagement = () => {
         try {
             setLoading(true);
             const data = await adminApi.getUsers(token);
-            setUsers(data);
-            setFilteredUsers(data);
+            setUsers(data ?? []);
+            setFilteredUsers(data ?? []);
         } catch (err) {
-            setError(err.message);
+            setError(err instanceof Error ? err.message : String(err));
         } finally {
             setLoading(false);
         }
@@ -37,7 +38,7 @@ const UserManagement = () => {
         setFilteredUsers(results);
     }, [searchTerm, users]);
 
-    const handleDelete = async (userId) => {
+    const handleDelete = async (userId: number) => {
         if (window.confirm('Are you sure you want to delete this user?')) {
             try {
                 await adminApi.deleteUser(userId, token);
@@ -48,18 +49,18 @@ const UserManagement = () => {
                     user.username.toLowerCase().includes(searchTerm.toLowerCase())
                 ));
             } catch (err) {
-                setError(err.message);
+                setError(err instanceof Error ? err.message : String(err));
             }
         }
     };
 
-    const handleRoleChange = async (userId, newRole) => {
+    const handleRoleChange = async (userId: number, newRole: Role) => {
         try {
             await adminApi.updateUserRole(userId, newRole, token);
             // Refresh the list to show the new role
             fetchUsers();
         } catch (err) {
-            setError(err.message);
+            setError(err instanceof Error ? err.message : String(err));
         }
     };
 
@@ -108,7 +109,7 @@ const UserManagement = () => {
                             <td>
                                 <select 
                                     value={user.role} 
-                                    onChange={(e) => handleRoleChange(user.id, e.target.value)}
+                                    onChange={(e) => handleRoleChange(user.id, e.target.value as Role)}
                                     style={{
                                         backgroundColor: 'var(--input-bg)',
                                         color: 'var(--text-light)',
