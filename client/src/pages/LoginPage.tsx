@@ -5,13 +5,13 @@ import { useAuth } from '../context/AuthContext';
 import AuthLayout from '../components/auth/AuthLayout';
 
 // Helper function to add delay
-const delay = (ms) => new Promise(res => setTimeout(res, ms));
+const delay = (ms: number) => new Promise<void>(res => setTimeout(res, ms));
 
 const LoginPage = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [loginSequence, setLoginSequence] = useState([]);
+  const [loginSequence, setLoginSequence] = useState<string[]>([]);
   const [showSuccessMessage, setShowSuccessMessage] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
@@ -24,7 +24,7 @@ const LoginPage = () => {
     }
   }, [location]);
 
-  const handleLoginSubmit = async (e) => {
+  const handleLoginSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     setIsSubmitting(true);
     setLoginSequence([]);
