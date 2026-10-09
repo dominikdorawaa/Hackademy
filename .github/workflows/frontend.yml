@@ -26,5 +26,5 @@ jobs:
         run: npm run lint
       - name: Build and typecheck
         run: npm run build
-      - name: Test
+      - name: Frontend tests with Vitest, React Testing Library and MSW
         run: npm test

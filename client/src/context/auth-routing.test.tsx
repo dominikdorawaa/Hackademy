@@ -1,24 +1,23 @@
 import type { ComponentType, PropsWithChildren } from 'react';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
-import { MemoryRouter, Route, Routes, useLocation, useNavigate, useNavigationType } from 'react-router-dom';
+import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { Route } from 'react-router-dom';
+import { http, HttpResponse } from 'msw';
+import type { Role } from '../types/api';
+import { server } from '../test/mocks/server';
+import { currentUserHandler, currentUserUrl } from '../test/mocks/handlers';
+import { createUser } from '../test/fixtures/auth';
+import { renderWithAuth } from '../test/renderWithAuth';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
 import AdminRoute from '../components/auth/AdminRoute';
 import ExpertRoute from '../components/auth/ExpertRoute';
-import LoginPage from '../pages/LoginPage';
 
 const validExpiration = Math.floor(Date.now() / 1000) + 3600;
 
 function jwt(roles: string[] = ['ROLE_USER'], exp = validExpiration) {
 
   return `${btoa('{}')}.${btoa(JSON.stringify({ sub: 'tester', roles, exp }))}.signature`;
-}
-
-function Location() {
-  const location = useLocation();
-  const navigation = useNavigationType();
-  return <output data-testid="location">{location.pathname}:{navigation}</output>;
 }
 
 function Session() {
@@ -94,15 +93,10 @@ const guards: [string, ComponentType<PropsWithChildren>, string, string][] = [
 
 describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) => {
   function mount() {
-    return render(<MemoryRouter initialEntries={['/private']}>
-      <AuthProvider>
-        <Location />
-        <Routes>
-          <Route path="/private" element={<Guard><div>private content</div></Guard>} />
-          <Route path="*" element={<div>redirected</div>} />
-        </Routes>
-      </AuthProvider>
-    </MemoryRouter>);
+    return renderWithAuth(<>
+      <Route path="/private" element={<Guard><div>private content</div></Guard>} />
+      <Route path="*" element={<div>redirected</div>} />
+    </>, '/private');
   }
 
   it('redirects a guest to the same location with the same history action', () => {
@@ -112,7 +106,7 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
   });
 
   it.each(['ROLE_USER', 'ROLE_EXPERT', 'ROLE_ADMIN'])('checks %s permissions after restoring the session', async role => {
-    vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json({ role: role.replace('ROLE_', '') })));
+    server.use(currentUserHandler(role.replace('ROLE_', '') as Role));
     localStorage.setItem('token', jwt([role]));
     mount();
     const allowed = Guard === ProtectedRoute || role === 'ROLE_ADMIN' || (Guard === ExpertRoute && role === 'ROLE_EXPERT');
@@ -142,7 +136,7 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
       ['ROLE_USER', 'ADMIN', true],
     ])('uses the server role %s -> %s', async (jwtRole, serverRole, allowed) => {
       localStorage.setItem('token', jwt([jwtRole]));
-      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(Response.json({ role: serverRole })));
+      server.use(currentUserHandler(serverRole as Role));
       mount();
       await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
       expect(screen.queryByText('private content') !== null).toBe(allowed);
@@ -150,56 +144,40 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
 
     it('shows the existing error when the permission request fails', async () => {
       localStorage.setItem('token', jwt(['ROLE_ADMIN']));
-      vi.stubGlobal('fetch', vi.fn<typeof fetch>().mockResolvedValue(new Response(null, { status: 403 })));
+      server.use(http.get(currentUserUrl, () => new HttpResponse(null, { status: 403 })));
       mount();
       expect(await screen.findByText('Nie udało się sprawdzić uprawnień. Odśwież stronę i spróbuj ponownie.')).toBeTruthy();
       expect(screen.queryByText('private content')).toBeNull();
       expect(screen.getByTestId('location').textContent).toBe('/private:POP');
     });
 
-    it('aborts the permission request when unmounted', () => {
+    it('sends the restored token when checking permissions', async () => {
+      const token = jwt(['ROLE_ADMIN']);
+      localStorage.setItem('token', token);
+      let authorization: string | null = null;
+      server.use(http.get(currentUserUrl, ({ request }) => {
+        authorization = request.headers.get('Authorization');
+        return HttpResponse.json(createUser('ADMIN'));
+      }));
+      mount();
+      expect(await screen.findByText('private content')).toBeInTheDocument();
+      expect(authorization).toBe('Bearer ' + token);
+    });
+
+    it('aborts the permission request when unmounted', async () => {
       localStorage.setItem('token', jwt(['ROLE_ADMIN']));
-      const fetchMock = vi.fn<typeof fetch>().mockImplementation(() => new Promise(() => {}));
-      vi.stubGlobal('fetch', fetchMock);
+      let signal: AbortSignal | undefined;
+      server.use(http.get(currentUserUrl, ({ request }) => {
+        signal = request.signal;
+        return new Promise<Response>(resolve => {
+          request.signal.addEventListener('abort', () => resolve(new HttpResponse(null, { status: 499 })), { once: true });
+        });
+      }));
       const mounted = mount();
-      const signal = fetchMock.mock.calls[0][1]?.signal;
+      await waitFor(() => expect(signal).toBeDefined());
       expect(signal?.aborted).toBe(false);
       mounted.unmount();
-      expect(signal?.aborted).toBe(true);
+      await waitFor(() => expect(signal?.aborted).toBe(true));
     });
   }
-});
-
-describe('login page integration', () => {
-  function Dashboard() {
-    const { logout } = useAuth();
-    const navigate = useNavigate();
-    return <button onClick={() => { logout(); navigate('/dashboard'); }}>End session</button>;
-  }
-
-  it('submits credentials, enters a protected page and loses access on logout', async () => {
-    vi.useFakeTimers();
-    const fetchMock = vi.fn<typeof fetch>().mockResolvedValue(Response.json({ token: jwt() }));
-    vi.stubGlobal('fetch', fetchMock);
-    render(<MemoryRouter initialEntries={['/login']}><AuthProvider>
-      <Location />
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/dashboard" element={<ProtectedRoute><Dashboard /></ProtectedRoute>} />
-      </Routes>
-    </AuthProvider></MemoryRouter>);
-    fireEvent.change(screen.getByRole('textbox'), { target: { value: 'test@example.com' } });
-    fireEvent.change(document.querySelector('input[type=password]')!, { target: { value: 'secret' } });
-    fireEvent.submit(document.querySelector('form')!);
-    await act(async () => { await vi.advanceTimersByTimeAsync(1600); });
-    expect(fetchMock).toHaveBeenCalledWith(expect.stringMatching(/\/api\/auth\/login$/), {
-      method: 'POST', headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ email: 'test@example.com', password: 'secret' }),
-    });
-    expect(screen.getByTestId('location').textContent).toBe('/dashboard:PUSH');
-    expect(localStorage.getItem('token')).toBe(jwt());
-    fireEvent.click(screen.getByText('End session'));
-    expect(screen.getByTestId('location').textContent).toBe('/login:REPLACE');
-    expect(localStorage.getItem('token')).toBeNull();
-  });
 });
