@@ -94,6 +94,8 @@ Wymagane są działający Docker Engine z Docker Compose, Node.js z npm, curl or
 
 Frontend działa pod `http://localhost:5173`, a backend pod `http://localhost:8080`. Porty 5173, 8080 i 15432 muszą być dostępne. Skrypt korzysta z lokalnej bazy Compose; adres `DB_URL` z istniejącego `.env` nie jest używany. Nie uruchamiaj równocześnie frontendowego kontenera Compose, ponieważ korzysta z tego samego portu co Vite.
 
+Jeśli `.env` zaginie, a wolumen lokalnej bazy nadal istnieje, skrypt zatrzyma się przed wygenerowaniem nowych haseł. Przywróć poprzedni `.env` albo utwórz go z dotychczasowym hasłem bazy w `DB_PASSWORD` i własnym sekretem `JWT_SECRET`. Nowe losowe hasło nie zmienia hasła w istniejącej bazie. Skrypt nie usuwa wolumenu ani jego danych.
+
 Zatrzymaj aplikację przez Ctrl+C. Skrypt kończy frontend i zatrzymuje tylko te usługi backendu i bazy, które przed jego uruchomieniem nie były aktywne. Wolumen bazy zostaje zachowany. Usługi uruchomione wcześniej pozostają aktywne. Ponowne uruchomienie drugiej instancji `run.sh` dla tego samego katalogu jest blokowane.
 
 ## Uruchomienie lokalne przez Docker Compose

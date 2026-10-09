@@ -16,7 +16,7 @@ fi
 info() { printf '\n%s[Hackademy]%s %s\n' "$BLUE" "$RESET" "$*"; }
 fail() { printf '\n%s[Hackademy]%s %s\n' "$RED" "$RESET" "$*" >&2; exit 1; }
 
-for tool in docker npm curl flock setsid; do
+for tool in docker node npm curl flock setsid; do
     command -v "$tool" >/dev/null 2>&1 || fail "Brakuje polecenia: $tool. Zainstaluj je i uruchom skrypt ponownie."
 done
 
@@ -26,7 +26,13 @@ docker info >/dev/null 2>&1 || fail 'Docker jest niedostępny. Uruchom Docker En
 exec 9>"$ROOT/.run.lock"
 flock -n 9 || fail 'Inna instancja run.sh już działa dla tego projektu.'
 
+compose=(docker compose --project-directory "$ROOT" -f "$ROOT/docker-compose.yml")
 if [[ ! -e "$ROOT/.env" ]]; then
+    volume_name="$("${compose[@]}" config --no-interpolate --format json | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const name = JSON.parse(input).volumes.postgres_data_v1.name; if (typeof name !== "string" || !name) process.exit(1); process.stdout.write(name); });')"
+    existing_volumes="$(docker volume ls --format '{{.Name}}')"
+    if [[ $'\n'"$existing_volumes"$'\n' == *$'\n'"$volume_name"$'\n'* ]]; then
+        fail "Brakuje .env, ale istnieje wolumen bazy $volume_name. Przywróć .env z hasłem tej bazy lub ustaw istniejące hasło w DB_PASSWORD i własny JWT_SECRET. Dane bazy nie zostały zmienione."
+    fi
     command -v openssl >/dev/null 2>&1 || fail 'Do utworzenia lokalnego .env potrzebny jest openssl.'
     db_password="$(openssl rand -hex 24)"
     jwt_secret="$(openssl rand -base64 32)"
@@ -35,7 +41,6 @@ if [[ ! -e "$ROOT/.env" ]]; then
     info 'Utworzono lokalny .env z losowym hasłem bazy i sekretem JWT.'
 fi
 
-compose=(docker compose --project-directory "$ROOT" -f "$ROOT/docker-compose.yml")
 "${compose[@]}" config --quiet || fail 'Sprawdź DB_PASSWORD i JWT_SECRET w głównym pliku .env.'
 
 info 'Instalowanie zależności frontendu (npm ci)...'
@@ -55,9 +60,20 @@ cleanup() {
     set +e
     trap - EXIT
     trap '' INT TERM HUP PIPE
+    frontend_pid="${frontend_pid:-${!:-}}"
     if [[ -n "$frontend_pid" ]]; then
         info 'Zatrzymywanie frontendu...'
         kill -TERM -- "-$frontend_pid" 2>/dev/null || true
+        kill -TERM "$frontend_pid" 2>/dev/null || true
+        kill -TERM -- "-$frontend_pid" 2>/dev/null || true
+        for ((attempt = 0; attempt < 50; attempt++)); do
+            kill -0 "$frontend_pid" 2>/dev/null || break
+            sleep 0.1
+        done
+        if kill -0 "$frontend_pid" 2>/dev/null; then
+            kill -KILL -- "-$frontend_pid" 2>/dev/null || true
+            kill -KILL "$frontend_pid" 2>/dev/null || true
+        fi
         wait "$frontend_pid" 2>/dev/null || true
     fi
     if ((${#stop_services[@]})); then
