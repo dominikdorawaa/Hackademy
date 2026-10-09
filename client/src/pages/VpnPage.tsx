@@ -90,7 +90,7 @@ const VpnPage = () => {
                 </div>
 
                 <h3 style={{ marginTop: '30px', marginBottom: '15px', color: 'var(--text-light)' }}>Instrukcja:</h3>
-                <ol style={{ lineHeight: '1.8', color: 'var(--text-gray)', paddingLeft: '20px' }}>
+                <ol style={{ lineHeight: '1.8', color: 'var(--text-gray)', paddingLeft: '20px', listStyle: 'decimal' }}>
                     <li>Pobierz i zainstaluj klienta <strong>OpenVPN</strong> (Windows/Mac/Linux).</li>
                     <li>Kliknij przycisk poniżej, aby wygenerować swój unikalny plik konfiguracyjny.</li>
                     <li>Zaimportuj pobrany plik <code>.ovpn</code> do klienta OpenVPN.</li>
