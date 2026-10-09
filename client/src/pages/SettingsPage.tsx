@@ -179,7 +179,7 @@ const SettingsPage = () => {
   };
 
   return (
-    <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+    <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
       <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', color: 'var(--text-light)' }}>Ustawienia</h1>
 
       <div style={{

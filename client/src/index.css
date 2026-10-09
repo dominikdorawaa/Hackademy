@@ -1,7 +1,8 @@
-@tailwind base;
-@tailwind components;
-@tailwind utilities;
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "./styles/theme.css";
 
+@layer base {
 /* --- ZMIENNE I RESET --- */
 :root {
   /* Default Dark Mode */
@@ -28,7 +29,7 @@
   line-height: 1.5;
   font-weight: 400;
 
-  color-scheme: light dark;
+  color-scheme: dark;
   color: var(--text-light);
   background-color: var(--bg-dark);
 
@@ -40,6 +41,7 @@
 
 /* Light Mode Overrides - "Card on Table" look */
 [data-theme='light'] {
+  color-scheme: light;
   --bg-dark: #e5e7eb;       /* Wyraźne szare tło strony (Gray-200) */
   --bg-panel: #f9fafb;      /* Złamana biel dla kart (Gray-50) */
   --bg-panel-lighter: #ffffff; /* Czysta biel dla nagłówków/wyróżnień */
@@ -48,12 +50,6 @@
   --border-color: #d1d5db;  /* Wyraźniejszy border (Gray-300) */
   --input-bg: #ffffff;      /* Białe inputy */
   --input-border: #9ca3af;  /* Szary border inputów (Gray-400) */
-}
-
-* {
-  box-sizing: border-box;
-  margin: 0;
-  padding: 0;
 }
 
 body {
@@ -74,24 +70,43 @@ body {
 h1,
 h2,
 h3,
-h4 {
+h4,
+h5,
+h6 {
   font-family: "Poppins", sans-serif;
   color: var(--text-light);
+  font-weight: 700;
 }
 
-.container {
-  max-width: 1200px;
-  margin: 0 auto;
-  padding: 0 20px;
+h1 { font-size: 2em; }
+h2 { font-size: 1.5em; }
+h3 { font-size: 1.17em; }
+h4 { font-size: 1em; }
+h5 { font-size: 0.83em; }
+h6 { font-size: 0.67em; }
+
+:where(button, input, select, textarea):not([data-slot]) {
+  font-family: Arial, sans-serif;
+  font-size: 13.3333px;
+  line-height: normal;
+  letter-spacing: normal;
 }
+
 
 a {
   text-decoration: none;
   color: inherit;
   transition: 0.3s;
 }
+}
 
-/* --- BUTTONS --- */
+@layer components {
+.hackademy-container {
+  max-width: 1200px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+/* --- BUTTONS --- */
 .btn {
   display: inline-block;
   padding: 12px 28px;
@@ -1038,4 +1053,5 @@ footer {
 .dropdown-item:hover a,
 .dropdown-item:hover button {
   color: var(--text-light);
+}
 }

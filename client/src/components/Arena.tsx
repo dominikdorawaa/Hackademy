@@ -27,7 +27,7 @@ const Arena = () => {
       className={`arena-section arena-reveal${inView ? ' arena-reveal--inview' : ''}`}
       id="arena"
     >
-      <div className="container">
+      <div className="hackademy-container">
         <div className="arena-grid">
           <div className="arena-content">
             <h2>Wejdź na <span>Arenę</span></h2>

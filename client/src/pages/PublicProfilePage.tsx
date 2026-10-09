@@ -123,8 +123,8 @@ const PublicProfilePage = () => {
         return { name: 'Freshman', color: '#4CAF50' };
     };
 
-    if (loading) return <div className="container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
-    if (error) return <div className="container" style={{ paddingTop: '40px' }}><h1>{error}</h1><button onClick={() => navigate(-1)} className="btn btn-outline">Wróć</button></div>;
+    if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
+    if (error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>{error}</h1><button onClick={() => navigate(-1)} className="btn btn-outline">Wróć</button></div>;
 
     if (!profile) return null;
     const rank = calculateRank(profile.points);
@@ -136,7 +136,7 @@ const PublicProfilePage = () => {
     const visibleBadges = showAllBadges ? badges : badges.slice(0, BADGES_LIMIT);
 
     return (
-        <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+        <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
             <button onClick={() => navigate(-1)} className="back-btn" style={{ marginBottom: '20px' }}>&larr; Wróć</button>
 
             <div style={{

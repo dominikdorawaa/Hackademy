@@ -137,7 +137,7 @@ const PathsPage = () => {
 
   if (loading) {
     return (
-      <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <h1>Ścieżki</h1>
         <p style={{ color: 'var(--text-gray)' }}>Ładowanie...</p>
       </div>
@@ -146,7 +146,7 @@ const PathsPage = () => {
 
   if (error) {
     return (
-      <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <h1>Ścieżki</h1>
         <p style={{ color: 'var(--text-gray)' }}>{error}</p>
       </div>
@@ -154,7 +154,7 @@ const PathsPage = () => {
   }
 
   return (
-    <div className="container paths-wrap">
+    <div className="hackademy-container paths-wrap">
       <header className="paths-header">
         <div>
           <h1 className="paths-title">Ścieżki</h1>

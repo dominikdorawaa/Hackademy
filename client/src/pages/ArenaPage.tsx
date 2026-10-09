@@ -280,7 +280,7 @@ const ArenaPage = () => {
         }
     };
 
-    if (!userData) return <div className="container" style={{ paddingTop: '40px' }}>Ładowanie...</div>;
+    if (!userData) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Ładowanie...</div>;
 
     const userLevel = Math.floor(userData.points / 100) + 1;
     const canPlay = userLevel >= 5;
@@ -290,7 +290,7 @@ const ArenaPage = () => {
 
             {/* Challenges Section */}
             {challenges.length > 0 && (
-                <div className="container" style={{ maxWidth: '600px', marginBottom: '30px', width: '100%' }}>
+                <div className="hackademy-container" style={{ maxWidth: '600px', marginBottom: '30px', width: '100%' }}>
                     <div style={{ backgroundColor: 'rgba(255, 152, 0, 0.1)', border: '1px solid #ff9800', borderRadius: '12px', padding: '20px' }}>
                         <h3 style={{ color: '#ff9800', marginTop: 0, marginBottom: '15px', fontSize: '1.2rem' }}>
                             <i className="fas fa-swords" style={{ marginRight: '10px' }}></i>
@@ -347,7 +347,7 @@ const ArenaPage = () => {
                 </div>
             )}
 
-            <div className="container" style={{ maxWidth: '600px' }}>
+            <div className="hackademy-container" style={{ maxWidth: '600px' }}>
                 <div className="elo-card-wrapper">
                     <div className="elo-card">
                         <span className="elo-badge">TRYB RANKINGOWY</span>

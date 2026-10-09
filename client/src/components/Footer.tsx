@@ -3,7 +3,7 @@ import React from 'react';
 const Footer = () => {
   return (
     <footer>
-      <div className="container">
+      <div className="hackademy-container">
         <div className="footer-content">
           <div className="footer-logo">
             <span

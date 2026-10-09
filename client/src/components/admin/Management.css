@@ -1,3 +1,4 @@
+@layer components {
 .management-container {
     background-color: var(--bg-panel);
     padding: 2rem;
@@ -98,4 +99,5 @@
 
 .management-form button:hover {
     opacity: 0.9;
+}
 }

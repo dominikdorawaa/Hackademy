@@ -1,3 +1,4 @@
+@layer components {
 .badge-container {
     position: relative;
     cursor: default !important; /* Force default cursor */
@@ -66,4 +67,5 @@
     color: #ccc;
     display: block;
     line-height: 1.4;
+}
 }

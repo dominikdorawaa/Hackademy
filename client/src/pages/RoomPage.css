@@ -1,3 +1,4 @@
+@layer components {
 .room-page-container {
     padding-top: 40px;
     padding-bottom: 60px;
@@ -320,6 +321,20 @@
   margin-bottom: 12px;
 }
 
+.task-content ul,
+.task-content ol {
+  padding-left: 1.5rem;
+  margin-bottom: 12px;
+}
+
+.task-content ul {
+  list-style: disc;
+}
+
+.task-content ol {
+  list-style: decimal;
+}
+
 .task-question-box {
   background: rgba(0, 0, 0, 0.2);
   border-left: 4px solid #3b82f6;
@@ -387,4 +402,5 @@
   color: #10b981;
   border: 1px solid rgba(16, 185, 129, 0.3);
   cursor: default;
-}
+}
+}

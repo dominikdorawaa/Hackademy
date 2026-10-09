@@ -1,3 +1,4 @@
+@layer components {
 .arena-chat-container {
     position: fixed;
     top: 80px; /* Below navbar */
@@ -192,4 +193,5 @@
 
 .chat-input-form button:active {
     transform: scale(0.95);
+}
 }
