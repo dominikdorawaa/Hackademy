@@ -1,12 +1,13 @@
 import * as vpnApi from '../services/vpnApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import type { VpnStatus } from '../types/api';
 
 const VpnPage = () => {
     const { token, user } = useAuth();
     const [loading, setLoading] = useState(false);
-    const [error, setError] = useState(null);
-    const [status, setStatus] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [status, setStatus] = useState<VpnStatus | null>(null);
     const [checkingStatus, setCheckingStatus] = useState(true);
 
     useEffect(() => {
@@ -39,7 +40,7 @@ const VpnPage = () => {
                 const url = window.URL.createObjectURL(blob);
                 const a = document.createElement('a');
                 a.href = url;
-                a.download = `${user?.username || 'hackademy'}.ovpn`;
+                a.download = `${(user as typeof user & { username?: string })?.username || 'hackademy'}.ovpn`;
                 document.body.appendChild(a);
                 a.click();
                 a.remove();
@@ -64,7 +65,7 @@ const VpnPage = () => {
     return (
         <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px', maxWidth: '800px' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '20px', textAlign: 'center', color: 'var(--text-light)' }}>Dostęp VPN</h1>
-            
+
             <div style={{ backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                 <h2 style={{ marginTop: 0, color: 'var(--primary-blue)' }}>Jak to działa?</h2>
                 <p style={{ lineHeight: '1.6', color: 'var(--text-gray)' }}>
@@ -98,18 +99,18 @@ const VpnPage = () => {
 
                 <div style={{ marginTop: '40px', textAlign: 'center' }}>
                     {error && <p style={{ color: '#e74c3c', marginBottom: '15px' }}>{error}</p>}
-                    
+
                     {status?.canDownload ? (
-                        <button 
-                            onClick={handleDownload} 
+                        <button
+                            onClick={handleDownload}
                             disabled={loading}
                             className="btn btn-primary"
-                            style={{ 
-                                padding: '15px 40px', 
-                                fontSize: '1.2rem', 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
-                                gap: '10px' 
+                            style={{
+                                padding: '15px 40px',
+                                fontSize: '1.2rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
+                                gap: '10px'
                             }}
                         >
                             {loading ? (
@@ -123,14 +124,14 @@ const VpnPage = () => {
                             )}
                         </button>
                     ) : (
-                        <button 
+                        <button
                             disabled
                             className="btn"
-                            style={{ 
-                                padding: '15px 40px', 
-                                fontSize: '1.2rem', 
-                                display: 'inline-flex', 
-                                alignItems: 'center', 
+                            style={{
+                                padding: '15px 40px',
+                                fontSize: '1.2rem',
+                                display: 'inline-flex',
+                                alignItems: 'center',
                                 gap: '10px',
                                 backgroundColor: '#555',
                                 color: '#aaa',
@@ -141,7 +142,7 @@ const VpnPage = () => {
                             <i className="fas fa-lock"></i> Zablokowane
                         </button>
                     )}
-                    
+
                     <p style={{ marginTop: '10px', fontSize: '0.9rem', color: 'var(--text-gray)' }}>
                         {status?.canDownload ? 'Generowanie może potrwać kilka sekund.' : 'Spełnij wymagania, aby odblokować.'}
                     </p>

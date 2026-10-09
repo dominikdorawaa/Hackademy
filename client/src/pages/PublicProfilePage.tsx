@@ -5,19 +5,20 @@ import { useParams, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ActivityCalendar from '../components/ActivityCalendar';
 import './ProfilePage.css';
+import type { ActivityDto, FriendshipStatus, UserProfileDto, UserSearchDto } from '../types/api';
 
 const PublicProfilePage = () => {
     const { username } = useParams();
     const { token } = useAuth();
     const navigate = useNavigate();
-    const [profile, setProfile] = useState(null);
+    const [profile, setProfile] = useState<UserProfileDto | null>(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [friendshipStatus, setFriendshipStatus] = useState('NONE'); // NONE, FRIENDS, REQUEST_SENT, REQUEST_RECEIVED
-    const [friendshipStats, setFriendshipStats] = useState(null);
+    const [error, setError] = useState<string | null>(null);
+    const [friendshipStatus, setFriendshipStatus] = useState<FriendshipStatus>('NONE'); // NONE, FRIENDS, REQUEST_SENT, REQUEST_RECEIVED
+    const [friendshipStats, setFriendshipStats] = useState<UserSearchDto | null>(null);
     const [actionLoading, setActionLoading] = useState(false);
-    const [activityData, setActivityData] = useState([]);
-    
+    const [activityData, setActivityData] = useState<ActivityDto[]>([]);
+
     // UI State
     const [showAllBadges, setShowAllBadges] = useState(false);
     const BADGES_LIMIT = 6;
@@ -26,7 +27,7 @@ const PublicProfilePage = () => {
         const fetchProfile = async () => {
             try {
                 setLoading(true);
-                const response = await userApi.getProfile(username, {
+                const response = await userApi.getProfile(username ?? '', {
                         'Authorization': `Bearer ${token}`
                     });
 
@@ -51,7 +52,7 @@ const PublicProfilePage = () => {
         }
     }, [username, token]);
 
-    const fetchFriendshipStatus = async (targetUsername) => {
+    const fetchFriendshipStatus = async (targetUsername: string) => {
         try {
             const response = await friendApi.getStatus(targetUsername, {
                     'Authorization': `Bearer ${token}`
@@ -65,7 +66,7 @@ const PublicProfilePage = () => {
         }
     };
 
-    const fetchFriendshipStats = async (targetUsername) => {
+    const fetchFriendshipStats = async (targetUsername: string) => {
         try {
             const response = await friendApi.getStats(targetUsername, {
                     'Authorization': `Bearer ${token}`
@@ -79,7 +80,7 @@ const PublicProfilePage = () => {
         }
     };
 
-    const fetchActivityData = async (targetUsername) => {
+    const fetchActivityData = async (targetUsername: string) => {
         try {
             const response = await userApi.getActivity(targetUsername, {
                     'Authorization': `Bearer ${token}`
@@ -96,7 +97,7 @@ const PublicProfilePage = () => {
     const handleSendRequest = async () => {
         setActionLoading(true);
         try {
-            const response = await friendApi.sendRequest(profile.username, {
+            const response = await friendApi.sendRequest(profile?.username ?? '', {
                     'Authorization': `Bearer ${token}`
                 });
             if (response.ok) {
@@ -109,56 +110,57 @@ const PublicProfilePage = () => {
         }
     };
 
-    const calculateRank = (points) => {
+    const calculateRank = (points: number) => {
         const level = Math.floor(points / 100) + 1;
-        
+
         if (level >= 1 && level <= 3) return { name: 'Freshman', color: '#4CAF50' };
         if (level >= 4 && level <= 6) return { name: 'Junior', color: '#2196F3' };
         if (level >= 7 && level <= 10) return { name: 'Apprentice', color: '#9C27B0' };
         if (level >= 11 && level <= 15) return { name: 'Developer', color: '#FF9800' };
         if (level >= 16 && level <= 20) return { name: 'Senior', color: '#F44336' };
         if (level >= 21) return { name: 'Architect', color: '#FFD700' };
-        
+
         return { name: 'Freshman', color: '#4CAF50' };
     };
 
     if (loading) return <div className="container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
     if (error) return <div className="container" style={{ paddingTop: '40px' }}><h1>{error}</h1><button onClick={() => navigate(-1)} className="btn btn-outline">Wróć</button></div>;
 
+    if (!profile) return null;
     const rank = calculateRank(profile.points);
     const userLevel = Math.floor(profile.points / 100) + 1;
     const nextLevelPoints = userLevel * 100;
     const progress = ((profile.points % 100) / 100) * 100;
     const badges = profile.badges || []; // Use badges from profile DTO
-    
+
     const visibleBadges = showAllBadges ? badges : badges.slice(0, BADGES_LIMIT);
 
     return (
         <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
             <button onClick={() => navigate(-1)} className="back-btn" style={{ marginBottom: '20px' }}>&larr; Wróć</button>
-            
-            <div style={{ 
-                display: 'flex', 
-                flexDirection: 'row', 
-                gap: '30px', 
-                maxWidth: '1000px', 
+
+            <div style={{
+                display: 'flex',
+                flexDirection: 'row',
+                gap: '30px',
+                maxWidth: '1000px',
                 margin: '0 auto',
                 alignItems: 'flex-start'
             }}>
                 {/* Left Column: User Info */}
-                <div style={{ 
+                <div style={{
                     flex: '1.2', // Increased width
                     minWidth: '300px', // Ensure minimum width
                     backgroundColor: 'var(--bg-panel)',
-                    padding: '30px', 
-                    borderRadius: '12px', 
+                    padding: '30px',
+                    borderRadius: '12px',
                     border: '1px solid var(--border-color)',
                     display: 'flex',
                     flexDirection: 'column',
                     alignItems: 'center',
                     textAlign: 'center'
                 }}>
-                    <img 
+                    <img
                         src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${profile.username}`}
                         alt="User Avatar"
                         style={{
@@ -170,13 +172,13 @@ const PublicProfilePage = () => {
                             border: `3px solid ${rank.color}`
                         }}
                     />
-                    
+
                     <h1 style={{ margin: '0 0 10px 0', fontSize: '2rem', color: 'var(--text-light)' }}>{profile.username}</h1>
-                    
-                    <div style={{ 
-                        display: 'flex', 
-                        alignItems: 'center', 
-                        gap: '8px', 
+
+                    <div style={{
+                        display: 'flex',
+                        alignItems: 'center',
+                        gap: '8px',
                         marginBottom: '20px',
                         backgroundColor: 'rgba(255, 152, 0, 0.1)',
                         padding: '8px 16px',
@@ -193,8 +195,8 @@ const PublicProfilePage = () => {
                     {/* Friend Button & Stats */}
                     <div style={{ marginBottom: '20px', width: '100%' }}>
                         {friendshipStatus === 'NONE' && (
-                            <button 
-                                onClick={handleSendRequest} 
+                            <button
+                                onClick={handleSendRequest}
                                 disabled={actionLoading}
                                 className="btn btn-primary"
                                 style={{ width: '100%' }}
@@ -213,10 +215,10 @@ const PublicProfilePage = () => {
                                     <i className="fas fa-check" style={{ marginRight: '5px' }}></i> Znajomi
                                 </button>
                                 {friendshipStats && (
-                                    <div style={{ 
-                                        backgroundColor: 'rgba(255, 255, 255, 0.05)', 
-                                        padding: '10px', 
-                                        borderRadius: '8px', 
+                                    <div style={{
+                                        backgroundColor: 'rgba(255, 255, 255, 0.05)',
+                                        padding: '10px',
+                                        borderRadius: '8px',
                                         fontSize: '0.9rem',
                                         textAlign: 'center'
                                     }}>
@@ -238,9 +240,9 @@ const PublicProfilePage = () => {
                     </div>
 
                     <div style={{ width: '100%', borderTop: '1px solid var(--border-color)', paddingTop: '20px' }}>
-                        <div style={{ 
-                            fontSize: '1.4rem', 
-                            fontWeight: 'bold', 
+                        <div style={{
+                            fontSize: '1.4rem',
+                            fontWeight: 'bold',
                             color: rank.color,
                             marginBottom: '5px'
                         }}>
@@ -249,27 +251,27 @@ const PublicProfilePage = () => {
                         <div style={{ fontSize: '1rem', color: 'var(--text-light)', marginBottom: '15px' }}>
                             Poziom {userLevel}
                         </div>
-                        
+
                         <div style={{ marginBottom: '5px', display: 'flex', justifyContent: 'space-between', fontSize: '0.8rem', color: 'var(--text-gray)' }}>
                             <span>{profile.points} XP</span>
                             <span>{nextLevelPoints} XP</span>
                         </div>
-                        <div style={{ 
-                            width: '100%', 
-                            height: '8px', 
+                        <div style={{
+                            width: '100%',
+                            height: '8px',
                             backgroundColor: 'var(--bg-panel-lighter)',
                             borderRadius: '4px',
                             overflow: 'hidden',
                             marginBottom: '5px'
                         }}>
-                            <div style={{ 
-                                width: `${progress}%`, 
-                                height: '100%', 
+                            <div style={{
+                                width: `${progress}%`,
+                                height: '100%',
                                 backgroundColor: rank.color
                             }}></div>
                         </div>
                     </div>
-                    
+
                     <div style={{ marginTop: '20px', color: 'var(--text-gray)', fontSize: '0.9rem' }}>
                         Dołączył: {new Date(profile.createdAt).toLocaleDateString()}
                     </div>
@@ -277,13 +279,13 @@ const PublicProfilePage = () => {
 
                 {/* Right Column: Bio & Badges */}
                 <div style={{ flex: '2', display: 'flex', flexDirection: 'column', gap: '20px' }}>
-                    
+
                     {/* Bio Section */}
                     <div style={{ backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
                         <h2 style={{ marginTop: 0, marginBottom: '20px', borderBottom: '1px solid var(--border-color)', paddingBottom: '10px', color: 'var(--text-light)' }}>
                             O mnie
                         </h2>
-                        
+
                         {profile.bio ? (
                             <p style={{ whiteSpace: 'pre-line', lineHeight: '1.6', color: 'var(--text-light)' }}>{profile.bio}</p>
                         ) : (
@@ -311,13 +313,13 @@ const PublicProfilePage = () => {
                                 <p style={{ color: 'var(--text-gray)' }}>Brak odznak</p>
                             ) : (
                                 visibleBadges.map(badge => (
-                                    <div key={badge.id} className="badge-container" style={{ 
-                                        width: '60px', 
-                                        height: '60px', 
+                                    <div key={badge.id} className="badge-container" style={{
+                                        width: '60px',
+                                        height: '60px',
                                         backgroundColor: badge.earned ? 'var(--bg-panel-lighter)' : 'var(--bg-dark)',
-                                        borderRadius: '50%', 
-                                        display: 'flex', 
-                                        alignItems: 'center', 
+                                        borderRadius: '50%',
+                                        display: 'flex',
+                                        alignItems: 'center',
                                         justifyContent: 'center',
                                         color: badge.earned ? '#ffd700' : 'var(--text-gray)',
                                         border: badge.earned ? '2px solid #444' : '2px dashed var(--border-color)',
@@ -340,10 +342,10 @@ const PublicProfilePage = () => {
                                 ))
                             )}
                         </div>
-                        
+
                         {/* Show More / Show Less Button */}
                         {badges.length > BADGES_LIMIT && (
-                            <button 
+                            <button
                                 onClick={() => setShowAllBadges(!showAllBadges)}
                                 style={{
                                     background: 'none',
