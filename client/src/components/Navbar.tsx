@@ -5,7 +5,12 @@ import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
+import type { Challenge, DashboardUser, FriendRequestDto } from '../types/api';
 import './Navbar.css';
+
+type Notification =
+  | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
+  | { id: string; type: 'CHALLENGE'; from: string; timestamp: string; data: Challenge };
 
 const Navbar = () => {
   const { isAuthenticated, logout, token, loading } = useAuth();
@@ -13,12 +18,12 @@ const Navbar = () => {
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [userData, setUserData] = useState(null);
-  const [notifications, setNotifications] = useState([]);
+  const [userData, setUserData] = useState<DashboardUser | null>(null);
+  const [notifications, setNotifications] = useState<Notification[]>([]);
   const [unreadCount, setUnreadCount] = useState(0);
-  const [processedNotifications, setProcessedNotifications] = useState([]); // Track processed IDs
-  const menuRef = useRef(null);
-  const notifRef = useRef(null);
+  const [processedNotifications, setProcessedNotifications] = useState<string[]>([]); // Track processed IDs
+  const menuRef = useRef<HTMLDivElement | null>(null);
+  const notifRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -49,14 +54,14 @@ const Navbar = () => {
         try {
           // Fetch friend requests
           const friendsRes = await friendApi.getRequests({ 'Authorization': `Bearer ${token}` });
-          const friendRequests = await friendsRes.json();
+          const friendRequests = await friendsRes.json() as FriendRequestDto[];
 
           // Fetch challenges
           const challengesRes = await arenaApi.getChallenges({ 'Authorization': `Bearer ${token}` });
-          const challenges = await challengesRes.json();
+          const challenges = await challengesRes.json() as Challenge[];
 
           // Combine and format notifications
-          const formattedFriendReqs = friendRequests.map(req => ({
+          const formattedFriendReqs: Notification[] = friendRequests.map(req => ({
             id: req.id,
             type: 'FRIEND_REQUEST',
             from: req.requesterUsername,
@@ -64,7 +69,7 @@ const Navbar = () => {
             data: req
           }));
 
-          const formattedChallenges = challenges.map(ch => ({
+          const formattedChallenges: Notification[] = challenges.map(ch => ({
             id: ch.id,
             type: 'CHALLENGE',
             from: ch.challengerUsername,
@@ -91,11 +96,11 @@ const Navbar = () => {
   }, [isAuthenticated, token]);
 
   useEffect(() => {
-    const handleClickOutside = (event) => {
-      if (menuRef.current && !menuRef.current.contains(event.target)) {
+    const handleClickOutside = (event: MouseEvent) => {
+      if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
         setIsMenuOpen(false);
       }
-      if (notifRef.current && !notifRef.current.contains(event.target)) {
+      if (notifRef.current && !notifRef.current.contains(event.target as Node)) {
         setIsNotificationsOpen(false);
       }
     };
@@ -111,7 +116,7 @@ const Navbar = () => {
     navigate('/');
   };
 
-  const handleAcceptFriend = async (requestId) => {
+  const handleAcceptFriend = async (requestId: number) => {
     if (processedNotifications.includes(`FRIEND_REQUEST-${requestId}`)) return;
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
@@ -127,7 +132,7 @@ const Navbar = () => {
     }
   };
 
-  const handleRejectFriend = async (requestId) => {
+  const handleRejectFriend = async (requestId: number) => {
     if (processedNotifications.includes(`FRIEND_REQUEST-${requestId}`)) return;
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
@@ -140,7 +145,7 @@ const Navbar = () => {
     }
   };
 
-  const handleAcceptChallenge = async (challengeId) => {
+  const handleAcceptChallenge = async (challengeId: string) => {
     if (processedNotifications.includes(`CHALLENGE-${challengeId}`)) return;
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
@@ -162,7 +167,7 @@ const Navbar = () => {
     }
   };
 
-  const handleRejectChallenge = async (challengeId) => {
+  const handleRejectChallenge = async (challengeId: string) => {
     if (processedNotifications.includes(`CHALLENGE-${challengeId}`)) return;
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
@@ -176,14 +181,14 @@ const Navbar = () => {
   };
 
   const isAuthPage = location.pathname === '/login' || location.pathname === '/register';
-  const isActivePrefix = (prefix) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
+  const isActivePrefix = (prefix: string) => location.pathname === prefix || location.pathname.startsWith(`${prefix}/`);
 
   const landingScrollEnabled =
     !isAuthPage && !loading && !isAuthenticated && location.pathname === '/';
   const landingActiveSection = useLandingScrollSpy(landingScrollEnabled);
 
   const landingHashHref = useCallback(
-    (id) => (location.pathname === '/' ? `#${id}` : `/#${id}`),
+    (id: string) => (location.pathname === '/' ? `#${id}` : `/#${id}`),
     [location.pathname]
   );
 

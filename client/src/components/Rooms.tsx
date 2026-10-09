@@ -27,7 +27,7 @@ const STATIC_PREVIEW_ROOMS = [
 ];
 
 const Rooms = () => {
-  const gridRef = useRef(null);
+  const gridRef = useRef<HTMLDivElement>(null);
   const [inView, setInView] = useState(false);
   const rooms = STATIC_PREVIEW_ROOMS;
 
@@ -47,7 +47,7 @@ const Rooms = () => {
     return () => obs.disconnect();
   }, []);
 
-  const difficultyClass = (difficulty) => {
+  const difficultyClass = (difficulty: string) => {
     switch (difficulty) {
       case 'EASY': return 'diff-easy';
       case 'MEDIUM': return 'diff-medium';
@@ -57,7 +57,7 @@ const Rooms = () => {
     }
   };
 
-  const difficultyTranslation = (difficulty) => {
+  const difficultyTranslation = (difficulty: string) => {
     switch (difficulty) {
       case 'EASY': return 'Łatwy';
       case 'MEDIUM': return 'Średni';
