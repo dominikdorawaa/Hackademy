@@ -12,31 +12,31 @@ const AdminPage = () => {
         <div className="admin-container">
             <h1>Admin Panel</h1>
             <div className="admin-tabs">
-                <button 
+                <button
                     onClick={() => setActiveTab('users')}
                     className={activeTab === 'users' ? 'active' : ''}
                 >
                     Zarządzaj użytkownikami
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('rooms_ctf')}
                     className={activeTab === 'rooms_ctf' ? 'active' : ''}
                 >
                     Zarządzaj pokojami CTF
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('rooms_paths')}
                     className={activeTab === 'rooms_paths' ? 'active' : ''}
                 >
                     Zarządzaj pokojami ścieżek
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('paths')}
                     className={activeTab === 'paths' ? 'active' : ''}
                 >
                     Ścieżki
                 </button>
-                <button 
+                <button
                     onClick={() => setActiveTab('reports')}
                     className={activeTab === 'reports' ? 'active' : ''}
                 >
