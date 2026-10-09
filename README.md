@@ -96,6 +96,8 @@ Frontend działa pod `http://localhost:5173`, a backend pod `http://localhost:80
 
 Jeśli `.env` zaginie, a wolumen lokalnej bazy nadal istnieje, skrypt zatrzyma się przed wygenerowaniem nowych haseł. Przywróć poprzedni `.env` albo utwórz go z dotychczasowym hasłem bazy w `DB_PASSWORD` i własnym sekretem `JWT_SECRET`. Nowe losowe hasło nie zmienia hasła w istniejącej bazie. Skrypt nie usuwa wolumenu ani jego danych.
 
+Przed oczekiwaniem na API skrypt sprawdza logowanie do bazy. Jeśli backend zakończy pracę lub zacznie się restartować, od razu wypisze błąd i ostatnie logi, zamiast czekać na pełny limit startu.
+
 Zatrzymaj aplikację przez Ctrl+C. Skrypt kończy frontend i zatrzymuje tylko te usługi backendu i bazy, które przed jego uruchomieniem nie były aktywne. Wolumen bazy zostaje zachowany. Usługi uruchomione wcześniej pozostają aktywne. Ponowne uruchomienie drugiej instancji `run.sh` dla tego samego katalogu jest blokowane.
 
 ## Uruchomienie lokalne przez Docker Compose

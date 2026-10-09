@@ -90,12 +90,25 @@ trap 'exit 129' HUP
 info 'Uruchamianie PostgreSQL i backendu w Dockerze...'
 "${compose[@]}" up --build -d postgres backend
 
+info 'Sprawdzanie połączenia z lokalną bazą...'
+"${compose[@]}" exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql --no-psqlrc --host 127.0.0.1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --command "SELECT 1" >/dev/null' || fail 'Nie można zalogować się do lokalnej bazy. Sprawdź, czy DB_PASSWORD odpowiada hasłu zachowanego wolumenu. Zmiana .env nie zmienia hasła istniejącej bazy.'
+
+backend_id="$("${compose[@]}" ps --all --quiet backend)"
+[[ -n "$backend_id" ]] || fail 'Nie znaleziono kontenera backendu po uruchomieniu.'
+initial_restarts="$(docker inspect --format '{{.RestartCount}}' "$backend_id")"
+
 info 'Oczekiwanie na backend: http://localhost:8080/health'
 backend_ready=false
 for ((attempt = 1; attempt <= 90; attempt++)); do
     if curl --fail --silent --output /dev/null --connect-timeout 1 --max-time 2 http://127.0.0.1:8080/health; then
         backend_ready=true
         break
+    fi
+    backend_state="$(docker inspect --format '{{.State.Status}} {{.RestartCount}}' "$backend_id")"
+    read -r backend_status backend_restarts <<< "$backend_state"
+    if [[ "$backend_status" != running ]] || ((backend_restarts > initial_restarts)); then
+        "${compose[@]}" logs --tail 80 backend >&2 || true
+        fail 'Backend zakończył pracę lub uruchamia się ponownie po błędzie. Sprawdź powyższe logi.'
     fi
     if ((attempt % 10 == 0)); then
         info "Backend nadal startuje (próba $attempt/90)..."
