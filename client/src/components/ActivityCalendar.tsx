@@ -1,159 +1,142 @@
-import React from 'react';
+import { useRef, useState } from 'react';
+import type { CSSProperties, KeyboardEvent } from 'react';
 import type { ActivityDto } from '../types/api';
+import {
+  activityDays,
+  activityDescription,
+  activitySummary,
+  localDateKey,
+  solvedRoomsLabel,
+} from '../lib/activity';
+import './ActivityCalendar.css';
 
-const ActivityCalendar = ({ data }: { data: ActivityDto[] }) => {
-    // Generate dates for the last year
-    const today = new Date();
-    const oneYearAgo = new Date();
-    oneYearAgo.setFullYear(today.getFullYear() - 1);
+function CalendarGrid({ data, dates }: { data: ActivityDto[]; dates: Date[] }) {
+  const counts = new Map(data.map((item) => [item.date, item.count]));
+  const offset = (dates[0].getDay() + 6) % 7;
+  const weeks = Math.ceil((dates.length + offset) / 7);
+  const [focused, setFocused] = useState(dates.length - 1);
+  const [selected, setSelected] = useState<number | null>(null);
+  const cells = useRef(new Map<number, HTMLButtonElement>());
+  const move = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
+    const delta = { ArrowLeft: -7, ArrowRight: 7, ArrowUp: -1, ArrowDown: 1 }[
+      event.key
+    ];
+    if (delta === undefined) return;
+    event.preventDefault();
+    const next = Math.max(0, Math.min(dates.length - 1, index + delta));
+    setFocused(next);
+    cells.current.get(next)?.focus();
+  };
+  const months = dates.flatMap((date, index) =>
+    index === 0 || date.getDate() === 1
+      ? [
+          {
+            label: date.toLocaleDateString('pl-PL', { month: 'short' }),
+            column: Math.floor((index + offset) / 7) + 1,
+          },
+        ]
+      : [],
+  );
 
-    // Adjust start date to be exactly 52 weeks ago or start of week to align grid
-    // But for simplicity, let's stick to "one year ago" logic and handle alignment
-
-    const dates = [];
-    const currentDate = new Date(oneYearAgo);
-
-    while (currentDate <= today) {
-        dates.push(new Date(currentDate));
-        currentDate.setDate(currentDate.getDate() + 1);
-    }
-
-    // Map data to a dictionary for easy lookup
-    const activityMap: Record<string, number> = {};
-    if (data) {
-        data.forEach(item => {
-            activityMap[item.date] = item.count;
-        });
-    }
-
-    const getColor = (count: number) => {
-        if (!count) return '#161b22'; // Empty
-        if (count === 1) return '#0e4429'; // Level 1
-        if (count === 2) return '#006d32'; // Level 2
-        if (count === 3) return '#26a641'; // Level 3
-        return '#39d353'; // Level 4
-    };
-
-    const getTooltip = (date: Date, count: number) => {
-        const dateString = date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' });
-        if (!count) return `Brak aktywności w dniu ${dateString}`;
-        return `${count} rozwiązanych zadań w dniu ${dateString}`;
-    };
-
-    // Group dates by week
-    const weeks: (Date | null)[][] = [];
-    let currentWeek: (Date | null)[] = [];
-
-    // Fill first week with empty days if needed to align with Sunday
-    const firstDay = dates[0].getDay(); // 0 = Sunday
-    for (let i = 0; i < firstDay; i++) {
-        currentWeek.push(null);
-    }
-
-    dates.forEach(date => {
-        currentWeek.push(date);
-        if (currentWeek.length === 7) {
-            weeks.push(currentWeek);
-            currentWeek = [];
-        }
-    });
-
-    if (currentWeek.length > 0) {
-        weeks.push(currentWeek);
-    }
-
-    // Calculate month labels positions
-    const monthLabels: { month: string; index: number }[] = [];
-    let currentMonth = -1;
-
-    weeks.forEach((week, index) => {
-        // Check the first valid day in the week
-        const firstDayInWeek = week.find(day => day !== null);
-        if (firstDayInWeek) {
-            const month = firstDayInWeek.getMonth();
-            if (month !== currentMonth) {
-                monthLabels.push({
-                    month: firstDayInWeek.toLocaleDateString('pl-PL', { month: 'short' }),
-                    index: index
-                });
-                currentMonth = month;
-            }
-        }
-    });
-
-    const dayLabels = ['Pn', '', 'Śr', '', 'Pt', '', '']; // Only show Mon, Wed, Fri
-
-    return (
-        <div className="activity-calendar-container" style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
-            {/* Month Labels */}
-            <div style={{ display: 'flex', marginLeft: '30px', marginBottom: '5px', fontSize: '0.75rem', color: '#aaa' }}>
-                {monthLabels.map((label, i) => (
-                    <div key={i} style={{
-                        width: '14px', // Width of a cell + gap (approx)
-                        marginRight: i < monthLabels.length - 1
-                            ? `${(monthLabels[i+1].index - label.index - 1) * 16}px`
-                            : '0'
-                    }}>
-                        {label.month}
-                    </div>
-                ))}
-            </div>
-
-            <div style={{ display: 'flex' }}>
-                {/* Day Labels */}
-                <div style={{ display: 'flex', flexDirection: 'column', gap: '4px', marginRight: '8px', marginTop: '16px' }}>
-                    {dayLabels.map((day, i) => (
-                        <div key={i} style={{ height: '12px', fontSize: '0.7rem', color: '#aaa', lineHeight: '12px' }}>
-                            {day}
-                        </div>
-                    ))}
-                </div>
-
-                {/* Grid */}
-                <div className="activity-calendar" style={{ display: 'flex', gap: '4px', overflowX: 'auto', paddingBottom: '10px' }}>
-                    {weeks.map((week, weekIndex) => (
-                        <div key={weekIndex} style={{ display: 'flex', flexDirection: 'column', gap: '4px' }}>
-                            {week.map((date, dayIndex) => {
-                                // Skip day 0 (Sunday) if we want to start from Monday, but JS getDay() 0 is Sunday.
-                                // GitHub starts with Sunday at top usually, or Monday depending on locale.
-                                // Let's stick to standard 7 days column.
-
-                                if (!date) return <div key={dayIndex} style={{ width: '12px', height: '12px' }}></div>;
-
-                                const dateStr = date.toISOString().split('T')[0];
-                                const count = activityMap[dateStr] || 0;
-
-                                return (
-                                    <div
-                                        key={dateStr}
-                                        title={getTooltip(date, count)}
-                                        style={{
-                                            width: '12px',
-                                            height: '12px',
-                                            backgroundColor: getColor(count),
-                                            borderRadius: '2px',
-                                            cursor: 'pointer'
-                                        }}
-                                    ></div>
-                                );
-                            })}
-                        </div>
-                    ))}
-                </div>
-            </div>
-
-            {/* Legend */}
-            <div style={{ display: 'flex', alignItems: 'center', gap: '4px', fontSize: '0.75rem', color: '#aaa', marginTop: '10px', marginLeft: '30px' }}>
-                <span>Mniej</span>
-                <div style={{ width: '12px', height: '12px', backgroundColor: '#161b22', borderRadius: '2px' }}></div>
-                <div style={{ width: '12px', height: '12px', backgroundColor: '#0e4429', borderRadius: '2px' }}></div>
-                <div style={{ width: '12px', height: '12px', backgroundColor: '#006d32', borderRadius: '2px' }}></div>
-                <div style={{ width: '12px', height: '12px', backgroundColor: '#26a641', borderRadius: '2px' }}></div>
-                <div style={{ width: '12px', height: '12px', backgroundColor: '#39d353', borderRadius: '2px' }}></div>
-                <span>Więcej</span>
-            </div>
+  return (
+    <>
+      <div
+        className="activity-calendar-scroll"
+        role="region"
+        aria-label="Kalendarz rozwiązanych pokoi"
+        tabIndex={0}
+      >
+        <div
+          className="activity-calendar-layout"
+          style={{ '--calendar-weeks': weeks } as CSSProperties}
+        >
+          <div className="activity-calendar-months" aria-hidden="true">
+            {months.map((month, index) => (
+              <span key={index} style={{ gridColumn: month.column }}>
+                {month.label}
+              </span>
+            ))}
+          </div>
+          <div className="activity-calendar-days" aria-hidden="true">
+            {['Pn', '', 'Śr', '', 'Pt', '', ''].map((day, index) => (
+              <span key={index}>{day}</span>
+            ))}
+          </div>
+          <div className="activity-calendar-grid">
+            {Array.from({ length: offset }, (_, index) => (
+              <span key={`empty-${index}`} />
+            ))}
+            {dates.map((date, index) => {
+              const key = localDateKey(date);
+              const count = counts.get(key) ?? 0;
+              const description = activityDescription(date, count);
+              return (
+                <button
+                  key={key}
+                  type="button"
+                  data-slot="activity-day"
+                  data-date={key}
+                  data-level={Math.min(count, 4)}
+                  aria-label={description}
+                  title={description}
+                  tabIndex={focused === index ? 0 : -1}
+                  ref={(element) => {
+                    if (element) cells.current.set(index, element);
+                    else cells.current.delete(index);
+                  }}
+                  onKeyDown={(event) => move(event, index)}
+                  onFocus={() => {
+                    setFocused(index);
+                    setSelected(index);
+                  }}
+                  onClick={() => setSelected(index)}
+                />
+              );
+            })}
+          </div>
         </div>
-    );
-};
+      </div>
+      <div className="activity-calendar-footer">
+        <p className="activity-calendar-detail" aria-live="polite">
+          {selected === null
+            ? 'Wybierz dzień, aby zobaczyć liczbę rozwiązań.'
+            : activityDescription(
+                dates[selected],
+                counts.get(localDateKey(dates[selected])) ?? 0,
+              )}
+        </p>
+        <div
+          className="activity-calendar-legend"
+          aria-label="Intensywność: od zera do co najmniej czterech rozwiązanych pokoi"
+        >
+          <span>Mniej</span>
+          {[0, 1, 2, 3, 4].map((level) => (
+            <span key={level} data-level={level} aria-hidden="true" />
+          ))}
+          <span>Więcej</span>
+        </div>
+      </div>
+    </>
+  );
+}
 
-export default ActivityCalendar;
+export default function ActivityCalendar({ data }: { data: ActivityDto[] }) {
+  const dates = activityDays(new Date());
+  const summary = activitySummary(data, dates);
+  return (
+    <div className="activity-calendar-container">
+      <div className="activity-calendar-heading">
+        <div>
+          <p className="activity-calendar-summary">
+            <strong>{summary.solved}</strong> {solvedRoomsLabel(summary.solved)}
+          </p>
+          <p className="activity-calendar-period">
+            {summary.activeDays} {summary.activeDays === 1 ? 'dzień' : 'dni'}{' '}
+            aktywności · ostatnie 12 tygodni
+          </p>
+        </div>
+      </div>
+      <CalendarGrid data={data} dates={dates} />
+    </div>
+  );
+}

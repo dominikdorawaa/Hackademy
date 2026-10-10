@@ -33,22 +33,6 @@ const SettingsPage = () => {
                 <p style={{ fontSize: '0.8rem', color: 'var(--text-gray)', marginTop: '5px' }}>Nazwy użytkownika nie można zmienić.</p>
               </div>
 
-              <div className="form-group">
-                <label style={{ display: 'block', marginBottom: '8px', color: 'var(--text-gray)' }}>Bio</label>
-                <textarea
-                  placeholder="Opowiedz coś o sobie..."
-                  rows={4}
-                  style={{
-                    width: '100%',
-                    padding: '10px',
-                    backgroundColor: 'var(--input-bg)',
-                    border: '1px solid var(--input-border)',
-                    borderRadius: '6px',
-                    color: 'var(--text-light)'
-                  }}
-                ></textarea>
-                <button className="btn btn-primary" style={{ marginTop: '10px' }}>Zapisz zmiany</button>
-              </div>
             </div>
           </div>
         );
