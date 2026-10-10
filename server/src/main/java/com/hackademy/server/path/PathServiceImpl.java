@@ -31,6 +31,7 @@ import org.springframework.web.server.ResponseStatusException;
 import java.util.ArrayList;
 import java.util.HashSet;
 import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -447,8 +448,13 @@ public class PathServiceImpl implements PathService {
         }
         if (unique.isEmpty()) return;
 
-        Map<Long, Room> rooms = roomRepository.findAllById(unique).stream()
-                .collect(Collectors.toMap(Room::getId, Function.identity()));
+        // Lock in a stable order before reading types and ownership across paths.
+        Map<Long, Room> rooms = new HashMap<>();
+        for (Long roomId : unique.stream().sorted().toList()) {
+            Room room = roomRepository.findByIdForUpdate(roomId)
+                    .orElseThrow(() -> new IllegalArgumentException("Pokój " + roomId + " nie istnieje"));
+            rooms.put(roomId, room);
+        }
         for (Long roomId : roomIds) {
             Room room = rooms.get(roomId);
             if (room == null) {
