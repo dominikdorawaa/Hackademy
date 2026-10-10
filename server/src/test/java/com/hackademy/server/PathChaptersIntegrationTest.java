@@ -42,6 +42,37 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     @Autowired private PlatformTransactionManager transactionManager;
 
     @Test
+    void rejectsStaleChapterDraftsWithoutDeletingNewChaptersOrAssignments() throws Exception {
+        var admin = account(Role.ADMIN);
+        long room = createRoom(admin, uniqueTitle("Revision room"), "PATH");
+        long path = createPath(admin, List.of());
+        long chapter = chapterIds(admin, path).get(0);
+        String endpoint = "/api/admin/paths/" + path + "/chapters";
+        getAs(admin, "/api/admin/paths/" + path)
+                .andExpect(jsonPath("$.revision").value(0));
+        putJson(admin, endpoint, """
+                {"revision":0,"chapters":[{"id":%d,"title":"A","roomIds":[]},{"id":null,"title":"Nowy","roomIds":[%d]}]}
+                """.formatted(chapter, room))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.revision").value(1));
+        String stale = """
+                {"revision":0,"chapters":[{"id":%d,"title":"Starsza edycja","roomIds":[]}]}
+                """.formatted(chapter);
+        putJson(admin, endpoint, stale)
+                .andExpect(status().isConflict());
+        getAs(admin, "/api/admin/paths/" + path)
+                .andExpect(jsonPath("$.revision").value(1))
+                .andExpect(jsonPath("$.chapters.length()").value(2))
+                .andExpect(jsonPath("$.chapters[0].title").value("A"))
+                .andExpect(jsonPath("$.chapters[1].roomIds[0]").value(room));
+        putJson(admin, endpoint, chapters(chapter, "Bez rewizji"))
+                .andExpect(status().isBadRequest());
+        putJson(admin, endpoint, stale.replace("\"revision\":0", "\"revision\":1"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.revision").value(2));
+    }
+
+    @Test
     void concurrentAssignmentCannotStealAnotherPathsRoom() throws Exception {
         var admin = account(Role.ADMIN);
         long room = createRoom(admin, uniqueTitle("Concurrent assignment"), "PATH");
@@ -90,7 +121,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
 
     private void assign(long path, long chapter, long room) {
         pathService.updatePathChapters(path,
-                new UpdatePathChaptersRequest(List.of(new ChapterRequest(chapter, "A", List.of(room)))), true);
+                new UpdatePathChaptersRequest(jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, path), List.of(new ChapterRequest(chapter, "A", List.of(room)))), true);
     }
 
     private void changeToCtf(long room, String title) {
@@ -158,7 +189,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.chapters[0].roomIds[1]").value(first));
 
         long chapterId = chapterIds(admin, pathId).get(0);
-        var response = putJson(admin, "/api/admin/paths/" + pathId + "/chapters", """
+        var response = putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", """
                 {"chapters":[
                   {"id":null,"title":"  Podstawy  ","roomIds":[%d]},
                   {"id":%d,"title":"Rozdział główny","roomIds":[%d,%d]}
@@ -228,30 +259,30 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
         long chapterId = chapterIds(admin, pathId).get(0);
         long foreignChapter = chapterIds(admin, otherPath).get(0);
 
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", owned))
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", owned))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("należy już do ścieżki")));
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", ctf))
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", ctf))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("nie jest pokojem ścieżki")));
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", free, free))
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", free, free))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("więcej niż raz")));
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", 999_999))
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", 999_999))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("nie istnieje")));
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(foreignChapter, "A", free))
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(foreignChapter, "A", free))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("nie należy do tej ścieżki")));
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", """
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", """
                 {"chapters":[{"id":%d,"title":"A","roomIds":[]},{"id":%d,"title":"B","roomIds":[]}]}
                 """.formatted(chapterId, chapterId))
                 .andExpect(status().isBadRequest());
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", "{\"chapters\":[]}")
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", "{\"chapters\":[]}")
                 .andExpect(status().isBadRequest());
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "   ", free))
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "   ", free))
                 .andExpect(status().isBadRequest());
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", """
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", """
                 {"chapters":[{"id":%d,"title":"A","roomIds":[null]}]}
                 """.formatted(chapterId))
                 .andExpect(status().isBadRequest());
@@ -273,7 +304,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
         long pathId = createPath(admin, List.of(room));
         long firstChapter = chapterIds(admin, pathId).get(0);
 
-        putJson(expert, "/api/admin/paths/" + pathId + "/chapters", """
+        putChapterJson(expert, "/api/admin/paths/" + pathId + "/chapters", """
                 {"chapters":[{"id":%d,"title":"Wstęp","roomIds":[]},{"id":null,"title":"Dalej","roomIds":[%d]}]}
                 """.formatted(firstChapter, room))
                 .andExpect(status().isOk())
@@ -281,12 +312,12 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.chapters[1].roomIds[0]").value(room));
         long secondChapter = chapterIds(admin, pathId).get(1);
 
-        putJson(expert, "/api/admin/paths/" + pathId + "/chapters", chapters(secondChapter, "Dalej", room))
+        putChapterJson(expert, "/api/admin/paths/" + pathId + "/chapters", chapters(secondChapter, "Dalej", room))
                 .andExpect(status().isForbidden());
-        putJson(user, "/api/admin/paths/" + pathId + "/chapters", chapters(firstChapter, "Wstęp"))
+        putChapterJson(user, "/api/admin/paths/" + pathId + "/chapters", chapters(firstChapter, "Wstęp"))
                 .andExpect(status().isForbidden());
 
-        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(firstChapter, "Wstęp"))
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(firstChapter, "Wstęp"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.chapters.length()").value(1))
                 .andExpect(jsonPath("$.chapters[0].roomIds.length()").value(0));
@@ -328,6 +359,15 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
         assertEquals(List.of(room), jdbcTemplate.queryForList("""
                 SELECT cr.room_id FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE pc.path_id = ?
                 """, Long.class, nextPath));
+    }
+
+    private org.springframework.test.web.servlet.ResultActions putChapterJson(Account account, String url, String body) throws Exception {
+        if (!body.contains("\"revision\"")) {
+            long pathId = Long.parseLong(url.split("/")[4]);
+            long revision = jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, pathId);
+            body = "{\"revision\":" + revision + "," + body.substring(1);
+        }
+        return putJson(account, url, body);
     }
 
     private long createPath(Account admin, List<Long> roomIds) throws Exception {

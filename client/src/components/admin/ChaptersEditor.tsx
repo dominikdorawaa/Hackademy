@@ -9,7 +9,7 @@ import { cn } from '@/lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { ChapterRequest, PathAdminDetailDto, PathChapterAdminDto, RoomAdminSummaryDto } from '../../types/api';
-import { Section, StatusMessage } from './AdminUi';
+import { ConfirmAction, Section, StatusMessage } from './AdminUi';
 import { errorText, plural } from './adminFormat';
 
 interface DraftChapter {
@@ -38,6 +38,7 @@ function moveItem<T>(items: T[], index: number, offset: number) {
 
 export default function ChaptersEditor({
   pathId,
+  revision,
   chapters: savedChapters,
   rooms,
   canDeleteChapters,
@@ -46,6 +47,7 @@ export default function ChaptersEditor({
   newRoomHref,
 }: {
   pathId: number;
+  revision: number;
   chapters: PathChapterAdminDto[];
   rooms: RoomAdminSummaryDto[];
   canDeleteChapters: boolean;
@@ -125,13 +127,29 @@ export default function ChaptersEditor({
     }
     setSaving(true);
     try {
-      const detail = await adminApi.updatePathChapters(pathId, toRequest(chapters), token);
-      if (detail) onSaved(detail);
+      const detail = await adminApi.updatePathChapters(pathId, revision, toRequest(chapters), token);
+      if (!detail) throw new Error('Nie udało się zapisać rozdziałów.');
+      onSaved(detail);
       setShowProblems(false);
       setError(null);
       setSuccess('Zapisano rozdziały.');
     } catch (err) {
       setError(errorText(err, 'Nie udało się zapisać rozdziałów.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const reload = async () => {
+    if (saving) return;
+    setSaving(true);
+    try {
+      const detail = await adminApi.getPath(pathId, token);
+      if (!detail) throw new Error('Nie udało się wczytać rozdziałów.');
+      onSaved(detail);
+      setShowProblems(false);
+      setError(null);
+      setSuccess(null);
     } finally {
       setSaving(false);
     }
@@ -153,7 +171,16 @@ export default function ChaptersEditor({
       }
     >
       <div className="mb-4 space-y-2">
-        {error && <StatusMessage kind="error">{error}</StatusMessage>}
+        {error && <>
+          <StatusMessage kind="error">{error}</StatusMessage>
+          <ConfirmAction
+            trigger={<Button variant="outline" disabled={saving}>Wczytaj aktualne rozdziały</Button>}
+            title="Wczytać aktualne rozdziały?"
+            description="Niezapisane zmiany zostaną odrzucone."
+            confirmLabel="Wczytaj rozdziały"
+            onConfirm={reload}
+          />
+        </>}
         {success && <StatusMessage kind="success">{success}</StatusMessage>}
         {removedChapters.length > 0 && (
           <StatusMessage kind="warning">

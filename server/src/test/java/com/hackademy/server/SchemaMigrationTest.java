@@ -60,7 +60,7 @@ class SchemaMigrationTest {
     @Test
     void migratesEmptyDatabaseWithBadgesOnly() throws Exception {
         var flyway = flyway();
-        assertEquals(3, flyway.migrate().migrationsExecuted);
+        assertEquals(4, flyway.migrate().migrationsExecuted);
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, scalar("SELECT count(*) FROM users"));
         assertEquals(0, scalar("SELECT count(*) FROM rooms"));
@@ -81,7 +81,7 @@ class SchemaMigrationTest {
             assertEquals(1, scalar("SELECT count(*) FROM users"));
         }
         try (var ignored = startApplication()) {
-            assertEquals(3, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
+            assertEquals(4, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
         }
     }
 
@@ -159,15 +159,21 @@ class SchemaMigrationTest {
     @Test
     void movesPathRoomsIntoFirstChapterOfTheLowestPath() throws Exception {
         assertEquals(2, flyway("2").migrate().migrationsExecuted);
-        for (long id = 1; id <= 4; id++) {
+        for (long id = 1; id <= 5; id++) {
             insertRoom(id);
         }
         execute("""
+                UPDATE rooms SET room_type = 'PATH' WHERE id <= 4;
                 INSERT INTO paths (id, title, created_at, updated_at) VALUES (1, 'a', now(), now()), (2, 'b', now(), now()), (3, 'c', now(), now());
-                INSERT INTO path_rooms (path_id, room_id, sort_order) VALUES (1, 3, 5), (1, 1, 7), (1, 2, 9), (2, 1, 0), (2, 4, 3);
+                INSERT INTO path_rooms (path_id, room_id, sort_order) VALUES (1, 3, 5), (1, 1, 7), (1, 2, 9), (2, 1, 0), (2, 4, 3), (1, 5, 0);
                 """);
 
+        assertEquals(1, flyway("3").migrate().migrationsExecuted);
+        assertEquals(1, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
         assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
+        assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));
+        assertEquals(0, scalar("SELECT sum(chapters_revision) FROM paths"));
 
         assertEquals(3, scalar("SELECT count(*) FROM path_chapters WHERE title = 'Rozdział 1' AND sort_order = 0"));
         assertEquals(3, scalar("SELECT count(DISTINCT path_id) FROM path_chapters"));

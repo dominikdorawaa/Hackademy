@@ -43,6 +43,9 @@ public class Path {
     @Column(name = "banner_mime", length = 120)
     private String bannerMime;
 
+    @Column(name = "chapters_revision", nullable = false)
+    private long chaptersRevision;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;
