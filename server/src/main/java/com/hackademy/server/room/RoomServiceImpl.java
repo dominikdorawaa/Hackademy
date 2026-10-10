@@ -599,7 +599,11 @@ public class RoomServiceImpl implements RoomService {
                 }
             }
             task.setTitle(taskRequest.title().trim());
-            task.setContent(taskRequest.content().trim());
+            String content = TaskContentSanitizer.clean(taskRequest.content());
+            if (content.isBlank()) {
+                throw new IllegalArgumentException("Zadanie " + position + ": podaj treść po usunięciu niedozwolonego HTML");
+            }
+            task.setContent(content);
             task.setQuestion(question);
             task.setAnswer(answer);
             task.setSortOrder(position - 1);

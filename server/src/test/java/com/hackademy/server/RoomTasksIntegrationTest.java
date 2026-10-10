@@ -25,6 +25,28 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
     @Autowired private PlatformTransactionManager transactionManager;
 
     @Test
+    void sanitizesExpertTaskContentBeforeStoringOrServingIt() throws Exception {
+        var admin = account(Role.ADMIN);
+        var expert = account(Role.EXPERT);
+        var user = account(Role.USER);
+        long room = createRoom(admin, uniqueTitle("Safe task content"), "PATH");
+        String url = "/api/admin/rooms/" + room + "/tasks";
+        String expected = "<p>Wstęp <strong>ważne</strong></p><ul><li>lista</li></ul>link";
+        putJson(expert, url, """
+                {"revision":0,"tasks":[{"id":null,"title":"HTML","content":"<p onclick='alert(1)'>Wstęp <strong>ważne</strong></p><ul><li>lista</li></ul><img src=x onerror='alert(1)'><script>alert(1)</script><a href='javascript:alert(1)'>link</a><svg onload='alert(1)'></svg>","question":null,"answer":null}]}
+                """)
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks[0].content").value(expected));
+        assertEquals(expected, jdbcTemplate.queryForObject("SELECT content FROM room_tasks WHERE room_id = ?", String.class, room));
+        getAs(user, "/api/rooms/" + room).andExpect(jsonPath("$.tasks[0].content").value(expected));
+        putJson(expert, url, """
+                {"revision":1,"tasks":[{"id":null,"title":"Empty unsafe HTML","content":"<img src=x onerror='alert(1)'>","question":null,"answer":null}]}
+                """).andExpect(status().isBadRequest());
+        getAs(admin, url).andExpect(jsonPath("$.revision").value(1))
+                .andExpect(jsonPath("$.tasks[0].content").value(expected));
+    }
+
+    @Test
     void unrelatedRoomCommitCannotRollBackTaskRevisionOrLosePlayerProgress() throws Exception {
         var admin = account(Role.ADMIN);
         var user = account(Role.USER);

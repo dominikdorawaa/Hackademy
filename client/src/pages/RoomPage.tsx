@@ -1,3 +1,4 @@
+import { sanitizeTaskContent } from '../lib/taskContent';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
 import * as roomApi from '../services/roomApi';
@@ -394,7 +395,7 @@ const RoomPage = () => {
                             </div>
                             {expandedTasks[task.id] && (
                                 <div className="task-body">
-                                    <div className="task-content" dangerouslySetInnerHTML={{ __html: task.content.replace(/\n/g, '<br/>') }} />
+                                    <div className="task-content" dangerouslySetInnerHTML={{ __html: sanitizeTaskContent(task.content) }} />
                                     {task.question && (
                                         <div className="task-question-box">
                                             <div className="task-question-text">{task.question}</div>
