@@ -32,9 +32,7 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
-import java.time.temporal.WeekFields;
 import java.util.List;
-import java.util.Locale;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -323,11 +321,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private String currentWeekKey() {
-        LocalDate today = LocalDate.now();
-        WeekFields wf = WeekFields.of(Locale.getDefault());
-        int week = today.get(wf.weekOfWeekBasedYear());
-        int year = today.get(wf.weekBasedYear());
-        return String.format("%d-W%02d", year, week);
+        return com.hackademy.server.dashboard.ActivityWeek.currentKey();
     }
 
     @Override

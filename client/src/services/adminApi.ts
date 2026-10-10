@@ -1,14 +1,20 @@
 import API_URL from '../apiConfig';
 import type {
+    AdminStatsDto,
     ApiId,
     ChapterRequest,
+    ChatMessage,
+    CreatePathRequest,
     PathAdminDetailDto,
+    PathMetaRequest,
+    PathSummaryDto,
     Role,
     RoomAdminDto,
     RoomAdminSummaryDto,
     RoomTasksAdminDto,
     RoomTaskRequest,
     RoomWriteRequest,
+    StatsRange,
     UserAdminView,
 } from '../types/api';
 
@@ -114,8 +120,32 @@ export const deleteRoom = (id: ApiId, token: string | null) => {
     });
 };
 
+export const getStats = (range: StatsRange, token: string | null) => {
+    return request<AdminStatsDto>(`/stats?range=${range}`, { method: 'GET', token });
+};
+
+export const getPaths = (token: string | null) => {
+    return request<PathSummaryDto[]>('/paths', { method: 'GET', token });
+};
+
 export const getPath = (id: ApiId, token: string | null) => {
     return request<PathAdminDetailDto>(`/paths/${id}`, { method: 'GET', token });
+};
+
+export const createPath = (data: CreatePathRequest, token: string | null) => {
+    return request<PathSummaryDto>('/paths', {
+        method: 'POST',
+        token,
+        body: JSON.stringify(data),
+    });
+};
+
+export const updatePath = (id: ApiId, data: PathMetaRequest, token: string | null) => {
+    return request<void>(`/paths/${id}`, {
+        method: 'PUT',
+        token,
+        body: JSON.stringify(data),
+    });
 };
 
 export const updatePathChapters = (id: ApiId, revision: number, chapters: ChapterRequest[], token: string | null) => {
@@ -124,6 +154,10 @@ export const updatePathChapters = (id: ApiId, revision: number, chapters: Chapte
         token,
         body: JSON.stringify({ revision, chapters }),
     });
+};
+
+export const deletePath = (id: ApiId, token: string | null) => {
+    return request<void>(`/paths/${id}`, { method: 'DELETE', token });
 };
 
 export const getRoomTasks = (id: ApiId, token: string | null) => {
@@ -135,5 +169,25 @@ export const updateRoomTasks = (id: ApiId, revision: number, tasks: RoomTaskRequ
         method: 'PUT',
         token,
         body: JSON.stringify({ revision, tasks }),
+    });
+};
+
+export const getReports = (token: string | null) => {
+    return request<ChatMessage[]>('/reports', { method: 'GET', token });
+};
+
+export const deleteReport = (id: ApiId, token: string | null) => {
+    return request<void>(`/reports/${id}`, { method: 'DELETE', token });
+};
+
+export const dismissReport = (id: ApiId, token: string | null) => {
+    return request<void>(`/reports/${id}/dismiss`, { method: 'POST', token });
+};
+
+export const muteUser = (id: ApiId, duration: number, token: string | null) => {
+    return request<void>(`/users/${id}/mute`, {
+        method: 'POST',
+        token,
+        body: JSON.stringify({ duration }),
     });
 };
