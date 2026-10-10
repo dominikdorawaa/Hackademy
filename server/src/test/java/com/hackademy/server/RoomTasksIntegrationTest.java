@@ -1,18 +1,79 @@
 package com.hackademy.server;
 
 import com.hackademy.server.user.Role;
+import com.hackademy.server.room.RoomRepository;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
 
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class RoomTasksIntegrationTest extends PostgresIntegrationTest {
+    @Autowired private RoomRepository roomRepository;
+    @Autowired private PlatformTransactionManager transactionManager;
+
+    @Test
+    void unrelatedRoomCommitCannotRollBackTaskRevisionOrLosePlayerProgress() throws Exception {
+        var admin = account(Role.ADMIN);
+        var user = account(Role.USER);
+        long room = createRoom(admin, uniqueTitle("Concurrent task revision"), "PATH");
+        String url = "/api/admin/rooms/" + room + "/tasks";
+        var initial = putJson(admin, url, "{\"revision\":0,\"tasks\":[" + taskJson(null, "A", "q", "a") + "]}")
+                .andExpect(status().isOk()).andReturn();
+        long first = ((Number) JsonPath.read(initial.getResponse().getContentAsString(), "$.tasks[0].id")).longValue();
+        var loaded = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var executor = Executors.newSingleThreadExecutor();
+        try {
+            var unrelated = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(tx -> {
+                // Same managed-entity read/write as solveRoom, without its unrelated FK insert locks.
+                var entity = roomRepository.findById(room).orElseThrow();
+                entity.setSolutionsCount(entity.getSolutionsCount() + 1);
+                roomRepository.save(entity);
+                loaded.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Commit barrier timed out");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+            }));
+            assertTrue(loaded.await(10, TimeUnit.SECONDS));
+            var newer = putJson(admin, url, "{\"revision\":1,\"tasks\":["
+                    + taskJson(first, "A", "q", "a") + "," + taskJson(null, "B", "q", "b") + "]}")
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(2)).andReturn();
+            long added = ((Number) JsonPath.read(newer.getResponse().getContentAsString(), "$.tasks[1].id")).longValue();
+            postJson(user, "/api/rooms/" + room + "/tasks/" + added + "/solve", "{\"answer\":\"b\"}")
+                    .andExpect(status().isOk());
+            release.countDown();
+            unrelated.get(10, TimeUnit.SECONDS);
+            assertEquals(2L, jdbcTemplate.queryForObject("SELECT tasks_revision FROM rooms WHERE id = ?", Long.class, room));
+            assertEquals(1, jdbcTemplate.queryForObject("SELECT solutions_count FROM rooms WHERE id = ?", Integer.class, room));
+            putJson(admin, url, "{\"revision\":1,\"tasks\":[" + taskJson(first, "A", "q", "a") + "]}")
+                    .andExpect(status().isConflict());
+            assertEquals(List.of("A", "B"), jdbcTemplate.queryForList(
+                    "SELECT title FROM room_tasks WHERE room_id = ? ORDER BY sort_order", String.class, room));
+            assertEquals(1, jdbcTemplate.queryForObject(
+                    "SELECT count(*) FROM user_completed_tasks WHERE user_id = ? AND task_id = ?", Integer.class, user.id(), added));
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+        }
+    }
+
     @Test
     void completesReadingTasksAndAwardsPointsOnce() throws Exception {
         var admin = account(Role.ADMIN);
