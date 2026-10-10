@@ -24,6 +24,21 @@ function mount(tasks: RoomTaskDto[]) {
 const completedRoom = { success: true, message: 'Poprawna odpowiedź! Pokój ukończony!', pointsEarned: 50, newBadges: [] };
 
 describe('task room completion', () => {
+  it('strips active HTML from legacy task content while retaining formatting and newlines', async () => {
+    mount([{
+      id: 1, title: 'HTML', question: null, completed: false,
+      content: '<p onclick="alert(1)" style="color:red">Wstęp <strong>ważne</strong></p><ul><li>lista</li></ul>linia\nkoniec<img src=x onerror="alert(1)"><script>alert(1)</script><a href="javascript:alert(1)">link</a><svg onload="alert(1)"></svg><iframe srcdoc="bad"></iframe>',
+    }]);
+    await screen.findByRole('button', { name: 'Oznacz jako przeczytane' });
+    const content = document.querySelector('.task-content');
+    expect(content).not.toBeNull();
+    expect(content?.querySelector('img, script, a, svg, iframe, [onclick], [onerror], [style]')).toBeNull();
+    expect(content?.querySelector('strong')).toHaveTextContent('ważne');
+    expect(content?.querySelector('ul li')).toHaveTextContent('lista');
+    expect(content?.querySelector('br')).not.toBeNull();
+    expect(content).toHaveTextContent('link');
+  });
+
   it('lets players acknowledge reading tasks without typing an answer', async () => {
     let submitted: unknown;
     server.use(http.post(`${API_URL}/api/rooms/7/tasks/1/solve`, async ({ request }) => {
