@@ -1,10 +1,11 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useId, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Cell, CartesianGrid, Line, LineChart, Pie, PieChart, XAxis, YAxis } from 'recharts';
 import {
   ChartContainer,
   ChartLegend,
   ChartLegendContent,
+  ChartStyle,
   ChartTooltip,
   ChartTooltipContent,
 } from '@/components/ui/chart';
@@ -70,6 +71,7 @@ function TilesSkeleton() {
 }
 
 export default function DashboardPage() {
+  const sourcesChartId = `sources-${useId().replace(/:/g, '')}`;
   const { token } = useAuth();
   const [range, setRange] = useState<StatsRange>(30);
   const [stats, setStats] = useState<AdminStatsDto | null>(null);
@@ -121,7 +123,8 @@ export default function DashboardPage() {
     [slices],
   );
 
-  const rangeLabel = `${range} ${plural(range, ['dzień', 'dni', 'dni'])}`;
+  const displayedRange = stats?.rangeDays ?? range;
+  const rangeLabel = `${displayedRange} ${plural(displayedRange, ['dzień', 'dni', 'dni'])}`;
 
   return (
     <>
@@ -207,7 +210,8 @@ export default function DashboardPage() {
               {slices.length === 0 ? (
                 <EmptyState title="Brak rozwiązań" description="Wykres pojawi się po pierwszym rozwiązanym pokoju." />
               ) : (
-                <div className="grid items-center gap-6 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                <div data-chart={sourcesChartId} className="grid items-center gap-6 sm:grid-cols-[10rem_minmax(0,1fr)]">
+                  <ChartStyle id={sourcesChartId} config={pieConfig} />
                   <ChartContainer config={pieConfig} className="mx-auto aspect-square w-40" aria-hidden="true">
                     <PieChart>
                       <ChartTooltip content={<ChartTooltipContent nameKey="key" hideLabel />} />

@@ -170,6 +170,24 @@ describe('room editor', () => {
 });
 
 describe('admin dashboard', () => {
+  it('keeps the displayed period attached to the last successfully loaded data', async () => {
+    signIn('ADMIN');
+    server.use(http.get(`${API_URL}/api/admin/stats`, ({ request }) => {
+      const range = new URL(request.url).searchParams.get('range');
+      return range === '7'
+        ? HttpResponse.json({ message: 'Nie udało się zmienić zakresu' }, { status: 500 })
+        : HttpResponse.json(stats);
+    }));
+    mountAdmin('/admin');
+    await screen.findByText('+3 w ostatnich 30 dni');
+    await userEvent.click(screen.getByRole('radio', { name: 'Ostatnie 7 dni' }));
+    expect(await screen.findByText('Nie udało się zmienić zakresu')).toBeInTheDocument();
+    expect(screen.getByText('+3 w ostatnich 30 dni')).toBeInTheDocument();
+    expect(screen.getByText('Dziennie, ostatnie 30 dni')).toBeInTheDocument();
+    expect(screen.getByText('Rejestracje i rozwiązania dziennie, ostatnie 30 dni')).toBeInTheDocument();
+    expect(screen.queryByText('+3 w ostatnich 7 dni')).not.toBeInTheDocument();
+  });
+
   it('shows platform totals and reloads the chart for another range', async () => {
     signIn('ADMIN');
     const ranges: string[] = [];
