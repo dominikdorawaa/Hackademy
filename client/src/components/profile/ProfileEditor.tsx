@@ -1,3 +1,4 @@
+import ProfileIcon from './ProfileIcon';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
 import type { BadgeDto } from '../../types/api';
@@ -80,7 +81,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     onClick={event => { if (!saving && event.target === event.currentTarget) onClose(); }}>
     <header className="profile-editor-header">
       <h2 id={`${id}-title`}>Edytuj profil</h2>
-      <Button variant="ghost" size="sm" disabled={saving} aria-label="Zamknij edycję profilu" onClick={onClose}><i className="fas fa-times" aria-hidden="true" /></Button>
+      <Button variant="ghost" size="sm" disabled={saving} aria-label="Zamknij edycję profilu" onClick={onClose}><ProfileIcon kind="close" weight="bold" /></Button>
     </header>
     <form onSubmit={event => void save(event)}>
       <fieldset disabled={saving} className="profile-editor-fields">

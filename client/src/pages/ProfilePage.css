@@ -90,7 +90,7 @@
     background: color-mix(in srgb, var(--achievement-color) 14%, var(--bg-panel));
     color: var(--achievement-color);
   }
-  .profile-achievement-icon > svg { width: 58%; height: 58%; }
+  .profile-achievement-icon > svg { width: 66%; height: 66%; }
   .profile-achievement-icon[data-symbol='shield'] { --achievement-color: #c4b2ef; }
   .profile-achievement-icon[data-symbol='elite'] { --achievement-color: #e3c179; }
   .profile-achievement-icon[data-symbol='flame'], .profile-achievement-icon[data-symbol='streak'] { --achievement-color: #e8b282; }
@@ -103,7 +103,7 @@
   .profile-achievement-icon[data-earned='false'] { --achievement-color: var(--text-gray); background: var(--bg-panel); border-color: var(--border-color); border-style: dashed; }
   .profile-achievement-icon[data-earned='false'] > svg { opacity: 1; }
   .profile-badge-status-mark { position: absolute; right: -3px; bottom: -3px; width: 16px; height: 16px; display: grid; place-items: center; border: 2px solid var(--bg-dark); border-radius: 50%; background: var(--profile-green); color: var(--bg-dark); }
-  .profile-badge-status-mark i { font-size: 9px; }
+  .profile-badge-status-mark svg { width: 9px; height: 9px; }
   .profile-achievement-icon[data-earned='false'] .profile-badge-status-mark { background: var(--bg-panel-lighter); color: var(--text-gray); }
   .profile-achievement-state { display: inline-flex; align-items: center; gap: 5px; }
   .profile-achievement-state[data-earned='true'] { color: var(--profile-green); }

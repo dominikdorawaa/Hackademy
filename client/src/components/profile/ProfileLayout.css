@@ -63,7 +63,9 @@
   .profile-interest-tags { display: flex; flex-wrap: wrap; gap: 6px 16px; list-style: none; padding: 0; margin: 14px 0 0; }
   .profile-interest-tags li { font-size: 13px; font-weight: 500; color: var(--profile-blue); }
   .profile-meta { color: var(--text-gray); font-size: 12px; margin-top: 12px; }
-  .profile-meta i { margin-right: 7px; }
+  .profile-meta { display: flex; align-items: center; flex-wrap: wrap; gap: 7px; }
+  .profile-ui-icon { display: inline-block; flex-shrink: 0; vertical-align: middle; }
+  .profile-meta .profile-ui-icon { margin-right: 7px; }
   .profile-bio { margin-top: 18px; max-width: 68ch; }
   .profile-bio-text { color: var(--text-light); font-size: 16px; line-height: 1.75; white-space: pre-line; overflow-wrap: anywhere; }
   .profile-bio-clamped { display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
@@ -81,7 +83,7 @@
   .profile-showcase-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(100%, 240px), 1fr)); list-style: none; padding: 0; margin: 0; gap: 24px; }
   .profile-showcase-grid li { display: flex; align-items: center; gap: 16px; min-width: 0; }
   .profile-showcase-grid .profile-achievement-icon { width: 88px; height: 88px; flex-shrink: 0; border-radius: 50%; outline: 1px solid var(--achievement-color); outline-offset: -8px; }
-  .profile-showcase-grid .profile-achievement-icon > svg { width: 42%; height: 42%; }
+  .profile-showcase-grid .profile-achievement-icon > svg { width: 58%; height: 58%; }
   .profile-showcase-grid li > div { min-width: 0; }
   .profile-showcase-grid h3 { font-size: 17px; overflow-wrap: anywhere; }
   .profile-showcase-grid p { font-size: 14px; line-height: 1.6; color: var(--text-gray); margin: 4px 0 8px; }
@@ -102,7 +104,7 @@
   .profile-achievement-featured h3 { font-size: 23px; font-weight: 700; }
   .profile-achievement-featured > .profile-achievement-icon { width: 140px; height: 140px; border-radius: 16px; }
   .profile-achievement-featured .profile-badge-status-mark { width: 24px; height: 24px; right: -4px; bottom: -4px; }
-  .profile-achievement-featured .profile-badge-status-mark i { font-size: 12px; }
+  .profile-achievement-featured .profile-badge-status-mark svg { width: 14px; height: 14px; }
   .profile-achievement-featured .profile-achievement-state { font-size: 12px; margin-top: 12px; }
   .profile-achievement-featured p { font-size: 14px; line-height: 1.7; }
   .profile-achievement-featured .badge-goal-progress { max-width: 320px; }

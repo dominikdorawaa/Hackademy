@@ -1,3 +1,4 @@
+import ProfileIcon from './ProfileIcon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -208,7 +209,7 @@ export default function UserProfile({ username }: { username?: string }) {
           </ul>}
           <div className="profile-meta">
             <span>
-              <i className="far fa-calendar" aria-hidden="true" />W Hackademy od{' '}
+              <ProfileIcon kind="calendar" />W Hackademy od{' '}
               <time dateTime={person.createdAt}>
                 {formatDate(person.createdAt)}
               </time>
@@ -216,7 +217,7 @@ export default function UserProfile({ username }: { username?: string }) {
           </div>
         </div>
         <div className="profile-header-side">
-          {own && <Button onClick={edit}><i className="fas fa-pen" aria-hidden="true" /> Edytuj profil</Button>}
+          {own && <Button onClick={edit}><ProfileIcon kind="edit" /> Edytuj profil</Button>}
           {saved && <p role="status" className="profile-save-status">Profil zapisany</p>}
           {!own && (
             <div className="profile-header-actions">
