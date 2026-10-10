@@ -365,6 +365,7 @@ public class PathServiceImpl implements PathService {
                 .description(path.getDescription())
                 .bannerUrl(path.getBannerData() != null ? "/api/paths/" + path.getId() + "/banner" : path.getBannerUrl())
                 .hasBanner(path.getBannerData() != null)
+                .revision(path.getChaptersRevision())
                 .chapters(chapters)
                 .build();
     }
@@ -383,7 +384,11 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional
     public PathAdminDetailDto updatePathChapters(Long id, UpdatePathChaptersRequest request, boolean canDeleteChapters) {
-        pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        if (request.revision() == null || request.revision() != path.getChaptersRevision()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Rozdziały zmieniły się w międzyczasie. Odśwież stronę przed ponowną edycją.");
+        }
         List<PathChapter> existing = pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(id);
         Map<Long, PathChapter> existingById = existing.stream()
                 .collect(Collectors.toMap(PathChapter::getId, Function.identity()));
@@ -423,6 +428,7 @@ public class PathServiceImpl implements PathService {
             PathChapter saved = pathChapterRepository.save(chapter);
             saveChapterRooms(saved.getId(), chapterRequest.roomIds() == null ? List.of() : chapterRequest.roomIds());
         }
+        path.setChaptersRevision(path.getChaptersRevision() + 1);
         flushAssignments();
         invalidateCaches();
         return getAdminDetail(id);

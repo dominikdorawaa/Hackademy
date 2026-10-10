@@ -207,6 +207,7 @@ export interface PathAdminDetailDto {
   description: string
   bannerUrl: string | null
   hasBanner: boolean
+  revision: number
   chapters: PathChapterAdminDto[]
 }
 
@@ -217,6 +218,7 @@ export interface ChapterRequest {
 }
 
 export interface UpdatePathChaptersRequest {
+  revision: number
   chapters: ChapterRequest[]
 }
 
@@ -227,6 +229,11 @@ export interface RoomTaskAdminDto {
   content: string
   question: string | null
   answer: string | null
+}
+
+export interface RoomTasksAdminDto {
+  revision: number
+  tasks: RoomTaskAdminDto[]
 }
 
 export interface RoomTaskRequest {

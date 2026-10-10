@@ -1,4 +1,4 @@
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
@@ -18,7 +18,7 @@ const tasks: RoomTaskAdminDto[] = [
 function mount(respond: (body: RoomTaskRequest[]) => Response | Promise<Response>, initial: RoomTaskAdminDto[] | (() => Response) = tasks) {
   localStorage.setItem('token', createToken('EXPERT'));
   server.use(
-    http.get(`${API_URL}/api/admin/rooms/7/tasks`, () => typeof initial === 'function' ? initial() : HttpResponse.json(initial)),
+    http.get(`${API_URL}/api/admin/rooms/7/tasks`, () => typeof initial === 'function' ? initial() : HttpResponse.json({ revision: 0, tasks: initial })),
     http.put(`${API_URL}/api/admin/rooms/7/tasks`, async ({ request }) => {
       const body = await request.json() as { tasks: RoomTaskRequest[] };
       return respond(body.tasks);
@@ -28,12 +28,39 @@ function mount(respond: (body: RoomTaskRequest[]) => Response | Promise<Response
 }
 
 describe('tasks editor', () => {
+  it('preserves a stale draft and reloads the current revision only after confirmation', async () => {
+    let revision = -1;
+    let loads = 0;
+    mount(() => HttpResponse.json({ message: 'Zadania zmieniły się w międzyczasie.' }, { status: 409 }),
+      () => HttpResponse.json({ revision: loads++, tasks }));
+    server.use(http.put(`${API_URL}/api/admin/rooms/7/tasks`, async ({ request }) => {
+      revision = (await request.json() as { revision: number }).revision;
+      return HttpResponse.json({ message: 'Zadania zmieniły się w międzyczasie.' }, { status: 409 });
+    }));
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: /Metody/ }));
+    await user.type(screen.getByLabelText('Tytuł zadania'), ' lokalne');
+    await user.click(screen.getByRole('button', { name: 'Zapisz zadania' }));
+    expect(await screen.findByText('Zadania zmieniły się w międzyczasie.')).toBeInTheDocument();
+    expect(revision).toBe(0);
+    expect(screen.getByLabelText('Tytuł zadania')).toHaveValue('Metody lokalne');
+    await user.click(screen.getByRole('button', { name: 'Wczytaj aktualne zadania' }));
+    expect(loads).toBe(1);
+    await user.click(screen.getByRole('button', { name: 'Wczytaj zadania' }));
+    await screen.findByRole('button', { name: /Metody/ });
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Przesuń zadanie 2 w górę' })).toBeEnabled());
+    await user.click(screen.getByRole('button', { name: 'Przesuń zadanie 2 w górę' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz zadania' }));
+    await screen.findByText('Zadania zmieniły się w międzyczasie.');
+    expect(revision).toBe(1);
+  });
+
   it('requires a successful load before editing or saving and can retry', async () => {
     let loads = 0;
     let saves = 0;
-    mount(() => { saves++; return HttpResponse.json([]); }, () => ++loads === 1
+    mount(() => { saves++; return HttpResponse.json({ revision: 1, tasks: [] }); }, () => ++loads === 1
       ? HttpResponse.json({ message: 'Błąd ładowania' }, { status: 500 })
-      : HttpResponse.json(tasks));
+      : HttpResponse.json({ revision: 1, tasks }));
     const user = userEvent.setup();
     expect(await screen.findByText('Błąd ładowania')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Dodaj zadanie' })).not.toBeInTheDocument();
@@ -50,7 +77,7 @@ describe('tasks editor', () => {
   it('blocks edits, reorder, deletion and discard during a save', async () => {
     let finish!: () => void;
     const pending = new Promise<void>((resolve) => { finish = resolve; });
-    mount(async () => { await pending; return HttpResponse.json(tasks); });
+    mount(async () => { await pending; return HttpResponse.json({ revision: 1, tasks }); });
     const user = userEvent.setup();
     await screen.findByRole('button', { name: /Metody/ });
     await user.click(screen.getByRole('button', { name: /Metody/ }));
@@ -74,7 +101,7 @@ describe('tasks editor', () => {
     let saved: RoomTaskRequest[] = [];
     mount((body) => {
       saved = body;
-      return HttpResponse.json(body.map((task, index) => ({ ...task, id: task.id ?? 50 + index })));
+      return HttpResponse.json({ revision: 1, tasks: body.map((task, index) => ({ ...task, id: task.id ?? 50 + index })) });
     });
     const user = userEvent.setup();
 
@@ -107,7 +134,7 @@ describe('tasks editor', () => {
   });
 
   it('requires a question for an answer and can discard changes', async () => {
-    mount(() => HttpResponse.json([]));
+    mount(() => HttpResponse.json({ revision: 1, tasks: [] }));
     const user = userEvent.setup();
 
     await screen.findByRole('button', { name: /Wstęp/ });
@@ -132,7 +159,7 @@ describe('tasks editor', () => {
   });
 
   it('explains an empty room', async () => {
-    mount(() => HttpResponse.json([]), []);
+    mount(() => HttpResponse.json({ revision: 1, tasks: [] }), []);
     expect(await screen.findByText('Pokój nie ma zadań. Gracz rozwiązuje go wtedy samą flagą.')).toBeInTheDocument();
   });
 });

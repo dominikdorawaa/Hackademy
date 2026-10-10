@@ -11,7 +11,7 @@ import type {
     Role,
     RoomAdminDto,
     RoomAdminSummaryDto,
-    RoomTaskAdminDto,
+    RoomTasksAdminDto,
     RoomTaskRequest,
     RoomWriteRequest,
     StatsRange,
@@ -148,11 +148,11 @@ export const updatePath = (id: ApiId, data: PathMetaRequest, token: string | nul
     });
 };
 
-export const updatePathChapters = (id: ApiId, chapters: ChapterRequest[], token: string | null) => {
+export const updatePathChapters = (id: ApiId, revision: number, chapters: ChapterRequest[], token: string | null) => {
     return request<PathAdminDetailDto>(`/paths/${id}/chapters`, {
         method: 'PUT',
         token,
-        body: JSON.stringify({ chapters }),
+        body: JSON.stringify({ revision, chapters }),
     });
 };
 
@@ -161,14 +161,14 @@ export const deletePath = (id: ApiId, token: string | null) => {
 };
 
 export const getRoomTasks = (id: ApiId, token: string | null) => {
-    return request<RoomTaskAdminDto[]>(`/rooms/${id}/tasks`, { method: 'GET', token });
+    return request<RoomTasksAdminDto>(`/rooms/${id}/tasks`, { method: 'GET', token });
 };
 
-export const updateRoomTasks = (id: ApiId, tasks: RoomTaskRequest[], token: string | null) => {
-    return request<RoomTaskAdminDto[]>(`/rooms/${id}/tasks`, {
+export const updateRoomTasks = (id: ApiId, revision: number, tasks: RoomTaskRequest[], token: string | null) => {
+    return request<RoomTasksAdminDto>(`/rooms/${id}/tasks`, {
         method: 'PUT',
         token,
-        body: JSON.stringify({ tasks }),
+        body: JSON.stringify({ revision, tasks }),
     });
 };
 

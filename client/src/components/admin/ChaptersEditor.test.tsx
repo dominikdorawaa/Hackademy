@@ -16,6 +16,7 @@ const detail: PathAdminDetailDto = {
   description: 'Opis',
   bannerUrl: null,
   hasBanner: false,
+  revision: 0,
   chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [1, 2] }],
 };
 
@@ -48,6 +49,7 @@ function mount(options: { canDelete?: boolean; links?: boolean; onSaved?: (next:
       element={
         <ChaptersEditor
           pathId={5}
+          revision={detail.revision}
           chapters={detail.chapters}
           rooms={rooms}
           canDeleteChapters={options.canDelete ?? true}
@@ -69,6 +71,28 @@ function handleSave(respond: (chapters: ChapterRequest[]) => Response) {
 }
 
 describe('chapters editor', () => {
+  it('sends the loaded revision and preserves the draft after a conflict', async () => {
+    let submitted: { revision: number; chapters: ChapterRequest[] } | undefined;
+    let reloaded: PathAdminDetailDto | undefined;
+    server.use(http.put(`${API_URL}/api/admin/paths/5/chapters`, async ({ request }) => {
+      submitted = await request.json() as typeof submitted;
+      return HttpResponse.json({ message: 'Rozdziały zmieniły się w międzyczasie.' }, { status: 409 });
+    }));
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...detail, revision: 1 })));
+    mount({ onSaved: (next) => { reloaded = next; } });
+    const user = userEvent.setup();
+    await user.type(screen.getByLabelText('Nazwa rozdziału 1'), ' zmiana');
+    await user.click(screen.getByRole('button', { name: 'Zapisz rozdziały' }));
+    expect(await screen.findByText('Rozdziały zmieniły się w międzyczasie.')).toBeInTheDocument();
+    expect(submitted?.revision).toBe(0);
+    expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Rozdział 1 zmiana');
+    expect(screen.queryByText('Zapisano rozdziały.')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Wczytaj aktualne rozdziały' }));
+    await user.click(screen.getByRole('button', { name: 'Wczytaj rozdziały' }));
+    await screen.findByRole('button', { name: 'Zapisz rozdziały' });
+    expect(reloaded?.revision).toBe(1);
+  });
+
   it('blocks edits and discard while a save is pending', async () => {
     let finish!: () => void;
     const pending = new Promise<void>((resolve) => { finish = resolve; });
