@@ -1,3 +1,4 @@
+import UserAvatar from '../components/UserAvatar';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
 import * as friendApi from '../services/friendApi';
@@ -310,7 +311,7 @@ const ArenaPage = () => {
                                         border: '1px solid var(--border-color)'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${challenge.challengerUsername}`} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
+                                            <UserAvatar username={challenge.challengerUsername} seed={challenge.challengerAvatarSeed} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
                                             <span style={{ fontWeight: 'bold', color: 'var(--text-light)' }}>{challenge.challengerUsername}</span>
                                             <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem' }}>wyzywa Cię!</span>
                                         </div>
@@ -386,7 +387,7 @@ const ArenaPage = () => {
                             <>
                                 <div className="matchup-visual">
                                     <div className="player-av p-blue">
-                                        <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${userData.username}`} alt="Ty" />
+                                        <UserAvatar username={userData.username} seed={userData.avatarSeed} alt="Ty" />
                                     </div>
                                     <div className="vs-icon">VS</div>
                                     <div className="player-av p-red">
@@ -479,7 +480,7 @@ const ArenaPage = () => {
                                         padding: '15px', backgroundColor: 'var(--bg-panel-lighter)', borderRadius: '8px'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${friend.username}`} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
+                                            <UserAvatar username={friend.username} seed={friend.avatarSeed} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
                                             <span style={{ fontWeight: 'bold', color: 'var(--text-light)' }}>{friend.username}</span>
                                         </div>
                                         <button

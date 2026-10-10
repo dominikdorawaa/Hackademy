@@ -1,3 +1,4 @@
+import UserAvatar from '../UserAvatar';
 import React from 'react';
 import type { GameSession } from '../../types/api';
 import './SuccessModal.css'; // Reuse styles or create new ones
@@ -78,8 +79,7 @@ const ArenaResultModal = ({ isOpen, onClose, session, currentUserId }: { isOpen:
                     {/* Winner */}
                     <div style={{ textAlign: 'center', width: '150px' }}>
                         <div style={{ position: 'relative', display: 'inline-block' }}>
-                            <img
-                                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${winnerName}`}
+                            <UserAvatar username={winnerName} seed={session.winnerId === session.player1Id ? session.player1AvatarSeed : session.player2AvatarSeed}
                                 alt="Winner"
                                 style={{ width: '100px', borderRadius: '50%', border: '4px solid #ffd700', boxShadow: '0 0 20px rgba(255, 215, 0, 0.5)' }}
                             />
@@ -92,8 +92,7 @@ const ArenaResultModal = ({ isOpen, onClose, session, currentUserId }: { isOpen:
 
                     {/* Loser */}
                     <div style={{ textAlign: 'center', width: '150px' }}>
-                        <img
-                            src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${loserName}`}
+                        <UserAvatar username={loserName} seed={session.winnerId === session.player1Id ? session.player2AvatarSeed : session.player1AvatarSeed}
                             alt="Loser"
                             style={{ width: '80px', borderRadius: '50%', border: '4px solid #e74c3c', filter: 'grayscale(50%)' }}
                         />

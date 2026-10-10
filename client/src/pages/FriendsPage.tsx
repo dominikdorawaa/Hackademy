@@ -1,3 +1,4 @@
+import UserAvatar from '../components/UserAvatar';
 import * as friendApi from '../services/friendApi';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
@@ -187,8 +188,7 @@ const FriendsPage = () => {
                                 borderRadius: '8px'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <img
-                                        src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${user.username}`}
+                                    <UserAvatar username={user.username} seed={user.avatarSeed}
                                         alt="Avatar"
                                         style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#333' }}
                                     />
@@ -240,8 +240,7 @@ const FriendsPage = () => {
                                 justifyContent: 'space-between'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <img
-                                        src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${req.requesterUsername}`}
+                                    <UserAvatar username={req.requesterUsername} seed={req.avatarSeed}
                                         alt="Avatar"
                                         style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#333' }}
                                     />
@@ -288,8 +287,7 @@ const FriendsPage = () => {
                                 position: 'relative'
                             }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                                    <img
-                                        src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${friend.username}`}
+                                    <UserAvatar username={friend.username} seed={friend.avatarSeed}
                                         alt="Avatar"
                                         style={{
                                             width: '80px',
