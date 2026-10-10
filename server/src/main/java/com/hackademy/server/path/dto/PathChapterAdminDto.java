@@ -2,6 +2,8 @@ package com.hackademy.server.path.dto;
 
 import java.util.List;
 
-public record UpdatePathRoomsRequest(
+public record PathChapterAdminDto(
+    Long id,
+    String title,
     List<Long> roomIds
 ) {}

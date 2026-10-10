@@ -1,12 +1,13 @@
 import * as adminRequests from '../../services/adminRequests';
-import React, { useEffect, useState } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useAuth } from '../../context/AuthContext';
-import type { PathSummaryDto, RoomAdminSummaryDto } from '../../types/api';
+import type { PathAdminDetailDto, PathSummaryDto, RoomAdminSummaryDto } from '../../types/api';
+import ChaptersEditor from './ChaptersEditor';
 import './Management.css';
 import './PathManagement.css';
 
 const PathManagement = () => {
-  const { token } = useAuth();
+  const { token, user } = useAuth();
 
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
@@ -22,24 +23,25 @@ const PathManagement = () => {
   const [editDescription, setEditDescription] = useState('');
   const [editBannerUrl, setEditBannerUrl] = useState('');
   const [editBannerFile, setEditBannerFile] = useState<File | null>(null);
-  const [editRoomIds, setEditRoomIds] = useState<number[]>([]);
+  const [editDetail, setEditDetail] = useState<PathAdminDetailDto | null>(null);
   const [savingEdit, setSavingEdit] = useState(false);
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    const fetchRooms = async () => {
-      try {
-        const res = await adminRequests.getRooms({ Authorization: `Bearer ${token}` });
-        if (!res.ok) return;
-        const data = await res.json();
-        setRooms(Array.isArray(data) ? data : []);
-      } catch {
-        // ignore
-      }
-    };
-    if (token) fetchRooms();
+  const fetchRooms = useCallback(async () => {
+    try {
+      const res = await adminRequests.getRooms({ Authorization: `Bearer ${token}` });
+      if (!res.ok) return;
+      const data = await res.json();
+      setRooms(Array.isArray(data) ? data : []);
+    } catch {
+      setRooms([]);
+    }
   }, [token]);
+
+  useEffect(() => {
+    if (token) fetchRooms();
+  }, [token, fetchRooms]);
 
   const fetchPaths = async () => {
     try {
@@ -58,6 +60,7 @@ const PathManagement = () => {
   }, [token]);
 
   const fetchPathDetail = async (pathId: string) => {
+    setEditDetail(null);
     if (!pathId) return;
     try {
       const res = await adminRequests.getPath(pathId, { Authorization: `Bearer ${token}` });
@@ -66,7 +69,7 @@ const PathManagement = () => {
       setEditTitle(data?.title || '');
       setEditDescription(data?.description || '');
       setEditBannerUrl(data?.bannerUrl || '');
-      setEditRoomIds(Array.isArray(data?.roomIds) ? data.roomIds : []);
+      setEditDetail(data);
     } catch {
       // ignore
     }
@@ -92,28 +95,6 @@ const PathManagement = () => {
 
   const removeSelected = (roomId: number) => {
     setSelectedRoomIds((prev) => prev.filter((x) => x !== roomId));
-  };
-
-  const toggleEditRoom = (roomId: number) => {
-    setEditRoomIds((prev) => (prev.includes(roomId) ? prev.filter((x) => x !== roomId) : [...prev, roomId]));
-  };
-
-  const moveEdit = (roomId: number, dir: number) => {
-    setEditRoomIds((prev) => {
-      const idx = prev.indexOf(roomId);
-      if (idx < 0) return prev;
-      const nextIdx = idx + dir;
-      if (nextIdx < 0 || nextIdx >= prev.length) return prev;
-      const copy = [...prev];
-      const tmp = copy[idx];
-      copy[idx] = copy[nextIdx];
-      copy[nextIdx] = tmp;
-      return copy;
-    });
-  };
-
-  const removeEdit = (roomId: number) => {
-    setEditRoomIds((prev) => prev.filter((x) => x !== roomId));
   };
 
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
@@ -203,16 +184,7 @@ const PathManagement = () => {
         const msg = await metaRes.text();
         throw new Error(msg || 'Nie udało się zapisać danych ścieżki');
       }
-
-      const res = await adminRequests.updatePathRooms(activePathId, { roomIds: editRoomIds }, {
-          'Content-Type': 'application/json',
-          Authorization: `Bearer ${token}`,
-        });
-      if (!res.ok) {
-        const msg = await res.text();
-        throw new Error(msg || 'Nie udało się zapisać zmian');
-      }
-      setStatus('Zapisano zmiany w ścieżce.');
+      setStatus('Zapisano dane ścieżki.');
       fetchPaths();
     } catch (err) {
       setError(err instanceof Error ? err.message : 'Błąd');
@@ -233,7 +205,6 @@ const PathManagement = () => {
 
   const byId = new Map(rooms.map((r) => [r.id, r]));
   const selectedRooms = selectedRoomIds.map((id) => byId.get(id)).filter((room): room is RoomAdminSummaryDto => room !== undefined);
-  const editRooms = editRoomIds.map((id) => byId.get(id)).filter((room): room is RoomAdminSummaryDto => room !== undefined);
 
   return (
     <div className="management-container">
@@ -293,47 +264,12 @@ const PathManagement = () => {
                   <input type="file" accept="image/*" onChange={(e) => setEditBannerFile(e.target.files?.[0] || null)} />
                 </label>
 
-                <div className="pm-selected-header" style={{ marginTop: '12px' }}>
-                  <span>Pokoje w ścieżce</span>
-                  <span className="pm-muted">{editRoomIds.length}</span>
-                </div>
-
-                <div className="pm-selected-list">
-                  {editRooms.length === 0 ? (
-                    <div className="pm-empty">Dodaj pokoje po prawej.</div>
-                  ) : (
-                    editRooms.map((r, idx) => (
-                      <div key={r.id} className="pm-selected-row">
-                        <div className="pm-order">{idx + 1}</div>
-                        <div className="pm-selected-title">{r.title}</div>
-                        <div className="pm-selected-actions">
-                          <button type="button" className="pm-icon-btn" onClick={() => moveEdit(r.id, -1)} title="Góra" disabled={idx === 0}>
-                            <i className="fas fa-chevron-up" />
-                          </button>
-                          <button
-                            type="button"
-                            className="pm-icon-btn"
-                            onClick={() => moveEdit(r.id, 1)}
-                            title="Dół"
-                            disabled={idx === editRooms.length - 1}
-                          >
-                            <i className="fas fa-chevron-down" />
-                          </button>
-                          <button type="button" className="pm-icon-btn danger" onClick={() => removeEdit(r.id)} title="Usuń">
-                            <i className="fas fa-times" />
-                          </button>
-                        </div>
-                      </div>
-                    ))
-                  )}
-                </div>
-
                 <div className="pm-edit-actions">
                   <button type="button" className="btn btn-outline" onClick={() => window.open(`/learn/paths/${activePathId}`, '_blank')}>
                     Podgląd
                   </button>
                   <button type="button" className="pm-primary" onClick={handleSaveEdit} disabled={savingEdit}>
-                    {savingEdit ? 'Zapisywanie...' : 'Zapisz zmiany'}
+                    {savingEdit ? 'Zapisywanie...' : 'Zapisz dane ścieżki'}
                   </button>
                 </div>
 
@@ -346,29 +282,23 @@ const PathManagement = () => {
             )}
           </div>
 
-          <div className="pm-card">
-            <div className="pm-card-title">Dodaj / usuń pokoje</div>
-            <input
-              className="pm-search"
-              value={roomQuery}
-              onChange={(e) => setRoomQuery(e.target.value)}
-              placeholder="Szukaj pokoju po tytule..."
-            />
+        </div>
+      )}
 
-            <div className="pm-rooms-list">
-              {roomsFiltered.length === 0 ? (
-                <div className="pm-empty">Brak pokoi.</div>
-              ) : (
-                roomsFiltered.map((r) => (
-                  <label key={r.id} className={`pm-room-row ${editRoomIds.includes(r.id) ? 'selected' : ''}`}>
-                    <input type="checkbox" checked={editRoomIds.includes(r.id)} onChange={() => toggleEditRoom(r.id)} />
-                    <div className="pm-room-title">{r.title}</div>
-                    <div className="pm-room-meta">{r.difficulty}</div>
-                  </label>
-                ))
-              )}
-            </div>
-          </div>
+      {mode === 'edit' && activePathId && editDetail && (
+        <div style={{ marginTop: '1.5rem', textAlign: 'left' }}>
+          <ChaptersEditor
+            key={editDetail.id}
+            pathId={editDetail.id}
+            chapters={editDetail.chapters}
+            rooms={availableRooms}
+            canDeleteChapters={user?.roles.includes('ROLE_ADMIN') ?? false}
+            onSaved={(detail) => {
+              setEditDetail(detail);
+              fetchRooms();
+              fetchPaths();
+            }}
+          />
         </div>
       )}
 

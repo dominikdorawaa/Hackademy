@@ -21,8 +21,12 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<RoomSummaryDto> findAllSummaries();
 
     @Query("SELECT new com.hackademy.server.room.dto.RoomAdminSummaryDto(" +
-           "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn, r.roomType) " +
-           "FROM Room r")
+           "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn, r.roomType, p.id, p.title) " +
+           "FROM Room r " +
+           "LEFT JOIN ChapterRoom cr ON cr.roomId = r.id " +
+           "LEFT JOIN PathChapter c ON c.id = cr.chapterId " +
+           "LEFT JOIN Path p ON p.id = c.pathId " +
+           "ORDER BY r.id")
     List<RoomAdminSummaryDto> findAllAdminSummaries();
 
     // Native query for random room (PostgreSQL specific) - EXCLUDE TUTORIALS

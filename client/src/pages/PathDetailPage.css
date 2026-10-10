@@ -221,4 +221,56 @@
   filter: grayscale(0.5);
   pointer-events: none;
 }
+.pd-chapter {
+  margin-top: 28px;
+}
+
+.pd-chapter-header {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: flex-end;
+  gap: 12px;
+  margin-bottom: 14px;
+  padding-bottom: 10px;
+  border-bottom: 1px solid var(--border-color);
+}
+
+.pd-chapter-index {
+  color: var(--text-gray);
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+
+.pd-chapter-title {
+  margin: 2px 0 0;
+  font-size: 1.1rem;
+}
+
+.pd-chapter-progress {
+  display: grid;
+  justify-items: end;
+  gap: 6px;
+  min-width: 160px;
+}
+
+.pd-chapter-bar {
+  width: 160px;
+  height: 6px;
+  border-radius: 999px;
+  background: var(--bg-panel-lighter);
+  overflow: hidden;
+}
+
+.pd-chapter-bar span {
+  display: block;
+  height: 100%;
+  border-radius: 999px;
+  background: #2ecc71;
+  transition: width 0.3s ease-out;
+}
+
+.pd-chapter-empty {
+  margin: 0;
+}
 }

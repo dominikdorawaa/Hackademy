@@ -10,5 +10,7 @@ public record RoomAdminSummaryDto(
     DifficultyLevel difficulty,
     int points,
     boolean requiresVpn,
-    RoomType roomType
+    RoomType roomType,
+    Long pathId,
+    String pathTitle
 ) {}

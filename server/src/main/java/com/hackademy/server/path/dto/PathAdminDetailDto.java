@@ -10,5 +10,5 @@ public record PathAdminDetailDto(
     String description,
     String bannerUrl,
     boolean hasBanner,
-    List<Long> roomIds
+    List<PathChapterAdminDto> chapters
 ) {}

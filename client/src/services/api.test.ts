@@ -171,6 +171,26 @@ describe('existing adminApi compatibility', () => {
     await expect(legacyAdmin.getUsers('token')).rejects.toThrow(expected);
   });
 
+  it('joins field messages from a validation error', async () => {
+    fetchMock.mockResolvedValue(Response.json({ message: 'Validation failed', title: 'Tytuł jest wymagany', points: 'Za mało punktów' }, { status: 400 }));
+    await expect(legacyAdmin.getUsers('token')).rejects.toThrow('Tytuł jest wymagany Za mało punktów');
+  });
+
+  it('accepts an empty successful response', async () => {
+    fetchMock.mockResolvedValue(new Response('', { status: 200 }));
+    await expect(legacyAdmin.updatePathChapters(5, [], 'token')).resolves.toBeUndefined();
+  });
+
+  it('sends the whole chapter structure', async () => {
+    fetchMock.mockResolvedValue(Response.json({ id: 5, chapters: [] }));
+    const chapters = [{ id: null, title: 'Wstęp', roomIds: [1, 2] }];
+    await expect(legacyAdmin.updatePathChapters(5, chapters, 'token')).resolves.toEqual({ id: 5, chapters: [] });
+    expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/admin/paths/5/chapters`, {
+      method: 'PUT', body: JSON.stringify({ chapters }),
+      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token' },
+    });
+  });
+
   it('keeps the existing JSON room API alongside multipart submission', async () => {
     await legacyAdmin.createRoom(roomData, 'token');
     expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/admin/rooms`, {

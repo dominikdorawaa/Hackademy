@@ -176,6 +176,14 @@ export interface PathProgressDto {
   completed: boolean
 }
 
+export interface PathChapterDto {
+  id: number
+  title: string
+  totalRooms: number
+  solvedRooms: number
+  rooms: RoomSummaryDto[]
+}
+
 export interface PathDetailDto {
   id: number
   title: string
@@ -184,6 +192,13 @@ export interface PathDetailDto {
   hasBanner: boolean
   enrolled: boolean
   rooms: RoomSummaryDto[]
+  chapters: PathChapterDto[]
+}
+
+export interface PathChapterAdminDto {
+  id: number
+  title: string
+  roomIds: number[]
 }
 
 export interface PathAdminDetailDto {
@@ -192,7 +207,17 @@ export interface PathAdminDetailDto {
   description: string
   bannerUrl: string | null
   hasBanner: boolean
+  chapters: PathChapterAdminDto[]
+}
+
+export interface ChapterRequest {
+  id: number | null
+  title: string
   roomIds: number[]
+}
+
+export interface UpdatePathChaptersRequest {
+  chapters: ChapterRequest[]
 }
 
 export interface RoomTaskDto {
@@ -258,6 +283,8 @@ export interface RoomAdminSummaryDto {
   points: number
   requiresVpn: boolean
   roomType: RoomType
+  pathId: number | null
+  pathTitle: string | null
 }
 
 export interface RoomAdminDto {

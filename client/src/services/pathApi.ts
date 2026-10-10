@@ -1,5 +1,5 @@
 import { request } from './http';
-import type { ApiId, PathRoomsMiniResponse, PathSummaryDto, PathProgressDto } from '../types/api';
+import type { ApiId, PathDetailDto, PathRoomsMiniResponse, PathSummaryDto, PathProgressDto } from '../types/api';
 
 export function getProgress(headers: HeadersInit) {
   return request<PathProgressDto[]>(`/api/paths/me/progress`, {
@@ -29,3 +29,10 @@ export function enroll(id: ApiId, headers: HeadersInit) {
   });
 }
 
+
+export function getPath(id: ApiId, headers: HeadersInit) {
+  return request<PathDetailDto>(`/api/paths/${id}`, {
+    method: 'GET',
+    headers,
+  });
+}
