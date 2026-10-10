@@ -2,6 +2,8 @@ package com.hackademy.server;
 
 import com.hackademy.server.user.Role;
 import com.hackademy.server.user.UserRepository;
+import com.hackademy.server.user.User;
+import com.hackademy.server.user.UserServiceImpl;
 import com.hackademy.server.room.DifficultyLevel;
 import com.hackademy.server.room.Room;
 import com.hackademy.server.room.RoomRepository;
@@ -31,6 +33,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 @SpringBootTest(properties = "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
@@ -68,6 +71,48 @@ class AuthAndAdminIntegrationTest {
                 .content("{\"newUsername\":\"" + renamed + "\"}"))
                 .andExpect(status().isOk());
         assertEquals("chosen-seed", userRepository.findByUsername(renamed).orElseThrow().getAvatarSeed());
+    }
+
+    @Test
+    void refreshesCachedAvatarsAfterSavingProfile() throws Exception {
+        var ownerToken = tokenFor(Role.USER);
+        var friendToken = tokenFor(Role.USER);
+        var requestToken = tokenFor(Role.USER);
+        var owner = userForToken(ownerToken);
+        var friend = userForToken(friendToken);
+        var receiver = userForToken(requestToken);
+        jdbcTemplate.update("UPDATE users SET points = 1000000 WHERE id = ?", owner.getId());
+        jdbcTemplate.update("INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (?, ?, 'ACCEPTED', 0, 0, CURRENT_TIMESTAMP)", owner.getId(), friend.getId());
+        jdbcTemplate.update("INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (?, ?, 'PENDING', 0, 0, CURRENT_TIMESTAMP)", owner.getId(), receiver.getId());
+        userService.invalidateGlobalRankingCache();
+        assertCachedAvatars(ownerToken, friendToken, requestToken, owner.getUsername(), owner.getAvatarSeed());
+        var updatedSeed = "changed-" + UUID.randomUUID();
+        mockMvc.perform(patch("/api/user/me/profile").header("Authorization", "Bearer " + ownerToken)
+                        .contentType("application/json").content("""
+                                {"bio":"Learning Linux","tagline":"","avatarSeed":"%s","interests":[],"featuredBadgeIds":[]}
+                                """.formatted(updatedSeed)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.avatarSeed").value(updatedSeed));
+        assertCachedAvatars(ownerToken, friendToken, requestToken, owner.getUsername(), updatedSeed);
+    }
+
+    private User userForToken(String token) throws Exception {
+        var response = mockMvc.perform(get("/api/user/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String username = JsonPath.read(response, "$.username");
+        return userRepository.findByUsername(username).orElseThrow();
+    }
+
+    private void assertCachedAvatars(String ownerToken, String friendToken, String requestToken,
+                                    String username, String seed) throws Exception {
+        mockMvc.perform(get("/api/dashboard/summary").header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.user.avatarSeed").value(seed));
+        mockMvc.perform(get("/api/ranking/summary").header("Authorization", "Bearer " + ownerToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.myRank.avatarSeed").value(seed))
+                .andExpect(jsonPath("$.ranking[?(@.username == '" + username + "')].avatarSeed", contains(seed)));
+        mockMvc.perform(get("/api/friends").header("Authorization", "Bearer " + friendToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[?(@.username == '" + username + "')].avatarSeed", contains(seed)));
+        mockMvc.perform(get("/api/friends/requests").header("Authorization", "Bearer " + requestToken))
+                .andExpect(status().isOk()).andExpect(jsonPath("$[?(@.requesterUsername == '" + username + "')].avatarSeed", contains(seed)));
     }
 
     @Test
@@ -109,6 +154,9 @@ class AuthAndAdminIntegrationTest {
 
     @Autowired
     private UserRepository userRepository;
+
+    @Autowired
+    private UserServiceImpl userService;
 
     @Autowired
     private JdbcTemplate jdbcTemplate;
