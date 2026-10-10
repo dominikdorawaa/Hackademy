@@ -12,5 +12,6 @@ public record PathDetailDto(
     String bannerUrl,
     boolean hasBanner,
     boolean enrolled,
-    List<RoomSummaryDto> rooms
+    List<RoomSummaryDto> rooms,
+    List<PathChapterDto> chapters
 ) {}

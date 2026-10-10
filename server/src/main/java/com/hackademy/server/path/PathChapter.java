@@ -12,41 +12,30 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
-import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
-@DynamicUpdate
-@Table(name = "paths")
+@Table(name = "path_chapters")
 @Getter
 @Setter
 @NoArgsConstructor
 @AllArgsConstructor
 @Builder
-public class Path {
+public class PathChapter {
     @Id
     @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
+    @Column(name = "path_id", nullable = false)
+    private Long pathId;
+
     @Column(nullable = false, length = 120)
     private String title;
 
-    @Column(columnDefinition = "TEXT")
-    private String description;
-
-    @Column(name = "banner_url", columnDefinition = "TEXT")
-    private String bannerUrl;
-
-    @Column(name = "banner_data", columnDefinition = "bytea")
-    private byte[] bannerData;
-
-    @Column(name = "banner_mime", length = 120)
-    private String bannerMime;
-
-    @Column(name = "chapters_revision", nullable = false)
-    private long chaptersRevision;
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
@@ -56,4 +45,3 @@ public class Path {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 }
-

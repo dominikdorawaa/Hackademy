@@ -13,6 +13,7 @@ import com.hackademy.server.room.dto.UpdateRoomRequest;
 import com.hackademy.server.badge.BadgeDto;
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
+import com.hackademy.server.path.ChapterRoomRepository;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
 import com.hackademy.server.user.UserServiceImpl;
@@ -49,6 +50,7 @@ public class RoomServiceImpl implements RoomService {
     private final UserCompletedTaskRepository userCompletedTaskRepository;
     private final UserServiceImpl userServiceImpl;
     private final DashboardSummaryCache dashboardSummaryCache;
+    private final ChapterRoomRepository chapterRoomRepository;
 
     // Simple in-memory cache
     private List<RoomSummaryDto> cachedRooms;
@@ -186,8 +188,12 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
-        Room room = roomRepository.findById(id)
+        Room room = roomRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
+        RoomType newRoomType = updateRoomRequest.roomType() == null ? RoomType.CTF : updateRoomRequest.roomType();
+        if (newRoomType != RoomType.PATH && chapterRoomRepository.existsByRoomId(id)) {
+            throw new IllegalArgumentException("Pokój należy do ścieżki. Usuń go z rozdziału, zanim zmienisz jego typ.");
+        }
 
         room.setTitle(updateRoomRequest.title());
         room.setDescription(updateRoomRequest.description());
@@ -197,7 +203,7 @@ public class RoomServiceImpl implements RoomService {
         room.setPoints(updateRoomRequest.points());
         room.setFlag(updateRoomRequest.flag());
         room.setRequiresVpn(updateRoomRequest.requiresVpn());
-        room.setRoomType(updateRoomRequest.roomType() == null ? RoomType.CTF : updateRoomRequest.roomType());
+        room.setRoomType(newRoomType);
 
         List<String> newHintDescriptions = updateRoomRequest.hints();
         if (newHintDescriptions == null) {

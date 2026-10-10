@@ -2,27 +2,39 @@ package com.hackademy.server.path;
 
 import com.hackademy.server.room.RoomService;
 
+import com.hackademy.server.path.dto.ChapterRequest;
 import com.hackademy.server.path.dto.CreatePathRequest;
 import com.hackademy.server.path.dto.PathAdminDetailDto;
+import com.hackademy.server.path.dto.PathChapterAdminDto;
+import com.hackademy.server.path.dto.PathChapterDto;
 import com.hackademy.server.path.dto.PathDetailDto;
 import com.hackademy.server.path.dto.PathProgressDto;
 import com.hackademy.server.path.dto.PathRoomMiniDto;
 import com.hackademy.server.path.dto.PathRoomsMiniResponse;
 import com.hackademy.server.path.dto.PathSummaryDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
+import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
-import com.hackademy.server.user.User;
+import com.hackademy.server.room.Room;
 import com.hackademy.server.room.RoomRepository;
 import com.hackademy.server.room.UserSolvedRoomRepository;
 import com.hackademy.server.user.UserRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.HttpStatus;
+import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.util.ArrayList;
+import java.util.HashSet;
+import java.util.LinkedHashMap;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Objects;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
@@ -34,7 +46,8 @@ import com.hackademy.server.room.RoomType;
 public class PathServiceImpl implements PathService {
 
     private final PathRepository pathRepository;
-    private final PathRoomRepository pathRoomRepository;
+    private final PathChapterRepository pathChapterRepository;
+    private final ChapterRoomRepository chapterRoomRepository;
     private final RoomRepository roomRepository;
     private final RoomService roomService;
     private final PathEnrollmentRepository pathEnrollmentRepository;
@@ -44,6 +57,7 @@ public class PathServiceImpl implements PathService {
     // ── simple in-memory caches (good enough for single instance / dev) ──────
 
     private static final long CACHE_MS = 30_000; // 30 seconds
+    private static final String DEFAULT_CHAPTER_TITLE = "Rozdział 1";
 
     private volatile long pathsCacheTime = 0;
     private volatile List<PathRepository.PathListView> cachedPathListViews = null;
@@ -135,36 +149,31 @@ public class PathServiceImpl implements PathService {
     @Transactional(readOnly = true)
     public PathDetailDto getPathDetail(Long id, String username) {
         Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
-        List<Long> roomIds = pathRoomRepository.findRoomIdsOrdered(id);
+        List<PathChapter> chapters = pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(id);
+        Map<Long, List<Long>> roomIdsByChapter = roomIdsByChapter(id);
 
         Long userId = resolveUserId(username);
         boolean enrolled = userId != null && pathEnrollmentRepository.existsByUserIdAndPathId(userId, id);
 
-        List<RoomSummaryDto> rooms;
-        if (enrolled) {
-            // Pobierz pokoje z flagami solved/locked
-            List<RoomSummaryDto> allRooms = roomService.getAllRoomsByType(username, RoomType.PATH);
-            Map<Long, RoomSummaryDto> byId = allRooms.stream()
-                    .collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
-            rooms = new ArrayList<>();
-            for (Long roomId : roomIds) {
+        Map<Long, RoomSummaryDto> byId = roomService.getAllRoomsByType(username, RoomType.PATH).stream()
+                .collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
+
+        List<RoomSummaryDto> rooms = new ArrayList<>();
+        List<PathChapterDto> chapterDtos = new ArrayList<>();
+        for (PathChapter chapter : chapters) {
+            List<RoomSummaryDto> chapterRooms = new ArrayList<>();
+            for (Long roomId : roomIdsByChapter.getOrDefault(chapter.getId(), List.of())) {
                 RoomSummaryDto dto = byId.get(roomId);
-                if (dto != null) rooms.add(dto);
-            }
-        } else {
-            // Niezapisany – wszystkie pokoje zablokowane
-            List<RoomSummaryDto> allRooms = roomService.getAllRoomsByType(username, RoomType.PATH);
-            Map<Long, RoomSummaryDto> byId = allRooms.stream()
-                    .collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
-            rooms = new ArrayList<>();
-            for (Long roomId : roomIds) {
-                RoomSummaryDto dto = byId.get(roomId);
-                if (dto != null) {
+                if (dto == null) continue;
+                if (!enrolled) {
                     dto.setSolved(false);
                     dto.setLocked(true);
-                    rooms.add(dto);
                 }
+                chapterRooms.add(dto);
             }
+            int solvedRooms = (int) chapterRooms.stream().filter(RoomSummaryDto::isSolved).count();
+            chapterDtos.add(new PathChapterDto(chapter.getId(), chapter.getTitle(), chapterRooms.size(), solvedRooms, chapterRooms));
+            rooms.addAll(chapterRooms);
         }
 
         return PathDetailDto.builder()
@@ -175,6 +184,7 @@ public class PathServiceImpl implements PathService {
                 .hasBanner(path.getBannerData() != null)
                 .enrolled(enrolled)
                 .rooms(rooms)
+                .chapters(chapterDtos)
                 .build();
     }
 
@@ -249,7 +259,7 @@ public class PathServiceImpl implements PathService {
         List<PathRoomMiniDto> rooms = new ArrayList<>();
         if (safeLimit == 0) {
             // Keep behavior: limit=0 means "return all"
-            List<Long> roomIds = pathRoomRepository.findRoomIdsOrdered(id);
+            List<Long> roomIds = chapterRoomRepository.findRoomIdsOrdered(id);
             int effectiveLimit = roomIds.size();
             rooms.addAll(mapMiniRooms(id, userId, effectiveLimit, hasTutorialVPN, hasTutorialVM));
         } else {
@@ -272,7 +282,7 @@ public class PathServiceImpl implements PathService {
             boolean hasTutorialVM
     ) {
         Long safeUserId = userId != null ? userId : -1L; // ensures LEFT JOIN condition matches nothing
-        List<PathRoomRepository.PathRoomMiniRow> rows = pathRoomRepository.findMiniRoomsForUser(pathId, safeUserId, limit);
+        List<ChapterRoomRepository.PathRoomMiniRow> rows = chapterRoomRepository.findMiniRoomsForUser(pathId, safeUserId, limit);
         List<PathRoomMiniDto> out = new ArrayList<>(rows.size());
         for (var r : rows) {
             boolean requiresVpn = Boolean.TRUE.equals(r.getRequiresVpn());
@@ -301,22 +311,21 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional
     public PathSummaryDto createPath(CreatePathRequest request) {
-        Path path = Path.builder()
+        List<Long> roomIds = request.roomIds() != null ? request.roomIds() : List.of();
+        validateRooms(null, roomIds);
+
+        Path saved = pathRepository.save(Path.builder()
                 .title(request.title())
                 .description(request.description())
                 .bannerUrl(request.bannerUrl())
-                .build();
-
-        Path saved = pathRepository.save(path);
-
-        List<Long> roomIds = request.roomIds() != null ? request.roomIds() : List.of();
-        int order = 0;
-        for (Long roomId : roomIds) {
-            if (roomId == null) continue;
-            var room = roomRepository.findById(roomId).orElse(null);
-            if (room == null || room.getRoomType() != RoomType.PATH) continue;
-            pathRoomRepository.save(new PathRoom(saved.getId(), roomId, order++));
-        }
+                .build());
+        PathChapter chapter = pathChapterRepository.save(PathChapter.builder()
+                .pathId(saved.getId())
+                .title(DEFAULT_CHAPTER_TITLE)
+                .sortOrder(0)
+                .build());
+        saveChapterRooms(chapter.getId(), roomIds);
+        flushAssignments();
         invalidateCaches();
 
         return PathSummaryDto.builder()
@@ -324,7 +333,7 @@ public class PathServiceImpl implements PathService {
                 .title(saved.getTitle())
                 .description(saved.getDescription())
                 .bannerUrl(saved.getBannerUrl())
-                .roomsCount(order)
+                .roomsCount(roomIds.size())
                 .enrolled(false)
                 .build();
     }
@@ -343,14 +352,21 @@ public class PathServiceImpl implements PathService {
     @Transactional(readOnly = true)
     public PathAdminDetailDto getAdminDetail(Long id) {
         Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
-        List<Long> roomIds = pathRoomRepository.findRoomIdsOrdered(id);
+        Map<Long, List<Long>> roomIdsByChapter = roomIdsByChapter(id);
+        List<PathChapterAdminDto> chapters = pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(id).stream()
+                .map(chapter -> new PathChapterAdminDto(
+                        chapter.getId(),
+                        chapter.getTitle(),
+                        roomIdsByChapter.getOrDefault(chapter.getId(), List.of())))
+                .toList();
         return PathAdminDetailDto.builder()
                 .id(path.getId())
                 .title(path.getTitle())
                 .description(path.getDescription())
                 .bannerUrl(path.getBannerData() != null ? "/api/paths/" + path.getId() + "/banner" : path.getBannerUrl())
                 .hasBanner(path.getBannerData() != null)
-                .roomIds(roomIds)
+                .revision(path.getChaptersRevision())
+                .chapters(chapters)
                 .build();
     }
 
@@ -367,22 +383,114 @@ public class PathServiceImpl implements PathService {
 
     @Override
     @Transactional
-    public void updatePathRooms(Long id, List<Long> roomIds) {
-        if (!pathRepository.existsById(id)) {
-            throw new IllegalArgumentException("Path not found");
+    public PathAdminDetailDto updatePathChapters(Long id, UpdatePathChaptersRequest request, boolean canDeleteChapters) {
+        Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        if (request.revision() == null || request.revision() != path.getChaptersRevision()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Rozdziały zmieniły się w międzyczasie. Odśwież stronę przed ponowną edycją.");
+        }
+        List<PathChapter> existing = pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(id);
+        Map<Long, PathChapter> existingById = existing.stream()
+                .collect(Collectors.toMap(PathChapter::getId, Function.identity()));
+
+        Set<Long> keptIds = new HashSet<>();
+        for (ChapterRequest chapter : request.chapters()) {
+            if (chapter.id() == null) continue;
+            if (!existingById.containsKey(chapter.id())) {
+                throw new IllegalArgumentException("Rozdział " + chapter.id() + " nie należy do tej ścieżki");
+            }
+            if (!keptIds.add(chapter.id())) {
+                throw new IllegalArgumentException("Rozdział " + chapter.id() + " występuje więcej niż raz");
+            }
+        }
+        List<PathChapter> removed = existing.stream()
+                .filter(chapter -> !keptIds.contains(chapter.getId()))
+                .toList();
+        if (!removed.isEmpty() && !canDeleteChapters) {
+            throw new AccessDeniedException("Only administrators can delete chapters");
         }
 
-        List<Long> safeIds = roomIds != null ? roomIds : List.of();
-        pathRoomRepository.deleteByPathId(id);
+        List<Long> allRoomIds = request.chapters().stream()
+                .flatMap(chapter -> chapter.roomIds() == null ? java.util.stream.Stream.<Long>empty() : chapter.roomIds().stream())
+                .toList();
+        validateRooms(id, allRoomIds);
 
-        int order = 0;
-        for (Long roomId : safeIds) {
-            if (roomId == null) continue;
-            var room = roomRepository.findById(roomId).orElse(null);
-            if (room == null || room.getRoomType() != RoomType.PATH) continue;
-            pathRoomRepository.save(new PathRoom(id, roomId, order++));
+        chapterRoomRepository.deleteByPathId(id);
+        pathChapterRepository.deleteAll(removed);
+
+        int chapterOrder = 0;
+        for (ChapterRequest chapterRequest : request.chapters()) {
+            PathChapter chapter = chapterRequest.id() == null
+                    ? PathChapter.builder().pathId(id).build()
+                    : existingById.get(chapterRequest.id());
+            chapter.setTitle(chapterRequest.title().trim());
+            chapter.setSortOrder(chapterOrder++);
+            PathChapter saved = pathChapterRepository.save(chapter);
+            saveChapterRooms(saved.getId(), chapterRequest.roomIds() == null ? List.of() : chapterRequest.roomIds());
         }
+        path.setChaptersRevision(path.getChaptersRevision() + 1);
+        flushAssignments();
         invalidateCaches();
+        return getAdminDetail(id);
+    }
+
+    private Map<Long, List<Long>> roomIdsByChapter(Long pathId) {
+        Map<Long, List<Long>> grouped = new LinkedHashMap<>();
+        for (ChapterRoom chapterRoom : chapterRoomRepository.findByPathId(pathId)) {
+            grouped.computeIfAbsent(chapterRoom.getChapterId(), key -> new ArrayList<>()).add(chapterRoom.getRoomId());
+        }
+        return grouped;
+    }
+
+    private void validateRooms(Long pathId, List<Long> roomIds) {
+        if (roomIds.stream().anyMatch(Objects::isNull)) {
+            throw new IllegalArgumentException("Lista pokoi zawiera pusty identyfikator");
+        }
+        Set<Long> unique = new HashSet<>();
+        for (Long roomId : roomIds) {
+            if (!unique.add(roomId)) {
+                throw new IllegalArgumentException("Pokój " + roomId + " występuje w ścieżce więcej niż raz");
+            }
+        }
+        if (unique.isEmpty()) return;
+
+        // Lock in a stable order before reading types and ownership across paths.
+        Map<Long, Room> rooms = new HashMap<>();
+        for (Long roomId : unique.stream().sorted().toList()) {
+            Room room = roomRepository.findByIdForUpdate(roomId)
+                    .orElseThrow(() -> new IllegalArgumentException("Pokój " + roomId + " nie istnieje"));
+            rooms.put(roomId, room);
+        }
+        for (Long roomId : roomIds) {
+            Room room = rooms.get(roomId);
+            if (room == null) {
+                throw new IllegalArgumentException("Pokój " + roomId + " nie istnieje");
+            }
+            if (room.getRoomType() != RoomType.PATH) {
+                throw new IllegalArgumentException("Pokój \u201e" + room.getTitle() + "\u201d nie jest pokojem ścieżki");
+            }
+        }
+        for (ChapterRoomRepository.RoomOwnerView owner : chapterRoomRepository.findOwners(unique)) {
+            if (!owner.getPathId().equals(pathId)) {
+                throw new IllegalArgumentException("Pokój \u201e" + rooms.get(owner.getRoomId()).getTitle()
+                        + "\u201d należy już do ścieżki \u201e" + owner.getPathTitle() + "\u201d");
+            }
+        }
+    }
+
+    private void saveChapterRooms(Long chapterId, List<Long> roomIds) {
+        int order = 0;
+        for (Long roomId : roomIds) {
+            chapterRoomRepository.save(new ChapterRoom(roomId, chapterId, order++));
+        }
+    }
+
+    private void flushAssignments() {
+        try {
+            chapterRoomRepository.flush();
+        } catch (DataIntegrityViolationException e) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, "Pokoje ścieżki zmieniły się w międzyczasie. Odśwież stronę i spróbuj ponownie.");
+        }
     }
 
     @Override
