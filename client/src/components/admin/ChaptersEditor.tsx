@@ -84,6 +84,7 @@ export default function ChaptersEditor({
   const target = chapters.find((chapter) => chapter.key === targetKey) ?? chapters[chapters.length - 1];
 
   const edit = (update: (current: DraftChapter[]) => DraftChapter[]) => {
+    if (saving) return;
     setChapters(update);
     setSuccess(null);
   };
@@ -115,6 +116,7 @@ export default function ChaptersEditor({
   };
 
   const save = async () => {
+    if (saving) return;
     setShowProblems(true);
     setSuccess(null);
     if (invalidTitles) {
@@ -142,7 +144,7 @@ export default function ChaptersEditor({
       actions={
         <>
           {dirty && (
-            <Button variant="ghost" onClick={() => { setChapters(toDrafts(savedChapters)); setShowProblems(false); setError(null); }}>
+            <Button variant="ghost" disabled={saving} onClick={() => { setChapters(toDrafts(savedChapters)); setShowProblems(false); setError(null); }}>
               Odrzuć zmiany
             </Button>
           )}
@@ -160,7 +162,7 @@ export default function ChaptersEditor({
         )}
       </div>
 
-      <div className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]">
+      <fieldset disabled={saving} className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_18rem]" aria-busy={saving}>
         <ol className="relative space-y-4" aria-label="Rozdziały ścieżki">
           {chapters.map((chapter, chapterIndex) => {
             const titleId = `${chapter.key}-title`;
@@ -229,7 +231,7 @@ export default function ChaptersEditor({
                             {room?.requiresVpn && <Lock aria-label="Wymaga VPN" className="size-3.5 text-muted-foreground" />}
                             <div className="flex items-center">
                               {chapters.length > 1 && (
-                                <Select value="" onValueChange={(toKey) => moveRoomTo(roomId, chapter.key, toKey)}>
+                                <Select disabled={saving} value="" onValueChange={(toKey) => moveRoomTo(roomId, chapter.key, toKey)}>
                                   <SelectTrigger size="sm" aria-label={`Przenieś ${title} do innego rozdziału`} className="mr-1 h-8 w-32 text-xs">
                                     <SelectValue placeholder="Przenieś do…" />
                                   </SelectTrigger>
@@ -275,7 +277,7 @@ export default function ChaptersEditor({
           <p className="mb-3 text-xs text-muted-foreground">Pokoje ścieżek bez przypisanego rozdziału.</p>
           <div className="mb-3 grid gap-1.5">
             <Label htmlFor={`target-${pathId}`} className="text-xs">Dodawaj do</Label>
-            <Select value={target?.key ?? ''} onValueChange={setTargetKey}>
+            <Select disabled={saving} value={target?.key ?? ''} onValueChange={setTargetKey}>
               <SelectTrigger id={`target-${pathId}`} size="sm" className="w-full"><SelectValue /></SelectTrigger>
               <SelectContent>
                 {chapters.map((chapter, index) => (
@@ -311,7 +313,7 @@ export default function ChaptersEditor({
             </ul>
           )}
         </aside>
-      </div>
+      </fieldset>
     </Section>
   );
 }

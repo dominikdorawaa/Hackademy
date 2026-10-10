@@ -3,6 +3,16 @@ package com.hackademy.server;
 import com.hackademy.server.user.Role;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
+import com.hackademy.server.path.PathService;
+import com.hackademy.server.path.dto.ChapterRequest;
+import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
+import com.hackademy.server.room.RoomService;
+import com.hackademy.server.room.RoomType;
+import com.hackademy.server.room.DifficultyLevel;
+import com.hackademy.server.room.dto.UpdateRoomRequest;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 
 import org.springframework.http.HttpMethod;
 import org.springframework.http.MediaType;
@@ -11,15 +21,125 @@ import org.springframework.mock.web.MockMultipartFile;
 import java.nio.charset.StandardCharsets;
 import java.util.Arrays;
 import java.util.List;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.ExecutionException;
+import java.util.concurrent.TimeUnit;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class PathChaptersIntegrationTest extends PostgresIntegrationTest {
+    @Autowired private PathService pathService;
+    @Autowired private RoomService roomService;
+    @Autowired private PlatformTransactionManager transactionManager;
+
+    @Test
+    void concurrentAssignmentCannotStealAnotherPathsRoom() throws Exception {
+        var admin = account(Role.ADMIN);
+        long room = createRoom(admin, uniqueTitle("Concurrent assignment"), "PATH");
+        long firstPath = createPath(admin, List.of());
+        long secondPath = createPath(admin, List.of());
+        long firstChapter = chapterIds(admin, firstPath).get(0);
+        long secondChapter = chapterIds(admin, secondPath).get(0);
+
+        assertRoomOperationWaitsAndRejects(
+                () -> assign(firstPath, firstChapter, room),
+                () -> assign(secondPath, secondChapter, room));
+        assertEquals(firstPath, jdbcTemplate.queryForObject("""
+                SELECT pc.path_id FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE cr.room_id = ?
+                """, Long.class, room));
+    }
+
+    @Test
+    void assignmentWaitsForConcurrentTypeChange() throws Exception {
+        var admin = account(Role.ADMIN);
+        String title = uniqueTitle("Concurrent type");
+        long room = createRoom(admin, title, "PATH");
+        long path = createPath(admin, List.of());
+        long chapter = chapterIds(admin, path).get(0);
+
+        assertRoomOperationWaitsAndRejects(
+                () -> changeToCtf(room, title),
+                () -> assign(path, chapter, room));
+        assertEquals("CTF", jdbcTemplate.queryForObject("SELECT room_type FROM rooms WHERE id = ?", String.class, room));
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT count(*) FROM chapter_rooms WHERE room_id = ?", Integer.class, room));
+    }
+
+    @Test
+    void typeChangeWaitsForConcurrentAssignment() throws Exception {
+        var admin = account(Role.ADMIN);
+        String title = uniqueTitle("Concurrent ownership");
+        long room = createRoom(admin, title, "PATH");
+        long path = createPath(admin, List.of());
+        long chapter = chapterIds(admin, path).get(0);
+
+        assertRoomOperationWaitsAndRejects(
+                () -> assign(path, chapter, room),
+                () -> changeToCtf(room, title));
+        assertEquals("PATH", jdbcTemplate.queryForObject("SELECT room_type FROM rooms WHERE id = ?", String.class, room));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM chapter_rooms WHERE room_id = ?", Integer.class, room));
+    }
+
+    private void assign(long path, long chapter, long room) {
+        pathService.updatePathChapters(path,
+                new UpdatePathChaptersRequest(List.of(new ChapterRequest(chapter, "A", List.of(room)))), true);
+    }
+
+    private void changeToCtf(long room, String title) {
+        try {
+            roomService.updateRoom(room, new UpdateRoomRequest(title, "d", null, DifficultyLevel.EASY,
+                    "Web", 50, "f", false, RoomType.CTF, List.of()), null);
+        } catch (java.io.IOException e) {
+            throw new RuntimeException(e);
+        }
+    }
+
+    private void assertRoomOperationWaitsAndRejects(Runnable first, Runnable second) throws Exception {
+        var executor = Executors.newFixedThreadPool(2);
+        var ready = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        try {
+            var holder = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
+                first.run();
+                ready.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Commit barrier timed out");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+            }));
+            assertTrue(ready.await(10, TimeUnit.SECONDS));
+            var contender = executor.submit(second);
+            boolean waitingOnRoom = false;
+            long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(5);
+            while (System.nanoTime() < deadline && !contender.isDone()) {
+                waitingOnRoom = Boolean.TRUE.equals(jdbcTemplate.queryForObject("""
+                        SELECT EXISTS(SELECT 1 FROM pg_stat_activity
+                        WHERE wait_event_type = 'Lock' AND query ILIKE '%from rooms%' AND query ILIKE '%for%update%')
+                        """, Boolean.class));
+                if (waitingOnRoom) break;
+                Thread.sleep(20);
+            }
+            assertTrue(waitingOnRoom, "The competing operation must lock the room before validating it");
+            release.countDown();
+            holder.get(10, TimeUnit.SECONDS);
+            var rejected = assertThrows(ExecutionException.class, () -> contender.get(10, TimeUnit.SECONDS));
+            assertInstanceOf(IllegalArgumentException.class, rejected.getCause());
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+        }
+    }
 
     @Test
     void createsPathWithFirstChapterAndManagesChapters() throws Exception {

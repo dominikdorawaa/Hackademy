@@ -220,6 +220,7 @@ export interface UpdatePathChaptersRequest {
   chapters: ChapterRequest[]
 }
 
+
 export interface RoomTaskAdminDto {
   id: number
   title: string
@@ -262,7 +263,7 @@ export interface RoomTaskDto {
   id: number
   title: string
   content: string
-  question: string
+  question: string | null
   completed: boolean
 }
 

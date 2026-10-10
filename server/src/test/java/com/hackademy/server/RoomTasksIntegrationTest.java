@@ -13,6 +13,65 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class RoomTasksIntegrationTest extends PostgresIntegrationTest {
+    @Test
+    void completesReadingTasksAndAwardsPointsOnce() throws Exception {
+        var admin = account(Role.ADMIN);
+        var user = account(Role.USER);
+        long room = createRoom(admin, uniqueTitle("Reading"), "PATH");
+        var saved = putJson(admin, "/api/admin/rooms/" + room + "/tasks", task(null, "Lektura", null, null))
+                .andExpect(status().isOk()).andReturn();
+        long reading = ((Number) JsonPath.read(saved.getResponse().getContentAsString(), "$[0].id")).longValue();
+        postJson(user, "/api/rooms/" + room + "/tasks/complete", "{}")
+                .andExpect(status().isBadRequest());
+        postJson(user, "/api/rooms/" + room + "/tasks/" + reading + "/solve", "{\"answer\":\"\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pointsEarned").value(50));
+        getAs(user, "/api/rooms/" + room)
+                .andExpect(jsonPath("$.tasks[0].completed").value(true))
+                .andExpect(jsonPath("$.solved").value(true));
+        postJson(user, "/api/rooms/" + room + "/tasks/complete", "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pointsEarned").value(0));
+        assertEquals(50, userRepository.findById(user.id()).orElseThrow().getPoints());
+    }
+
+    @Test
+    void canFinishAfterAnUncompletedTaskIsDeletedButCannotBypassRemainingTasks() throws Exception {
+        var admin = account(Role.ADMIN);
+        var user = account(Role.USER);
+        var otherUser = account(Role.USER);
+        long room = createRoom(admin, uniqueTitle("Removed task"), "PATH");
+        var created = putJson(admin, "/api/admin/rooms/" + room + "/tasks", "{\"tasks\":["
+                + taskJson(null, "A", "q", "a") + "," + taskJson(null, "B", "q", "b") + "]}")
+                .andExpect(status().isOk()).andReturn();
+        long first = ((Number) JsonPath.read(created.getResponse().getContentAsString(), "$[0].id")).longValue();
+        postJson(user, "/api/rooms/" + room + "/tasks/" + first + "/solve", "{\"answer\":\"a\"}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pointsEarned").value(0));
+        postJson(user, "/api/rooms/" + room + "/tasks/complete", "{}")
+                .andExpect(status().isBadRequest());
+        putJson(admin, "/api/admin/rooms/" + room + "/tasks", task(first, "A", "q", "a"))
+                .andExpect(status().isOk());
+        getAs(user, "/api/rooms/" + room)
+                .andExpect(jsonPath("$.tasks[0].completed").value(true))
+                .andExpect(jsonPath("$.solved").value(false));
+        postJson(otherUser, "/api/rooms/" + room + "/tasks/complete", "{}")
+                .andExpect(status().isBadRequest());
+        postJson(user, "/api/rooms/" + room + "/tasks/complete", "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pointsEarned").value(50));
+        postJson(user, "/api/rooms/" + room + "/tasks/complete", "{}")
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.pointsEarned").value(0));
+        getAs(user, "/api/rooms/" + room)
+                .andExpect(jsonPath("$.solved").value(true))
+                .andExpect(jsonPath("$.solutionsCount").value(1));
+        assertEquals(50, userRepository.findById(user.id()).orElseThrow().getPoints());
+
+        long empty = createRoom(admin, uniqueTitle("Empty tasks"), "PATH");
+        postJson(user, "/api/rooms/" + empty + "/tasks/complete", "{}")
+                .andExpect(status().isBadRequest());
+    }
 
     @Test
     void editsTasksAndKeepsProgressInUnchangedTasks() throws Exception {
