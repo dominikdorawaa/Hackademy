@@ -82,8 +82,8 @@ const ProfilePage = () => {
         return { name: 'Freshman', color: '#4CAF50' };
     };
 
-    if (loading) return <div className="container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
-    if (error) return <div className="container" style={{ paddingTop: '40px' }}><h1>Błąd: {error}</h1></div>;
+    if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
+    if (error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Błąd: {error}</h1></div>;
 
     const userPoints = userData?.points || 0;
     const userLevel = Math.floor(userPoints / 100) + 1;
@@ -94,7 +94,7 @@ const ProfilePage = () => {
     const visibleBadges = showAllBadges ? badges : badges.slice(0, BADGES_LIMIT);
 
     return (
-        <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+        <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', textAlign: 'center', color: 'var(--text-light)' }}>Twój Profil</h1>
 
             <div style={{

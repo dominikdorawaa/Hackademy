@@ -287,9 +287,9 @@ const RoomPage = () => {
   };
 
 
-  if (loading) return <div className="container" style={{paddingTop: '40px'}}>Ładowanie pokoju...</div>;
-  if (error) return <div className="container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
-  if (!room) return <div className="container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
+  if (loading) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Ładowanie pokoju...</div>;
+  if (error) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
+  if (!room) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
 
   const pointsToDeduct = room.points * 0.25;
   const isSolved = isArenaMode ? false : room.solved;
@@ -300,7 +300,7 @@ const RoomPage = () => {
   const progressPercent = tasks.length > 0 ? Math.round((completedTasksCount / tasks.length) * 100) : (isSolved ? 100 : 0);
 
   return (
-    <div className="room-page-container container">
+    <div className="room-page-container hackademy-container">
       {tasks.length > 0 && (
           <div className="room-progress-container">
             <div className="room-progress-bar">

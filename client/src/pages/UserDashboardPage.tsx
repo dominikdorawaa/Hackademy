@@ -256,7 +256,7 @@ const UserDashboardPage = () => {
 
   if (loading) {
     return (
-      <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <h1 style={{ margin: 0 }}>Ładowanie dashboardu...</h1>
       </div>
     );
@@ -264,7 +264,7 @@ const UserDashboardPage = () => {
 
   if (error) {
     return (
-      <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
         <h1 style={{ margin: 0, marginBottom: '10px' }}>Błąd</h1>
         <p style={{ color: 'var(--text-gray)' }}>{error}</p>
         <button className="btn btn-outline" onClick={() => navigate('/learn')}>
@@ -275,7 +275,7 @@ const UserDashboardPage = () => {
   }
 
   return (
-    <div className="container user-dashboard" style={{ paddingTop: '35px', paddingBottom: '40px' }}>
+    <div className="hackademy-container user-dashboard" style={{ paddingTop: '35px', paddingBottom: '40px' }}>
       <div className="ud-header">
         <div className="ud-greeting">
           <h1 className="ud-title">

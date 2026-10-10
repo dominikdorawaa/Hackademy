@@ -112,3 +112,20 @@ Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zew
 
 Uruchom Docker Engine, a następnie wykonaj `mvn -B -ntp verify` w katalogu `server`. Testcontainers sam uruchamia PostgreSQL, a Flyway przygotowuje schemat testowej bazy; nie trzeba ustawiać `DB_URL` ani używać bazy z `.env`. Ten sam zestaw testów wykonuje workflow `Backend` dla każdego pull requestu. Wynik i logi są dostępne w zakładce Actions oraz w Checks danego PR.
 
+## Testy frontendu
+
+W katalogu `client` wykonaj `npm ci`, a następnie `npm test`. Sam zestaw testów logowania i chronionych tras uruchomisz przez `npm run test:integration`. Workflow `Frontend` wykonuje lint, build z kontrolą typów i pełny zestaw testów na każdym pull requeście.
+
+Testy korzystają z Vitest, React Testing Library, `user-event` i matcherów `jest-dom`. Helper `src/test/renderWithAuth.tsx` renderuje trasy z `MemoryRouter` i prawdziwym `AuthProvider`. Sesję można przygotować przez zapis tokena z `src/test/fixtures/auth.ts` do `localStorage` przed renderowaniem.
+
+MSW przechwytuje API bez uruchamiania backendu. Handlery w `src/test/mocks/handlers.ts` używają typów z `src/types/api.ts` i adresu z `apiConfig.ts`. Nadpisuj odpowiedzi dla danego scenariusza przez `server.use(...)`; konfiguracja automatycznie resetuje handlery, czyści DOM i storage po każdym teście. Żądanie bez handlera jest błędem.
+
+## Tailwind i shadcn/ui
+
+Tailwind 4 działa przez plugin Vite i import w `client/src/index.css`, razem z Preflightem. Nie wymaga konfiguracji v3 ani PostCSS. Style bazowe są w warstwie `base`, a własne style komponentów w `components`, dzięki czemu klasy użytkowe Tailwinda mogą je nadpisywać. Istniejący kontener strony używa klasy `hackademy-container`; `container` jest klasą Tailwinda.
+
+W katalogu `client` dodawaj komponenty poleceniem `npx shadcn@latest add <nazwa>`. Konfiguracja `components.json` generuje TSX w `src/components/ui`, ze stylem `new-york` i aliasem `@/`. Gotowe są Button, Input, Card i Label. Helper `cn` jest dostępny przez `@/lib/utils` i korzysta z pakietu `cn` używanego przez aktualny generator shadcn.
+
+Tokeny shadcn są w `src/styles/theme.css` i odwołują się do istniejącej palety Hackademy: niebieski jest kolorem głównym, czerwony oznacza akcje destrukcyjne, a tła, teksty i obramowania korzystają z obecnych zmiennych. `ThemeProvider` nadal steruje atrybutem `data-theme` i zapisem `app-theme`; ten sam atrybut obsługuje wariant `dark:`. Domyślny motyw jest ciemny.
+
+Style zgodności starych formularzy nie obejmują elementów z `data-slot`, używanych przez shadcn. Przy generowaniu kolejnych komponentów zachowuj ten atrybut oraz zasady repozytorium, w tym brak komentarzy w nowym kodzie. `npm test` sprawdza także kompilację CSS produkcyjnego i działanie podstawowych komponentów shadcn.

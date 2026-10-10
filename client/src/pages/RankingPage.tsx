@@ -44,7 +44,7 @@ const RankingPage = () => {
 
   if (loading) {
     return (
-      <div style={{ paddingTop: '40px', paddingBottom: '40px' }} className="container">
+      <div style={{ paddingTop: '40px', paddingBottom: '40px' }} className="hackademy-container">
         <h1 style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
         <p style={{ textAlign: 'center' }}>Ładowanie rankingów...</p>
       </div>
@@ -53,7 +53,7 @@ const RankingPage = () => {
 
   if (error) {
     return (
-      <div style={{ paddingTop: '40px', paddingBottom: '40px' }} className="container">
+      <div style={{ paddingTop: '40px', paddingBottom: '40px' }} className="hackademy-container">
         <h1 style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
         <p style={{ textAlign: 'center', color: 'red' }}>Błąd: {error}</p>
       </div>
@@ -70,7 +70,7 @@ const RankingPage = () => {
 
   return (
     <div style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-      <div className="container">
+      <div className="hackademy-container">
         <h1 style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
 
         <div style={{

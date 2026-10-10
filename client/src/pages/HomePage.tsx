@@ -37,7 +37,7 @@ const HomePage = () => {
         backgroundColor: '#0a0e1a',
         color: 'white'
       }}>
-        <div className="container">
+        <div className="hackademy-container">
           <p style={{ textAlign: 'center', fontSize: '1.2rem' }}>Ładowanie...</p>
         </div>
       </div>
@@ -56,7 +56,7 @@ const HomePage = () => {
         backgroundColor: '#0a0e1a',
         color: 'white'
       }}>
-        <div className="container">
+        <div className="hackademy-container">
           <p style={{ textAlign: 'center', fontSize: '1.2rem' }}>Przekierowywanie do dashboardu...</p>
         </div>
       </div>

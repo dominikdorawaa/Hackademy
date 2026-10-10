@@ -1,3 +1,4 @@
+@layer components {
 .admin-container {
     max-width: 1200px;
     margin: 2rem auto;
@@ -43,4 +44,5 @@
 
 .admin-content {
     padding-top: 1rem;
+}
 }

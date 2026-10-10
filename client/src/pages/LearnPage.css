@@ -1,3 +1,4 @@
+@layer components {
 .dashboard-content-grid {
   display: grid;
   grid-template-columns: 280px 1fr;
@@ -172,4 +173,5 @@ input[type="radio"].filter-checkbox {
     padding-bottom: 0;
     margin-bottom: 0;
   }
+}
 }

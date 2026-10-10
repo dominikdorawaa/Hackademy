@@ -1,3 +1,4 @@
+@layer components {
 .modal-overlay {
     position: fixed;
     top: 0;
@@ -62,4 +63,5 @@
 .btn-cancel:hover {
     background: #555;
     transform: translateY(-1px);
+}
 }

@@ -145,11 +145,11 @@ const FriendsPage = () => {
         return '#4CAF50';
     };
 
-    if (loading) return <div className="container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
-    if (error) return <div className="container" style={{ paddingTop: '40px' }}><h1>Błąd: {error}</h1></div>;
+    if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
+    if (error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Błąd: {error}</h1></div>;
 
     return (
-        <div className="container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+        <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', color: 'var(--text-light)' }}>Znajomi</h1>
 
             {/* Search Section */}

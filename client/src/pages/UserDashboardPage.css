@@ -1,3 +1,4 @@
+@layer components {
 .user-dashboard {
   --card-radius: 16px;
 }
@@ -548,4 +549,4 @@
     grid-template-columns: 1fr;
   }
 }
-
+}
