@@ -150,7 +150,7 @@ describe('room editor', () => {
   it('blocks an existing-room form after load failure and preserves hints after retry', async () => {
     signIn('ADMIN');
     let loads = 0;
-    let savedHints: string[] | undefined;
+    let savedHints: string[] | null | undefined;
     const existing = {
       id: 9, title: 'CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web',
       points: 100, flag: 'CTF{x}', solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'],
