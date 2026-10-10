@@ -193,7 +193,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
-        Room room = roomRepository.findById(id)
+        Room room = roomRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
         RoomType newRoomType = updateRoomRequest.roomType() == null ? RoomType.CTF : updateRoomRequest.roomType();
         if (newRoomType != RoomType.PATH && chapterRoomRepository.existsByRoomId(id)) {

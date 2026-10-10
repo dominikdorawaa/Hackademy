@@ -69,6 +69,32 @@ function handleSave(respond: (chapters: ChapterRequest[]) => Response) {
 }
 
 describe('chapters editor', () => {
+  it('blocks edits and discard while a save is pending', async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => { finish = resolve; });
+    server.use(http.put(`${API_URL}/api/admin/paths/5/chapters`, async () => {
+      await pending;
+      return HttpResponse.json(detail);
+    }));
+    mount();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Dodaj rozdział' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz rozdziały' }));
+    try {
+      expect(screen.getByLabelText('Nazwa rozdziału 1')).toBeDisabled();
+      for (const name of ['Dodaj rozdział', 'Odrzuć zmiany', 'Przesuń Cookies w górę', 'Usuń rozdział 1', 'Dodaj SQL do rozdziału']) {
+        expect(screen.getByRole('button', { name })).toBeDisabled();
+      }
+      for (const select of screen.getAllByRole('combobox')) expect(select).toBeDisabled();
+      await user.type(screen.getByLabelText('Nazwa rozdziału 1'), 'utracona edycja');
+      expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Rozdział 1');
+    } finally {
+      finish();
+    }
+    expect(await screen.findByText('Zapisano rozdziały.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nazwa rozdziału 1')).toBeEnabled();
+  });
+
   it('adds a chapter, moves rooms and saves the whole structure', async () => {
     let saved: ChapterRequest[] = [];
     let reported: PathAdminDetailDto | null = null;
