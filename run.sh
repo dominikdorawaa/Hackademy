@@ -91,7 +91,7 @@ info 'Uruchamianie PostgreSQL i backendu w Dockerze...'
 "${compose[@]}" up --build -d postgres backend
 
 info 'Sprawdzanie połączenia z lokalną bazą...'
-"${compose[@]}" exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql --no-psqlrc --host 127.0.0.1 --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --command "SELECT 1" >/dev/null' || fail 'Nie można zalogować się do lokalnej bazy. Sprawdź, czy DB_PASSWORD odpowiada hasłu zachowanego wolumenu. Zmiana .env nie zmienia hasła istniejącej bazy.'
+"${compose[@]}" exec -T postgres sh -c 'PGPASSWORD="$POSTGRES_PASSWORD" psql --no-psqlrc --host postgres --username "$POSTGRES_USER" --dbname "$POSTGRES_DB" --command "SELECT 1" >/dev/null' || fail 'Nie można zalogować się do lokalnej bazy. Sprawdź, czy DB_PASSWORD odpowiada hasłu zachowanego wolumenu. Zmiana .env nie zmienia hasła istniejącej bazy.'
 
 backend_id="$("${compose[@]}" ps --all --quiet backend)"
 [[ -n "$backend_id" ]] || fail 'Nie znaleziono kontenera backendu po uruchomieniu.'
