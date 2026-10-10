@@ -132,7 +132,7 @@ Style zgodności starych formularzy nie obejmują elementów z `data-slot`, uży
 
 ## Profile użytkowników
 
-Profil to wizytówka z bio, zainteresowaniami, wybieranym avatarem DiceBear i gablotą maksymalnie trzech zdobytych odznak. Formularz „Edytuj profil” zapisuje opis do 500 znaków, do pięciu zainteresowań, seed avatara i uporządkowany wybór odznak przez `PATCH /api/user/me/profile`. Bez własnego wyboru gablota prezentuje trzy ostatnie odznaki. Migracja Flyway V3 zachowuje dotychczasowe avatary i uniezależnia je od przyszłych zmian nazw użytkowników.
+Profil to wizytówka z bio, zainteresowaniami, wybieranym avatarem DiceBear i gablotą maksymalnie trzech zdobytych odznak. Formularz „Edytuj profil” zapisuje opis do 500 znaków, do pięciu zainteresowań, seed avatara i uporządkowany wybór odznak przez `PATCH /api/user/me/profile`. Bez własnego wyboru gablota prezentuje trzy ostatnie odznaki. Migracja Flyway V6 zachowuje dotychczasowe avatary i uniezależnia je od przyszłych zmian nazw użytkowników.
 
 Kolekcja obejmuje zdobyte i niezdobyte osiągnięcia. Paski postępu są widoczne tylko w pełnym katalogu, który otwiera się w oknie z wyszukiwaniem, filtrami, popularnością globalną i paginacją po sześć wpisów. Obok kalendarza są statystyki nauki: rekord jednego dnia, najdłuższa seria, data najaktywniejszego dnia i średnia liczba rozwiązań w aktywnym dniu. Wszystkie dotyczą ostatnich dwunastu tygodni. Profil nie ma przycisku udostępniania; jego adres nadal wymaga zalogowania. Ostatnio ukończone pokoje, XP, poziom, awans i Elo pozostają w dashboardzie.
 
