@@ -9,6 +9,8 @@ import com.hackademy.server.path.dto.PathAdminDetailDto;
 import com.hackademy.server.path.dto.PathSummaryDto;
 import com.hackademy.server.room.dto.RoomAdminDto;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
+import com.hackademy.server.room.dto.RoomTaskAdminDto;
+import com.hackademy.server.room.dto.UpdateRoomTasksRequest;
 import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import com.hackademy.server.chat.ChatMessage;
@@ -71,6 +73,16 @@ public class AdminController {
     @GetMapping("/rooms")
     public List<RoomAdminSummaryDto> getAllRooms() {
         return roomService.getAllRoomsForAdmin();
+    }
+
+    @GetMapping("/rooms/{id}/tasks")
+    public List<RoomTaskAdminDto> getRoomTasks(@PathVariable Long id) {
+        return roomService.getRoomTasksForAdmin(id);
+    }
+
+    @PutMapping("/rooms/{id}/tasks")
+    public List<RoomTaskAdminDto> updateRoomTasks(@PathVariable Long id, @Valid @RequestBody UpdateRoomTasksRequest request) {
+        return roomService.updateRoomTasks(id, request);
     }
 
     @DeleteMapping("/rooms/{id}")
