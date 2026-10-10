@@ -238,6 +238,11 @@ export interface RoomTaskAdminDto {
   answer: string | null
 }
 
+export interface RoomTasksAdminDto {
+  revision: number
+  tasks: RoomTaskAdminDto[]
+}
+
 export interface RoomTaskRequest {
   id: number | null
   title: string

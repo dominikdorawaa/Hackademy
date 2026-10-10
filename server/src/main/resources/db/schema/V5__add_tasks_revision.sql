@@ -1,0 +1,1 @@
+ALTER TABLE rooms ADD COLUMN tasks_revision BIGINT NOT NULL DEFAULT 0;

@@ -58,6 +58,9 @@ public class Room {
     @Column(name = "requires_vpn", nullable = false)
     private boolean requiresVpn = false;
 
+    @Column(name = "tasks_revision", nullable = false)
+    private long tasksRevision;
+
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "room_type", nullable = false, length = 16)

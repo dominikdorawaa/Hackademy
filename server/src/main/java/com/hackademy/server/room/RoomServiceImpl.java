@@ -6,6 +6,7 @@ import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
 import com.hackademy.server.room.dto.RoomDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
+import com.hackademy.server.room.dto.RoomTasksAdminDto;
 import com.hackademy.server.room.dto.RoomTaskAdminDto;
 import com.hackademy.server.room.dto.RoomTaskDto;
 import com.hackademy.server.room.dto.RoomTaskRequest;
@@ -25,6 +26,8 @@ import com.hackademy.server.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -543,23 +546,28 @@ public class RoomServiceImpl implements RoomService {
     }
 
     @Override
-    @Transactional(readOnly = true)
-    public List<RoomTaskAdminDto> getRoomTasksForAdmin(Long roomId) {
-        Room room = roomRepository.findById(roomId)
+    @Transactional
+    public RoomTasksAdminDto getRoomTasksForAdmin(Long roomId) {
+        Room room = roomRepository.findByIdForUpdate(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + roomId));
-        return room.getTasks().stream()
+        return new RoomTasksAdminDto(room.getTasksRevision(), room.getTasks().stream()
                 .sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId))
                 .map(this::mapTaskToAdminDto)
-                .toList();
+                .toList());
     }
 
     @Override
     @Transactional
-    public List<RoomTaskAdminDto> updateRoomTasks(Long roomId, UpdateRoomTasksRequest request) {
+    public RoomTasksAdminDto updateRoomTasks(Long roomId, UpdateRoomTasksRequest request) {
         Room room = roomRepository.findByIdForUpdate(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + roomId));
         if (room.getRoomType() != RoomType.PATH) {
             throw new IllegalArgumentException("Zadania można dodawać tylko do pokoi ścieżek");
+        }
+
+        if (request.revision() == null || request.revision() != room.getTasksRevision()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Zadania zmieniły się w międzyczasie. Wczytaj aktualną listę przed ponowną edycją.");
         }
 
         Map<Long, RoomTask> existing = room.getTasks().stream()
@@ -605,9 +613,10 @@ public class RoomServiceImpl implements RoomService {
                 room.getTasks().add(task);
             }
         }
+        room.setTasksRevision(room.getTasksRevision() + 1);
         roomRepository.flush();
 
-        return ordered.stream().map(this::mapTaskToAdminDto).toList();
+        return new RoomTasksAdminDto(room.getTasksRevision(), ordered.stream().map(this::mapTaskToAdminDto).toList());
     }
 
     private RoomTaskAdminDto mapTaskToAdminDto(RoomTask task) {

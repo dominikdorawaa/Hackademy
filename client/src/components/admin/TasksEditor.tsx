@@ -8,8 +8,8 @@ import { Textarea } from '@/components/ui/textarea';
 import { cn } from '@/lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
-import type { RoomTaskAdminDto, RoomTaskRequest } from '../../types/api';
-import { LoadingRows, Section, StatusMessage } from './AdminUi';
+import type { RoomTaskAdminDto, RoomTasksAdminDto, RoomTaskRequest } from '../../types/api';
+import { ConfirmAction, LoadingRows, Section, StatusMessage } from './AdminUi';
 import { errorText, plural } from './adminFormat';
 
 interface DraftTask {
@@ -52,6 +52,7 @@ function taskProblems(task: DraftTask) {
 
 export default function TasksEditor({ roomId }: { roomId: number }) {
   const { token } = useAuth();
+  const [revision, setRevision] = useState(0);
   const [saved, setSaved] = useState<DraftTask[]>([]);
   const [tasks, setTasks] = useState<DraftTask[]>([]);
   const [open, setOpen] = useState<Set<string>>(new Set());
@@ -66,8 +67,9 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   const ready = loadedFor === loadKey;
   const editingDisabled = !ready || loading || saving;
 
-  const apply = useCallback((data: RoomTaskAdminDto[]) => {
-    const drafts = data.map(toDraft);
+  const apply = useCallback((data: RoomTasksAdminDto) => {
+    const drafts = data.tasks.map(toDraft);
+    setRevision(data.revision);
     setSaved(drafts);
     setTasks(drafts);
   }, []);
@@ -81,7 +83,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     let active = true;
     adminApi.getRoomTasks(roomId, token)
       .then((data) => {
-        if (!Array.isArray(data)) throw new Error('Nie udało się pobrać zadań.');
+        if (!data || !Array.isArray(data.tasks) || !Number.isSafeInteger(data.revision)) throw new Error('Nie udało się pobrać zadań.');
         if (active) {
           apply(data);
           setLoadedFor(loadKey);
@@ -155,8 +157,8 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     }
     setSaving(true);
     try {
-      const updated = await adminApi.updateRoomTasks(roomId, tasks.map(toRequest), token);
-      if (!Array.isArray(updated)) throw new Error('Nie udało się zapisać zadań.');
+      const updated = await adminApi.updateRoomTasks(roomId, revision, tasks.map(toRequest), token);
+      if (!updated || !Array.isArray(updated.tasks) || !Number.isSafeInteger(updated.revision)) throw new Error('Nie udało się zapisać zadań.');
       apply(updated);
       setOpen(new Set());
       setShowProblems(false);
@@ -164,6 +166,24 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
       setSuccess('Zapisano zadania.');
     } catch (err) {
       setError(errorText(err, 'Nie udało się zapisać zadań.'));
+    } finally {
+      setSaving(false);
+    }
+  };
+
+  const reload = async () => {
+    if (editingDisabled) return;
+    setSaving(true);
+    try {
+      const latest = await adminApi.getRoomTasks(roomId, token);
+      if (!latest || !Array.isArray(latest.tasks) || !Number.isSafeInteger(latest.revision)) {
+        throw new Error('Nie udało się pobrać zadań.');
+      }
+      apply(latest);
+      setOpen(new Set());
+      setShowProblems(false);
+      setError(null);
+      setSuccess(null);
     } finally {
       setSaving(false);
     }
@@ -183,7 +203,16 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
       }
     >
       <div className="space-y-3">
-        {error && <StatusMessage kind="error">{error}</StatusMessage>}
+        {error && <>
+          <StatusMessage kind="error">{error}</StatusMessage>
+          {ready && <ConfirmAction
+            trigger={<Button variant="outline" disabled={editingDisabled}>Wczytaj aktualne zadania</Button>}
+            title="Wczytać aktualne zadania?"
+            description="Niezapisane zmiany zostaną odrzucone."
+            confirmLabel="Wczytaj zadania"
+            onConfirm={reload}
+          />}
+        </>}
         {success && <StatusMessage kind="success">{success}</StatusMessage>}
         {ready && removedCount > 0 && (
           <StatusMessage kind="warning">
