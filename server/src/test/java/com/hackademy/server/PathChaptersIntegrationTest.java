@@ -6,6 +6,7 @@ import org.junit.jupiter.api.Test;
 import com.hackademy.server.path.PathService;
 import com.hackademy.server.path.dto.ChapterRequest;
 import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
+import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import com.hackademy.server.room.RoomService;
 import com.hackademy.server.room.RoomType;
 import com.hackademy.server.room.DifficultyLevel;
@@ -40,6 +41,56 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     @Autowired private PathService pathService;
     @Autowired private RoomService roomService;
     @Autowired private PlatformTransactionManager transactionManager;
+
+    @Test
+    void metadataCommitCannotRollBackChapterRevision() throws Exception {
+        assertUnrelatedPathWritePreservesRevision(path -> pathService.updatePathMeta(path,
+                new UpdatePathMetaRequest("Updated metadata", "Updated description", null)));
+    }
+
+    @Test
+    void bannerCommitCannotRollBackChapterRevision() throws Exception {
+        assertUnrelatedPathWritePreservesRevision(path -> pathService.uploadBanner(path,
+                new MockMultipartFile("file", "banner.png", "image/png", new byte[]{1, 2, 3})));
+    }
+
+    private void assertUnrelatedPathWritePreservesRevision(java.util.function.Consumer<Long> write) throws Exception {
+        var admin = account(Role.ADMIN);
+        long path = createPath(admin, List.of());
+        long chapter = chapterIds(admin, path).get(0);
+        String endpoint = "/api/admin/paths/" + path + "/chapters";
+        var loaded = new CountDownLatch(1);
+        var release = new CountDownLatch(1);
+        var executor = Executors.newSingleThreadExecutor();
+        try {
+            var unrelated = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(tx -> {
+                write.accept(path);
+                loaded.countDown();
+                try {
+                    if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Commit barrier timed out");
+                } catch (InterruptedException e) {
+                    Thread.currentThread().interrupt();
+                    throw new RuntimeException(e);
+                }
+            }));
+            assertTrue(loaded.await(10, TimeUnit.SECONDS));
+            putJson(admin, endpoint, """
+                    {"revision":0,"chapters":[{"id":%d,"title":"A","roomIds":[]},{"id":null,"title":"B","roomIds":[]}]}
+                    """.formatted(chapter)).andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(1));
+            release.countDown();
+            unrelated.get(10, TimeUnit.SECONDS);
+            assertEquals(1L, jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, path));
+            putJson(admin, endpoint, """
+                    {"revision":0,"chapters":[{"id":%d,"title":"A","roomIds":[]}]}
+                    """.formatted(chapter)).andExpect(status().isConflict());
+            assertEquals(List.of("A", "B"), jdbcTemplate.queryForList(
+                    "SELECT title FROM path_chapters WHERE path_id = ? ORDER BY sort_order", String.class, path));
+        } finally {
+            release.countDown();
+            executor.shutdownNow();
+            assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS));
+        }
+    }
 
     @Test
     void rejectsStaleChapterDraftsWithoutDeletingNewChaptersOrAssignments() throws Exception {
