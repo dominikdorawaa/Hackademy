@@ -125,7 +125,7 @@ info 'Uruchamianie frontendu przez npm run dev...'
 printf '%sBackend gotowy.%s\nFrontend: http://localhost:5173\nBackend:  http://localhost:8080\nCtrl+C zatrzymuje frontend i usługi uruchomione przez ten skrypt.\n\n' "$GREEN" "$RESET"
 (
     cd "$ROOT/client"
-    exec setsid env VITE_API_URL=http://localhost:8080 npm run dev -- --host 127.0.0.1 --port 5173 --strictPort
+    exec setsid env VITE_API_URL=http://localhost:8080 npm run dev -- --host localhost --port 5173 --strictPort
 ) 9>&- &
 frontend_pid=$!
 wait "$frontend_pid"
