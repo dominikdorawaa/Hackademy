@@ -1,5 +1,12 @@
 import { request } from './http';
-import type { FriendshipStatus, ApiId, MessageResponse, FriendDto, FriendRequestDto, UserSearchDto } from '../types/api';
+import type {
+  FriendshipStatus,
+  ApiId,
+  MessageResponse,
+  FriendDto,
+  FriendRequestDto,
+  UserSearchDto,
+} from '../types/api';
 
 export function getFriends(headers: HeadersInit) {
   return request<FriendDto[]>(`/api/friends`, {
@@ -15,10 +22,11 @@ export function getRequests(headers: HeadersInit) {
   });
 }
 
-export function sendRequest(username: string, headers: HeadersInit) {
-  return request<MessageResponse>(`/api/friends/request/${username}`, {
+export function sendRequest(username: string, headers: HeadersInit, signal?: AbortSignal) {
+  return request<MessageResponse>(`/api/friends/request/${encodeURIComponent(username)}`, {
     method: 'POST',
     headers,
+    signal,
   });
 }
 
@@ -43,17 +51,21 @@ export function removeFriend(id: ApiId, headers: HeadersInit) {
   });
 }
 
-export function getStatus(username: string, headers: HeadersInit) {
-  return request<{ status: FriendshipStatus }>(`/api/friends/status/${username}`, {
-    method: 'GET',
-    headers,
-  });
+export function getStatus(username: string, headers: HeadersInit, signal?: AbortSignal) {
+  return request<{ status: FriendshipStatus }>(
+    `/api/friends/status/${encodeURIComponent(username)}`,
+    {
+      method: 'GET',
+      headers,
+      signal,
+    },
+  );
 }
 
-export function getStats(username: string, headers: HeadersInit) {
-  return request<UserSearchDto>(`/api/friends/stats/${username}`, {
+export function getStats(username: string, headers: HeadersInit, signal?: AbortSignal) {
+  return request<UserSearchDto>(`/api/friends/stats/${encodeURIComponent(username)}`, {
     method: 'GET',
     headers,
+    signal,
   });
 }
-

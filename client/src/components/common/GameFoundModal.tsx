@@ -1,3 +1,4 @@
+import UserAvatar from '../UserAvatar';
 import React from 'react';
 import './SuccessModal.css'; // Reuse styles for consistency
 import type { DashboardUser, GameSession } from '../../types/api';
@@ -20,13 +21,13 @@ const GameFoundModal = ({ isOpen, gameSession, userData, onAccept }: { isOpen: b
                 
                 <div style={{ display: 'flex', justifyContent: 'center', alignItems: 'center', gap: '40px', margin: '40px 0' }}>
                     <div style={{ textAlign: 'center' }}>
-                        <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${userData.username}`} alt="Ty" style={{ width: '100px', borderRadius: '50%', border: '3px solid #3498db' }} />
+                        <UserAvatar username={userData.username} seed={isPlayer1 ? gameSession.player1AvatarSeed : gameSession.player2AvatarSeed} alt="Ty" style={{ width: '100px', borderRadius: '50%', border: '3px solid #3498db' }} />
                         <h3 style={{ marginTop: '10px', marginBottom: '5px', color: 'var(--text-light)' }}>Ty</h3>
                         <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem' }}>ELO: {myElo}</span>
                     </div>
                     <div style={{ fontSize: '2rem', fontWeight: 'bold', color: '#ff2d55' }}>VS</div>
                     <div style={{ textAlign: 'center' }}>
-                        <img src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${opponentName}`} alt="Rywal" style={{ width: '100px', borderRadius: '50%', border: '3px solid #e74c3c' }} />
+                        <UserAvatar username={opponentName} seed={isPlayer1 ? gameSession.player2AvatarSeed : gameSession.player1AvatarSeed} alt="Rywal" style={{ width: '100px', borderRadius: '50%', border: '3px solid #e74c3c' }} />
                         <h3 style={{ marginTop: '10px', marginBottom: '5px', color: 'var(--text-light)' }}>{opponentName}</h3>
                         <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem' }}>ELO: {opponentElo}</span>
                     </div>

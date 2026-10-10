@@ -1,3 +1,4 @@
+import UserAvatar from '../components/UserAvatar';
 import * as dashboardApi from '../services/dashboardApi';
 import * as userApi from '../services/userApi';
 import React, { useEffect, useMemo, useState } from 'react';
@@ -456,9 +457,8 @@ const UserDashboardPage = () => {
             </div>
 
             <div className="ud-profile-mini">
-              <img
-                className="ud-profile-avatar"
-                src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${encodeURIComponent(stats.username)}`}
+              <UserAvatar className="ud-profile-avatar"
+                username={stats.username} seed={userData?.avatarSeed}
                 alt="Avatar"
               />
               <div className="ud-profile-meta">

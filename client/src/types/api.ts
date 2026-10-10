@@ -59,6 +59,8 @@ export interface ChallengeRequest {
 }
 
 export interface Challenge {
+  challengerAvatarSeed?: string
+  targetAvatarSeed?: string
   id: string
   challengerId: number
   challengerUsername: string
@@ -70,6 +72,8 @@ export interface Challenge {
 }
 
 export interface GameSession {
+  player1AvatarSeed?: string
+  player2AvatarSeed?: string
   id: string
   player1Id: number
   player1Username: string
@@ -123,9 +127,15 @@ export interface BadgeDto {
   earnedAt: ApiDateTime | null
   earned: boolean
   rarityPercentage: number
+  progress?: {
+    current: number
+    target: number
+    conditionType: 'POINTS' | 'STREAK' | 'SOLVED_COUNT' | 'FRIENDS_COUNT'
+  } | null
 }
 
 export interface FriendDto {
+  avatarSeed?: string
   id: number
   username: string
   points: number
@@ -133,6 +143,7 @@ export interface FriendDto {
 }
 
 export interface FriendRequestDto {
+  avatarSeed?: string
   id: number
   requesterUsername: string
   createdAt: ApiDateTime
@@ -293,6 +304,7 @@ export interface RecentSolvedRoomDto {
 }
 
 export interface RankingEntry {
+  avatarSeed?: string
   rankPoints: number | null
   rankElo: number | null
   username: string
@@ -301,6 +313,10 @@ export interface RankingEntry {
 }
 
 export interface RankingUser {
+  avatarSeed?: string
+  tagline?: string
+  interests?: string[]
+  featuredBadgeIds?: number[]
   id: number
   username: string
   email: string
@@ -343,7 +359,16 @@ export interface UserAdminView {
   createdAt: ApiDateTime
 }
 
+export interface ProfilePortfolioDto {
+  practiceAreas: { category: string; solvedRooms: number }[];
+  completedPaths: { id: number; title: string; roomsCount: number }[];
+}
+
 export interface UserProfileDto {
+  avatarSeed?: string
+  tagline?: string
+  interests?: string[]
+  featuredBadgeIds?: number[]
   username: string
   points: number
   role: Role
@@ -353,7 +378,16 @@ export interface UserProfileDto {
   badges: BadgeDto[]
 }
 
+export interface ProfileStatsDto {
+  completedPaths: number
+  solvedRooms: number
+  unlockedHints: number
+  earnedBadges: number
+  arenaRating: number
+}
+
 export interface UserSearchDto {
+  avatarSeed?: string
   id: number
   username: string
   points: number

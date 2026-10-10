@@ -1,3 +1,4 @@
+import UserAvatar from './UserAvatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { RankingEntry } from '../types/api';
@@ -80,8 +81,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                       style={{ display: 'flex', alignItems: 'center' }}
                     >
                       <div className="player-avatar">
-                        <img
-                          src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${player.avatarSeed || playerName}`}
+                          <UserAvatar username={playerName || 'Użytkownik'} seed={player.avatarSeed}
                           alt="Avatar"
                         />
                       </div>
@@ -119,8 +119,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                   </div>
                   <div className="player-info" style={{ display: 'flex', alignItems: 'center' }}>
                     <div className="player-avatar">
-                      <img
-                        src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${currentUsername}`}
+                        <UserAvatar username={currentUsername || myRank.username} seed={myRank.avatarSeed}
                         alt="Avatar"
                       />
                     </div>
