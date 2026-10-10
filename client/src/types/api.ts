@@ -226,8 +226,29 @@ export interface RoomTaskDto {
   id: number
   title: string
   content: string
-  question: string
+  question: string | null
   completed: boolean
+}
+
+export interface RoomTaskAdminDto {
+  id: number
+  title: string
+  content: string
+  question: string | null
+  answer: string | null
+}
+
+export interface RoomTasksAdminDto {
+  revision: number
+  tasks: RoomTaskAdminDto[]
+}
+
+export interface RoomTaskRequest {
+  id: number | null
+  title: string
+  content: string
+  question: string | null
+  answer: string | null
 }
 
 export interface RoomSummaryDto {

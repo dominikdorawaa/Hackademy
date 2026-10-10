@@ -6,6 +6,8 @@ import type {
     Role,
     RoomAdminDto,
     RoomAdminSummaryDto,
+    RoomTasksAdminDto,
+    RoomTaskRequest,
     RoomWriteRequest,
     UserAdminView,
 } from '../types/api';
@@ -121,5 +123,17 @@ export const updatePathChapters = (id: ApiId, revision: number, chapters: Chapte
         method: 'PUT',
         token,
         body: JSON.stringify({ revision, chapters }),
+    });
+};
+
+export const getRoomTasks = (id: ApiId, token: string | null) => {
+    return request<RoomTasksAdminDto>(`/rooms/${id}/tasks`, { method: 'GET', token });
+};
+
+export const updateRoomTasks = (id: ApiId, revision: number, tasks: RoomTaskRequest[], token: string | null) => {
+    return request<RoomTasksAdminDto>(`/rooms/${id}/tasks`, {
+        method: 'PUT',
+        token,
+        body: JSON.stringify({ revision, tasks }),
     });
 };

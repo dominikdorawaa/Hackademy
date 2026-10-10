@@ -4,6 +4,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import './Management.css';
 import type { DifficultyLevel, RoomAdminSummaryDto, RoomType, RoomWriteRequest } from '../../types/api';
+import TasksEditor from './TasksEditor';
 
 const RoomManagement = ({ forcedRoomType = null }: { forcedRoomType?: RoomType | null; canDelete?: boolean }) => {
     // Form state
@@ -364,6 +365,12 @@ const RoomManagement = ({ forcedRoomType = null }: { forcedRoomType?: RoomType |
                     )}
                 </div>
             </form>
+
+            {isEditing && id !== null && forcedRoomType === 'PATH' && (
+                <div style={{ marginTop: '2rem', textAlign: 'left' }}>
+                    <TasksEditor key={id} roomId={id} />
+                </div>
+            )}
 
             <h3 style={{ marginTop: '3rem', marginBottom: '1rem', color: 'var(--text-light)' }}>Lista Pokoi</h3>
             {loading ? (

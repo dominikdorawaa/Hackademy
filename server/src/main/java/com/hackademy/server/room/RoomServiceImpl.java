@@ -6,9 +6,13 @@ import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
 import com.hackademy.server.room.dto.RoomDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
+import com.hackademy.server.room.dto.RoomTasksAdminDto;
+import com.hackademy.server.room.dto.RoomTaskAdminDto;
 import com.hackademy.server.room.dto.RoomTaskDto;
+import com.hackademy.server.room.dto.RoomTaskRequest;
 import com.hackademy.server.room.dto.SolveRoomResponse;
 import com.hackademy.server.room.dto.UpdateRoomRequest;
+import com.hackademy.server.room.dto.UpdateRoomTasksRequest;
 
 import com.hackademy.server.badge.BadgeDto;
 import com.hackademy.server.badge.BadgeService;
@@ -22,6 +26,8 @@ import com.hackademy.server.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.stereotype.Service;
+import org.springframework.http.HttpStatus;
+import org.springframework.web.server.ResponseStatusException;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -30,9 +36,11 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 @Service
@@ -331,7 +339,7 @@ public class RoomServiceImpl implements RoomService {
     public SolveRoomResponse solveTask(Long roomId, Long taskId, String answer, String username) {
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        Room room = roomRepository.findById(roomId)
+        Room room = roomRepository.findByIdForUpdate(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found"));
         RoomTask task = roomTaskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found"));
@@ -356,43 +364,66 @@ public class RoomServiceImpl implements RoomService {
                 allTasks.stream().map(RoomTask::getId).collect(Collectors.toList()));
 
         if (completedCount == allTasks.size()) {
-            // Check if already solved
-            if (!userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
-                // Award points only once
-                long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), roomId);
-                double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
-                if (pointsToAward < 0) pointsToAward = 0;
-
-                UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room);
-                userSolvedRoomRepository.save(userSolvedRoom);
-
-                user.setPoints(user.getPoints() + (int) pointsToAward);
-                room.setSolutionsCount(room.getSolutionsCount() + 1);
-
-                // Streak logic
-                LocalDate today = LocalDate.now();
-                LocalDate lastSolved = user.getLastSolvedDate();
-                if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
-                    user.setStreak(user.getStreak() + 1);
-                } else if (!lastSolved.equals(today)) {
-                    user.setStreak(1);
-                }
-                user.setLastSolvedDate(today);
-
-                userRepository.save(user);
-                roomRepository.save(room);
-                invalidateCache();
-                userServiceImpl.invalidateUserComputedCaches(user.getId());
-                userServiceImpl.invalidateGlobalRankingCache();
-                dashboardSummaryCache.invalidateUser(user.getId());
-
-                List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
-                return new SolveRoomResponse(true, "Poprawna odpowiedź! Pokój ukończony!", (int) pointsToAward, newBadges);
-            }
-            return new SolveRoomResponse(true, "Poprawna odpowiedź! (Pokój już ukończony)", 0, new ArrayList<>());
+            return awardTaskRoomCompletion(user, room);
         }
-
         return new SolveRoomResponse(true, "Poprawna odpowiedź!", 0, new ArrayList<>());
+    }
+
+    @Override
+    @Transactional
+    public SolveRoomResponse completeTaskRoom(Long roomId, String username) {
+        User user = userRepository.findByUsernameForUpdate(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        Room room = roomRepository.findByIdForUpdate(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+        List<RoomTask> tasks = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(roomId);
+        if (tasks.isEmpty()) {
+            return new SolveRoomResponse(false, "Pokój bez zadań wymaga flagi", 0, List.of());
+        }
+        long completed = userCompletedTaskRepository.countByUserIdAndTaskIdIn(user.getId(),
+                tasks.stream().map(RoomTask::getId).toList());
+        if (completed != tasks.size()) {
+            return new SolveRoomResponse(false, "Ukończ wszystkie zadania pokoju", 0, List.of());
+        }
+        return awardTaskRoomCompletion(user, room);
+    }
+
+    private SolveRoomResponse awardTaskRoomCompletion(User user, Room room) {
+        Long roomId = room.getId();
+        // Check if already solved
+        if (!userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
+            // Award points only once
+            long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), roomId);
+            double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
+            if (pointsToAward < 0) pointsToAward = 0;
+
+            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room);
+            userSolvedRoomRepository.save(userSolvedRoom);
+
+            user.setPoints(user.getPoints() + (int) pointsToAward);
+            room.setSolutionsCount(room.getSolutionsCount() + 1);
+
+            // Streak logic
+            LocalDate today = LocalDate.now();
+            LocalDate lastSolved = user.getLastSolvedDate();
+            if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
+                user.setStreak(user.getStreak() + 1);
+            } else if (!lastSolved.equals(today)) {
+                user.setStreak(1);
+            }
+            user.setLastSolvedDate(today);
+
+            userRepository.save(user);
+            roomRepository.save(room);
+            invalidateCache();
+            userServiceImpl.invalidateUserComputedCaches(user.getId());
+            userServiceImpl.invalidateGlobalRankingCache();
+            dashboardSummaryCache.invalidateUser(user.getId());
+
+            List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
+            return new SolveRoomResponse(true, "Poprawna odpowiedź! Pokój ukończony!", (int) pointsToAward, newBadges);
+        }
+        return new SolveRoomResponse(true, "Poprawna odpowiedź! (Pokój już ukończony)", 0, new ArrayList<>());
     }
 
     @Override
@@ -512,6 +543,94 @@ public class RoomServiceImpl implements RoomService {
         userUnlockedHintRepository.save(userUnlockedHint);
 
         return true;
+    }
+
+    @Override
+    @Transactional
+    public RoomTasksAdminDto getRoomTasksForAdmin(Long roomId) {
+        Room room = roomRepository.findByIdForUpdate(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + roomId));
+        return new RoomTasksAdminDto(room.getTasksRevision(), room.getTasks().stream()
+                .sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId))
+                .map(this::mapTaskToAdminDto)
+                .toList());
+    }
+
+    @Override
+    @Transactional
+    public RoomTasksAdminDto updateRoomTasks(Long roomId, UpdateRoomTasksRequest request) {
+        Room room = roomRepository.findByIdForUpdate(roomId)
+                .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + roomId));
+        if (room.getRoomType() != RoomType.PATH) {
+            throw new IllegalArgumentException("Zadania można dodawać tylko do pokoi ścieżek");
+        }
+
+        if (request.revision() == null || request.revision() != room.getTasksRevision()) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT,
+                    "Zadania zmieniły się w międzyczasie. Wczytaj aktualną listę przed ponowną edycją.");
+        }
+
+        Map<Long, RoomTask> existing = room.getTasks().stream()
+                .collect(Collectors.toMap(RoomTask::getId, Function.identity()));
+        Set<Long> keptIds = new HashSet<>();
+        List<RoomTask> ordered = new ArrayList<>();
+        int position = 0;
+        for (RoomTaskRequest taskRequest : request.tasks()) {
+            position++;
+            String question = blankToNull(taskRequest.question());
+            String answer = blankToNull(taskRequest.answer());
+            if (question != null && answer == null) {
+                throw new IllegalArgumentException("Zadanie " + position + ": podaj odpowiedź na pytanie");
+            }
+            if (question == null && answer != null) {
+                throw new IllegalArgumentException("Zadanie " + position + ": odpowiedź wymaga pytania");
+            }
+
+            RoomTask task;
+            if (taskRequest.id() == null) {
+                task = RoomTask.builder().room(room).build();
+            } else {
+                task = existing.get(taskRequest.id());
+                if (task == null) {
+                    throw new IllegalArgumentException("Zadanie " + taskRequest.id() + " nie należy do tego pokoju");
+                }
+                if (!keptIds.add(task.getId())) {
+                    throw new IllegalArgumentException("Zadanie " + taskRequest.id() + " występuje więcej niż raz");
+                }
+            }
+            task.setTitle(taskRequest.title().trim());
+            String content = TaskContentSanitizer.clean(taskRequest.content());
+            if (content.isBlank()) {
+                throw new IllegalArgumentException("Zadanie " + position + ": podaj treść po usunięciu niedozwolonego HTML");
+            }
+            task.setContent(content);
+            task.setQuestion(question);
+            task.setAnswer(answer);
+            task.setSortOrder(position - 1);
+            ordered.add(task);
+        }
+
+        room.getTasks().removeIf(task -> !keptIds.contains(task.getId()));
+        for (RoomTask task : ordered) {
+            if (task.getId() == null) {
+                roomTaskRepository.save(task);
+                room.getTasks().add(task);
+            }
+        }
+        room.setTasksRevision(room.getTasksRevision() + 1);
+        roomRepository.flush();
+
+        return new RoomTasksAdminDto(room.getTasksRevision(), ordered.stream().map(this::mapTaskToAdminDto).toList());
+    }
+
+    private RoomTaskAdminDto mapTaskToAdminDto(RoomTask task) {
+        return new RoomTaskAdminDto(task.getId(), task.getTitle(), task.getContent(), task.getQuestion(), task.getAnswer());
+    }
+
+    private static String blankToNull(String value) {
+        if (value == null) return null;
+        String trimmed = value.trim();
+        return trimmed.isEmpty() ? null : trimmed;
     }
 
     @Override
