@@ -43,8 +43,11 @@ export default function PathEditorPage() {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
 
-  const applyDetail = useCallback((next: PathAdminDetailDto) => {
-    setDetail(next);
+  const applyDetail = useCallback((next: PathAdminDetailDto, preserveChapters = false) => {
+    // Metadata refresh must keep the draft's chapter baseline and revision together.
+    setDetail((current) => preserveChapters && current
+      ? { ...next, chapters: current.chapters, revision: current.revision }
+      : next);
     setTitle(next.title);
     setDescription(next.description ?? '');
     setBannerUrl(next.hasBanner ? '' : next.bannerUrl ?? '');
@@ -85,7 +88,7 @@ export default function PathEditorPage() {
       }
       await adminApi.updatePath(id, { title: title.trim(), description, bannerUrl: bannerUrl.trim() || null }, token);
       const refreshed = await adminApi.getPath(id, token);
-      if (refreshed) applyDetail(refreshed);
+      if (refreshed) applyDetail(refreshed, true);
       setBannerFile(null);
       setFileInputKey((key) => key + 1);
       setSuccess('Zapisano informacje o ścieżce.');

@@ -146,6 +146,42 @@ describe('admin panel layout', () => {
   });
 });
 
+describe('path editor', () => {
+  it('preserves an unsaved chapter draft and its revision when saving metadata', async () => {
+    signIn('ADMIN');
+    const initial = {
+      id: 5, title: 'Web', description: 'Opis', bannerUrl: null, hasBanner: false, revision: 0,
+      chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [] }],
+    };
+    let loads = 0;
+    let submitted: { revision: number; chapters: { title: string }[] } | undefined;
+    server.use(
+      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])),
+      http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(++loads === 1 ? initial : {
+        ...initial, title: 'Web zmieniony', revision: 1,
+        chapters: [...initial.chapters, { id: 12, title: 'Dodany przez innego administratora', roomIds: [] }],
+      })),
+      http.put(`${API_URL}/api/admin/paths/5`, () => new HttpResponse(null, { status: 204 })),
+      http.put(`${API_URL}/api/admin/paths/5/chapters`, async ({ request }) => {
+        submitted = await request.json() as typeof submitted;
+        return HttpResponse.json({ message: 'Rozdziały zmieniły się w międzyczasie.' }, { status: 409 });
+      }),
+    );
+    const user = userEvent.setup();
+    mountAdmin('/admin/paths/5');
+    await user.type(await screen.findByLabelText('Nazwa rozdziału 1'), ' lokalny');
+    await user.type(screen.getByLabelText('Tytuł'), ' zmieniony');
+    await user.click(screen.getByRole('button', { name: 'Zapisz informacje' }));
+    expect(await screen.findByText('Zapisano informacje o ścieżce.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Rozdział 1 lokalny');
+    expect(screen.queryByLabelText('Nazwa rozdziału 2')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Zapisz rozdziały' }));
+    expect(await screen.findByText('Rozdziały zmieniły się w międzyczasie.')).toBeInTheDocument();
+    expect(submitted?.revision).toBe(0);
+    expect(submitted?.chapters[0].title).toBe('Rozdział 1 lokalny');
+  });
+});
+
 describe('room editor', () => {
   it('blocks an existing-room form after load failure and preserves hints after retry', async () => {
     signIn('ADMIN');
