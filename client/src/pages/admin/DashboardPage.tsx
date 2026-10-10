@@ -12,6 +12,7 @@ import type { ChartConfig } from '@/components/ui/chart';
 import { Skeleton } from '@/components/ui/skeleton';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { ToggleGroup, ToggleGroupItem } from '@/components/ui/toggle-group';
+import { cn } from '@/lib/utils';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { AdminStatsDto, StatsRange } from '../../types/api';
@@ -50,9 +51,9 @@ const parseDay = (value: string) => {
   return new Date(year, month - 1, day);
 };
 
-function StatTile({ label, value, detail }: { label: string; value: number; detail: string }) {
+function StatTile({ label, value, detail, className }: { label: string; value: number; detail: string; className?: string }) {
   return (
-    <div className="rounded-xl border bg-card px-5 py-4">
+    <div className={cn('h-full rounded-xl border bg-card px-5 py-4', className)}>
       <p className="text-sm text-muted-foreground">{label}</p>
       <p className="mt-1 font-[Poppins] text-3xl font-semibold tracking-tight text-foreground tabular-nums">{numberFormat.format(value)}</p>
       <p className="mt-1 text-xs text-muted-foreground">{detail}</p>
@@ -135,8 +136,9 @@ export default function DashboardPage() {
             <StatTile label="Użytkownicy" value={stats.totals.users} detail={`+${numberFormat.format(periodTotals.registrations)} w ostatnich ${rangeLabel}`} />
             <StatTile label="Rozwiązania" value={stats.totals.solves} detail={`+${numberFormat.format(periodTotals.solves)} w ostatnich ${rangeLabel}`} />
             <StatTile label="Aktywni w tym tygodniu" value={stats.totals.activeThisWeek} detail="Gracze z czasem nauki w bieżącym tygodniu" />
-            <Link to="/admin/reports" className="rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+            <Link to="/admin/reports" className="group block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
               <StatTile
+                className="transition-colors group-hover:border-primary/50 group-hover:bg-accent/40"
                 label="Zgłoszenia czatu"
                 value={stats.totals.pendingReports}
                 detail={stats.totals.pendingReports > 0 ? 'Czekają na decyzję. Otwórz listę' : 'Nic nie czeka na decyzję'}

@@ -94,6 +94,7 @@ describe('admin panel layout', () => {
       expect(navigation().getByRole('link', { name })).toBeInTheDocument();
     }
     expect(navigation().getByRole('link', { name: 'Wróć do aplikacji' })).toHaveAttribute('href', '/dashboard');
+    expect(navigation().getByRole('link', { name: 'Hackademy, panel administratora' })).toHaveAttribute('href', '/admin');
     expect(screen.getByTestId('location').textContent).toBe('/admin/users:POP');
     expect(screen.queryByRole('navigation', { name: /menu/i })).toBeNull();
   });
@@ -109,7 +110,7 @@ describe('admin panel layout', () => {
     for (const name of ['Pulpit', 'Użytkownicy', 'Zgłoszenia']) {
       expect(navigation().queryByRole('link', { name })).toBeNull();
     }
-    expect(screen.getByText('Panel eksperta')).toBeInTheDocument();
+    expect(navigation().getByRole('link', { name: 'Hackademy, panel eksperta' })).toHaveAttribute('href', '/admin/paths');
   });
 
   it('redirects an expert opening the dashboard to paths', async () => {

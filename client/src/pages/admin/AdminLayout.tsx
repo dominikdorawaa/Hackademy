@@ -115,21 +115,36 @@ export default function AdminLayout() {
   const { pathname } = useLocation();
   const { isAdmin, username } = useAdminAccess();
   const groups = visibleNavigation(isAdmin);
+  const roleLabel = isAdmin ? 'Panel administratora' : 'Panel eksperta';
 
   return (
     <TooltipProvider delayDuration={300}>
       <SidebarProvider className="admin-shell bg-background text-foreground">
         <Sidebar collapsible="icon" aria-label="Nawigacja panelu">
-          <SidebarHeader className="border-b border-sidebar-border">
+          <SidebarHeader className="h-14 justify-center border-b border-sidebar-border py-0">
             <SidebarMenu>
               <SidebarMenuItem>
-                <SidebarMenuButton size="lg" asChild tooltip="Hackademy">
-                  <Link to={isAdmin ? '/admin' : '/admin/paths'}>
-                    <img src="/favicon2.png" alt="" className="size-8 shrink-0 rounded-md" />
-                    <span className="grid leading-tight">
-                      <span className="text-sm font-semibold">Hackademy</span>
-                      <span className="text-xs text-muted-foreground">{isAdmin ? 'Panel administratora' : 'Panel eksperta'}</span>
-                    </span>
+                <SidebarMenuButton
+                  size="lg"
+                  asChild
+                  tooltip="Hackademy"
+                  className="hover:bg-transparent active:bg-transparent group-data-[collapsible=icon]:justify-center"
+                >
+                  <Link to={isAdmin ? '/admin' : '/admin/paths'} aria-label={`Hackademy, ${roleLabel.toLowerCase()}`}>
+                    <img
+                      src="/hackademy-wordmark.png"
+                      alt=""
+                      width={417}
+                      height={120}
+                      className="h-10 w-auto invert group-data-[collapsible=icon]:hidden dark:invert-0"
+                    />
+                    <img
+                      src="/hackademy-mark.png"
+                      alt=""
+                      width={72}
+                      height={120}
+                      className="hidden h-8 w-auto group-data-[collapsible=icon]:block"
+                    />
                   </Link>
                 </SidebarMenuButton>
               </SidebarMenuItem>
@@ -186,7 +201,9 @@ export default function AdminLayout() {
               </SidebarMenuItem>
             </SidebarMenu>
             <p className="truncate px-2 pb-1 text-xs text-muted-foreground group-data-[collapsible=icon]:hidden">
-              Zalogowano jako <span className="font-medium text-sidebar-foreground">{username}</span>
+              <span className="font-medium text-sidebar-foreground">{username}</span>
+              <span aria-hidden="true"> · </span>
+              {roleLabel}
             </p>
           </SidebarFooter>
           <SidebarRail />
