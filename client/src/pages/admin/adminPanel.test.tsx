@@ -2,7 +2,7 @@ import { Route } from 'react-router-dom';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { beforeAll, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import API_URL from '../../apiConfig';
 import { server } from '../../test/mocks/server';
 import { currentUserHandler } from '../../test/mocks/handlers';
@@ -14,6 +14,9 @@ import type {
   RoomAdminSummaryDto,
 } from '../../types/api';
 import adminRoutes from './adminRoutes';
+import * as adminRequests from '../../services/adminRequests';
+
+afterEach(() => vi.restoreAllMocks());
 
 beforeAll(() => {
   class ResizeObserverStub {
@@ -144,6 +147,38 @@ describe('admin panel layout', () => {
 });
 
 describe('room editor', () => {
+  it('blocks an existing-room form after load failure and preserves hints after retry', async () => {
+    signIn('ADMIN');
+    let loads = 0;
+    let savedHints: string[] | undefined;
+    const existing = {
+      id: 9, title: 'CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web',
+      points: 100, flag: 'CTF{x}', solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'],
+      createdAt: '2026-10-10T10:00:00', updatedAt: null,
+    };
+    server.use(
+      http.get(`${API_URL}/api/admin/rooms/9`, () => ++loads === 1
+        ? HttpResponse.json({ message: 'Nie udało się wczytać pokoju' }, { status: 500 })
+        : HttpResponse.json(existing)),
+    );
+    vi.spyOn(adminRequests, 'updateRoom').mockImplementation(async (_id, data) => {
+      savedHints = data.hints;
+      return HttpResponse.json(existing);
+    });
+    const user = userEvent.setup();
+    mountAdmin('/admin/ctf/9');
+    expect(await screen.findByText('Nie udało się wczytać pokoju')).toBeInTheDocument();
+    expect(screen.queryByRole('form', { name: 'Dane pokoju' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Zapisz zmiany' })).not.toBeInTheDocument();
+    expect(savedHints).toBeUndefined();
+    await user.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+    expect(await screen.findByText('Zachowana podpowiedź')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Tytuł'), ' zmieniony');
+    await user.click(screen.getByRole('button', { name: 'Zapisz zmiany' }));
+    expect(await screen.findByText('Zapisano zmiany w pokoju.')).toBeInTheDocument();
+    expect(savedHints).toEqual(['Zachowana podpowiedź']);
+  });
+
   it('keeps the creation message after moving to the new room', async () => {
     signIn('ADMIN');
     const created = {

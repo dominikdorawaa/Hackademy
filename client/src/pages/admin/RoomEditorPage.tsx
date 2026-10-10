@@ -89,11 +89,18 @@ export default function RoomEditorPage({ kind }: { kind: RoomType }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
   const [missing, setMissing] = useState(false);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
+  const loadKey = `${kind}:${roomId}:${token}`;
+  const ready = isNew || loadedFor === loadKey;
 
   useEffect(() => {
     if (isNew || !token || !roomId) return;
     let active = true;
     setLoading(true);
+    setLoadedFor(null);
+    setMissing(false);
+    setError(null);
     adminApi.getRoomAdmin(roomId, token)
       .then((room) => {
         if (!active) return;
@@ -102,6 +109,7 @@ export default function RoomEditorPage({ kind }: { kind: RoomType }) {
           return;
         }
         setForm(formFromRoom(room, kind));
+        setLoadedFor(loadKey);
       })
       .catch((err: unknown) => {
         if (active) setError(errorText(err, 'Nie udało się pobrać pokoju.'));
@@ -112,7 +120,7 @@ export default function RoomEditorPage({ kind }: { kind: RoomType }) {
     return () => {
       active = false;
     };
-  }, [isNew, roomId, token, kind]);
+  }, [isNew, roomId, token, kind, loadKey, loadAttempt]);
 
   const update = <K extends keyof RoomForm>(key: K, value: RoomForm[K]) => setForm((current) => ({ ...current, [key]: value }));
 
@@ -125,6 +133,7 @@ export default function RoomEditorPage({ kind }: { kind: RoomType }) {
 
   const submit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
+    if (!ready || loading || saving) return;
     setError(null);
     setSuccess(null);
     setSaving(true);
@@ -179,7 +188,7 @@ export default function RoomEditorPage({ kind }: { kind: RoomType }) {
       <PageHeader
         title={isNew ? 'Nowy pokój' : form.title || 'Edycja pokoju'}
         description={kind === 'PATH' ? 'Pokój ścieżki z treścią, flagą i zadaniami.' : 'Pokój CTF rozwiązywany flagą.'}
-        actions={!isNew && isAdmin && (
+        actions={!isNew && ready && isAdmin && (
           <ConfirmAction
             title="Usunąć ten pokój?"
             description="Pokój, jego zadania, podpowiedzi, plik i postępy graczy zostaną trwale usunięte."
@@ -197,6 +206,8 @@ export default function RoomEditorPage({ kind }: { kind: RoomType }) {
 
       {loading ? (
         <LoadingRows rows={6} label="Ładowanie pokoju" />
+      ) : !ready ? (
+        <Button variant="outline" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Spróbuj ponownie</Button>
       ) : (
         <div className="space-y-6">
           <form onSubmit={submit} aria-label="Dane pokoju">

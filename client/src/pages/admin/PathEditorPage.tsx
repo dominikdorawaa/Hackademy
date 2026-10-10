@@ -189,6 +189,7 @@ export default function PathEditorPage() {
 
           <ChaptersEditor
             pathId={id}
+            revision={detail.revision}
             chapters={detail.chapters}
             rooms={rooms}
             canDeleteChapters={isAdmin}
