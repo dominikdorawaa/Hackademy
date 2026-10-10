@@ -413,7 +413,7 @@ const Navbar = () => {
                         )}
                         {userData.role === 'EXPERT' && (
                           <li className="dropdown-item">
-                            <Link to="/expert" onClick={() => setIsMenuOpen(false)}>
+                            <Link to="/admin/paths" onClick={() => setIsMenuOpen(false)}>
                               <i className="fas fa-user-graduate" style={{ marginRight: '10px', width: '15px' }}></i>
                               <span>Panel Eksperta</span>
                             </Link>

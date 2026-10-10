@@ -45,14 +45,6 @@ export function updatePath(id: ApiId, data: PathMetaRequest, headers: HeadersIni
   });
 }
 
-export function updatePathRooms(id: ApiId, data: { roomIds: number[] }, headers: HeadersInit) {
-  return request<void>(`/api/admin/paths/${id}/rooms`, {
-    method: 'PUT',
-    headers,
-    body: JSON.stringify(data),
-  });
-}
-
 export function uploadBanner(id: ApiId, file: File, headers: HeadersInit) {
   const data = new FormData();
   data.append('file', file);

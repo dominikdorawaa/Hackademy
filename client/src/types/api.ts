@@ -176,6 +176,14 @@ export interface PathProgressDto {
   completed: boolean
 }
 
+export interface PathChapterDto {
+  id: number
+  title: string
+  totalRooms: number
+  solvedRooms: number
+  rooms: RoomSummaryDto[]
+}
+
 export interface PathDetailDto {
   id: number
   title: string
@@ -184,6 +192,13 @@ export interface PathDetailDto {
   hasBanner: boolean
   enrolled: boolean
   rooms: RoomSummaryDto[]
+  chapters: PathChapterDto[]
+}
+
+export interface PathChapterAdminDto {
+  id: number
+  title: string
+  roomIds: number[]
 }
 
 export interface PathAdminDetailDto {
@@ -192,14 +207,70 @@ export interface PathAdminDetailDto {
   description: string
   bannerUrl: string | null
   hasBanner: boolean
+  revision: number
+  chapters: PathChapterAdminDto[]
+}
+
+export interface ChapterRequest {
+  id: number | null
+  title: string
   roomIds: number[]
+}
+
+export interface UpdatePathChaptersRequest {
+  revision: number
+  chapters: ChapterRequest[]
+}
+
+
+export interface RoomTaskAdminDto {
+  id: number
+  title: string
+  content: string
+  question: string | null
+  answer: string | null
+}
+
+export interface RoomTasksAdminDto {
+  revision: number
+  tasks: RoomTaskAdminDto[]
+}
+
+export interface RoomTaskRequest {
+  id: number | null
+  title: string
+  content: string
+  question: string | null
+  answer: string | null
+}
+
+export type StatsRange = 7 | 30 | 90
+
+export interface AdminStatsDto {
+  totals: {
+    users: number
+    solves: number
+    activeThisWeek: number
+    pendingReports: number
+  }
+  rangeDays: StatsRange
+  timeline: { date: ApiDate; registrations: number; solves: number }[]
+  solvesBySource: { key: string; label: string; count: number }[]
+  recentSolves: {
+    username: string
+    roomId: number
+    roomTitle: string
+    roomType: RoomType
+    pathTitle: string | null
+    solvedAt: ApiDateTime
+  }[]
 }
 
 export interface RoomTaskDto {
   id: number
   title: string
   content: string
-  question: string
+  question: string | null
   completed: boolean
 }
 
@@ -258,6 +329,8 @@ export interface RoomAdminSummaryDto {
   points: number
   requiresVpn: boolean
   roomType: RoomType
+  pathId: number | null
+  pathTitle: string | null
 }
 
 export interface RoomAdminDto {

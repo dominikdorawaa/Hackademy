@@ -1,60 +1,58 @@
 import * as pathApi from '../services/pathApi';
-import React, { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './PathDetailPage.css';
-import type { PathDetailDto, PathRoomMiniDto } from '../types/api';
+import type { PathDetailDto, RoomSummaryDto } from '../types/api';
 
-type PathView = Partial<PathDetailDto> & { id: number };
+function roomStatus(room: RoomSummaryDto) {
+  if (room.locked) return { key: 'locked', label: 'Zablokowane' };
+  if (room.solved) return { key: 'done', label: 'Ukończone' };
+  return { key: 'todo', label: 'Do zrobienia' };
+}
 
 const PathDetailPage = () => {
   const { id } = useParams();
   const { token, logout } = useAuth();
   const navigate = useNavigate();
 
-  const [path, setPath] = useState<PathView | null>(null);
-  const [rooms, setRooms] = useState<PathRoomMiniDto[]>([]);
+  const [path, setPath] = useState<PathDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [enrolling, setEnrolling] = useState(false);
 
-  useEffect(() => {
-    const fetchPath = async () => {
-      try {
-        setLoading(true);
-        setError(null);
-        const res = await pathApi.getRoomsMini(id ?? '', 0, { Authorization: `Bearer ${token}` });
-        if (res.status === 401 || res.status === 403) {
-          logout();
-          navigate('/login');
-          return;
-        }
-        if (!res.ok) throw new Error('Failed to fetch path');
-        const data = await res.json();
-        setPath({ id: data?.pathId });
-        setRooms(Array.isArray(data?.rooms) ? data.rooms : []);
-      } catch (e) {
-        console.error(e);
-        setError('Nie udało się pobrać ścieżki.');
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    if (token) fetchPath();
-  }, [token, id, logout, navigate]);
-
-  const handleEnroll = async () => {
+  const fetchPath = useCallback(async () => {
     try {
-      const res = await pathApi.enroll(id ?? '', { Authorization: `Bearer ${token}` });
-      if (res.ok) {
-        setPath(path ? { ...path, enrolled: true } : null);
-        // After enrollment, backend should return real locked/solved states on next fetch,
-        // but for now we can just trigger a re-fetch or let the user see the change.
-        // Re-fetching is safer to get the correct locked/solved states.
-        window.location.reload();
+      setError(null);
+      const res = await pathApi.getPath(id ?? '', { Authorization: `Bearer ${token}` });
+      if (res.status === 401 || res.status === 403) {
+        logout();
+        navigate('/login');
+        return;
       }
+      if (!res.ok) throw new Error('Failed to fetch path');
+      setPath(await res.json());
     } catch (e) {
       console.error(e);
+      setError('Nie udało się pobrać ścieżki.');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, token, logout, navigate]);
+
+  useEffect(() => {
+    if (token) fetchPath();
+  }, [token, fetchPath]);
+
+  const handleEnroll = async () => {
+    setEnrolling(true);
+    try {
+      const res = await pathApi.enroll(id ?? '', { Authorization: `Bearer ${token}` });
+      if (res.ok) await fetchPath();
+    } catch (e) {
+      console.error(e);
+    } finally {
+      setEnrolling(false);
     }
   };
 
@@ -62,7 +60,9 @@ const PathDetailPage = () => {
   if (error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Błąd: {error}</div>;
   if (!path) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Nie znaleziono ścieżki</div>;
 
-  // Minimal rooms payload; full room loads only when entering /rooms/:id
+  const chapters = path.chapters ?? [];
+  const totalRooms = chapters.reduce((sum, chapter) => sum + chapter.totalRooms, 0);
+  let roomNumber = 0;
 
   return (
     <div className="hackademy-container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
@@ -76,10 +76,10 @@ const PathDetailPage = () => {
             <h1 className="pd-hero-title">{path.title}</h1>
             <p className="pd-hero-desc">{path.description}</p>
             <div className="pd-hero-meta">
-              <span><i className="fas fa-layer-group" /> {rooms.length} pokoi</span>
-              <span><i className="fas fa-signal" /> Beginner Friendly</span>
+              <span><i className="fas fa-book-open" /> {chapters.length} rozdz.</span>
+              <span><i className="fas fa-layer-group" /> {totalRooms} pokoi</span>
             </div>
-            <button className="btn btn-primary btn-lg pd-enroll-btn" onClick={handleEnroll}>
+            <button className="btn btn-primary btn-lg pd-enroll-btn" onClick={handleEnroll} disabled={enrolling}>
               Zacznij tę ścieżkę <i className="fas fa-bolt" style={{ marginLeft: '10px' }} />
             </button>
           </div>
@@ -88,52 +88,84 @@ const PathDetailPage = () => {
 
       <section id="pd-rooms" className={`pd-list ${!path.enrolled ? 'pd-list-locked' : ''}`}>
         <div className="pd-list-header">
-          <h2>Pokoje w ścieżce</h2>
+          <h2>{path.enrolled ? path.title : 'Program ścieżki'}</h2>
           <span className="pd-muted">
-            {path.enrolled ? 'Ułóż progres i przechodź krok po kroku.' : 'Musisz dołączyć do ścieżki, aby odblokować zadania.'}
+            {path.enrolled ? 'Przechodź rozdziały krok po kroku.' : 'Musisz dołączyć do ścieżki, aby odblokować zadania.'}
           </span>
         </div>
 
-        <div className="pd-steps">
-          {rooms.map((r, idx) => {
-            const status = r.locked ? 'locked' : r.solved ? 'done' : 'todo';
-            const statusLabel = r.locked ? 'Zablokowane' : r.solved ? 'Ukończone' : 'Do zrobienia';
-
-            return (
-              <div key={r.id} className={`pd-step ${status}`}>
-                <div className="pd-step-left">
-                  <div className={`pd-step-dot ${status}`}>
-                    {status === 'done' ? <i className="fas fa-check" /> : status === 'locked' ? <i className="fas fa-lock" /> : idx + 1}
-                  </div>
-                  <div className="pd-step-line" />
+        {chapters.map((chapter, chapterIndex) => {
+          const percent = chapter.totalRooms > 0 ? Math.round((chapter.solvedRooms / chapter.totalRooms) * 100) : 0;
+          return (
+            <section key={chapter.id} className="pd-chapter" aria-labelledby={`pd-chapter-${chapter.id}`}>
+              <header className="pd-chapter-header">
+                <div>
+                  <span className="pd-chapter-index">Rozdział {chapterIndex + 1}</span>
+                  <h3 id={`pd-chapter-${chapter.id}`} className="pd-chapter-title">{chapter.title}</h3>
                 </div>
-
-                <div className="pd-step-card">
-                  <div className="pd-step-top">
-                    <div className="pd-step-title">{r.title}</div>
-                    <div className="pd-step-tags">
-                      {r.requiresVpn && <span className="pd-tag">VPN</span>}
-                    </div>
-                  </div>
-
-                  <div className="pd-step-bottom">
-                    <div className="pd-step-meta">
-                      <span className={`pd-status ${status}`}>{statusLabel}</span>
-                    </div>
-                    <button
-                      className={`btn ${r.locked ? 'btn-outline' : 'btn-primary'}`}
-                      disabled={r.locked}
-                      onClick={() => navigate(`/rooms/${r.id}`)}
-                      style={{ padding: '8px 16px', fontSize: '0.9rem' }}
-                    >
-                      {r.solved ? 'Powtórz' : 'Start'} <i className="fas fa-arrow-right" style={{ marginLeft: '8px' }} />
-                    </button>
+                <div className="pd-chapter-progress">
+                  <span className="pd-muted">
+                    {chapter.solvedRooms}/{chapter.totalRooms} ukończone
+                  </span>
+                  <div
+                    className="pd-chapter-bar"
+                    role="progressbar"
+                    aria-label={`Postęp rozdziału ${chapter.title}`}
+                    aria-valuemin={0}
+                    aria-valuemax={100}
+                    aria-valuenow={percent}
+                  >
+                    <span style={{ width: `${percent}%` }} />
                   </div>
                 </div>
-              </div>
-            );
-          })}
-        </div>
+              </header>
+
+              {chapter.rooms.length === 0 ? (
+                <p className="pd-muted pd-chapter-empty">Ten rozdział nie ma jeszcze pokoi.</p>
+              ) : (
+                <div className="pd-steps">
+                  {chapter.rooms.map((r) => {
+                    roomNumber += 1;
+                    const status = roomStatus(r);
+                    return (
+                      <div key={r.id} className={`pd-step ${status.key}`}>
+                        <div className="pd-step-left">
+                          <div className={`pd-step-dot ${status.key}`}>
+                            {status.key === 'done' ? <i className="fas fa-check" /> : status.key === 'locked' ? <i className="fas fa-lock" /> : roomNumber}
+                          </div>
+                          <div className="pd-step-line" />
+                        </div>
+
+                        <div className="pd-step-card">
+                          <div className="pd-step-top">
+                            <div className="pd-step-title">{r.title}</div>
+                            <div className="pd-step-tags">
+                              {r.requiresVpn && <span className="pd-tag">VPN</span>}
+                            </div>
+                          </div>
+
+                          <div className="pd-step-bottom">
+                            <div className="pd-step-meta">
+                              <span className={`pd-status ${status.key}`}>{status.label}</span>
+                            </div>
+                            <button
+                              className={`btn ${r.locked ? 'btn-outline' : 'btn-primary'}`}
+                              disabled={r.locked}
+                              onClick={() => navigate(`/rooms/${r.id}`)}
+                              style={{ padding: '8px 16px', fontSize: '0.9rem' }}
+                            >
+                              {r.solved ? 'Powtórz' : 'Start'} <i className="fas fa-arrow-right" style={{ marginLeft: '8px' }} />
+                            </button>
+                          </div>
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              )}
+            </section>
+          );
+        })}
       </section>
     </div>
   );

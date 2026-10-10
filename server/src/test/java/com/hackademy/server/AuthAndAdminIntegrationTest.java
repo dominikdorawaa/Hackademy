@@ -265,13 +265,15 @@ class AuthAndAdminIntegrationTest {
                     "INSERT INTO paths (title, created_at, updated_at) VALUES (?, ?, ?) RETURNING id",
                     Long.class, username + " " + pathKind, Timestamp.valueOf(LocalDateTime.now()),
                     Timestamp.valueOf(LocalDateTime.now()));
-            if (!pathKind.equals("empty")) {
-                jdbcTemplate.update("INSERT INTO path_rooms (path_id, room_id, sort_order) VALUES (?, ?, 0)",
-                        pathId, room.getId());
+            var chapterId = jdbcTemplate.queryForObject("INSERT INTO path_chapters (path_id, title, sort_order, created_at, updated_at) VALUES (?, ?, 0, CURRENT_TIMESTAMP, CURRENT_TIMESTAMP) RETURNING id",
+                    Long.class, pathId, "Chapter 1");
+            if (pathKind.equals("complete")) {
+                jdbcTemplate.update("INSERT INTO chapter_rooms (chapter_id, room_id, sort_order) VALUES (?, ?, 0)",
+                        chapterId, room.getId());
             }
             if (pathKind.equals("partial")) {
-                jdbcTemplate.update("INSERT INTO path_rooms (path_id, room_id, sort_order) VALUES (?, ?, 1)",
-                        pathId, unsolvedRoom.getId());
+                jdbcTemplate.update("INSERT INTO chapter_rooms (chapter_id, room_id, sort_order) VALUES (?, ?, 0)",
+                        chapterId, unsolvedRoom.getId());
             }
         }
         jdbcTemplate.update("INSERT INTO user_unlocked_hints (user_id, hint_id) VALUES (?, ?)", owner.getId(), hintId);
@@ -347,7 +349,7 @@ class AuthAndAdminIntegrationTest {
 
     @Test
     void registersAndLogsInAgainstMigratedDatabase() throws Exception {
-        assertEquals(3, jdbcTemplate.queryForObject(
+        assertEquals(6, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
 
         var username = "user" + UUID.randomUUID().toString().substring(0, 8);

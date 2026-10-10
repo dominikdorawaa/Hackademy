@@ -6,6 +6,7 @@ import com.hackademy.server.path.dto.PathDetailDto;
 import com.hackademy.server.path.dto.PathProgressDto;
 import com.hackademy.server.path.dto.PathRoomsMiniResponse;
 import com.hackademy.server.path.dto.PathSummaryDto;
+import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -20,7 +21,7 @@ public interface PathService {
     void deletePath(Long id);
     PathAdminDetailDto getAdminDetail(Long id);
     void updatePathMeta(Long id, UpdatePathMetaRequest request);
-    void updatePathRooms(Long id, List<Long> roomIds);
+    PathAdminDetailDto updatePathChapters(Long id, UpdatePathChaptersRequest request, boolean canDeleteChapters);
 
     void uploadBanner(Long id, MultipartFile file);
     byte[] getBannerData(Long id);

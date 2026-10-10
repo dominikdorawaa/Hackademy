@@ -60,7 +60,7 @@ class SchemaMigrationTest {
     @Test
     void migratesEmptyDatabaseWithBadgesOnly() throws Exception {
         var flyway = flyway();
-        assertEquals(3, flyway.migrate().migrationsExecuted);
+        assertEquals(6, flyway.migrate().migrationsExecuted);
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, scalar("SELECT count(*) FROM users"));
         assertEquals(0, scalar("SELECT count(*) FROM rooms"));
@@ -71,7 +71,7 @@ class SchemaMigrationTest {
     @Test
     void preservesExistingProfileWhenAddingPersonalization() throws Exception {
         Flyway.configure().dataSource(url, username, password)
-                .locations("classpath:db/schema").target("2").load().migrate();
+                .locations("classpath:db/schema").target("5").load().migrate();
         execute("INSERT INTO users (id, username, email, password, role, points, streak, bio, created_at, updated_at) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 0, 0, 'Learning Linux', now(), now())");
         assertEquals(1, flyway().migrate().migrationsExecuted);
         assertEquals("Alice", text("SELECT avatar_seed FROM users WHERE id = 1"));
@@ -95,7 +95,7 @@ class SchemaMigrationTest {
             assertEquals(1, scalar("SELECT count(*) FROM users"));
         }
         try (var ignored = startApplication()) {
-            assertEquals(3, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
+            assertEquals(6, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
         }
     }
 
@@ -131,7 +131,8 @@ class SchemaMigrationTest {
                 INSERT INTO hints (id, room_id, description) VALUES (1, 1, 'h');
                 INSERT INTO room_files (room_id, file_name, data) VALUES (1, 'f.txt', '\\x00'::bytea);
                 INSERT INTO paths (id, title, created_at, updated_at) VALUES (1, 'p', now(), now());
-                INSERT INTO path_rooms (path_id, room_id, sort_order) VALUES (1, 1, 0);
+                INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES (1, 1, 'c', 0, now(), now());
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 1, 0);
                 INSERT INTO path_enrollments (user_id, path_id, enrolled_at) VALUES (1, 1, now());
                 INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (1, 1, now()), (2, 1, now());
                 INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (1, 1, now()), (2, 1, now());
@@ -157,13 +158,52 @@ class SchemaMigrationTest {
                 SELECT (SELECT count(*) FROM room_tasks)
                      + (SELECT count(*) FROM hints)
                      + (SELECT count(*) FROM room_files)
-                     + (SELECT count(*) FROM path_rooms)
+                     + (SELECT count(*) FROM chapter_rooms)
                      + (SELECT count(*) FROM user_solved_rooms)
                      + (SELECT count(*) FROM user_completed_tasks)
                      + (SELECT count(*) FROM user_unlocked_hints)
                 """));
         assertEquals(1, scalar("SELECT count(*) FROM users"));
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
+        assertEquals(1, scalar("SELECT count(*) FROM path_chapters"));
+        execute("DELETE FROM paths WHERE id = 1");
+        assertEquals(0, scalar("SELECT count(*) FROM path_chapters"));
+    }
+
+    @Test
+    void movesPathRoomsIntoFirstChapterOfTheLowestPath() throws Exception {
+        assertEquals(2, flyway("2").migrate().migrationsExecuted);
+        for (long id = 1; id <= 5; id++) {
+            insertRoom(id);
+        }
+        execute("""
+                UPDATE rooms SET room_type = 'PATH' WHERE id <= 4;
+                INSERT INTO paths (id, title, created_at, updated_at) VALUES (1, 'a', now(), now()), (2, 'b', now(), now()), (3, 'c', now(), now());
+                INSERT INTO path_rooms (path_id, room_id, sort_order) VALUES (1, 3, 5), (1, 1, 7), (1, 2, 9), (2, 1, 0), (2, 4, 3), (1, 5, 0);
+                """);
+
+        assertEquals(1, flyway("3").migrate().migrationsExecuted);
+        assertEquals(1, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
+        assertEquals(3, flyway().migrate().migrationsExecuted);
+        assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
+        assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
+        assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));
+        assertEquals(0, scalar("SELECT sum(chapters_revision) FROM paths"));
+
+        assertEquals(3, scalar("SELECT count(*) FROM path_chapters WHERE title = 'Rozdział 1' AND sort_order = 0"));
+        assertEquals(3, scalar("SELECT count(DISTINCT path_id) FROM path_chapters"));
+        assertEquals("3:0,1:1,2:2", text("""
+                SELECT string_agg(cr.room_id || ':' || cr.sort_order, ',' ORDER BY cr.sort_order)
+                FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE pc.path_id = 1
+                """));
+        assertEquals("4:0", text("""
+                SELECT string_agg(cr.room_id || ':' || cr.sort_order, ',' ORDER BY cr.sort_order)
+                FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE pc.path_id = 2
+                """));
+        assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE pc.path_id = 3"));
+        assertEquals(0, scalar("SELECT count(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'path_rooms'"));
+        assertSqlState("23505", "INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) SELECT 3, id, 1 FROM path_chapters WHERE path_id = 2");
+        assertSqlState("23514", "INSERT INTO path_chapters (path_id, title, sort_order, created_at, updated_at) VALUES (1, '  ', 1, now(), now())");
     }
 
     private ConfigurableApplicationContext startApplication() {
@@ -179,6 +219,13 @@ class SchemaMigrationTest {
     private Flyway flyway() {
         return Flyway.configure().dataSource(url, username, password)
                 .locations("classpath:db/schema")
+                .load();
+    }
+
+    private Flyway flyway(String target) {
+        return Flyway.configure().dataSource(url, username, password)
+                .locations("classpath:db/schema")
+                .target(target)
                 .load();
     }
 
