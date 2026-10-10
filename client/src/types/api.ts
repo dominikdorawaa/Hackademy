@@ -220,14 +220,6 @@ export interface UpdatePathChaptersRequest {
   chapters: ChapterRequest[]
 }
 
-export interface RoomTaskDto {
-  id: number
-  title: string
-  content: string
-  question: string
-  completed: boolean
-}
-
 export interface RoomTaskAdminDto {
   id: number
   title: string
@@ -242,6 +234,36 @@ export interface RoomTaskRequest {
   content: string
   question: string | null
   answer: string | null
+}
+
+export type StatsRange = 7 | 30 | 90
+
+export interface AdminStatsDto {
+  totals: {
+    users: number
+    solves: number
+    activeThisWeek: number
+    pendingReports: number
+  }
+  rangeDays: StatsRange
+  timeline: { date: ApiDate; registrations: number; solves: number }[]
+  solvesBySource: { key: string; label: string; count: number }[]
+  recentSolves: {
+    username: string
+    roomId: number
+    roomTitle: string
+    roomType: RoomType
+    pathTitle: string | null
+    solvedAt: ApiDateTime
+  }[]
+}
+
+export interface RoomTaskDto {
+  id: number
+  title: string
+  content: string
+  question: string
+  completed: boolean
 }
 
 export interface RoomSummaryDto {
