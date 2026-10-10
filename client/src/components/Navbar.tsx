@@ -1,3 +1,4 @@
+import UserAvatar from '../components/UserAvatar';
 import * as userApi from '../services/userApi';
 import * as friendApi from '../services/friendApi';
 import * as arenaApi from '../services/arenaApi';
@@ -7,6 +8,9 @@ import { useAuth } from '../context/AuthContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import type { Challenge, DashboardUser, FriendRequestDto } from '../types/api';
 import './Navbar.css';
+import { Button } from './ui/button';
+import { PROFILE_UPDATED } from '../lib/profile';
+import type { ProfilePersonalization } from '../lib/profile';
 
 type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
@@ -17,6 +21,10 @@ const Navbar = () => {
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [mobileMenuPath, setMobileMenuPath] = useState<string | null>(null);
+  const mobileMenuOpen = mobileMenuPath === location.pathname;
+  const navRef = useRef<HTMLElement | null>(null);
+  const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [userData, setUserData] = useState<DashboardUser | null>(null);
   const [notifications, setNotifications] = useState<Notification[]>([]);
@@ -24,6 +32,34 @@ const Navbar = () => {
   const [processedNotifications, setProcessedNotifications] = useState<string[]>([]); // Track processed IDs
   const menuRef = useRef<HTMLDivElement | null>(null);
   const notifRef = useRef<HTMLDivElement | null>(null);
+
+  useEffect(() => {
+    const refresh = (event: Event) => {
+      const changed = (event as CustomEvent<ProfilePersonalization & { username: string }>).detail;
+      setUserData(previous => previous?.username === changed.username ? { ...previous, ...changed } : previous);
+    };
+    window.addEventListener(PROFILE_UPDATED, refresh);
+    return () => window.removeEventListener(PROFILE_UPDATED, refresh);
+  }, []);
+
+  useEffect(() => {
+    const closeMenus = (event: KeyboardEvent) => {
+      if (event.key !== 'Escape') return;
+      setMobileMenuPath(null);
+      setIsMenuOpen(false);
+      setIsNotificationsOpen(false);
+      if (mobileMenuOpen) mobileToggleRef.current?.focus();
+    };
+    const closeMobileOutside = (event: MouseEvent) => {
+      if (!navRef.current?.contains(event.target as Node)) setMobileMenuPath(null);
+    };
+    document.addEventListener('keydown', closeMenus);
+    document.addEventListener('mousedown', closeMobileOutside);
+    return () => {
+      document.removeEventListener('keydown', closeMenus);
+      document.removeEventListener('mousedown', closeMobileOutside);
+    };
+  }, [mobileMenuOpen]);
 
   useEffect(() => {
     const fetchUserData = async () => {
@@ -193,7 +229,7 @@ const Navbar = () => {
   );
 
   return (
-    <nav className="navbar">
+    <nav className="navbar" ref={navRef} aria-label="Nawigacja główna">
       <div className="hackademy-container">
         <div className="nav-content">
           <Link
@@ -214,7 +250,13 @@ const Navbar = () => {
             />
           </Link>
           {!isAuthPage && (
-            <div className="nav-links">
+            <Button type="button" variant="outline" size="sm" className="mobile-nav-toggle md:hidden" ref={mobileToggleRef}
+              aria-expanded={mobileMenuOpen} aria-controls="main-nav-links"
+              onClick={() => setMobileMenuPath(mobileMenuOpen ? null : location.pathname)}>Menu</Button>
+          )}
+          {!isAuthPage && (
+            <div id="main-nav-links" className={`nav-links ${mobileMenuOpen ? 'mobile-nav-open' : ''}`}
+              onClick={event => { if ((event.target as HTMLElement).closest('a')) setMobileMenuPath(null); }}>
               {isAuthenticated ? (
                 <>
                   <Link to="/dashboard" className={isActivePrefix('/dashboard') ? 'active' : ''}>Dashboard</Link>
@@ -262,18 +304,22 @@ const Navbar = () => {
           )}
           <div className="nav-auth">
             {isAuthenticated && userData ? (
-              <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
+              <div className="nav-user-controls">
                 
                 {/* Notifications Bell */}
                 <div ref={notifRef} style={{ position: 'relative' }}>
-                    <div 
+                    <button
+                        type="button"
+                        data-slot="nav-notifications"
+                        aria-label="Powiadomienia"
+                        aria-expanded={isNotificationsOpen}
                         className="nav-icon-wrapper"
                         onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
                         style={{ color: 'var(--text-gray)' }}
                     >
                         <i className="fas fa-bell"></i>
                         {unreadCount > 0 && <span className="notification-badge"></span>}
-                    </div>
+                    </button>
 
                     {isNotificationsOpen && (
                         <div className="notifications-dropdown" style={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)' }}>
@@ -297,8 +343,7 @@ const Navbar = () => {
                                             <li key={`${notif.type}-${notif.id}`} className="notification-item" style={{ borderBottom: '1px solid var(--border-color)' }}>
                                                 <div className="notification-content">
                                                     <div className="notification-avatar">
-                                                        <img 
-                                                            src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${notif.from}`} 
+                                                        <UserAvatar username={notif.from} seed={notif.type === 'FRIEND_REQUEST' ? notif.data.avatarSeed : notif.data.challengerAvatarSeed}
                                                             alt="Avatar" 
                                                             style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} 
                                                         />
@@ -343,8 +388,7 @@ const Navbar = () => {
                 </div>
 
                 {/* Streak Counter */}
-                <div style={{ 
-                    display: 'flex', 
+                <div className="nav-streak" style={{
                     alignItems: 'center', 
                     gap: '5px', 
                     color: '#ff9800', 
@@ -360,11 +404,11 @@ const Navbar = () => {
                 </div>
 
                 <div ref={menuRef} style={{ position: 'relative' }}>
-                  <img 
-                    src={`https://api.dicebear.com/7.x/pixel-art/svg?seed=${userData.username}`}
+                  <button type="button" className="nav-account-toggle" data-slot="nav-account"
+                    aria-label="Menu konta" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(!isMenuOpen)}>
+                  <UserAvatar username={userData.username} seed={userData.avatarSeed}
                     alt="User Avatar"
                     className="avatar" 
-                    onClick={() => setIsMenuOpen(!isMenuOpen)}
                     style={{
                       width: '40px',
                       height: '40px',
@@ -373,6 +417,7 @@ const Navbar = () => {
                       border: '2px solid var(--primary-blue)'
                     }}
                   />
+                  </button>
                   {isMenuOpen && (
                     <div className="profile-dropdown" style={{
                       position: 'absolute',

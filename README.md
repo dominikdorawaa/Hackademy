@@ -129,3 +129,11 @@ W katalogu `client` dodawaj komponenty poleceniem `npx shadcn@latest add <nazwa>
 Tokeny shadcn są w `src/styles/theme.css` i odwołują się do istniejącej palety Hackademy: niebieski jest kolorem głównym, czerwony oznacza akcje destrukcyjne, a tła, teksty i obramowania korzystają z obecnych zmiennych. `ThemeProvider` nadal steruje atrybutem `data-theme` i zapisem `app-theme`; ten sam atrybut obsługuje wariant `dark:`. Domyślny motyw jest ciemny.
 
 Style zgodności starych formularzy nie obejmują elementów z `data-slot`, używanych przez shadcn. Przy generowaniu kolejnych komponentów zachowuj ten atrybut oraz zasady repozytorium, w tym brak komentarzy w nowym kodzie. `npm test` sprawdza także kompilację CSS produkcyjnego i działanie podstawowych komponentów shadcn.
+
+## Profile użytkowników
+
+Profil to wizytówka z bio, zainteresowaniami, wybieranym avatarem DiceBear i gablotą maksymalnie trzech zdobytych odznak. Formularz „Edytuj profil” zapisuje opis do 500 znaków, do pięciu zainteresowań, seed avatara i uporządkowany wybór odznak przez `PATCH /api/user/me/profile`. Bez własnego wyboru gablota prezentuje trzy ostatnie odznaki. Migracja Flyway V6 zachowuje dotychczasowe avatary i uniezależnia je od przyszłych zmian nazw użytkowników.
+
+Kolekcja obejmuje zdobyte i niezdobyte osiągnięcia. Paski postępu są widoczne tylko w pełnym katalogu, który otwiera się w oknie z wyszukiwaniem, filtrami, popularnością globalną i paginacją po sześć wpisów. Obok kalendarza są statystyki nauki: rekord jednego dnia, najdłuższa seria, data najaktywniejszego dnia i średnia liczba rozwiązań w aktywnym dniu. Wszystkie dotyczą ostatnich dwunastu tygodni. Profil nie ma przycisku udostępniania; jego adres nadal wymaga zalogowania. Ostatnio ukończone pokoje, XP, poziom, awans i Elo pozostają w dashboardzie.
+
+Decyzje projektowe i zasady widoczności opisuje [ADR profili](docs/adr/user-profiles.md). Znaczenie XP, rang i aktywności wyjaśnia [słownik](docs/glossary.md).

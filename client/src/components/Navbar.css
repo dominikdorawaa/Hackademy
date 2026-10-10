@@ -1,4 +1,30 @@
 @layer components {
+  .nav-streak { display: flex; }
+  .nav-user-controls { display: flex; align-items: center; gap: 15px; }
+  .nav-account-toggle { display: block; padding: 0; border: 0; background: transparent; border-radius: 50%; cursor: pointer; }
+  button.nav-icon-wrapper { padding: 0; border: 0; background: transparent; }
+  .nav-account-toggle:focus-visible, .nav-icon-wrapper:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3px; }
+  @media (min-width: 768px) and (max-width: 1100px) {
+    .navbar .nav-links { gap: 12px; }
+    .navbar .nav-links a { font-size: 12px; white-space: nowrap; }
+    .navbar .logo img { max-width: 110px; object-fit: contain; }
+    .nav-user-controls { gap: 8px; }
+  }
+  @media (max-width: 767px) {
+    .navbar .nav-content { flex-wrap: wrap; gap: 12px; }
+    .navbar .logo { margin-right: auto; }
+    .navbar .logo img { max-width: 120px; object-fit: contain; }
+    .navbar .mobile-nav-toggle { display: inline-flex; order: 1; }
+    .navbar .nav-auth { order: 2; gap: 8px; }
+    .navbar .nav-user-controls { gap: 8px; }
+    .navbar .nav-streak { display: none; }
+    .navbar .nav-links { display: none; flex-basis: 100%; order: 3; gap: 0; border-top: 1px solid var(--border-color); padding-top: 8px; }
+    .navbar .nav-links.mobile-nav-open { display: flex; flex-direction: column; }
+    .navbar .nav-links a { display: block; padding: 12px 4px; }
+    .navbar .nav-links a.active::after { display: none; }
+    .navbar .notifications-dropdown { position: fixed; top: 72px; left: 16px; right: 16px; width: auto; max-width: calc(100vw - 32px); }
+    .navbar .profile-dropdown { max-width: calc(100vw - 32px); }
+  }
 /* Navbar.css */
 
 /* --- Active tab underline in navbar --- */
