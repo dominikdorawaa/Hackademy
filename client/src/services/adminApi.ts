@@ -116,10 +116,10 @@ export const getPath = (id: ApiId, token: string | null) => {
     return request<PathAdminDetailDto>(`/paths/${id}`, { method: 'GET', token });
 };
 
-export const updatePathChapters = (id: ApiId, chapters: ChapterRequest[], token: string | null) => {
+export const updatePathChapters = (id: ApiId, revision: number, chapters: ChapterRequest[], token: string | null) => {
     return request<PathAdminDetailDto>(`/paths/${id}/chapters`, {
         method: 'PUT',
         token,
-        body: JSON.stringify({ chapters }),
+        body: JSON.stringify({ revision, chapters }),
     });
 };

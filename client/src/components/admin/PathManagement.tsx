@@ -290,6 +290,7 @@ const PathManagement = () => {
           <ChaptersEditor
             key={editDetail.id}
             pathId={editDetail.id}
+            revision={editDetail.revision}
             chapters={editDetail.chapters}
             rooms={availableRooms}
             canDeleteChapters={user?.roles.includes('ROLE_ADMIN') ?? false}

@@ -10,5 +10,6 @@ public record PathAdminDetailDto(
     String description,
     String bannerUrl,
     boolean hasBanner,
+    long revision,
     List<PathChapterAdminDto> chapters
 ) {}

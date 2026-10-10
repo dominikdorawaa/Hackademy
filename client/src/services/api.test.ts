@@ -178,15 +178,15 @@ describe('existing adminApi compatibility', () => {
 
   it('accepts an empty successful response', async () => {
     fetchMock.mockResolvedValue(new Response('', { status: 200 }));
-    await expect(legacyAdmin.updatePathChapters(5, [], 'token')).resolves.toBeUndefined();
+    await expect(legacyAdmin.updatePathChapters(5, 0, [], 'token')).resolves.toBeUndefined();
   });
 
   it('sends the whole chapter structure', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 5, chapters: [] }));
     const chapters = [{ id: null, title: 'Wstęp', roomIds: [1, 2] }];
-    await expect(legacyAdmin.updatePathChapters(5, chapters, 'token')).resolves.toEqual({ id: 5, chapters: [] });
+    await expect(legacyAdmin.updatePathChapters(5, 0, chapters, 'token')).resolves.toEqual({ id: 5, chapters: [] });
     expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/admin/paths/5/chapters`, {
-      method: 'PUT', body: JSON.stringify({ chapters }),
+      method: 'PUT', body: JSON.stringify({ revision: 0, chapters }),
       headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token' },
     });
   });
