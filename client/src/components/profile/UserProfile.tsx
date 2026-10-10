@@ -202,6 +202,7 @@ export default function UserProfile({ username }: { username?: string }) {
         />
         <div className="profile-identity">
           <h1>{person.username}</h1>
+          {appearance.bio && <PublicBio bio={appearance.bio} />}
           {appearance.interests.length > 0 && <ul className="profile-interest-tags" aria-label="Zainteresowania">
             {appearance.interests.map(interest => <li key={interest}>{PROFILE_INTERESTS[interest] ?? interest}</li>)}
           </ul>}
@@ -213,7 +214,6 @@ export default function UserProfile({ username }: { username?: string }) {
               </time>
             </span>
           </div>
-          {appearance.bio && <PublicBio bio={appearance.bio} />}
         </div>
         <div className="profile-header-side">
           {own && <Button onClick={edit}><i className="fas fa-pen" aria-hidden="true" /> Edytuj profil</Button>}
