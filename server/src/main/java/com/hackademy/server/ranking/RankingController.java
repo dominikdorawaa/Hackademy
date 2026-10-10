@@ -43,6 +43,7 @@ public class RankingController {
         Map<String, Object> userInfo = Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),
+                "avatarSeed", user.getAvatarSeed(),
                 "email", user.getEmail(),
                 "role", user.getRole(),
                 "points", user.getPoints(),

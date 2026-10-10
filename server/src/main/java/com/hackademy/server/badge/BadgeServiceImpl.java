@@ -63,26 +63,7 @@ public class BadgeServiceImpl implements BadgeService {
     @Override
     @Transactional(readOnly = true)
     public List<BadgeDto> getUserBadges(Long userId) {
-        ensureCache();
-        long totalUsers = cachedTotalUsers;
-        Map<Long, Long> badgeCounts = cachedBadgeCounts;
-
-        long finalTotalUsers = totalUsers;
-        return userBadgeRepository.findByUser_Id(userId).stream()
-                .map(ub -> {
-                    long count = badgeCounts.getOrDefault(ub.getBadge().getId(), 0L);
-                    double rarity = ((double) count / finalTotalUsers) * 100.0;
-                    return new BadgeDto(
-                            ub.getBadge().getId(),
-                            ub.getBadge().getName(),
-                            ub.getBadge().getDescription(),
-                            ub.getBadge().getIcon(),
-                            ub.getEarnedAt(),
-                            true,
-                            rarity
-                    );
-                })
-                .collect(Collectors.toList());
+        return getAllBadgesWithStatus(userId).stream().filter(BadgeDto::earned).toList();
     }
 
     @Override
@@ -98,6 +79,18 @@ public class BadgeServiceImpl implements BadgeService {
         long totalUsers = cachedTotalUsers;
         Map<Long, Long> badgeCounts = cachedBadgeCounts;
 
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new com.hackademy.server.exception.UserNotFoundException("User not found"));
+        long streak = user.getStreak();
+        if (user.getLastSolvedDate() != null && user.getLastSolvedDate().isBefore(java.time.LocalDate.now().minusDays(1))) {
+            streak = 0;
+        }
+        Map<String, Long> currentValues = Map.of(
+                "POINTS", (long) user.getPoints(),
+                "STREAK", streak,
+                "SOLVED_COUNT", userSolvedRoomRepository.countByUser_Id(userId),
+                "FRIENDS_COUNT", friendshipRepository.countByUserIdAndStatus(userId, FriendshipStatus.ACCEPTED));
+
         long finalTotalUsers = totalUsers;
         return allBadges.stream()
                 .map(badge -> {
@@ -112,7 +105,8 @@ public class BadgeServiceImpl implements BadgeService {
                             badge.getIcon(),
                             ub != null ? ub.getEarnedAt() : null,
                             ub != null,
-                            rarity
+                            rarity,
+                            progressFor(badge, ub != null, currentValues)
                     );
                 })
                 .collect(Collectors.toList());
@@ -186,6 +180,14 @@ public class BadgeServiceImpl implements BadgeService {
             dashboardSummaryCache.invalidateUser(user.getId());
         }
         return newBadges;
+    }
+
+    private BadgeProgressDto progressFor(Badge badge, boolean earned, Map<String, Long> currentValues) {
+        Long current = currentValues.get(badge.getConditionType());
+        if (current == null) return null;
+        long target = Math.max(0, badge.getConditionValue());
+        return new BadgeProgressDto(earned ? target : Math.max(0, Math.min(current, target)),
+                target, badge.getConditionType());
     }
 
     private Map<Long, Long> getBadgeCountsMap() {

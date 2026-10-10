@@ -4,5 +4,10 @@ public record FriendDto(
     Long id,
     String username,
     int points,
-    int streak
-) {}
+    int streak,
+    String avatarSeed
+) {
+    public FriendDto(Long id, String username, int points, int streak) {
+        this(id, username, points, streak, username);
+    }
+}

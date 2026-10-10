@@ -7,10 +7,25 @@ import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
 import java.time.LocalDateTime;
+import java.time.LocalDate;
 import java.util.List;
 
 @Repository
 public interface UserSolvedRoomRepository extends JpaRepository<UserSolvedRoom, Long> {
+    interface PracticeAreaView {
+        String getCategory();
+        Long getSolvedRooms();
+    }
+
+    @Query(value = """
+            SELECT TRIM(r.category) AS category, COUNT(DISTINCT usr.room_id) AS solvedRooms
+            FROM user_solved_rooms usr JOIN rooms r ON r.id = usr.room_id
+            WHERE usr.user_id = :userId AND TRIM(r.category) <> ''
+            GROUP BY TRIM(r.category)
+            ORDER BY COUNT(DISTINCT usr.room_id) DESC, TRIM(r.category)
+            """, nativeQuery = true)
+    List<PracticeAreaView> findPracticeAreas(@Param("userId") Long userId);
+
     boolean existsByUser_IdAndRoom_Id(Long userId, Long roomId);
     boolean existsByUser_UsernameAndRoom_Title(String username, String roomTitle);
     boolean existsByUser_IdAndRoom_Title(Long userId, String roomTitle);
@@ -39,20 +54,23 @@ public interface UserSolvedRoomRepository extends JpaRepository<UserSolvedRoom, 
             """, nativeQuery = true)
     List<RecentSolvedRoomView> findRecentSolvedRooms(@Param("userId") Long userId, @Param("limit") int limit);
 
-    // Use native query for date casting to be safe with Postgres
+    interface ActivityRow {
+        LocalDate getDate();
+        Long getCount();
+    }
+
     @Query(value = "SELECT CAST(solved_at AS date) as date, COUNT(*) as count " +
                    "FROM user_solved_rooms " +
                    "WHERE user_id = :userId AND solved_at >= :startDate " +
                    "GROUP BY CAST(solved_at AS date)", nativeQuery = true)
-    List<Object[]> findUserActivityRaw(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate);
+    List<ActivityRow> findUserActivityRaw(@Param("userId") Long userId, @Param("startDate") LocalDateTime startDate);
 
-    // Default method to map Object[] to ActivityDto
     default List<ActivityDto> findUserActivity(Long userId, LocalDateTime startDate) {
-        List<Object[]> results = findUserActivityRaw(userId, startDate);
+        List<ActivityRow> results = findUserActivityRaw(userId, startDate);
         return results.stream()
                 .map(row -> new ActivityDto(
-                        ((java.sql.Date) row[0]).toLocalDate(),
-                        ((Number) row[1]).longValue()
+                        row.getDate(),
+                        row.getCount()
                 ))
                 .collect(java.util.stream.Collectors.toList());
     }

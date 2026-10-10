@@ -5,6 +5,7 @@ import com.hackademy.server.user.dto.UserSearchDto;
 import java.util.List;
 
 public interface FriendshipService {
+    void invalidateProfileCaches();
     void sendFriendRequest(Long requesterId, String receiverUsername);
     void acceptFriendRequest(Long receiverId, Long requestId);
     void rejectFriendRequest(Long receiverId, Long requestId);

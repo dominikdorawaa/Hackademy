@@ -18,4 +18,12 @@ public class Challenge {
     private LocalDateTime createdAt;
     private String status; // PENDING, ACCEPTED, REJECTED, EXPIRED
     private boolean vpnEnabled;
+    private String challengerAvatarSeed;
+    private String targetAvatarSeed;
+
+    public Challenge(String id, Long challengerId, String challengerUsername, Long targetId,
+                     String targetUsername, LocalDateTime createdAt, String status, boolean vpnEnabled) {
+        this(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status,
+                vpnEnabled, challengerUsername, targetUsername);
+    }
 }

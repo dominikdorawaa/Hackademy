@@ -15,6 +15,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.Collection;
 import java.util.List;
+import java.util.ArrayList;
 
 @Getter
 @Setter
@@ -45,6 +46,32 @@ public class User implements UserDetails {
 
     @Column(columnDefinition = "TEXT")
     private String bio;
+
+    @Builder.Default
+    @Column(nullable = false, length = 100)
+    private String tagline = "";
+
+    @Column(name = "avatar_seed", nullable = false, length = 100)
+    private String avatarSeed;
+
+    @Builder.Default
+    @ElementCollection
+    @CollectionTable(name = "user_profile_interests", joinColumns = @JoinColumn(name = "user_id"))
+    @OrderColumn(name = "position")
+    @Column(name = "interest", nullable = false, length = 40)
+    private List<String> interests = new ArrayList<>();
+
+    @Builder.Default
+    @ElementCollection
+    @CollectionTable(name = "user_featured_badges", joinColumns = @JoinColumn(name = "user_id"))
+    @OrderColumn(name = "position")
+    @Column(name = "badge_id", nullable = false)
+    private List<Long> featuredBadgeIds = new ArrayList<>();
+
+    @PrePersist
+    void initializeAvatar() {
+        if (avatarSeed == null || avatarSeed.isBlank()) avatarSeed = username;
+    }
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

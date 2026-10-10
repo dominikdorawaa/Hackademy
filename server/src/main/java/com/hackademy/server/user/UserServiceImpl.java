@@ -6,6 +6,8 @@ import com.hackademy.server.dashboard.UserWeeklyActiveTime;
 import com.hackademy.server.dashboard.UserWeeklyActiveTimeId;
 import com.hackademy.server.friendship.FriendshipService;
 import com.hackademy.server.room.UserSolvedRoom;
+import com.hackademy.server.room.UserUnlockedHintRepository;
+import com.hackademy.server.path.PathRepository;
 
 import com.hackademy.server.dashboard.ActivityDto;
 import com.hackademy.server.auth.AuthResponse;
@@ -17,7 +19,11 @@ import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateUsernameRequest;
 import com.hackademy.server.admin.UserAdminView;
 import com.hackademy.server.user.dto.UserProfileDto;
+import com.hackademy.server.user.dto.ProfileStatsDto;
+import com.hackademy.server.user.dto.ProfilePortfolioDto;
 import com.hackademy.server.user.dto.UserSearchDto;
+import com.hackademy.server.user.dto.ProfilePersonalizationDto;
+import com.hackademy.server.user.dto.UpdateProfileRequest;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.badge.UserBadgeRepository;
 import com.hackademy.server.room.UserSolvedRoomRepository;
@@ -28,11 +34,15 @@ import org.springframework.data.domain.PageRequest;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Set;
+import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
 import java.util.stream.IntStream;
@@ -40,6 +50,57 @@ import java.util.stream.IntStream;
 @Service
 @RequiredArgsConstructor
 public class UserServiceImpl implements UserService {
+
+    private static final Set<String> PROFILE_INTERESTS = Set.of(
+            "WEB", "NETWORKS", "LINUX", "WINDOWS", "PENTESTING", "SOC", "FORENSICS", "CRYPTOGRAPHY", "REVERSE_ENGINEERING", "PROGRAMMING");
+
+    private ProfilePersonalizationDto personalization(User user) {
+        return new ProfilePersonalizationDto(
+                user.getBio() == null ? "" : user.getBio(), user.getTagline(), user.getAvatarSeed(),
+                List.copyOf(user.getInterests()), List.copyOf(user.getFeaturedBadgeIds()));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProfilePersonalizationDto getPersonalization(Long userId) {
+        return personalization(userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found")));
+    }
+
+    @Override
+    @Transactional
+    public ProfilePersonalizationDto updateProfile(Long userId, UpdateProfileRequest request) {
+        if (!PROFILE_INTERESTS.containsAll(request.interests()) ||
+                new HashSet<>(request.interests()).size() != request.interests().size() ||
+                new HashSet<>(request.featuredBadgeIds()).size() != request.featuredBadgeIds().size()) {
+            throw new IllegalArgumentException("Nieprawidłowe lub powtórzone zainteresowania albo odznaki.");
+        }
+        var earnedIds = badgeService.getAllBadgesWithStatus(userId).stream()
+                .filter(BadgeDto::earned).map(BadgeDto::id).collect(Collectors.toSet());
+        if (!earnedIds.containsAll(request.featuredBadgeIds())) {
+            throw new IllegalArgumentException("Możesz wyróżnić tylko własne zdobyte odznaki.");
+        }
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        user.setBio(request.bio().strip());
+        user.setTagline(request.tagline().strip());
+        user.setAvatarSeed(request.avatarSeed().strip());
+        user.getInterests().clear();
+        user.getInterests().addAll(request.interests());
+        user.getFeaturedBadgeIds().clear();
+        user.getFeaturedBadgeIds().addAll(request.featuredBadgeIds());
+        userRepository.saveAndFlush(user);
+        TransactionSynchronizationManager.registerSynchronization(
+                new TransactionSynchronization() {
+                    @Override
+                    public void afterCommit() {
+                        invalidateGlobalRankingCache();
+                        rankCache.clear();
+                        friendshipService.invalidateProfileCaches();
+                    }
+                });
+        return personalization(user);
+    }
 
     private final UserRepository userRepository;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
@@ -49,6 +110,34 @@ public class UserServiceImpl implements UserService {
     private final FriendshipService friendshipService;
     private final BadgeService badgeService;
     private final UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
+    private final UserUnlockedHintRepository userUnlockedHintRepository;
+    private final PathRepository pathRepository;
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProfileStatsDto getProfileStats(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return new ProfileStatsDto(
+                userSolvedRoomRepository.countByUser_Id(userId),
+                userUnlockedHintRepository.countByUser_Id(userId),
+                userBadgeRepository.countByUser_Id(userId), user.getElo(), pathRepository.countCompletedByUserId(userId));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public ProfilePortfolioDto getProfilePortfolio(Long userId) {
+        User user = userRepository.findById(userId)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        var areas = userSolvedRoomRepository.findPracticeAreas(userId).stream()
+                .map(row -> new ProfilePortfolioDto.PracticeArea(
+                        row.getCategory(), row.getSolvedRooms())).toList();
+        var paths = pathRepository.findProgressForUsername(user.getUsername()).stream()
+                .filter(row -> row.getTotalRooms() > 0 && row.getTotalRooms().equals(row.getSolvedRooms()))
+                .map(row -> new ProfilePortfolioDto.CompletedPath(
+                        row.getId(), row.getTitle(), row.getTotalRooms())).toList();
+        return new ProfilePortfolioDto(areas, paths);
+    }
 
     private static final long CACHE_MS = 30_000; // 30 seconds
     private static final class CacheEntry<T> {
@@ -159,7 +248,7 @@ public class UserServiceImpl implements UserService {
                         0, // Rank Elo placeholder
                         user.getUsername(),
                         user.getPoints(),
-                        user.getElo()
+                        user.getElo(), user.getAvatarSeed()
                 ))
                 .collect(Collectors.toList());
         rankingCache = out;
@@ -168,6 +257,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public UserProfileDto getPublicProfile(String username) {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -181,7 +271,7 @@ public class UserServiceImpl implements UserService {
         }
 
         // Get badges
-        List<BadgeDto> badges = badgeService.getUserBadges(user.getId());
+        List<BadgeDto> badges = badgeService.getAllBadgesWithStatus(user.getId());
 
         return UserProfileDto.builder()
                 .username(user.getUsername())
@@ -190,6 +280,10 @@ public class UserServiceImpl implements UserService {
                 .createdAt(user.getCreatedAt())
                 .streak(effectiveStreak)
                 .bio(user.getBio())
+                .tagline(user.getTagline())
+                .avatarSeed(user.getAvatarSeed())
+                .interests(List.copyOf(user.getInterests()))
+                .featuredBadgeIds(List.copyOf(user.getFeaturedBadgeIds()))
                 .badges(badges) // Add badges to DTO
                 .build();
     }
@@ -218,6 +312,7 @@ public class UserServiceImpl implements UserService {
                     return UserSearchDto.builder()
                             .id(user.getId())
                             .username(user.getUsername())
+                            .avatarSeed(user.getAvatarSeed())
                             .points(user.getPoints())
                             .friendshipStatus(status)
                             .build();
@@ -264,7 +359,7 @@ public class UserServiceImpl implements UserService {
         // Calculate rank based on ELO
         long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
         
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo());
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), user.getAvatarSeed());
         rankCache.put(userId, new CacheEntry<>(now, out));
         return out;
     }
@@ -280,7 +375,8 @@ public class UserServiceImpl implements UserService {
         int e = elo == null ? 500 : elo;
         long rankPoints = userRepository.countByPointsGreaterThan(p) + 1;
         long rankElo = userRepository.countByEloGreaterThan(e) + 1;
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e);
+        String avatarSeed = userRepository.findById(userId).map(User::getAvatarSeed).orElse(username);
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, avatarSeed);
         rankCache.put(userId, new CacheEntry<>(now, out));
         return out;
     }

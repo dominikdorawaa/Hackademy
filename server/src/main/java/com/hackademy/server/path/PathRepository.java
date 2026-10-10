@@ -70,5 +70,19 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             ORDER BY p.id
             """, nativeQuery = true)
     List<PathProgressView> findProgressForUsername(@Param("username") String username);
+
+    @Query(value = """
+            SELECT COUNT(*) FROM paths p
+            WHERE EXISTS (SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id WHERE pc.path_id = p.id)
+              AND NOT EXISTS (
+                SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id
+                WHERE pc.path_id = p.id
+                  AND NOT EXISTS (
+                    SELECT 1 FROM user_solved_rooms usr
+                    WHERE usr.user_id = :userId AND usr.room_id = pr.room_id
+                  )
+              )
+            """, nativeQuery = true)
+    long countCompletedByUserId(@Param("userId") Long userId);
 }
 

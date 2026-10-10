@@ -7,6 +7,8 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class DashboardSummaryCache {
 
+    public void invalidateAll() { byUserId.clear(); }
+
     private static final long CACHE_MS = 600_000; // 10 minutes (invalidated on user actions)
 
     private static final class CacheEntry<T> {
