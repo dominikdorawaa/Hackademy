@@ -2,6 +2,18 @@
 @import "tw-animate-css";
 @import "./styles/theme.css";
 
+@layer utilities {
+  :where(button, a[href], select, input[type='checkbox'], input[type='radio'], label:has(input:is([type='checkbox'], [type='radio']))) {
+    cursor: pointer;
+  }
+
+  :where(button, a[href], select, input, textarea)[aria-disabled='true'],
+  :where(button, select, input, textarea):disabled,
+  label:has(input:disabled) {
+    cursor: default;
+  }
+}
+
 @layer base {
 /* --- ZMIENNE I RESET --- */
 :root {
