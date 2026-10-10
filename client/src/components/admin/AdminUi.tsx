@@ -17,7 +17,7 @@ import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { DifficultyLevel } from '../../types/api';
-import { difficultyLabels } from './adminFormat';
+import { difficultyLabels, errorText } from './adminFormat';
 
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
@@ -86,24 +86,49 @@ export function ConfirmAction({
   onConfirm: () => void | Promise<void>;
 }) {
   const [open, setOpen] = useState(false);
+  const [pending, setPending] = useState(false);
+  const [error, setError] = useState<string | null>(null);
+  const inFlight = useRef(false);
+  const confirm = async () => {
+    if (inFlight.current) return;
+    inFlight.current = true;
+    setPending(true);
+    setError(null);
+    try {
+      await onConfirm();
+      setOpen(false);
+    } catch (err) {
+      setError(errorText(err, 'Nie udało się wykonać operacji. Spróbuj ponownie.'));
+    } finally {
+      inFlight.current = false;
+      setPending(false);
+    }
+  };
   return (
-    <AlertDialog open={open} onOpenChange={setOpen}>
-      <AlertDialogTrigger asChild>{trigger}</AlertDialogTrigger>
+    <AlertDialog open={open} onOpenChange={(next) => {
+      if (!inFlight.current) {
+        setOpen(next);
+        setError(null);
+      }
+    }}>
+      <AlertDialogTrigger asChild disabled={pending}>{trigger}</AlertDialogTrigger>
       <AlertDialogContent>
         <AlertDialogHeader>
           <AlertDialogTitle>{title}</AlertDialogTitle>
           <AlertDialogDescription>{description}</AlertDialogDescription>
         </AlertDialogHeader>
+        {error && <StatusMessage kind="error">{error}</StatusMessage>}
         <AlertDialogFooter>
-          <AlertDialogCancel>Anuluj</AlertDialogCancel>
+          <AlertDialogCancel disabled={pending}>Anuluj</AlertDialogCancel>
           <AlertDialogAction
             className="bg-destructive text-white hover:bg-destructive/90"
-            onClick={() => {
-              setOpen(false);
-              void onConfirm();
+            disabled={pending}
+            onClick={(event) => {
+              event.preventDefault();
+              void confirm();
             }}
           >
-            {confirmLabel}
+            {pending ? 'Trwa wykonywanie…' : confirmLabel}
           </AlertDialogAction>
         </AlertDialogFooter>
       </AlertDialogContent>
