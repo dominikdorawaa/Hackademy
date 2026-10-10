@@ -9,7 +9,9 @@ import com.hackademy.server.path.dto.PathAdminDetailDto;
 import com.hackademy.server.path.dto.PathSummaryDto;
 import com.hackademy.server.room.dto.RoomAdminDto;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
-import com.hackademy.server.path.dto.UpdatePathRoomsRequest;
+import com.hackademy.server.room.dto.RoomTasksAdminDto;
+import com.hackademy.server.room.dto.UpdateRoomTasksRequest;
+import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import com.hackademy.server.chat.ChatMessage;
 import com.hackademy.server.room.Room;
@@ -22,6 +24,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -70,6 +73,16 @@ public class AdminController {
     @GetMapping("/rooms")
     public List<RoomAdminSummaryDto> getAllRooms() {
         return roomService.getAllRoomsForAdmin();
+    }
+
+    @GetMapping("/rooms/{id}/tasks")
+    public RoomTasksAdminDto getRoomTasks(@PathVariable Long id) {
+        return roomService.getRoomTasksForAdmin(id);
+    }
+
+    @PutMapping("/rooms/{id}/tasks")
+    public RoomTasksAdminDto updateRoomTasks(@PathVariable Long id, @Valid @RequestBody UpdateRoomTasksRequest request) {
+        return roomService.updateRoomTasks(id, request);
     }
 
     @DeleteMapping("/rooms/{id}")
@@ -148,9 +161,13 @@ public class AdminController {
         return pathService.getAdminDetail(id);
     }
 
-    @PutMapping("/paths/{id}/rooms")
-    public void updatePathRooms(@PathVariable Long id, @RequestBody UpdatePathRoomsRequest request) {
-        pathService.updatePathRooms(id, request.roomIds());
+    @PutMapping("/paths/{id}/chapters")
+    public PathAdminDetailDto updatePathChapters(
+            @PathVariable Long id,
+            @Valid @RequestBody UpdatePathChaptersRequest request,
+            Authentication authentication
+    ) {
+        return pathService.updatePathChapters(id, request, isAdmin(authentication));
     }
 
     @PutMapping("/paths/{id}")
@@ -161,6 +178,11 @@ public class AdminController {
     @PutMapping(value = "/paths/{id}/banner", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
     public void uploadPathBanner(@PathVariable Long id, @RequestPart("file") MultipartFile file) {
         pathService.uploadBanner(id, file);
+    }
+
+    private boolean isAdmin(Authentication authentication) {
+        return authentication.getAuthorities().stream()
+                .anyMatch(authority -> "ROLE_ADMIN".equals(authority.getAuthority()));
     }
 
     private RoomAdminDto mapToAdminDto(Room room) {

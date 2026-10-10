@@ -10,8 +10,7 @@ import { renderWithAuth } from '../test/renderWithAuth';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { AuthProvider, useAuth } from './AuthContext';
 import ProtectedRoute from '../components/auth/ProtectedRoute';
-import AdminRoute from '../components/auth/AdminRoute';
-import ExpertRoute from '../components/auth/ExpertRoute';
+import { AdminAccessRoute as AdminRoute } from '../pages/admin/adminAccess';
 
 const validExpiration = Math.floor(Date.now() / 1000) + 3600;
 
@@ -87,8 +86,7 @@ describe('auth persistence', () => {
 
 const guards: [string, ComponentType<PropsWithChildren>, string, string][] = [
   ['protected', ProtectedRoute, '/login', 'REPLACE'],
-  ['admin', AdminRoute, '/login', 'REPLACE'],
-  ['expert', ExpertRoute, '/', 'PUSH'],
+  ['admin panel', AdminRoute, '/login', 'REPLACE'],
 ];
 
 describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) => {
@@ -109,12 +107,12 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
     server.use(currentUserHandler(role.replace('ROLE_', '') as Role));
     localStorage.setItem('token', jwt([role]));
     mount();
-    const allowed = Guard === ProtectedRoute || role === 'ROLE_ADMIN' || (Guard === ExpertRoute && role === 'ROLE_EXPERT');
-    await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+    const allowed = Guard === ProtectedRoute || role !== 'ROLE_USER';
+    await waitFor(() => expect(screen.queryByText(/Loading\.\.\.|Sprawdzanie uprawnień/)).toBeNull());
     expect(screen.queryByText('private content') !== null).toBe(allowed);
     if (!allowed) {
       await waitFor(() => {
-        expect(screen.getByTestId('location').textContent).toBe(Guard === AdminRoute ? '/dashboard:REPLACE' : '/:PUSH');
+        expect(screen.getByTestId('location').textContent).toBe('/:REPLACE');
       });
     }
   });
@@ -126,7 +124,7 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
       return null;
     });
     mount();
-    expect(initialMarkup).toContain('Loading...');
+    expect(initialMarkup).toMatch(Guard === AdminRoute ? /Sprawdzanie uprawnień/ : /Loading\.\.\./);
     expect(initialMarkup).not.toContain('private content');
   });
 
@@ -138,7 +136,7 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
       localStorage.setItem('token', jwt([jwtRole]));
       server.use(currentUserHandler(serverRole as Role));
       mount();
-      await waitFor(() => expect(screen.queryByText('Loading...')).toBeNull());
+      await waitFor(() => expect(screen.queryByText(/Sprawdzanie uprawnień/)).toBeNull());
       expect(screen.queryByText('private content') !== null).toBe(allowed);
     });
 

@@ -8,6 +8,8 @@ import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
 import com.hackademy.server.room.dto.RoomDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
+import com.hackademy.server.room.dto.RoomTasksAdminDto;
+import com.hackademy.server.room.dto.UpdateRoomTasksRequest;
 import com.hackademy.server.room.dto.SolveRoomResponse;
 import org.springframework.web.multipart.MultipartFile;
 
@@ -29,4 +31,7 @@ public interface RoomService {
     RoomFile getRoomFile(Long roomId);
     List<RoomSummaryDto> getTop3Rooms(); // New method for landing page
     SolveRoomResponse solveTask(Long roomId, Long taskId, String answer, String username);
+    SolveRoomResponse completeTaskRoom(Long roomId, String username);
+    RoomTasksAdminDto getRoomTasksForAdmin(Long roomId);
+    RoomTasksAdminDto updateRoomTasks(Long roomId, UpdateRoomTasksRequest request);
 }

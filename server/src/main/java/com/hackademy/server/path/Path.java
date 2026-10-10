@@ -12,11 +12,13 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 import org.hibernate.annotations.CreationTimestamp;
+import org.hibernate.annotations.DynamicUpdate;
 import org.hibernate.annotations.UpdateTimestamp;
 
 import java.time.LocalDateTime;
 
 @Entity
+@DynamicUpdate
 @Table(name = "paths")
 @Getter
 @Setter
@@ -42,6 +44,9 @@ public class Path {
 
     @Column(name = "banner_mime", length = 120)
     private String bannerMime;
+
+    @Column(name = "chapters_revision", nullable = false)
+    private long chaptersRevision;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
