@@ -15,10 +15,10 @@ const tasks: RoomTaskAdminDto[] = [
   { id: 2, title: 'Metody', content: 'GET i POST', question: 'Metoda formularza?', answer: 'POST' },
 ];
 
-function mount(respond: (body: RoomTaskRequest[]) => Response, initial: RoomTaskAdminDto[] = tasks) {
+function mount(respond: (body: RoomTaskRequest[]) => Response | Promise<Response>, initial: RoomTaskAdminDto[] | (() => Response) = tasks) {
   localStorage.setItem('token', createToken('EXPERT'));
   server.use(
-    http.get(`${API_URL}/api/admin/rooms/7/tasks`, () => HttpResponse.json(initial)),
+    http.get(`${API_URL}/api/admin/rooms/7/tasks`, () => typeof initial === 'function' ? initial() : HttpResponse.json(initial)),
     http.put(`${API_URL}/api/admin/rooms/7/tasks`, async ({ request }) => {
       const body = await request.json() as { tasks: RoomTaskRequest[] };
       return respond(body.tasks);
@@ -28,6 +28,48 @@ function mount(respond: (body: RoomTaskRequest[]) => Response, initial: RoomTask
 }
 
 describe('tasks editor', () => {
+  it('requires a successful load before editing or saving and can retry', async () => {
+    let loads = 0;
+    let saves = 0;
+    mount(() => { saves++; return HttpResponse.json([]); }, () => ++loads === 1
+      ? HttpResponse.json({ message: 'Błąd ładowania' }, { status: 500 })
+      : HttpResponse.json(tasks));
+    const user = userEvent.setup();
+    expect(await screen.findByText('Błąd ładowania')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Dodaj zadanie' })).not.toBeInTheDocument();
+    expect(screen.queryByText(/Pokój nie ma zadań/)).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zapisz zadania' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Zapisz zadania' }));
+    expect(saves).toBe(0);
+    await user.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+    expect(await screen.findByRole('button', { name: /Metody/ })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dodaj zadanie' })).toBeEnabled();
+    expect(screen.queryByText('Błąd ładowania')).not.toBeInTheDocument();
+  });
+
+  it('blocks edits, reorder, deletion and discard during a save', async () => {
+    let finish!: () => void;
+    const pending = new Promise<void>((resolve) => { finish = resolve; });
+    mount(async () => { await pending; return HttpResponse.json(tasks); });
+    const user = userEvent.setup();
+    await screen.findByRole('button', { name: /Metody/ });
+    await user.click(screen.getByRole('button', { name: /Metody/ }));
+    await user.type(screen.getByLabelText('Tytuł zadania'), ' HTTP');
+    await user.click(screen.getByRole('button', { name: 'Zapisz zadania' }));
+    try {
+      expect(screen.getByLabelText('Tytuł zadania')).toBeDisabled();
+      for (const name of ['Dodaj zadanie', 'Odrzuć zmiany', 'Przesuń zadanie 2 w górę', 'Usuń zadanie 1']) {
+        expect(screen.getByRole('button', { name })).toBeDisabled();
+      }
+      await user.type(screen.getByLabelText('Tytuł zadania'), 'utracona edycja');
+      expect(screen.getByLabelText('Tytuł zadania')).toHaveValue('Metody HTTP');
+    } finally {
+      finish();
+    }
+    expect(await screen.findByText('Zapisano zadania.')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dodaj zadanie' })).toBeEnabled();
+  });
+
   it('adds, edits, reorders and deletes tasks in one save', async () => {
     let saved: RoomTaskRequest[] = [];
     mount((body) => {

@@ -56,10 +56,15 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   const [tasks, setTasks] = useState<DraftTask[]>([]);
   const [open, setOpen] = useState<Set<string>>(new Set());
   const [loading, setLoading] = useState(true);
+  const [loadedFor, setLoadedFor] = useState<string | null>(null);
+  const [loadAttempt, setLoadAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showProblems, setShowProblems] = useState(false);
+  const loadKey = `${roomId}:${token}`;
+  const ready = loadedFor === loadKey;
+  const editingDisabled = !ready || loading || saving;
 
   const apply = useCallback((data: RoomTaskAdminDto[]) => {
     const drafts = data.map(toDraft);
@@ -68,11 +73,19 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   }, []);
 
   useEffect(() => {
+    setLoading(true);
+    setLoadedFor(null);
+    setError(null);
+    setSuccess(null);
     if (!token) return;
     let active = true;
     adminApi.getRoomTasks(roomId, token)
       .then((data) => {
-        if (active) apply(data ?? []);
+        if (!Array.isArray(data)) throw new Error('Nie udało się pobrać zadań.');
+        if (active) {
+          apply(data);
+          setLoadedFor(loadKey);
+        }
       })
       .catch((err: unknown) => {
         if (active) setError(errorText(err, 'Nie udało się pobrać zadań.'));
@@ -83,7 +96,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     return () => {
       active = false;
     };
-  }, [roomId, token, apply]);
+  }, [roomId, token, apply, loadKey, loadAttempt]);
 
   const dirty = useMemo(
     () => JSON.stringify(tasks.map(toRequest)) !== JSON.stringify(saved.map(toRequest)),
@@ -92,6 +105,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   const invalid = tasks.some((task) => taskProblems(task).length > 0);
 
   const change = (key: string, field: keyof Omit<DraftTask, 'key' | 'id'>, value: string) => {
+    if (editingDisabled) return;
     setTasks((current) => current.map((task) => (task.key === key ? { ...task, [field]: value } : task)));
     setSuccess(null);
   };
@@ -106,6 +120,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   };
 
   const add = () => {
+    if (editingDisabled) return;
     const key = nextKey();
     setTasks((current) => [...current, { key, id: null, title: '', content: '', question: '', answer: '' }]);
     setOpen((current) => new Set(current).add(key));
@@ -113,6 +128,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   };
 
   const move = (index: number, offset: number) => {
+    if (editingDisabled) return;
     setTasks((current) => {
       const target = index + offset;
       if (target < 0 || target >= current.length) return current;
@@ -124,11 +140,13 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   };
 
   const remove = (key: string) => {
+    if (editingDisabled) return;
     setTasks((current) => current.filter((task) => task.key !== key));
     setSuccess(null);
   };
 
   const save = async () => {
+    if (editingDisabled) return;
     setShowProblems(true);
     setSuccess(null);
     if (invalid) {
@@ -137,7 +155,9 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     }
     setSaving(true);
     try {
-      apply((await adminApi.updateRoomTasks(roomId, tasks.map(toRequest), token)) ?? []);
+      const updated = await adminApi.updateRoomTasks(roomId, tasks.map(toRequest), token);
+      if (!Array.isArray(updated)) throw new Error('Nie udało się zapisać zadań.');
+      apply(updated);
       setOpen(new Set());
       setShowProblems(false);
       setError(null);
@@ -157,23 +177,25 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
       description="Gracz rozwiązuje zadania po kolei. Zmiany treści nie usuwają postępów w zachowanych zadaniach."
       actions={
         <>
-          {dirty && <Button variant="ghost" onClick={() => { setTasks(saved); setShowProblems(false); setError(null); }}>Odrzuć zmiany</Button>}
-          <Button onClick={() => void save()} disabled={saving || !dirty}>{saving ? 'Zapisywanie…' : 'Zapisz zadania'}</Button>
+          {ready && dirty && <Button variant="ghost" disabled={editingDisabled} onClick={() => { setTasks(saved); setShowProblems(false); setError(null); }}>Odrzuć zmiany</Button>}
+          <Button onClick={() => void save()} disabled={editingDisabled || !dirty}>{saving ? 'Zapisywanie…' : 'Zapisz zadania'}</Button>
         </>
       }
     >
       <div className="space-y-3">
         {error && <StatusMessage kind="error">{error}</StatusMessage>}
         {success && <StatusMessage kind="success">{success}</StatusMessage>}
-        {removedCount > 0 && (
+        {ready && removedCount > 0 && (
           <StatusMessage kind="warning">
             Po zapisaniu zniknie {removedCount} {plural(removedCount, ['zadanie', 'zadania', 'zadań'])} razem z postępami graczy.
           </StatusMessage>
         )}
         {loading ? (
           <LoadingRows rows={3} label="Ładowanie zadań" />
+        ) : !ready ? (
+          <Button variant="outline" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Spróbuj ponownie</Button>
         ) : (
-          <>
+          <fieldset disabled={saving} className="min-w-0 space-y-3" aria-busy={saving}>
             {tasks.length === 0 && (
               <p className="rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">
                 Pokój nie ma zadań. Gracz rozwiązuje go wtedy samą flagą.
@@ -255,7 +277,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
               })}
             </ol>
             <Button type="button" variant="outline" onClick={add}><Plus />Dodaj zadanie</Button>
-          </>
+          </fieldset>
         )}
       </div>
     </Section>

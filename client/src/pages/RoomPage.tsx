@@ -51,6 +51,8 @@ const RoomPage = () => {
   // Tasks State
   const [taskAnswers, setTaskAnswers] = useState<Record<number, string>>({});
   const [expandedTasks, setExpandedTasks] = useState<Record<number, boolean>>({});
+  const [pendingTask, setPendingTask] = useState<number | null>(null);
+  const [finishingRoom, setFinishingRoom] = useState(false);
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
@@ -260,8 +262,10 @@ const RoomPage = () => {
   const handleTaskSubmit = async (e: React.FormEvent, taskId: number) => {
     e.preventDefault();
     const answer = taskAnswers[taskId] || '';
-    if (!answer) return;
+    const task = room?.tasks.find((item) => item.id === taskId);
+    if (!task || task.completed || pendingTask !== null || (task.question && !answer)) return;
 
+    setPendingTask(taskId);
     try {
         const response = await roomApi.solveTask(id ?? '', taskId, { answer }, {
                 'Content-Type': 'application/json',
@@ -284,8 +288,29 @@ const RoomPage = () => {
             setToast({ message: data.message || 'Niepoprawna odpowiedź', type: 'error' });
         }
     } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
+    finally { setPendingTask(null); }
   };
 
+  const handleCompleteRoom = async () => {
+    if (finishingRoom) return;
+    setFinishingRoom(true);
+    try {
+      const response = await roomApi.completeTaskRoom(id ?? '', { 'Authorization': `Bearer ${token}` });
+      const data = await response.json();
+      if (!response.ok || !data.success) {
+        setToast({ message: data.message || 'Nie udało się ukończyć pokoju', type: 'error' });
+        return;
+      }
+      setRoom((previous) => previous ? { ...previous, solved: true } : null);
+      setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
+      setSuccessMessage('Wszystkie zadania wykonane! Pokój ukończony.');
+      setShowSuccessModal(true);
+    } catch {
+      setToast({ message: 'Błąd połączenia', type: 'error' });
+    } finally {
+      setFinishingRoom(false);
+    }
+  };
 
   if (loading) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Ładowanie pokoju...</div>;
   if (error) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
@@ -380,18 +405,26 @@ const RoomPage = () => {
                                                     placeholder={task.completed ? 'Ukończono' : 'Twoja odpowiedź...'}
                                                     value={task.completed ? '' : (taskAnswers[task.id] || '')}
                                                     onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
-                                                    disabled={task.completed}
+                                                    disabled={task.completed || pendingTask !== null}
                                                 />
                                                 <button
                                                     type="submit"
                                                     className={`btn-task-submit ${task.completed ? 'completed' : ''}`}
-                                                    disabled={task.completed}
+                                                    disabled={task.completed || pendingTask !== null}
                                                 >
                                                     {task.completed ? 'Poprawne' : 'Wyślij'}
                                                     {!task.completed && <i className="fas fa-paper-plane" />}
                                                 </button>
                                             </form>
                                         </div>
+                                    )}
+                                    {!task.question && (
+                                        <form onSubmit={(event) => void handleTaskSubmit(event, task.id)}>
+                                            <button type="submit" className="btn-task-submit"
+                                                disabled={task.completed || pendingTask !== null}>
+                                                {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
+                                            </button>
+                                        </form>
                                     )}
                                 </div>
                             )}
@@ -414,6 +447,13 @@ const RoomPage = () => {
                     </div>
                 )}
             </div>
+
+            {!isArenaMode && !isSolved && tasks.length > 0 && completedTasksCount === tasks.length && (
+                <button type="button" className="btn btn-primary" disabled={finishingRoom}
+                    onClick={() => void handleCompleteRoom()}>
+                    {finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój'}
+                </button>
+            )}
 
             {/* HINTS SECTION */}
             {showContent && room.hints && room.hints.length > 0 && (

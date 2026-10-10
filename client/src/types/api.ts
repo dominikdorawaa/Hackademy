@@ -224,7 +224,7 @@ export interface RoomTaskDto {
   id: number
   title: string
   content: string
-  question: string
+  question: string | null
   completed: boolean
 }
 

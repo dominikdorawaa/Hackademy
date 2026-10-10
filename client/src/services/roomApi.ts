@@ -45,3 +45,10 @@ export function solveRoom(id: ApiId, data: { flag: string }, headers: HeadersIni
   });
 }
 
+export function completeTaskRoom(id: ApiId, headers: HeadersInit) {
+  return request<SolveRoomResponse>(`/api/rooms/${id}/tasks/complete`, {
+    method: 'POST',
+    headers,
+  });
+}
+
