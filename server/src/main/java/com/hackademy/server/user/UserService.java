@@ -9,11 +9,17 @@ import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateUsernameRequest;
 import com.hackademy.server.admin.UserAdminView;
 import com.hackademy.server.user.dto.UserProfileDto;
+import com.hackademy.server.user.dto.ProfileStatsDto;
+import com.hackademy.server.user.dto.ProfilePortfolioDto;
 import com.hackademy.server.user.dto.UserSearchDto;
+import com.hackademy.server.user.dto.ProfilePersonalizationDto;
+import com.hackademy.server.user.dto.UpdateProfileRequest;
 
 import java.util.List;
 
 public interface UserService {
+    ProfilePersonalizationDto getPersonalization(Long userId);
+    ProfilePersonalizationDto updateProfile(Long userId, UpdateProfileRequest request);
     List<UserAdminView> findAllUsers();
     void deleteUser(Long id);
     UserAdminView updateUserRole(Long id, Role newRole);
@@ -21,6 +27,8 @@ public interface UserService {
     AuthResponse updateUsername(Long userId, UpdateUsernameRequest request);
     List<RankingEntry> getTop10Ranking();
     UserProfileDto getPublicProfile(String username);
+    ProfileStatsDto getProfileStats(Long userId);
+    ProfilePortfolioDto getProfilePortfolio(Long userId);
     void updateBio(Long userId, UpdateBioRequest request);
     List<UserSearchDto> searchUsers(String query, Long currentUserId);
     Long getUserIdByUsername(String username);

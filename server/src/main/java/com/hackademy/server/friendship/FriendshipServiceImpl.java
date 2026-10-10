@@ -20,6 +20,13 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class FriendshipServiceImpl implements FriendshipService {
 
+    @Override
+    public void invalidateProfileCaches() {
+        friendsCache.clear();
+        requestsCache.clear();
+        dashboardSummaryCache.invalidateAll();
+    }
+
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final BadgeService badgeService; // Inject BadgeService
@@ -133,7 +140,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         List<FriendDto> out = friendships.stream()
                 .map(f -> {
                     User friend = f.getRequester().getId().equals(userId) ? f.getReceiver() : f.getRequester();
-                    return new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak());
+                    return new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), friend.getAvatarSeed());
                 })
                 .collect(Collectors.toList());
 
@@ -154,7 +161,7 @@ public class FriendshipServiceImpl implements FriendshipService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
         List<FriendRequestDto> out = friendshipRepository.findPendingRequestsForUser(user).stream()
-                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt()))
+                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), f.getRequester().getAvatarSeed()))
                 .collect(Collectors.toList());
 
         requestsCache.put(userId, new CacheEntry<>(now, out));
@@ -224,6 +231,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         return UserSearchDto.builder()
                 .id(otherUser.getId())
                 .username(otherUser.getUsername())
+                .avatarSeed(otherUser.getAvatarSeed())
                 .points(otherUser.getPoints())
                 .friendshipStatus(status)
                 .winsAgainst(wins)

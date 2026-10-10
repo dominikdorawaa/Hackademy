@@ -266,6 +266,8 @@ public class ArenaServiceImpl implements ArenaService {
                 "PENDING",
                 vpnEnabled
         );
+        challenge.setChallengerAvatarSeed(userRepository.findById(challengerId).map(User::getAvatarSeed).orElse(challengerUsername));
+        challenge.setTargetAvatarSeed(userRepository.findById(targetId).map(User::getAvatarSeed).orElse(targetUsername));
         challenges.put(challenge.getId(), challenge);
         return challenge;
     }
@@ -298,10 +300,12 @@ public class ArenaServiceImpl implements ArenaService {
         session.setId(UUID.randomUUID().toString());
         session.setPlayer1Id(challenge.getChallengerId());
         session.setPlayer1Username(challenge.getChallengerUsername());
+        session.setPlayer1AvatarSeed(challenger.getAvatarSeed());
         session.setPlayer1Elo(challenger.getElo());
         
         session.setPlayer2Id(challenge.getTargetId());
         session.setPlayer2Username(challenge.getTargetUsername());
+        session.setPlayer2AvatarSeed(target.getAvatarSeed());
         session.setPlayer2Elo(target.getElo());
 
         session.setRoomId(randomRoomId);

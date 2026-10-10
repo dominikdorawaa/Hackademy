@@ -14,5 +14,9 @@ public record UserProfileDto(
     LocalDateTime createdAt,
     int streak,
     String bio,
-    List<BadgeDto> badges
+    List<BadgeDto> badges,
+    String tagline,
+    String avatarSeed,
+    List<String> interests,
+    List<Long> featuredBadgeIds
 ) {}

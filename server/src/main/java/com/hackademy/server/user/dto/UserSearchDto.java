@@ -9,5 +9,6 @@ public record UserSearchDto(
     int points,
     String friendshipStatus,
     int winsAgainst,
-    int lossesAgainst
+    int lossesAgainst,
+    String avatarSeed
 ) {}

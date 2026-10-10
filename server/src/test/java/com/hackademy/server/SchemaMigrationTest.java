@@ -60,12 +60,26 @@ class SchemaMigrationTest {
     @Test
     void migratesEmptyDatabaseWithBadgesOnly() throws Exception {
         var flyway = flyway();
-        assertEquals(2, flyway.migrate().migrationsExecuted);
+        assertEquals(3, flyway.migrate().migrationsExecuted);
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, scalar("SELECT count(*) FROM users"));
         assertEquals(0, scalar("SELECT count(*) FROM rooms"));
         assertEquals(0, flyway.migrate().migrationsExecuted);
         assertTrue(flyway.validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void preservesExistingProfileWhenAddingPersonalization() throws Exception {
+        Flyway.configure().dataSource(url, username, password)
+                .locations("classpath:db/schema").target("2").load().migrate();
+        execute("INSERT INTO users (id, username, email, password, role, points, streak, bio, created_at, updated_at) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 0, 0, 'Learning Linux', now(), now())");
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals("Alice", text("SELECT avatar_seed FROM users WHERE id = 1"));
+        assertEquals("Learning Linux", text("SELECT bio FROM users WHERE id = 1"));
+        assertEquals("", text("SELECT tagline FROM users WHERE id = 1"));
+        assertEquals(0, scalar("SELECT count(*) FROM user_profile_interests"));
+        assertEquals(0, scalar("SELECT count(*) FROM user_featured_badges"));
+        assertEquals(0, flyway().migrate().migrationsExecuted);
     }
 
     @Test
@@ -81,7 +95,7 @@ class SchemaMigrationTest {
             assertEquals(1, scalar("SELECT count(*) FROM users"));
         }
         try (var ignored = startApplication()) {
-            assertEquals(2, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
+            assertEquals(3, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
         }
     }
 
@@ -90,10 +104,10 @@ class SchemaMigrationTest {
         flyway().migrate();
         insertUser(1, "Alice", "alice@example.com");
         insertUser(2, "Bob", "bob@example.com");
-        assertSqlState("23505", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at) VALUES (3, 'ALICE', 'x@example.com', 'p', 'USER', 0, 0, now(), now())");
-        assertSqlState("23505", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at) VALUES (3, 'Carol', 'alice@example.com', 'p', 'USER', 0, 0, now(), now())");
-        assertSqlState("23514", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at) VALUES (3, 'Carol', 'Carol@example.com', 'p', 'USER', 0, 0, now(), now())");
-        assertSqlState("23514", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at) VALUES (3, 'Carol', 'carol@example.com', 'p', 'GUEST', 0, 0, now(), now())");
+        assertSqlState("23505", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at, avatar_seed) VALUES (3, 'ALICE', 'x@example.com', 'p', 'USER', 0, 0, now(), now(), 'test-seed')");
+        assertSqlState("23505", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at, avatar_seed) VALUES (3, 'Carol', 'alice@example.com', 'p', 'USER', 0, 0, now(), now(), 'test-seed')");
+        assertSqlState("23514", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at, avatar_seed) VALUES (3, 'Carol', 'Carol@example.com', 'p', 'USER', 0, 0, now(), now(), 'test-seed')");
+        assertSqlState("23514", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at, avatar_seed) VALUES (3, 'Carol', 'carol@example.com', 'p', 'GUEST', 0, 0, now(), now(), 'test-seed')");
         execute("INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (1, 2, 'PENDING', 0, 0, now())");
         assertSqlState("23505", "INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (2, 1, 'PENDING', 0, 0, now())");
         assertSqlState("23514", "INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (1, 1, 'PENDING', 0, 0, now())");
@@ -169,8 +183,8 @@ class SchemaMigrationTest {
     }
 
     private void insertUser(long id, String username, String email) throws SQLException {
-        execute("INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at) VALUES ("
-                + id + ", '" + username + "', '" + email + "', 'p', 'USER', 0, 0, now(), now())");
+        execute("INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at, avatar_seed) VALUES ("
+                + id + ", '" + username + "', '" + email + "', 'p', 'USER', 0, 0, now(), now(), 'test-seed')");
     }
 
     private void insertRoom(long id) throws SQLException {

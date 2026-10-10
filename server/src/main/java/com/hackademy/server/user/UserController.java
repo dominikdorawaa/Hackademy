@@ -8,7 +8,11 @@ import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateUsernameRequest;
 import com.hackademy.server.user.dto.UserProfileDto;
+import com.hackademy.server.user.dto.ProfilePortfolioDto;
+import com.hackademy.server.user.dto.ProfileStatsDto;
 import com.hackademy.server.user.dto.UserSearchDto;
+import com.hackademy.server.user.dto.UpdateProfileRequest;
+import com.hackademy.server.user.dto.ProfilePersonalizationDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -50,7 +54,7 @@ public class UserController {
 
         boolean hasVpnAccess = userService.hasSolvedTutorialVpn(userDetails.getId());
 
-        Map<String, Object> userInfo = Map.of(
+        Map<String, Object> userInfo = new java.util.LinkedHashMap<>(Map.of(
                 "id", userDetails.getId(),
                 "username", userDetails.getUsername(),
                 "email", userDetails.getEmail(),
@@ -59,9 +63,26 @@ public class UserController {
                 "streak", effectiveStreak,
                 "bio", userDetails.getBio() != null ? userDetails.getBio() : "",
                 "createdAt", userDetails.getCreatedAt(),
-                "hasVpnAccess", hasVpnAccess);
+                "hasVpnAccess", hasVpnAccess));
+        ProfilePersonalizationDto appearance = userService.getPersonalization(userDetails.getId());
+        userInfo.put("bio", appearance.bio());
+        userInfo.put("tagline", appearance.tagline());
+        userInfo.put("avatarSeed", appearance.avatarSeed());
+        userInfo.put("interests", appearance.interests());
+        userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
 
         return ResponseEntity.ok(userInfo);
+    }
+
+    @GetMapping("/me/portfolio")
+    public ResponseEntity<ProfilePortfolioDto> getMyPortfolio() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(userService.getProfilePortfolio(user.getId()));
+    }
+
+    @GetMapping("/{username}/portfolio")
+    public ResponseEntity<ProfilePortfolioDto> getPortfolio(@PathVariable String username) {
+        return ResponseEntity.ok(userService.getProfilePortfolio(userService.getUserIdByUsername(username)));
     }
 
     @PatchMapping("/me/password")
@@ -83,6 +104,12 @@ public class UserController {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         userService.updateBio(user.getId(), request);
         return ResponseEntity.ok().build();
+    }
+
+    @PatchMapping("/me/profile")
+    public ResponseEntity<ProfilePersonalizationDto> updateProfile(@Valid @RequestBody UpdateProfileRequest request) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(userService.updateProfile(user.getId(), request));
     }
 
     @GetMapping("/ranking")
@@ -111,11 +138,29 @@ public class UserController {
         return ResponseEntity.ok(activity);
     }
 
+    @GetMapping("/me/stats")
+    public ResponseEntity<ProfileStatsDto> getMyProfileStats() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(userService.getProfileStats(user.getId()));
+    }
+
+    @GetMapping("/{username}/stats")
+    public ResponseEntity<ProfileStatsDto> getProfileStats(@PathVariable String username) {
+        return ResponseEntity.ok(userService.getProfileStats(userService.getUserIdByUsername(username)));
+    }
+
     @GetMapping("/me/recent-solved")
     public ResponseEntity<List<RecentSolvedRoomDto>> getMyRecentSolved(@RequestParam(defaultValue = "3") int limit) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         List<RecentSolvedRoomDto> recent = userService.getRecentSolvedRooms(user.getId(), limit);
         return ResponseEntity.ok(recent);
+    }
+
+    @GetMapping("/{username}/recent-solved")
+    public ResponseEntity<List<RecentSolvedRoomDto>> getRecentSolved(
+            @PathVariable String username, @RequestParam(defaultValue = "5") int limit) {
+        Long userId = userService.getUserIdByUsername(username);
+        return ResponseEntity.ok(userService.getRecentSolvedRooms(userId, limit));
     }
 
     @GetMapping("/me/active-time")

@@ -19,10 +19,12 @@ public class GameSession {
     private String id;
     private Long player1Id;
     private String player1Username;
+    private String player1AvatarSeed;
     private Integer player1Elo; // Initial ELO
     
     private Long player2Id;
     private String player2Username;
+    private String player2AvatarSeed;
     private Integer player2Elo; // Initial ELO
     
     private Long roomId;
