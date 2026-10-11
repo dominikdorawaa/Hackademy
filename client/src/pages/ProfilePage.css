@@ -1,13 +1,13 @@
 @layer components {
   .badge-goal-progress { width: 100%; min-width: 0; margin-top: 8px; }
-  .badge-goal-progress > div { display: flex; justify-content: space-between; gap: 10px; font-size: 10px; color: var(--text-gray); margin-bottom: 6px; }
+  .badge-goal-progress > div { display: flex; justify-content: space-between; gap: 10px; font-size: 12px; color: var(--text-gray); margin-bottom: 6px; }
   .badge-goal-progress progress { display: block; width: 100%; height: 6px; border: 0; border-radius: 6px; accent-color: var(--primary-blue); }
   .badge-goal-progress progress::-webkit-progress-bar { background: var(--bg-panel); border-radius: 6px; }
   .badge-goal-progress progress::-webkit-progress-value { background: var(--primary-blue); border-radius: 6px; }
   .badge-goal-progress progress::-moz-progress-bar { background: var(--primary-blue); border-radius: 6px; }
   .badge-catalog {
     width: min(900px, calc(100vw - 32px)); max-height: 90dvh;
-    margin: auto; padding: 0; border: 1px solid var(--border-color); border-radius: 14px;
+    margin: auto; padding: 0; border: 1px solid var(--border-color); border-radius: 16px;
     color: var(--text-light); background: var(--bg-panel); font-family: 'Inter', sans-serif;
     overflow-y: auto; scrollbar-width: none;
   }
@@ -18,7 +18,7 @@
     background: var(--bg-panel);
   }
   .badge-catalog-title-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; }
-  .badge-catalog-title-row h2 { display: flex; align-items: center; gap: 12px; font-size: 22px; }
+  .badge-catalog-title-row h2 { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 700; }
   .badge-catalog-title-row h2 svg { width: 24px; height: 24px; flex-shrink: 0; color: var(--profile-orange); }
   .profile-section-icon > svg { width: 18px; height: 18px; }
   .badge-catalog-progress { margin: 20px 0; }
@@ -28,24 +28,29 @@
   .badge-catalog-progress progress::-webkit-progress-bar { background: var(--bg-panel-lighter); border-radius: 8px; }
   .badge-catalog-progress progress::-webkit-progress-value { background: var(--primary-blue); border-radius: 8px; }
   .badge-catalog-progress progress::-moz-progress-bar { background: var(--primary-blue); border-radius: 8px; }
-  .badge-catalog-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--border-color); }
-  .badge-catalog-tabs button { border: 0; border-bottom: 2px solid transparent; padding: 12px 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-gray); }
+  .badge-catalog-tabs { display: flex; gap: 24px; border-bottom: 1px solid var(--profile-divider); }
+  .badge-catalog-tabs button { border: 0; border-bottom: 3px solid transparent; padding: 12px 0; background: transparent; font: inherit; font-size: 13px; font-weight: 500; cursor: pointer; color: var(--text-gray); }
   .badge-catalog-tabs button[aria-selected='true'] { color: var(--profile-blue); border-bottom-color: var(--profile-blue); }
   .badge-catalog-body { padding: 20px; }
   .badge-catalog-toolbar { display: flex; justify-content: flex-end; gap: 10px; margin-bottom: 12px; align-items: center; }
-  .badge-catalog-toolbar input, .badge-catalog-toolbar select { min-width: 0; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-panel-lighter); color: var(--text-light); font: inherit; font-size: 13px; }
+  .badge-catalog-toolbar input, .badge-catalog-toolbar select { min-width: 0; padding: 10px 12px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-panel-lighter); color: var(--text-light); font: inherit; font-size: 14px; }
   .badge-catalog-toolbar input { width: 260px; }
   .badge-catalog-toolbar p { font-size: 12px; color: var(--text-gray); }
   .badge-catalog-list { display: grid; list-style: none; padding: 0; margin: 0; }
-  .badge-catalog-item { display: grid; grid-template-columns: 48px minmax(0, 1fr) minmax(140px, 200px); gap: 14px; align-items: center; padding: 18px 8px; border-bottom: 1px solid var(--border-color); }
-  .badge-catalog-item > .profile-achievement-icon { width: 48px; height: 48px; font-size: 23px; }
-  .badge-catalog-item h3 { font-size: 14px; margin-bottom: 4px; overflow-wrap: anywhere; }
-  .badge-catalog-item-copy p { font-size: 12px; color: var(--text-gray); line-height: 1.5; overflow-wrap: anywhere; }
-  .badge-catalog-item-copy > span { display: block; font-size: 11px; color: var(--text-gray); margin-top: 4px; }
-  .badge-catalog-item-status { display: grid; gap: 5px; text-align: right; font-size: 11px; color: var(--text-gray); }
+  .badge-catalog-item { display: grid; grid-template-columns: 56px minmax(0, 1fr) minmax(140px, 220px); gap: 18px; align-items: center; padding: 18px 8px; border-bottom: 1px solid var(--profile-divider); }
+  .badge-catalog-item > .profile-achievement-icon { width: 56px; height: 56px; font-size: 23px; }
+  .badge-catalog-item h3 { font-size: 16px; margin-bottom: 4px; overflow-wrap: anywhere; }
+  .badge-catalog-item-copy p { font-size: 14px; color: var(--text-gray); line-height: 1.5; overflow-wrap: anywhere; }
+  .badge-catalog-item-copy > span { display: block; font-size: 12px; color: var(--text-gray); margin-top: 4px; }
+  .badge-catalog-item-status { display: grid; gap: 5px; text-align: right; font-size: 12px; color: var(--text-gray); }
   .badge-catalog-item-status .badge-catalog-unlocked { color: var(--profile-green); }
   .badge-catalog-item-status strong { font-size: 18px; color: var(--profile-blue); }
   .badge-catalog-item-status progress { width: 100%; height: 6px; accent-color: var(--primary-blue); }
+  .badge-catalog-toolbar input::placeholder { color: var(--text-gray); opacity: 1; }
+  .badge-catalog :is(input, select, button):focus-visible { outline: 2px solid var(--profile-blue); outline-offset: 3px; }
+  .badge-catalog input { caret-color: var(--profile-blue); }
+  .badge-catalog-progress progress, .badge-goal-progress progress { outline: 1px solid var(--border-color); }
+  .badge-catalog-tabs button[aria-selected='true'] { font-weight: 700; }
   .badge-catalog .profile-badge-pagination { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
   .badge-catalog .profile-badge-page-controls { width: 250px; }
   @media (max-width: 600px) {
@@ -78,27 +83,27 @@
   .profile-achievement-featured p { font-size: 12px; color: var(--text-gray); line-height: 1.5; overflow-wrap: anywhere; }
   .profile-achievement-state { display: inline-block; font-size: 11px; color: var(--text-gray); margin-top: 5px; }
   .profile-achievement-icon {
-    --achievement-color: #8ba9c6;
+    --achievement-color: #a7ccf3;
     position: relative; display: grid; place-items: center; width: 34px; height: 34px; flex-shrink: 0;
-    border: 1px solid color-mix(in srgb, var(--achievement-color) 32%, var(--border-color));
+    border: 1px solid var(--achievement-color);
     border-radius: 9px;
-    background: color-mix(in srgb, var(--achievement-color) 8%, var(--bg-panel));
+    background: color-mix(in srgb, var(--achievement-color) 14%, var(--bg-panel));
     color: var(--achievement-color);
   }
-  .profile-achievement-icon > svg { width: 58%; height: 58%; }
-  .profile-achievement-icon[data-symbol='shield'] { --achievement-color: #a79cc8; }
-  .profile-achievement-icon[data-symbol='elite'] { --achievement-color: #c9b07a; }
-  .profile-achievement-icon[data-symbol='flame'], .profile-achievement-icon[data-symbol='streak'] { --achievement-color: #cd9d79; }
-  .profile-achievement-icon[data-symbol='network'] { --achievement-color: #81b4a4; }
+  .profile-achievement-icon > svg { width: 66%; height: 66%; }
+  .profile-achievement-icon[data-symbol='shield'] { --achievement-color: #c4b2ef; }
+  .profile-achievement-icon[data-symbol='elite'] { --achievement-color: #e3c179; }
+  .profile-achievement-icon[data-symbol='flame'], .profile-achievement-icon[data-symbol='streak'] { --achievement-color: #e8b282; }
+  .profile-achievement-icon[data-symbol='network'] { --achievement-color: #8bd5be; }
   [data-theme='light'] .profile-achievement-icon { --achievement-color: #426b91; }
   [data-theme='light'] .profile-achievement-icon[data-symbol='shield'] { --achievement-color: #766093; }
   [data-theme='light'] .profile-achievement-icon[data-symbol='elite'] { --achievement-color: #896827; }
   [data-theme='light'] .profile-achievement-icon[data-symbol='flame'], [data-theme='light'] .profile-achievement-icon[data-symbol='streak'] { --achievement-color: #995d32; }
   [data-theme='light'] .profile-achievement-icon[data-symbol='network'] { --achievement-color: #357460; }
-  .profile-achievement-icon[data-earned='false'] { --achievement-color: var(--text-gray); background: transparent; border-color: var(--border-color); }
-  .profile-achievement-icon[data-earned='false'] > svg { opacity: .45; }
+  .profile-achievement-icon[data-earned='false'] { --achievement-color: var(--text-gray); background: var(--bg-panel); border-color: var(--border-color); border-style: dashed; }
+  .profile-achievement-icon[data-earned='false'] > svg { opacity: 1; }
   .profile-badge-status-mark { position: absolute; right: -3px; bottom: -3px; width: 16px; height: 16px; display: grid; place-items: center; border: 2px solid var(--bg-dark); border-radius: 50%; background: var(--profile-green); color: var(--bg-dark); }
-  .profile-badge-status-mark i { font-size: 9px; }
+  .profile-badge-status-mark svg { width: 9px; height: 9px; }
   .profile-achievement-icon[data-earned='false'] .profile-badge-status-mark { background: var(--bg-panel-lighter); color: var(--text-gray); }
   .profile-achievement-state { display: inline-flex; align-items: center; gap: 5px; }
   .profile-achievement-state[data-earned='true'] { color: var(--profile-green); }
@@ -108,13 +113,16 @@
   .profile-achievement-tile, .profile-achievement-more {
     display: grid; place-items: center; min-width: 0; aspect-ratio: 1;
     background: transparent; border: 1px solid transparent;
-    border-radius: 9px; padding: 2px; cursor: pointer; color: var(--text-light); font-size: 12px;
+    border-radius: 10px; padding: 3px; cursor: pointer; color: var(--text-light); font-size: 12px;
   }
   .profile-achievement-tile .profile-achievement-icon { width: 100%; height: 100%; border-radius: 7px; }
   .profile-achievement-more { background: var(--bg-panel-lighter); border-color: var(--border-color); font-variant-numeric: tabular-nums; }
-  .profile-achievement-tile[aria-pressed='true'], .profile-achievement-tile:hover, .profile-achievement-more:hover { border-color: var(--profile-blue); }
+  .profile-achievement-tile[aria-pressed='true'] { border: 3px solid var(--profile-blue); padding: 1px; }
+  .profile-achievement-tile:hover, .profile-achievement-more:hover { border-color: var(--profile-blue); }
+  .profile-achievement-tile[aria-pressed='true']::after { content: ''; position: absolute; bottom: -8px; width: 12px; height: 3px; border-radius: 2px; background: var(--profile-blue); }
+  .profile-achievement-tile { position: relative; }
   .profile-achievement-tile:focus-visible, .profile-achievement-more:focus-visible { outline: 2px solid var(--profile-blue); outline-offset: 2px; }
-  .profile-achievement-locked { border-top: 1px solid var(--border-color); padding-top: 12px; }
+  .profile-achievement-locked { border-top: 1px solid var(--profile-divider); padding-top: 12px; }
   .profile-achievement-locked > p { margin-bottom: 8px; }
   .profile-achievement-all { justify-self: end; padding-right: 0; }
   .profile-achievement-catalog-toolbar { display: grid; gap: 8px; justify-items: start; }

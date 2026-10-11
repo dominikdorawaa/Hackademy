@@ -1,3 +1,4 @@
+import ProfileIcon from './ProfileIcon';
 import { useEffect, useRef, useState } from 'react';
 import type { BadgeDto } from '../../types/api';
 import { Button } from '../ui/button';
@@ -53,7 +54,7 @@ export default function ProfileBadges({ badges, own = true }: { badges: BadgeDto
       {selected && <div className="profile-achievement-featured" aria-live="polite">
         <BadgeIcon badge={selected} />
         <div><h3>{selected.name}</h3><p>{selected.description}</p>
-          <span className="profile-achievement-state" data-earned={selected.earned}><i className={selected.earned ? 'fas fa-check-circle' : 'fas fa-lock'} aria-hidden="true" /> {selected.earned ? 'Zdobyta' : 'Do zdobycia'}</span>
+          <span className="profile-achievement-state" data-earned={selected.earned}><ProfileIcon kind={selected.earned ? 'earned' : 'lock'} /> {selected.earned ? 'Zdobyta' : 'Do zdobycia'}</span>
         </div>
       </div>}
     </div>

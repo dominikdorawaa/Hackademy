@@ -1,3 +1,4 @@
+import ProfileIcon from './ProfileIcon';
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
@@ -202,21 +203,21 @@ export default function UserProfile({ username }: { username?: string }) {
         />
         <div className="profile-identity">
           <h1>{person.username}</h1>
+          {appearance.bio && <PublicBio bio={appearance.bio} />}
           {appearance.interests.length > 0 && <ul className="profile-interest-tags" aria-label="Zainteresowania">
             {appearance.interests.map(interest => <li key={interest}>{PROFILE_INTERESTS[interest] ?? interest}</li>)}
           </ul>}
           <div className="profile-meta">
             <span>
-              <i className="far fa-calendar" aria-hidden="true" />W Hackademy od{' '}
+              <ProfileIcon kind="calendar" />W Hackademy od{' '}
               <time dateTime={person.createdAt}>
                 {formatDate(person.createdAt)}
               </time>
             </span>
           </div>
-          {appearance.bio && <PublicBio bio={appearance.bio} />}
         </div>
         <div className="profile-header-side">
-          {own && <Button onClick={edit}><i className="fas fa-pen" aria-hidden="true" /> Edytuj profil</Button>}
+          {own && <Button onClick={edit}><ProfileIcon kind="edit" /> Edytuj profil</Button>}
           {saved && <p role="status" className="profile-save-status">Profil zapisany</p>}
           {!own && (
             <div className="profile-header-actions">

@@ -1,3 +1,4 @@
+import ProfileIcon from './ProfileIcon';
 import { useEffect, useRef, useState } from 'react';
 import type { BadgeDto } from '../../types/api';
 import { Button } from '../ui/button';
@@ -54,7 +55,7 @@ export default function BadgeCatalog({ badges, initialFilter, own, onClose }: {
       <div className="badge-catalog-title-row">
         <h2 id="badge-catalog-title"><AchievementGlyph /> Osiągnięcia Hackademy</h2>
         <Button variant="ghost" size="sm" aria-label="Zamknij osiągnięcia" onClick={onClose}>
-          <i className="fas fa-times" aria-hidden="true" />
+          <ProfileIcon kind="close" weight="bold" />
         </Button>
       </div>
       <div className="badge-catalog-progress">
@@ -110,13 +111,13 @@ export default function BadgeCatalog({ badges, initialFilter, own, onClose }: {
         <p className="profile-muted" aria-live="polite">{start + 1}–{Math.min(start + PAGE_SIZE, filtered.length)} z {filtered.length} odznak</p>
         <div className="profile-badge-page-controls">
           <Button variant="outline" size="sm" disabled={currentPage === 0} aria-label="Poprzednia strona odznak" onClick={() => setPage(currentPage - 1)}>
-            <i className="fas fa-chevron-left" aria-hidden="true" />
+            <ProfileIcon kind="left" weight="bold" />
           </Button>
           <select aria-label="Strona odznak" value={currentPage} onChange={event => setPage(Number(event.target.value))}>
             {Array.from({ length: pageCount }, (_, index) => <option key={index} value={index}>Strona {index + 1} z {pageCount}</option>)}
           </select>
           <Button variant="outline" size="sm" disabled={currentPage === pageCount - 1} aria-label="Następna strona odznak" onClick={() => setPage(currentPage + 1)}>
-            <i className="fas fa-chevron-right" aria-hidden="true" />
+            <ProfileIcon kind="right" weight="bold" />
           </Button>
         </div>
       </nav>}
