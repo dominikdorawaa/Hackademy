@@ -41,12 +41,21 @@ public class GameSession {
     private Map<Long, LocalDateTime> finishTimes = new HashMap<>(); // userId -> finishTime
     private Map<Long, Long> penaltiesInSeconds = new HashMap<>(); // userId -> penalty seconds
     
-    public void addHintUsage(Long userId, Long hintId) {
+    public synchronized GameSession snapshot() {
+        Map<Long, List<Long>> hints = new HashMap<>();
+        hintsUsed.forEach((userId, ids) -> hints.put(userId, List.copyOf(ids)));
+        return new GameSession(id, player1Id, player1Username, player1AvatarSeed, player1Elo,
+                player2Id, player2Username, player2AvatarSeed, player2Elo, roomId, startTime, status,
+                winnerId, player1EloChange, player2EloChange, hints,
+                new HashMap<>(finishTimes), new HashMap<>(penaltiesInSeconds));
+    }
+
+    public synchronized void addHintUsage(Long userId, Long hintId) {
         hintsUsed.computeIfAbsent(userId, k -> new ArrayList<>()).add(hintId);
         penaltiesInSeconds.put(userId, penaltiesInSeconds.getOrDefault(userId, 0L) + 120L); // +2 minutes per hint
     }
     
-    public long getTotalTimeInSeconds(Long userId) {
+    public synchronized long getTotalTimeInSeconds(Long userId) {
         if (!finishTimes.containsKey(userId)) return -1;
         
         long duration = java.time.Duration.between(startTime, finishTimes.get(userId)).getSeconds();

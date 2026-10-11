@@ -12,6 +12,8 @@ import { MemoryRouter, useLocation } from 'react-router-dom';
 import RealtimeGameNavigation from '../components/RealtimeGameNavigation';
 import Navbar from '../components/Navbar';
 import ArenaPage from '../pages/ArenaPage';
+import FriendsPage from '../pages/FriendsPage';
+import * as httpService from '../services/http';
 
 const connections = vi.hoisted(() => [] as { callbacks: RealtimeCallbacks; start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }[]);
 vi.mock('../services/RealtimeConnection', () => ({
@@ -50,6 +52,51 @@ function GameLocation() {
 beforeEach(() => { connections.length = 0; });
 
 describe('shared realtime state', () => {
+  it('shows a recoverable error on Friends instead of indefinite loading', async () => {
+    let successful = false;
+    let requests = 0;
+    server.use(http.get(`${API_URL}/api/realtime/state`, () => {
+      requests++;
+      return successful ? HttpResponse.json(snapshot()) : new HttpResponse(null, { status: 503 });
+    }));
+    localStorage.setItem('token', createToken());
+    render(<MemoryRouter><AuthProvider><RealtimeProvider><FriendsPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
+    act(() => connections[0].callbacks.ready());
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się pobrać danych');
+    expect(screen.queryByText('Ładowanie...')).not.toBeInTheDocument();
+    successful = true;
+    fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+    await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
+    expect(requests).toBe(2);
+    expect(screen.getByText('Znajomi')).toBeInTheDocument();
+  });
+
+  it('bounds automatic retries and resets the budget on manual synchronization', async () => {
+    const request = vi.spyOn(httpService, 'request').mockResolvedValue(
+      new Response(null, { status: 503 }) as httpService.ApiResponse<unknown>);
+    vi.useFakeTimers();
+    try {
+      mount();
+      await act(async () => connections[0].callbacks.ready());
+      expect(request).toHaveBeenCalledTimes(1);
+      for (const delay of [2000, 4000, 8000, 16000, 30000]) {
+        await act(async () => { await vi.advanceTimersByTimeAsync(delay); });
+      }
+      expect(request).toHaveBeenCalledTimes(6);
+      await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
+      expect(request).toHaveBeenCalledTimes(6);
+      await act(async () => fireEvent.click(screen.getByText('sync navbar')));
+      expect(request).toHaveBeenCalledTimes(7);
+      request.mockResolvedValue(new Response(JSON.stringify(snapshot())) as httpService.ApiResponse<unknown>);
+      await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
+      expect(request).toHaveBeenCalledTimes(8);
+      expect(screen.getByTestId('navbar')).toHaveTextContent('1:online');
+    } finally {
+      vi.useRealTimers();
+      request.mockRestore();
+    }
+  });
+
   it('updates Navbar and Arena together without polling either endpoint', async () => {
     let snapshots = 0;
     let polling = 0;

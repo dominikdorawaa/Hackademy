@@ -8,17 +8,18 @@ import type { RealtimeState } from '../types/realtime';
 interface RealtimeContextValue {
   state: RealtimeState | null;
   connected: boolean;
+  error: string | null;
   synchronize: () => Promise<void>;
 }
 
 const RealtimeContext = createContext<RealtimeContextValue>({
-  state: null, connected: false, synchronize: async () => {},
+  state: null, connected: false, error: null, synchronize: async () => {},
 });
 
 export function RealtimeProvider({ children }: PropsWithChildren) {
   const { token } = useAuth();
-  const [session, setSession] = useState<{ token: string | null; state: RealtimeState | null; connected: boolean }>({
-    token: null, state: null, connected: false,
+  const [session, setSession] = useState<{ token: string | null; state: RealtimeState | null; connected: boolean; error: string | null }>({
+    token: null, state: null, connected: false, error: null,
   });
   const synchronizeRef = useRef<() => Promise<void>>(async () => {});
   const synchronize = useCallback(() => synchronizeRef.current(), []);
@@ -36,7 +37,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       if (disposed) return;
       if (latest?.streamId === state.streamId && latest.revision >= state.revision) return;
       latest = state;
-      setSession({ token, state, connected: ready });
+      setSession({ token, state, connected: ready, error: null });
     };
     const sync = (): Promise<void> => {
       if (disposed || !ready) return Promise.resolve();
@@ -53,9 +54,13 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
           if (!currentController.signal.aborted) apply(state);
           failures = 0;
         } catch {
-          if (!disposed && !currentController.signal.aborted && ready && failures < 5) {
-            failures += 1;
-            retry = setTimeout(() => { void sync(); }, Math.min(1000 * 2 ** failures, 30000));
+          if (!disposed && !currentController.signal.aborted && ready) {
+            setSession(previous => ({ token, state: previous.token === token ? previous.state : null,
+              connected: ready, error: 'Nie udało się pobrać danych. Spróbuj ponownie.' }));
+            if (failures < 5) {
+              failures += 1;
+              retry = setTimeout(() => { void sync(); }, Math.min(1000 * 2 ** failures, 30000));
+            }
           }
         } finally {
           if (controller === currentController) pending = null;
@@ -63,7 +68,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       })();
       return pending;
     };
-    synchronizeRef.current = sync;
+    synchronizeRef.current = () => { failures = 0; return sync(); };
     const connection = new RealtimeConnection(token, {
       ready: () => {
         if (disposed) return;
@@ -72,7 +77,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         pending = null;
         ready = true;
         failures = 0;
-        setSession(previous => ({ token, state: previous.token === token ? previous.state : null, connected: true }));
+        setSession(previous => ({ token, state: previous.token === token ? previous.state : null, connected: true, error: null }));
         void sync();
       },
       state: apply,
@@ -101,6 +106,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
   const value: RealtimeContextValue = {
     state: session.token === token && token ? session.state : null,
     connected: session.token === token && !!token && session.connected,
+    error: session.token === token && token ? session.error : null,
     synchronize,
   };
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;

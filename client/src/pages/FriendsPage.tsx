@@ -10,7 +10,7 @@ import type { UserSearchDto } from '../types/api';
 
 const FriendsPage = () => {
     const { token } = useAuth();
-    const { state, synchronize } = useRealtime();
+    const { state, error, synchronize } = useRealtime();
     const friends = state?.friends ?? [];
     const requests = state?.friendRequests ?? [];
     const loading = !state;
@@ -120,6 +120,10 @@ const FriendsPage = () => {
         return '#4CAF50';
     };
 
+    if (loading && error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>
+        <p role="alert">{error}</p>
+        <button className="btn-primary" onClick={() => void synchronize()}>Spróbuj ponownie</button>
+    </div>;
     if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
 
     return (

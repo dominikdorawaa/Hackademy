@@ -6,13 +6,14 @@ import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
+import { useArenaSession } from '../hooks/useArenaSession';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
 import ArenaResultModal from '../components/common/ArenaResultModal';
 import ArenaChat from '../components/ArenaChat';
 import './RoomPage.css';
-import type { DashboardUser, GameSession, RoomDetailDto } from '../types/api';
+import type { DashboardUser, RoomDetailDto } from '../types/api';
 
 const RoomPage = () => {
   const { id } = useParams();
@@ -42,7 +43,6 @@ const RoomPage = () => {
   const [showArenaResultModal, setShowArenaResultModal] = useState(false);
 
   // Arena specific state
-  const [historicalSession, setHistoricalSession] = useState<GameSession | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [penaltyTime, setPenaltyTime] = useState(0);
   const [userData, setUserData] = useState<DashboardUser | null>(null);
@@ -64,19 +64,7 @@ const RoomPage = () => {
   const queryParams = new URLSearchParams(location.search);
   const arenaGameId = queryParams.get('arena');
   const isArenaMode = !!arenaGameId;
-  const arenaSession = realtime?.gameSession?.id === arenaGameId ? realtime.gameSession
-    : historicalSession?.id === arenaGameId ? historicalSession : null;
-
-  useEffect(() => {
-    if (!arenaGameId || !token) return;
-    let disposed = false;
-    void arenaApi.getGame(arenaGameId, { Authorization: `Bearer ${token}` }).then(async response => {
-      if (!response.ok) return;
-      const session = await response.json();
-      if (!disposed) setHistoricalSession(session);
-    }).catch(() => {});
-    return () => { disposed = true; };
-  }, [arenaGameId, token]);
+  const arenaSession = useArenaSession(arenaGameId, token, realtime?.gameSession ?? null);
 
   // Fetch user data to know current user ID
   useEffect(() => {
