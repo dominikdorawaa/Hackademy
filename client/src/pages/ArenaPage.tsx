@@ -5,17 +5,15 @@ import * as friendApi from '../services/friendApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
-import { useNavigate } from 'react-router-dom';
-import GameFoundModal from '../components/common/GameFoundModal';
 import type { DashboardUser, FriendDto } from '../types/api';
 
 type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED' | 'CHALLENGING';
 
 const ArenaPage = () => {
     const { token } = useAuth();
-    const navigate = useNavigate();
     const [userData, setUserData] = useState<DashboardUser | null>(null);
-    const { state: realtime, synchronize } = useRealtime();
+    const { state: realtime, connected, synchronize } = useRealtime();
+    const [joiningQueue, setJoiningQueue] = useState(false);
     const gameSession = realtime?.gameSession ?? null;
     const challenges = realtime?.challenges ?? [];
     const status: ArenaStatus = gameSession && gameSession.status !== 'FINISHED' ? 'GAME'
@@ -104,6 +102,9 @@ const ArenaPage = () => {
     };
 
     const handleJoinQueue = async () => {
+        if (joiningQueue || !connected || !realtime) return;
+        setJoiningQueue(true);
+        setError(null);
         try {
             const response = await arenaApi.joinQueue({ vpnEnabled }, {
                     'Content-Type': 'application/json',
@@ -119,6 +120,8 @@ const ArenaPage = () => {
             }
         } catch {
             setError("Błąd sieci");
+        } finally {
+            setJoiningQueue(false);
         }
     };
 
@@ -146,22 +149,15 @@ const ArenaPage = () => {
     };
 
     const handleAcceptChallenge = async (challengeId: string) => {
-        console.log("Accepting challenge:", challengeId);
         if (processingChallengeId === challengeId || acceptedChallenges.includes(challengeId)) return; // Prevent double click
         setProcessingChallengeId(challengeId);
 
         try {
             const response = await arenaApi.acceptChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
 
-            console.log("Accept response status:", response.status);
-
             if (response.ok) {
-                const session = await response.json();
-                console.log("Session created:", session);
-
                 setAcceptedChallenges(prev => [...prev, challengeId]);
-
-                navigate(`/rooms/${session.roomId}?arena=${session.id}`);
+                await synchronize();
 
             } else {
                 const data = await response.json();
@@ -263,19 +259,20 @@ const ArenaPage = () => {
                         <span className="elo-badge">TRYB RANKINGOWY</span>
 
                         <h3 style={{ marginBottom: '10px', color: 'var(--text-light)' }}>Pojedynki 1v1</h3>
+                        {(!connected || !realtime) && <p role="status">Łączenie z Areną. Poczekaj na połączenie z serwerem.</p>}
                         <p style={{ color: 'var(--text-gray)', fontSize: '0.9rem', marginBottom: '30px' }}>
                             Pnij się w drabinie rankingowej. System dobierze Ci przeciwnika o równym poziomie – wygrywa ten, kto szybciej przełamie zabezpieczenia systemu.
                         </p>
 
-                        {status === 'QUEUE' ? (
-                            <div style={{ textAlign: 'center', margin: '40px 0' }}>
+                        {status === 'QUEUE' || joiningQueue ? (
+                            <div role="status" aria-live="polite" style={{ textAlign: 'center', margin: '40px 0' }}>
                                 <div className="spinner" style={{
                                     width: '50px', height: '50px', border: '5px solid rgba(255,255,255,0.1)',
                                     borderTop: '5px solid var(--primary-blue)', borderRadius: '50%',
                                     animation: 'spin 1s linear infinite', margin: '0 auto 20px'
                                 }}></div>
-                                <p style={{ color: 'var(--text-light)' }}>Szukanie przeciwnika...</p>
-                                <button onClick={handleLeaveQueue} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
+                                <p style={{ color: 'var(--text-light)' }}>{joiningQueue ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}</p>
+                                <button onClick={handleLeaveQueue} disabled={joiningQueue} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
                                     Anuluj
                                 </button>
                                 <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
@@ -329,10 +326,10 @@ const ArenaPage = () => {
                                             </label>
                                         </div>
 
-                                        <button onClick={handleJoinQueue} className="elo-btn">
+                                        <button onClick={handleJoinQueue} disabled={!connected || !realtime} className="elo-btn">
                                             <i className="fas fa-search"></i> Znajdź Przeciwnika
                                         </button>
-                                        <button onClick={handleOpenFriendModal} className="elo-btn elo-btn-outline">
+                                        <button onClick={handleOpenFriendModal} disabled={!connected || !realtime} className="elo-btn elo-btn-outline">
                                             <i className="fas fa-swords"></i> Wyzwij Znajomego
                                         </button>
                                     </div>
@@ -353,14 +350,6 @@ const ArenaPage = () => {
                     </div>
                 </div>
             </div>
-
-            {/* Game Found Modal */}
-            <GameFoundModal
-                isOpen={status === 'GAME' && gameSession !== null}
-                gameSession={gameSession}
-                userData={userData}
-                onAccept={() => gameSession && navigate(`/rooms/${gameSession.roomId}?arena=${gameSession.id}`)}
-            />
 
             {/* Friend Selection Modal */}
             {showFriendModal && (

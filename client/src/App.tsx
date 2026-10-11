@@ -1,6 +1,7 @@
 import { Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import RealtimeGameNavigation from './components/RealtimeGameNavigation';
 import { RealtimeProvider } from './context/RealtimeContext';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
@@ -23,6 +24,7 @@ import adminRoutes from './pages/admin/adminRoutes';
 function SiteLayout() {
   return (
     <div className="flex flex-col min-h-screen">
+      <RealtimeGameNavigation />
       <Navbar />
       <main className="flex-grow">
         <Outlet />

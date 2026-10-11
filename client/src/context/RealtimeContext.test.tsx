@@ -5,10 +5,11 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { RealtimeProvider, useRealtime } from './RealtimeContext';
 import type { RealtimeCallbacks } from '../services/RealtimeConnection';
 import type { RealtimeState } from '../types/realtime';
-import { createToken } from '../test/fixtures/auth';
+import { createToken, createUser } from '../test/fixtures/auth';
 import { server } from '../test/mocks/server';
 import API_URL from '../apiConfig';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, useLocation } from 'react-router-dom';
+import RealtimeGameNavigation from '../components/RealtimeGameNavigation';
 import Navbar from '../components/Navbar';
 import ArenaPage from '../pages/ArenaPage';
 
@@ -41,6 +42,11 @@ function mount() {
   render(<AuthProvider><RealtimeProvider><Consumer name="navbar" /><Consumer name="arena" /></RealtimeProvider></AuthProvider>);
 }
 
+function GameLocation() {
+  const location = useLocation();
+  return <output data-testid="game-location">{location.pathname}{location.search}</output>;
+}
+
 beforeEach(() => { connections.length = 0; });
 
 describe('shared realtime state', () => {
@@ -48,18 +54,25 @@ describe('shared realtime state', () => {
     let snapshots = 0;
     let polling = 0;
     server.use(
+      http.get(`${API_URL}/api/user/me`, () => HttpResponse.json({ ...createUser(), points: 500 })),
       http.get(`${API_URL}/api/realtime/state`, () => { snapshots++; return HttpResponse.json(snapshot()); }),
       http.get(`${API_URL}/api/friends/requests`, () => { polling++; return HttpResponse.json([]); }),
       http.get(`${API_URL}/api/arena/challenges`, () => { polling++; return HttpResponse.json([]); }),
       http.get(`${API_URL}/api/arena/status`, () => { polling++; return new HttpResponse(null, { status: 204 }); }),
     );
     localStorage.setItem('token', createToken());
-    render(<MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider><Navbar /><ArenaPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
+    render(<MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider><RealtimeGameNavigation /><GameLocation /><Navbar /><ArenaPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
     expect(connections).toHaveLength(1);
+    expect(await screen.findByRole('button', { name: 'Znajdź Przeciwnika' })).toBeDisabled();
+    expect(screen.getByText('Łączenie z Areną. Poczekaj na połączenie z serwerem.')).toBeInTheDocument();
     act(() => connections[0].callbacks.ready());
     await screen.findByRole('button', { name: 'Powiadomienia' });
     await waitFor(() => expect(snapshots).toBe(1));
-    const incoming = { ...snapshot(2), challenges: [{
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Znajdź Przeciwnika' })).toBeEnabled());
+    act(() => connections[0].callbacks.state({ ...snapshot(2), queued: true }));
+    expect(screen.getByText('Szukanie przeciwnika...')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Anuluj' })).toBeInTheDocument();
+    const incoming = { ...snapshot(3), challenges: [{
       id: 'challenge', challengerId: 2, challengerUsername: 'opponent', targetId: 1, targetUsername: 'tester',
       createdAt: '2026-10-11T12:00:00', status: 'PENDING' as const, vpnEnabled: false,
     }] };
@@ -69,16 +82,16 @@ describe('shared realtime state', () => {
     expect(screen.getByText('Otrzymane Wyzwania (1)')).toBeInTheDocument();
     act(() => connections[0].callbacks.state(incoming));
     expect(document.querySelectorAll('.notification-item')).toHaveLength(1);
-    act(() => connections[0].callbacks.state(snapshot(3)));
+    act(() => connections[0].callbacks.state(snapshot(4)));
     expect(screen.queryByText('Otrzymane Wyzwania (1)')).not.toBeInTheDocument();
     expect(screen.queryByText('1 nowe')).not.toBeInTheDocument();
-    act(() => connections[0].callbacks.state({ ...snapshot(4), gameSession: {
+    act(() => connections[0].callbacks.state({ ...snapshot(5), gameSession: {
       id: 'game', player1Id: 1, player1Username: 'tester', player1Elo: 500,
       player2Id: 2, player2Username: 'opponent', player2Elo: 500, roomId: 7,
       startTime: '2026-10-11T12:00:00', status: 'ACTIVE', winnerId: null,
       player1EloChange: null, player2EloChange: null, hintsUsed: {}, finishTimes: {}, penaltiesInSeconds: {},
     } }));
-    expect(screen.getByText('Mecz Znaleziony!')).toBeInTheDocument();
+    expect(screen.getByTestId('game-location')).toHaveTextContent('/rooms/7?arena=game');
     vi.useFakeTimers();
     await act(async () => { vi.advanceTimersByTime(60000); });
     vi.useRealTimers();

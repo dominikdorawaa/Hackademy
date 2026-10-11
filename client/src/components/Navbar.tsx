@@ -152,10 +152,8 @@ const Navbar = () => {
     try {
         const res = await arenaApi.acceptChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
         if (res.ok) {
-            const session = await res.json();
-            
             setIsNotificationsOpen(false);
-            navigate(`/rooms/${session.roomId}?arena=${session.id}`);
+            await synchronize();
         }
     } catch (err) {
         console.error(err);
