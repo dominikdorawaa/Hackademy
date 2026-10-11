@@ -6,6 +6,7 @@ import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import type { DashboardUser, FriendDto } from '../types/api';
+import './ArenaPage.css';
 
 type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED' | 'CHALLENGING';
 
@@ -269,20 +270,19 @@ const ArenaPage = () => {
                                 <div className="spinner" style={{
                                     width: '50px', height: '50px', border: '5px solid rgba(255,255,255,0.1)',
                                     borderTop: '5px solid var(--primary-blue)', borderRadius: '50%',
-                                    animation: 'spin 1s linear infinite', margin: '0 auto 20px'
+                                    margin: '0 auto 20px'
                                 }}></div>
                                 <p style={{ color: 'var(--text-light)' }}>{joiningQueue ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}</p>
                                 <button onClick={handleLeaveQueue} disabled={joiningQueue} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
                                     Anuluj
                                 </button>
-                                <style>{`@keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }`}</style>
                             </div>
                         ) : status === 'CHALLENGING' ? (
                             <div style={{ textAlign: 'center', margin: '40px 0' }}>
                                 <div className="spinner" style={{
                                     width: '50px', height: '50px', border: '5px solid rgba(255,152,0,0.1)',
                                     borderTop: '5px solid #ff9800', borderRadius: '50%',
-                                    animation: 'spin 1s linear infinite', margin: '0 auto 20px'
+                                    margin: '0 auto 20px'
                                 }}></div>
                                 <p style={{ color: 'var(--text-light)' }}>Oczekiwanie na akceptację wyzwania...</p>
                                 <button onClick={handleCancelChallenges} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
