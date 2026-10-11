@@ -71,7 +71,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendshipRepository.save(friendship);
         invalidateCachesFor(requesterId);
         invalidateCachesFor(receiver.getId());
-        realtime.changed(requester.getUsername(), receiver.getUsername());
+        realtime.changed(requester.getId(), receiver.getId());
     }
 
     @Override
@@ -93,7 +93,7 @@ public class FriendshipServiceImpl implements FriendshipService {
 
         invalidateCachesFor(friendship.getReceiver().getId());
         invalidateCachesFor(friendship.getRequester().getId());
-        realtime.changed(friendship.getRequester().getUsername(), friendship.getReceiver().getUsername());
+        realtime.changed(friendship.getRequester().getId(), friendship.getReceiver().getId());
     }
 
     @Override
@@ -109,7 +109,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendshipRepository.delete(friendship);
         invalidateCachesFor(friendship.getReceiver().getId());
         invalidateCachesFor(friendship.getRequester().getId());
-        realtime.changed(friendship.getRequester().getUsername(), friendship.getReceiver().getUsername());
+        realtime.changed(friendship.getRequester().getId(), friendship.getReceiver().getId());
     }
 
     @Override
@@ -126,7 +126,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendshipRepository.delete(friendship);
         invalidateCachesFor(userId);
         invalidateCachesFor(friendId);
-        realtime.changed(user.getUsername(), friend.getUsername());
+        realtime.changed(user.getId(), friend.getId());
     }
 
     @Override

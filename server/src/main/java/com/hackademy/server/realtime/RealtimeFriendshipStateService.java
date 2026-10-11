@@ -21,8 +21,8 @@ public class RealtimeFriendshipStateService {
     public record State(Long userId, List<FriendRequestDto> requests, List<FriendDto> friends) {}
 
     @Transactional(readOnly = true, propagation = Propagation.REQUIRES_NEW)
-    public State forUser(String username) {
-        var user = users.findByUsername(username).orElseThrow();
+    public State forUser(Long userId) {
+        var user = users.findById(userId).orElseThrow();
         var requests = friendships.findPendingRequestsForUser(user).stream()
                 .map(friendship -> new FriendRequestDto(friendship.getId(), friendship.getRequester().getUsername(),
                         friendship.getCreatedAt(), friendship.getRequester().getAvatarSeed())).toList();

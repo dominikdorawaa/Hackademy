@@ -43,7 +43,7 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         // Check if already in queue
         if (queue.stream().noneMatch(p -> p.id.equals(userId))) {
             queue.add(new PlayerInfo(userId, username, vpnEnabled));
-            realtime.changed(username);
+            realtime.changed(userId);
         }
     }
 
@@ -51,7 +51,7 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     public void leaveQueue(Long userId) {
         var leaving = queue.stream().filter(p -> p.id.equals(userId)).findFirst();
         queue.removeIf(p -> p.id.equals(userId));
-        leaving.ifPresent(player -> realtime.changed(player.username));
+        leaving.ifPresent(player -> realtime.changed(player.id));
     }
 
     @Override

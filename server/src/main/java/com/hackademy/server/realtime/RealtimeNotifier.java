@@ -5,14 +5,14 @@ import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
-import java.util.HashSet;
+import java.util.Set;
 
 @Component
 @RequiredArgsConstructor
 public class RealtimeNotifier {
     private final ApplicationEventPublisher events;
 
-    public void changed(String... usernames) {
-        events.publishEvent(new RealtimeChange(new HashSet<>(Arrays.asList(usernames))));
+    public void changed(Long... userIds) {
+        events.publishEvent(new RealtimeChange(Set.copyOf(Arrays.asList(userIds))));
     }
 }

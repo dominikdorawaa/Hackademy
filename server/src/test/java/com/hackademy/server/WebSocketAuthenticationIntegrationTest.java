@@ -76,7 +76,7 @@ class WebSocketAuthenticationIntegrationTest {
             socket.send(connectFrame("Authorization:Bearer " + jwtService.generateToken(user) + "\n"));
             String reply = socket.receive();
             assertTrue(reply.startsWith("CONNECTED\n"), reply);
-            assertTrue(reply.contains("user-name:" + username + "\n"), reply);
+            assertTrue(reply.contains("user-name:" + user.getId() + "\n"), reply);
 
             String destination = "/user/queue/realtime";
             socket.send("SUBSCRIBE\nid:authenticated-test\ndestination:" + destination + "\n\n\0");

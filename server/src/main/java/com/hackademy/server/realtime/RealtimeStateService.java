@@ -18,10 +18,10 @@ public class RealtimeStateService {
     private final AtomicLong revision = new AtomicLong();
     private final Object[] locks = java.util.stream.IntStream.range(0, 64).mapToObj(index -> new Object()).toArray();
 
-    public RealtimeState forUser(String username) {
-        synchronized (locks[Math.floorMod(username.hashCode(), locks.length)]) {
-            var game = arena.findCurrentGameForUsername(username);
-            var social = friendships.forUser(username);
+    public RealtimeState forUser(Long userId) {
+        synchronized (locks[Math.floorMod(userId.hashCode(), locks.length)]) {
+            var game = arena.findCurrentGameForUser(userId);
+            var social = friendships.forUser(userId);
             var challenges = arena.getPendingChallenges(social.userId());
             var outgoing = arena.getOutgoingChallenges(social.userId());
             boolean queued = matchmaking.isQueued(social.userId());

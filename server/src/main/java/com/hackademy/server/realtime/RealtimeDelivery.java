@@ -20,9 +20,10 @@ public class RealtimeDelivery {
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
     @Async("realtimeExecutor")
     public void deliver(RealtimeChange change) {
-        for (String username : change.usernames()) {
-            if (users.getUser(username) == null) continue;
-            messaging.convertAndSendToUser(username, "/queue/realtime", new Envelope("STATE", states.forUser(username)));
+        for (Long userId : change.userIds()) {
+            String destination = userId.toString();
+            if (users.getUser(destination) == null) continue;
+            messaging.convertAndSendToUser(destination, "/queue/realtime", new Envelope("STATE", states.forUser(userId)));
         }
     }
 }
