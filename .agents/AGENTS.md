@@ -11,6 +11,7 @@
 - Przed oddaniem zmian uruchom testy dotyczące zmienionego obszaru i sprawdź formatowanie zmienionych plików. W podsumowaniu podaj wyniki; jeśli czegoś nie dało się sprawdzić, wskaż co i dlaczego.
 - Nie dodawaj do repozytorium haseł, tokenów, kluczy prywatnych ani plików `.env` z rzeczywistymi danymi. W przykładach i dokumentacji używaj wyłącznie fikcyjnych wartości.
 - Tytuły ticketów na GitHubie pisz po angielsku, krótko i konkretnie, tak aby nadawały się na nazwę gałęzi. Szczegóły umieszczaj w opisie ticketa.
+- Treść ticketów (issues) i opisy PR na GitHubie pisz po polsku. Tytuły issues i PR pisz po angielsku.
 - Przy tworzeniu PR na GitHubie użyj tytułu ticketa jako tytułu PR i automatycznie przygotuj krótki opis na podstawie rzeczywistych zmian oraz wyników weryfikacji.
 - Przed rozpoczęciem zmian utwórz osobną gałąź od aktualnego `main`. Jeśli istnieje ticket, nazwij gałąź zgodnie z jego nazwą. Nie commituj ani nie pushuj bezpośrednio z `main`.
 - Przed każdym pushem pobierz i zintegruj najnowsze zmiany z gałęzi `main`.
