@@ -2,6 +2,7 @@ package com.hackademy.server.arena;
 
 import com.hackademy.server.chat.ChatService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
+import com.hackademy.server.realtime.RealtimeNotifier;
 import com.hackademy.server.user.UserServiceImpl;
 
 import com.hackademy.server.friendship.Friendship;
@@ -33,6 +34,7 @@ public class ArenaServiceImpl implements ArenaService {
     private final ChatService chatService;
     private final UserServiceImpl userServiceImpl;
     private final DashboardSummaryCache dashboardSummaryCache;
+    private final RealtimeNotifier realtime;
 
     // In-memory storage
     private final Map<String, GameSession> activeGames = new ConcurrentHashMap<>();
@@ -41,6 +43,7 @@ public class ArenaServiceImpl implements ArenaService {
     @Override
     public void addGame(GameSession session) {
         activeGames.put(session.getId(), session);
+        realtime.changed(session.getPlayer1Username(), session.getPlayer2Username());
     }
 
     @Override
@@ -89,6 +92,7 @@ public class ArenaServiceImpl implements ArenaService {
             
             // Cleanup chat (keep reported messages)
             chatService.cleanupChat(gameId);
+            realtime.changed(session.getPlayer1Username(), session.getPlayer2Username());
         }
     }
 
@@ -150,6 +154,7 @@ public class ArenaServiceImpl implements ArenaService {
         // Allow using hints if game is ACTIVE or WAITING_FOR_OPPONENT (meaning the other player finished but this one is still playing)
         if (session != null && ("ACTIVE".equals(session.getStatus()) || "WAITING_FOR_OPPONENT".equals(session.getStatus()))) {
             session.addHintUsage(userId, hintId);
+            realtime.changed(session.getPlayer1Username(), session.getPlayer2Username());
         }
     }
     
@@ -211,6 +216,7 @@ public class ArenaServiceImpl implements ArenaService {
                     // I have penalties that make my time worse than opponent's current time.
                     // Opponent still has a chance to beat me if they finish quickly.
                     session.setStatus("WAITING_FOR_OPPONENT");
+                    realtime.changed(session.getPlayer1Username(), session.getPlayer2Username());
                 }
             }
             return true;
@@ -269,6 +275,7 @@ public class ArenaServiceImpl implements ArenaService {
         challenge.setChallengerAvatarSeed(userRepository.findById(challengerId).map(User::getAvatarSeed).orElse(challengerUsername));
         challenge.setTargetAvatarSeed(userRepository.findById(targetId).map(User::getAvatarSeed).orElse(targetUsername));
         challenges.put(challenge.getId(), challenge);
+        realtime.changed(challengerUsername, targetUsername);
         return challenge;
     }
 
@@ -322,6 +329,7 @@ public class ArenaServiceImpl implements ArenaService {
         
         // Remove challenge after acceptance
         challenges.remove(challengeId);
+        realtime.changed(session.getPlayer1Username(), session.getPlayer2Username());
         
         return session;
     }
@@ -332,6 +340,7 @@ public class ArenaServiceImpl implements ArenaService {
         if (challenge != null && challenge.getTargetId().equals(userId)) {
             challenge.setStatus("REJECTED");
             challenges.remove(challengeId);
+            realtime.changed(challenge.getChallengerUsername(), challenge.getTargetUsername());
         }
     }
 
@@ -340,5 +349,21 @@ public class ArenaServiceImpl implements ArenaService {
         return challenges.values().stream()
                 .filter(c -> c.getTargetId().equals(userId) && "PENDING".equals(c.getStatus()))
                 .collect(Collectors.toList());
+    }
+
+    public List<Challenge> getOutgoingChallenges(Long userId) {
+        return challenges.values().stream()
+                .filter(challenge -> challenge.getChallengerId().equals(userId) && "PENDING".equals(challenge.getStatus()))
+                .toList();
+    }
+
+    @Override
+    public void cancelChallenge(String challengeId, Long userId) {
+        var challenge = challenges.get(challengeId);
+        if (challenge == null || !challenge.getChallengerId().equals(userId)) {
+            throw new IllegalArgumentException("Invalid challenge");
+        }
+        challenges.remove(challengeId);
+        realtime.changed(challenge.getChallengerUsername(), challenge.getTargetUsername());
     }
 }

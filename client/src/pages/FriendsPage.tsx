@@ -2,17 +2,18 @@ import UserAvatar from '../components/UserAvatar';
 import * as friendApi from '../services/friendApi';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
-import type { FriendDto, FriendRequestDto, UserSearchDto } from '../types/api';
+import type { UserSearchDto } from '../types/api';
 
 const FriendsPage = () => {
     const { token } = useAuth();
-    const [friends, setFriends] = useState<FriendDto[]>([]);
-    const [requests, setRequests] = useState<FriendRequestDto[]>([]);
-    const [loading, setLoading] = useState(true);
-    const [error, setError] = useState<string | null>(null);
+    const { state, synchronize } = useRealtime();
+    const friends = state?.friends ?? [];
+    const requests = state?.friendRequests ?? [];
+    const loading = !state;
 
     // Search state
     const [searchQuery, setSearchQuery] = useState('');
@@ -20,34 +21,7 @@ const FriendsPage = () => {
     const [isSearching, setIsSearching] = useState(false);
 
     // Challenge state
-    const [challengedFriends, setChallengedFriends] = useState<string[]>([]);
-
-    useEffect(() => {
-        fetchData();
-    }, [token]);
-
-    const fetchData = async () => {
-        setLoading(true);
-        try {
-            const [friendsRes, requestsRes] = await Promise.all([
-                friendApi.getFriends({ 'Authorization': `Bearer ${token}` }),
-                friendApi.getRequests({ 'Authorization': `Bearer ${token}` })
-            ]);
-
-            if (friendsRes.ok && requestsRes.ok) {
-                const friendsData = await friendsRes.json();
-                const requestsData = await requestsRes.json();
-                setFriends(friendsData);
-                setRequests(requestsData);
-            } else {
-                setError('Nie udało się pobrać listy znajomych.');
-            }
-        } catch {
-            setError('Błąd sieci.');
-        } finally {
-            setLoading(false);
-        }
-    };
+    const challengedFriends = state?.outgoingChallenges.map(challenge => challenge.targetUsername) ?? [];
 
     const handleSearch = async (e: React.FormEvent) => {
         e.preventDefault();
@@ -85,7 +59,7 @@ const FriendsPage = () => {
         try {
             const response = await friendApi.acceptRequest(requestId, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
-                fetchData(); // Refresh lists
+                await synchronize();
             }
         } catch (err) {
             console.error("Error accepting request", err);
@@ -96,7 +70,7 @@ const FriendsPage = () => {
         try {
             const response = await friendApi.rejectRequest(requestId, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
-                setRequests(requests.filter(req => req.id !== requestId));
+                await synchronize();
             }
         } catch (err) {
             console.error("Error rejecting request", err);
@@ -109,7 +83,7 @@ const FriendsPage = () => {
         try {
             const response = await friendApi.removeFriend(friendId, { 'Authorization': `Bearer ${token}` });
             if (response.ok) {
-                setFriends(friends.filter(f => f.id !== friendId));
+                await synchronize();
             }
         } catch (err) {
             console.error("Error removing friend", err);
@@ -124,7 +98,7 @@ const FriendsPage = () => {
                 });
 
             if (response.ok) {
-                setChallengedFriends(prev => [...prev, username]);
+                await synchronize();
             } else {
                 const data = await response.json();
                 alert(`Błąd: ${data.message}`);
@@ -147,7 +121,6 @@ const FriendsPage = () => {
     };
 
     if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
-    if (error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Błąd: {error}</h1></div>;
 
     return (
         <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>

@@ -37,6 +37,13 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         } else if (!(accessor.getUser() instanceof Authentication authentication) || !authentication.isAuthenticated()) {
             throw new BadCredentialsException("WebSocket authentication required");
         }
+        if (accessor.getCommand() == StompCommand.SUBSCRIBE
+                && !"/user/queue/realtime".equals(accessor.getDestination())) {
+            throw new BadCredentialsException("WebSocket subscription not allowed");
+        }
+        if (accessor.getCommand() == StompCommand.SEND) {
+            throw new BadCredentialsException("WebSocket destination not allowed");
+        }
         return message;
     }
 

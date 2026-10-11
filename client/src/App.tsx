@@ -1,6 +1,7 @@
 import { Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
+import { RealtimeProvider } from './context/RealtimeContext';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -34,95 +35,97 @@ function SiteLayout() {
 function App() {
   return (
     <AuthProvider>
-      <Routes>
-        {adminRoutes}
-        <Route element={<SiteLayout />}>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/login" element={<LoginPage />} />
-          <Route path="/register" element={<RegisterPage />} />
-          <Route
-            path="/arena"
-            element={
-              <ProtectedRoute>
-                <ArenaPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route path="/ranking" element={<RankingPage />} />
-          <Route
-            path="/dashboard"
-            element={
-              <ProtectedRoute>
-                <UserDashboardPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/learn"
-            element={
-              <ProtectedRoute>
-                <LearnPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/learn/paths/:id"
-            element={
-              <ProtectedRoute>
-                <PathDetailPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/rooms/:id"
-            element={
-              <ProtectedRoute>
-                <RoomPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <ProtectedRoute>
-                <ProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/profile/:username"
-            element={
-              <ProtectedRoute>
-                <PublicProfilePage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/friends"
-            element={
-              <ProtectedRoute>
-                <FriendsPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/vpn"
-            element={
-              <ProtectedRoute>
-                <VpnPage />
-              </ProtectedRoute>
-            }
-          />
-          <Route
-            path="/settings"
-            element={
-              <ProtectedRoute>
-                <SettingsPage />
-              </ProtectedRoute>
-            }
-          />
-        </Route>
-      </Routes>
+      <RealtimeProvider>
+        <Routes>
+          {adminRoutes}
+          <Route element={<SiteLayout />}>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/login" element={<LoginPage />} />
+            <Route path="/register" element={<RegisterPage />} />
+            <Route
+              path="/arena"
+              element={
+                <ProtectedRoute>
+                  <ArenaPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route path="/ranking" element={<RankingPage />} />
+            <Route
+              path="/dashboard"
+              element={
+                <ProtectedRoute>
+                  <UserDashboardPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/learn"
+              element={
+                <ProtectedRoute>
+                  <LearnPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/learn/paths/:id"
+              element={
+                <ProtectedRoute>
+                  <PathDetailPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/rooms/:id"
+              element={
+                <ProtectedRoute>
+                  <RoomPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile"
+              element={
+                <ProtectedRoute>
+                  <ProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/profile/:username"
+              element={
+                <ProtectedRoute>
+                  <PublicProfilePage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/friends"
+              element={
+                <ProtectedRoute>
+                  <FriendsPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/vpn"
+              element={
+                <ProtectedRoute>
+                  <VpnPage />
+                </ProtectedRoute>
+              }
+            />
+            <Route
+              path="/settings"
+              element={
+                <ProtectedRoute>
+                  <SettingsPage />
+                </ProtectedRoute>
+              }
+            />
+          </Route>
+        </Routes>
+      </RealtimeProvider>
     </AuthProvider>
   );
 }

@@ -52,6 +52,10 @@ export function rejectChallenge(id: ApiId, headers: HeadersInit) {
   });
 }
 
+export function cancelChallenge(id: ApiId, headers: HeadersInit) {
+  return request<MessageResponse>(`/api/arena/challenge/${id}/cancel`, { method: 'POST', headers });
+}
+
 export function getGame(id: ApiId, headers: HeadersInit) {
   return request<GameSession>(`/api/arena/game/${id}`, {
     method: 'GET',

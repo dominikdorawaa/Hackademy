@@ -2,11 +2,12 @@ import UserAvatar from '../components/UserAvatar';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
 import * as friendApi from '../services/friendApi';
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
+import { useRealtime } from '../context/RealtimeContext';
 import { useNavigate } from 'react-router-dom';
 import GameFoundModal from '../components/common/GameFoundModal';
-import type { Challenge, DashboardUser, FriendDto, GameSession } from '../types/api';
+import type { DashboardUser, FriendDto } from '../types/api';
 
 type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED' | 'CHALLENGING';
 
@@ -14,16 +15,18 @@ const ArenaPage = () => {
     const { token } = useAuth();
     const navigate = useNavigate();
     const [userData, setUserData] = useState<DashboardUser | null>(null);
-    const [status, setStatus] = useState<ArenaStatus>('IDLE'); // IDLE, QUEUE, GAME, FINISHED, CHALLENGING
-    const [gameSession, setGameSession] = useState<GameSession | null>(null);
+    const { state: realtime, synchronize } = useRealtime();
+    const gameSession = realtime?.gameSession ?? null;
+    const challenges = realtime?.challenges ?? [];
+    const status: ArenaStatus = gameSession && gameSession.status !== 'FINISHED' ? 'GAME'
+        : realtime?.queued ? 'QUEUE' : realtime?.outgoingChallenges.length ? 'CHALLENGING' : 'IDLE';
     const [error, setError] = useState<string | null>(null);
-    const [challenges, setChallenges] = useState<Challenge[]>([]);
 
     // Friend Selection Modal State
     const [showFriendModal, setShowFriendModal] = useState(false);
     const [friends, setFriends] = useState<FriendDto[]>([]);
     const [friendsLoading, setFriendsLoading] = useState(false);
-    const [challengedFriends, setChallengedFriends] = useState<string[]>([]);
+    const challengedFriends = (realtime?.outgoingChallenges ?? []).map(challenge => challenge.targetUsername);
 
     // Error Modal State
     const [showErrorModal, setShowErrorModal] = useState(false);
@@ -36,8 +39,6 @@ const ArenaPage = () => {
     // VPN Preference
     const [vpnEnabled, setVpnEnabled] = useState(false);
 
-    // Ref to track if we have already shown the finished screen for a specific game
-    const finishedGameIdRef = useRef<string | null>(null);
 
     useEffect(() => {
         const fetchUserData = async () => {
@@ -53,97 +54,6 @@ const ArenaPage = () => {
         };
         fetchUserData();
     }, [token]);
-
-    // Initial check for active game (only once on mount)
-    useEffect(() => {
-        const checkInitialStatus = async () => {
-            if (token) {
-                try {
-                    const response = await arenaApi.getStatus({ 'Authorization': `Bearer ${token}` });
-
-                    if (response.status === 200) {
-                        const session = await response.json() as GameSession;
-                        if (session.status !== 'FINISHED') {
-                            setGameSession(session);
-                            setStatus('GAME');
-                        }
-                    }
-                } catch (err) {
-                    console.error("Initial status check error", err);
-                }
-            }
-        };
-        checkInitialStatus();
-    }, [token]);
-
-    // Polling for game status and challenges
-    useEffect(() => {
-        let interval: ReturnType<typeof setInterval> | undefined;
-        if (token) {
-            // Determine polling interval based on status
-            // Fast polling (500ms) when in QUEUE or CHALLENGING to find match quickly
-            // Slower polling (2000ms) when in GAME or IDLE
-            const pollInterval = (status === 'QUEUE' || status === 'CHALLENGING') ? 500 : 2000;
-
-            interval = setInterval(async () => {
-                try {
-                    // Check game status ONLY if we are in QUEUE, GAME or CHALLENGING state
-                    if (status === 'QUEUE' || status === 'GAME' || status === 'CHALLENGING') {
-                        const response = await arenaApi.getStatus({ 'Authorization': `Bearer ${token}` });
-
-                        if (response.status === 200) {
-                            const session = await response.json() as GameSession;
-
-                            // Jeśli szukamy gry, interesują nas tylko aktywne sesje
-                            if ((status === 'QUEUE' || status === 'CHALLENGING') && session.status === 'FINISHED') {
-                                return; // Ignoruj stare zakończone gry
-                            }
-
-                            if (session.status === 'FINISHED') {
-                                // If game is finished, we don't want to show the result screen here anymore
-                                // because it's shown in the RoomPage modal.
-                                // So we just reset to IDLE to allow starting a new game.
-                                setStatus('IDLE');
-                                setGameSession(null);
-                            } else {
-                                // Active game found!
-
-                                // If we were CHALLENGING (waiting for friend to accept), auto-join!
-                                if (status === 'CHALLENGING') {
-                                    window.location.href = `/rooms/${session.roomId}?arena=${session.id}`;
-                                    return; // Stop processing
-                                }
-
-                                // Active game or other status
-                                setGameSession(session);
-                                setStatus('GAME');
-                                // Reset finished ref if we are in a new game (though ID check above handles most cases)
-                                if (finishedGameIdRef.current !== null && finishedGameIdRef.current !== session.id) {
-                                     finishedGameIdRef.current = null;
-                                }
-                            }
-                        } else if (status === 'GAME') {
-                             // If we were in GAME but now no content (204), it means game might have ended or invalid
-                             // We switch to IDLE
-                             setStatus('IDLE');
-                             setGameSession(null);
-                        }
-                    }
-
-                    // Check challenges (always check for challenges)
-                    const challengesRes = await arenaApi.getChallenges({ 'Authorization': `Bearer ${token}` });
-                    if (challengesRes.ok) {
-                        const data = await challengesRes.json();
-                        setChallenges(data);
-                    }
-
-                } catch (err) {
-                    console.error("Polling error", err);
-                }
-            }, pollInterval);
-        }
-        return () => clearInterval(interval);
-    }, [status, token]);
 
     const fetchFriends = async () => {
         setFriendsLoading(true);
@@ -176,18 +86,8 @@ const ArenaPage = () => {
                 });
 
             if (response.ok) {
-                setChallengedFriends(prev => [...prev, username]);
-                setShowFriendModal(false); // Close modal after successful challenge
-
-                // Set status to CHALLENGING to enable polling for game start
-                setStatus('CHALLENGING');
-
-                // Remove from challenged list after 10 seconds to allow re-challenge if rejected
-                setTimeout(() => {
-                    setChallengedFriends(prev => prev.filter(name => name !== username));
-                    // If still challenging after timeout, maybe reset status?
-                    // For now let's keep it, user can cancel manually or wait.
-                }, 10000);
+                setShowFriendModal(false);
+                await synchronize();
             } else {
                 const data = await response.json();
                 // Close friend modal and show error modal
@@ -211,10 +111,8 @@ const ArenaPage = () => {
                 });
 
             if (response.ok) {
-                setStatus('QUEUE');
                 setError(null);
-                // finishedGameIdRef.current = null; // Don't reset here to avoid showing old game on cancel
-                setGameSession(null); // Clear previous session
+                await synchronize();
             } else {
                 const data = await response.json();
                 setError(data.message ?? 'Błąd');
@@ -225,14 +123,25 @@ const ArenaPage = () => {
     };
 
     const handleLeaveQueue = async () => {
-        // Immediately update UI state to prevent race conditions
-        setStatus('IDLE');
-        setGameSession(null);
 
         try {
-            await arenaApi.leaveQueue({ 'Authorization': `Bearer ${token}` });
+            const response = await arenaApi.leaveQueue({ 'Authorization': `Bearer ${token}` });
+            if (!response.ok) throw new Error('Cannot leave queue');
+            await synchronize();
         } catch (err) {
             console.error("Error leaving queue", err);
+        }
+    };
+
+    const handleCancelChallenges = async () => {
+        try {
+            for (const challenge of realtime?.outgoingChallenges ?? []) {
+                const response = await arenaApi.cancelChallenge(challenge.id, { Authorization: `Bearer ${token}` });
+                if (!response.ok) throw new Error('Cannot cancel challenge');
+            }
+            await synchronize();
+        } catch {
+            setError('Nie udało się anulować wyzwania.');
         }
     };
 
@@ -252,8 +161,7 @@ const ArenaPage = () => {
 
                 setAcceptedChallenges(prev => [...prev, challengeId]);
 
-                // Force full page reload to ensure clean state and navigation
-                window.location.href = `/rooms/${session.roomId}?arena=${session.id}`;
+                navigate(`/rooms/${session.roomId}?arena=${session.id}`);
 
             } else {
                 const data = await response.json();
@@ -272,8 +180,9 @@ const ArenaPage = () => {
         setProcessingChallengeId(challengeId);
 
         try {
-            await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
-            setChallenges(challenges.filter(c => c.id !== challengeId));
+            const response = await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
+            if (!response.ok) throw new Error('Cannot reject challenge');
+            await synchronize();
         } catch (err) {
             console.error("Error rejecting challenge", err);
         } finally {
@@ -379,7 +288,7 @@ const ArenaPage = () => {
                                     animation: 'spin 1s linear infinite', margin: '0 auto 20px'
                                 }}></div>
                                 <p style={{ color: 'var(--text-light)' }}>Oczekiwanie na akceptację wyzwania...</p>
-                                <button onClick={() => setStatus('IDLE')} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
+                                <button onClick={handleCancelChallenges} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
                                     Anuluj
                                 </button>
                             </div>

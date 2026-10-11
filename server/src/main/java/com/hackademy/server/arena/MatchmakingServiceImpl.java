@@ -6,6 +6,7 @@ import com.hackademy.server.room.RoomRepository;
 import com.hackademy.server.user.UserRepository;
 import com.hackademy.server.room.UserSolvedRoomRepository;
 import lombok.RequiredArgsConstructor;
+import com.hackademy.server.realtime.RealtimeNotifier;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
@@ -20,6 +21,7 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     private final RoomRepository roomRepository;
     private final UserRepository userRepository;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
+    private final RealtimeNotifier realtime;
 
     // Queue stores user IDs
     private final Queue<PlayerInfo> queue = new ConcurrentLinkedQueue<>();
@@ -40,17 +42,21 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     public void joinQueue(Long userId, String username, boolean vpnEnabled) {
         // Check if already in queue
         if (queue.stream().noneMatch(p -> p.id.equals(userId))) {
-            System.out.println("Adding user to queue: " + username + " (VPN: " + vpnEnabled + ")");
             queue.add(new PlayerInfo(userId, username, vpnEnabled));
-        } else {
-            System.out.println("User already in queue: " + username);
+            realtime.changed(username);
         }
     }
 
     @Override
     public void leaveQueue(Long userId) {
-        System.out.println("Removing user from queue: " + userId);
+        var leaving = queue.stream().filter(p -> p.id.equals(userId)).findFirst();
         queue.removeIf(p -> p.id.equals(userId));
+        leaving.ifPresent(player -> realtime.changed(player.username));
+    }
+
+    @Override
+    public boolean isQueued(Long userId) {
+        return queue.stream().anyMatch(player -> player.id.equals(userId));
     }
 
     @Override
@@ -60,8 +66,6 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         if (queue.size() < 2) {
             return newSessions;
         }
-
-        System.out.println("Queue size: " + queue.size() + ". Attempting to match...");
 
         // Convert queue to list for easier manipulation
         List<PlayerInfo> players = new ArrayList<>(queue);
@@ -73,7 +77,6 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         List<Long> noVpnRoomIds = roomRepository.findCtfIdsByVpnRequirement(false);
 
         if (allRoomIds.isEmpty() && noVpnRoomIds.isEmpty()) {
-            System.out.println("No rooms found in database!");
             return newSessions;
         }
 
@@ -93,7 +96,6 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 List<Long> eligibleRoomIds = canUseVpn ? allRoomIds : noVpnRoomIds;
 
                 if (eligibleRoomIds.isEmpty()) {
-                    System.out.println("No eligible rooms for " + p1.username + " and " + p2.username);
                     continue;
                 }
 
@@ -104,11 +106,8 @@ public class MatchmakingServiceImpl implements MatchmakingService {
                 Room selectedRoom = roomRepository.findById(randomRoomId).orElse(null);
                 
                 if (selectedRoom == null) {
-                     System.out.println("Failed to fetch room with ID: " + randomRoomId);
                      continue;
                 }
-
-                System.out.println("Matching " + p1.username + " vs " + p2.username + " in room: " + selectedRoom.getTitle());
 
                 // Create session
                 GameSession session = createGameSession(p1, p2, selectedRoom);
@@ -132,7 +131,6 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         User user2 = userRepository.findById(p2.id).orElse(null);
 
         if (user1 == null || user2 == null) {
-            System.out.println("One of the users not found in DB");
             return null;
         }
 

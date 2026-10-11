@@ -41,6 +41,7 @@ public class ArenaController {
         }
 
         matchmakingService.joinQueue(user.getId(), user.getUsername(), vpnEnabled);
+        processMatchmaking();
         return ResponseEntity.ok(Map.of("message", "Dołączono do kolejki"));
     }
 
@@ -64,7 +65,7 @@ public class ArenaController {
     }
 
     @Scheduled(fixedRate = 500) 
-    public void processMatchmaking() {
+    public synchronized void processMatchmaking() {
         List<GameSession> sessions = matchmakingService.checkForMatches();
         for (GameSession session : sessions) {
             arenaService.addGame(session);
@@ -109,7 +110,8 @@ public class ArenaController {
     @GetMapping("/game/{gameId}")
     public ResponseEntity<?> getGameStatus(@PathVariable String gameId) {
         GameSession session = arenaService.getGameSession(gameId);
-        if (session != null) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (session != null && (session.getPlayer1Id().equals(user.getId()) || session.getPlayer2Id().equals(user.getId()))) {
             return ResponseEntity.ok(session);
         }
         return ResponseEntity.notFound().build();
@@ -163,5 +165,16 @@ public class ArenaController {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         arenaService.rejectChallenge(challengeId, user.getId());
         return ResponseEntity.ok(Map.of("message", "Propozycja została odrzucona!"));
+    }
+
+    @PostMapping("/challenge/{challengeId}/cancel")
+    public ResponseEntity<?> cancelChallenge(@PathVariable String challengeId) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        try {
+            arenaService.cancelChallenge(challengeId, user.getId());
+            return ResponseEntity.ok(Map.of("message", "Wyzwanie anulowane"));
+        } catch (IllegalArgumentException exception) {
+            return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));
+        }
     }
 }
