@@ -5,17 +5,20 @@ import { AuthProvider, useAuth } from './AuthContext';
 import { RealtimeProvider, useRealtime } from './RealtimeContext';
 import type { RealtimeCallbacks } from '../services/RealtimeConnection';
 import type { RealtimeState } from '../types/realtime';
+import type { GameSession } from '../types/api';
 import { createToken, createUser } from '../test/fixtures/auth';
 import { server } from '../test/mocks/server';
 import API_URL from '../apiConfig';
-import { MemoryRouter, useLocation } from 'react-router-dom';
+import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import RealtimeGameNavigation from '../components/RealtimeGameNavigation';
 import Navbar from '../components/Navbar';
 import ArenaPage from '../pages/ArenaPage';
 import FriendsPage from '../pages/FriendsPage';
 import * as httpService from '../services/http';
+import RoomPage from '../pages/RoomPage';
 
 const connections = vi.hoisted(() => [] as { callbacks: RealtimeCallbacks; start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }[]);
+vi.mock('../components/ArenaChat', () => ({ default: () => null }));
 vi.mock('../services/RealtimeConnection', () => ({
   RealtimeConnection: class {
     start = vi.fn();
@@ -26,6 +29,13 @@ vi.mock('../services/RealtimeConnection', () => ({
 
 const snapshot = (revision = 1, streamId = 'server'): RealtimeState => ({
   revision, streamId, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession: null, queued: false,
+});
+
+const game = (id = 'game', status: GameSession['status'] = 'ACTIVE'): GameSession => ({
+  id, status, player1Id: 1, player1Username: 'tester', player1Elo: 500,
+  player2Id: 2, player2Username: 'opponent', player2Elo: 500, roomId: 7,
+  startTime: '2026-10-11T12:00:00', winnerId: null, player1EloChange: null, player2EloChange: null,
+  hintsUsed: {}, finishTimes: {}, penaltiesInSeconds: {},
 });
 
 function Consumer({ name }: { name: string }) {
@@ -52,6 +62,95 @@ function GameLocation() {
 beforeEach(() => { connections.length = 0; });
 
 describe('shared realtime state', () => {
+  it('offers a route back to an active match after leaving its room', async () => {
+    server.use(
+      http.get(`${API_URL}/api/user/me`, () => HttpResponse.json({ ...createUser(), points: 500 })),
+      http.get(`${API_URL}/api/realtime/state`, () => HttpResponse.json({ ...snapshot(), gameSession: game() })),
+    );
+    localStorage.setItem('token', createToken());
+    render(<MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider>
+      <RealtimeGameNavigation /><GameLocation />
+      <Routes>
+        <Route path="/arena" element={<ArenaPage />} />
+        <Route path="/rooms/:id" element={<Link to="/arena">Powrót</Link>} />
+      </Routes>
+    </RealtimeProvider></AuthProvider></MemoryRouter>);
+    act(() => connections[0].callbacks.ready());
+    fireEvent.click(await screen.findByRole('link', { name: 'Powrót' }));
+    const returnLink = await screen.findByRole('link', { name: 'Wróć do meczu' });
+    expect(returnLink).toHaveAttribute('href', '/rooms/7?arena=game');
+    expect(screen.queryByRole('button', { name: 'Znajdź Przeciwnika' })).not.toBeInTheDocument();
+    fireEvent.click(returnLink);
+    expect(screen.getByTestId('game-location')).toHaveTextContent('/rooms/7?arena=game');
+  });
+
+  it('resets room inputs and the result dialog when a new match starts in the same room', async () => {
+    server.use(
+      http.get(`${API_URL}/api/realtime/state`, () => HttpResponse.json({ ...snapshot(), gameSession: game('a') })),
+      http.get(`${API_URL}/api/arena/game/:id`, ({ params }) => HttpResponse.json(game(String(params.id)))),
+      http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json({
+        id: 7, title: 'Arena room', description: 'Room', difficulty: 'EASY', points: 50, solved: false,
+        hints: [], unlockedHintIds: [], tasks: [], requiresVpn: false,
+      })),
+    );
+    localStorage.setItem('token', createToken());
+    render(<MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider>
+      <RealtimeGameNavigation /><GameLocation />
+      <Routes><Route path="/arena" element={<ArenaPage />} /><Route path="/rooms/:id" element={<RoomPage />} /></Routes>
+    </RealtimeProvider></AuthProvider></MemoryRouter>);
+    act(() => connections[0].callbacks.ready());
+    await screen.findByRole('heading', { name: 'Arena room' });
+    const flagInput = screen.getByPlaceholderText('Wklej flagę tutaj...');
+    fireEvent.change(flagInput, { target: { value: 'old flag' } });
+    act(() => connections[0].callbacks.state({ ...snapshot(2), gameSession: {
+      ...game('a', 'FINISHED'), winnerId: 1, player1EloChange: 16, player2EloChange: -16,
+    } }));
+    await screen.findByText('ZWYCIĘSTWO!');
+    act(() => connections[0].callbacks.state({ ...snapshot(3), gameSession: game('b') }));
+    await waitFor(() => expect(screen.getByTestId('game-location')).toHaveTextContent('/rooms/7?arena=b'));
+    await screen.findByRole('heading', { name: 'Arena room' });
+    expect(screen.queryByText('ZWYCIĘSTWO!')).not.toBeInTheDocument();
+    expect(screen.queryByText('PORAŻKA')).not.toBeInTheDocument();
+    expect(screen.getByPlaceholderText('Wklej flagę tutaj...')).toHaveValue('');
+  });
+
+  it.each(['join', 'synchronization'])('allows canceling a confirmed queue while the %s response is pending', async stalled => {
+    let requests = 0;
+    let release: (() => void) | undefined;
+    let left = false;
+    server.use(
+      http.get(`${API_URL}/api/user/me`, () => HttpResponse.json({ ...createUser(), points: 500 })),
+      http.get(`${API_URL}/api/realtime/state`, async () => {
+        if (++requests > 1 && stalled === 'synchronization') await new Promise<void>(resolve => { release = resolve; });
+        return HttpResponse.json(snapshot());
+      }),
+      http.post(`${API_URL}/api/arena/join`, async () => {
+        if (stalled === 'join') await new Promise<void>(resolve => { release = resolve; });
+        return HttpResponse.json({ message: 'Joined' });
+      }),
+      http.post(`${API_URL}/api/arena/leave`, () => { left = true; return HttpResponse.json({ message: 'Left' }); }),
+    );
+    localStorage.setItem('token', createToken());
+    render(<MemoryRouter><AuthProvider><RealtimeProvider><ArenaPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
+    act(() => connections[0].callbacks.ready());
+    const join = await screen.findByRole('button', { name: 'Znajdź Przeciwnika' });
+    await waitFor(() => expect(join).toBeEnabled());
+    fireEvent.click(join);
+    try {
+      await waitFor(() => expect(release).toBeDefined());
+      act(() => connections[0].callbacks.state({ ...snapshot(2), queued: true }));
+      expect(screen.getByText('Szukanie przeciwnika...')).toBeInTheDocument();
+      const cancel = screen.getByRole('button', { name: 'Anuluj' });
+      expect(cancel).toBeEnabled();
+      fireEvent.click(cancel);
+      await waitFor(() => expect(left).toBe(true));
+      act(() => connections[0].callbacks.state(snapshot(3)));
+    } finally {
+      await act(async () => release?.());
+    }
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Anuluj' })).not.toBeInTheDocument());
+  });
+
   it('shows a recoverable error on Friends instead of indefinite loading', async () => {
     let successful = false;
     let requests = 0;

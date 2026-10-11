@@ -5,6 +5,7 @@ import * as friendApi from '../services/friendApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
+import { Link } from 'react-router-dom';
 import type { DashboardUser, FriendDto } from '../types/api';
 import './ArenaPage.css';
 
@@ -114,7 +115,8 @@ const ArenaPage = () => {
 
             if (response.ok) {
                 setError(null);
-                await synchronize();
+                setJoiningQueue(false);
+                void synchronize();
             } else {
                 const data = await response.json();
                 setError(data.message ?? 'Błąd');
@@ -265,15 +267,20 @@ const ArenaPage = () => {
                             Pnij się w drabinie rankingowej. System dobierze Ci przeciwnika o równym poziomie – wygrywa ten, kto szybciej przełamie zabezpieczenia systemu.
                         </p>
 
-                        {status === 'QUEUE' || joiningQueue ? (
+                        {status === 'GAME' && gameSession ? (
+                            <div role="status" style={{ textAlign: 'center', margin: '40px 0' }}>
+                                <p>Masz trwający mecz z {gameSession.player1Id === userData.id ? gameSession.player2Username : gameSession.player1Username}.</p>
+                                <Link className="btn btn-primary" to={`/rooms/${gameSession.roomId}?arena=${gameSession.id}`}>Wróć do meczu</Link>
+                            </div>
+                        ) : status === 'QUEUE' || joiningQueue ? (
                             <div role="status" aria-live="polite" style={{ textAlign: 'center', margin: '40px 0' }}>
                                 <div className="spinner" style={{
                                     width: '50px', height: '50px', border: '5px solid rgba(255,255,255,0.1)',
                                     borderTop: '5px solid var(--primary-blue)', borderRadius: '50%',
                                     margin: '0 auto 20px'
                                 }}></div>
-                                <p style={{ color: 'var(--text-light)' }}>{joiningQueue ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}</p>
-                                <button onClick={handleLeaveQueue} disabled={joiningQueue} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
+                                <p style={{ color: 'var(--text-light)' }}>{joiningQueue && status !== 'QUEUE' ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}</p>
+                                <button onClick={handleLeaveQueue} disabled={joiningQueue && status !== 'QUEUE'} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
                                     Anuluj
                                 </button>
                             </div>

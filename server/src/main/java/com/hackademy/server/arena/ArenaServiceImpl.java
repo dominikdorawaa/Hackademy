@@ -22,6 +22,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -140,8 +141,16 @@ public class ArenaServiceImpl implements ArenaService {
 
     @Override
     public GameSession findCurrentGameForUser(Long userId) {
+        return findCurrentGame(game -> game.getPlayer1Id().equals(userId) || game.getPlayer2Id().equals(userId));
+    }
+
+    public GameSession findCurrentGameForUsername(String username) {
+        return findCurrentGame(game -> username.equals(game.getPlayer1Username()) || username.equals(game.getPlayer2Username()));
+    }
+
+    private GameSession findCurrentGame(Predicate<GameSession> participant) {
         return activeGames.values().stream()
-                .filter(g -> g.getPlayer1Id().equals(userId) || g.getPlayer2Id().equals(userId))
+                .filter(participant)
                 .map(GameSession::snapshot)
                 .sorted((g1, g2) -> {
                     boolean g1Active = "ACTIVE".equals(g1.getStatus()) || "WAITING_FOR_OPPONENT".equals(g1.getStatus());

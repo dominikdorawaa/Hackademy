@@ -15,7 +15,7 @@ import ArenaChat from '../components/ArenaChat';
 import './RoomPage.css';
 import type { DashboardUser, RoomDetailDto } from '../types/api';
 
-const RoomPage = () => {
+const RoomContent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -529,4 +529,10 @@ const RoomPage = () => {
   );
 };
 
-export default RoomPage;
+export default function RoomPage() {
+  const { id } = useParams();
+  const { search } = useLocation();
+  const { token } = useAuth();
+  const gameId = new URLSearchParams(search).get('arena');
+  return <RoomContent key={JSON.stringify([id, gameId, token])} />;
+}

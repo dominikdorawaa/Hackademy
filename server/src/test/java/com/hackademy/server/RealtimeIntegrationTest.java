@@ -1,6 +1,7 @@
 package com.hackademy.server;
 
 import com.hackademy.server.arena.ArenaService;
+import com.hackademy.server.arena.GameSession;
 import com.hackademy.server.arena.MatchmakingService;
 import com.hackademy.server.auth.JwtService;
 import com.hackademy.server.friendship.FriendshipService;
@@ -11,6 +12,7 @@ import com.hackademy.server.room.DifficultyLevel;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
 import com.jayway.jsonpath.JsonPath;
+import com.zaxxer.hikari.HikariDataSource;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -22,8 +24,19 @@ import org.springframework.transaction.PlatformTransactionManager;
 
 import java.net.http.HttpClient;
 import java.util.UUID;
+import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.lang.management.ManagementFactory;
+import java.util.Arrays;
+import java.net.URI;
+import java.net.http.HttpRequest;
+import java.net.http.HttpResponse;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
+import javax.sql.DataSource;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.awaitility.Awaitility.await;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "DB_URL=jdbc:h2:mem:realtime_test", "DB_USERNAME=sa", "DB_PASSWORD=",
@@ -41,6 +54,7 @@ class RealtimeIntegrationTest {
     @Autowired private RealtimeStateService states;
     @Autowired private RoomRepository rooms;
     @Autowired private PlatformTransactionManager transactions;
+    @Autowired private DataSource dataSource;
     private final HttpClient client = HttpClient.newHttpClient();
 
     private User user() {
@@ -52,6 +66,56 @@ class RealtimeIntegrationTest {
         var socket = RealtimeSocket.open(client, port, jwt.generateToken(user));
         socket.subscribe();
         return socket;
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"service", "http"})
+    void waitingSnapshotsReleaseDatabaseConnectionsBeforeTakingTheGameLock(String entryPoint) throws Exception {
+        var a = user();
+        var b = user();
+        var game = new GameSession();
+        game.setId(UUID.randomUUID().toString());
+        game.setPlayer1Id(a.getId());
+        game.setPlayer1Username(a.getUsername());
+        game.setPlayer2Id(b.getId());
+        game.setPlayer2Username(b.getUsername());
+        game.setStartTime(LocalDateTime.now());
+        game.setStatus("ACTIVE");
+        arena.addGame(game);
+        var pool = (HikariDataSource) dataSource;
+        assertEquals(5, pool.getMaximumPoolSize());
+        var executor = Executors.newFixedThreadPool(5);
+        var snapshots = new ArrayList<java.util.concurrent.Future<?>>();
+        try {
+            synchronized (game) {
+                for (int i = 0; i < 5; i++) {
+                    String username = i % 2 == 0 ? a.getUsername() : b.getUsername();
+                    String token = jwt.generateToken(i % 2 == 0 ? a : b);
+                    snapshots.add(executor.submit(() -> {
+                        if ("http".equals(entryPoint)) {
+                            var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/realtime/state"))
+                                    .header("Authorization", "Bearer " + token).GET().build(), HttpResponse.BodyHandlers.ofString());
+                            assertEquals(200, response.statusCode());
+                            return response.body();
+                        }
+                        return states.forUser(username);
+                    }));
+                }
+                await().atMost(5, TimeUnit.SECONDS).until(() -> Arrays.stream(ManagementFactory.getThreadMXBean().dumpAllThreads(false, false))
+                        .filter(thread -> thread.getThreadState() == Thread.State.BLOCKED)
+                        .filter(thread -> Arrays.stream(thread.getStackTrace()).anyMatch(frame ->
+                                frame.getClassName().equals(RealtimeStateService.class.getName()) && frame.getMethodName().equals("forUser")))
+                        .count() == 5);
+                assertEquals(0, pool.getHikariPoolMXBean().getActiveConnections());
+                arena.finishGame(game.getId(), a.getId());
+                assertEquals("FINISHED", game.getStatus());
+                assertNotNull(game.getPlayer1EloChange());
+            }
+            for (var snapshot : snapshots) snapshot.get(5, TimeUnit.SECONDS);
+            assertEquals("FINISHED", states.forUser(a.getUsername()).gameSession().getStatus());
+        } finally {
+            executor.shutdownNow();
+        }
     }
 
     @Test
