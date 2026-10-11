@@ -2,6 +2,7 @@ package com.hackademy.server.friendship;
 
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
+import com.hackademy.server.realtime.RealtimeNotifier;
 
 import com.hackademy.server.user.dto.UserSearchDto;
 import com.hackademy.server.exception.UserNotFoundException;
@@ -31,6 +32,7 @@ public class FriendshipServiceImpl implements FriendshipService {
     private final UserRepository userRepository;
     private final BadgeService badgeService; // Inject BadgeService
     private final DashboardSummaryCache dashboardSummaryCache;
+    private final RealtimeNotifier realtime;
 
     private static final long CACHE_MS = 30_000; // 30 seconds
     private static final class CacheEntry<T> {
@@ -69,6 +71,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendshipRepository.save(friendship);
         invalidateCachesFor(requesterId);
         invalidateCachesFor(receiver.getId());
+        realtime.changed(requester.getId(), receiver.getId());
     }
 
     @Override
@@ -90,6 +93,7 @@ public class FriendshipServiceImpl implements FriendshipService {
 
         invalidateCachesFor(friendship.getReceiver().getId());
         invalidateCachesFor(friendship.getRequester().getId());
+        realtime.changed(friendship.getRequester().getId(), friendship.getReceiver().getId());
     }
 
     @Override
@@ -105,6 +109,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendshipRepository.delete(friendship);
         invalidateCachesFor(friendship.getReceiver().getId());
         invalidateCachesFor(friendship.getRequester().getId());
+        realtime.changed(friendship.getRequester().getId(), friendship.getReceiver().getId());
     }
 
     @Override
@@ -121,6 +126,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendshipRepository.delete(friendship);
         invalidateCachesFor(userId);
         invalidateCachesFor(friendId);
+        realtime.changed(user.getId(), friend.getId());
     }
 
     @Override

@@ -4,6 +4,7 @@ package com.hackademy.server.arena;
 import java.util.List;
 
 public interface ArenaService {
+    void cancelChallenge(String challengeId, Long userId);
     GameSession getGameSession(String gameId);
     void addGame(GameSession session);
     void finishGame(String gameId, Long winnerId);

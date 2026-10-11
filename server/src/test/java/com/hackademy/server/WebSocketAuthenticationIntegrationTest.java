@@ -14,10 +14,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.messaging.simp.SimpMessageHeaderAccessor;
-import org.springframework.messaging.simp.SimpMessageType;
-import org.springframework.messaging.simp.broker.SimpleBrokerMessageHandler;
-import org.springframework.messaging.support.MessageBuilder;
 import org.springframework.test.web.servlet.MockMvc;
 
 import java.net.URI;
@@ -34,7 +30,6 @@ import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
 import java.util.stream.Stream;
 
-import static org.awaitility.Awaitility.await;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
@@ -71,11 +66,9 @@ class WebSocketAuthenticationIntegrationTest {
     @Autowired
     private MockMvc mockMvc;
 
-    @Autowired
-    private SimpleBrokerMessageHandler broker;
 
     @Test
-    void connectsWithValidJwtAndCanSubscribeAndSendAsItsUser() throws Exception {
+    void connectsWithValidJwtAndCanSubscribeToItsOwnState() throws Exception {
         String username = "socket" + UUID.randomUUID().toString().substring(0, 8);
         var user = userRepository.saveAndFlush(User.builder()
                 .username(username).email(username + "@example.com").password("unused").build());
@@ -83,23 +76,14 @@ class WebSocketAuthenticationIntegrationTest {
             socket.send(connectFrame("Authorization:Bearer " + jwtService.generateToken(user) + "\n"));
             String reply = socket.receive();
             assertTrue(reply.startsWith("CONNECTED\n"), reply);
-            assertTrue(reply.contains("user-name:" + username + "\n"), reply);
+            assertTrue(reply.contains("user-name:" + user.getId() + "\n"), reply);
 
-            String destination = "/topic/auth-test-" + username;
+            String destination = "/user/queue/realtime";
             socket.send("SUBSCRIBE\nid:authenticated-test\ndestination:" + destination + "\n\n\0");
-            var headers = SimpMessageHeaderAccessor.create(SimpMessageType.MESSAGE);
-            headers.setDestination(destination);
-            var probe = MessageBuilder.createMessage(new byte[0], headers.getMessageHeaders());
-            await().atMost(Duration.ofSeconds(5))
-                    .until(() -> !broker.getSubscriptionRegistry().findSubscriptions(probe).isEmpty());
-
-            String payload = "authenticated message " + username;
-            socket.send("SEND\ndestination:" + destination + "\ncontent-type:text/plain\n\n" + payload + "\0");
             String received = socket.receive();
             assertTrue(received.startsWith("MESSAGE\n"), received);
             assertTrue(received.contains("subscription:authenticated-test\n"), received);
-            assertTrue(received.contains("destination:" + destination + "\n"), received);
-            assertEquals(payload + "\0", received.substring(received.indexOf("\n\n") + 2));
+            assertTrue(received.contains("\"type\":\"READY\""), received);
         }
     }
 

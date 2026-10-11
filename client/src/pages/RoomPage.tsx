@@ -5,19 +5,22 @@ import * as roomApi from '../services/roomApi';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useRealtime } from '../context/RealtimeContext';
+import { useArenaSession } from '../hooks/useArenaSession';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
 import ArenaResultModal from '../components/common/ArenaResultModal';
 import ArenaChat from '../components/ArenaChat';
 import './RoomPage.css';
-import type { DashboardUser, GameSession, RoomDetailDto } from '../types/api';
+import type { DashboardUser, RoomDetailDto } from '../types/api';
 
-const RoomPage = () => {
+const RoomContent = () => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = useAuth();
+  const { state: realtime, synchronize } = useRealtime();
 
   const [room, setRoom] = useState<RoomDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,7 +43,6 @@ const RoomPage = () => {
   const [showArenaResultModal, setShowArenaResultModal] = useState(false);
 
   // Arena specific state
-  const [arenaSession, setArenaSession] = useState<GameSession | null>(null);
   const [elapsedTime, setElapsedTime] = useState(0);
   const [penaltyTime, setPenaltyTime] = useState(0);
   const [userData, setUserData] = useState<DashboardUser | null>(null);
@@ -62,6 +64,7 @@ const RoomPage = () => {
   const queryParams = new URLSearchParams(location.search);
   const arenaGameId = queryParams.get('arena');
   const isArenaMode = !!arenaGameId;
+  const arenaSession = useArenaSession(arenaGameId, token, realtime?.gameSession ?? null);
 
   // Fetch user data to know current user ID
   useEffect(() => {
@@ -93,35 +96,14 @@ const RoomPage = () => {
     return () => clearInterval(timer);
   }, [isArenaMode, arenaSession, userData]);
 
-  // Polling for Arena
   useEffect(() => {
-    let interval: ReturnType<typeof setInterval> | undefined;
-    if (isArenaMode && token && userData) {
-        arenaApi.getGame(arenaGameId ?? '', { 'Authorization': `Bearer ${token}` }).then(res => res.json() as Promise<GameSession>).then(data => {
-            setArenaSession(data);
-            if (data.hintsUsed && data.hintsUsed[userData.id]) {
-                setUnlockedHints(data.hintsUsed[userData.id]);
-                setPenaltyTime(data.hintsUsed[userData.id].length * 120);
-            }
-        });
-
-        interval = setInterval(async () => {
-            try {
-                const response = await arenaApi.getGame(arenaGameId ?? '', { 'Authorization': `Bearer ${token}` });
-                if (response.ok) {
-                    const session = await response.json();
-                    setArenaSession(session);
-                    if (session.hintsUsed && session.hintsUsed[userData.id]) {
-                        setUnlockedHints(session.hintsUsed[userData.id]);
-                        setPenaltyTime(session.hintsUsed[userData.id].length * 120);
-                    }
-                    if (session.status === 'FINISHED') setShowArenaResultModal(true);
-                }
-            } catch (err) { console.error(err); }
-        }, 2000);
-    }
-    return () => clearInterval(interval);
-  }, [isArenaMode, arenaGameId, token, userData]);
+    const session = arenaSession;
+    if (!isArenaMode || !userData || !session) return;
+    const hints = session.hintsUsed?.[userData.id] ?? [];
+    setUnlockedHints(hints);
+    setPenaltyTime(hints.length * 120);
+    if (session.status === 'FINISHED') setShowArenaResultModal(true);
+  }, [isArenaMode, userData, arenaSession]);
 
   const handleUnlockHint = (hintId: number) => {
     setHintToUnlock(hintId);
@@ -139,8 +121,7 @@ const RoomPage = () => {
                     'Authorization': `Bearer ${token}`
                 });
             if (!response.ok) throw new Error("Failed to use hint in arena");
-            setPenaltyTime(prev => prev + 120);
-            setUnlockedHints(prev => [...prev, hintToUnlock]);
+            await synchronize();
             setToast({ message: 'Podpowiedź odblokowana! +2 minuty kary.', type: 'warning' });
         } else {
             const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { 'Authorization': `Bearer ${token}` });
@@ -548,4 +529,10 @@ const RoomPage = () => {
   );
 };
 
-export default RoomPage;
+export default function RoomPage() {
+  const { id } = useParams();
+  const { search } = useLocation();
+  const { token } = useAuth();
+  const gameId = new URLSearchParams(search).get('arena');
+  return <RoomContent key={JSON.stringify([id, gameId, token])} />;
+}

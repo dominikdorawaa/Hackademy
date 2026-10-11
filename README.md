@@ -112,7 +112,19 @@ Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zew
 
 Endpoint `/ws` korzysta z SockJS i STOMP. Transport HTTP jest dostępny bez tokena, ponieważ przeglądarka przesyła JWT w nagłówku `Authorization: Bearer <token>` ramki STOMP `CONNECT`, a nie w handshake HTTP. Brak ważnego tokena kończy próbę połączenia błędem STOMP; nieuwierzytelniony klient nie może wysyłać wiadomości ani subskrybować kanałów. Nie przekazuj tokena w adresie URL.
 
-Dozwolony origin określa `FRONTEND_URL`, tak samo jak dla REST API. Po zalogowaniu Spring wiąże sesję STOMP z użytkownikiem tokena. Uprawnienia do konkretnych kanałów trzeba określić przy wdrażaniu funkcji korzystających z WebSocket.
+Dozwolony origin określa `FRONTEND_URL`, tak samo jak dla REST API. Po zalogowaniu Spring wiąże sesję STOMP z użytkownikiem tokena. Klient może subskrybować wyłącznie własny `/user/queue/realtime`; wysyłanie ramek `SEND` i subskrypcje innych kanałów są odrzucane.
+
+Navbar, Arena, lista znajomych i status rozgrywki korzystają ze wspólnego `RealtimeProvider`. Backend wysyła `STATE` z aktualnym stanem odbiorcy po zmianie; zmiany znajomości są dostarczane dopiero po commitcie. Osobny executor zwalnia połączenie transakcji przed odczytem stanu. Powiadomienia nie uruchamiają dodatkowych żądań HTTP.
+
+Po potwierdzeniu subskrypcji przez `READY` frontend pobiera `/api/realtime/state`. Powtarza synchronizację po reconnect i powrocie do widocznej karty. Numer rewizji i identyfikator uruchomienia serwera chronią przed duplikatami i spóźnionymi odpowiedziami. Akcje nadal używają HTTP, a wylogowanie zamyka połączenie i czyści stan konta. Nie ma okresowego pollingu zaproszeń, wyzwań ani statusu meczu. Polling czatu jest poza zakresem tej zmiany.
+
+Po dołączeniu do kolejki backend próbuje od razu znaleźć mecz. Istniejący harmonogram pozostaje zabezpieczeniem dla pozostałych oczekujących graczy. Broker i stan Areny nadal działają w pamięci jednej instancji; skalowanie na wiele instancji wymaga współdzielonego brokera i stanu rozgrywek.
+
+Znalezienie meczu lub przyjęcie wyzwania automatycznie przenosi obu graczy do pokoju, także gdy czekają na stronie znajomych. Arena pokazuje dołączanie do kolejki, szukanie przeciwnika i możliwość anulowania. Przy braku połączenia przyciski rozpoczęcia oczekiwania są zablokowane z widocznym komunikatem.
+
+Lokalny frontend i backend uruchamiaj z tej samej wersji repozytorium. Po zmianach backendu zrestartuj uruchomienie w IntelliJ albo przebuduj kontener. Starszy backend bez `/api/realtime/state` i obsługi `/user/queue/realtime` nie obsłuży aktualnego frontendu; działający endpoint `/ws/info` powinien odpowiadać 200.
+
+Warunki, wyniki i instrukcja powtórzenia testu 1000 użytkowników są w [raporcie realtime](docs/performance/realtime-1000-users.md).
 
 ## Testy backendu
 

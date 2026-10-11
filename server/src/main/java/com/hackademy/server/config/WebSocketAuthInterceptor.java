@@ -1,6 +1,7 @@
 package com.hackademy.server.config;
 
 import com.hackademy.server.auth.JwtService;
+import com.hackademy.server.user.User;
 import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
@@ -37,6 +38,13 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
         } else if (!(accessor.getUser() instanceof Authentication authentication) || !authentication.isAuthenticated()) {
             throw new BadCredentialsException("WebSocket authentication required");
         }
+        if (accessor.getCommand() == StompCommand.SUBSCRIBE
+                && !"/user/queue/realtime".equals(accessor.getDestination())) {
+            throw new BadCredentialsException("WebSocket subscription not allowed");
+        }
+        if (accessor.getCommand() == StompCommand.SEND) {
+            throw new BadCredentialsException("WebSocket destination not allowed");
+        }
         return message;
     }
 
@@ -55,7 +63,10 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             if (!jwtService.isTokenValid(token, userDetails)) {
                 throw new BadCredentialsException("Invalid WebSocket credentials");
             }
-            return new UsernamePasswordAuthenticationToken(userDetails, null, userDetails.getAuthorities());
+            if (!(userDetails instanceof User user) || user.getId() == null) {
+                throw new BadCredentialsException("Invalid WebSocket credentials");
+            }
+            return new UsernamePasswordAuthenticationToken(user.getId().toString(), null, userDetails.getAuthorities());
         } catch (JwtException | IllegalArgumentException | AuthenticationException exception) {
             throw new BadCredentialsException("Invalid WebSocket credentials");
         }

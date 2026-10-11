@@ -2,6 +2,7 @@ package com.hackademy.server.arena;
 
 import com.hackademy.server.chat.ChatService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
+import com.hackademy.server.realtime.RealtimeNotifier;
 import com.hackademy.server.user.UserServiceImpl;
 
 import com.hackademy.server.friendship.Friendship;
@@ -21,6 +22,7 @@ import java.util.Optional;
 import java.util.Random;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -33,6 +35,7 @@ public class ArenaServiceImpl implements ArenaService {
     private final ChatService chatService;
     private final UserServiceImpl userServiceImpl;
     private final DashboardSummaryCache dashboardSummaryCache;
+    private final RealtimeNotifier realtime;
 
     // In-memory storage
     private final Map<String, GameSession> activeGames = new ConcurrentHashMap<>();
@@ -41,54 +44,60 @@ public class ArenaServiceImpl implements ArenaService {
     @Override
     public void addGame(GameSession session) {
         activeGames.put(session.getId(), session);
+        realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
     }
 
     @Override
     public GameSession getGameSession(String gameId) {
-        return activeGames.get(gameId);
+        GameSession session = activeGames.get(gameId);
+        return session == null ? null : session.snapshot();
     }
 
     @Override
     public void finishGame(String gameId, Long winnerId) {
         GameSession session = activeGames.get(gameId);
-        if (session != null) {
-            session.setStatus("FINISHED");
-            session.setWinnerId(winnerId);
+        if (session == null) return;
+        synchronized (session) {
+            if (!"FINISHED".equals(session.getStatus())) {
+                session.setStatus("FINISHED");
+                session.setWinnerId(winnerId);
 
-            Long loserId = session.getPlayer1Id().equals(winnerId) ? session.getPlayer2Id() : session.getPlayer1Id();
-            
-            Optional<User> winnerOpt = userRepository.findById(winnerId);
-            Optional<User> loserOpt = userRepository.findById(loserId);
+                Long loserId = session.getPlayer1Id().equals(winnerId) ? session.getPlayer2Id() : session.getPlayer1Id();
 
-            if (winnerOpt.isPresent() && loserOpt.isPresent()) {
-                User winner = winnerOpt.get();
-                User loser = loserOpt.get();
+                Optional<User> winnerOpt = userRepository.findById(winnerId);
+                Optional<User> loserOpt = userRepository.findById(loserId);
 
-                // ELO Calculation
-                updateElo(winner, loser, session);
-                userRepository.save(winner);
-                userRepository.save(loser);
-                userServiceImpl.invalidateUserComputedCaches(winnerId);
-                userServiceImpl.invalidateUserComputedCaches(loserId);
-                userServiceImpl.invalidateGlobalRankingCache();
-                dashboardSummaryCache.invalidateUser(winnerId);
-                dashboardSummaryCache.invalidateUser(loserId);
+                if (winnerOpt.isPresent() && loserOpt.isPresent()) {
+                    User winner = winnerOpt.get();
+                    User loser = loserOpt.get();
 
-                // Update friendship stats if they are friends
-                Optional<Friendship> friendship = friendshipRepository.findFriendshipBetween(winner, loser);
-                if (friendship.isPresent()) {
-                    Friendship f = friendship.get();
-                    if (f.getRequester().getId().equals(winnerId)) {
-                        f.setRequesterWins(f.getRequesterWins() + 1);
-                    } else {
-                        f.setReceiverWins(f.getReceiverWins() + 1);
+                    // ELO Calculation
+                    updateElo(winner, loser, session);
+                    userRepository.save(winner);
+                    userRepository.save(loser);
+                    userServiceImpl.invalidateUserComputedCaches(winnerId);
+                    userServiceImpl.invalidateUserComputedCaches(loserId);
+                    userServiceImpl.invalidateGlobalRankingCache();
+                    dashboardSummaryCache.invalidateUser(winnerId);
+                    dashboardSummaryCache.invalidateUser(loserId);
+
+                    // Update friendship stats if they are friends
+                    Optional<Friendship> friendship = friendshipRepository.findFriendshipBetween(winner, loser);
+                    if (friendship.isPresent()) {
+                        Friendship f = friendship.get();
+                        if (f.getRequester().getId().equals(winnerId)) {
+                            f.setRequesterWins(f.getRequesterWins() + 1);
+                        } else {
+                            f.setReceiverWins(f.getReceiverWins() + 1);
+                        }
+                        friendshipRepository.save(f);
                     }
-                    friendshipRepository.save(f);
                 }
+
+                // Cleanup chat (keep reported messages)
+                chatService.cleanupChat(gameId);
+                realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
             }
-            
-            // Cleanup chat (keep reported messages)
-            chatService.cleanupChat(gameId);
         }
     }
 
@@ -100,7 +109,7 @@ public class ArenaServiceImpl implements ArenaService {
 
         int winnerNewElo = (int) Math.round(winner.getElo() + K * (1.0 - winnerExpected));
         int loserNewElo = (int) Math.round(loser.getElo() + K * (0.0 - loserExpected));
-        
+
         // Ensure ELO doesn't drop below 0
         loserNewElo = Math.max(0, loserNewElo);
 
@@ -109,7 +118,7 @@ public class ArenaServiceImpl implements ArenaService {
 
         winner.setElo(winnerNewElo);
         loser.setElo(loserNewElo);
-        
+
         // Save changes to session
         if (session.getPlayer1Id().equals(winner.getId())) {
             session.setPlayer1EloChange(winnerChange);
@@ -123,19 +132,26 @@ public class ArenaServiceImpl implements ArenaService {
     @Override
     public GameSession findActiveGameForUser(Long userId) {
         return activeGames.values().stream()
-                .filter(g -> (g.getPlayer1Id().equals(userId) || g.getPlayer2Id().equals(userId)) && ("ACTIVE".equals(g.getStatus()) || "WAITING_FOR_OPPONENT".equals(g.getStatus())))
+                .filter(g -> g.getPlayer1Id().equals(userId) || g.getPlayer2Id().equals(userId))
+                .map(GameSession::snapshot)
+                .filter(g -> "ACTIVE".equals(g.getStatus()) || "WAITING_FOR_OPPONENT".equals(g.getStatus()))
                 .findFirst()
                 .orElse(null);
     }
 
     @Override
     public GameSession findCurrentGameForUser(Long userId) {
+        return findCurrentGame(game -> game.getPlayer1Id().equals(userId) || game.getPlayer2Id().equals(userId));
+    }
+
+    private GameSession findCurrentGame(Predicate<GameSession> participant) {
         return activeGames.values().stream()
-                .filter(g -> (g.getPlayer1Id().equals(userId) || g.getPlayer2Id().equals(userId)))
+                .filter(participant)
+                .map(GameSession::snapshot)
                 .sorted((g1, g2) -> {
                     boolean g1Active = "ACTIVE".equals(g1.getStatus()) || "WAITING_FOR_OPPONENT".equals(g1.getStatus());
                     boolean g2Active = "ACTIVE".equals(g2.getStatus()) || "WAITING_FOR_OPPONENT".equals(g2.getStatus());
-                    
+
                     if (g1Active && !g2Active) return -1;
                     if (!g1Active && g2Active) return 1;
                     return g2.getStartTime().compareTo(g1.getStartTime()); // Newest first
@@ -147,108 +163,121 @@ public class ArenaServiceImpl implements ArenaService {
     @Override
     public void useHint(String gameId, Long userId, Long hintId) {
         GameSession session = activeGames.get(gameId);
-        // Allow using hints if game is ACTIVE or WAITING_FOR_OPPONENT (meaning the other player finished but this one is still playing)
-        if (session != null && ("ACTIVE".equals(session.getStatus()) || "WAITING_FOR_OPPONENT".equals(session.getStatus()))) {
-            session.addHintUsage(userId, hintId);
+        if (session == null) return;
+        synchronized (session) {
+            // Allow using hints if game is ACTIVE or WAITING_FOR_OPPONENT (meaning the other player finished but this one is still playing)
+            if (("ACTIVE".equals(session.getStatus()) || "WAITING_FOR_OPPONENT".equals(session.getStatus()))) {
+                session.addHintUsage(userId, hintId);
+                realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+            }
         }
     }
-    
+
     @Override
     public void surrenderGame(String gameId, Long userId) {
         GameSession session = activeGames.get(gameId);
-        if (session != null && ("ACTIVE".equals(session.getStatus()) || "WAITING_FOR_OPPONENT".equals(session.getStatus()))) {
-            Long opponentId = session.getPlayer1Id().equals(userId) ? session.getPlayer2Id() : session.getPlayer1Id();
-            finishGame(gameId, opponentId);
+        if (session == null) return;
+        synchronized (session) {
+            if (("ACTIVE".equals(session.getStatus()) || "WAITING_FOR_OPPONENT".equals(session.getStatus()))) {
+                Long opponentId = session.getPlayer1Id().equals(userId) ? session.getPlayer2Id() : session.getPlayer1Id();
+                finishGame(gameId, opponentId);
+            }
         }
     }
 
     @Override
     public boolean submitFlag(String gameId, Long userId, String flag) {
         GameSession session = activeGames.get(gameId);
-        if (session == null || (!"ACTIVE".equals(session.getStatus()) && !"WAITING_FOR_OPPONENT".equals(session.getStatus()))) {
-            return false;
-        }
-
-        Room room = roomRepository.findById(session.getRoomId()).orElse(null);
-        if (room == null) {
-            return false;
-        }
-
-        if (room.getFlag().equals(flag)) {
-            LocalDateTime now = LocalDateTime.now();
-            // Mark user as finished
-            session.getFinishTimes().put(userId, now);
-            
-            Long opponentId = session.getPlayer1Id().equals(userId) ? session.getPlayer2Id() : session.getPlayer1Id();
-            
-            // Check if opponent already finished
-            if (session.getFinishTimes().containsKey(opponentId)) {
-                // Both finished, calculate winner based on total time (duration + penalties)
-                long userTime = session.getTotalTimeInSeconds(userId);
-                long opponentTime = session.getTotalTimeInSeconds(opponentId);
-                
-                if (userTime < opponentTime) {
-                    finishGame(gameId, userId);
-                } else {
-                    finishGame(gameId, opponentId);
-                }
-            } else {
-                // Opponent hasn't finished yet.
-                // Calculate scores to see if we can declare winner immediately
-                long userDuration = java.time.Duration.between(session.getStartTime(), now).getSeconds();
-                long userPenalties = session.getPenaltiesInSeconds().getOrDefault(userId, 0L);
-                long userTotalScore = userDuration + userPenalties;
-                
-                long opponentCurrentDuration = java.time.Duration.between(session.getStartTime(), now).getSeconds();
-                long opponentPenalties = session.getPenaltiesInSeconds().getOrDefault(opponentId, 0L);
-                long opponentMinPossibleScore = opponentCurrentDuration + opponentPenalties;
-                
-                // If my score is better (lower) OR EQUAL to opponent's minimum possible score, I win immediately.
-                // Opponent's score can only increase from now on.
-                if (userTotalScore <= opponentMinPossibleScore) {
-                    finishGame(gameId, userId);
-                } else {
-                    // I have penalties that make my time worse than opponent's current time.
-                    // Opponent still has a chance to beat me if they finish quickly.
-                    session.setStatus("WAITING_FOR_OPPONENT");
-                }
+        if (session == null) return false;
+        synchronized (session) {
+            if (!"ACTIVE".equals(session.getStatus()) && !"WAITING_FOR_OPPONENT".equals(session.getStatus())) {
+                return false;
             }
-            return true;
+
+            Room room = roomRepository.findById(session.getRoomId()).orElse(null);
+            if (room == null) {
+                return false;
+            }
+
+            if (room.getFlag().equals(flag)) {
+                LocalDateTime now = LocalDateTime.now();
+                // Mark user as finished
+                session.getFinishTimes().put(userId, now);
+
+                Long opponentId = session.getPlayer1Id().equals(userId) ? session.getPlayer2Id() : session.getPlayer1Id();
+
+                // Check if opponent already finished
+                if (session.getFinishTimes().containsKey(opponentId)) {
+                    // Both finished, calculate winner based on total time (duration + penalties)
+                    long userTime = session.getTotalTimeInSeconds(userId);
+                    long opponentTime = session.getTotalTimeInSeconds(opponentId);
+
+                    if (userTime < opponentTime) {
+                        finishGame(gameId, userId);
+                    } else {
+                        finishGame(gameId, opponentId);
+                    }
+                } else {
+                    // Opponent hasn't finished yet.
+                    // Calculate scores to see if we can declare winner immediately
+                    long userDuration = java.time.Duration.between(session.getStartTime(), now).getSeconds();
+                    long userPenalties = session.getPenaltiesInSeconds().getOrDefault(userId, 0L);
+                    long userTotalScore = userDuration + userPenalties;
+
+                    long opponentCurrentDuration = java.time.Duration.between(session.getStartTime(), now).getSeconds();
+                    long opponentPenalties = session.getPenaltiesInSeconds().getOrDefault(opponentId, 0L);
+                    long opponentMinPossibleScore = opponentCurrentDuration + opponentPenalties;
+
+                    // If my score is better (lower) OR EQUAL to opponent's minimum possible score, I win immediately.
+                    // Opponent's score can only increase from now on.
+                    if (userTotalScore <= opponentMinPossibleScore) {
+                        finishGame(gameId, userId);
+                    } else {
+                        // I have penalties that make my time worse than opponent's current time.
+                        // Opponent still has a chance to beat me if they finish quickly.
+                        session.setStatus("WAITING_FOR_OPPONENT");
+                        realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+                    }
+                }
+                return true;
+            }
+            return false;
         }
-        return false;
     }
-    
+
     // Scheduled task to check WAITING_FOR_OPPONENT games
     @Scheduled(fixedRate = 2000)
     public void checkWaitingGames() {
         LocalDateTime now = LocalDateTime.now();
-        
+
         for (GameSession session : activeGames.values()) {
-            if ("WAITING_FOR_OPPONENT".equals(session.getStatus())) {
-                // Find who finished (the one waiting)
-                Long finishedUserId = null;
-                Long playingUserId = null;
-                
-                if (session.getFinishTimes().containsKey(session.getPlayer1Id())) {
-                    finishedUserId = session.getPlayer1Id();
-                    playingUserId = session.getPlayer2Id();
-                } else {
-                    finishedUserId = session.getPlayer2Id();
-                    playingUserId = session.getPlayer1Id();
-                }
-                
-                // Calculate the finished user's final score (time + penalties)
-                long finishedUserScore = session.getTotalTimeInSeconds(finishedUserId);
-                
-                // Calculate how long the playing user has been playing so far PLUS their penalties
-                long currentPlayingDuration = java.time.Duration.between(session.getStartTime(), now).getSeconds();
-                long currentPlayingPenalties = session.getPenaltiesInSeconds().getOrDefault(playingUserId, 0L);
-                long currentPlayingTotalScore = currentPlayingDuration + currentPlayingPenalties;
-                
-                // If the playing user's CURRENT total score (time + penalties) has ALREADY exceeded the finished user's score,
-                // the finished user wins immediately.
-                if (currentPlayingTotalScore > finishedUserScore) {
-                    finishGame(session.getId(), finishedUserId);
+            synchronized (session) {
+                if ("WAITING_FOR_OPPONENT".equals(session.getStatus())) {
+                    // Find who finished (the one waiting)
+                    Long finishedUserId = null;
+                    Long playingUserId = null;
+
+                    if (session.getFinishTimes().containsKey(session.getPlayer1Id())) {
+                        finishedUserId = session.getPlayer1Id();
+                        playingUserId = session.getPlayer2Id();
+                    } else {
+                        finishedUserId = session.getPlayer2Id();
+                        playingUserId = session.getPlayer1Id();
+                    }
+
+                    // Calculate the finished user's final score (time + penalties)
+                    long finishedUserScore = session.getTotalTimeInSeconds(finishedUserId);
+
+                    // Calculate how long the playing user has been playing so far PLUS their penalties
+                    long currentPlayingDuration = java.time.Duration.between(session.getStartTime(), now).getSeconds();
+                    long currentPlayingPenalties = session.getPenaltiesInSeconds().getOrDefault(playingUserId, 0L);
+                    long currentPlayingTotalScore = currentPlayingDuration + currentPlayingPenalties;
+
+                    // If the playing user's CURRENT total score (time + penalties) has ALREADY exceeded the finished user's score,
+                    // the finished user wins immediately.
+                    if (currentPlayingTotalScore > finishedUserScore) {
+                        finishGame(session.getId(), finishedUserId);
+                    }
                 }
             }
         }
@@ -269,69 +298,78 @@ public class ArenaServiceImpl implements ArenaService {
         challenge.setChallengerAvatarSeed(userRepository.findById(challengerId).map(User::getAvatarSeed).orElse(challengerUsername));
         challenge.setTargetAvatarSeed(userRepository.findById(targetId).map(User::getAvatarSeed).orElse(targetUsername));
         challenges.put(challenge.getId(), challenge);
+        realtime.changed(challengerId, targetId);
         return challenge;
     }
 
     @Override
     public GameSession acceptChallenge(String challengeId, Long userId) {
         Challenge challenge = challenges.get(challengeId);
-        if (challenge == null || !challenge.getTargetId().equals(userId) || !"PENDING".equals(challenge.getStatus())) {
-            throw new IllegalArgumentException("Invalid challenge");
+        if (challenge == null) throw new IllegalArgumentException("Invalid challenge");
+        synchronized (challenge) {
+            if (challenges.get(challengeId) != challenge || !challenge.getTargetId().equals(userId) || !"PENDING".equals(challenge.getStatus())) {
+                throw new IllegalArgumentException("Invalid challenge");
+            }
+
+            // Optimized: Fetch only CTF room IDs based on VPN requirement
+            List<Long> roomIds = roomRepository.findCtfIdsByVpnRequirement(challenge.isVpnEnabled());
+
+            if (roomIds.isEmpty()) {
+                throw new IllegalStateException("No eligible rooms available for this challenge");
+            }
+
+            Long randomRoomId = roomIds.get(new Random().nextInt(roomIds.size()));
+
+            // Fetch users to get ELO
+            User challenger = userRepository.findById(challenge.getChallengerId()).orElse(null);
+            User target = userRepository.findById(challenge.getTargetId()).orElse(null);
+
+            if (challenger == null || target == null) {
+                 throw new IllegalStateException("Users not found");
+            }
+
+            GameSession session = new GameSession();
+            session.setId(UUID.randomUUID().toString());
+            session.setPlayer1Id(challenge.getChallengerId());
+            session.setPlayer1Username(challenge.getChallengerUsername());
+            session.setPlayer1AvatarSeed(challenger.getAvatarSeed());
+            session.setPlayer1Elo(challenger.getElo());
+
+            session.setPlayer2Id(challenge.getTargetId());
+            session.setPlayer2Username(challenge.getTargetUsername());
+            session.setPlayer2AvatarSeed(target.getAvatarSeed());
+            session.setPlayer2Elo(target.getElo());
+
+            session.setRoomId(randomRoomId);
+            session.setStartTime(LocalDateTime.now());
+            session.setStatus("ACTIVE");
+
+            // Initialize maps
+            session.setHintsUsed(new java.util.HashMap<>());
+            session.setFinishTimes(new java.util.HashMap<>());
+            session.setPenaltiesInSeconds(new java.util.HashMap<>());
+
+            activeGames.put(session.getId(), session);
+            challenge.setStatus("ACCEPTED");
+
+            // Remove challenge after acceptance
+            challenges.remove(challengeId);
+            realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+
+            return session.snapshot();
         }
-
-        // Optimized: Fetch only CTF room IDs based on VPN requirement
-        List<Long> roomIds = roomRepository.findCtfIdsByVpnRequirement(challenge.isVpnEnabled());
-        
-        if (roomIds.isEmpty()) {
-            throw new IllegalStateException("No eligible rooms available for this challenge");
-        }
-        
-        Long randomRoomId = roomIds.get(new Random().nextInt(roomIds.size()));
-        
-        // Fetch users to get ELO
-        User challenger = userRepository.findById(challenge.getChallengerId()).orElse(null);
-        User target = userRepository.findById(challenge.getTargetId()).orElse(null);
-        
-        if (challenger == null || target == null) {
-             throw new IllegalStateException("Users not found");
-        }
-
-        GameSession session = new GameSession();
-        session.setId(UUID.randomUUID().toString());
-        session.setPlayer1Id(challenge.getChallengerId());
-        session.setPlayer1Username(challenge.getChallengerUsername());
-        session.setPlayer1AvatarSeed(challenger.getAvatarSeed());
-        session.setPlayer1Elo(challenger.getElo());
-        
-        session.setPlayer2Id(challenge.getTargetId());
-        session.setPlayer2Username(challenge.getTargetUsername());
-        session.setPlayer2AvatarSeed(target.getAvatarSeed());
-        session.setPlayer2Elo(target.getElo());
-
-        session.setRoomId(randomRoomId);
-        session.setStartTime(LocalDateTime.now());
-        session.setStatus("ACTIVE");
-        
-        // Initialize maps
-        session.setHintsUsed(new java.util.HashMap<>());
-        session.setFinishTimes(new java.util.HashMap<>());
-        session.setPenaltiesInSeconds(new java.util.HashMap<>());
-
-        activeGames.put(session.getId(), session);
-        challenge.setStatus("ACCEPTED");
-        
-        // Remove challenge after acceptance
-        challenges.remove(challengeId);
-        
-        return session;
     }
 
     @Override
     public void rejectChallenge(String challengeId, Long userId) {
         Challenge challenge = challenges.get(challengeId);
-        if (challenge != null && challenge.getTargetId().equals(userId)) {
-            challenge.setStatus("REJECTED");
-            challenges.remove(challengeId);
+        if (challenge == null) return;
+        synchronized (challenge) {
+            if (challenges.get(challengeId) == challenge && "PENDING".equals(challenge.getStatus()) && challenge.getTargetId().equals(userId)) {
+                challenge.setStatus("REJECTED");
+                challenges.remove(challengeId);
+                realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
+            }
         }
     }
 
@@ -340,5 +378,24 @@ public class ArenaServiceImpl implements ArenaService {
         return challenges.values().stream()
                 .filter(c -> c.getTargetId().equals(userId) && "PENDING".equals(c.getStatus()))
                 .collect(Collectors.toList());
+    }
+
+    public List<Challenge> getOutgoingChallenges(Long userId) {
+        return challenges.values().stream()
+                .filter(challenge -> challenge.getChallengerId().equals(userId) && "PENDING".equals(challenge.getStatus()))
+                .toList();
+    }
+
+    @Override
+    public void cancelChallenge(String challengeId, Long userId) {
+        var challenge = challenges.get(challengeId);
+        if (challenge == null) throw new IllegalArgumentException("Invalid challenge");
+        synchronized (challenge) {
+            if (challenges.get(challengeId) != challenge || !"PENDING".equals(challenge.getStatus()) || !challenge.getChallengerId().equals(userId)) {
+                throw new IllegalArgumentException("Invalid challenge");
+            }
+            challenges.remove(challengeId);
+            realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
+        }
     }
 }

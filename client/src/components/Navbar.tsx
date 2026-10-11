@@ -2,9 +2,10 @@ import UserAvatar from '../components/UserAvatar';
 import * as userApi from '../services/userApi';
 import * as friendApi from '../services/friendApi';
 import * as arenaApi from '../services/arenaApi';
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useRealtime } from '../context/RealtimeContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import type { Challenge, DashboardUser, FriendRequestDto } from '../types/api';
 import './Navbar.css';
@@ -27,8 +28,18 @@ const Navbar = () => {
   const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [userData, setUserData] = useState<DashboardUser | null>(null);
-  const [notifications, setNotifications] = useState<Notification[]>([]);
-  const [unreadCount, setUnreadCount] = useState(0);
+  const { state: realtime, synchronize } = useRealtime();
+  const notifications = useMemo<Notification[]>(() => [
+    ...(realtime?.friendRequests ?? []).map(req => ({
+      id: req.id, type: 'FRIEND_REQUEST' as const, from: req.requesterUsername,
+      timestamp: req.createdAt, data: req,
+    })),
+    ...(realtime?.challenges ?? []).map(ch => ({
+      id: ch.id, type: 'CHALLENGE' as const, from: ch.challengerUsername,
+      timestamp: ch.createdAt, data: ch,
+    })),
+  ], [realtime]);
+  const unreadCount = notifications.length;
   const [processedNotifications, setProcessedNotifications] = useState<string[]>([]); // Track processed IDs
   const menuRef = useRef<HTMLDivElement | null>(null);
   const notifRef = useRef<HTMLDivElement | null>(null);
@@ -83,54 +94,6 @@ const Navbar = () => {
     fetchUserData();
   }, [isAuthenticated, token, logout, location.pathname]);
 
-  // Fetch notifications (friend requests and challenges)
-  useEffect(() => {
-    const fetchNotifications = async () => {
-      if (isAuthenticated && token) {
-        try {
-          // Fetch friend requests
-          const friendsRes = await friendApi.getRequests({ 'Authorization': `Bearer ${token}` });
-          const friendRequests = await friendsRes.json() as FriendRequestDto[];
-
-          // Fetch challenges
-          const challengesRes = await arenaApi.getChallenges({ 'Authorization': `Bearer ${token}` });
-          const challenges = await challengesRes.json() as Challenge[];
-
-          // Combine and format notifications
-          const formattedFriendReqs: Notification[] = friendRequests.map(req => ({
-            id: req.id,
-            type: 'FRIEND_REQUEST',
-            from: req.requesterUsername,
-            timestamp: new Date().toISOString(), 
-            data: req
-          }));
-
-          const formattedChallenges: Notification[] = challenges.map(ch => ({
-            id: ch.id,
-            type: 'CHALLENGE',
-            from: ch.challengerUsername,
-            timestamp: ch.createdAt,
-            data: ch
-          }));
-
-          const allNotifications = [...formattedFriendReqs, ...formattedChallenges];
-          setNotifications(allNotifications);
-          setUnreadCount(allNotifications.length);
-
-        } catch (error) {
-          console.error("Failed to fetch notifications", error);
-        }
-      }
-    };
-
-    if (isAuthenticated && token) {
-      fetchNotifications();
-      // Poll every 10 seconds
-      const interval = setInterval(fetchNotifications, 10000);
-      return () => clearInterval(interval);
-    }
-  }, [isAuthenticated, token]);
-
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -157,14 +120,13 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
     try {
-        await friendApi.acceptRequest(requestId, { 'Authorization': `Bearer ${token}` });
-        // Remove from list after success
-        setNotifications(prev => prev.filter(n => !(n.type === 'FRIEND_REQUEST' && n.id === requestId)));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        const response = await friendApi.acceptRequest(requestId, { 'Authorization': `Bearer ${token}` });
+        if (!response.ok) throw new Error("Notification action failed");
+        await synchronize();
     } catch (err) {
         console.error(err);
-        // Remove from processed if failed to allow retry? Or keep it to prevent spam?
-        // Keeping it processed for now to update UI state
+    } finally {
+        setProcessedNotifications(previous => previous.filter(id => id !== `FRIEND_REQUEST-${requestId}`));
     }
   };
 
@@ -173,11 +135,13 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
     try {
-        await friendApi.rejectRequest(requestId, { 'Authorization': `Bearer ${token}` });
-        setNotifications(prev => prev.filter(n => !(n.type === 'FRIEND_REQUEST' && n.id === requestId)));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        const response = await friendApi.rejectRequest(requestId, { 'Authorization': `Bearer ${token}` });
+        if (!response.ok) throw new Error("Notification action failed");
+        await synchronize();
     } catch (err) {
         console.error(err);
+    } finally {
+        setProcessedNotifications(previous => previous.filter(id => id !== `FRIEND_REQUEST-${requestId}`));
     }
   };
 
@@ -188,18 +152,13 @@ const Navbar = () => {
     try {
         const res = await arenaApi.acceptChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
         if (res.ok) {
-            const session = await res.json();
-            
             setIsNotificationsOpen(false);
-            // Remove from list
-            setNotifications(prev => prev.filter(n => !(n.type === 'CHALLENGE' && n.id === challengeId)));
-            setUnreadCount(prev => Math.max(0, prev - 1));
-            
-            // Force full page reload to ensure clean state and navigation
-            window.location.href = `/rooms/${session.roomId}?arena=${session.id}`;
+            await synchronize();
         }
     } catch (err) {
         console.error(err);
+    } finally {
+        setProcessedNotifications(previous => previous.filter(id => id !== `CHALLENGE-${challengeId}`));
     }
   };
 
@@ -208,11 +167,13 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
     try {
-        await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
-        setNotifications(prev => prev.filter(n => !(n.type === 'CHALLENGE' && n.id === challengeId)));
-        setUnreadCount(prev => Math.max(0, prev - 1));
+        const response = await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
+        if (!response.ok) throw new Error("Notification action failed");
+        await synchronize();
     } catch (err) {
         console.error(err);
+    } finally {
+        setProcessedNotifications(previous => previous.filter(id => id !== `CHALLENGE-${challengeId}`));
     }
   };
 
