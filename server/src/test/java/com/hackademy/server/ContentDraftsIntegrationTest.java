@@ -103,7 +103,6 @@ class ContentDraftsIntegrationTest {
         mvc.perform(post("/api/paths/" + pathId + "/enroll").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         mvc.perform(get("/api/admin/content/paths/" + pathId + "/preview").header("Authorization", "Bearer " + admin)).andExpect(status().isOk()).andExpect(jsonPath("$.chapters[0].rooms[0].id").value(roomId));
         mvc.perform(get("/api/admin/content/paths/" + pathId + "/preview").header("Authorization", "Bearer " + user)).andExpect(status().isForbidden());
-        // Stale parent is rejected before a second room can be created.
         r.put("title", "Stale " + UUID.randomUUID()); long before = rooms.count(); save("rooms", null, r, admin, 409); assertEquals(before, rooms.count());
         String latest = mvc.perform(get("/api/admin/paths/" + pathId).header("Authorization", "Bearer " + admin)).andReturn().getResponse().getContentAsString();
         revisePath(p, latest); p.put("published", true); p.put("description", "Published description"); p.put("chapters", List.of(Map.of("id", chapter, "title", "Chapter", "roomIds", List.of(roomId))));
@@ -112,6 +111,44 @@ class ContentDraftsIntegrationTest {
         mvc.perform(get("/api/paths/" + pathId).header("Authorization", "Bearer " + user)).andExpect(status().isOk());
         revisePath(p, savedPath); p.put("published", false); save("paths", pathId, p, admin, 200);
         mvc.perform(get("/api/rooms/" + roomId).header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
+    }
+
+    @Test void emptyFlagCannotAwardPointsOrProgressForPublishedTaskRoom() throws Exception {
+        String admin = token(Role.ADMIN), user = token(Role.USER);
+        var r = room(true, "PATH"); r.put("flag", "");
+        r.put("tasks", List.of(Map.of("title", "Question", "content", "Read this", "question", "Answer?", "answer", "correct")));
+        String saved = save("rooms", null, r, admin, 201); long id = number(saved, "$.room.id");
+        for (String submitted : List.of("", " ", "wrong")) {
+            mvc.perform(post("/api/rooms/" + id + "/solve").header("Authorization", "Bearer " + user)
+                    .contentType("application/json").content(mapper.writeValueAsString(Map.of("flag", submitted))))
+                    .andExpect(status().isBadRequest());
+        }
+        assertEquals(0, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
+        assertEquals(0, db.queryForObject("SELECT count(*) FROM user_completed_tasks WHERE task_id IN (SELECT id FROM room_tasks WHERE room_id = ?)", Integer.class, id));
+        assertEquals(0, rooms.findById(id).orElseThrow().getSolutionsCount());
+        String taskSolve = "/api/rooms/" + id + "/tasks/" + number(saved, "$.tasks.tasks[0].id") + "/solve";
+        mvc.perform(post(taskSolve).header("Authorization", "Bearer " + user).contentType("application/json").content("{\"answer\":\"correct\"}")).andExpect(status().isOk());
+        mvc.perform(post("/api/rooms/" + id + "/tasks/complete").header("Authorization", "Bearer " + user)).andExpect(status().isOk());
+        assertEquals(1, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
+        assertEquals(1, rooms.findById(id).orElseThrow().getSolutionsCount());
+    }
+
+    @Test void dashboardDropsHiddenPathsAndRoomsImmediatelyAfterCommittedSave() throws Exception {
+        String admin = token(Role.ADMIN), user = token(Role.USER);
+        var r = room(true, "PATH"); String savedRoom = save("rooms", null, r, admin, 201); long roomId = number(savedRoom, "$.room.id");
+        var p = path(true); p.put("chapters", List.of(Map.of("title", "Visible chapter", "roomIds", List.of(roomId))));
+        String savedPath = save("paths", null, p, admin, 201); long pathId = number(savedPath, "$.id");
+        mvc.perform(post("/api/paths/" + pathId + "/enroll").header("Authorization", "Bearer " + user)).andExpect(status().isOk());
+        String dashboard = "/api/dashboard/summary";
+        mvc.perform(get(dashboard).header("Authorization", "Bearer " + user)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentPath.id").value(pathId)).andExpect(jsonPath("$.currentPathRoomsMini[0].id").value(roomId));
+        reviseRoom(r, savedRoom); r.put("published", false); save("rooms", roomId, r, admin, 200);
+        mvc.perform(get(dashboard).header("Authorization", "Bearer " + user)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentPathRoomsMini").isEmpty());
+        revisePath(p, savedPath); p.put("published", false); save("paths", pathId, p, admin, 200);
+        mvc.perform(get(dashboard).header("Authorization", "Bearer " + user)).andExpect(status().isOk())
+                .andExpect(jsonPath("$.currentPath").doesNotExist()).andExpect(jsonPath("$.pathsProgress").isEmpty())
+                .andExpect(jsonPath("$.recommendedPath[?(@.id == " + pathId + ")]").isEmpty());
     }
 
     @Test void savesIncompleteTasksRejectsLengthsAndRejectsStaleRevisionWithoutPartialChanges() throws Exception {

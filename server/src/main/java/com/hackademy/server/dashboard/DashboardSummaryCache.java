@@ -7,7 +7,11 @@ import java.util.concurrent.ConcurrentHashMap;
 @Component
 public class DashboardSummaryCache {
 
-    public void invalidateAll() { byUserId.clear(); }
+    private long generation;
+
+    public synchronized long generation() { return generation; }
+
+    public synchronized void invalidateAll() { generation++; byUserId.clear(); }
 
     private static final long CACHE_MS = 600_000; // 10 minutes (invalidated on user actions)
 
@@ -29,8 +33,8 @@ public class DashboardSummaryCache {
         return null;
     }
 
-    public void put(Long userId, DashboardSummaryDto dto) {
-        if (userId == null || dto == null) return;
+    public synchronized void put(Long userId, DashboardSummaryDto dto, long expectedGeneration) {
+        if (userId == null || dto == null || expectedGeneration != generation) return;
         byUserId.put(userId, new CacheEntry<>(System.currentTimeMillis(), dto));
     }
 

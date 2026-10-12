@@ -404,6 +404,11 @@ public class RoomServiceImpl implements RoomService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
+        if (flag == null || flag.isBlank() || room.getFlag() == null || room.getFlag().isBlank()) {
+            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
+                    "Ten pokój wymaga ukończenia zadań lub podania niepustej flagi");
+        }
+
         // Check if already solved
         boolean alreadySolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
 
