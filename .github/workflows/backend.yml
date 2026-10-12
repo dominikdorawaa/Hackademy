@@ -25,6 +25,26 @@ jobs:
       - name: Build and test backend
         working-directory: server
         run: mvn -B -ntp verify
+      - name: Coverage summary
+        if: always()
+        working-directory: server
+        run: |
+          if [ -f target/site/jacoco/jacoco.csv ]; then
+            awk -F, 'NR > 1 { im += $4; ic += $5; bm += $6; bc += $7; lm += $8; lc += $9; mm += $12; mc += $13 }
+              function row(name, c, m) { printf "| %s | %.2f%% (%d/%d) |\n", name, (c + m) ? 100 * c / (c + m) : 0, c, c + m }
+              END {
+                print "### Backend coverage\n\n| Metric | Coverage |\n| --- | --- |"
+                row("lines", lc, lm); row("instructions", ic, im); row("methods", mc, mm); row("branches", bc, bm)
+              }' target/site/jacoco/jacoco.csv >> "$GITHUB_STEP_SUMMARY"
+          fi
+      - name: Upload coverage report
+        if: always()
+        uses: actions/upload-artifact@v7
+        with:
+          name: backend-coverage
+          path: server/target/site/jacoco/
+          if-no-files-found: ignore
+          retention-days: 7
       - name: Upload test reports on failure
         if: failure()
         uses: actions/upload-artifact@v7

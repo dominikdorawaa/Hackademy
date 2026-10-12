@@ -124,6 +124,38 @@
 					<workingDirectory>${project.basedir}</workingDirectory>
 				</configuration>
 			</plugin>
+			<plugin>
+				<groupId>org.jacoco</groupId>
+				<artifactId>jacoco-maven-plugin</artifactId>
+				<version>0.8.13</version>
+				<configuration>
+					<excludes>
+						<exclude>com/hackademy/server/ServerApplication.class</exclude>
+						<exclude>com/hackademy/server/auth/**</exclude>
+						<exclude>com/hackademy/server/filter/**</exclude>
+						<exclude>com/hackademy/server/config/**</exclude>
+						<exclude>**/dto/**</exclude>
+						<exclude>**/*Dto.class</exclude>
+						<exclude>**/*Request.class</exclude>
+						<exclude>**/*Response.class</exclude>
+					</excludes>
+				</configuration>
+				<executions>
+					<execution>
+						<id>prepare-agent</id>
+						<goals>
+							<goal>prepare-agent</goal>
+						</goals>
+					</execution>
+					<execution>
+						<id>report</id>
+						<phase>verify</phase>
+						<goals>
+							<goal>report</goal>
+						</goals>
+					</execution>
+				</executions>
+			</plugin>
 		</plugins>
 	</build>
 
