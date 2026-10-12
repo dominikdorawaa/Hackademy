@@ -84,9 +84,14 @@ public interface PathRepository extends JpaRepository<Path, Long> {
 
     @Query(value = """
             SELECT COUNT(*) FROM paths p
-            WHERE p.published = true AND EXISTS (SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id WHERE pc.path_id = p.id)
+            WHERE p.published = true AND EXISTS (
+                SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id
+                JOIN rooms r ON r.id = pr.room_id AND r.published = true
+                WHERE pc.path_id = p.id
+            )
               AND NOT EXISTS (
                 SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id
+                JOIN rooms r ON r.id = pr.room_id AND r.published = true
                 WHERE pc.path_id = p.id
                   AND NOT EXISTS (
                     SELECT 1 FROM user_solved_rooms usr

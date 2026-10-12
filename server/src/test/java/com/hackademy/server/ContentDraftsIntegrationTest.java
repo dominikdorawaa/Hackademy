@@ -155,6 +155,48 @@ class ContentDraftsIntegrationTest {
                 .andExpect(jsonPath("$.recommendedPath").doesNotExist());
     }
 
+    private void assertCompletedProfile(String user, String username, long pathId, int expected) throws Exception {
+        for (String profile : List.of("/api/user/me/stats", "/api/user/" + username + "/stats")) {
+            mvc.perform(get(profile).header("Authorization", "Bearer " + user)).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.completedPaths").value(expected));
+        }
+        mvc.perform(get("/api/user/" + username + "/portfolio").header("Authorization", "Bearer " + user))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.completedPaths.length()").value(expected));
+        if (expected == 1) {
+            mvc.perform(get("/api/user/" + username + "/portfolio").header("Authorization", "Bearer " + user))
+                    .andExpect(jsonPath("$.completedPaths[0].id").value(pathId));
+        }
+    }
+
+    @Test void completedPathStatsMatchPortfolioWhenRoomsAndParentMoveBetweenDraftAndPublished() throws Exception {
+        String admin = token(Role.ADMIN), user = token(Role.USER);
+        String username = mapper.readTree(Base64.getUrlDecoder().decode(user.split("\\.")[1])).get("sub").asText();
+        var first = room(true, "PATH"); String savedFirst = save("rooms", null, first, admin, 201); long firstId = number(savedFirst, "$.room.id");
+        var second = room(true, "PATH"); String savedSecond = save("rooms", null, second, admin, 201); long secondId = number(savedSecond, "$.room.id");
+        var p = path(true); p.put("chapters", List.of(Map.of("title", "Chapter", "roomIds", List.of(firstId, secondId))));
+        String savedPath = save("paths", null, p, admin, 201); long pathId = number(savedPath, "$.id");
+        assertCompletedProfile(user, username, pathId, 0);
+        mvc.perform(post("/api/rooms/" + firstId + "/solve").header("Authorization", "Bearer " + user)
+                .contentType("application/json").content("{\"flag\":\"CTF{x}\"}")).andExpect(status().isOk());
+        assertCompletedProfile(user, username, pathId, 0);
+        reviseRoom(second, savedSecond); second.put("published", false); savedSecond = save("rooms", secondId, second, admin, 200);
+        assertCompletedProfile(user, username, pathId, 1);
+        reviseRoom(first, savedFirst); first.put("published", false); savedFirst = save("rooms", firstId, first, admin, 200);
+        assertCompletedProfile(user, username, pathId, 0);
+        reviseRoom(second, savedSecond); second.put("published", true); savedSecond = save("rooms", secondId, second, admin, 200);
+        assertCompletedProfile(user, username, pathId, 0);
+        reviseRoom(first, savedFirst); first.put("published", true); save("rooms", firstId, first, admin, 200);
+        assertCompletedProfile(user, username, pathId, 0);
+        mvc.perform(post("/api/rooms/" + secondId + "/solve").header("Authorization", "Bearer " + user)
+                .contentType("application/json").content("{\"flag\":\"CTF{x}\"}")).andExpect(status().isOk());
+        assertCompletedProfile(user, username, pathId, 1);
+        revisePath(p, savedPath); p.put("published", false); savedPath = save("paths", pathId, p, admin, 200);
+        assertCompletedProfile(user, username, pathId, 0);
+        revisePath(p, savedPath); p.put("published", true); save("paths", pathId, p, admin, 200);
+        assertCompletedProfile(user, username, pathId, 1);
+        assertEquals(2, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id IN (?, ?)", Integer.class, firstId, secondId));
+    }
+
     @Test void savesIncompleteTasksRejectsLengthsAndRejectsStaleRevisionWithoutPartialChanges() throws Exception {
         String admin = token(Role.ADMIN); var r = room(false, "PATH");
         r.put("tasks", List.of(Map.of("title", "Task", "content", "", "question", "Pending question")));
