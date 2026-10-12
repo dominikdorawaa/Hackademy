@@ -21,7 +21,7 @@ function empty(kind: RoomType): RoomSave {
   return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: kind === 'PATH' ? 'Path' : 'Web', difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, flag: '', requiresVpn: false, roomType: kind, hints: [], published: false, tasks: [] };
 }
 function fromDetail(d: contentApi.RoomEditor): RoomSave {
-  return { ...d.room, hints: d.room.hints ?? [], revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, published: d.room.published ?? true, tasks: d.tasks.tasks };
+  return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, hints: d.room.hints ?? [], revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, published: d.room.published ?? true, tasks: d.tasks.tasks };
 }
 export default function RoomEditorPage({ kind }: { kind: RoomType }) {
   const { roomId } = useParams();
@@ -77,11 +77,11 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
   }, [token, kind, contextPath, contextChapter, contextRevision, attempt]);
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file || (parentDraft != null && JSON.stringify(parentDraft) !== JSON.stringify(creation?.parentDraft));
   const change = (values: Partial<RoomSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
-  const save = async (published = formRef.current.published) => {
+  const save = async (published = formRef.current.published, notify = true) => {
     if (savingRef.current || !loaded) return false;
     const current = formRef.current;
     const nextErrors: FieldErrors = {};
-    if (parentDraft) { checkText(nextErrors, 'parentTitle', parentDraft.title, 120, true); checkText(nextErrors, 'parentChapter', parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? '', 120, true); }
+    if (parentDraft) { checkText(nextErrors, 'parentTitle', parentDraft.title, 120, true); checkText(nextErrors, 'parentDescription', parentDraft.description, 20000, parentDraft.published); checkText(nextErrors, 'parentChapter', parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? '', 120, true); }
     checkText(nextErrors, 'title', current.title, 255, true);
     checkText(nextErrors, 'shortDescription', current.shortDescription ?? '', 100);
     checkText(nextErrors, 'description', current.description, 20000, published);
@@ -106,7 +106,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
       idRef.current = detail.room.id; setId(detail.room.id); formRef.current = saved;
       setForm(saved); setBaseline(saved); setFile(null);
       if (detail.pathId != null) { setParentId(detail.pathId); setParentDraft(null); }
-      setSuccess(published ? 'Zapisano opublikowany pokój.' : 'Zapisano szkic pokoju.');
+      if (notify) setSuccess(published ? 'Zapisano opublikowany pokój.' : 'Zapisano szkic pokoju.');
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Nie udało się zapisać pokoju.');
@@ -117,7 +117,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
   const guard = useUnsavedChanges(dirty, () => save(), saving);
   const normalSave = async (published = formRef.current.published) => {
     const wasNew = idRef.current == null;
-    if (await save(published) && wasNew) {
+    if (await save(published, !wasNew) && wasNew) {
       guard.allowNavigation();
       navigate(`${base}/${idRef.current}`, { replace: true, state: { flash: published ? 'Zapisano opublikowany pokój.' : 'Zapisano szkic pokoju.' } });
     }
@@ -135,6 +135,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
           {parentDraft && <Section title="Ścieżka i rozdział" description={parentDraft.published ? "Ścieżka jest opublikowana. Nowy rozdział wymaga gotowego opublikowanego pokoju; szkic pokoju możesz przygotować po przeniesieniu ścieżki do szkiców." : "Nowy kontekst i pokój zostaną zapisane razem. Nieudany zapis nie pozostawi nieprzypisanego pokoju."}>
             <div className="grid gap-4">
               <TextField name="parentTitle" label="Tytuł ścieżki" value={parentDraft.title} limit={120} required error={errors.parentTitle} onChange={title => setParentDraft({ ...parentDraft, title })} />
+              <TextField name="parentDescription" label="Opis ścieżki" value={parentDraft.description} limit={20000} multiline required={parentDraft.published} error={errors.parentDescription} onChange={description => setParentDraft({ ...parentDraft, description })} />
               <TextField name="parentChapter" label="Nazwa rozdziału" value={parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? ''} limit={120} required error={errors.parentChapter} onChange={title => setParentDraft({ ...parentDraft, chapters: parentDraft.chapters.map((c, i) => i === (creation?.chapterIndex ?? 0) ? { ...c, title } : c) })} />
             </div>
           </Section>}
@@ -149,7 +150,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
               </>}
               {kind === 'PATH' && <div className="grid gap-2"><label htmlFor="content-points">Punkty *</label><Input id="content-points" type="number" min={0} value={Number.isNaN(form.points) ? '' : form.points} onChange={e => change({ points: e.target.value === '' ? NaN : Number(e.target.value) })} aria-invalid={!!errors.points} />{errors.points && <p role="alert" className="text-destructive">{errors.points}</p>}</div>}
               <TextField name="flag" label="Flaga" value={form.flag} limit={255} required={form.published && !form.tasks.length} error={errors.flag} onChange={flag => change({ flag })} />
-              <div className="grid gap-2"><label htmlFor="content-file">Plik do pobrania</label><FilePicker id="content-file" file={file} onChange={setFile} /><p className="text-xs text-muted-foreground">Do 50 MB. Pozostaw puste, aby zachować zapisany plik.</p>{errors.file && <p role="alert" className="text-destructive">{errors.file}</p>}</div>
+              <div className="grid gap-2"><label htmlFor="content-file">Plik do pobrania</label><FilePicker key={form.revision} id="content-file" file={file} onChange={setFile} /><p className="text-xs text-muted-foreground">Do 50 MB. Pozostaw puste, aby zachować zapisany plik.</p>{errors.file && <p role="alert" className="text-destructive">{errors.file}</p>}</div>
               <div className="flex items-center gap-3"><Switch id="room-vpn" checked={form.requiresVpn} onCheckedChange={requiresVpn => change({ requiresVpn })} /><label htmlFor="room-vpn">Wymaga VPN</label></div>
             </div>
           </Section>

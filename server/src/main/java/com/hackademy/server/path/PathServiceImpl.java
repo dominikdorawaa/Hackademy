@@ -328,7 +328,7 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional
     public void updatePathMeta(Long id, UpdatePathMetaRequest request) {
-        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
         path.setContentRevision(path.getContentRevision() + 1);
         path.setTitle(request.title());
         path.setDescription(request.description());
@@ -452,13 +452,13 @@ public class PathServiceImpl implements PathService {
     @Transactional
     public void uploadBanner(Long id, MultipartFile file) {
         if (file == null || file.isEmpty()) return;
-        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
         try {
             path.setContentRevision(path.getContentRevision() + 1);
             path.setBannerData(file.getBytes());
             path.setBannerMime(file.getContentType());
             pathRepository.save(path);
-            } catch (Exception e) {
+        } catch (Exception e) {
             throw new RuntimeException("Failed to save banner", e);
         }
     }

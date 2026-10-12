@@ -189,7 +189,7 @@ describe('content editors', () => {
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     expect(await screen.findByText('Zapisano szkic pokoju.')).toBeInTheDocument();
     expect(save.mock.calls[0][1]).toMatchObject({ published: false, description: '', flag: '' });
-    expect(screen.getByRole('heading', { level: 1, name: 'Nowy CTF' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { level: 1, name: 'Nowy CTF' })).toBeInTheDocument();
   });
 });
 

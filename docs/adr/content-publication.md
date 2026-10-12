@@ -43,7 +43,7 @@ Jeśli przy tworzeniu pokoju odrzucono nową niezapisaną ścieżkę lub nowy ro
 
 `GET /api/admin/content/{paths|rooms}/{id}/preview` korzysta z zapisanej wersji i wymaga roli ADMIN lub EXPERT. Ten sam komponent strony gracza renderuje podgląd. Banner i plik szkicu mają osobne chronione endpointy. Podgląd ścieżki pozwala otwierać jej pokoje także w szkicu i wracać do edycji.
 
-Podgląd nie ma endpointów modyfikujących postęp. Symulacja oznaczenia zadania odbywa się tylko w pamięci przeglądarki; podpowiedzi są pokazane bez zapisywania odblokowań. Nie przyznaje punktów, nie aktualizuje statystyk ani nie publikuje materiału.
+Podgląd nie ma endpointów modyfikujących postęp. Symulacja oznaczenia zadania odbywa się tylko w pamięci przeglądarki; podpowiedzi można odsłonić lokalnie bez zapisywania odblokowań. Nie przyznaje punktów, nie aktualizuje statystyk ani nie publikuje materiału.
 
 ## Weryfikacja
 

@@ -157,17 +157,17 @@ public class ContentService {
                 if (!saved.isPublished()) v.problem("published", "Opublikuj pokój, aby dodać nowy rozdział do opublikowanej ścieżki, albo przenieś ścieżkę do szkiców.");
                 v.finish();
                 var updated = pathService.getAdminDetail(parent.getId());
-                var draft = r.parentDraft();
-                savePath(parent.getId(), new ContentRequests.PathSave(updated.contentRevision(), updated.revision(), draft.title(), draft.description(), draft.bannerUrl(), true,
-                        updated.chapters().stream().map(c -> new ChapterRequest(c.id(), c.title(), c.roomIds())).toList()), null, adminFromContext());
+                v.text("parentDescription", parent.getDescription(), 20000, true);
+                for (var section : updated.chapters()) {
+                    if (section.roomIds().isEmpty()) v.problem("published", "Dodaj opublikowany pokój do każdego rozdziału ścieżki.");
+                    for (Long roomId : section.roomIds()) if (!rooms.findById(roomId).orElseThrow().isPublished()) v.problem("published", "Opublikuj wszystkie pokoje ścieżki.");
+                }
+                v.finish();
+                parent.setPublished(true);
             }
         }
         rooms.flush();
         return roomEditor(saved.getId());
-    }
-
-    private boolean adminFromContext() {
-        return org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication().getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
     }
 
     @Transactional(readOnly = true)
@@ -175,7 +175,7 @@ public class ContentService {
         var r = roomService.getRoomById(id);
         var hints = r.getHints().stream().sorted(Comparator.comparing(Hint::getId)).map(h -> new HintDto(h.getId(), h.getDescription())).toList();
         var tasks = r.getTasks().stream().sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).map(t -> RoomTaskDto.builder().id(t.getId()).title(t.getTitle()).content(t.getContent()).question(t.getQuestion()).completed(false).build()).toList();
-        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).hints(hints).unlockedHintIds(hints.stream().map(HintDto::id).toList()).fileName(r.getRoomFile() == null ? null : r.getRoomFile().getFileName()).tasks(tasks).build();
+        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).hints(hints).unlockedHintIds(List.of()).fileName(r.getRoomFile() == null ? null : r.getRoomFile().getFileName()).tasks(tasks).build();
     }
 
     @Transactional(readOnly = true)

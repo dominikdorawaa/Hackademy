@@ -158,6 +158,60 @@ class ContentDraftsIntegrationTest {
         assertTrue(save("rooms", null, r, admin, 400).contains("hints.0"));
     }
 
+    @Test void protectsDraftBannerAndRoomFileAndPreservesUploadsDuringEdits() throws Exception {
+        String admin = token(Role.ADMIN), user = token(Role.USER), expert = token(Role.EXPERT);
+        var p = path(false); byte[] image = new byte[] {1, 2, 3};
+        var request = multipart("/api/admin/content/paths").file(new MockMultipartFile("content", "", "application/json", mapper.writeValueAsBytes(p)))
+                .file(new MockMultipartFile("file", "banner.png", "image/png", image)).header("Authorization", "Bearer " + admin);
+        String saved = mvc.perform(request).andExpect(status().isCreated()).andExpect(jsonPath("$.hasBanner").value(true)).andReturn().getResponse().getContentAsString();
+        long id = number(saved, "$.id");
+        for (String token : List.of(admin, expert)) mvc.perform(get("/api/admin/content/paths/" + id + "/banner").header("Authorization", "Bearer " + token)).andExpect(status().isOk()).andExpect(content().bytes(image));
+        mvc.perform(get("/api/admin/content/paths/" + id + "/banner").header("Authorization", "Bearer " + user)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/paths/" + id + "/banner")).andExpect(status().isNotFound());
+        revisePath(p, saved); p.put("title", p.get("title") + " edited"); save("paths", id, p, admin, 200);
+        mvc.perform(get("/api/admin/content/paths/" + id + "/banner").header("Authorization", "Bearer " + admin)).andExpect(status().isOk()).andExpect(content().bytes(image));
+        var r = room(false, "CTF"); byte[] file = new byte[] {4, 5, 6};
+        var roomRequest = multipart("/api/admin/content/rooms").file(new MockMultipartFile("content", "", "application/json", mapper.writeValueAsBytes(r)))
+                .file(new MockMultipartFile("file", "training.bin", "application/octet-stream", file)).header("Authorization", "Bearer " + admin);
+        String roomSaved = mvc.perform(roomRequest).andExpect(status().isCreated()).andReturn().getResponse().getContentAsString(); long roomId = number(roomSaved, "$.room.id");
+        mvc.perform(get("/api/admin/content/rooms/" + roomId).header("Authorization", "Bearer " + admin)).andExpect(status().isOk());
+        mvc.perform(get("/api/admin/content/rooms/" + roomId + "/file").header("Authorization", "Bearer " + admin)).andExpect(status().isOk()).andExpect(content().bytes(file));
+        mvc.perform(get("/api/admin/content/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isForbidden());
+        mvc.perform(get("/api/admin/content/rooms/" + roomId + "/preview").header("Authorization", "Bearer " + admin)).andExpect(jsonPath("$.fileName").value("training.bin"));
+        mvc.perform(get("/api/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
+        reviseRoom(r, roomSaved); String updatedRoom = save("rooms", roomId, r, admin, 200);
+        mvc.perform(get("/api/admin/content/rooms/" + roomId + "/file").header("Authorization", "Bearer " + admin)).andExpect(content().bytes(file));
+        reviseRoom(r, updatedRoom); r.put("published", true); r.put("description", "Ready"); r.put("flag", "CTF{x}"); save("rooms", roomId, r, admin, 200);
+        mvc.perform(get("/api/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isOk()).andExpect(content().bytes(file));
+        var learningRoom = room(true, "PATH"); String learning = save("rooms", null, learningRoom, admin, 201); long learningId = number(learning, "$.room.id");
+        String latestPath = mvc.perform(get("/api/admin/paths/" + id).header("Authorization", "Bearer " + admin)).andReturn().getResponse().getContentAsString();
+        revisePath(p, latestPath); p.put("published", true); p.put("description", "Ready"); p.put("chapters", List.of(Map.of("id", number(latestPath, "$.chapters[0].id"), "title", "Chapter", "roomIds", List.of(learningId))));
+        save("paths", id, p, admin, 200);
+        mvc.perform(get("/api/paths/" + id + "/banner")).andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store")).andExpect(content().bytes(image));
+        mvc.perform(get("/api/paths/" + id + "/enrolled").header("Authorization", "Bearer " + user)).andExpect(status().isOk()).andExpect(content().string("false"));
+        mvc.perform(post("/api/paths/" + id + "/enroll").header("Authorization", "Bearer " + user)).andExpect(status().isOk());
+        mvc.perform(get("/api/paths/" + id + "/enrolled").header("Authorization", "Bearer " + user)).andExpect(content().string("true"));
+        mvc.perform(get("/api/admin/paths").header("Authorization", "Bearer " + expert)).andExpect(status().isOk()).andExpect(jsonPath("$[?(@.id == " + id + ")].published").value(org.hamcrest.Matchers.contains(true)));
+    }
+
+    @Test void createsChapterOnPublishedParentAtomicallyAndNeverSilentlyHidesIt() throws Exception {
+        String admin = token(Role.ADMIN); var initialRoom = room(true, "PATH");
+        String roomSaved = save("rooms", null, initialRoom, admin, 201); long roomId = number(roomSaved, "$.room.id");
+        var p = path(true); p.put("chapters", List.of(Map.of("title", "Existing chapter", "roomIds", List.of(roomId))));
+        String saved = save("paths", null, p, admin, 201); long pathId = number(saved, "$.id"), chapterId = number(saved, "$.chapters[0].id");
+        revisePath(p, saved); p.put("chapters", List.of(Map.of("id", chapterId, "title", "Existing chapter", "roomIds", List.of(roomId)), Map.of("title", "New chapter", "roomIds", List.of())));
+        var r = room(false, "PATH"); r.put("parentDraft", p); r.put("chapterIndex", 1); r.put("pathId", pathId);
+        long before = rooms.count(); save("rooms", null, r, admin, 400); assertEquals(before, rooms.count());
+        assertEquals(Boolean.TRUE, db.queryForObject("SELECT published FROM paths WHERE id = ?", Boolean.class, pathId));
+        assertEquals(1, db.queryForObject("SELECT count(*) FROM path_chapters WHERE path_id = ?", Integer.class, pathId));
+        r.put("published", true); r.put("description", "Ready"); r.put("flag", "CTF{x}");
+        String created = save("rooms", null, r, admin, 201); long added = number(created, "$.room.id");
+        assertEquals(Boolean.TRUE, db.queryForObject("SELECT published FROM paths WHERE id = ?", Boolean.class, pathId));
+        assertEquals(2, db.queryForObject("SELECT count(*) FROM path_chapters WHERE path_id = ?", Integer.class, pathId));
+        assertEquals(2, db.queryForObject("SELECT count(*) FROM chapter_rooms cr JOIN path_chapters c ON c.id = cr.chapter_id WHERE c.path_id = ?", Integer.class, pathId));
+        assertTrue(rooms.isVisible(added));
+    }
+
     @Test void createsNewParentChapterAndRoomTogetherAndRollsBackOnInvalidContext() throws Exception {
         String admin = token(Role.ADMIN); var r = room(false, "PATH"); var p = path(false);
         r.put("parentDraft", p); r.put("chapterIndex", 3); long before = rooms.count(); long pathsBefore = db.queryForObject("SELECT count(*) FROM paths", Long.class);

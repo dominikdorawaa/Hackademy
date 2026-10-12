@@ -56,7 +56,7 @@ function PathEditor({ pathId }: { pathId: string }) {
   }, [token, attempt]);
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file;
   const change = (values: Partial<PathSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
-  const save = async (published = formRef.current.published) => {
+  const save = async (published = formRef.current.published, notify = true) => {
     if (savingRef.current) return false;
     const current = formRef.current;
     const nextErrors: FieldErrors = {};
@@ -79,7 +79,7 @@ function PathEditor({ pathId }: { pathId: string }) {
       const saved = fromDetail(detail);
       idRef.current = detail.id; setId(detail.id); formRef.current = saved;
       setForm(saved); setBaseline(saved); setFile(null);
-      setSuccess(published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.');
+      if (notify) setSuccess(published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.');
       if (detail.hasBanner) setBanner(`${API_URL}/api/admin/content/paths/${detail.id}/banner?v=${detail.contentRevision}`);
       return true;
     } catch (e) {
@@ -91,7 +91,7 @@ function PathEditor({ pathId }: { pathId: string }) {
   const guard = useUnsavedChanges(dirty, () => save(), saving);
   const normalSave = async (published = formRef.current.published) => {
     const wasNew = idRef.current == null;
-    if (await save(published) && wasNew) {
+    if (await save(published, !wasNew) && wasNew) {
       guard.allowNavigation();
       navigate(`/admin/paths/${idRef.current}`, { replace: true, state: { flash: published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.' } });
     }
@@ -122,7 +122,7 @@ function PathEditor({ pathId }: { pathId: string }) {
               <TextField name="title" label="Tytuł" value={form.title} limit={120} required error={errors.title} onChange={title => change({ title })} />
               <TextField name="description" label="Opis" value={form.description} limit={20000} required={form.published} multiline error={errors.description} onChange={description => change({ description })} />
               <TextField name="bannerUrl" label="Banner z adresu URL" value={form.bannerUrl ?? ''} limit={2048} error={errors.bannerUrl} onChange={bannerUrl => change({ bannerUrl })} />
-              <label htmlFor="content-bannerFile">Banner z pliku</label><FilePicker id="content-bannerFile" accept="image/png,image/jpeg,image/webp,image/gif" file={file} onChange={setFile} />
+              <label htmlFor="content-bannerFile">Banner z pliku</label><FilePicker key={form.revision} id="content-bannerFile" accept="image/png,image/jpeg,image/webp,image/gif" file={file} onChange={setFile} />
               {errors.bannerFile && <p role="alert" className="text-destructive">{errors.bannerFile}</p>}
               <p className="text-xs text-muted-foreground">Do 5 MB. Wgrany plik ma pierwszeństwo przed URL.</p>
               <BannerImage source={banner} file={file} url={form.bannerUrl} token={token} />

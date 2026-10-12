@@ -162,7 +162,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (preview) { setSubmitMessage('Tryb podglądu: wynik nie jest zapisywany.'); return; }
+    if (preview) { setSubmitStatus('success'); setSubmitMessage('Tryb podglądu: wynik nie jest zapisywany.'); return; }
     setSubmitStatus(null);
     setSubmitMessage('');
 
