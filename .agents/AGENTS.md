@@ -14,6 +14,7 @@
 - Nie dodawaj do ticketów etykiety `ready-for-agent`. Używaj tylko etykiet opisujących obszar i rodzaj zmiany (np. `backend`, `frontend`, `testing`, `ci`).
 - Treść ticketów (issues) i opisy PR na GitHubie pisz po polsku. Tytuły issues i PR pisz po angielsku.
 - Przy tworzeniu PR na GitHubie użyj tytułu ticketa jako tytułu PR i automatycznie przygotuj krótki opis na podstawie rzeczywistych zmian oraz wyników weryfikacji.
+- Zmiany w `AGENTS.md` nie wymagają osobnego PR ani gałęzi. Dołączaj je jako osobny commit do bieżącej gałęzi z innymi zmianami.
 - Przed rozpoczęciem zmian utwórz osobną gałąź od aktualnego `main`. Jeśli istnieje ticket, nazwij gałąź zgodnie z jego nazwą. Nie commituj ani nie pushuj bezpośrednio z `main`.
 - Przed każdym pushem pobierz i zintegruj najnowsze zmiany z gałęzi `main`.
 - Nigdy nie twórz gałęzi z prefiksem `codex/`. Gdy nie ma ticketa, wybierz krótką nazwę opisującą zmianę.
