@@ -152,7 +152,7 @@ class ContentDraftsIntegrationTest {
         revisePath(p, savedPath); p.put("published", false); save("paths", pathId, p, admin, 200);
         mvc.perform(get(dashboard).header("Authorization", "Bearer " + user)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.currentPath").doesNotExist()).andExpect(jsonPath("$.pathsProgress").isEmpty())
-                .andExpect(jsonPath("$.recommendedPath[?(@.id == " + pathId + ")]").isEmpty());
+                .andExpect(jsonPath("$.recommendedPath").doesNotExist());
     }
 
     @Test void savesIncompleteTasksRejectsLengthsAndRejectsStaleRevisionWithoutPartialChanges() throws Exception {
