@@ -85,7 +85,7 @@ describe('draft editors and guarded navigation', () => {
     await user.type(await screen.findByLabelText('Tytuł *'), 'Nowa');
     await user.click(screen.getByRole('button', { name: 'Utwórz pokój' }));
     await user.click(screen.getByRole('button', { name: 'Zapisz i przejdź dalej' }));
-    await waitFor(() => expect(router.state.location.search).toBe('?pathId=5&chapterId=11&pathRevision=3')); 
+    await waitFor(() => expect(router.state.location.search).toBe('?pathId=5&chapterId=11&pathRevision=3'));
     expect(await screen.findByText(/Ścieżka: Nowa → Rozdział:/)).toBeInTheDocument();
     for (const label of ['Tytuł *', 'Opis', 'Flaga', 'Plik do pobrania', 'Wymaga VPN']) expect(screen.getByLabelText(label)).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Dodaj zadanie' })).toBeInTheDocument();
