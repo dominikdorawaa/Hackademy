@@ -126,6 +126,9 @@ class ContentDraftsIntegrationTest {
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_completed_tasks WHERE task_id IN (SELECT id FROM room_tasks WHERE room_id = ?)", Integer.class, id));
         assertEquals(0, rooms.findById(id).orElseThrow().getSolutionsCount());
+        String username = mapper.readTree(Base64.getUrlDecoder().decode(user.split("\\.")[1])).get("sub").asText();
+        var player = users.findByUsername(username).orElseThrow();
+        assertEquals(0, player.getPoints()); assertEquals(0, player.getStreak()); assertNull(player.getLastSolvedDate());
         String taskSolve = "/api/rooms/" + id + "/tasks/" + number(saved, "$.tasks.tasks[0].id") + "/solve";
         mvc.perform(post(taskSolve).header("Authorization", "Bearer " + user).contentType("application/json").content("{\"answer\":\"correct\"}")).andExpect(status().isOk());
         mvc.perform(post("/api/rooms/" + id + "/tasks/complete").header("Authorization", "Bearer " + user)).andExpect(status().isOk());
@@ -134,6 +137,7 @@ class ContentDraftsIntegrationTest {
     }
 
     @Test void dashboardDropsHiddenPathsAndRoomsImmediatelyAfterCommittedSave() throws Exception {
+        db.update("UPDATE paths SET published = false");
         String admin = token(Role.ADMIN), user = token(Role.USER);
         var r = room(true, "PATH"); String savedRoom = save("rooms", null, r, admin, 201); long roomId = number(savedRoom, "$.room.id");
         var p = path(true); p.put("chapters", List.of(Map.of("title", "Visible chapter", "roomIds", List.of(roomId))));
