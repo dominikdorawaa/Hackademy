@@ -50,6 +50,7 @@ public class DashboardController {
         String username = user.getUsername();
         Long userId = user.getId();
 
+        long cacheGeneration = dashboardSummaryCache.generation();
         DashboardSummaryDto cached = dashboardSummaryCache.getIfFresh(userId);
         if (cached != null) {
             cached.setActiveSecondsThisWeek(userService.getActiveSecondsThisWeek(userId));
@@ -122,7 +123,7 @@ public class DashboardController {
                 .currentPathRoomsMini((List<com.hackademy.server.path.dto.PathRoomMiniDto>) roomsMiniF.join())
                 .build();
 
-        dashboardSummaryCache.put(userId, out);
+        dashboardSummaryCache.put(userId, out, cacheGeneration);
         return ResponseEntity.ok(out);
     }
 }

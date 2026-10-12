@@ -48,6 +48,13 @@ public class Path {
     @Column(name = "chapters_revision", nullable = false)
     private long chaptersRevision;
 
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean published = true;
+
+    @Column(name = "content_revision", nullable = false)
+    private long contentRevision;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

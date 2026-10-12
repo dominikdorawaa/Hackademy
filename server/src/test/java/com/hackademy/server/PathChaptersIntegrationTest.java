@@ -26,6 +26,7 @@ import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
 import java.util.concurrent.ExecutionException;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -59,9 +60,10 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
         long path = createPath(admin, List.of());
         long chapter = chapterIds(admin, path).get(0);
         String endpoint = "/api/admin/paths/" + path + "/chapters";
+        long contentRevision = jdbcTemplate.queryForObject("SELECT content_revision FROM paths WHERE id = ?", Long.class, path);
         var loaded = new CountDownLatch(1);
         var release = new CountDownLatch(1);
-        var executor = Executors.newSingleThreadExecutor();
+        var executor = Executors.newFixedThreadPool(2);
         try {
             var unrelated = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(tx -> {
                 write.accept(path);
@@ -74,11 +76,20 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 }
             }));
             assertTrue(loaded.await(10, TimeUnit.SECONDS));
-            putJson(admin, endpoint, """
-                    {"revision":0,"chapters":[{"id":%d,"title":"A","roomIds":[]},{"id":null,"title":"B","roomIds":[]}]}
-                    """.formatted(chapter)).andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(1));
+            var chaptersStarted = new CountDownLatch(1);
+            var chapters = executor.submit(() -> {
+                chaptersStarted.countDown();
+                putJson(admin, endpoint, """
+                        {"revision":0,"chapters":[{"id":%d,"title":"A","roomIds":[]},{"id":null,"title":"B","roomIds":[]}]}
+                        """.formatted(chapter)).andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(1));
+                return null;
+            });
+            assertTrue(chaptersStarted.await(10, TimeUnit.SECONDS));
+            assertThrows(TimeoutException.class, () -> chapters.get(200, TimeUnit.MILLISECONDS));
             release.countDown();
             unrelated.get(10, TimeUnit.SECONDS);
+            chapters.get(10, TimeUnit.SECONDS);
+            assertEquals(contentRevision + 2, jdbcTemplate.queryForObject("SELECT content_revision FROM paths WHERE id = ?", Long.class, path));
             assertEquals(1L, jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, path));
             putJson(admin, endpoint, """
                     {"revision":0,"chapters":[{"id":%d,"title":"A","roomIds":[]}]}
@@ -427,7 +438,9 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 """.formatted(uniqueTitle("Path"), roomIds))
                 .andExpect(status().isCreated())
                 .andReturn();
-        return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+        long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+        jdbcTemplate.update("UPDATE paths SET published = true WHERE id = ?", id);
+        return id;
     }
 
     private List<Long> chapterIds(Account admin, long pathId) throws Exception {

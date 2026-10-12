@@ -103,7 +103,9 @@ abstract class PostgresIntegrationTest {
                         .header("Authorization", "Bearer " + admin.token()))
                 .andExpect(status().isCreated())
                 .andReturn();
-        return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+        long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+        jdbcTemplate.update("UPDATE rooms SET published = true WHERE id = ?", id);
+        return id;
     }
 
     protected String uniqueTitle(String prefix) {

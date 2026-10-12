@@ -1,207 +1,150 @@
-import { useCallback, useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, ExternalLink, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Textarea } from '@/components/ui/textarea';
 import API_URL from '../../apiConfig';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
-import * as adminRequests from '../../services/adminRequests';
+import * as contentApi from '../../services/contentApi';
+import type { PathSave } from '../../services/contentApi';
 import type { PathAdminDetailDto, RoomAdminSummaryDto } from '../../types/api';
-import ChaptersEditor from '../../components/admin/ChaptersEditor';
 import { ConfirmAction, FilePicker, LoadingRows, PageHeader, Section, StatusMessage } from '../../components/admin/AdminUi';
-import { errorText } from '../../components/admin/adminFormat';
+import { TextField, checkText, focusError } from '../../components/admin/ContentFields';
+import type { FieldErrors } from '../../components/admin/ContentFields';
+import { ContentChapters } from '../../components/admin/ContentStructure';
+import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
 import { useAdminAccess } from './adminAccess';
-import { roomBasePath } from './adminConfig';
 
-function bannerSource(detail: PathAdminDetailDto) {
-  if (!detail.bannerUrl) return null;
-  return detail.hasBanner ? `${API_URL}${detail.bannerUrl}?v=${Date.now()}` : detail.bannerUrl;
+const empty: PathSave = { revision: 0, chaptersRevision: 0, title: '', description: '', bannerUrl: null, published: false, chapters: [{ id: null, title: 'Rozdział 1', roomIds: [] }] };
+function fromDetail(d: PathAdminDetailDto): PathSave {
+  return { revision: d.contentRevision ?? 0, chaptersRevision: d.revision, title: d.title, description: d.description ?? '', bannerUrl: d.hasBanner ? null : d.bannerUrl, published: d.published ?? true, chapters: d.chapters };
 }
-
 export default function PathEditorPage() {
   const { pathId } = useParams();
-  const id = Number(pathId);
+  return <PathEditor key={pathId} pathId={pathId ?? 'new'} />;
+}
+function PathEditor({ pathId }: { pathId: string }) {
   const { token } = useAuth();
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
   const location = useLocation();
-
-  const [detail, setDetail] = useState<PathAdminDetailDto | null>(null);
+  const [id, setId] = useState<number | null>(pathId === 'new' ? null : Number(pathId));
+  const idRef = useRef(id);
+  const [form, setForm] = useState<PathSave>(empty);
+  const formRef = useRef(form);
+  useLayoutEffect(() => { formRef.current = form; }, [form]);
+  const [baseline, setBaseline] = useState(empty);
   const [rooms, setRooms] = useState<RoomAdminSummaryDto[]>([]);
+  const [file, setFile] = useState<File | null>(null);
+  const [banner, setBanner] = useState<string | null>(null);
   const [loading, setLoading] = useState(true);
-  const [title, setTitle] = useState('');
-  const [description, setDescription] = useState('');
-  const [bannerUrl, setBannerUrl] = useState('');
-  const [bannerFile, setBannerFile] = useState<File | null>(null);
-  const [bannerPreview, setBannerPreview] = useState<string | null>(null);
-  const [fileInputKey, setFileInputKey] = useState(0);
-  const [savingMeta, setSavingMeta] = useState(false);
+  const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
-
-  const applyDetail = useCallback((next: PathAdminDetailDto, preserveChapters = false) => {
-    // Metadata refresh must keep the draft's chapter baseline and revision together.
-    setDetail((current) => preserveChapters && current
-      ? { ...next, chapters: current.chapters, revision: current.revision }
-      : next);
-    setTitle(next.title);
-    setDescription(next.description ?? '');
-    setBannerUrl(next.hasBanner ? '' : next.bannerUrl ?? '');
-    setBannerPreview(bannerSource(next));
-  }, []);
-
-  const loadRooms = useCallback(async () => {
-    const data = (await adminApi.getAllRoomsAdmin(token)) ?? [];
-    setRooms(data.filter((room) => room.roomType === 'PATH'));
-  }, [token]);
-
+  const [attempt, setAttempt] = useState(0);
   useEffect(() => {
-    if (!token || !Number.isFinite(id)) return;
     let active = true;
-    Promise.all([adminApi.getPath(id, token), loadRooms()])
-      .then(([path]) => {
-        if (active && path) applyDetail(path);
-      })
-      .catch((err: unknown) => {
-        if (active) setError(errorText(err, 'Nie udało się pobrać ścieżki.'));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [id, token, applyDetail, loadRooms]);
-
-  const saveMeta = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    setSavingMeta(true);
-    setError(null);
-    setSuccess(null);
+    Promise.all([idRef.current == null ? Promise.resolve(null) : adminApi.getPath(idRef.current, token), adminApi.getAllRoomsAdmin(token)])
+      .then(([detail, pool]) => {
+        if (!active) return;
+        if (idRef.current != null && !detail) throw new Error('Nie znaleziono ścieżki.');
+        if (detail) { const next = fromDetail(detail); setForm(next); setBaseline(next); if (detail.hasBanner) setBanner(`${API_URL}/api/admin/content/paths/${detail.id}/banner`); }
+        setRooms(pool ?? []); setError(null);
+      }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [token, attempt]);
+  const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file;
+  const change = (values: Partial<PathSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
+  const save = async (published = formRef.current.published, notify = true) => {
+    if (savingRef.current) return false;
+    const current = formRef.current;
+    const nextErrors: FieldErrors = {};
+    checkText(nextErrors, 'title', current.title, 120, true);
+    checkText(nextErrors, 'description', current.description, 20000, published);
+    checkText(nextErrors, 'bannerUrl', current.bannerUrl ?? '', 2048);
+    if (current.bannerUrl) { try { const url = new URL(current.bannerUrl); if (!['http:', 'https:'].includes(url.protocol)) throw new Error(); } catch { nextErrors.bannerUrl = 'Podaj poprawny adres http:// lub https://'; } }
+    if (file && (!['image/png', 'image/jpeg', 'image/webp', 'image/gif'].includes(file.type) || file.size > 5 * 1024 * 1024)) nextErrors.bannerFile = 'Wybierz obraz PNG, JPEG, WebP lub GIF do 5 MB';
+    if (published && !current.chapters.length) nextErrors.chapters = 'Dodaj przynajmniej jeden rozdział';
+    current.chapters.forEach((c, i) => {
+      checkText(nextErrors, `chapters.${i}.title`, c.title, 120, true);
+      if (published && !c.roomIds?.length) nextErrors[`chapters.${i}.rooms`] = 'Dodaj pokój do rozdziału przed publikacją';
+      else if (published && c.roomIds?.some(roomId => rooms.find(r => r.id === roomId)?.published === false)) nextErrors[`chapters.${i}.rooms`] = 'Opublikuj pokoje rozdziału przed publikacją ścieżki';
+    });
+    setSuccess(null); setErrors(nextErrors); setError(null);
+    if (Object.keys(nextErrors).length) { focusError(nextErrors); return false; }
+    savingRef.current = true; setSaving(true);
     try {
-      if (bannerFile) {
-        await adminApi.readResponse(await adminRequests.uploadBanner(id, bannerFile, { Authorization: `Bearer ${token}` }) as unknown as Response);
-      }
-      await adminApi.updatePath(id, { title: title.trim(), description, bannerUrl: bannerUrl.trim() || null }, token);
-      const refreshed = await adminApi.getPath(id, token);
-      if (refreshed) applyDetail(refreshed, true);
-      setBannerFile(null);
-      setFileInputKey((key) => key + 1);
-      setSuccess('Zapisano informacje o ścieżce.');
-    } catch (err) {
-      setError(errorText(err, 'Nie udało się zapisać ścieżki.'));
-    } finally {
-      setSavingMeta(false);
+      const detail = await contentApi.savePath(idRef.current, { ...current, published }, file, token);
+      const saved = fromDetail(detail);
+      idRef.current = detail.id; setId(detail.id); formRef.current = saved;
+      setForm(saved); setBaseline(saved); setFile(null);
+      if (notify) setSuccess(published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.');
+      if (detail.hasBanner) setBanner(`${API_URL}/api/admin/content/paths/${detail.id}/banner?v=${detail.contentRevision}`);
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Nie udało się zapisać ścieżki.');
+      if (e instanceof contentApi.ContentError) { setErrors(e.fields); focusError(e.fields); }
+      return false;
+    } finally { savingRef.current = false; setSaving(false); }
+  };
+  const guard = useUnsavedChanges(dirty, () => save(), saving);
+  const normalSave = async (published = formRef.current.published) => {
+    const wasNew = idRef.current == null;
+    if (await save(published, !wasNew) && wasNew) {
+      guard.allowNavigation();
+      navigate(`/admin/paths/${idRef.current}`, { replace: true, state: { flash: published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.' } });
     }
   };
-
-  const remove = async () => {
-    try {
-      await adminApi.deletePath(id, token);
-      navigate('/admin/paths', { replace: true });
-    } catch (err) {
-      setError(errorText(err, 'Nie udało się usunąć ścieżki.'));
+  const createRoom = (index: number) => guard.request(() => {
+    const chapter = formRef.current.chapters[index];
+    const savedChapter = chapter?.id != null ? baseline.chapters.find(c => c.id === chapter.id) ?? chapter : null;
+    if (idRef.current != null && savedChapter?.id) {
+      navigate(`/admin/paths/rooms/new?pathId=${idRef.current}&chapterId=${savedChapter.id}&pathRevision=${formRef.current.revision}`);
+    } else {
+      const source = idRef.current == null ? empty : baseline;
+      const list = [...source.chapters];
+      const targetIndex = Math.min(index, list.length);
+      if (!list[targetIndex] || list[targetIndex].id != null) list.splice(targetIndex, 0, { id: null, title: `Rozdział ${targetIndex + 1}`, roomIds: [] });
+      navigate('/admin/paths/rooms/new', { state: { parentDraft: { ...source, chapters: list }, parentId: idRef.current, chapterIndex: targetIndex } });
     }
-  };
-
-  const onChaptersSaved = (next: PathAdminDetailDto) => {
-    setDetail(next);
-    void loadRooms().catch(() => undefined);
-  };
-
-  return (
-    <>
-      <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2 text-muted-foreground">
-        <Link to="/admin/paths"><ArrowLeft />Ścieżki</Link>
-      </Button>
-      <PageHeader
-        title={detail?.title ?? 'Ścieżka'}
-        description="Ustal informacje widoczne dla graczy oraz kolejność rozdziałów i pokoi."
-        actions={detail && (
-          <>
-            <Button asChild variant="outline">
-              <a href={`/learn/paths/${id}`} target="_blank" rel="noreferrer"><ExternalLink />Podgląd</a>
-            </Button>
-            {isAdmin && (
-              <ConfirmAction
-                title="Usunąć tę ścieżkę?"
-                description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli."
-                confirmLabel="Usuń ścieżkę"
-                onConfirm={remove}
-                trigger={<Button variant="outline" className="text-destructive hover:text-destructive"><Trash2 />Usuń</Button>}
-              />
-            )}
-          </>
-        )}
-      />
-      <div className="mb-4 space-y-2">
-        {error && <StatusMessage kind="error">{error}</StatusMessage>}
-        {success && <StatusMessage kind="success">{success}</StatusMessage>}
-      </div>
-
-      {loading ? (
-        <LoadingRows rows={6} label="Ładowanie ścieżki" />
-      ) : !detail ? (
-        <Button asChild variant="outline"><Link to="/admin/paths"><ArrowLeft />Wróć do listy</Link></Button>
-      ) : (
-        <div className="space-y-6">
-          <form onSubmit={saveMeta} aria-label="Informacje o ścieżce">
-            <Section
-              title="Informacje"
-              actions={<Button type="submit" disabled={savingMeta || !title.trim()}>{savingMeta ? 'Zapisywanie…' : 'Zapisz informacje'}</Button>}
-            >
-              <div className="grid gap-5 md:grid-cols-[minmax(0,1fr)_16rem]">
-                <div className="grid gap-5">
-                  <div className="grid gap-2">
-                    <Label htmlFor="path-title">Tytuł</Label>
-                    <Input id="path-title" value={title} onChange={(event) => setTitle(event.target.value)} maxLength={120} required />
-                  </div>
-                  <div className="grid gap-2">
-                    <Label htmlFor="path-description">Opis</Label>
-                    <Textarea id="path-description" value={description} onChange={(event) => setDescription(event.target.value)} className="min-h-24" />
-                  </div>
-                  <div className="grid gap-5 sm:grid-cols-2">
-                    <div className="grid gap-2">
-                      <Label htmlFor="path-banner-url">Baner z adresu URL</Label>
-                      <Input id="path-banner-url" type="url" value={bannerUrl} placeholder="https://…" onChange={(event) => setBannerUrl(event.target.value)} />
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="path-banner-file">Baner z pliku</Label>
-                      <FilePicker key={fileInputKey} id="path-banner-file" accept="image/*" file={bannerFile} onChange={setBannerFile} />
-                    </div>
-                  </div>
-                  <p className="text-xs text-muted-foreground">Wgrany plik ma pierwszeństwo przed adresem URL.</p>
-                </div>
-                <div className="grid content-start gap-2">
-                  <p className="text-sm font-medium text-foreground">Podgląd banera</p>
-                  {bannerPreview ? (
-                    <img src={bannerPreview} alt={`Baner ścieżki ${detail.title}`} className="aspect-video w-full rounded-lg border object-cover" />
-                  ) : (
-                    <div className="flex aspect-video w-full items-center justify-center rounded-lg border border-dashed text-xs text-muted-foreground">
-                      Brak banera
-                    </div>
-                  )}
-                </div>
-              </div>
-            </Section>
-          </form>
-
-          <ChaptersEditor
-            pathId={id}
-            revision={detail.revision}
-            chapters={detail.chapters}
-            rooms={rooms}
-            canDeleteChapters={isAdmin}
-            onSaved={onChaptersSaved}
-            roomHref={(roomId) => `${roomBasePath.PATH}/${roomId}`}
-            newRoomHref={`${roomBasePath.PATH}/new`}
-          />
-        </div>
-      )}
-    </>
-  );
+  });
+  return <>
+    {guard.dialog}
+    <Button asChild variant="ghost" className="mb-3"><Link to="/admin/paths">← Ścieżki</Link></Button>
+    <PageHeader title={id == null ? 'Nowa ścieżka' : form.title || 'Ścieżka'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, token); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
+    {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
+    {loading ? <LoadingRows label="Ładowanie ścieżki" /> : error && id != null && !form.title ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
+      <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor ścieżki">
+        <fieldset disabled={saving} className="grid min-w-0 gap-6">
+          <Section title="Informacje" description="Tytuł i nazwy rozdziałów są wymagane do zapisu szkicu. Opis i gotowe pokoje są wymagane przy publikacji.">
+            <div className="grid gap-5">
+              <TextField name="title" label="Tytuł" value={form.title} limit={120} required error={errors.title} onChange={title => change({ title })} />
+              <TextField name="description" label="Opis" value={form.description} limit={20000} required={form.published} multiline error={errors.description} onChange={description => change({ description })} />
+              <TextField name="bannerUrl" label="Banner z adresu URL" value={form.bannerUrl ?? ''} limit={2048} error={errors.bannerUrl} onChange={bannerUrl => change({ bannerUrl })} />
+              <label htmlFor="content-bannerFile">Banner z pliku</label><FilePicker key={form.revision} id="content-bannerFile" accept="image/png,image/jpeg,image/webp,image/gif" file={file} onChange={setFile} />
+              {errors.bannerFile && <p role="alert" className="text-destructive">{errors.bannerFile}</p>}
+              <p className="text-xs text-muted-foreground">Do 5 MB. Wgrany plik ma pierwszeństwo przed URL.</p>
+              <BannerImage source={banner} file={file} url={form.bannerUrl} token={token} />
+            </div>
+          </Section>
+          <ContentChapters chapters={form.chapters} rooms={rooms} pathId={id} errors={errors} canDelete={isAdmin} onChange={chapters => change({ chapters })} onCreateRoom={createRoom} onRoom={roomId => guard.request(() => navigate(`/admin/paths/rooms/${roomId}`))} />
+          <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
+            {form.published ? <Button type="button" variant="outline" onClick={() => void normalSave(false)}>Przenieś do szkiców</Button> : <Button type="button" variant="outline" onClick={() => void normalSave(true)}>Opublikuj</Button>}
+            <Button type="submit">{saving ? 'Zapisywanie…' : form.published ? 'Zapisz zmiany' : 'Zapisz szkic'}</Button>
+          </div>
+        </fieldset>
+      </form>}
+  </>;
+}
+export function BannerImage({ source, file, url, token }: { source: string | null; file: File | null; url: string | null; token: string | null }) {
+  const [src, setSrc] = useState<string | null>(null);
+  useEffect(() => {
+    let active = true; let objectUrl: string | null = null;
+    if (file) { objectUrl = URL.createObjectURL(file); setSrc(objectUrl); }
+    else if (source) { fetch(source, { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (!r.ok) throw new Error(); return r.blob(); }).then(blob => { if (active) { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); } }).catch(() => { if (active) setSrc(null); }); }
+    else setSrc(url);
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [source, file, url, token]);
+  return src ? <img src={src} alt="Banner ścieżki" className="aspect-video max-w-lg rounded-lg border object-cover" /> : null;
 }

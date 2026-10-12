@@ -1,368 +1,171 @@
-import { useEffect, useState } from 'react';
-import type { FormEvent } from 'react';
-import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { ArrowLeft, Plus, Trash2, X } from 'lucide-react';
+import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
-import { Input } from '@/components/ui/input';
-import { Label } from '@/components/ui/label';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Switch } from '@/components/ui/switch';
-import { Textarea } from '@/components/ui/textarea';
+import { Input } from '@/components/ui/input';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
-import * as adminRequests from '../../services/adminRequests';
-import type { DifficultyLevel, RoomAdminDto, RoomType, RoomWriteRequest } from '../../types/api';
+import * as contentApi from '../../services/contentApi';
+import type { RoomSave, PathSave } from '../../services/contentApi';
+import type { PathAdminDetailDto, RoomType, DifficultyLevel } from '../../types/api';
 import { ConfirmAction, FilePicker, LoadingRows, PageHeader, Section, StatusMessage } from '../../components/admin/AdminUi';
-import { difficultyLabels, errorText } from '../../components/admin/adminFormat';
-import TasksEditor from '../../components/admin/TasksEditor';
+import { TextField, checkText, focusError } from '../../components/admin/ContentFields';
+import type { FieldErrors } from '../../components/admin/ContentFields';
+import { ContentTasks } from '../../components/admin/ContentStructure';
+import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
+import { roomBasePath, pointsForDifficulty } from './adminConfig';
 import { useAdminAccess } from './adminAccess';
-import { pointsForDifficulty, roomBasePath } from './adminConfig';
+import { difficultyLabels } from '../../components/admin/adminFormat';
 
-const categories = ['Web', 'Crypto', 'Forensics', 'Reverse', 'OSINT', 'Network', 'Tutorial', 'Misc'];
-
-interface RoomForm {
-  title: string;
-  shortDescription: string;
-  description: string;
-  category: string;
-  difficulty: DifficultyLevel;
-  points: string;
-  flag: string;
-  requiresVpn: boolean;
-  hints: string[];
+function empty(kind: RoomType): RoomSave {
+  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: kind === 'PATH' ? 'Path' : 'Web', difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, flag: '', requiresVpn: false, roomType: kind, hints: [], published: false, tasks: [] };
 }
-
-const emptyForm = (kind: RoomType): RoomForm => ({
-  title: '',
-  shortDescription: '',
-  description: '',
-  category: kind === 'PATH' ? 'Path' : 'Web',
-  difficulty: 'EASY',
-  points: '0',
-  flag: '',
-  requiresVpn: false,
-  hints: [],
-});
-
-const formFromRoom = (room: RoomAdminDto, kind: RoomType): RoomForm => ({
-  title: room.title,
-  shortDescription: room.shortDescription ?? '',
-  description: room.description,
-  category: kind === 'PATH' ? 'Path' : room.category || 'Web',
-  difficulty: kind === 'PATH' ? 'EASY' : room.difficulty,
-  points: String(kind === 'PATH' ? room.points : pointsForDifficulty[room.difficulty]),
-  flag: room.flag ?? '',
-  requiresVpn: room.requiresVpn,
-  hints: room.hints ?? [],
-});
-
-function toRoomRequest(form: RoomForm, kind: RoomType): RoomWriteRequest {
-  return {
-    title: form.title.trim(),
-    shortDescription: form.shortDescription,
-    description: form.description,
-    difficulty: kind === 'PATH' ? 'EASY' : form.difficulty,
-    category: kind === 'PATH' ? 'Path' : form.category,
-    points: kind === 'PATH' ? Number(form.points) : pointsForDifficulty[form.difficulty],
-    flag: form.flag,
-    requiresVpn: form.requiresVpn,
-    roomType: kind,
-    hints: form.hints,
-  };
+function fromDetail(d: contentApi.RoomEditor): RoomSave {
+  return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, hints: d.room.hints ?? [], revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, published: d.room.published ?? true, tasks: d.tasks.tasks };
 }
-
 export default function RoomEditorPage({ kind }: { kind: RoomType }) {
   const { roomId } = useParams();
-  const isNew = roomId === 'new';
+  const [query] = useSearchParams();
+  return <RoomEditor key={`${kind}:${roomId}:${query.toString()}`} kind={kind} roomId={roomId ?? 'new'} />;
+}
+function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
   const { token } = useAuth();
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
-  const location = useLocation();
+  const [query] = useSearchParams();
   const base = roomBasePath[kind];
-
-  const [form, setForm] = useState<RoomForm>(() => emptyForm(kind));
+  const location = useLocation();
+  const creation = location.state as { parentDraft?: PathSave; parentId?: number | null; chapterIndex?: number } | null;
+  const [parentDraft, setParentDraft] = useState(creation?.parentDraft ?? null);
+  const [parentId, setParentId] = useState<number | null>(creation?.parentId ?? null);
+  const initial = empty(kind);
+  const [id, setId] = useState<number | null>(roomId === 'new' ? null : Number(roomId));
+  const idRef = useRef(id);
+  const [form, setForm] = useState(initial);
+  const formRef = useRef(form);
+  useLayoutEffect(() => { formRef.current = form; }, [form]);
+  const [baseline, setBaseline] = useState(initial);
   const [file, setFile] = useState<File | null>(null);
-  const [fileInputKey, setFileInputKey] = useState(0);
-  const [hintDraft, setHintDraft] = useState('');
-  const [loading, setLoading] = useState(!isNew);
+  const [context, setContext] = useState<PathAdminDetailDto | null>(null);
+  const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
+  const savingRef = useRef(false);
+  const [errors, setErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
-  const [missing, setMissing] = useState(false);
-  const [loadedFor, setLoadedFor] = useState<string | null>(null);
-  const [loadAttempt, setLoadAttempt] = useState(0);
-  const loadKey = `${kind}:${roomId}:${token}`;
-  const ready = isNew || loadedFor === loadKey;
-
+  const [attempt, setAttempt] = useState(0);
+  const [loaded, setLoaded] = useState(false);
+  const contextPath = query.get('pathId');
+  const contextChapter = query.get('chapterId');
+  const contextRevision = query.get('pathRevision');
   useEffect(() => {
-    if (isNew || !token || !roomId) return;
     let active = true;
-    setLoading(true);
-    setLoadedFor(null);
-    setMissing(false);
-    setError(null);
-    adminApi.getRoomAdmin(roomId, token)
-      .then((room) => {
+    Promise.all([idRef.current == null ? Promise.resolve(null) : contentApi.contentRequest<contentApi.RoomEditor>(`/rooms/${idRef.current}`, token), contextPath ? adminApi.getPath(contextPath, token) : Promise.resolve(null)])
+      .then(([detail, path]) => {
         if (!active) return;
-        if (!room || room.roomType !== kind) {
-          setMissing(true);
-          return;
+        if (detail) {
+          if (detail.room.roomType !== kind) throw new Error('Nie znaleziono pokoju tego typu.');
+          const next = fromDetail(detail); setForm(next); setBaseline(next); setParentId(detail.pathId ?? null);
         }
-        setForm(formFromRoom(room, kind));
-        setLoadedFor(loadKey);
-      })
-      .catch((err: unknown) => {
-        if (active) setError(errorText(err, 'Nie udało się pobrać pokoju.'));
-      })
-      .finally(() => {
-        if (active) setLoading(false);
-      });
-    return () => {
-      active = false;
-    };
-  }, [isNew, roomId, token, kind, loadKey, loadAttempt]);
-
-  const update = <K extends keyof RoomForm>(key: K, value: RoomForm[K]) => setForm((current) => ({ ...current, [key]: value }));
-
-  const addHint = () => {
-    const hint = hintDraft.trim();
-    if (!hint) return;
-    update('hints', [...form.hints, hint]);
-    setHintDraft('');
-  };
-
-  const submit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
-    if (!ready || loading || saving) return;
-    setError(null);
-    setSuccess(null);
-    setSaving(true);
-    const headers = { Authorization: `Bearer ${token}` };
+        if (contextPath) {
+          if (kind !== 'PATH' || !path || !path.chapters.some(c => c.id === Number(contextChapter)) || Number(contextRevision) !== (path.contentRevision ?? 0)) throw new Error('Ścieżka lub rozdział zmieniły się. Wróć do edytora ścieżki i ponownie wybierz „Utwórz pokój”.');
+          setContext(path);
+        }
+        setLoaded(true); setError(null);
+      }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
+    return () => { active = false; };
+  }, [token, kind, contextPath, contextChapter, contextRevision, attempt]);
+  const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file || (parentDraft != null && JSON.stringify(parentDraft) !== JSON.stringify(creation?.parentDraft));
+  const change = (values: Partial<RoomSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
+  const save = async (published = formRef.current.published, notify = true) => {
+    if (savingRef.current || !loaded) return false;
+    const current = formRef.current;
+    const nextErrors: FieldErrors = {};
+    if (parentDraft) { checkText(nextErrors, 'parentTitle', parentDraft.title, 120, true); checkText(nextErrors, 'parentDescription', parentDraft.description, 20000, parentDraft.published); checkText(nextErrors, 'parentChapter', parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? '', 120, true); }
+    checkText(nextErrors, 'title', current.title, 255, true);
+    checkText(nextErrors, 'shortDescription', current.shortDescription ?? '', 100);
+    checkText(nextErrors, 'description', current.description, 20000, published);
+    checkText(nextErrors, 'category', current.category, 255, true);
+    if (!Number.isSafeInteger(current.points) || current.points < 0 || current.points > 2147483647) nextErrors.points = 'Podaj nieujemną liczbę całkowitą do 2147483647';
+    checkText(nextErrors, 'flag', current.flag, 255, published && !current.tasks.length);
+    current.hints.forEach((hint, i) => checkText(nextErrors, `hints.${i}`, hint, 2000, true));
+    current.tasks.forEach((task, i) => {
+      checkText(nextErrors, `tasks.${i}.title`, task.title, 255, true);
+      checkText(nextErrors, `tasks.${i}.content`, task.content, 20000, published);
+      checkText(nextErrors, `tasks.${i}.question`, task.question ?? '', 2000, published && !!task.answer?.trim() && !task.question?.trim());
+      checkText(nextErrors, `tasks.${i}.answer`, task.answer ?? '', 255, published && !!task.question?.trim());
+    });
+    if (file && file.size > 50 * 1024 * 1024) nextErrors.file = 'Plik może mieć maksymalnie 50 MB';
+    setErrors(nextErrors); setError(null); setSuccess(null);
+    if (Object.keys(nextErrors).length) { focusError(nextErrors); return false; }
+    savingRef.current = true; setSaving(true);
     try {
-      const request = toRoomRequest(form, kind);
-      const response = isNew
-        ? await adminRequests.createRoom(request, file, headers)
-        : await adminRequests.updateRoom(roomId as string, request, file, headers);
-      const saved = await adminApi.readResponse<RoomAdminDto>(response as unknown as Response);
-      setFile(null);
-      setFileInputKey((key) => key + 1);
-      if (isNew && saved) {
-        const flash = `Pokój „${saved.title}” został utworzony.`;
-        setSuccess(flash);
-        navigate(`${base}/${saved.id}`, { replace: true, state: { flash } });
-        return;
-      }
-      setSuccess('Zapisano zmiany w pokoju.');
-    } catch (err) {
-      setError(errorText(err, 'Nie udało się zapisać pokoju.'));
-    } finally {
-      setSaving(false);
+      const parent = idRef.current == null && parentDraft ? { parentDraft, chapterIndex: creation?.chapterIndex ?? 0, ...(parentId != null ? { pathId: parentId } : {}) } : idRef.current == null && context ? { pathId: context.id, chapterId: Number(contextChapter), pathRevision: context.contentRevision ?? 0 } : {};
+      const detail = await contentApi.saveRoom(idRef.current, { ...current, published, ...parent }, file, token);
+      const saved = fromDetail(detail);
+      idRef.current = detail.room.id; setId(detail.room.id); formRef.current = saved;
+      setForm(saved); setBaseline(saved); setFile(null);
+      if (detail.pathId != null) { setParentId(detail.pathId); setParentDraft(null); }
+      if (notify) setSuccess(published ? 'Zapisano opublikowany pokój.' : 'Zapisano szkic pokoju.');
+      return true;
+    } catch (e) {
+      setError(e instanceof Error ? e.message : 'Nie udało się zapisać pokoju.');
+      if (e instanceof contentApi.ContentError) { setErrors(e.fields); focusError(e.fields); }
+      return false;
+    } finally { savingRef.current = false; setSaving(false); }
+  };
+  const guard = useUnsavedChanges(dirty, () => save(), saving);
+  const normalSave = async (published = formRef.current.published) => {
+    const wasNew = idRef.current == null;
+    if (await save(published, !wasNew) && wasNew) {
+      guard.allowNavigation();
+      navigate(`${base}/${idRef.current}`, { replace: true, state: { flash: published ? 'Zapisano opublikowany pokój.' : 'Zapisano szkic pokoju.' } });
     }
   };
-
-  const remove = async () => {
-    try {
-      await adminApi.deleteRoom(roomId as string, token);
-      navigate(base, { replace: true });
-    } catch (err) {
-      setError(errorText(err, 'Nie udało się usunąć pokoju.'));
-    }
-  };
-
-  const listLabel = kind === 'PATH' ? 'Pokoje ścieżek' : 'Pokoje CTF';
-
-  if (missing) {
-    return (
-      <div className="space-y-4">
-        <StatusMessage kind="error">Nie znaleziono pokoju.</StatusMessage>
-        <Button asChild variant="outline"><Link to={base}><ArrowLeft />{listLabel}</Link></Button>
-      </div>
-    );
-  }
-
-  return (
-    <>
-      <Button asChild variant="ghost" size="sm" className="mb-3 -ml-2 text-muted-foreground">
-        <Link to={base}><ArrowLeft />{listLabel}</Link>
-      </Button>
-      <PageHeader
-        title={isNew ? 'Nowy pokój' : form.title || 'Edycja pokoju'}
-        description={kind === 'PATH' ? 'Pokój ścieżki z treścią, flagą i zadaniami.' : 'Pokój CTF rozwiązywany flagą.'}
-        actions={!isNew && ready && isAdmin && (
-          <ConfirmAction
-            title="Usunąć ten pokój?"
-            description="Pokój, jego zadania, podpowiedzi, plik i postępy graczy zostaną trwale usunięte."
-            confirmLabel="Usuń pokój"
-            onConfirm={remove}
-            trigger={<Button variant="outline" className="text-destructive hover:text-destructive"><Trash2 />Usuń pokój</Button>}
-          />
-        )}
-      />
-
-      <div className="mb-4 space-y-2">
-        {error && <StatusMessage kind="error">{error}</StatusMessage>}
-        {success && <StatusMessage kind="success">{success}</StatusMessage>}
-      </div>
-
-      {loading ? (
-        <LoadingRows rows={6} label="Ładowanie pokoju" />
-      ) : !ready ? (
-        <Button variant="outline" onClick={() => setLoadAttempt((attempt) => attempt + 1)}>Spróbuj ponownie</Button>
-      ) : (
-        <div className="space-y-6">
-          <form onSubmit={submit} aria-label="Dane pokoju">
-            <Section
-              title="Dane pokoju"
-              actions={<Button type="submit" disabled={saving}>{saving ? 'Zapisywanie…' : isNew ? 'Utwórz pokój' : 'Zapisz zmiany'}</Button>}
-            >
-              <div className="grid gap-5 md:grid-cols-2">
-                <div className="grid gap-2 md:col-span-2">
-                  <Label htmlFor="room-title">Tytuł</Label>
-                  <Input id="room-title" value={form.title} onChange={(event) => update('title', event.target.value)} required maxLength={255} />
-                </div>
-                <div className="grid gap-2 md:col-span-2">
-                  <Label htmlFor="room-short">Krótki opis</Label>
-                  <Input
-                    id="room-short"
-                    value={form.shortDescription}
-                    onChange={(event) => update('shortDescription', event.target.value)}
-                    maxLength={100}
-                    aria-describedby="room-short-hint"
-                  />
-                  <p id="room-short-hint" className="text-xs text-muted-foreground tabular-nums">
-                    Zajawka na liście pokoi, {form.shortDescription.length}/100 znaków.
-                  </p>
-                </div>
-                <div className="grid gap-2 md:col-span-2">
-                  <Label htmlFor="room-description">Opis</Label>
-                  <Textarea
-                    id="room-description"
-                    value={form.description}
-                    onChange={(event) => update('description', event.target.value)}
-                    required
-                    className="min-h-32"
-                  />
-                </div>
-                {kind === 'CTF' ? (
-                  <>
-                    <div className="grid gap-2">
-                      <Label htmlFor="room-category">Kategoria</Label>
-                      <Select value={form.category} onValueChange={(value) => update('category', value)}>
-                        <SelectTrigger id="room-category" className="w-full"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {categories.map((category) => <SelectItem key={category} value={category}>{category}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                    </div>
-                    <div className="grid gap-2">
-                      <Label htmlFor="room-difficulty">Trudność</Label>
-                      <Select value={form.difficulty} onValueChange={(value) => update('difficulty', value as DifficultyLevel)}>
-                        <SelectTrigger id="room-difficulty" className="w-full" aria-describedby="room-points-hint"><SelectValue /></SelectTrigger>
-                        <SelectContent>
-                          {(Object.keys(difficultyLabels) as DifficultyLevel[]).map((level) => (
-                            <SelectItem key={level} value={level}>{difficultyLabels[level]}</SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                      <p id="room-points-hint" className="text-xs text-muted-foreground tabular-nums">
-                        Za rozwiązanie: {pointsForDifficulty[form.difficulty]} pkt
-                      </p>
-                    </div>
-                  </>
-                ) : (
-                  <div className="grid gap-2">
-                    <Label htmlFor="room-points">Punkty</Label>
-                    <Input
-                      id="room-points"
-                      type="number"
-                      min={0}
-                      inputMode="numeric"
-                      value={form.points}
-                      onChange={(event) => update('points', event.target.value)}
-                      required
-                      className="tabular-nums"
-                    />
-                  </div>
-                )}
-                <div className="grid gap-2">
-                  <Label htmlFor="room-flag">Flaga</Label>
-                  <Input
-                    id="room-flag"
-                    value={form.flag}
-                    onChange={(event) => update('flag', event.target.value)}
-                    required
-                    placeholder="CTF{...}"
-                    className="font-mono"
-                    autoComplete="off"
-                    spellCheck={false}
-                  />
-                </div>
-                <div className="grid gap-2">
-                  <Label htmlFor="room-file">Plik do pobrania</Label>
-                  <FilePicker key={fileInputKey} id="room-file" file={file} onChange={setFile} describedBy="room-file-hint" />
-                  <p id="room-file-hint" className="text-xs text-muted-foreground">
-                    {isNew ? 'Opcjonalnie.' : 'Zostaw puste, aby zachować obecny plik.'}
-                  </p>
-                </div>
-                <div className="flex items-center gap-3 self-end pb-2">
-                  <Switch id="room-vpn" checked={form.requiresVpn} onCheckedChange={(checked) => update('requiresVpn', checked)} />
-                  <Label htmlFor="room-vpn">Wymaga VPN</Label>
-                </div>
-              </div>
-
-              <fieldset className="mt-6 border-t pt-5">
-                <legend className="sr-only">Podpowiedzi</legend>
-                <p className="mb-1 text-sm font-medium text-foreground">Podpowiedzi</p>
-                <p className="mb-3 text-xs text-muted-foreground">Odblokowywane po kolei. Każda zmniejsza nagrodę o 25%.</p>
-                {form.hints.length > 0 && (
-                  <ol className="mb-3 space-y-2">
-                    {form.hints.map((hint, index) => (
-                      <li key={`${index}-${hint}`} className="flex items-start gap-3 rounded-lg border bg-background/40 px-3 py-2 text-sm">
-                        <span className="mt-0.5 font-mono text-xs text-muted-foreground tabular-nums">{index + 1}.</span>
-                        <span className="min-w-0 flex-1 break-words">{hint}</span>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="icon-xs"
-                          aria-label={`Usuń podpowiedź ${index + 1}`}
-                          onClick={() => update('hints', form.hints.filter((_, position) => position !== index))}
-                        >
-                          <X />
-                        </Button>
-                      </li>
-                    ))}
-                  </ol>
-                )}
-                <div className="flex gap-2">
-                  <Input
-                    aria-label="Nowa podpowiedź"
-                    placeholder="Treść podpowiedzi"
-                    value={hintDraft}
-                    onChange={(event) => setHintDraft(event.target.value)}
-                    onKeyDown={(event) => {
-                      if (event.key === 'Enter') {
-                        event.preventDefault();
-                        addHint();
-                      }
-                    }}
-                  />
-                  <Button type="button" variant="outline" onClick={addHint} disabled={!hintDraft.trim()}><Plus />Dodaj</Button>
-                </div>
-              </fieldset>
-            </Section>
-          </form>
-
-          {kind === 'PATH' && (
-            isNew ? (
-              <Section title="Zadania" description="Zadania prowadzą gracza przez pokój krok po kroku.">
-                <p className="text-sm text-muted-foreground">Utwórz pokój, aby dodać do niego zadania.</p>
-              </Section>
-            ) : (
-              <TasksEditor roomId={Number(roomId)} />
-            )
-          )}
-        </div>
-      )}
-    </>
-  );
+  const returnPath = contextPath || parentId ? `/admin/paths/${contextPath ?? parentId}` : base;
+  return <>
+    {guard.dialog}
+    <Button asChild variant="ghost" className="mb-3"><Link to={returnPath}>← {contextPath || parentId ? 'Wróć do edytora ścieżki' : kind === 'PATH' ? 'Pokoje ścieżek' : 'Pokoje CTF'}</Link></Button>
+    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}?kind=${kind}${contextPath ? `&pathId=${contextPath}` : ''}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description="Pokój, zadania i postępy graczy zostaną trwale usunięte." confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, token); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
+    {context && <StatusMessage kind="warning">Ścieżka: {context.title} → Rozdział: {context.chapters.find(c => c.id === Number(contextChapter))?.title}. Pokój zostanie przypisany automatycznie.</StatusMessage>}
+    {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
+    {loading ? <LoadingRows label="Ładowanie pokoju" /> : !loaded ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
+      <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor pokoju">
+        <fieldset disabled={saving} className="grid min-w-0 gap-6">
+          {parentDraft && <Section title="Ścieżka i rozdział" description={parentDraft.published ? "Ścieżka jest opublikowana. Nowy rozdział wymaga gotowego opublikowanego pokoju; szkic pokoju możesz przygotować po przeniesieniu ścieżki do szkiców." : "Nowy kontekst i pokój zostaną zapisane razem. Nieudany zapis nie pozostawi nieprzypisanego pokoju."}>
+            <div className="grid gap-4">
+              <TextField name="parentTitle" label="Tytuł ścieżki" value={parentDraft.title} limit={120} required error={errors.parentTitle} onChange={title => setParentDraft({ ...parentDraft, title })} />
+              <TextField name="parentDescription" label="Opis ścieżki" value={parentDraft.description} limit={20000} multiline required={parentDraft.published} error={errors.parentDescription} onChange={description => setParentDraft({ ...parentDraft, description })} />
+              <TextField name="parentChapter" label="Nazwa rozdziału" value={parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? ''} limit={120} required error={errors.parentChapter} onChange={title => setParentDraft({ ...parentDraft, chapters: parentDraft.chapters.map((c, i) => i === (creation?.chapterIndex ?? 0) ? { ...c, title } : c) })} />
+            </div>
+          </Section>}
+          <Section title="Dane pokoju" description="Tytuł jest wymagany do zapisu szkicu. Przy publikacji uzupełnij opis i flagę lub gotowe zadania.">
+            <div className="grid gap-5 md:grid-cols-2">
+              <div className="md:col-span-2"><TextField name="title" label="Tytuł" value={form.title} limit={255} required error={errors.title} onChange={title => change({ title })} /></div>
+              <div className="md:col-span-2"><TextField name="shortDescription" label="Krótki opis" value={form.shortDescription ?? ''} limit={100} error={errors.shortDescription} onChange={shortDescription => change({ shortDescription })} /></div>
+              <div className="md:col-span-2"><TextField name="description" label="Opis" value={form.description} limit={20000} required={form.published} multiline error={errors.description} onChange={description => change({ description })} /></div>
+              {kind === 'CTF' && <>
+                <TextField name="category" label="Kategoria" value={form.category} limit={255} required error={errors.category} onChange={category => change({ category })} />
+                <div className="grid gap-2"><label htmlFor="content-difficulty">Trudność *</label><select id="content-difficulty" className="rounded border bg-background p-2" value={form.difficulty} onChange={e => change({ difficulty: e.target.value as DifficultyLevel, points: pointsForDifficulty[e.target.value as DifficultyLevel] })}>{Object.entries(difficultyLabels).map(([level, label]) => <option key={level} value={level}>{label}</option>)}</select><span className="text-xs text-muted-foreground">{pointsForDifficulty[form.difficulty]} pkt</span></div>
+              </>}
+              {kind === 'PATH' && <div className="grid gap-2"><label htmlFor="content-points">Punkty *</label><Input id="content-points" type="number" min={0} value={Number.isNaN(form.points) ? '' : form.points} onChange={e => change({ points: e.target.value === '' ? NaN : Number(e.target.value) })} aria-invalid={!!errors.points} />{errors.points && <p role="alert" className="text-destructive">{errors.points}</p>}</div>}
+              <TextField name="flag" label="Flaga" value={form.flag} limit={255} required={form.published && !form.tasks.length} error={errors.flag} onChange={flag => change({ flag })} />
+              <div className="grid gap-2"><label htmlFor="content-file">Plik do pobrania</label><FilePicker key={form.revision} id="content-file" file={file} onChange={setFile} /><p className="text-xs text-muted-foreground">Do 50 MB. Pozostaw puste, aby zachować zapisany plik.</p>{errors.file && <p role="alert" className="text-destructive">{errors.file}</p>}</div>
+              <div className="flex items-center gap-3"><Switch id="room-vpn" checked={form.requiresVpn} onCheckedChange={requiresVpn => change({ requiresVpn })} /><label htmlFor="room-vpn">Wymaga VPN</label></div>
+            </div>
+          </Section>
+          <Section title="Podpowiedzi" description="Każda odblokowana podpowiedź zmniejsza nagrodę gracza o 25%.">
+            <div className="grid gap-4">{form.hints.map((hint, index) => <div key={index} className="grid gap-2 rounded border p-3"><TextField name={`hints.${index}`} label={`Podpowiedź ${index + 1}`} value={hint} limit={2000} required error={errors[`hints.${index}`]} onChange={value => change({ hints: form.hints.map((h, i) => i === index ? value : h) })} /><Button type="button" variant="outline" onClick={() => change({ hints: form.hints.filter((_, i) => i !== index) })}>Usuń podpowiedź</Button></div>)}
+              <Button type="button" variant="outline" onClick={() => change({ hints: [...form.hints, ''] })}>Dodaj podpowiedź</Button>
+            </div>
+          </Section>
+          {kind === 'PATH' && <ContentTasks tasks={form.tasks} errors={errors} published={form.published} onChange={tasks => change({ tasks })} />}
+          {errors.published && <p role="alert" className="text-destructive">{errors.published}</p>}
+          <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
+            {form.published ? <Button type="button" variant="outline" onClick={() => void normalSave(false)}>Przenieś do szkiców</Button> : <Button type="button" variant="outline" data-field="published" onClick={() => void normalSave(true)}>Opublikuj</Button>}
+            <Button type="submit">{saving ? 'Zapisywanie…' : form.published ? 'Zapisz zmiany' : 'Zapisz szkic'}</Button>
+          </div>
+        </fieldset>
+      </form>}
+  </>;
 }

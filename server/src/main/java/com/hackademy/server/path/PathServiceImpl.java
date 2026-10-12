@@ -36,7 +36,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Set;
-import java.util.concurrent.ConcurrentHashMap;
 import java.util.function.Function;
 import java.util.stream.Collectors;
 import com.hackademy.server.room.RoomType;
@@ -53,50 +52,13 @@ public class PathServiceImpl implements PathService {
     private final PathEnrollmentRepository pathEnrollmentRepository;
     private final UserRepository userRepository;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
+    private final com.hackademy.server.content.ContentVisibility visibility;
 
-    // ── simple in-memory caches (good enough for single instance / dev) ──────
-
-    private static final long CACHE_MS = 30_000; // 30 seconds
     private static final String DEFAULT_CHAPTER_TITLE = "Rozdział 1";
-
-    private volatile long pathsCacheTime = 0;
-    private volatile List<PathRepository.PathListView> cachedPathListViews = null;
-
-    private record CacheKey(Long pathId, Long userId, int limit) {}
-    private static final class CacheEntry<T> {
-        final long timeMs;
-        final T value;
-        CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
-    }
-    private final ConcurrentHashMap<CacheKey, CacheEntry<List<PathRoomMiniDto>>> roomsMiniCache = new ConcurrentHashMap<>();
-
-    // ── helpers ─────────────────────────────────────────────────────────────
 
     private Long resolveUserId(String username) {
         if (username == null) return null;
         return userRepository.findIdByUsername(username).orElse(null);
-    }
-
-    private List<PathRepository.PathListView> getCachedPathListViews() {
-        long now = System.currentTimeMillis();
-        List<PathRepository.PathListView> local = cachedPathListViews;
-        if (local == null || now - pathsCacheTime > CACHE_MS) {
-            synchronized (this) {
-                local = cachedPathListViews;
-                if (local == null || now - pathsCacheTime > CACHE_MS) {
-                    cachedPathListViews = pathRepository.findAllListViews();
-                    pathsCacheTime = now;
-                    local = cachedPathListViews;
-                }
-            }
-        }
-        return local;
-    }
-
-    private void invalidateCaches() {
-        cachedPathListViews = null;
-        pathsCacheTime = 0;
-        roomsMiniCache.clear();
     }
 
     // ── list paths ──────────────────────────────────────────────────────────
@@ -107,9 +69,10 @@ public class PathServiceImpl implements PathService {
                 ? pathEnrollmentRepository.findPathIdsByUserId(userId)
                 : Set.of();
 
-        return getCachedPathListViews().stream()
+        return pathRepository.findAllListViews().stream()
                 .map(p -> PathSummaryDto.builder()
                         .id(p.getId())
+                        .published(Boolean.TRUE.equals(p.getPublished()))
                         .title(p.getTitle())
                         .description(p.getDescription())
                         .bannerUrl(Boolean.TRUE.equals(p.getHasBanner()) ? "/api/paths/" + p.getId() + "/banner" : p.getBannerUrl())
@@ -148,6 +111,7 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional(readOnly = true)
     public PathDetailDto getPathDetail(Long id, String username) {
+        visibility.requirePath(id);
         Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
         List<PathChapter> chapters = pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(id);
         Map<Long, List<Long>> roomIdsByChapter = roomIdsByChapter(id);
@@ -193,6 +157,7 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional
     public void enrollUser(Long pathId, String username) {
+        visibility.requirePath(pathId);
         if (!pathRepository.existsById(pathId)) {
             throw new IllegalArgumentException("Path not found");
         }
@@ -203,8 +168,7 @@ public class PathServiceImpl implements PathService {
                     .userId(userId)
                     .pathId(pathId)
                     .build());
-            invalidateCaches();
-        }
+            }
     }
 
     @Override
@@ -213,12 +177,12 @@ public class PathServiceImpl implements PathService {
         Long userId = resolveUserId(username);
         if (userId == null) return;
         pathEnrollmentRepository.deleteByUserIdAndPathId(userId, pathId);
-        invalidateCaches();
     }
 
     @Override
     @Transactional(readOnly = true)
     public boolean isEnrolled(Long pathId, String username) {
+        visibility.requirePath(pathId);
         Long userId = resolveUserId(username);
         if (userId == null) return false;
         return pathEnrollmentRepository.existsByUserIdAndPathId(userId, pathId);
@@ -229,21 +193,12 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional(readOnly = true)
     public PathRoomsMiniResponse getPathRoomsMini(Long id, String username, int limit) {
+        visibility.requirePath(id);
         int safeLimit = Math.max(0, Math.min(500, limit));
         if (!pathRepository.existsById(id)) {
             throw new IllegalArgumentException("Path not found");
         }
         Long userId = resolveUserId(username);
-
-        CacheKey key = new CacheKey(id, userId, safeLimit);
-        long now = System.currentTimeMillis();
-        CacheEntry<List<PathRoomMiniDto>> cached = roomsMiniCache.get(key);
-        if (cached != null && now - cached.timeMs <= CACHE_MS) {
-            return PathRoomsMiniResponse.builder()
-                    .pathId(id)
-                    .rooms(cached.value)
-                    .build();
-        }
 
         boolean hasTutorialVPN = false;
         boolean hasTutorialVM = false;
@@ -266,7 +221,6 @@ public class PathServiceImpl implements PathService {
             rooms.addAll(mapMiniRooms(id, userId, safeLimit, hasTutorialVPN, hasTutorialVM));
         }
 
-        roomsMiniCache.put(key, new CacheEntry<>(now, rooms));
 
         return PathRoomsMiniResponse.builder()
                 .pathId(id)
@@ -315,6 +269,7 @@ public class PathServiceImpl implements PathService {
         validateRooms(null, roomIds);
 
         Path saved = pathRepository.save(Path.builder()
+                .published(false)
                 .title(request.title())
                 .description(request.description())
                 .bannerUrl(request.bannerUrl())
@@ -326,7 +281,6 @@ public class PathServiceImpl implements PathService {
                 .build());
         saveChapterRooms(chapter.getId(), roomIds);
         flushAssignments();
-        invalidateCaches();
 
         return PathSummaryDto.builder()
                 .id(saved.getId())
@@ -345,7 +299,6 @@ public class PathServiceImpl implements PathService {
             throw new IllegalArgumentException("Path not found");
         }
         pathRepository.deleteById(id);
-        invalidateCaches();
     }
 
     @Override
@@ -366,6 +319,8 @@ public class PathServiceImpl implements PathService {
                 .bannerUrl(path.getBannerData() != null ? "/api/paths/" + path.getId() + "/banner" : path.getBannerUrl())
                 .hasBanner(path.getBannerData() != null)
                 .revision(path.getChaptersRevision())
+                .published(path.isPublished())
+                .contentRevision(path.getContentRevision())
                 .chapters(chapters)
                 .build();
     }
@@ -373,12 +328,12 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional
     public void updatePathMeta(Long id, UpdatePathMetaRequest request) {
-        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        path.setContentRevision(path.getContentRevision() + 1);
         path.setTitle(request.title());
         path.setDescription(request.description());
         path.setBannerUrl(request.bannerUrl());
         pathRepository.save(path);
-        invalidateCaches();
     }
 
     @Override
@@ -429,8 +384,8 @@ public class PathServiceImpl implements PathService {
             saveChapterRooms(saved.getId(), chapterRequest.roomIds() == null ? List.of() : chapterRequest.roomIds());
         }
         path.setChaptersRevision(path.getChaptersRevision() + 1);
+        path.setContentRevision(path.getContentRevision() + 1);
         flushAssignments();
-        invalidateCaches();
         return getAdminDetail(id);
     }
 
@@ -497,12 +452,12 @@ public class PathServiceImpl implements PathService {
     @Transactional
     public void uploadBanner(Long id, MultipartFile file) {
         if (file == null || file.isEmpty()) return;
-        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
         try {
+            path.setContentRevision(path.getContentRevision() + 1);
             path.setBannerData(file.getBytes());
             path.setBannerMime(file.getContentType());
             pathRepository.save(path);
-            invalidateCaches();
         } catch (Exception e) {
             throw new RuntimeException("Failed to save banner", e);
         }
@@ -511,6 +466,7 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional(readOnly = true)
     public byte[] getBannerData(Long id) {
+        visibility.requirePath(id);
         Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
         return path.getBannerData();
     }
@@ -518,6 +474,7 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional(readOnly = true)
     public String getBannerMime(Long id) {
+        visibility.requirePath(id);
         Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
         return path.getBannerMime();
     }

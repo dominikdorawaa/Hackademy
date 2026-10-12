@@ -23,6 +23,7 @@ public interface PathRepository extends JpaRepository<Path, Long> {
         String getDescription();
         String getBannerUrl();
         Boolean getHasBanner();
+        Boolean getPublished();
         Integer getRoomsCount();
     }
 
@@ -30,17 +31,23 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             SELECT
               p.id AS id,
               p.title AS title,
+              p.published AS published,
               p.description AS description,
               p.banner_url AS bannerUrl,
               (p.banner_data IS NOT NULL) AS hasBanner,
-              COUNT(pr.room_id) AS roomsCount
+              COUNT(r.id) AS roomsCount
             FROM paths p
             LEFT JOIN path_chapters pc ON pc.path_id = p.id
             LEFT JOIN chapter_rooms pr ON pr.chapter_id = pc.id
+            LEFT JOIN rooms r ON r.id = pr.room_id AND r.published = true
+            WHERE p.published = true
             GROUP BY p.id
             ORDER BY p.id
             """, nativeQuery = true)
     List<PathListView> findAllListViews();
+
+    @Query(value = "SELECT p.id AS id, p.title AS title, p.description AS description, p.banner_url AS bannerUrl, (p.banner_data IS NOT NULL) AS hasBanner, p.published AS published, COUNT(cr.room_id) AS roomsCount FROM paths p LEFT JOIN path_chapters c ON c.path_id = p.id LEFT JOIN chapter_rooms cr ON cr.chapter_id = c.id GROUP BY p.id ORDER BY p.id", nativeQuery = true)
+    List<PathListView> findAdminListViews();
 
     interface PathProgressView {
         Long getId();
@@ -48,6 +55,7 @@ public interface PathRepository extends JpaRepository<Path, Long> {
         String getDescription();
         String getBannerUrl();
         Boolean getHasBanner();
+        Boolean getPublished();
         Integer getTotalRooms();
         Integer getSolvedRooms();
     }
@@ -56,16 +64,19 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             SELECT
               p.id AS id,
               p.title AS title,
+              p.published AS published,
               p.description AS description,
               p.banner_url AS bannerUrl,
               (p.banner_data IS NOT NULL) AS hasBanner,
-              COUNT(pr.room_id) AS totalRooms,
-              COUNT(usr.room_id) AS solvedRooms
+              COUNT(r.id) AS totalRooms,
+              COUNT(CASE WHEN r.id IS NOT NULL THEN usr.room_id END) AS solvedRooms
             FROM paths p
             LEFT JOIN path_chapters pc ON pc.path_id = p.id
             LEFT JOIN chapter_rooms pr ON pr.chapter_id = pc.id
+            LEFT JOIN rooms r ON r.id = pr.room_id AND r.published = true
             LEFT JOIN users u ON u.username = :username
             LEFT JOIN user_solved_rooms usr ON usr.user_id = u.id AND usr.room_id = pr.room_id
+            WHERE p.published = true
             GROUP BY p.id
             ORDER BY p.id
             """, nativeQuery = true)
@@ -73,9 +84,14 @@ public interface PathRepository extends JpaRepository<Path, Long> {
 
     @Query(value = """
             SELECT COUNT(*) FROM paths p
-            WHERE EXISTS (SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id WHERE pc.path_id = p.id)
+            WHERE p.published = true AND EXISTS (
+                SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id
+                JOIN rooms r ON r.id = pr.room_id AND r.published = true
+                WHERE pc.path_id = p.id
+            )
               AND NOT EXISTS (
                 SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id
+                JOIN rooms r ON r.id = pr.room_id AND r.published = true
                 WHERE pc.path_id = p.id
                   AND NOT EXISTS (
                     SELECT 1 FROM user_solved_rooms usr

@@ -129,6 +129,7 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
               {filtered.map((room) => (
                 <TableRow key={room.id}>
                   <TableCell className="font-medium">
+                    <span className="mr-2 text-xs text-muted-foreground">{room.published === false ? 'Szkic' : 'Opublikowany'}</span>
                     <Link to={`${base}/${room.id}`} className="hover:text-primary hover:underline underline-offset-4">
                       {room.title}
                     </Link>

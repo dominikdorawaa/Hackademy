@@ -126,6 +126,10 @@ Lokalny frontend i backend uruchamiaj z tej samej wersji repozytorium. Po zmiana
 
 Warunki, wyniki i instrukcja powtórzenia testu 1000 użytkowników są w [raporcie realtime](docs/performance/realtime-1000-users.md).
 
+## Szkice i publikacja materiałów
+
+Panel treści pozwala zapisywać szkice ścieżek i pokoi, publikować je, ukrywać bez usuwania postępów oraz oglądać podgląd w widoku gracza. Zapis obejmuje cały edytor i sprawdza równoczesne zmiany. Wymagania walidacji, limity, API i testy opisuje [decyzja o publikacji materiałów](docs/adr/content-publication.md).
+
 ## Testy backendu
 
 Uruchom Docker Engine, a następnie wykonaj `mvn -B -ntp verify` w katalogu `server`. Testcontainers sam uruchamia PostgreSQL, a Flyway przygotowuje schemat testowej bazy; nie trzeba ustawiać `DB_URL` ani używać bazy z `.env`. Ten sam zestaw testów wykonuje workflow `Backend` dla każdego pull requestu. Wynik i logi są dostępne w zakładce Actions oraz w Checks danego PR.

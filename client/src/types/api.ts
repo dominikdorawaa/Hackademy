@@ -168,6 +168,8 @@ export interface PathRoomsMiniResponse {
 }
 
 export interface PathSummaryDto {
+  published?: boolean;
+  contentRevision?: number;
   id: number
   title: string
   description: string
@@ -213,6 +215,8 @@ export interface PathChapterAdminDto {
 }
 
 export interface PathAdminDetailDto {
+  published?: boolean;
+  contentRevision?: number;
   id: number
   title: string
   description: string
@@ -333,6 +337,8 @@ export interface RoomDto {
 }
 
 export interface RoomAdminSummaryDto {
+  published?: boolean;
+  contentRevision?: number;
   id: number
   title: string
   category: string
@@ -345,6 +351,8 @@ export interface RoomAdminSummaryDto {
 }
 
 export interface RoomAdminDto {
+  published?: boolean;
+  contentRevision?: number;
   id: number
   title: string
   description: string

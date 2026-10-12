@@ -2,6 +2,7 @@ import { sanitizeTaskContent } from '../lib/taskContent';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
 import * as roomApi from '../services/roomApi';
+import { request } from '../services/http';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -15,7 +16,7 @@ import ArenaChat from '../components/ArenaChat';
 import './RoomPage.css';
 import type { DashboardUser, RoomDetailDto } from '../types/api';
 
-const RoomContent = () => {
+const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
@@ -106,6 +107,7 @@ const RoomContent = () => {
   }, [isArenaMode, userData, arenaSession]);
 
   const handleUnlockHint = (hintId: number) => {
+    if (preview) { setUnlockedHints(current => [...current, hintId]); return; }
     setHintToUnlock(hintId);
     setIsModalOpen(true);
   };
@@ -144,7 +146,7 @@ const RoomContent = () => {
 
   const handleDownloadFile = async () => {
       try {
-          const response = await roomApi.downloadFile(id ?? '', { 'Authorization': `Bearer ${token}` });
+          const response = await (preview ? request<Blob>(`/api/admin/content/rooms/${id}/file`, { headers: { Authorization: `Bearer ${token}` } }) : roomApi.downloadFile(id ?? '', { 'Authorization': `Bearer ${token}` }));
           if (response.ok) {
               const blob = await response.blob();
               const url = window.URL.createObjectURL(blob);
@@ -160,6 +162,7 @@ const RoomContent = () => {
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (preview) { setSubmitStatus('success'); setSubmitMessage('Tryb podglądu: wynik nie jest zapisywany.'); return; }
     setSubmitStatus(null);
     setSubmitMessage('');
 
@@ -215,7 +218,7 @@ const RoomContent = () => {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const response = await roomApi.getRoom(id ?? '', { 'Authorization': `Bearer ${token}` });
+        const response = await (preview ? request<RoomDetailDto>(`/api/admin/content/rooms/${id}/preview`, { headers: { Authorization: `Bearer ${token}` } }) : roomApi.getRoom(id ?? '', { 'Authorization': `Bearer ${token}` }));
         if (!response.ok) throw new Error('Failed to fetch room details');
         const data = await response.json();
         setRoom(data);
@@ -235,7 +238,7 @@ const RoomContent = () => {
       finally { setLoading(false); }
     };
     if (token) fetchRoom();
-  }, [id, token, isArenaMode]);
+  }, [id, token, isArenaMode, preview]);
 
   const toggleTask = (taskId: number) => {
     setExpandedTasks(prev => ({ ...prev, [taskId]: !prev[taskId] }));
@@ -243,6 +246,7 @@ const RoomContent = () => {
 
   const handleTaskSubmit = async (e: React.FormEvent, taskId: number) => {
     e.preventDefault();
+    if (preview) { setRoom(current => current ? { ...current, tasks: current.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t) } : null); return; }
     const answer = taskAnswers[taskId] || '';
     const task = room?.tasks.find((item) => item.id === taskId);
     if (!task || task.completed || pendingTask !== null || (task.question && !answer)) return;
@@ -274,6 +278,7 @@ const RoomContent = () => {
   };
 
   const handleCompleteRoom = async () => {
+    if (preview) { setToast({ message: 'Podgląd: postęp i punkty nie są zapisywane.', type: 'success' }); return; }
     if (finishingRoom) return;
     setFinishingRoom(true);
     try {
@@ -308,6 +313,7 @@ const RoomContent = () => {
 
   return (
     <div className="room-page-container hackademy-container">
+      {preview && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm"><span>Podgląd administracyjny: postęp i punkty nie są zapisywane.</span><button type="button" className="btn btn-outline" onClick={() => navigate(`/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`)}>Wróć do edycji pokoju</button></div>}
       {tasks.length > 0 && (
           <div className="room-progress-container">
             <div className="room-progress-bar">
@@ -326,7 +332,7 @@ const RoomContent = () => {
       )}
 
       <div className="room-header">
-        <button onClick={() => navigate(isArenaMode ? '/arena' : '/learn')} className="back-btn">
+        <button onClick={() => navigate(preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : isArenaMode ? '/arena' : '/learn')} className="back-btn">
             &larr; Powrót
         </button>
         <div className="room-meta-top">
@@ -529,10 +535,10 @@ const RoomContent = () => {
   );
 };
 
-export default function RoomPage() {
+export default function RoomPage({ preview = false }: { preview?: boolean }) {
   const { id } = useParams();
   const { search } = useLocation();
   const { token } = useAuth();
   const gameId = new URLSearchParams(search).get('arena');
-  return <RoomContent key={JSON.stringify([id, gameId, token])} />;
+  return <RoomContent preview={preview} key={JSON.stringify([id, gameId, token])} />;
 }

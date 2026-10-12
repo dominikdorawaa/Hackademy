@@ -53,6 +53,20 @@ class ArenaConcurrencyTest {
     }
 
     @Test
+    void rejectsFlagsForAnAlreadySelectedRoomAfterMovingItToDrafts() {
+        var room = new com.hackademy.server.room.Room(); room.setId(7L); room.setFlag("flag"); room.setPublished(false);
+        when(rooms.findById(7L)).thenReturn(Optional.of(room));
+        var session = arena.acceptChallenge(challenge().getId(), 2L);
+        assertFalse(arena.submitFlag(session.getId(), 1L, "flag"));
+        assertTrue(arena.getGameSession(session.getId()).getFinishTimes().isEmpty());
+        verify(users, never()).save(any());
+        room.setPublished(true);
+        assertFalse(arena.submitFlag(session.getId(), 1L, "wrong"));
+        assertTrue(arena.submitFlag(session.getId(), 1L, "flag"));
+        assertEquals("FINISHED", arena.getGameSession(session.getId()).getStatus());
+    }
+
+    @Test
     void canceledAndRejectedChallengesCannotStartGames() {
         var canceled = challenge();
         arena.cancelChallenge(canceled.getId(), 1L);

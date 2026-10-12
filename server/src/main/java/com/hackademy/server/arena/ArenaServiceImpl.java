@@ -195,7 +195,7 @@ public class ArenaServiceImpl implements ArenaService {
             }
 
             Room room = roomRepository.findById(session.getRoomId()).orElse(null);
-            if (room == null) {
+            if (room == null || !room.isPublished()) {
                 return false;
             }
 

@@ -14,7 +14,7 @@ import type {
   RoomAdminSummaryDto,
 } from '../../types/api';
 import adminRoutes from './adminRoutes';
-import * as adminRequests from '../../services/adminRequests';
+import * as contentApi from '../../services/contentApi';
 
 afterEach(() => vi.restoreAllMocks());
 
@@ -146,96 +146,49 @@ describe('admin panel layout', () => {
   });
 });
 
-describe('path editor', () => {
-  it('preserves an unsaved chapter draft and its revision when saving metadata', async () => {
+describe('content editors', () => {
+  it('retains every local field and revision on a concurrent path save conflict', async () => {
     signIn('ADMIN');
-    const initial = {
-      id: 5, title: 'Web', description: 'Opis', bannerUrl: null, hasBanner: false, revision: 0,
-      chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [] }],
-    };
-    let loads = 0;
-    let submitted: { revision: number; chapters: { title: string }[] } | undefined;
-    server.use(
-      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])),
-      http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(++loads === 1 ? initial : {
-        ...initial, title: 'Web zmieniony', revision: 1,
-        chapters: [...initial.chapters, { id: 12, title: 'Dodany przez innego administratora', roomIds: [] }],
-      })),
-      http.put(`${API_URL}/api/admin/paths/5`, () => new HttpResponse(null, { status: 204 })),
-      http.put(`${API_URL}/api/admin/paths/5/chapters`, async ({ request }) => {
-        submitted = await request.json() as typeof submitted;
-        return HttpResponse.json({ message: 'Rozdziały zmieniły się w międzyczasie.' }, { status: 409 });
-      }),
-    );
-    const user = userEvent.setup();
-    mountAdmin('/admin/paths/5');
-    await user.type(await screen.findByLabelText('Nazwa rozdziału 1'), ' lokalny');
-    await user.type(screen.getByLabelText('Tytuł'), ' zmieniony');
-    await user.click(screen.getByRole('button', { name: 'Zapisz informacje' }));
-    expect(await screen.findByText('Zapisano informacje o ścieżce.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Rozdział 1 lokalny');
-    expect(screen.queryByLabelText('Nazwa rozdziału 2')).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Zapisz rozdziały' }));
-    expect(await screen.findByText('Rozdziały zmieniły się w międzyczasie.')).toBeInTheDocument();
-    expect(submitted?.revision).toBe(0);
-    expect(submitted?.chapters[0].title).toBe('Rozdział 1 lokalny');
+    const initial = { id: 5, title: 'Web', description: 'Opis', bannerUrl: null, hasBanner: false, revision: 2, contentRevision: 3, published: false,
+      chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [] }] };
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])), http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(initial)));
+    const save = vi.spyOn(contentApi, 'savePath').mockRejectedValue(new contentApi.ContentError('Materiał zmienił się w międzyczasie.'));
+    const user = userEvent.setup(); mountAdmin('/admin/paths/5');
+    await user.type(await screen.findByLabelText('Nazwa rozdziału 1 *'), ' lokalny');
+    await user.type(screen.getByLabelText('Tytuł *'), ' zmieniony');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(await screen.findByText('Materiał zmienił się w międzyczasie.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Nazwa rozdziału 1 *')).toHaveValue('Rozdział 1 lokalny');
+    expect(save.mock.calls[0][1]).toMatchObject({ revision: 3, chaptersRevision: 2, title: 'Web zmieniony', chapters: [{ title: 'Rozdział 1 lokalny' }] });
   });
-});
-
-describe('room editor', () => {
-  it('blocks an existing-room form after load failure and preserves hints after retry', async () => {
-    signIn('ADMIN');
-    let loads = 0;
-    let savedHints: string[] | null | undefined;
-    const existing = {
-      id: 9, title: 'CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web',
-      points: 100, flag: 'CTF{x}', solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'],
-      createdAt: '2026-10-10T10:00:00', updatedAt: null,
-    };
-    server.use(
-      http.get(`${API_URL}/api/admin/rooms/9`, () => ++loads === 1
-        ? HttpResponse.json({ message: 'Nie udało się wczytać pokoju' }, { status: 500 })
-        : HttpResponse.json(existing)),
-    );
-    vi.spyOn(adminRequests, 'updateRoom').mockImplementation(async (_id, data) => {
-      savedHints = data.hints;
-      return HttpResponse.json(existing);
-    });
-    const user = userEvent.setup();
-    mountAdmin('/admin/ctf/9');
+  it('blocks an existing room after load failure and preserves hints after retry', async () => {
+    signIn('ADMIN'); let loads = 0;
+    const existing = { id: 9, title: 'CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web', points: 100,
+      flag: 'CTF{x}', solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'], published: true, contentRevision: 2, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+    const detail = { room: existing, tasks: { revision: 0, tasks: [] } };
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => ++loads === 1 ? HttpResponse.json({ message: 'Nie udało się wczytać pokoju' }, { status: 500 }) : HttpResponse.json(detail)));
+    const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue(detail as contentApi.RoomEditor);
+    const user = userEvent.setup(); mountAdmin('/admin/ctf/9');
     expect(await screen.findByText('Nie udało się wczytać pokoju')).toBeInTheDocument();
-    expect(screen.queryByRole('form', { name: 'Dane pokoju' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: 'Zapisz zmiany' })).not.toBeInTheDocument();
-    expect(savedHints).toBeUndefined();
+    expect(screen.queryByRole('form', { name: 'Edytor pokoju' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
-    expect(await screen.findByText('Zachowana podpowiedź')).toBeInTheDocument();
-    await user.type(screen.getByLabelText('Tytuł'), ' zmieniony');
+    expect(await screen.findByLabelText('Podpowiedź 1 *')).toHaveValue('Zachowana podpowiedź');
+    await user.type(screen.getByLabelText('Tytuł *'), ' zmieniony');
     await user.click(screen.getByRole('button', { name: 'Zapisz zmiany' }));
-    expect(await screen.findByText('Zapisano zmiany w pokoju.')).toBeInTheDocument();
-    expect(savedHints).toEqual(['Zachowana podpowiedź']);
+    expect(await screen.findByText('Zapisano opublikowany pokój.')).toBeInTheDocument();
+    expect(save.mock.calls[0][1].hints).toEqual(['Zachowana podpowiedź']);
   });
-
-  it('keeps the creation message after moving to the new room', async () => {
+  it('saves an incomplete CTF as a draft and keeps the new room available for preview', async () => {
     signIn('ADMIN');
-    const created = {
-      id: 9, title: 'Nowy CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web',
-      points: 100, flag: 'CTF{x}', solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: [],
-      createdAt: '2026-10-10T10:00:00', updatedAt: null,
-    };
-    server.use(
-      http.post(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(created, { status: 201 })),
-      http.get(`${API_URL}/api/admin/rooms/9`, () => HttpResponse.json(created)),
-    );
-    const user = userEvent.setup();
-    mountAdmin('/admin/ctf/new');
-
-    await user.type(await screen.findByLabelText('Tytuł'), 'Nowy CTF');
-    await user.type(screen.getByLabelText('Opis'), 'Opis');
-    await user.type(screen.getByLabelText('Flaga'), 'CTF{x}');
-    await user.click(screen.getByRole('button', { name: 'Utwórz pokój' }));
-
-    expect(await screen.findByText('Pokój „Nowy CTF” został utworzony.')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/admin/ctf/9:REPLACE'));
+    const created = { id: 9, title: 'Nowy CTF', description: '', shortDescription: '', difficulty: 'EASY', category: 'Web', points: 0,
+      flag: '', solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: [], published: false, contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: created, tasks: { revision: 0, tasks: [] } })));
+    const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 0, tasks: [] } } as contentApi.RoomEditor);
+    const user = userEvent.setup(); mountAdmin('/admin/ctf/new');
+    await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy CTF');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(await screen.findByText('Zapisano szkic pokoju.')).toBeInTheDocument();
+    expect(save.mock.calls[0][1]).toMatchObject({ published: false, description: '', flag: '' });
     expect(await screen.findByRole('heading', { level: 1, name: 'Nowy CTF' })).toBeInTheDocument();
   });
 });

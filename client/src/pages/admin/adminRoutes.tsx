@@ -8,6 +8,8 @@ import RoomsPage from './RoomsPage';
 import RoomEditorPage from './RoomEditorPage';
 import PathsPage from './PathsPage';
 import PathEditorPage from './PathEditorPage';
+import RoomPage from '../RoomPage';
+import PathDetailPage from '../PathDetailPage';
 
 const adminRoutes = (
   <Route
@@ -21,6 +23,8 @@ const adminRoutes = (
     <Route index element={<AdminOnly><DashboardPage /></AdminOnly>} />
     <Route path="users" element={<AdminOnly><UsersPage /></AdminOnly>} />
     <Route path="reports" element={<AdminOnly><ReportsPage /></AdminOnly>} />
+    <Route path="preview/rooms/:id" element={<RoomPage preview />} />
+    <Route path="preview/paths/:id" element={<PathDetailPage preview />} />
     <Route path="paths" element={<PathsPage />} />
     <Route path="paths/rooms" element={<RoomsPage key="PATH" kind="PATH" />} />
     <Route path="paths/rooms/:roomId" element={<RoomEditorPage key="PATH" kind="PATH" />} />
