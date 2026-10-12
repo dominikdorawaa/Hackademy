@@ -10,6 +10,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run src && node --test tests/*.test.mjs",
+    "test:coverage": "vitest run src --coverage && node --test tests/*.test.mjs",
     "test:integration": "vitest run src/pages/LoginPage.test.tsx src/context/auth-routing.test.tsx",
     "test:realtime-load": "vitest run tests/realtime-load.test.tsx"
   },
@@ -40,6 +41,7 @@
     "@types/sockjs-client": "^1.5.4",
     "@types/ws": "^8.18.2",
     "@vitejs/plugin-react": "^5.1.1",
+    "@vitest/coverage-v8": "^5.0.4",
     "esbuild": "^0.28.2",
     "eslint": "^9.39.1",
     "eslint-plugin-react": "^7.37.5",
