@@ -5,6 +5,6 @@ import jakarta.validation.constraints.Size;
 
 public record UpdatePathMetaRequest(
     @NotBlank @Size(max = 120) String title,
-    String description,
+    @Size(max = 20000) String description,
     String bannerUrl
 ) {}

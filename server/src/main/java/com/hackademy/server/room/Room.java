@@ -48,7 +48,6 @@ public class Room {
     @Column(nullable = false)
     private int points;
 
-    @NotBlank
     @JsonIgnore
     @Column(nullable = false)
     private String flag;
@@ -78,6 +77,13 @@ public class Room {
 
     @OneToOne(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
     private RoomFile roomFile;
+
+    @Builder.Default
+    @Column(nullable = false)
+    private boolean published = true;
+
+    @Column(name = "content_revision", nullable = false)
+    private long contentRevision;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

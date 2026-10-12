@@ -59,7 +59,7 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Long> 
             JOIN rooms r ON r.id = cr.room_id
             LEFT JOIN user_solved_rooms usr
               ON usr.room_id = r.id AND usr.user_id = :userId
-            WHERE pc.path_id = :pathId
+            WHERE pc.path_id = :pathId AND r.published = true
             ORDER BY pc.sort_order ASC, pc.id ASC, cr.sort_order ASC, cr.room_id ASC
             LIMIT :limit
             """, nativeQuery = true)

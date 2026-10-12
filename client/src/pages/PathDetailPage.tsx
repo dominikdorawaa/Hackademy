@@ -1,4 +1,7 @@
 import * as pathApi from '../services/pathApi';
+import { request } from '../services/http';
+import API_URL from '../apiConfig';
+import { BannerImage } from './admin/PathEditorPage';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -11,7 +14,7 @@ function roomStatus(room: RoomSummaryDto) {
   return { key: 'todo', label: 'Do zrobienia' };
 }
 
-const PathDetailPage = () => {
+const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
   const { token, logout } = useAuth();
   const navigate = useNavigate();
@@ -24,7 +27,7 @@ const PathDetailPage = () => {
   const fetchPath = useCallback(async () => {
     try {
       setError(null);
-      const res = await pathApi.getPath(id ?? '', { Authorization: `Bearer ${token}` });
+      const res = await (preview ? request<PathDetailDto>(`/api/admin/content/paths/${id}/preview`, { headers: { Authorization: `Bearer ${token}` } }) : pathApi.getPath(id ?? '', { Authorization: `Bearer ${token}` }));
       if (res.status === 401 || res.status === 403) {
         logout();
         navigate('/login');
@@ -38,7 +41,7 @@ const PathDetailPage = () => {
     } finally {
       setLoading(false);
     }
-  }, [id, token, logout, navigate]);
+  }, [id, token, logout, navigate, preview]);
 
   useEffect(() => {
     if (token) fetchPath();
@@ -66,22 +69,24 @@ const PathDetailPage = () => {
 
   return (
     <div className="hackademy-container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
-      <button onClick={() => navigate('/learn')} className="back-btn">
-        &larr; Wróć do ścieżek
+      {preview && <div role="status" className="mb-4 rounded-lg border border-primary p-4">Podgląd administracyjny: materiał nie jest publikowany, postęp i punkty nie są zapisywane.</div>}
+      <button onClick={() => navigate(preview ? `/admin/paths/${id}` : '/learn')} className="back-btn">
+        &larr; {preview ? 'Wróć do edycji' : 'Wróć do ścieżek'}
       </button>
 
-      {!path.enrolled && (
+      {(preview || !path.enrolled) && (
         <section className="pd-hero-enroll">
           <div className="pd-hero-content">
+            <BannerImage source={path.hasBanner && path.bannerUrl ? `${API_URL}${path.bannerUrl}` : null} file={null} url={path.hasBanner ? null : path.bannerUrl} token={token} />
             <h1 className="pd-hero-title">{path.title}</h1>
             <p className="pd-hero-desc">{path.description}</p>
             <div className="pd-hero-meta">
               <span><i className="fas fa-book-open" /> {chapters.length} rozdz.</span>
               <span><i className="fas fa-layer-group" /> {totalRooms} pokoi</span>
             </div>
-            <button className="btn btn-primary btn-lg pd-enroll-btn" onClick={handleEnroll} disabled={enrolling}>
+            {!preview && <button className="btn btn-primary btn-lg pd-enroll-btn" onClick={handleEnroll} disabled={enrolling}>
               Zacznij tę ścieżkę <i className="fas fa-bolt" style={{ marginLeft: '10px' }} />
-            </button>
+            </button>}
           </div>
         </section>
       )}
@@ -151,7 +156,7 @@ const PathDetailPage = () => {
                             <button
                               className={`btn ${r.locked ? 'btn-outline' : 'btn-primary'}`}
                               disabled={r.locked}
-                              onClick={() => navigate(`/rooms/${r.id}`)}
+                              onClick={() => navigate(preview ? `/admin/preview/rooms/${r.id}?kind=PATH&pathId=${id}` : `/rooms/${r.id}`)}
                               style={{ padding: '8px 16px', fontSize: '0.9rem' }}
                             >
                               {r.solved ? 'Powtórz' : 'Start'} <i className="fas fa-arrow-right" style={{ marginLeft: '8px' }} />

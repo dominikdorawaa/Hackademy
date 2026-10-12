@@ -73,7 +73,7 @@ public class PathController {
         String mime = pathService.getBannerMime(id);
         MediaType mt = (mime != null && !mime.isBlank()) ? MediaType.parseMediaType(mime) : MediaType.APPLICATION_OCTET_STREAM;
         return ResponseEntity.ok()
-                .header(HttpHeaders.CACHE_CONTROL, "public, max-age=3600")
+                .header(HttpHeaders.CACHE_CONTROL, "no-store")
                 .contentType(mt)
                 .body(data);
     }

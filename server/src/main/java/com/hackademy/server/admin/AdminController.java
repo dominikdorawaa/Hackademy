@@ -39,6 +39,7 @@ import java.util.stream.Collectors;
 @PreAuthorize("hasAnyRole('ADMIN', 'EXPERT')")
 public class AdminController {
 
+    private final com.hackademy.server.content.ContentService contentService;
     private final RoomService roomService;
     private final PathService pathService;
     private final UserService userService;
@@ -146,7 +147,7 @@ public class AdminController {
 
     @GetMapping("/paths")
     public List<PathSummaryDto> listPaths() {
-        return pathService.listPaths(null);
+        return contentService.adminPaths();
     }
 
     @DeleteMapping("/paths/{id}")
@@ -192,6 +193,8 @@ public class AdminController {
 
         return RoomAdminDto.builder()
                 .id(room.getId())
+                .published(room.isPublished())
+                .contentRevision(room.getContentRevision())
                 .title(room.getTitle())
                 .description(room.getDescription())
                 .shortDescription(room.getShortDescription())

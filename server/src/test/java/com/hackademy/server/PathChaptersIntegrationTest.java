@@ -427,7 +427,9 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 """.formatted(uniqueTitle("Path"), roomIds))
                 .andExpect(status().isCreated())
                 .andReturn();
-        return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+        long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+        jdbcTemplate.update("UPDATE paths SET published = true WHERE id = ?", id);
+        return id;
     }
 
     private List<Long> chapterIds(Account admin, long pathId) throws Exception {

@@ -17,7 +17,7 @@ test('production CSS includes Preflight, layout utilities and the Hackademy shad
   assert.match(css, /\.flex\s*\{\s*display:\s*flex/)
   assert.match(css, /\.min-h-screen\s*\{\s*min-height:\s*100vh/)
   assert.match(css, /\.px-4\s*\{[^}]*padding-inline:/)
-  assert.match(css, /\.bg-primary\s*\{[^}]*background-color:\s*var\(--primary\)/)
+  assert.match(css, /\.bg-primary(?=[\s,{])[^{}]*\{[^}]*background-color:\s*var\(--primary\)/)
   assert.match(css, /--primary:\s*var\(--primary-blue\)/)
   assert.match(css, /--card:\s*var\(--bg-panel\)/)
   assert.match(css, /--muted-foreground:\s*var\(--text-gray\)/)

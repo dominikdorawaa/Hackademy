@@ -6,7 +6,7 @@ import jakarta.validation.constraints.Size;
 public record RoomTaskRequest(
     Long id,
     @NotBlank(message = "Tytuł zadania jest wymagany") @Size(max = 255, message = "Tytuł zadania nie może przekraczać 255 znaków") String title,
-    @NotBlank(message = "Treść zadania jest wymagana") String content,
-    String question,
+    @NotBlank(message = "Treść zadania jest wymagana") @Size(max = 20000) String content,
+    @Size(max = 2000) String question,
     @Size(max = 255, message = "Odpowiedź nie może przekraczać 255 znaków") String answer
 ) {}

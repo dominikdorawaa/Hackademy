@@ -59,47 +59,13 @@ public class RoomServiceImpl implements RoomService {
     private final UserServiceImpl userServiceImpl;
     private final DashboardSummaryCache dashboardSummaryCache;
     private final ChapterRoomRepository chapterRoomRepository;
-
-    // Simple in-memory cache
-    private List<RoomSummaryDto> cachedRooms;
-    private long lastCacheTime = 0;
-    private static final long CACHE_DURATION = 30000; // 30 seconds cache
-
-    private synchronized List<RoomSummaryDto> getCachedRooms() {
-        long now = System.currentTimeMillis();
-        if (cachedRooms == null || now - lastCacheTime > CACHE_DURATION) {
-            cachedRooms = roomRepository.findAllSummaries();
-            lastCacheTime = now;
-        }
-        // Return deep copy to avoid modification of cached objects
-        return cachedRooms.stream()
-                .map(this::cloneRoomSummaryDto)
-                .collect(Collectors.toList());
-    }
-
-    private synchronized void invalidateCache() {
-        cachedRooms = null;
-    }
-
-    private RoomSummaryDto cloneRoomSummaryDto(RoomSummaryDto original) {
-        return new RoomSummaryDto(
-            original.getId(),
-            original.getTitle(),
-            original.getShortDescription(),
-            original.getDifficulty(),
-            original.getCategory(),
-            original.getPoints(),
-            original.getSolutionsCount(),
-            original.isRequiresVpn(),
-            original.getRoomType(),
-            original.getCreatedAt()
-        );
-    }
+    private final com.hackademy.server.content.ContentVisibility visibility;
 
     @Override
     @Transactional
     public Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException {
         Room room = Room.builder()
+                .published(false)
                 .title(createRoomRequest.title())
                 .description(createRoomRequest.description())
                 .shortDescription(createRoomRequest.shortDescription())
@@ -125,7 +91,6 @@ public class RoomServiceImpl implements RoomService {
             roomFileRepository.save(roomFile);
         }
 
-        invalidateCache();
         return savedRoom;
     }
 
@@ -138,8 +103,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomSummaryDto> getAllRoomsByType(String username, RoomType roomType) {
-        // Use cached rooms
-        List<RoomSummaryDto> rooms = getCachedRooms();
+        List<RoomSummaryDto> rooms = roomRepository.findAllSummaries();
         
         Set<Long> solvedRoomIds;
         boolean hasTutorialVPN = false;
@@ -203,6 +167,10 @@ public class RoomServiceImpl implements RoomService {
             throw new IllegalArgumentException("Pokój należy do ścieżki. Usuń go z rozdziału, zanim zmienisz jego typ.");
         }
 
+        if (newRoomType != RoomType.PATH && !room.getTasks().isEmpty()) {
+            throw new IllegalArgumentException("Usuń zadania przed zmianą typu pokoju na CTF.");
+        }
+        room.setContentRevision(room.getContentRevision() + 1);
         room.setTitle(updateRoomRequest.title());
         room.setDescription(updateRoomRequest.description());
         room.setShortDescription(updateRoomRequest.shortDescription());
@@ -251,7 +219,6 @@ public class RoomServiceImpl implements RoomService {
             }
         }
         
-        invalidateCache();
         return savedRoom;
     }
 
@@ -261,11 +228,11 @@ public class RoomServiceImpl implements RoomService {
             throw new IllegalArgumentException("Room not found with ID: " + id);
         }
         roomRepository.deleteById(id);
-        invalidateCache();
     }
     @Override
     @Transactional(readOnly = true)
     public RoomDetailDto getRoomDetail(Long id, String username) {
+        visibility.requireRoom(id);
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
 
@@ -337,6 +304,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public SolveRoomResponse solveTask(Long roomId, Long taskId, String answer, String username) {
+        visibility.requireRoom(roomId);
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         Room room = roomRepository.findByIdForUpdate(roomId)
@@ -372,6 +340,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public SolveRoomResponse completeTaskRoom(Long roomId, String username) {
+        visibility.requireRoom(roomId);
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         Room room = roomRepository.findByIdForUpdate(roomId)
@@ -415,7 +384,6 @@ public class RoomServiceImpl implements RoomService {
 
             userRepository.save(user);
             roomRepository.save(room);
-            invalidateCache();
             userServiceImpl.invalidateUserComputedCaches(user.getId());
             userServiceImpl.invalidateGlobalRankingCache();
             dashboardSummaryCache.invalidateUser(user.getId());
@@ -429,6 +397,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public SolveRoomResponse solveRoom(Long id, String flag, String username) {
+        visibility.requireRoom(id);
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
 
@@ -479,7 +448,6 @@ public class RoomServiceImpl implements RoomService {
             // Check for badges
             List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
             
-            invalidateCache(); // Invalidate cache to update solutionsCount
             userServiceImpl.invalidateUserComputedCaches(user.getId());
             userServiceImpl.invalidateGlobalRankingCache();
             dashboardSummaryCache.invalidateUser(user.getId());
@@ -492,6 +460,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public boolean unlockHint(Long roomId, Long hintId, String username) {
+        visibility.requireRoom(roomId);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -579,10 +548,10 @@ public class RoomServiceImpl implements RoomService {
             position++;
             String question = blankToNull(taskRequest.question());
             String answer = blankToNull(taskRequest.answer());
-            if (question != null && answer == null) {
+            if (room.isPublished() && question != null && answer == null) {
                 throw new IllegalArgumentException("Zadanie " + position + ": podaj odpowiedź na pytanie");
             }
-            if (question == null && answer != null) {
+            if (room.isPublished() && question == null && answer != null) {
                 throw new IllegalArgumentException("Zadanie " + position + ": odpowiedź wymaga pytania");
             }
 
@@ -599,8 +568,8 @@ public class RoomServiceImpl implements RoomService {
                 }
             }
             task.setTitle(taskRequest.title().trim());
-            String content = TaskContentSanitizer.clean(taskRequest.content());
-            if (content.isBlank()) {
+            String content = TaskContentSanitizer.clean(taskRequest.content() == null ? "" : taskRequest.content());
+            if (room.isPublished() && content.isBlank()) {
                 throw new IllegalArgumentException("Zadanie " + position + ": podaj treść po usunięciu niedozwolonego HTML");
             }
             task.setContent(content);
@@ -618,6 +587,7 @@ public class RoomServiceImpl implements RoomService {
             }
         }
         room.setTasksRevision(room.getTasksRevision() + 1);
+        room.setContentRevision(room.getContentRevision() + 1);
         roomRepository.flush();
 
         return new RoomTasksAdminDto(room.getTasksRevision(), ordered.stream().map(this::mapTaskToAdminDto).toList());
@@ -643,6 +613,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional(readOnly = true)
     public RoomFile getRoomFile(Long roomId) {
+        visibility.requireRoom(roomId);
         return roomFileRepository.findByRoomId(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("File not found for room ID: " + roomId));
     }

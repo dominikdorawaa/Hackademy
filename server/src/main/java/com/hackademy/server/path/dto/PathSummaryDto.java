@@ -5,6 +5,7 @@ import lombok.Builder;
 @Builder
 public record PathSummaryDto(
     Long id,
+    boolean published,
     String title,
     String description,
     String bannerUrl,

@@ -6,7 +6,7 @@ import java.util.List;
 
 public record CreatePathRequest(
     @NotBlank(message = "Tytuł jest wymagany") @Size(max = 120, message = "Tytuł nie może przekraczać 120 znaków") String title,
-    String description,
-    String bannerUrl,
+    @Size(max = 20000) String description,
+    @Size(max = 2048) String bannerUrl,
     List<Long> roomIds
 ) {}
