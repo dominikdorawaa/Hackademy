@@ -13,12 +13,15 @@ import com.hackademy.server.user.dto.ProfileStatsDto;
 import com.hackademy.server.user.dto.UserSearchDto;
 import com.hackademy.server.user.dto.UpdateProfileRequest;
 import com.hackademy.server.user.dto.ProfilePersonalizationDto;
+import com.hackademy.server.user.dto.NotificationPreferencesDto;
+import com.hackademy.server.user.dto.UpdateNotificationPreferenceRequest;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.util.List;
@@ -32,6 +35,28 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final NotificationPreferencesRepository notificationPreferencesRepository;
+
+    @GetMapping("/me/notification-preferences")
+    public NotificationPreferencesDto getNotificationPreferences(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return notificationPreferencesRepository.findById(user.getId())
+                .map(NotificationPreferences::toDto).orElseGet(NotificationPreferencesDto::defaults);
+    }
+
+    @PatchMapping("/me/notification-preferences")
+    @Transactional
+    public NotificationPreferencesDto updateNotificationPreferences(Authentication authentication,
+            @Valid @RequestBody UpdateNotificationPreferenceRequest request) {
+        User user = (User) authentication.getPrincipal();
+        notificationPreferencesRepository.updatePreference(user.getId(),
+                request.preference().equals("friendRequests") ? request.enabled() : null,
+                request.preference().equals("challenges") ? request.enabled() : null,
+                request.preference().equals("matchFound") ? request.enabled() : null,
+                request.preference().equals("sound") ? request.enabled() : null,
+                request.preference().equals("browserNotifications") ? request.enabled() : null);
+        return notificationPreferencesRepository.findById(user.getId()).orElseThrow().toDto();
+    }
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {

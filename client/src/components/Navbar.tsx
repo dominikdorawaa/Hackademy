@@ -6,6 +6,7 @@ import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react'
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
+import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import type { Challenge, DashboardUser, FriendRequestDto } from '../types/api';
 import './Navbar.css';
@@ -29,16 +30,17 @@ const Navbar = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const [userData, setUserData] = useState<DashboardUser | null>(null);
   const { state: realtime, synchronize } = useRealtime();
+  const { preferences } = useNotificationPreferences();
   const notifications = useMemo<Notification[]>(() => [
-    ...(realtime?.friendRequests ?? []).map(req => ({
+    ...(preferences.friendRequests ? realtime?.friendRequests ?? [] : []).map(req => ({
       id: req.id, type: 'FRIEND_REQUEST' as const, from: req.requesterUsername,
       timestamp: req.createdAt, data: req,
     })),
-    ...(realtime?.challenges ?? []).map(ch => ({
+    ...(preferences.challenges ? realtime?.challenges ?? [] : []).map(ch => ({
       id: ch.id, type: 'CHALLENGE' as const, from: ch.challengerUsername,
       timestamp: ch.createdAt, data: ch,
     })),
-  ], [realtime]);
+  ], [realtime, preferences.friendRequests, preferences.challenges]);
   const unreadCount = notifications.length;
   const [processedNotifications, setProcessedNotifications] = useState<string[]>([]); // Track processed IDs
   const menuRef = useRef<HTMLDivElement | null>(null);

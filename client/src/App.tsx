@@ -3,6 +3,8 @@ import { AuthProvider } from './context/AuthContext';
 import Navbar from './components/Navbar';
 import RealtimeGameNavigation from './components/RealtimeGameNavigation';
 import { RealtimeProvider } from './context/RealtimeContext';
+import { NotificationPreferencesProvider } from './context/NotificationPreferencesContext';
+import RealtimeNotifications from './components/RealtimeNotifications';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
@@ -25,6 +27,7 @@ function SiteLayout() {
   return (
     <div className="flex flex-col min-h-screen">
       <RealtimeGameNavigation />
+      <RealtimeNotifications />
       <Navbar />
       <main className="flex-grow">
         <Outlet />
@@ -38,6 +41,7 @@ function App() {
   return (
     <AuthProvider>
       <RealtimeProvider>
+        <NotificationPreferencesProvider>
         <Routes>
           {adminRoutes}
           <Route element={<SiteLayout />}>
@@ -127,6 +131,7 @@ function App() {
             />
           </Route>
         </Routes>
+        </NotificationPreferencesProvider>
       </RealtimeProvider>
     </AuthProvider>
   );

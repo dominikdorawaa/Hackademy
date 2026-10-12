@@ -9,6 +9,44 @@ import type {
   ProfilePortfolioDto,
 } from '../types/api';
 import type { ProfilePersonalization } from '../lib/profile';
+import type { AuthResponse } from '../types/api';
+
+export interface NotificationPreferences {
+  friendRequests: boolean;
+  challenges: boolean;
+  matchFound: boolean;
+  sound: boolean;
+  browserNotifications: boolean;
+}
+
+export const defaultNotificationPreferences: NotificationPreferences = {
+  friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: false,
+};
+
+export function getNotificationPreferences(headers: HeadersInit, signal?: AbortSignal) {
+  return request<NotificationPreferences>('/api/user/me/notification-preferences', { method: 'GET', headers, signal });
+}
+
+export function saveNotificationPreference(preference: keyof NotificationPreferences, enabled: boolean, headers: HeadersInit, signal?: AbortSignal) {
+  return request<NotificationPreferences>('/api/user/me/notification-preferences', {
+    method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ preference, enabled }), signal,
+  });
+}
+
+export function changePassword(currentPassword: string, newPassword: string, headers: HeadersInit) {
+  return request<void>('/api/user/me/password', {
+    method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ currentPassword, newPassword }),
+  });
+}
+
+export function changeUsername(newUsername: string, headers: HeadersInit) {
+  return request<AuthResponse>('/api/user/me/username', {
+    method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ newUsername }),
+  });
+}
 
 export function updateProfile(profile: ProfilePersonalization, headers: HeadersInit, signal?: AbortSignal) {
   return request<ProfilePersonalization>('/api/user/me/profile', {
