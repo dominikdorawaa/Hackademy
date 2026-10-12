@@ -27,10 +27,10 @@ export function getNotificationPreferences(headers: HeadersInit, signal?: AbortS
   return request<NotificationPreferences>('/api/user/me/notification-preferences', { method: 'GET', headers, signal });
 }
 
-export function saveNotificationPreferences(preferences: NotificationPreferences, headers: HeadersInit, signal?: AbortSignal) {
+export function saveNotificationPreference(preference: keyof NotificationPreferences, enabled: boolean, headers: HeadersInit, signal?: AbortSignal) {
   return request<NotificationPreferences>('/api/user/me/notification-preferences', {
-    method: 'PUT', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
-    body: JSON.stringify(preferences), signal,
+    method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ preference, enabled }), signal,
   });
 }
 

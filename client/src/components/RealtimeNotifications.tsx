@@ -3,11 +3,18 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
 
+interface Alert {
+  id: string;
+  category: 'friendRequests' | 'challenges' | 'matchFound';
+  title: string;
+  body: string;
+}
+
 export default function RealtimeNotifications() {
   const { token } = useAuth();
   const { state } = useRealtime();
   const { preferences, loaded } = useNotificationPreferences();
-  const seen = useRef<{ token: string | null; stream: string; ids: Set<string> } | null>(null);
+  const seen = useRef<{ token: string | null; stream: string; ids: Set<string>; pending: Map<string, Alert> } | null>(null);
   const audio = useRef<AudioContext | null>(null);
 
   useEffect(() => {
@@ -33,22 +40,28 @@ export default function RealtimeNotifications() {
       seen.current = null;
       return;
     }
-    const events = [
-      ...state.friendRequests.map(request => ({ id: `friend:${request.id}`, enabled: preferences.friendRequests,
+    const events: Alert[] = [
+      ...state.friendRequests.map(request => ({ id: `friend:${request.id}`, category: 'friendRequests' as const,
         title: 'Zaproszenie do znajomych', body: `${request.requesterUsername} chce dodać Cię do znajomych.` })),
-      ...state.challenges.map(challenge => ({ id: `challenge:${challenge.id}`, enabled: preferences.challenges,
+      ...state.challenges.map(challenge => ({ id: `challenge:${challenge.id}`, category: 'challenges' as const,
         title: 'Wyzwanie w Arenie', body: `${challenge.challengerUsername} zaprasza Cię do pojedynku.` })),
       ...(state.gameSession?.status === 'ACTIVE' ? [{ id: `match:${state.gameSession.id}`,
-        enabled: preferences.matchFound, title: 'Mecz jest gotowy', body: 'Znaleźliśmy przeciwnika. Twój pojedynek zaraz się rozpocznie.' }] : []),
+        category: 'matchFound' as const, title: 'Mecz jest gotowy', body: 'Znaleźliśmy przeciwnika. Twój pojedynek zaraz się rozpocznie.' }] : []),
     ];
     if (!seen.current || seen.current.token !== token || seen.current.stream !== state.streamId) {
-      seen.current = { token, stream: state.streamId, ids: new Set(events.map(event => event.id)) };
+      seen.current = { token, stream: state.streamId, ids: new Set(events.map(event => event.id)), pending: new Map() };
       return;
     }
-    const fresh = events.filter(event => !seen.current!.ids.has(event.id));
-    events.forEach(event => seen.current!.ids.add(event.id));
+    const history = seen.current;
+    events.forEach(event => {
+      if (!history.ids.has(event.id)) history.pending.set(event.id, event);
+      history.ids.add(event.id);
+    });
+    const activeIds = new Set(events.map(event => event.id));
+    history.pending.forEach((_event, id) => { if (!activeIds.has(id)) history.pending.delete(id); });
     if (!loaded) return;
-    const eligible = fresh.filter(event => event.enabled);
+    const eligible = [...history.pending.values()].filter(event => preferences[event.category]);
+    history.pending.clear();
     if (eligible.length && preferences.sound && audio.current?.state === 'running') {
       const context = audio.current;
       const oscillator = context.createOscillator();

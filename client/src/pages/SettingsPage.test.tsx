@@ -9,7 +9,6 @@ import { createToken } from '../test/fixtures/auth';
 import { server } from '../test/mocks/server';
 import API_URL from '../apiConfig';
 import { defaultNotificationPreferences } from '../services/userApi';
-import type { NotificationPreferences } from '../services/userApi';
 import SettingsPage from './SettingsPage';
 
 function mount(section = 'account') {
@@ -22,8 +21,10 @@ describe('settings', () => {
     let saved = { ...defaultNotificationPreferences };
     server.use(
       http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(saved)),
-      http.put(`${API_URL}/api/user/me/notification-preferences`, async ({ request }) => {
-        saved = await request.json() as NotificationPreferences;
+      http.patch(`${API_URL}/api/user/me/notification-preferences`, async ({ request }) => {
+        const change = await request.json() as { preference: 'friendRequests'; enabled: boolean };
+        expect(change).toEqual({ preference: 'friendRequests', enabled: false });
+        saved = { ...saved, [change.preference]: change.enabled };
         return HttpResponse.json(saved);
       }),
     );
@@ -41,7 +42,7 @@ describe('settings', () => {
   it('keeps the previous preference when saving fails', async () => {
     server.use(
       http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(defaultNotificationPreferences)),
-      http.put(`${API_URL}/api/user/me/notification-preferences`, () => new HttpResponse(null, { status: 500 })),
+      http.patch(`${API_URL}/api/user/me/notification-preferences`, () => new HttpResponse(null, { status: 500 })),
     );
     mount('notifications');
     const toggle = screen.getByRole('switch', { name: 'Zaproszenia do znajomych' });
@@ -56,7 +57,7 @@ describe('settings', () => {
     let saves = 0;
     vi.stubGlobal('isSecureContext', true);
     vi.stubGlobal('Notification', { permission: 'default', requestPermission: permission });
-    server.use(http.put(`${API_URL}/api/user/me/notification-preferences`, () => {
+    server.use(http.patch(`${API_URL}/api/user/me/notification-preferences`, () => {
       saves += 1;
       return HttpResponse.json({ ...defaultNotificationPreferences, browserNotifications: true });
     }));

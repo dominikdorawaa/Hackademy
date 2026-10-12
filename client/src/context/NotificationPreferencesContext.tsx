@@ -1,7 +1,7 @@
 import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { PropsWithChildren } from 'react';
 import { useAuth } from './AuthContext';
-import { defaultNotificationPreferences, getNotificationPreferences, saveNotificationPreferences } from '../services/userApi';
+import { defaultNotificationPreferences, getNotificationPreferences, saveNotificationPreference } from '../services/userApi';
 import type { NotificationPreferences } from '../services/userApi';
 
 interface PreferencesContextValue {
@@ -58,7 +58,7 @@ export function NotificationPreferencesProvider({ children }: PropsWithChildren)
     setSaving(true);
     const current = controller.current;
     try {
-      const response = await saveNotificationPreferences({ ...session.preferences, [key]: value },
+      const response = await saveNotificationPreference(key, value,
         { Authorization: `Bearer ${token}` }, current?.signal);
       if (!response.ok) throw new Error();
       const preferences = await response.json();
