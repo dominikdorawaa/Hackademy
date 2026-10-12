@@ -60,7 +60,7 @@ class SchemaMigrationTest {
     @Test
     void migratesEmptyDatabaseWithBadgesOnly() throws Exception {
         var flyway = flyway();
-        assertEquals(6, flyway.migrate().migrationsExecuted);
+        assertEquals(7, flyway.migrate().migrationsExecuted);
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, scalar("SELECT count(*) FROM users"));
         assertEquals(0, scalar("SELECT count(*) FROM rooms"));
@@ -73,7 +73,7 @@ class SchemaMigrationTest {
         Flyway.configure().dataSource(url, username, password)
                 .locations("classpath:db/schema").target("5").load().migrate();
         execute("INSERT INTO users (id, username, email, password, role, points, streak, bio, created_at, updated_at) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 0, 0, 'Learning Linux', now(), now())");
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(2, flyway().migrate().migrationsExecuted);
         assertEquals("Alice", text("SELECT avatar_seed FROM users WHERE id = 1"));
         assertEquals("Learning Linux", text("SELECT bio FROM users WHERE id = 1"));
         assertEquals("", text("SELECT tagline FROM users WHERE id = 1"));
@@ -95,7 +95,7 @@ class SchemaMigrationTest {
             assertEquals(1, scalar("SELECT count(*) FROM users"));
         }
         try (var ignored = startApplication()) {
-            assertEquals(6, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
+            assertEquals(7, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
         }
     }
 
@@ -184,7 +184,7 @@ class SchemaMigrationTest {
 
         assertEquals(1, flyway("3").migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
-        assertEquals(3, flyway().migrate().migrationsExecuted);
+        assertEquals(4, flyway().migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
         assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
         assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));

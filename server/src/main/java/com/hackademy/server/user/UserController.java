@@ -13,6 +13,7 @@ import com.hackademy.server.user.dto.ProfileStatsDto;
 import com.hackademy.server.user.dto.UserSearchDto;
 import com.hackademy.server.user.dto.UpdateProfileRequest;
 import com.hackademy.server.user.dto.ProfilePersonalizationDto;
+import com.hackademy.server.user.dto.NotificationPreferencesDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -32,6 +33,21 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final NotificationPreferencesRepository notificationPreferencesRepository;
+
+    @GetMapping("/me/notification-preferences")
+    public NotificationPreferencesDto getNotificationPreferences(Authentication authentication) {
+        User user = (User) authentication.getPrincipal();
+        return notificationPreferencesRepository.findById(user.getId())
+                .map(NotificationPreferences::toDto).orElseGet(NotificationPreferencesDto::defaults);
+    }
+
+    @PutMapping("/me/notification-preferences")
+    public NotificationPreferencesDto updateNotificationPreferences(Authentication authentication,
+            @Valid @RequestBody NotificationPreferencesDto preferences) {
+        User user = (User) authentication.getPrincipal();
+        return notificationPreferencesRepository.save(new NotificationPreferences(user.getId(), preferences)).toDto();
+    }
 
     @GetMapping("/me")
     public ResponseEntity<?> getCurrentUser() {
