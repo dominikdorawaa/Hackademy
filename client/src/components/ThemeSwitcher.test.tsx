@@ -13,13 +13,15 @@ describe('navigation theme switcher', () => {
     expect(trigger).toHaveFocus();
     await user.keyboard('{Enter}');
     expect(screen.getByRole('menuitemradio', { name: 'Ciemny' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getAllByRole('menuitemradio')).toHaveLength(2);
+    expect(screen.queryByRole('menuitemradio', { name: 'Systemowy' })).not.toBeInTheDocument();
     await user.keyboard('{Home}{Enter}');
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
     expect(localStorage.getItem('app-theme')).toBe('light');
     expect(screen.getByRole('button', { name: 'Zmień motyw: jasny' })).toHaveFocus();
     await user.keyboard('{Enter}{End}{Enter}');
-    expect(localStorage.getItem('app-theme')).toBe('system');
-    expect(screen.getByRole('button', { name: 'Zmień motyw: systemowy' })).toHaveFocus();
+    expect(localStorage.getItem('app-theme')).toBe('dark');
+    expect(screen.getByRole('button', { name: 'Zmień motyw: ciemny' })).toHaveFocus();
   });
 
   it('restores the selected theme after remount and offers both light and dark', async () => {

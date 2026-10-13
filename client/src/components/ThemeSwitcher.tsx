@@ -1,4 +1,4 @@
-import { Check, Monitor, Moon, Sun } from 'lucide-react';
+import { Check, Moon, Sun } from 'lucide-react';
 import { DropdownMenu } from 'radix-ui';
 import { useTheme } from '../context/ThemeContext';
 import type { ThemePreference } from '../context/ThemeContext';
@@ -8,7 +8,6 @@ import './ThemeSwitcher.css';
 const options = [
   { value: 'light', label: 'Jasny', icon: Sun },
   { value: 'dark', label: 'Ciemny', icon: Moon },
-  { value: 'system', label: 'Systemowy', icon: Monitor },
 ] as const;
 
 export default function ThemeSwitcher() {

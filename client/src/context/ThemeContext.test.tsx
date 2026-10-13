@@ -1,15 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { act } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { ThemeProvider, useTheme } from './ThemeContext';
 
 function ThemeControls() {
-  const { theme, toggleTheme, resetTheme, setPreference } = useTheme();
+  const { theme, toggleTheme, resetTheme } = useTheme();
   return <>
     <output>{theme}</output>
     <button onClick={toggleTheme}>toggle</button>
     <button onClick={resetTheme}>reset</button>
-    <button onClick={() => setPreference('system')}>system</button>
   </>;
 }
 
@@ -22,19 +20,29 @@ describe('theme behavior', () => {
     expect(localStorage.getItem('app-theme')).toBe(expected);
   });
 
-  it('tracks system color changes without replacing the saved system preference', () => {
-    let onChange = () => {};
-    const query = { matches: false, addEventListener: vi.fn((_name, listener) => { onChange = listener; }), removeEventListener: vi.fn() };
+  it.each([false, true])('migrates the saved system choice once, with dark preference %s', dark => {
+    localStorage.setItem('app-theme', 'system');
+    const query = { matches: dark, addEventListener: vi.fn(), removeEventListener: vi.fn() };
     vi.stubGlobal('matchMedia', vi.fn(() => query));
     try {
+      const view = render(<ThemeProvider><ThemeControls /></ThemeProvider>);
+      const expected = dark ? 'dark' : 'light';
+      expect(document.documentElement.getAttribute('data-theme')).toBe(expected);
+      expect(localStorage.getItem('app-theme')).toBe(expected);
+      expect(query.addEventListener).not.toHaveBeenCalled();
+      query.matches = !dark;
+      view.unmount();
       render(<ThemeProvider><ThemeControls /></ThemeProvider>);
-      fireEvent.click(screen.getByText('system'));
-      expect(document.documentElement.getAttribute('data-theme')).toBe('light');
-      query.matches = true;
-      act(() => onChange());
-      expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
-      expect(localStorage.getItem('app-theme')).toBe('system');
+      expect(document.documentElement.getAttribute('data-theme')).toBe(expected);
     } finally { vi.unstubAllGlobals(); }
+  });
+
+  it('migrates a system choice to dark when system theme detection is unavailable', () => {
+    localStorage.setItem('app-theme', 'system');
+    vi.stubGlobal('matchMedia', undefined);
+    render(<ThemeProvider><ThemeControls /></ThemeProvider>);
+    expect(document.documentElement.getAttribute('data-theme')).toBe('dark');
+    expect(localStorage.getItem('app-theme')).toBe('dark');
   });
 
   it('toggles and resets with the original storage/effect ordering', () => {
