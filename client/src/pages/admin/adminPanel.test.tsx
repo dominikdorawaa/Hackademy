@@ -87,6 +87,16 @@ function navigation() {
 }
 
 describe('admin panel layout', () => {
+  it('uses the shared theme selector in the administrative header', async () => {
+    signIn('ADMIN');
+    server.use(http.get(`${API_URL}/api/admin/users`, () => HttpResponse.json([])));
+    mountAdmin('/admin/users');
+    await screen.findByRole('heading', { name: 'Użytkownicy', level: 1 });
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Włącz jasny motyw' }));
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    expect(localStorage.getItem('app-theme')).toBe('light');
+  });
   it('shows every section to an administrator and keeps the section after a reload', async () => {
     signIn('ADMIN');
     server.use(http.get(`${API_URL}/api/admin/users`, () => HttpResponse.json([])));

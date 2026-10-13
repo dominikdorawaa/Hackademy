@@ -4,9 +4,7 @@ import {
   Flag,
   LayoutDashboard,
   MessageSquareWarning,
-  Moon,
   Route as RouteIcon,
-  Sun,
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -30,9 +28,8 @@ import {
   SidebarTrigger,
 } from '@/components/ui/sidebar';
 import { Separator } from '@/components/ui/separator';
-import { Button } from '@/components/ui/button';
+import ThemeSwitcher from '../../components/ThemeSwitcher';
 import { TooltipProvider } from '@/components/ui/tooltip';
-import { useTheme } from '../../context/ThemeContext';
 import { useAdminAccess } from './adminAccess';
 
 interface NavItem {
@@ -99,16 +96,6 @@ function currentSectionTitle(pathname: string, isAdmin: boolean) {
     }
   }
   return 'Panel';
-}
-
-function ThemeToggle() {
-  const { theme, toggleTheme } = useTheme();
-  const nextLabel = theme === 'dark' ? 'Włącz jasny motyw' : 'Włącz ciemny motyw';
-  return (
-    <Button variant="ghost" size="icon-sm" onClick={toggleTheme} aria-label={nextLabel} title={nextLabel}>
-      {theme === 'dark' ? <Sun /> : <Moon />}
-    </Button>
-  );
 }
 
 export default function AdminLayout() {
@@ -215,7 +202,7 @@ export default function AdminLayout() {
             <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
             <p className="truncate text-sm font-medium" aria-live="polite">{currentSectionTitle(pathname, isAdmin)}</p>
             <div className="ml-auto">
-              <ThemeToggle />
+              <ThemeSwitcher />
             </div>
           </header>
           <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8">

@@ -11,6 +11,9 @@ import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import type { Challenge, DashboardUser, FriendRequestDto } from '../types/api';
 import './Navbar.css';
 import { Button } from './ui/button';
+import ThemeSwitcher from './ThemeSwitcher';
+import NavIconButton from './NavIconButton';
+import { Bell } from 'lucide-react';
 import { PROFILE_UPDATED } from '../lib/profile';
 import type { ProfilePersonalization } from '../lib/profile';
 
@@ -266,23 +269,21 @@ const Navbar = () => {
             </div>
           )}
           <div className="nav-auth">
+            <ThemeSwitcher />
             {isAuthenticated && userData ? (
               <div className="nav-user-controls">
                 
                 {/* Notifications Bell */}
                 <div ref={notifRef} style={{ position: 'relative' }}>
-                    <button
-                        type="button"
+                    <NavIconButton
                         data-slot="nav-notifications"
                         aria-label="Powiadomienia"
                         aria-expanded={isNotificationsOpen}
-                        className="nav-icon-wrapper"
                         onClick={() => setIsNotificationsOpen(!isNotificationsOpen)}
-                        style={{ color: 'var(--text-gray)' }}
                     >
-                        <i className="fas fa-bell"></i>
+                        <Bell aria-hidden="true" />
                         {unreadCount > 0 && <span className="notification-badge"></span>}
-                    </button>
+                    </NavIconButton>
 
                     {isNotificationsOpen && (
                         <div className="notifications-dropdown" style={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)' }}>

@@ -1,7 +1,7 @@
 import { createContext, useState, useContext, useEffect } from 'react';
 import type { PropsWithChildren } from 'react';
 
-export type ThemePreference = 'dark' | 'light' | 'system';
+export type ThemePreference = 'dark' | 'light';
 
 export interface ThemeContextValue {
   theme: string;
@@ -18,19 +18,11 @@ const ThemeContext = createContext<ThemeContextValue | undefined>(undefined);
 export const ThemeProvider = ({ children }: PropsWithChildren) => {
   const [preference, setPreference] = useState<ThemePreference>(() => {
     const saved = localStorage.getItem('app-theme');
-    return saved === 'light' || saved === 'system' ? saved : 'dark';
+    if (saved === 'system') return window.matchMedia?.('(prefers-color-scheme: dark)').matches === false ? 'light' : 'dark';
+    return saved === 'light' ? 'light' : 'dark';
   });
-  const [systemDark, setSystemDark] = useState(() => window.matchMedia?.('(prefers-color-scheme: dark)').matches ?? true);
   const [reducedMotion, setReducedMotion] = useState(() => localStorage.getItem('app-reduced-motion') === 'true');
-  const theme = preference === 'system' ? (systemDark ? 'dark' : 'light') : preference;
-
-  useEffect(() => {
-    const query = window.matchMedia?.('(prefers-color-scheme: dark)');
-    if (!query) return;
-    const changed = () => setSystemDark(query.matches);
-    query.addEventListener('change', changed);
-    return () => query.removeEventListener('change', changed);
-  }, []);
+  const theme = preference;
 
   useEffect(() => {
     localStorage.setItem('app-theme', preference);

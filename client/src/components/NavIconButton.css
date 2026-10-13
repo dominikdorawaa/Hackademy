@@ -1,0 +1,4 @@
+.nav-icon-button { position: relative; display: inline-flex; align-items: center; justify-content: center; flex-shrink: 0; width: 40px; height: 40px; padding: 0; color: var(--text-gray); background: transparent; border: 0; border-radius: 50%; transition: background-color 120ms ease-out, color 120ms ease-out; }
+.nav-icon-button > svg { width: 20px; height: 20px; }
+.nav-icon-button:hover, .nav-icon-button[aria-expanded='true'] { color: var(--text-light); background: var(--bg-panel-lighter); }
+.nav-icon-button:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3px; }

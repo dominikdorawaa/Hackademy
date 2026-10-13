@@ -17,6 +17,15 @@ function mount(section = 'account') {
 }
 
 describe('settings', () => {
+  it('keeps reduced motion in settings without duplicating the theme selector', async () => {
+    mount('appearance');
+    expect(screen.getByRole('switch', { name: 'Ogranicz animacje' })).toBeInTheDocument();
+    expect(screen.queryByRole('group', { name: 'Motyw aplikacji' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Jasny|Ciemny|Systemowy|Włącz .* motyw/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('switch', { name: 'Ogranicz animacje' }));
+    expect(document.documentElement).toHaveAttribute('data-reduced-motion', 'true');
+    expect(localStorage.getItem('app-reduced-motion')).toBe('true');
+  });
   it('saves notification preferences and restores them after switching sections', async () => {
     let saved = { ...defaultNotificationPreferences };
     server.use(

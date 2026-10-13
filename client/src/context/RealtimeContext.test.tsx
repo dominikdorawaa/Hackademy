@@ -12,6 +12,7 @@ import API_URL from '../apiConfig';
 import { Link, MemoryRouter, Route, Routes, useLocation } from 'react-router-dom';
 import RealtimeGameNavigation from '../components/RealtimeGameNavigation';
 import Navbar from '../components/Navbar';
+import { ThemeProvider } from './ThemeContext';
 import ArenaPage from '../pages/ArenaPage';
 import FriendsPage from '../pages/FriendsPage';
 import * as httpService from '../services/http';
@@ -207,7 +208,7 @@ describe('shared realtime state', () => {
       http.get(`${API_URL}/api/arena/status`, () => { polling++; return new HttpResponse(null, { status: 204 }); }),
     );
     localStorage.setItem('token', createToken());
-    render(<MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider><RealtimeGameNavigation /><GameLocation /><Navbar /><ArenaPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
+    render(<ThemeProvider><MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider><RealtimeGameNavigation /><GameLocation /><Navbar /><ArenaPage /></RealtimeProvider></AuthProvider></MemoryRouter></ThemeProvider>);
     expect(connections).toHaveLength(1);
     expect(await screen.findByRole('button', { name: 'Znajdź Przeciwnika' })).toBeDisabled();
     expect(screen.getByText('Łączenie z Areną. Poczekaj na połączenie z serwerem.')).toBeInTheDocument();

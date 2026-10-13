@@ -2,8 +2,7 @@
   .nav-streak { display: flex; }
   .nav-user-controls { display: flex; align-items: center; gap: 15px; }
   .nav-account-toggle { display: block; padding: 0; border: 0; background: transparent; border-radius: 50%; cursor: pointer; }
-  button.nav-icon-wrapper { padding: 0; border: 0; background: transparent; }
-  .nav-account-toggle:focus-visible, .nav-icon-wrapper:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3px; }
+  .nav-account-toggle:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3px; }
   @media (min-width: 768px) and (max-width: 1100px) {
     .navbar .nav-links { gap: 12px; }
     .navbar .nav-links a { font-size: 12px; white-space: nowrap; }
@@ -273,46 +272,6 @@
   font-size: 2rem;
   color: #333;
   margin-bottom: 5px;
-}
-
-/* Bell Icon Wrapper */
-.nav-icon-wrapper {
-  position: relative;
-  width: 40px;
-  height: 40px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  border-radius: 50%;
-  cursor: pointer;
-  transition: background 0.2s;
-}
-
-.nav-icon-wrapper:hover {
-  background: rgba(255, 255, 255, 0.1);
-}
-
-.nav-icon-wrapper i {
-  font-size: 1.2rem;
-  color: var(--text-gray); /* Use variable for theme support */
-  transition: color 0.2s;
-}
-
-.nav-icon-wrapper:hover i {
-  color: var(--text-light); /* Use variable for theme support */
-}
-
-/* Light Mode Specifics for Bell */
-[data-theme='light'] .nav-icon-wrapper i {
-    color: #4b5563; /* Dark gray for visibility */
-}
-
-[data-theme='light'] .nav-icon-wrapper:hover {
-    background: rgba(0, 0, 0, 0.05);
-}
-
-[data-theme='light'] .nav-icon-wrapper:hover i {
-    color: #111827; /* Almost black on hover */
 }
 
 .notification-badge {
