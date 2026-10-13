@@ -10,6 +10,14 @@ import { server } from '../test/mocks/server';
 import { renderWithAuth } from '../test/renderWithAuth';
 import type { Challenge, FriendRequestDto } from '../types/api';
 
+it.each(['/login', '/register', '/ranking'])('offers a theme selector to visitors on %s', async path => {
+  renderWithAuth(<Route path="*" element={<Navbar />} />, path);
+  const user = userEvent.setup();
+  await user.click(screen.getByRole('button', { name: /Zmień motyw/ }));
+  await user.click(screen.getByRole('menuitemradio', { name: 'Jasny' }));
+  expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+});
+
 it('opens navigation, closes it with Escape and restores focus, then closes after following a link', async () => {
   localStorage.setItem('token', createToken());
   server.use(
@@ -18,6 +26,7 @@ it('opens navigation, closes it with Escape and restores focus, then closes afte
   );
   renderWithAuth(<Route path="*" element={<Navbar />} />, '/profile');
   await screen.findByRole('button', { name: 'Menu konta' });
+  expect(screen.getByRole('button', { name: /Zmień motyw/ })).toBeInTheDocument();
   const user = userEvent.setup();
   const menu = screen.getByRole('button', { name: /^Menu$/ });
   expect(menu).toHaveAttribute('aria-expanded', 'false');

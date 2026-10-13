@@ -13,7 +13,7 @@ import './SettingsPage.css';
 const sections = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.' },
   notifications: { title: 'Powiadomienia', description: 'Wybierz, o czym i jak chcesz się dowiadywać.' },
-  appearance: { title: 'Wygląd', description: 'Dostosuj interfejs do swoich preferencji.' },
+  appearance: { title: 'Wygląd', description: 'Dostosuj animacje do swoich preferencji.' },
   security: { title: 'Bezpieczeństwo', description: 'Zadbaj o dostęp do swojego konta.' },
 };
 type Section = keyof typeof sections;
@@ -39,7 +39,7 @@ function Switch({ label, checked, disabled, onChange }: { label: string; checked
 
 export default function SettingsPage() {
   const { user, token, login, logout } = useAuth();
-  const { preference, setPreference, reducedMotion, setReducedMotion } = useTheme();
+  const { reducedMotion, setReducedMotion } = useTheme();
   const { preferences, loaded, saving, error: preferenceError, reload, update } = useNotificationPreferences();
   const navigate = useNavigate();
   const [search, setSearch] = useSearchParams();
@@ -187,13 +187,9 @@ export default function SettingsPage() {
           <p className="settings-footnote">Preferencje zapisują się na koncie. Dźwięk wymaga wcześniejszej interakcji ze stroną.</p>
         </>}
         {section === 'appearance' && <>
-          <h3 className="settings-group-title">Motyw aplikacji</h3>
-          <div className="settings-themes" role="group" aria-label="Motyw aplikacji">{([['system', 'Systemowy', 'Według urządzenia'], ['dark', 'Ciemny', 'Mniej światła'], ['light', 'Jasny', 'Jasne tło']] as const).map(([value, title, description]) => <button key={value} type="button" aria-pressed={preference === value} className={`settings-theme-option settings-theme-${value}`} onClick={() => { setPreference(value); setFeedback({ message: 'Motyw został zapisany na tym urządzeniu.', error: false }); }}>
-            <span className="settings-theme-preview" aria-hidden="true"><span /><span /><span /></span><strong>{title}</strong><span>{description}</span>
-          </button>)}</div>
           <h3 className="settings-group-title">Dostępność</h3>
           <SettingRow title="Ogranicz animacje" description="Spokojniejsze przejścia i mniej ruchu w interfejsie."><Switch label="Ogranicz animacje" checked={reducedMotion} onChange={value => { setReducedMotion(value); setFeedback({ message: 'Preferencja została zapisana na tym urządzeniu.', error: false }); }} /></SettingRow>
-          <p className="settings-footnote">Ustawienia systemowe ograniczające ruch są zawsze respektowane. Wygląd zapisuje się na tym urządzeniu.</p>
+          <p className="settings-footnote">Ustawienia systemowe ograniczające ruch są zawsze respektowane. Preferencja animacji zapisuje się na tym urządzeniu.</p>
         </>}
         {section === 'security' && <>
           <h3 className="settings-group-title">Zmiana hasła</h3>

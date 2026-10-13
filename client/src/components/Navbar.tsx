@@ -11,6 +11,7 @@ import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import type { Challenge, DashboardUser, FriendRequestDto } from '../types/api';
 import './Navbar.css';
 import { Button } from './ui/button';
+import ThemeSwitcher from './ThemeSwitcher';
 import { PROFILE_UPDATED } from '../lib/profile';
 import type { ProfilePersonalization } from '../lib/profile';
 
@@ -266,6 +267,7 @@ const Navbar = () => {
             </div>
           )}
           <div className="nav-auth">
+            <ThemeSwitcher />
             {isAuthenticated && userData ? (
               <div className="nav-user-controls">
                 
