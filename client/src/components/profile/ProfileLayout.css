@@ -142,12 +142,15 @@
   .profile-activity .activity-calendar-detail { flex-basis: 100%; line-height: 1.5; }
   .profile-activity .activity-calendar-legend { font-size: 11px; }
   .profile-activity .activity-calendar-legend [data-level] { width: 10px; height: 10px; border-radius: 2px; }
-  .profile-stats-period { font-size: 12px; color: var(--text-gray); margin: -14px 0 12px; }
-  .profile-learning-stats-list { margin: 0; }
-  .profile-learning-stats-list > div { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 4px 16px; padding: 14px 0; border-bottom: 1px solid var(--profile-divider); }
-  .profile-learning-stats-list dt { font-size: 13px; color: var(--text-light); }
-  .profile-learning-stats-list dd { margin: 0; font-size: 16px; font-weight: 600; color: var(--text-light); text-align: right; overflow-wrap: anywhere; font-variant-numeric: tabular-nums; }
-  .profile-learning-stats-list dt small { display: block; font-size: 12px; color: var(--text-gray); margin-top: 4px; line-height: 1.5; }
+  .profile-stats-heading { margin-bottom: 24px; }
+  .profile-stats-period { font-size: 13px; color: var(--text-gray); margin: 6px 0 0; }
+  .profile-learning-stats-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 28px; margin: 0; }
+  .profile-learning-stats-list > div { min-width: 0; }
+  .profile-learning-stats-list dt { font-size: 13px; line-height: 1.5; color: var(--text-gray); margin-bottom: 8px; }
+  .profile-learning-stats-list dd { margin: 0; color: var(--text-light); font-variant-numeric: tabular-nums; }
+  .profile-stat-value { display: block; font-size: clamp(24px, 2.4vw, 32px); font-weight: 600; line-height: 1.15; white-space: nowrap; }
+  .profile-stat-unit { display: block; margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--text-gray); text-wrap: balance; }
+  .profile-stat-date time { display: block; font-size: 16px; line-height: 1.5; text-wrap: pretty; }
   .profile-section-error { display: grid; justify-items: start; gap: 10px; }
   .profile-duels { display: flex; gap: 20px; justify-content: space-between; }
   .profile-duels p { color: var(--text-gray); margin: 0; }

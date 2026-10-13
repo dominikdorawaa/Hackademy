@@ -1,5 +1,5 @@
 import type { ActivityDto } from '../../types/api';
-import { profileActivityFacts, solvedRoomsLabel } from '../../lib/activity';
+import { localDateKey, profileActivityFacts } from '../../lib/activity';
 
 export default function ProfileLearningStats({ activity, loading }: {
   activity: ActivityDto[] | null;
@@ -11,33 +11,32 @@ export default function ProfileLearningStats({ activity, loading }: {
     {
       label: 'Rekord jednego dnia',
       value: best.count.toLocaleString('pl-PL'),
-      detail: `${solvedRoomsLabel(best.count)} · ${best.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'short' })}`,
+      unit: 'rozwiązań',
     },
     {
       label: 'Najdłuższa seria',
-      value: `${facts.longestStreak} ${facts.longestStreak === 1 ? 'dzień' : 'dni'}`,
-      detail: 'Z co najmniej jednym rozwiązaniem dziennie',
-    },
-    {
-      label: 'Najaktywniejszy dzień',
-      value: best.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' }),
-      detail: `${best.count.toLocaleString('pl-PL')} ${solvedRoomsLabel(best.count)}`,
+      value: facts.longestStreak.toLocaleString('pl-PL'),
+      unit: facts.longestStreak === 1 ? 'dzień z aktywnością' : 'dni z aktywnością',
     },
     {
       label: 'Średnia w aktywnym dniu',
       value: facts.averagePerActiveDay.toLocaleString('pl-PL', { maximumFractionDigits: 1 }),
-      detail: 'Rozwiązań na dzień z aktywnością',
+      unit: 'rozwiązań',
     },
   ] : [];
 
   return <section className="profile-section profile-learning-stats" aria-labelledby="profile-learning-stats-title">
-    <div className="profile-section-heading"><h2 id="profile-learning-stats-title">Statystyki nauki</h2></div>
-    <p className="profile-stats-period">Ostatnie 12 tygodni</p>
+    <div className="profile-stats-heading"><h2 id="profile-learning-stats-title">Statystyki nauki</h2>
+      <p className="profile-stats-period">Ostatnie 12 tygodni</p></div>
     {loading ? <p className="profile-muted" role="status">Ładowanie statystyk…</p>
       : !activity ? <p className="profile-muted">Statystyki są niedostępne. Ponów pobieranie w sekcji „Regularność nauki”.</p>
       : !rows.length ? <p className="profile-muted">Statystyki pojawią się po pierwszym rozwiązanym pokoju.</p>
       : <dl className="profile-learning-stats-list">{rows.map(row => <div key={row.label}>
-        <dt>{row.label}<small>{row.detail}</small></dt><dd>{row.value}</dd>
-      </div>)}</dl>}
+        <dt>{row.label}</dt><dd><span className="profile-stat-value">{row.value}</span><span className="profile-stat-unit">{row.unit}</span></dd>
+      </div>)}
+        {best && <div className="profile-stat-date"><dt>Najaktywniejszy dzień</dt>
+          <dd><time dateTime={localDateKey(best.date)}>{best.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}</time></dd>
+        </div>}
+      </dl>}
   </section>;
 }

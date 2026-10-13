@@ -29,7 +29,8 @@ describe('learning statistics', () => {
       { date: '2026-10-08', count: 3 }, { date: '2026-10-09', count: 2 },
     ]} />);
     expect(screen.getByText('Ostatnie 12 tygodni')).toBeInTheDocument();
-    expect(screen.getByText('2 dni')).toBeInTheDocument();
+    expect(screen.getByText('2')).toBeInTheDocument();
+    expect(screen.getByText('dni z aktywnością')).toBeInTheDocument();
     expect(screen.getByText('2,5')).toBeInTheDocument();
     expect(screen.getByText('8 października 2026')).toBeInTheDocument();
     expect(screen.queryByText(/Elo|XP|poziom|podpowiedzi/)).not.toBeInTheDocument();
@@ -43,5 +44,16 @@ describe('learning statistics', () => {
     expect(screen.getByText(/Statystyki są niedostępne/)).toBeInTheDocument();
     rerender(<ProfileLearningStats activity={null} loading />);
     expect(screen.getByRole('status')).toHaveTextContent('Ładowanie statystyk');
+  });
+
+  it('uses the latest tied date and preserves large values and singular streak units', () => {
+    vi.useFakeTimers();
+    vi.setSystemTime(new Date(2026, 9, 9, 12));
+    const activity = [{ date: '2026-10-01', count: 1234567 }, { date: '2026-10-08', count: 1234567 }];
+    expect(profileActivityFacts(activity, new Date()).bestDay?.date).toEqual(new Date(2026, 9, 8, 12));
+    render(<ProfileLearningStats activity={activity} loading={false} />);
+    expect(screen.getAllByText(/1\s234\s567/)).toHaveLength(2);
+    expect(screen.getByText('dzień z aktywnością')).toBeInTheDocument();
+    expect(screen.getByText('8 października 2026')).toHaveAttribute('datetime', '2026-10-08');
   });
 });
