@@ -11,6 +11,8 @@ import { currentUserHandler } from '../../test/mocks/handlers';
 import { createToken } from '../../test/fixtures/auth';
 import { AdminAccessRoute } from './adminAccess';
 import PathsPage from './PathsPage';
+import PathImportDialog from './PathImportDialog';
+import type { ExistingImportPath } from './PathImportDialog';
 import * as contentApi from '../../services/contentApi';
 import type { PathAdminDetailDto } from '../../types/api';
 import example from '../../data/path-import-example.json?raw';
@@ -23,9 +25,9 @@ beforeEach(() => {
   localStorage.setItem('token', createToken('ADMIN'));
   server.use(currentUserHandler('ADMIN'), http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json([])));
 });
-function mount() {
+function mount(existing?: ExistingImportPath, onImported?: (path: PathAdminDetailDto) => void) {
   const router = createMemoryRouter([{ element: <ThemeProvider><AuthProvider><Outlet /></AuthProvider></ThemeProvider>, children: [
-    { path: '/admin/paths', element: <AdminAccessRoute><PathsPage /></AdminAccessRoute> },
+    { path: '/admin/paths', element: <AdminAccessRoute>{existing ? <PathImportDialog existing={existing} onImported={onImported} /> : <PathsPage />}</AdminAccessRoute> },
     { path: '/admin/paths/12', element: <h1>Edytor importu</h1> },
     { path: '/', element: <h1>Główna</h1> },
   ] }], { initialEntries: ['/admin/paths'] });
@@ -44,6 +46,23 @@ function choose(file = new File([example], 'path.json', { type: 'application/jso
 }
 
 describe('learning path import', () => {
+  it('makes file selection visible and shows the name and size without losing it on picker cancellation', async () => {
+    const { user } = await open();
+    const input = screen.getByLabelText('Plik JSON (do 5 MB)');
+    const click = vi.spyOn(input, 'click');
+    await user.click(screen.getByRole('button', { name: 'Wybierz plik JSON' }));
+    expect(click).toHaveBeenCalledOnce();
+    const file = choose();
+    expect(screen.getByText('path.json')).toBeInTheDocument();
+    expect(screen.getByText(/Wybrany plik/)).toHaveTextContent('KB');
+    expect(input).toHaveValue('');
+    await user.click(screen.getByRole('button', { name: 'Zmień plik' }));
+    fireEvent.change(input, { target: { files: [] } });
+    expect(screen.getByText(file.name)).toBeInTheDocument();
+    const replacement = new File(['{}'], 'replacement.json'); choose(replacement);
+    expect(screen.getByText(replacement.name)).toBeInTheDocument();
+    expect(screen.queryByText(file.name)).not.toBeInTheDocument();
+  });
   it('shows a readable downloadable example and copies it', async () => {
     const { user } = await open();
     expect(screen.getByRole('button', { name: 'Importuj jako szkic' })).toBeDisabled();
@@ -153,5 +172,43 @@ describe('learning path import', () => {
     expect(await screen.findByText('Nie udało się pobrać listy')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Importuj JSON' }));
     expect(screen.getByRole('dialog', { name: 'Import ścieżki z JSON' })).toBeInTheDocument();
+  });
+});
+
+describe('import into an existing path', () => {
+  const existing: ExistingImportPath = { id: 12, title: 'Zapisana ścieżka', contentRevision: 7, chaptersRevision: 4,
+    chapters: [{ id: 21, title: 'Pierwszy', roomIds: [1] }, { id: 22, title: 'Drugi', roomIds: [] }] };
+  it('uses a rooms-only example and sends the selected chapter with both path versions', async () => {
+    const upload = vi.spyOn(contentApi, 'importPathRooms').mockResolvedValue(imported);
+    const complete = vi.fn(); const user = userEvent.setup(); const router = mount(existing, complete);
+    await user.click(await screen.findByRole('button', { name: 'Importuj pokoje z JSON' }));
+    expect(screen.getByText('Ścieżka: Zapisana ścieżka')).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Dodaj do rozdziału'), '22');
+    await user.click(screen.getByText('Format i przykładowy plik JSON'));
+    const sample = (screen.getByLabelText('Przykładowy JSON') as HTMLTextAreaElement).value;
+    expect(JSON.parse(sample)).toEqual({ rooms: JSON.parse(example).chapters[0].rooms });
+    expect(screen.getByRole('link', { name: 'Pobierz przykład' })).toHaveAttribute('download', 'przyklad-pokoi.json');
+    const copy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    await user.click(screen.getByRole('button', { name: 'Kopiuj przykład' })); expect(copy).toHaveBeenCalledWith(sample);
+    const file = choose(); await user.click(screen.getByRole('button', { name: 'Dodaj pokoje jako szkice' }));
+    await waitFor(() => expect(complete).toHaveBeenCalledWith(imported));
+    expect(upload).toHaveBeenCalledWith(12, { chapterId: 22, contentRevision: 7, chaptersRevision: 4 }, file, expect.any(String));
+    expect(router.state.location.pathname).toBe('/admin/paths');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+  it('preserves file and chapter selection after a stale-version conflict', async () => {
+    const upload = vi.spyOn(contentApi, 'importPathRooms').mockRejectedValue(new contentApi.ContentError('Ścieżka zmieniła się w międzyczasie.'));
+    const user = userEvent.setup(); mount(existing);
+    await user.click(await screen.findByRole('button', { name: 'Importuj pokoje z JSON' }));
+    await user.selectOptions(screen.getByLabelText('Dodaj do rozdziału'), '22'); const file = choose();
+    await user.click(screen.getByRole('button', { name: 'Dodaj pokoje jako szkice' }));
+    expect(await screen.findByText('Ścieżka zmieniła się w międzyczasie.')).toBeInTheDocument();
+    expect(screen.getByLabelText('Dodaj do rozdziału')).toHaveValue('22');
+    expect(screen.getByText(file.name)).toBeInTheDocument();
+    expect(upload).toHaveBeenCalledOnce();
+  });
+  it('requires a saved chapter before offering the import', async () => {
+    mount({ ...existing, chapters: [{ id: null, title: 'Niezapisany', roomIds: [] }] });
+    expect(await screen.findByRole('button', { name: 'Importuj pokoje z JSON' })).toBeDisabled();
   });
 });

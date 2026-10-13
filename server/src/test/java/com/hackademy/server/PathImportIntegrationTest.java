@@ -4,6 +4,7 @@ import com.fasterxml.jackson.databind.ObjectMapper;
 import com.fasterxml.jackson.databind.node.ArrayNode;
 import com.fasterxml.jackson.databind.node.ObjectNode;
 import com.hackademy.server.content.PathImportService;
+import com.hackademy.server.content.ContentRequests;
 import com.hackademy.server.room.RoomService;
 import com.hackademy.server.room.dto.CreateRoomRequest;
 import com.hackademy.server.user.Role;
@@ -16,6 +17,9 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.concurrent.CountDownLatch;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.mock.web.MockMultipartFile;
@@ -63,6 +67,139 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         String result = upload(admin, doc.toString(), 400);
         assertEquals(before, counts());
         return JsonPath.read(result, "$.fields");
+    }
+
+    private long number(String response, String path) {
+        return ((Number) JsonPath.read(response, path)).longValue();
+    }
+
+    private ObjectNode batch() throws IOException {
+        var doc = document();
+        room(doc, 0).put("title", "Nowy terminal"); room(doc, 1).put("title", "Nowa flaga");
+        return json.createObjectNode().set("rooms", doc.path("chapters").get(0).path("rooms"));
+    }
+
+    private Map<String, Long> target(String path) {
+        return Map.of("chapterId", number(path, "$.chapters[0].id"), "contentRevision", number(path, "$.contentRevision"), "chaptersRevision", number(path, "$.revision"));
+    }
+
+    private String append(Account admin, long id, Map<String, Long> target, ObjectNode batch, int expected) throws Exception {
+        return mockMvc.perform(multipart("/api/admin/content/paths/" + id + "/rooms/import")
+                        .file(new MockMultipartFile("target", "", "application/json", json.writeValueAsBytes(target)))
+                        .file(file(batch.toString())).header("Authorization", "Bearer " + admin.token()))
+                .andExpect(status().is(expected)).andReturn().getResponse().getContentAsString();
+    }
+
+    @Test
+    void appendsDraftRoomsWithoutChangingExistingPublishedContentOrProgress() throws Exception {
+        var admin = account(Role.ADMIN); var user = account(Role.USER);
+        String path = upload(admin, document().toString(), 201);
+        long id = number(path, "$.id"), chapter = number(path, "$.chapters[0].id"), first = number(path, "$.chapters[0].roomIds[0]");
+        jdbcTemplate.update("UPDATE paths SET published = true, banner_url = 'https://example.com/banner.png' WHERE id = ?", id);
+        jdbcTemplate.update("UPDATE rooms SET published = true WHERE id IN (SELECT room_id FROM chapter_rooms WHERE chapter_id = ?)", chapter);
+        jdbcTemplate.update("UPDATE chapter_rooms SET sort_order = 7 WHERE room_id = ?", first);
+        jdbcTemplate.update("INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (?, ?, now())", user.id(), first);
+        jdbcTemplate.update("INSERT INTO path_enrollments (user_id, path_id, enrolled_at) VALUES (?, ?, now())", user.id(), id);
+        var before = jdbcTemplate.queryForList("SELECT r.* FROM rooms r JOIN chapter_rooms cr ON cr.room_id = r.id WHERE cr.chapter_id = ? ORDER BY r.id", chapter);
+        var metadata = jdbcTemplate.queryForMap("SELECT title, description, banner_url, published, unlock_mode FROM paths WHERE id = ?", id);
+        String updated = append(admin, id, target(path), batch(), 201);
+        assertEquals(metadata, jdbcTemplate.queryForMap("SELECT title, description, banner_url, published, unlock_mode FROM paths WHERE id = ?", id));
+        assertEquals(before, jdbcTemplate.queryForList("SELECT r.* FROM rooms r WHERE r.id IN (?, ?) ORDER BY r.id", first, number(path, "$.chapters[0].roomIds[1]")));
+        assertEquals(number(path, "$.revision") + 1, number(updated, "$.revision"));
+        assertEquals(number(path, "$.contentRevision") + 1, number(updated, "$.contentRevision"));
+        var added = jdbcTemplate.queryForList("SELECT r.published, r.title, cr.sort_order FROM rooms r JOIN chapter_rooms cr ON cr.room_id = r.id WHERE cr.chapter_id = ? AND cr.sort_order > 7 ORDER BY cr.sort_order", chapter);
+        assertEquals(List.of("Nowy terminal", "Nowa flaga"), added.stream().map(r -> r.get("title")).toList());
+        assertEquals(List.of(8, 9), added.stream().map(r -> r.get("sort_order")).toList());
+        assertTrue(added.stream().allMatch(r -> r.get("published").equals(false)));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE user_id = ? AND room_id = ?", Integer.class, user.id(), first));
+        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM path_enrollments WHERE user_id = ? AND path_id = ?", Integer.class, user.id(), id));
+        getAs(user, "/api/rooms/" + number(updated, "$.chapters[0].roomIds[2]")).andExpect(status().isNotFound());
+    }
+
+    @Test
+    void appendCollectsBatchAndExistingTitleErrorsAndMakesNoWrites() throws Exception {
+        var admin = account(Role.ADMIN); String path = upload(admin, document().toString(), 201);
+        var batch = batch();
+        ((ObjectNode) batch.path("rooms").get(0)).put("title", " Terminal ").put("points", -1);
+        ((ObjectNode) batch.path("rooms").get(1)).put("title", "Terminal").remove("flag");
+        var before = counts(); String response = append(admin, number(path, "$.id"), target(path), batch, 400);
+        Map<String, String> fields = JsonPath.read(response, "$.fields");
+        assertTrue(fields.keySet().containsAll(List.of("pokój 1: title", "pokój 1: points", "pokój 2: title", "pokój 2: flag")));
+        assertEquals(before, counts());
+        var invalid = json.createObjectNode().put("title", "Forbidden"); invalid.putArray("rooms");
+        append(admin, number(path, "$.id"), target(path), invalid, 400);
+        assertEquals(before, counts());
+        assertEquals(number(path, "$.revision"), jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, number(path, "$.id")));
+    }
+
+    @Test
+    void appendRejectsStaleMissingForeignAndUnauthorizedTargets() throws Exception {
+        var admin = account(Role.ADMIN); String path = upload(admin, document().toString(), 201);
+        long id = number(path, "$.id"); String other = upload(admin, document().toString(), 201);
+        var before = counts();
+        for (String key : List.of("contentRevision", "chaptersRevision")) {
+            var stale = new LinkedHashMap<>(target(path)); stale.put(key, 99L);
+            append(admin, id, stale, batch(), 409);
+            stale.remove(key); append(admin, id, stale, batch(), 400);
+        }
+        var foreign = new LinkedHashMap<>(target(path)); foreign.put("chapterId", number(other, "$.chapters[0].id"));
+        append(admin, id, foreign, batch(), 409);
+        append(admin, Long.MAX_VALUE, target(path), batch(), 404);
+        for (Role role : List.of(Role.EXPERT, Role.USER)) append(account(role), id, target(path), batch(), 403);
+        assertEquals(before, counts());
+    }
+
+    @Test
+    void appendRespectsTheChapterCapacityAndRequiresAnObjectDocument() throws Exception {
+        var admin = account(Role.ADMIN); String path = upload(admin, document().toString(), 201);
+        long id = number(path, "$.id"), chapter = number(path, "$.chapters[0].id");
+        jdbcTemplate.update("""
+                WITH created AS (
+                  INSERT INTO rooms (title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at, published)
+                  SELECT 'Capacity ' || n, 'd', 'EASY', 'Linux', 30, 'flag', 0, false, 'PATH', now(), now(), false FROM generate_series(1, 498) n RETURNING id
+                ) INSERT INTO chapter_rooms(room_id, chapter_id, sort_order) SELECT id, ?, row_number() OVER (ORDER BY id) + 1 FROM created
+                """, chapter);
+        var before = counts(); String response = append(admin, id, target(path), batch(), 400);
+        assertTrue(response.contains("maksymalnie 500"));
+        assertEquals(before, counts());
+        var tooMany = json.createObjectNode(); var list = tooMany.putArray("rooms");
+        for (int i = 0; i < 501; i++) list.add(((ObjectNode) batch().path("rooms").get(1)).put("title", "Batch " + i));
+        append(admin, id, target(path), tooMany, 400);
+        assertThrows(com.hackademy.server.content.ContentValidation.InvalidContent.class,
+                () -> importer.importRooms(id, new ContentRequests.RoomImport(chapter, 0L, 0L), file("[]")));
+        assertEquals(before, counts());
+    }
+
+    @Test
+    void appendRollsBackNewRoomsAndPathVersionsWhenTheSecondRoomFails() throws Exception {
+        var admin = account(Role.ADMIN); String path = upload(admin, document().toString(), 201);
+        long id = number(path, "$.id"); var before = counts();
+        var calls = new AtomicInteger();
+        doAnswer(invocation -> { if (calls.incrementAndGet() == 2) throw new IOException("Second appended room failed"); return invocation.callRealMethod(); })
+                .when(roomService).createRoom(any(CreateRoomRequest.class), isNull());
+        assertThrows(IOException.class, () -> importer.importRooms(id, new ContentRequests.RoomImport(number(path, "$.chapters[0].id"), number(path, "$.contentRevision"), number(path, "$.revision")), file(batch().toString())));
+        assertEquals(before, counts());
+        assertEquals(number(path, "$.revision"), jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, id));
+        assertEquals(number(path, "$.contentRevision"), jdbcTemplate.queryForObject("SELECT content_revision FROM paths WHERE id = ?", Long.class, id));
+    }
+
+    @Test
+    void concurrentAppendAcceptsOnlyOneRequestForTheSamePathVersion() throws Exception {
+        var admin = account(Role.ADMIN); String path = upload(admin, document().toString(), 201); long id = number(path, "$.id");
+        var before = counts(); var start = new CountDownLatch(1); var executor = Executors.newFixedThreadPool(2);
+        var target = new MockMultipartFile("target", "", "application/json", json.writeValueAsBytes(target(path)));
+        var batchFile = file(batch().toString());
+        try {
+            java.util.concurrent.Callable<Integer> request = () -> {
+                assertTrue(start.await(10, TimeUnit.SECONDS));
+                return mockMvc.perform(multipart("/api/admin/content/paths/" + id + "/rooms/import").file(target).file(batchFile)
+                        .header("Authorization", "Bearer " + admin.token())).andReturn().getResponse().getStatus();
+            };
+            var first = executor.submit(request); var second = executor.submit(request); start.countDown();
+            assertEquals(List.of(201, 409), java.util.stream.Stream.of(first.get(20, TimeUnit.SECONDS), second.get(20, TimeUnit.SECONDS)).sorted().toList());
+        } finally { start.countDown(); executor.shutdownNow(); assertTrue(executor.awaitTermination(10, TimeUnit.SECONDS)); }
+        assertEquals(before.get("rooms") + 2, counts().get("rooms"));
+        assertEquals(1L, jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, id));
     }
 
     @Test

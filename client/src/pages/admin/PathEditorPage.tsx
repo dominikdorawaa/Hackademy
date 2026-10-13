@@ -13,6 +13,7 @@ import type { FieldErrors } from '../../components/admin/ContentFields';
 import { ContentChapters } from '../../components/admin/ContentStructure';
 import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
 import { useAdminAccess } from './adminAccess';
+import PathImportDialog from './PathImportDialog';
 
 const empty: PathSave = { revision: 0, chaptersRevision: 0, title: '', description: '', bannerUrl: null, published: false, chapters: [{ id: null, title: 'Rozdział 1', roomIds: [] }], unlockMode: 'OPEN' };
 const unlockModes: Record<PathUnlockMode, { label: string; description: string }> = {
@@ -117,7 +118,13 @@ function PathEditor({ pathId }: { pathId: string }) {
   return <>
     {guard.dialog}
     <Button asChild variant="ghost" className="mb-3"><Link to="/admin/paths">← Ścieżki</Link></Button>
-    <PageHeader title={id == null ? 'Nowa ścieżka' : form.title || 'Ścieżka'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, token); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
+    <PageHeader title={id == null ? 'Nowa ścieżka' : form.title || 'Ścieżka'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<>{id != null && isAdmin && <PathImportDialog disabled={loading || saving}
+      existing={{ id, title: baseline.title, contentRevision: baseline.revision, chaptersRevision: baseline.chaptersRevision, chapters: baseline.chapters }}
+      requestOpen={open => guard.request(open)} onImported={detail => {
+        const next = fromDetail(detail); formRef.current = next; setForm(next); setBaseline(next); setFile(null);
+        setSuccess('Dodano pokoje jako szkice. Istniejąca ścieżka zachowała swój status publikacji.');
+        setErrors({}); setError(null); setLoading(true); setAttempt(value => value + 1);
+      }} />}<Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, token); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
     {loading ? <LoadingRows label="Ładowanie ścieżki" /> : error && id != null && !form.title ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor ścieżki">

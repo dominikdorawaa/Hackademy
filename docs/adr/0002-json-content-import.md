@@ -23,6 +23,14 @@ Nieznane pola, identyfikatory istniejących materiałów, pola publikacji, banne
 
 `POST /api/admin/content/paths/import`, multipart z częścią `file`, zwraca 201 i szczegóły nowej ścieżki zgodne z edytorem. Przy walidacji zwraca 400 z `message` i mapą `fields`. Cała struktura jest zapisywana w jednej transakcji, także błąd podczas zapisu wycofuje wszystkie nowe materiały. Import nie modyfikuje istniejących ścieżek ani pokoi. Nie wymaga migracji bazy.
 
+## Dopisywanie pokoi do istniejącej ścieżki
+
+Administrator w edytorze zapisanej ścieżki wybiera „Importuj pokoje z JSON”, wskazuje istniejący rozdział i wgrywa dokument `{"rooms": [...]}`. Elementy `rooms` mają identyczny format jak pokoje w imporcie nowej ścieżki. Okno pokazuje przykład tego dokumentu do skopiowania lub pobrania. Plik nie zawiera metadanych ścieżki, identyfikatorów ani numerów wersji.
+
+Nowe pokoje są dopisywane na końcu wybranego rozdziału jako szkice; pozostają ukryte dla graczy nawet w opublikowanej ścieżce. Tytuł, opis, tryb odblokowania, status publikacji, istniejące rozdziały, kolejność obecnych pokoi i postępy pozostają bez zmian. Jedna transakcja obejmuje całą partię. Walidacja zbiera błędy wszystkich pokoi i porównuje tytuły także z istniejącymi pokojami wybranego rozdziału. Rozdział nie może po imporcie przekroczyć 500 pokoi; plik nadal ma limit 5 MB. Import nie tworzy nowych rozdziałów.
+
+`POST /api/admin/content/paths/{id}/rooms/import` przyjmuje multipart: `file` oraz część JSON `target` z `chapterId`, `contentRevision` i `chaptersRevision`. Wersje pochodzą ze szczegółów ścieżki, a rozdział musi należeć do tej ścieżki. Backend blokuje ścieżkę na czas zapisu; nieaktualne wersje lub obcy rozdział zwracają 409 bez zapisania pokoi. Sukces zwraca 201 ze zaktualizowanymi szczegółami i zwiększa obie wersje ścieżki. Edytor odświeża listę pokoi. Import korzysta z istniejącej ochrony niezapisanych zmian: przed otwarciem okna można zapisać zmiany, kontynuować edycję lub odrzucić zmiany.
+
 ## Import CTF
 
 Import listy pokoi CTF będzie osobno realizowany w #22. Ten dokument definiuje obecnie format ścieżek z #21.

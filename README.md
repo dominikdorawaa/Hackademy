@@ -132,6 +132,8 @@ Panel treści pozwala zapisywać szkice ścieżek i pokoi, publikować je, ukryw
 
 Administrator może w sekcji Ścieżki wybrać „Importuj JSON”, obejrzeć, skopiować lub pobrać przykład i wgrać całą nową ścieżkę. Import zapisuje ścieżkę, rozdziały, pokoje, podpowiedzi i zadania jako szkice w jednej transakcji. Błędny plik nie zapisuje żadnego elementu; lista błędów wskazuje pozycje w strukturze. Bannery, pliki pokoi i publikację dodaje się później w edytorze. Format i limity opisuje [ADR 0002](docs/adr/0002-json-content-import.md).
 
+W edytorze istniejącej ścieżki „Importuj pokoje z JSON” dopisuje nowe pokoje jako szkice do wybranego rozdziału, bez zmiany obecnych materiałów, postępów i statusu publikacji ścieżki. Przed importem edytor chroni niezapisane zmiany; backend sprawdza wersję ścieżki i tytuły pokoi w rozdziale.
+
 ## Testy backendu
 
 Uruchom Docker Engine, a następnie wykonaj `mvn -B -ntp verify` w katalogu `server`. Testcontainers sam uruchamia PostgreSQL, a Flyway przygotowuje schemat testowej bazy; nie trzeba ustawiać `DB_URL` ani używać bazy z `.env`. Ten sam zestaw testów wykonuje workflow `Backend` dla każdego pull requestu. Wynik i logi są dostępne w zakładce Actions oraz w Checks danego PR.

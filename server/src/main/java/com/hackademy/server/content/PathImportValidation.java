@@ -10,6 +10,18 @@ public final class PathImportValidation {
     private final ContentValidation errors = new ContentValidation();
     private int roomCount;
 
+    public void validateRooms(JsonNode root, Set<String> existingTitles, int existingCount) {
+        if (!object(root, "plik", Set.of("rooms"))) {
+            errors.finish();
+            return;
+        }
+        var rooms = array(root, "rooms", "plik", 500, true);
+        if (existingCount + rooms.size() > 500) errors.problem("plik: rooms", "Rozdział może zawierać maksymalnie 500 pokoi, łącznie z istniejącymi");
+        var titles = new HashSet<>(existingTitles);
+        for (int r = 0; r < rooms.size(); r++) room(rooms.get(r), "pokój " + (r + 1), titles);
+        errors.finish();
+    }
+
     public void validate(JsonNode root) {
         if (!object(root, "plik", Set.of("title", "description", "unlockMode", "chapters"))) {
             errors.finish();
