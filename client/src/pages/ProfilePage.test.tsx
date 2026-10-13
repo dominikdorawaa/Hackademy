@@ -208,6 +208,7 @@ describe('user profile integration', () => {
     await user.click(editor.getByRole('button', { name: 'Losuj kolejne' }));
     expect(editor.getByRole('radio', { name: 'Avatar 1' })).toBeChecked();
     await user.click(editor.getByRole('button', { name: 'Anuluj' }));
+    await user.click(screen.getByRole('button', { name: 'Odrzuć zmiany' }));
     expect(save).not.toHaveBeenCalled();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Edytuj profil' })).toHaveFocus();
@@ -317,6 +318,7 @@ describe('user profile integration', () => {
     await user.clear(field);
     await user.type(field, 'Nowy opis');
     await user.click(screen.getByRole('button', { name: 'Anuluj' }));
+    await user.click(screen.getByRole('button', { name: 'Odrzuć zmiany' }));
     expect(saved).toEqual([]);
     expect(screen.getByText(profileUser.bio)).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Edytuj profil' }));

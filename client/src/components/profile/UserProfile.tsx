@@ -13,6 +13,7 @@ import ActivityCalendar from '../ActivityCalendar';
 import BioText from './BioText';
 import UserAvatar from '../UserAvatar';
 import ProfileEditor from './ProfileEditor';
+import ProfileSaveNotification from './ProfileSaveNotification';
 import BadgeShowcase from './BadgeShowcase';
 import { PROFILE_INTERESTS } from '../../lib/profile';
 import type { ProfilePersonalization } from '../../lib/profile';
@@ -125,6 +126,7 @@ export default function UserProfile({ username }: { username?: string }) {
   const [personalization, setPersonalization] = useState<ProfilePersonalization | null>(null);
   const [editing, setEditing] = useState(false);
   const [saved, setSaved] = useState(false);
+  const dismissSaved = useCallback(() => setSaved(false), []);
   const [sending, setSending] = useState(false);
   const [actionError, setActionError] = useState<string | null>(null);
   const [requestSent, setRequestSent] = useState(false);
@@ -218,7 +220,6 @@ export default function UserProfile({ username }: { username?: string }) {
         </div>
         <div className="profile-header-side">
           {own && <Button onClick={edit}><ProfileIcon kind="edit" /> Edytuj profil</Button>}
-          {saved && <p role="status" className="profile-save-status">Profil zapisany</p>}
           {!own && (
             <div className="profile-header-actions">
               <>
@@ -255,6 +256,7 @@ export default function UserProfile({ username }: { username?: string }) {
           )}
         </div>
       </header>
+      {saved && <ProfileSaveNotification onClose={dismissSaved} />}
       {beginner && <section className="profile-welcome"><div>
         <h2>Nadaj profilowi swój charakter</h2><p>Dodaj opis i zainteresowania, a potem wybierz odznaki do gabloty.</p></div>
         <Button variant="outline" onClick={edit}>Uzupełnij profil</Button></section>}
