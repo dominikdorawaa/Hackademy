@@ -38,6 +38,7 @@ import java.util.ArrayList;
 import java.util.Comparator;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
@@ -61,20 +62,51 @@ public class RoomServiceImpl implements RoomService {
     private final ChapterRoomRepository chapterRoomRepository;
     private final com.hackademy.server.content.ContentVisibility visibility;
 
+    private static final Set<String> RESERVED_TITLES = Set.of("tutorial vm", "tutorial vpn");
+
+    private void checkTitle(Room existing, String title, RoomType roomType) {
+        boolean renamed = existing == null || !existing.getTitle().equals(title);
+        if (renamed && RESERVED_TITLES.contains(title.toLowerCase(Locale.ROOT))) {
+            throw new RoomRuleException(HttpStatus.BAD_REQUEST, "title",
+                    "Tytuły \u201eTutorial VM\u201d i \u201eTutorial VPN\u201d są zarezerwowane dla pokoi samouczka");
+        }
+        if (roomType == RoomType.CTF && (existing == null
+                ? roomRepository.existsByTitleAndRoomType(title, RoomType.CTF)
+                : roomRepository.existsByTitleAndRoomTypeAndIdNot(title, RoomType.CTF, existing.getId()))) {
+            throw new RoomRuleException(HttpStatus.CONFLICT, "title", "Pokój CTF o tym tytule już istnieje");
+        }
+        if (existing != null && renamed && chapterRoomRepository.existsOtherRoomWithTitleInSameChapter(existing.getId(), title)) {
+            throw new RoomRuleException(HttpStatus.CONFLICT, "title", "Rozdział tego pokoju ma już pokój o tym tytule");
+        }
+    }
+
+    private static int points(RoomType roomType, DifficultyLevel difficulty, Integer requested) {
+        if (roomType == RoomType.CTF) {
+            return difficulty.ctfPoints();
+        }
+        if (requested == null || requested < 0) {
+            throw new RoomRuleException(HttpStatus.BAD_REQUEST, "points", "Podaj nieujemną liczbę punktów");
+        }
+        return requested;
+    }
+
     @Override
     @Transactional
     public Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException {
+        RoomType roomType = createRoomRequest.roomType() == null ? RoomType.CTF : createRoomRequest.roomType();
+        String title = createRoomRequest.title().trim();
+        checkTitle(null, title, roomType);
         Room room = Room.builder()
                 .published(false)
-                .title(createRoomRequest.title())
+                .title(title)
                 .description(createRoomRequest.description())
                 .shortDescription(createRoomRequest.shortDescription())
                 .difficulty(createRoomRequest.difficulty())
                 .category(createRoomRequest.category())
-                .points(createRoomRequest.points())
+                .points(points(roomType, createRoomRequest.difficulty(), createRoomRequest.points()))
                 .flag(createRoomRequest.flag())
                 .requiresVpn(createRoomRequest.requiresVpn())
-                .roomType(createRoomRequest.roomType() == null ? RoomType.CTF : createRoomRequest.roomType())
+                .roomType(roomType)
                 .build();
 
         if (createRoomRequest.hints() != null && !createRoomRequest.hints().isEmpty()) {
@@ -170,13 +202,16 @@ public class RoomServiceImpl implements RoomService {
         if (newRoomType != RoomType.PATH && !room.getTasks().isEmpty()) {
             throw new IllegalArgumentException("Usuń zadania przed zmianą typu pokoju na CTF.");
         }
+        String title = updateRoomRequest.title().trim();
+        checkTitle(room, title, newRoomType);
+        int points = points(newRoomType, updateRoomRequest.difficulty(), updateRoomRequest.points());
         room.setContentRevision(room.getContentRevision() + 1);
-        room.setTitle(updateRoomRequest.title());
+        room.setTitle(title);
         room.setDescription(updateRoomRequest.description());
         room.setShortDescription(updateRoomRequest.shortDescription());
         room.setDifficulty(updateRoomRequest.difficulty());
         room.setCategory(updateRoomRequest.category());
-        room.setPoints(updateRoomRequest.points());
+        room.setPoints(points);
         room.setFlag(updateRoomRequest.flag());
         room.setRequiresVpn(updateRoomRequest.requiresVpn());
         room.setRoomType(newRoomType);

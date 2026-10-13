@@ -71,6 +71,19 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Long> 
 
     boolean existsByRoomId(Long roomId);
 
+    @Query(value = """
+            SELECT EXISTS (
+              SELECT 1
+              FROM chapter_rooms own
+              JOIN chapter_rooms other ON other.chapter_id = own.chapter_id AND other.room_id <> own.room_id
+              WHERE own.room_id = :roomId AND other.room_title = :title
+            )
+            """, nativeQuery = true)
+    boolean existsOtherRoomWithTitleInSameChapter(@Param("roomId") Long roomId, @Param("title") String title);
+
+    @Query(value = "SELECT EXISTS (SELECT 1 FROM chapter_rooms WHERE chapter_id = :chapterId AND room_title = :title)", nativeQuery = true)
+    boolean existsRoomWithTitleInChapter(@Param("chapterId") Long chapterId, @Param("title") String title);
+
     @Modifying(flushAutomatically = true)
     @Query("DELETE FROM ChapterRoom cr WHERE cr.chapterId IN (SELECT c.id FROM PathChapter c WHERE c.pathId = :pathId)")
     void deleteByPathId(@Param("pathId") Long pathId);

@@ -14,7 +14,7 @@ public record CreateRoomRequest(
         @Size(max = 100) String shortDescription,
         @NotNull(message = "Poziom trudności jest wymagany") DifficultyLevel difficulty,
         @NotBlank(message = "Kategoria jest wymagana") @Size(max = 255) String category,
-        @NotNull(message = "Punkty są wymagane") @Min(value = 0, message = "Liczba punktów nie może być ujemna") Integer points,
+        @Min(value = 0, message = "Liczba punktów nie może być ujemna") Integer points,
         @NotBlank(message = "Flaga jest wymagana") @Size(max = 255) String flag,
         boolean requiresVpn,
         RoomType roomType,

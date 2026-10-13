@@ -60,7 +60,7 @@ class SchemaMigrationTest {
     @Test
     void migratesEmptyDatabaseWithBadgesOnly() throws Exception {
         var flyway = flyway();
-        assertEquals(8, flyway.migrate().migrationsExecuted);
+        assertEquals(9, flyway.migrate().migrationsExecuted);
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, scalar("SELECT count(*) FROM users"));
         assertEquals(0, scalar("SELECT count(*) FROM rooms"));
@@ -73,7 +73,7 @@ class SchemaMigrationTest {
         Flyway.configure().dataSource(url, username, password)
                 .locations("classpath:db/schema").target("5").load().migrate();
         execute("INSERT INTO users (id, username, email, password, role, points, streak, bio, created_at, updated_at) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 0, 0, 'Learning Linux', now(), now())");
-        assertEquals(3, flyway().migrate().migrationsExecuted);
+        assertEquals(4, flyway().migrate().migrationsExecuted);
         assertEquals("Alice", text("SELECT avatar_seed FROM users WHERE id = 1"));
         assertEquals("Learning Linux", text("SELECT bio FROM users WHERE id = 1"));
         assertEquals("", text("SELECT tagline FROM users WHERE id = 1"));
@@ -89,10 +89,47 @@ class SchemaMigrationTest {
         insertRoom(1);
         execute("INSERT INTO paths (id, title, created_at, updated_at) VALUES (1, 'Existing', now(), now())");
         execute("INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (1, 1, now())");
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("8").migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM paths WHERE published"));
         assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE published"));
         assertEquals(1, scalar("SELECT count(*) FROM user_solved_rooms WHERE user_id = 1 AND room_id = 1"));
+    }
+
+    @Test
+    void scopesRoomTitlesAndDerivesCtfPointsFromDifficulty() throws Exception {
+        flyway("8").migrate();
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES
+                (1, 'Easy CTF', 'd', 'EASY', 'Web', 10, 'f', 0, false, 'CTF', now(), now()),
+                (2, 'Hard CTF', 'd', 'HARD', 'Web', 999, 'f', 0, false, 'CTF', now(), now()),
+                (3, 'Intro', 'd', 'MEDIUM', 'Path', 7, 'f', 0, false, 'PATH', now(), now()),
+                (4, 'Other', 'd', 'EASY', 'Path', 5, 'f', 0, false, 'PATH', now(), now());
+                INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at, avatar_seed) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 10, 0, now(), now(), 'seed');
+                INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (1, 1, now());
+                INSERT INTO paths (id, title, created_at, updated_at) VALUES (1, 'Path', now(), now());
+                INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES (1, 1, 'One', 0, now(), now()), (2, 1, 'Two', 1, now(), now());
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (3, 1, 0), (4, 1, 1);
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms"));
+        assertEquals(10, scalar("SELECT points FROM users WHERE id = 1"));
+        assertEquals("Intro,Other", text("SELECT string_agg(room_title, ',' ORDER BY sort_order) FROM chapter_rooms"));
+        assertSqlState("23514", "UPDATE rooms SET points = 60 WHERE id = 1");
+        assertSqlState("23514", "UPDATE rooms SET difficulty = 'INSANE' WHERE id = 1");
+        execute("UPDATE rooms SET difficulty = 'INSANE', points = 200 WHERE id = 1");
+        assertSqlState("23505", "INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (5, 'Hard CTF', 'd', 'HARD', 'Web', 150, 'f', 0, false, 'CTF', now(), now())");
+        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (5, 'Hard CTF', 'd', 'HARD', 'Path', 1, 'f', 0, false, 'PATH', now(), now())");
+        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (6, 'Intro', 'd', 'EASY', 'Path', 1, 'f', 0, false, 'PATH', now(), now())");
+        assertSqlState("23505", "INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (6, 1, 2)");
+        execute("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (6, 2, 0)");
+        assertSqlState("23505", "UPDATE rooms SET title = 'Intro' WHERE id = 4");
+        execute("UPDATE rooms SET title = 'Renamed' WHERE id = 4");
+        assertEquals("Renamed", text("SELECT room_title FROM chapter_rooms WHERE room_id = 4"));
+        execute("UPDATE chapter_rooms SET room_title = 'Forged', chapter_id = 2 WHERE room_id = 4");
+        assertEquals("Renamed", text("SELECT room_title FROM chapter_rooms WHERE room_id = 4"));
+        assertSqlState("23505", "UPDATE chapter_rooms SET chapter_id = 2 WHERE room_id = 3");
     }
 
     @Test
@@ -108,7 +145,7 @@ class SchemaMigrationTest {
             assertEquals(1, scalar("SELECT count(*) FROM users"));
         }
         try (var ignored = startApplication()) {
-            assertEquals(8, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
+            assertEquals(9, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
         }
     }
 
@@ -197,7 +234,7 @@ class SchemaMigrationTest {
 
         assertEquals(1, flyway("3").migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
-        assertEquals(5, flyway().migrate().migrationsExecuted);
+        assertEquals(6, flyway().migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
         assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
         assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));
@@ -249,7 +286,7 @@ class SchemaMigrationTest {
 
     private void insertRoom(long id) throws SQLException {
         execute("INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES ("
-                + id + ", 'room " + id + "', 'd', 'EASY', 'Web', 10, 'flag', 0, false, 'CTF', now(), now())");
+                + id + ", 'room " + id + "', 'd', 'EASY', 'Web', 50, 'flag', 0, false, 'CTF', now(), now())");
     }
 
     private void assertSqlState(String expected, String sql) {

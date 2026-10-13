@@ -13,7 +13,7 @@ import { TextField, checkText, focusError } from '../../components/admin/Content
 import type { FieldErrors } from '../../components/admin/ContentFields';
 import { ContentTasks } from '../../components/admin/ContentStructure';
 import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
-import { roomBasePath, pointsForDifficulty } from './adminConfig';
+import { roomBasePath, pointsForDifficulty, reservedRoomTitles } from './adminConfig';
 import { useAdminAccess } from './adminAccess';
 import { difficultyLabels } from '../../components/admin/adminFormat';
 
@@ -83,6 +83,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
     const nextErrors: FieldErrors = {};
     if (parentDraft) { checkText(nextErrors, 'parentTitle', parentDraft.title, 120, true); checkText(nextErrors, 'parentDescription', parentDraft.description, 20000, parentDraft.published); checkText(nextErrors, 'parentChapter', parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? '', 120, true); }
     checkText(nextErrors, 'title', current.title, 255, true);
+    if (!nextErrors.title && current.title.trim() !== baseline.title && reservedRoomTitles.includes(current.title.trim().toLowerCase())) nextErrors.title = 'Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka';
     checkText(nextErrors, 'shortDescription', current.shortDescription ?? '', 100);
     checkText(nextErrors, 'description', current.description, 20000, published);
     checkText(nextErrors, 'category', current.category, 255, true);

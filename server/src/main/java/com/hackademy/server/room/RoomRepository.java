@@ -24,6 +24,10 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT COUNT(r) > 0 FROM Room r WHERE r.id = :id AND " + VISIBLE)
     boolean isVisible(@Param("id") Long id);
 
+    boolean existsByTitleAndRoomType(String title, RoomType roomType);
+
+    boolean existsByTitleAndRoomTypeAndIdNot(String title, RoomType roomType, Long id);
+
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Room r WHERE r.id = :id")
     Optional<Room> findByIdForUpdate(@Param("id") Long id);

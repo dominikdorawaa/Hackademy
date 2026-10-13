@@ -4,6 +4,7 @@ import com.hackademy.server.path.PathRepository;
 import com.hackademy.server.path.dto.PathAdminDetailDto;
 import com.hackademy.server.path.dto.PathDetailDto;
 import com.hackademy.server.room.RoomFileRepository;
+import com.hackademy.server.room.RoomRuleException;
 import com.hackademy.server.room.dto.RoomDetailDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
@@ -62,10 +63,18 @@ public class ContentController {
     public ResponseEntity<?> invalid(ContentValidation.InvalidContent error) {
         return ResponseEntity.badRequest().body(Map.of("message", "Popraw zaznaczone pola", "fields", error.fields()));
     }
+    @ExceptionHandler(RoomRuleException.class)
+    public ResponseEntity<?> roomRule(RoomRuleException error) {
+        return ResponseEntity.status(error.getStatusCode()).body(Map.of("message", error.getReason(), "fields", Map.of(error.field(), error.getReason())));
+    }
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<?> conflict(org.springframework.dao.DataIntegrityViolationException error) {
-        if (error.getMostSpecificCause().getMessage() != null && error.getMostSpecificCause().getMessage().contains("uq_rooms_title")) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Pokój o tym tytule już istnieje", "fields", Map.of("title", "Pokój o tym tytule już istnieje")));
+        String cause = error.getMostSpecificCause().getMessage();
+        if (cause != null && cause.contains("uq_rooms_ctf_title")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Pokój CTF o tym tytule już istnieje", "fields", Map.of("title", "Pokój CTF o tym tytule już istnieje")));
+        }
+        if (cause != null && cause.contains("uq_chapter_rooms_title")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Ten rozdział ma już pokój o tym tytule", "fields", Map.of("title", "Ten rozdział ma już pokój o tym tytule")));
         }
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Materiał zmienił się w międzyczasie. Sprawdź przypisania i spróbuj ponownie."));
     }
