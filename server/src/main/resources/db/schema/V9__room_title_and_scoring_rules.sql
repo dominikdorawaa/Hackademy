@@ -17,6 +17,34 @@ ALTER TABLE rooms ADD CONSTRAINT ck_rooms_ctf_points CHECK (
 );
 
 ALTER TABLE rooms DROP CONSTRAINT uq_rooms_title;
+
+UPDATE rooms r
+SET title = normalized.title
+FROM (
+    SELECT id,
+        CASE WHEN duplicate_rank > 1 THEN left(base, 230) || ' (' || id || ')' ELSE base END AS title
+    FROM (
+        SELECT trimmed.id, trimmed.base,
+            row_number() OVER (
+                PARTITION BY CASE
+                    WHEN trimmed.room_type = 'CTF' THEN 'ctf'
+                    WHEN cr.chapter_id IS NOT NULL THEN 'chapter:' || cr.chapter_id
+                    ELSE 'room:' || trimmed.id
+                END, trimmed.base
+                ORDER BY (trimmed.original = trimmed.base) DESC, trimmed.id
+            ) AS duplicate_rank
+        FROM (
+            SELECT id, room_type, title AS original,
+                CASE WHEN regexp_replace(title, '^[\x01-\x20]+|[\x01-\x20]+$', '', 'g') = '' THEN 'Room ' || id
+                    ELSE regexp_replace(title, '^[\x01-\x20]+|[\x01-\x20]+$', '', 'g') END AS base
+            FROM rooms
+        ) trimmed
+        LEFT JOIN chapter_rooms cr ON cr.room_id = trimmed.id
+    ) ranked
+) normalized
+WHERE normalized.id = r.id AND r.title <> normalized.title;
+
+ALTER TABLE rooms ADD CONSTRAINT ck_rooms_title_trimmed CHECK (title <> '' AND title !~ '^[\x01-\x20]|[\x01-\x20]$');
 CREATE UNIQUE INDEX uq_rooms_ctf_title ON rooms (title) WHERE room_type = 'CTF';
 
 ALTER TABLE chapter_rooms ADD COLUMN room_title varchar(255);

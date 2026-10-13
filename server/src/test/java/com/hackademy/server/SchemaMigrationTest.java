@@ -103,19 +103,28 @@ class SchemaMigrationTest {
                 (1, 'Easy CTF', 'd', 'EASY', 'Web', 10, 'f', 0, false, 'CTF', now(), now()),
                 (2, 'Hard CTF', 'd', 'HARD', 'Web', 999, 'f', 0, false, 'CTF', now(), now()),
                 (3, 'Intro', 'd', 'MEDIUM', 'Path', 7, 'f', 0, false, 'PATH', now(), now()),
-                (4, 'Other', 'd', 'EASY', 'Path', 5, 'f', 0, false, 'PATH', now(), now());
+                (4, 'Other', 'd', 'EASY', 'Path', 5, 'f', 0, false, 'PATH', now(), now()),
+                (7, ' Easy CTF ', 'd', 'EASY', 'Web', 50, 'f', 0, false, 'CTF', now(), now()),
+                (8, '  Solo', 'd', 'EASY', 'Web', 50, 'f', 0, false, 'CTF', now(), now()),
+                (9, 'Intro ', 'd', 'EASY', 'Path', 5, 'f', 0, false, 'PATH', now(), now()),
+                (10, ' Loose', 'd', 'EASY', 'Path', 5, 'f', 0, false, 'PATH', now(), now()),
+                (11, 'Loose', 'd', 'EASY', 'Path', 5, 'f', 0, false, 'PATH', now(), now()),
+                (12, E'Tab\t', 'd', 'EASY', 'Path', 5, 'f', 0, false, 'PATH', now(), now());
                 INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at, avatar_seed) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 10, 0, now(), now(), 'seed');
                 INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (1, 1, now());
                 INSERT INTO paths (id, title, created_at, updated_at) VALUES (1, 'Path', now(), now());
                 INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES (1, 1, 'One', 0, now(), now()), (2, 1, 'Two', 1, now(), now());
-                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (3, 1, 0), (4, 1, 1);
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (3, 1, 0), (4, 1, 1), (9, 1, 2);
                 """);
 
         assertEquals(1, flyway().migrate().migrationsExecuted);
 
-        assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms"));
+        assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms WHERE id <= 4"));
         assertEquals(10, scalar("SELECT points FROM users WHERE id = 1"));
-        assertEquals("Intro,Other", text("SELECT string_agg(room_title, ',' ORDER BY sort_order) FROM chapter_rooms"));
+        assertEquals("1:Easy CTF|7:Easy CTF (7)|8:Solo|9:Intro (9)|10:Loose|11:Loose|12:Tab", text("SELECT string_agg(id || ':' || title, '|' ORDER BY id) FROM rooms WHERE id IN (1, 7, 8, 9, 10, 11, 12)"));
+        assertEquals("Intro,Other,Intro (9)", text("SELECT string_agg(room_title, ',' ORDER BY sort_order) FROM chapter_rooms"));
+        assertSqlState("23514", "UPDATE rooms SET title = ' Padded' WHERE id = 8");
+        assertSqlState("23514", "UPDATE rooms SET title = E'Padded\\n' WHERE id = 8");
         assertSqlState("23514", "UPDATE rooms SET points = 60 WHERE id = 1");
         assertSqlState("23514", "UPDATE rooms SET difficulty = 'INSANE' WHERE id = 1");
         execute("UPDATE rooms SET difficulty = 'INSANE', points = 200 WHERE id = 1");

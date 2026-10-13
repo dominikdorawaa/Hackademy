@@ -18,7 +18,7 @@ Do zapisu szkicu wymagane są tytuł materiału, nazwy dodanych rozdziałów, ty
 
 Publikacja dodatkowo wymaga opisu, treści zadań po sanitizacji HTML, poprawnych par pytanie/odpowiedź oraz flagi w pokoju bez zadań. Ścieżka wymaga co najmniej jednego rozdziału; każdy rozdział musi zawierać opublikowany pokój. Banner i plik są opcjonalne.
 
-Tytuł pokoju CTF jest unikalny wśród pokoi CTF, a tytuł pokoju ścieżki w obrębie rozdziału. Pokoje ścieżki poza rozdziałem i pokoje różnych typów mogą mieć ten sam tytuł. Tytuły „Tutorial VM” i „Tutorial VPN” (bez względu na wielkość liter) są zarezerwowane; istniejący pokój samouczka zachowuje swój tytuł. Baza pilnuje obu reguł unikalności (V9), także przy równoczesnych zapisach. Konflikt zwraca 409 z błędem przy polu `title` albo `chapters.N.rooms`.
+Tytuł pokoju CTF jest unikalny wśród pokoi CTF, a tytuł pokoju ścieżki w obrębie rozdziału. Pokoje ścieżki poza rozdziałem i pokoje różnych typów mogą mieć ten sam tytuł. Tytuły „Tutorial VM” i „Tutorial VPN” (bez względu na wielkość liter) są zarezerwowane; istniejący pokój samouczka zachowuje swój tytuł. Tytuły są zapisywane bez spacji na początku i końcu. V9 przycina istniejące tytuły, a jeśli przycięcie tworzy duplikat w tym samym zakresie, dopisuje do nowszego pokoju jego identyfikator, np. „Intro (9)”. Baza pilnuje obu reguł unikalności (V9), także przy równoczesnych zapisach. Konflikt zwraca 409 z błędem przy polu `title` albo `chapters.N.rooms`.
 
 Limity znaków są takie same w przeglądarce i backendzie (jednostki UTF-16):
 
