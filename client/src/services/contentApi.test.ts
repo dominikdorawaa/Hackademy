@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import API_URL from '../apiConfig';
 import { server } from '../test/mocks/server';
-import { ContentError, contentRequest, savePath, saveRoom } from './contentApi';
+import { ContentError, contentRequest, importPath, importPathRooms, savePath, saveRoom } from './contentApi';
 
 const path = { revision: 1, chaptersRevision: 2, title: 'Draft', description: '', bannerUrl: null, published: false, chapters: [], unlockMode: 'CHAPTER' as const };
 const room = { revision: 1, tasksRevision: 2, title: 'Draft', description: '', shortDescription: '', category: 'Web', difficulty: 'EASY' as const, points: 50,
@@ -14,6 +14,29 @@ function readJson(blob: Blob): Promise<unknown> {
 }
 
 describe('content API contracts', () => {
+  it('sends room imports to the existing path with a JSON target and the original file', async () => {
+    const transport = vi.spyOn(globalThis, 'fetch').mockResolvedValue(HttpResponse.json({ id: 3, revision: 4 }));
+    const file = new File(['{"rooms":[]}'], 'rooms.json', { type: 'application/json' });
+    const target = { chapterId: 4, contentRevision: 2, chaptersRevision: 3 };
+    await importPathRooms(3, target, file, 'test-token');
+    expect(transport.mock.calls[0][0]).toBe(`${API_URL}/api/admin/content/paths/3/rooms/import`);
+    const options = transport.mock.calls[0][1]!;
+    expect(options.method).toBe('POST'); expect(options.headers).toEqual({ Authorization: 'Bearer test-token' });
+    expect((options.body as FormData).get('file')).toBe(file);
+    expect(await readJson((options.body as FormData).get('target') as Blob)).toEqual(target);
+  });
+  it('uploads the JSON file intact with authentication and preserves import validation errors', async () => {
+    const transport = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(HttpResponse.json({ id: 12 }))
+      .mockResolvedValueOnce(HttpResponse.json({ fields: { 'rozdział 2, pokój 3: flag': 'Brak flagi' } }, { status: 400 }));
+    const file = new File(['{}'], 'path.json', { type: 'application/json' });
+    await expect(importPath(file, 'import-token')).resolves.toEqual({ id: 12 });
+    expect(transport.mock.calls[0][0]).toBe(`${API_URL}/api/admin/content/paths/import`);
+    const options = transport.mock.calls[0][1]!;
+    expect(options.method).toBe('POST');
+    expect(options.headers).toEqual({ Authorization: 'Bearer import-token' });
+    expect((options.body as FormData).get('file')).toBe(file);
+    await expect(importPath(file, 'import-token')).rejects.toMatchObject({ fields: { 'rozdział 2, pokój 3: flag': 'Brak flagi' } });
+  });
   it('sends multipart path creation and updates with status, structure, revision and upload intact', async () => {
     const transport = vi.spyOn(globalThis, 'fetch').mockImplementation(async () => HttpResponse.json({ id: 3 }));
     const file = new File(['image'], 'banner.png', { type: 'image/png' });

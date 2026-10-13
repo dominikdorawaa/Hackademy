@@ -11,6 +11,7 @@ export interface RoomSave extends RoomWriteRequest {
   pathId?: number; chapterId?: number; pathRevision?: number; parentDraft?: PathSave; chapterIndex?: number;
 }
 export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null }
+export interface RoomImportTarget { chapterId: number; contentRevision: number; chaptersRevision: number }
 export class ContentError extends Error {
   fields: FieldErrors;
   constructor(message: string, fields: FieldErrors = {}) { super(message); this.fields = fields; }
@@ -29,6 +30,17 @@ function multipart(data: unknown, file: File | null) {
 }
 export function savePath(id: number | null, data: PathSave, file: File | null, token: string | null) {
   return contentRequest<PathAdminDetailDto>(id === null ? '/paths' : `/paths/${id}`, token, { method: id === null ? 'POST' : 'PUT', body: multipart(data, file) });
+}
+export function importPath(file: File, token: string | null) {
+  const body = new FormData();
+  body.append('file', file);
+  return contentRequest<PathAdminDetailDto>('/paths/import', token, { method: 'POST', body });
+}
+export function importPathRooms(id: number, target: RoomImportTarget, file: File, token: string | null) {
+  const body = new FormData();
+  body.append('target', new Blob([JSON.stringify(target)], { type: 'application/json' }));
+  body.append('file', file);
+  return contentRequest<PathAdminDetailDto>(`/paths/${id}/rooms/import`, token, { method: 'POST', body });
 }
 export function saveRoom(id: number | null, data: RoomSave, file: File | null, token: string | null) {
   return contentRequest<RoomEditor>(id === null ? '/rooms' : `/rooms/${id}`, token, { method: id === null ? 'POST' : 'PUT', body: multipart(data, file) });

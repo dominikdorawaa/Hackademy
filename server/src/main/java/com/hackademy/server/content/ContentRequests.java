@@ -9,6 +9,7 @@ import java.util.List;
 
 public final class ContentRequests {
     private ContentRequests() {}
+    public record RoomImport(Long chapterId, Long contentRevision, Long chaptersRevision) {}
     public record PathSave(Long revision, Long chaptersRevision, String title, String description,
                            String bannerUrl, boolean published, List<ChapterRequest> chapters,
                            PathUnlockMode unlockMode) {}

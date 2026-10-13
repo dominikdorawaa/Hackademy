@@ -35,6 +35,31 @@ function mount(initial: string, entries: (string | { pathname: string; state?: u
 }
 
 describe('draft editors and guarded navigation', () => {
+  it('guards room import against unsaved edits and reloads the existing path after success', async () => {
+    const user = userEvent.setup(); mount('/admin/paths/5');
+    const importedPath = { ...path, revision: 3, contentRevision: 4, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] };
+    vi.spyOn(contentApi, 'importPathRooms').mockResolvedValue(importedPath);
+    const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, title: 'Web zmieniony', revision: 3, contentRevision: 4 });
+    await user.type(await screen.findByLabelText('Tytuł *'), ' zmieniony');
+    await user.click(screen.getByRole('button', { name: 'Importuj pokoje z JSON' }));
+    expect(await screen.findByRole('dialog', { name: 'Niezapisane zmiany' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Kontynuuj edycję' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Importuj pokoje z JSON' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz i przejdź dalej' }));
+    expect(await screen.findByRole('dialog', { name: 'Dodaj pokoje z JSON' })).toBeInTheDocument();
+    expect(screen.getByText('Ścieżka: Web zmieniony')).toBeInTheDocument();
+    const file = new File(['{"rooms":[]}'], 'rooms.json', { type: 'application/json' });
+    await user.upload(screen.getByLabelText('Plik JSON (do 5 MB)'), file);
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(importedPath)),
+      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: 5 }])));
+    await user.click(screen.getByRole('button', { name: 'Dodaj pokoje jako szkice' }));
+    expect(await screen.findByText(/Dodano pokoje jako szkice/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('list', { name: 'Pokoje rozdziału 1' })).toHaveTextContent('Pokój'));
+    expect(contentApi.importPathRooms).toHaveBeenCalledWith(5, { chapterId: 11, contentRevision: 4, chaptersRevision: 3 }, file, expect.any(String));
+    expect(save).toHaveBeenCalledOnce();
+    const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event); expect(event.defaultPrevented).toBe(false);
+  });
   it('opens new path directly in the complete editor and shows counters before typing', async () => {
     const user = userEvent.setup(); const router = mount('/admin/paths');
     await user.click(await screen.findByRole('link', { name: 'Nowa ścieżka' }));
