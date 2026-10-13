@@ -4,7 +4,6 @@ import com.hackademy.server.path.PathRepository;
 import com.hackademy.server.path.dto.PathAdminDetailDto;
 import com.hackademy.server.path.dto.PathDetailDto;
 import com.hackademy.server.room.RoomFileRepository;
-import com.hackademy.server.room.RoomRuleException;
 import com.hackademy.server.room.dto.RoomDetailDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.*;
@@ -62,10 +61,6 @@ public class ContentController {
     @ExceptionHandler(ContentValidation.InvalidContent.class)
     public ResponseEntity<?> invalid(ContentValidation.InvalidContent error) {
         return ResponseEntity.badRequest().body(Map.of("message", "Popraw zaznaczone pola", "fields", error.fields()));
-    }
-    @ExceptionHandler(RoomRuleException.class)
-    public ResponseEntity<?> roomRule(RoomRuleException error) {
-        return ResponseEntity.status(error.getStatusCode()).body(Map.of("message", error.getReason(), "fields", Map.of(error.field(), error.getReason())));
     }
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<?> conflict(org.springframework.dao.DataIntegrityViolationException error) {

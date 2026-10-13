@@ -2,7 +2,6 @@ package com.hackademy.server.room.dto;
 
 import com.hackademy.server.room.DifficultyLevel;
 import com.hackademy.server.room.RoomType;
-import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
@@ -14,7 +13,7 @@ public record UpdateRoomRequest(
         @Size(max = 100) String shortDescription,
         @NotNull(message = "Poziom trudności nie może być pusty") DifficultyLevel difficulty,
         @NotBlank(message = "Kategoria nie może być pusta") @Size(max = 255) String category,
-        @Min(value = 0, message = "Liczba punktów nie może być ujemna") Integer points,
+        Integer points,
         @NotBlank(message = "Flaga nie może być pusta") @Size(max = 255) String flag,
         boolean requiresVpn,
         RoomType roomType,

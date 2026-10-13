@@ -93,9 +93,10 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         save(admin, "rooms", null, room(title, "CTF"), 201);
         String duplicate = save(admin, "rooms", null, room(" " + title + " ", "CTF"), 409);
         assertEquals("Pokój CTF o tym tytule już istnieje", field(duplicate, "title"));
-        legacyRoom(admin, null, """
+        String legacyDuplicate = legacyRoom(admin, null, """
                 {"title":"%s","description":"d","difficulty":"EASY","category":"Web","flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(title), 409);
+        assertEquals("Pokój CTF o tym tytule już istnieje", field(legacyDuplicate, "title"));
 
         save(admin, "rooms", null, room(title, "PATH"), 201);
         String loose = uniqueTitle("Loose");
@@ -133,7 +134,8 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
                 {"revision":%d,"chapters":[{"id":%d,"title":"A","roomIds":[%d,%d]},{"id":%d,"title":"B","roomIds":[]}]}
                 """.formatted(number(saved, "$.revision"), chapterA, first, second, chapterB))
                 .andExpect(status().isConflict())
-                .andExpect(jsonPath("$.message", containsString(title)));
+                .andExpect(jsonPath("$.message", containsString(title)))
+                .andExpect(jsonPath("$.fields['chapters.0.rooms']", containsString(title)));
         String shared = uniqueTitle("Shared");
         long third = number(save(admin, "rooms", null, room(shared, "PATH"), 201), "$.room.id");
         long fourth = number(save(admin, "rooms", null, room(shared, "PATH"), 201), "$.room.id");
@@ -266,12 +268,12 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         assertEquals(200, number(save(admin, "rooms", ctfId, ctf, 200), "$.room.points"));
 
         String legacy = legacyRoom(admin, null, """
-                {"title":"%s","description":"d","difficulty":"HARD","category":"Web","points":1,"flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
+                {"title":"%s","description":"d","difficulty":"HARD","category":"Web","points":-1,"flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(uniqueTitle("Legacy")), 201);
         assertEquals(150, number(legacy, "$.points"));
         String legacyTitle = JsonPath.read(legacy, "$.title");
         legacyRoom(admin, number(legacy, "$.id"), """
-                {"title":"%s","description":"d","difficulty":"EASY","points":999,"category":"Web","flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
+                {"title":"%s","description":"d","difficulty":"EASY","points":-5,"category":"Web","flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(legacyTitle), 200);
         assertEquals(50, jdbcTemplate.queryForObject("SELECT points FROM rooms WHERE id = ?", Integer.class, number(legacy, "$.id")));
 
@@ -282,9 +284,14 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         var missing = room(uniqueTitle("Missing"), "PATH");
         missing.put("points", null);
         assertTrue(save(admin, "rooms", null, missing, 400).contains("points"));
-        legacyRoom(admin, null, """
+        String noPoints = legacyRoom(admin, null, """
                 {"title":"%s","description":"d","difficulty":"EASY","category":"Path","flag":"f","requiresVpn":false,"roomType":"PATH","hints":[]}
                 """.formatted(uniqueTitle("No points")), 400);
+        assertEquals("Podaj nieujemną liczbę punktów", field(noPoints, "points"));
+        String negative = legacyRoom(admin, null, """
+                {"title":"%s","description":"d","difficulty":"EASY","category":"Path","points":-1,"flag":"f","requiresVpn":false,"roomType":"PATH","hints":[]}
+                """.formatted(uniqueTitle("Negative")), 400);
+        assertEquals("Podaj nieujemną liczbę punktów", field(negative, "points"));
 
         revise(path, pathSaved);
         path.put("roomType", "CTF");
