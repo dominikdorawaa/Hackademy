@@ -9,9 +9,10 @@ import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { RoomAdminSummaryDto, RoomType } from '../../types/api';
 import { ConfirmAction, DifficultyBadge, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
-import { errorText, numberFormat } from '../../components/admin/adminFormat';
+import { errorText, numberFormat, plural } from '../../components/admin/adminFormat';
 import { useAdminAccess } from './adminAccess';
 import { roomBasePath } from './adminConfig';
+import CtfImportDialog from './CtfImportDialog';
 
 const copy: Record<RoomType, { title: string; description: string; empty: string }> = {
   CTF: {
@@ -77,9 +78,12 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
         title={copy[kind].title}
         description={copy[kind].description}
         actions={
-          <Button asChild>
+          <>{kind === 'CTF' && isAdmin && <CtfImportDialog disabled={loading} onImported={count => {
+            setSuccess(`Zaimportowano ${count} ${plural(count, ['pokój', 'pokoje', 'pokoi'])} CTF. Materiały zapisano jako szkice.`);
+            setQuery(''); void load();
+          }} />}<Button asChild>
             <Link to={`${base}/new`}><Plus />Nowy pokój</Link>
-          </Button>
+          </Button></>
         }
       />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">

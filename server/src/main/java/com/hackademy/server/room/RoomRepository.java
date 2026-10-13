@@ -16,6 +16,8 @@ import java.util.Optional;
 
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
+    @Query("SELECT r.title FROM Room r WHERE r.roomType = :roomType AND r.title IN :titles")
+    List<String> findExistingTitles(@Param("roomType") RoomType roomType, @Param("titles") java.util.Collection<String> titles);
     String VISIBLE = "r.published = true AND NOT EXISTS (SELECT cr.roomId FROM ChapterRoom cr JOIN PathChapter c ON c.id = cr.chapterId JOIN Path p ON p.id = c.pathId WHERE cr.roomId = r.id AND p.published = false)";
 
     @Query("SELECT r.id FROM Room r WHERE " + VISIBLE)

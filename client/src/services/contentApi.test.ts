@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import API_URL from '../apiConfig';
 import { server } from '../test/mocks/server';
-import { ContentError, contentRequest, importPath, importPathRooms, savePath, saveRoom } from './contentApi';
+import { ContentError, contentRequest, importCtfRooms, importPath, importPathRooms, savePath, saveRoom } from './contentApi';
 
 const path = { revision: 1, chaptersRevision: 2, title: 'Draft', description: '', bannerUrl: null, published: false, chapters: [], unlockMode: 'CHAPTER' as const };
 const room = { revision: 1, tasksRevision: 2, title: 'Draft', description: '', shortDescription: '', category: 'Web', difficulty: 'EASY' as const, points: 50,
@@ -14,6 +14,16 @@ function readJson(blob: Blob): Promise<unknown> {
 }
 
 describe('content API contracts', () => {
+  it('uploads a CTF document unchanged with authentication and surfaces all validation errors', async () => {
+    const transport = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(HttpResponse.json({ count: 2, roomIds: [1, 2] }))
+      .mockResolvedValueOnce(HttpResponse.json({ fields: { 'pokój 1: title': 'Duplicate', 'pokój 2: points': 'Unknown field' } }, { status: 400 }));
+    const file = new File(['{"rooms":[]}'], 'ctf.json', { type: 'application/json' });
+    await expect(importCtfRooms(file, 'ctf-token')).resolves.toEqual({ count: 2, roomIds: [1, 2] });
+    expect(transport.mock.calls[0][0]).toBe(`${API_URL}/api/admin/content/ctf/import`);
+    const options = transport.mock.calls[0][1]!; expect(options.method).toBe('POST'); expect(options.headers).toEqual({ Authorization: 'Bearer ctf-token' });
+    expect((options.body as FormData).get('file')).toBe(file);
+    await expect(importCtfRooms(file, 'ctf-token')).rejects.toMatchObject({ fields: { 'pokój 1: title': 'Duplicate', 'pokój 2: points': 'Unknown field' } });
+  });
   it('sends room imports to the existing path with a JSON target and the original file', async () => {
     const transport = vi.spyOn(globalThis, 'fetch').mockResolvedValue(HttpResponse.json({ id: 3, revision: 4 }));
     const file = new File(['{"rooms":[]}'], 'rooms.json', { type: 'application/json' });

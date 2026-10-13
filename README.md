@@ -134,6 +134,8 @@ Administrator może w sekcji Ścieżki wybrać „Importuj JSON”, obejrzeć, s
 
 W edytorze istniejącej ścieżki „Importuj pokoje z JSON” dopisuje nowe pokoje jako szkice do wybranego rozdziału, bez zmiany obecnych materiałów, postępów i statusu publikacji ścieżki. Przed importem edytor chroni niezapisane zmiany; backend sprawdza wersję ścieżki i tytuły pokoi w rozdziale.
 
+W sekcji Pokoje CTF administrator może wybrać „Importuj CTF z JSON”. Import zapisuje całą listę jako szkice, zbiera błędy i duplikaty tytułów z pliku oraz bazy i sam oblicza punkty z trudności. JSON nie przyjmuje pola `points`. Przykład i format są w oknie importu oraz ADR 0002.
+
 ## Testy backendu
 
 Uruchom Docker Engine, a następnie wykonaj `mvn -B -ntp verify` w katalogu `server`. Testcontainers sam uruchamia PostgreSQL, a Flyway przygotowuje schemat testowej bazy; nie trzeba ustawiać `DB_URL` ani używać bazy z `.env`. Ten sam zestaw testów wykonuje workflow `Backend` dla każdego pull requestu. Wynik i logi są dostępne w zakładce Actions oraz w Checks danego PR.

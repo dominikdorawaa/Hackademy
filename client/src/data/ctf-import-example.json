@@ -1,0 +1,36 @@
+{
+  "rooms": [
+    {
+      "title": "Pierwsza flaga HTTP",
+      "description": "Znajdź flagę w nagłówkach odpowiedzi przygotowanego serwera.",
+      "shortDescription": "Poznaj nagłówki HTTP",
+      "difficulty": "EASY",
+      "category": "Web",
+      "flag": "HACK{http_headers}",
+      "hints": ["Sprawdź nagłówki odpowiedzi w narzędziach przeglądarki."]
+    },
+    {
+      "title": "Uprawnienia w Linuksie",
+      "description": "Odszukaj plik z flagą i sprawdź jego uprawnienia.",
+      "difficulty": "MEDIUM",
+      "category": "Linux",
+      "flag": "HACK{permissions}"
+    },
+    {
+      "title": "Zaszyfrowana wiadomość",
+      "description": "Odczytaj wiadomość zawierającą flagę. Plik z wiadomością dodaj w edytorze pokoju.",
+      "difficulty": "HARD",
+      "category": "Kryptografia",
+      "flag": "HACK{decoded}",
+      "hints": ["Poszukaj powtarzających się fragmentów wiadomości."]
+    },
+    {
+      "title": "Analiza sieci",
+      "description": "Połącz się z laboratorium przez VPN i przeanalizuj ruch sieciowy.",
+      "difficulty": "INSANE",
+      "category": "Sieci",
+      "flag": "HACK{network_analysis}",
+      "requiresVpn": true
+    }
+  ]
+}
