@@ -110,7 +110,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
         </section>
         <section aria-labelledby={`${id}-badges`}><div className="profile-editor-label-row">
           <h3 id={`${id}-badges`}>Odznaki w gablocie</h3><span className="profile-muted">{draft.featuredBadgeIds.length}/3</span></div>
-          <p className="profile-muted">Wybierz kolejno odznaki, które chcesz wyróżnić. Bez wyboru pokażemy ostatnio zdobyte.</p>
+          <p className="profile-muted">Wybierz od zera do trzech odznak w kolejności wyświetlania. Brak wybranych odznak ukrywa gablotę.</p>
           {earned.length ? <>
             <div className="profile-badge-options">{earned.slice(badgePage * 6, badgePage * 6 + 6).map(badge =>
               <label key={badge.id}><input type="checkbox" checked={draft.featuredBadgeIds.includes(badge.id)}
