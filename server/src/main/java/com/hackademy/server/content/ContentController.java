@@ -21,8 +21,15 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('ADMIN', 'EXPERT')")
 public class ContentController {
     private final ContentService content;
+    private final PathImportService pathImport;
     private final PathRepository paths;
     private final RoomFileRepository files;
+    @PostMapping(value = "/paths/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PathAdminDetailDto importPath(@RequestPart("file") MultipartFile file) throws IOException {
+        return pathImport.importPath(file);
+    }
     @PostMapping(value = "/paths", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public PathAdminDetailDto createPath(@RequestPart("content") ContentRequests.PathSave request,

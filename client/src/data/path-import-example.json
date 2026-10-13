@@ -1,0 +1,38 @@
+{
+  "title": "Linux od podstaw",
+  "description": "Poznaj terminal i podstawowe polecenia Linuksa.",
+  "unlockMode": "ROOM",
+  "chapters": [
+    {
+      "title": "Pierwsze kroki",
+      "rooms": [
+        {
+          "title": "Terminal",
+          "description": "Przeczytaj materiał i odpowiedz na pytanie.",
+          "shortDescription": "Twoje pierwsze polecenie",
+          "difficulty": "EASY",
+          "category": "Linux",
+          "points": 30,
+          "requiresVpn": false,
+          "hints": ["Nazwa polecenia zaczyna się od litery p."],
+          "tasks": [
+            {
+              "title": "Bieżący katalog",
+              "content": "<p>Polecenie <code>pwd</code> wyświetla bieżący katalog.</p>",
+              "question": "Jakie polecenie wyświetla bieżący katalog?",
+              "answer": "pwd"
+            }
+          ]
+        },
+        {
+          "title": "Znajdź flagę",
+          "description": "Znajdź flagę w treści: HACK{linux}.",
+          "difficulty": "EASY",
+          "category": "Linux",
+          "points": 30,
+          "flag": "HACK{linux}"
+        }
+      ]
+    }
+  ]
+}

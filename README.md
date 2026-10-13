@@ -130,6 +130,8 @@ Warunki, wyniki i instrukcja powtórzenia testu 1000 użytkowników są w [rapor
 
 Panel treści pozwala zapisywać szkice ścieżek i pokoi, publikować je, ukrywać bez usuwania postępów oraz oglądać podgląd w widoku gracza. Zapis obejmuje cały edytor i sprawdza równoczesne zmiany. Wymagania walidacji, limity, API i testy opisuje [decyzja o publikacji materiałów](docs/adr/content-publication.md).
 
+Administrator może w sekcji Ścieżki wybrać „Importuj JSON”, obejrzeć, skopiować lub pobrać przykład i wgrać całą nową ścieżkę. Import zapisuje ścieżkę, rozdziały, pokoje, podpowiedzi i zadania jako szkice w jednej transakcji. Błędny plik nie zapisuje żadnego elementu; lista błędów wskazuje pozycje w strukturze. Bannery, pliki pokoi i publikację dodaje się później w edytorze. Format i limity opisuje [ADR 0002](docs/adr/0002-json-content-import.md).
+
 ## Testy backendu
 
 Uruchom Docker Engine, a następnie wykonaj `mvn -B -ntp verify` w katalogu `server`. Testcontainers sam uruchamia PostgreSQL, a Flyway przygotowuje schemat testowej bazy; nie trzeba ustawiać `DB_URL` ani używać bazy z `.env`. Ten sam zestaw testów wykonuje workflow `Backend` dla każdego pull requestu. Wynik i logi są dostępne w zakładce Actions oraz w Checks danego PR.
