@@ -265,6 +265,7 @@ public class RoomServiceImpl implements RoomService {
             throw new IllegalArgumentException("Room not found with ID: " + id);
         }
         roomRepository.deleteById(id);
+        dashboardSummaryCache.invalidateAllAfterCommit();
     }
     @Override
     @Transactional(readOnly = true)

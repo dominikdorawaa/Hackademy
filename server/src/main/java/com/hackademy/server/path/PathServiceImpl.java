@@ -55,6 +55,7 @@ public class PathServiceImpl implements PathService {
     private final UserSolvedRoomRepository userSolvedRoomRepository;
     private final com.hackademy.server.content.ContentVisibility visibility;
     private final PathUnlockPolicy pathUnlockPolicy;
+    private final com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
 
     private static final String DEFAULT_CHAPTER_TITLE = "Rozdział 1";
 
@@ -306,6 +307,7 @@ public class PathServiceImpl implements PathService {
             throw new IllegalArgumentException("Path not found");
         }
         pathRepository.deleteById(id);
+        dashboardSummaryCache.invalidateAllAfterCommit();
     }
 
     @Override
@@ -396,6 +398,7 @@ public class PathServiceImpl implements PathService {
         path.setChaptersRevision(path.getChaptersRevision() + 1);
         path.setContentRevision(path.getContentRevision() + 1);
         flushAssignments();
+        dashboardSummaryCache.invalidateAllAfterCommit();
         return getAdminDetail(id);
     }
 

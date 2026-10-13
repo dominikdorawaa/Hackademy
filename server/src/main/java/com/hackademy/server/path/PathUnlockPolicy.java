@@ -28,11 +28,11 @@ public class PathUnlockPolicy {
             if (!Objects.equals(row.getChapterId(), currentChapter)) {
                 currentChapter = row.getChapterId();
                 pastFrontierChapter = frontierChapter != null;
-                if (pastFrontierChapter) lockedChapters.add(currentChapter);
             }
             if (row.getRoomId() == null || Boolean.TRUE.equals(row.getSolved())) continue;
             if (mode == PathUnlockMode.ROOM ? frontierChapter != null : pastFrontierChapter) {
                 lockedRooms.add(row.getRoomId());
+                if (pastFrontierChapter) lockedChapters.add(currentChapter);
             }
             if (frontierChapter == null) frontierChapter = currentChapter;
         }

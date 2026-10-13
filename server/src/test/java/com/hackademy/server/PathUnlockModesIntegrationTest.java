@@ -13,8 +13,10 @@ import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 
+import static org.hamcrest.Matchers.contains;
 import static org.hamcrest.Matchers.containsString;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
@@ -113,7 +115,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
         var user = learner(pathId);
 
         assertEquals(List.of(false, false, true, true), roomLocks(user, pathId));
-        assertEquals(List.of(false, true, true, true), chapterLocks(user, pathId));
+        assertEquals(List.of(false, false, true, true), chapterLocks(user, pathId));
         getAs(user, "/api/rooms/" + a2).andExpect(status().isOk());
         getAs(user, "/api/rooms/" + b1).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message", containsString("rozdział")));
@@ -143,7 +145,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
         assertEquals(List.of(false, true, true), roomLocks(user, pathId));
         assertEquals(List.of(false, true), chapterLocks(user, pathId));
         getAs(user, "/api/paths/" + pathId + "/rooms-mini?limit=0")
-                .andExpect(jsonPath("$.rooms[*].locked").value(org.hamcrest.Matchers.contains(false, true, true)));
+                .andExpect(jsonPath("$.rooms[*].locked").value(contains(false, true, true)));
         getAs(user, "/api/rooms/" + a2).andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message", containsString("pokoje")));
         getAs(user, "/api/rooms/" + b1 + "/file").andExpect(status().isForbidden());
@@ -183,7 +185,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
 
         changeMode(admin, pathId, "CHAPTER");
         assertEquals(List.of(false, false, false), roomLocks(user, pathId));
-        assertEquals(List.of(false, true), chapterLocks(user, pathId));
+        assertEquals(List.of(false, false), chapterLocks(user, pathId));
         changeMode(admin, pathId, "OPEN");
         getAs(user, "/api/rooms/" + second).andExpect(status().isOk());
     }
@@ -198,7 +200,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
 
         assertEquals(List.of(true, true), roomLocks(user, pathId));
         getAs(user, "/api/paths/" + pathId + "/rooms-mini?limit=0")
-                .andExpect(jsonPath("$.rooms[*].locked").value(org.hamcrest.Matchers.contains(true, true)));
+                .andExpect(jsonPath("$.rooms[*].locked").value(contains(true, true)));
     }
 
     @Test
@@ -217,5 +219,34 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
         getAs(admin, "/api/admin/content/paths/" + pathId + "/preview")
                 .andExpect(jsonPath("$.unlockMode").value("ROOM"))
                 .andExpect(jsonPath("$.chapters[0].locked").value(false));
+    }
+
+    @Test
+    void dashboardShowsCurrentLocksAfterChapterAndRoomChanges() throws Exception {
+        var admin = account(Role.ADMIN);
+        long first = room(admin), second = room(admin), third = room(admin);
+        jdbcTemplate.update("UPDATE paths SET published = false");
+        long pathId = createPath(admin, "ROOM", List.of(chapter("A", List.of(first, second)), chapter("B", List.of(third))));
+        var user = learner(pathId);
+        String dashboard = "/api/dashboard/summary";
+        getAs(user, dashboard).andExpect(jsonPath("$.currentPath.id").value(pathId))
+                .andExpect(jsonPath("$.currentPathRoomsMini[*].id").value(contains((int) first, (int) second, (int) third)))
+                .andExpect(jsonPath("$.currentPathRoomsMini[*].locked").value(contains(false, true, true)));
+
+        String detail = getAs(admin, "/api/admin/paths/" + pathId).andReturn().getResponse().getContentAsString();
+        List<Integer> chapterIds = JsonPath.read(detail, "$.chapters[*].id");
+        putJson(admin, "/api/admin/paths/" + pathId + "/chapters", """
+                {"revision":%d,"chapters":[{"id":%d,"title":"A","roomIds":[%d,%d]},{"id":%d,"title":"B","roomIds":[%d]}]}
+                """.formatted(((Number) JsonPath.read(detail, "$.revision")).longValue(), chapterIds.get(0), second, first, chapterIds.get(1), third))
+                .andExpect(status().isOk());
+        getAs(user, dashboard)
+                .andExpect(jsonPath("$.currentPathRoomsMini[*].id").value(contains((int) second, (int) first, (int) third)))
+                .andExpect(jsonPath("$.currentPathRoomsMini[*].locked").value(contains(false, true, true)));
+
+        mockMvc.perform(delete("/api/admin/rooms/" + second).header("Authorization", "Bearer " + admin.token()))
+                .andExpect(status().is2xxSuccessful());
+        getAs(user, dashboard)
+                .andExpect(jsonPath("$.currentPathRoomsMini[*].id").value(contains((int) first, (int) third)))
+                .andExpect(jsonPath("$.currentPathRoomsMini[*].locked").value(contains(false, true)));
     }
 }

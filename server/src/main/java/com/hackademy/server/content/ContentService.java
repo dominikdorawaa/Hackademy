@@ -24,14 +24,6 @@ public class ContentService {
     private final RoomService roomService;
     private final com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
 
-    private void invalidateDashboardAfterCommit() {
-        org.springframework.transaction.support.TransactionSynchronizationManager.registerSynchronization(
-                new org.springframework.transaction.support.TransactionSynchronization() {
-                    @Override
-                    public void afterCommit() { dashboardSummaryCache.invalidateAll(); }
-                });
-    }
-
     private static String text(String value) { return value == null ? "" : value; }
     private static void revision(Long supplied, long actual) {
         if (supplied == null || supplied != actual) throw new ResponseStatusException(HttpStatus.CONFLICT,
@@ -83,7 +75,7 @@ public class ContentService {
             catch (IOException e) { throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nie udało się odczytać bannera"); }
         }
         paths.flush();
-        invalidateDashboardAfterCommit();
+        dashboardSummaryCache.invalidateAllAfterCommit();
         return pathService.getAdminDetail(path.getId());
     }
 
@@ -181,7 +173,7 @@ public class ContentService {
             }
         }
         rooms.flush();
-        invalidateDashboardAfterCommit();
+        dashboardSummaryCache.invalidateAllAfterCommit();
         return roomEditor(saved.getId());
     }
 

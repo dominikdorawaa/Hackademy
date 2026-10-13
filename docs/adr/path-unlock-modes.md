@@ -16,7 +16,7 @@ Ukończony pokój zawsze pozostaje dostępny do powtórki, także po zmianie try
 
 Stan blokady nie jest zapisywany. `PathUnlockPolicy` wylicza go przy każdym żądaniu z aktualnego trybu, kolejności, publikacji i rozwiązań gracza, więc zmiana trybu, kolejności lub publikacji działa natychmiast.
 
-`GET /api/paths/{id}` zwraca `unlockMode`, flagę `locked` każdego rozdziału oraz `locked` pokoi; tak samo `rooms-mini` w dashboardzie. Backend odrzuca zablokowany pokój kodem 403 z komunikatem dla gracza przy wejściu do pokoju, wysłaniu flagi, odpowiedzi na zadanie, ukończeniu pokoju z zadaniami, odsłonięciu podpowiedzi i pobraniu pliku. Podgląd administracyjny nie stosuje blokad.
+`GET /api/paths/{id}` zwraca `unlockMode`, flagę `locked` pokoi oraz rozdziałów. Rozdział jest oznaczony jako zablokowany tylko wtedy, gdy zawiera pokój zablokowany przez tryb ścieżki, więc rozdział ukończony wcześniej nie wygląda na zablokowany. `rooms-mini` w dashboardzie również oznacza zablokowane pokoje. Zmiana rozdziałów, kolejności, publikacji, usunięcie pokoju lub ścieżki czyści cache dashboardu po zatwierdzeniu transakcji. Backend odrzuca zablokowany pokój kodem 403 z komunikatem dla gracza przy wejściu do pokoju, wysłaniu flagi, odpowiedzi na zadanie, ukończeniu pokoju z zadaniami, odsłonięciu podpowiedzi i pobraniu pliku. Podgląd administracyjny nie stosuje blokad.
 
 ## Weryfikacja
 
