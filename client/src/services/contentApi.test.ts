@@ -4,7 +4,7 @@ import API_URL from '../apiConfig';
 import { server } from '../test/mocks/server';
 import { ContentError, contentRequest, savePath, saveRoom } from './contentApi';
 
-const path = { revision: 1, chaptersRevision: 2, title: 'Draft', description: '', bannerUrl: null, published: false, chapters: [] };
+const path = { revision: 1, chaptersRevision: 2, title: 'Draft', description: '', bannerUrl: null, published: false, chapters: [], unlockMode: 'CHAPTER' as const };
 const room = { revision: 1, tasksRevision: 2, title: 'Draft', description: '', shortDescription: '', category: 'Web', difficulty: 'EASY' as const, points: 50,
   flag: '', requiresVpn: false, roomType: 'CTF' as const, published: false, hints: [], tasks: [] };
 

@@ -8,5 +8,6 @@ public record PathChapterDto(
     String title,
     int totalRooms,
     int solvedRooms,
+    boolean locked,
     List<RoomSummaryDto> rooms
 ) {}

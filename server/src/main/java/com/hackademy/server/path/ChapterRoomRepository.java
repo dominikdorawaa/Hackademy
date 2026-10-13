@@ -7,6 +7,7 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
+import java.util.Optional;
 
 public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Long> {
 
@@ -22,6 +23,41 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Long> 
         Boolean getRequiresVpn();
         Boolean getSolved();
     }
+
+    interface ProgressionRow {
+        Long getChapterId();
+        Long getRoomId();
+        Boolean getSolved();
+    }
+
+    @Query(value = """
+            SELECT
+              pc.id AS chapterId,
+              cr.room_id AS roomId,
+              (usr.room_id IS NOT NULL) AS solved
+            FROM path_chapters pc
+            LEFT JOIN (chapter_rooms cr JOIN rooms r ON r.id = cr.room_id AND r.published = true)
+              ON cr.chapter_id = pc.id
+            LEFT JOIN user_solved_rooms usr
+              ON usr.room_id = cr.room_id AND usr.user_id = :userId
+            WHERE pc.path_id = :pathId
+            ORDER BY pc.sort_order ASC, pc.id ASC, cr.sort_order ASC, cr.room_id ASC
+            """, nativeQuery = true)
+    List<ProgressionRow> findProgression(@Param("pathId") Long pathId, @Param("userId") Long userId);
+
+    interface RoomPathView {
+        Long getPathId();
+        String getUnlockMode();
+    }
+
+    @Query(value = """
+            SELECT p.id AS pathId, p.unlock_mode AS unlockMode
+            FROM chapter_rooms cr
+            JOIN path_chapters pc ON pc.id = cr.chapter_id
+            JOIN paths p ON p.id = pc.path_id
+            WHERE cr.room_id = :roomId
+            """, nativeQuery = true)
+    Optional<RoomPathView> findPathOfRoom(@Param("roomId") Long roomId);
 
     @Query("""
             SELECT cr FROM ChapterRoom cr

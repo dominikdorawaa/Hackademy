@@ -2,6 +2,8 @@ package com.hackademy.server.path;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
+import jakarta.persistence.EnumType;
+import jakarta.persistence.Enumerated;
 import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
@@ -54,6 +56,11 @@ public class Path {
 
     @Column(name = "content_revision", nullable = false)
     private long contentRevision;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "unlock_mode", nullable = false, length = 16)
+    private PathUnlockMode unlockMode = PathUnlockMode.OPEN;
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

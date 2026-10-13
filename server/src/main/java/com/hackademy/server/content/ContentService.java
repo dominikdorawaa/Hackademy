@@ -73,6 +73,7 @@ public class ContentService {
         path.setDescription(text(request.description()));
         path.setBannerUrl(request.bannerUrl() == null || request.bannerUrl().isBlank() ? null : request.bannerUrl());
         path.setPublished(request.published());
+        if (request.unlockMode() != null) path.setUnlockMode(request.unlockMode());
         path.setContentRevision(path.getContentRevision() + 1);
         if (banner != null && !banner.isEmpty()) {
             if (banner.getContentType() == null || !Set.of("image/png", "image/jpeg", "image/webp", "image/gif").contains(banner.getContentType())) validation.problem("bannerFile", "Wybierz obraz PNG, JPEG, WebP lub GIF");
@@ -135,7 +136,7 @@ public class ContentService {
             boolean admin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
             var draft = r.parentDraft();
             publishParent = draft.published();
-            var savedPath = savePath(r.pathId(), new ContentRequests.PathSave(draft.revision(), draft.chaptersRevision(), draft.title(), draft.description(), draft.bannerUrl(), false, draft.chapters()), null, admin);
+            var savedPath = savePath(r.pathId(), new ContentRequests.PathSave(draft.revision(), draft.chaptersRevision(), draft.title(), draft.description(), draft.bannerUrl(), false, draft.chapters(), draft.unlockMode()), null, admin);
             if (r.chapterIndex() >= savedPath.chapters().size()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nieprawidłowy rozdział");
             parent = paths.findByIdForUpdate(savedPath.id()).orElseThrow();
             chapter = chapters.findById(savedPath.chapters().get(r.chapterIndex()).id()).orElseThrow();
@@ -201,9 +202,9 @@ public class ContentService {
         for (var c : chapters.findByPathIdOrderBySortOrderAscIdAsc(id)) {
             var chapterRooms = links.stream().filter(a -> a.getChapterId().equals(c.getId())).map(a -> roomService.getRoomById(a.getRoomId())).map(r -> new RoomSummaryDto(r.getId(), r.getTitle(), r.getShortDescription(), r.getDifficulty(), r.getCategory(), r.getPoints(), r.getSolutionsCount(), r.isRequiresVpn(), r.getRoomType(), r.getCreatedAt())).toList();
             all.addAll(chapterRooms);
-            sections.add(new PathChapterDto(c.getId(), c.getTitle(), chapterRooms.size(), 0, chapterRooms));
+            sections.add(new PathChapterDto(c.getId(), c.getTitle(), chapterRooms.size(), 0, false, chapterRooms));
         }
-        return PathDetailDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerData() == null ? p.getBannerUrl() : "/api/admin/content/paths/" + id + "/banner").hasBanner(p.getBannerData() != null).enrolled(true).chapters(sections).rooms(all).build();
+        return PathDetailDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerData() == null ? p.getBannerUrl() : "/api/admin/content/paths/" + id + "/banner").hasBanner(p.getBannerData() != null).enrolled(true).unlockMode(p.getUnlockMode()).chapters(sections).rooms(all).build();
     }
 
     @Transactional(readOnly = true)

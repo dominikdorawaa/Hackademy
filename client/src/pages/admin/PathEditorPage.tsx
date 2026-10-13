@@ -6,7 +6,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import * as contentApi from '../../services/contentApi';
 import type { PathSave } from '../../services/contentApi';
-import type { PathAdminDetailDto, RoomAdminSummaryDto } from '../../types/api';
+import type { PathAdminDetailDto, PathUnlockMode, RoomAdminSummaryDto } from '../../types/api';
 import { ConfirmAction, FilePicker, LoadingRows, PageHeader, Section, StatusMessage } from '../../components/admin/AdminUi';
 import { TextField, checkText, focusError } from '../../components/admin/ContentFields';
 import type { FieldErrors } from '../../components/admin/ContentFields';
@@ -14,9 +14,14 @@ import { ContentChapters } from '../../components/admin/ContentStructure';
 import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
 import { useAdminAccess } from './adminAccess';
 
-const empty: PathSave = { revision: 0, chaptersRevision: 0, title: '', description: '', bannerUrl: null, published: false, chapters: [{ id: null, title: 'Rozdział 1', roomIds: [] }] };
+const empty: PathSave = { revision: 0, chaptersRevision: 0, title: '', description: '', bannerUrl: null, published: false, chapters: [{ id: null, title: 'Rozdział 1', roomIds: [] }], unlockMode: 'OPEN' };
+const unlockModes: Record<PathUnlockMode, { label: string; description: string }> = {
+  OPEN: { label: 'Otwarta', description: 'Wszystkie pokoje są dostępne od razu.' },
+  CHAPTER: { label: 'Rozdziałami', description: 'Rozdział otwiera się po ukończeniu wszystkich pokoi poprzednich rozdziałów.' },
+  ROOM: { label: 'Pokój po pokoju', description: 'Pokoje tworzą jedną kolejkę przez całą ścieżkę; kolejny otwiera się po ukończeniu poprzedniego.' },
+};
 function fromDetail(d: PathAdminDetailDto): PathSave {
-  return { revision: d.contentRevision ?? 0, chaptersRevision: d.revision, title: d.title, description: d.description ?? '', bannerUrl: d.hasBanner ? null : d.bannerUrl, published: d.published ?? true, chapters: d.chapters };
+  return { revision: d.contentRevision ?? 0, chaptersRevision: d.revision, title: d.title, description: d.description ?? '', bannerUrl: d.hasBanner ? null : d.bannerUrl, published: d.published ?? true, chapters: d.chapters, unlockMode: d.unlockMode ?? 'OPEN' };
 }
 export default function PathEditorPage() {
   const { pathId } = useParams();
@@ -126,6 +131,15 @@ function PathEditor({ pathId }: { pathId: string }) {
               {errors.bannerFile && <p role="alert" className="text-destructive">{errors.bannerFile}</p>}
               <p className="text-xs text-muted-foreground">Do 5 MB. Wgrany plik ma pierwszeństwo przed URL.</p>
               <BannerImage source={banner} file={file} url={form.bannerUrl} token={token} />
+            </div>
+          </Section>
+          <Section title="Odblokowywanie" description="Ukończone pokoje pozostają dostępne. Blokady samouczków VM i VPN obowiązują dodatkowo.">
+            <div className="grid gap-2">
+              <label htmlFor="content-unlockMode">Tryb odblokowania</label>
+              <select id="content-unlockMode" className="rounded border bg-background p-2" value={form.unlockMode} aria-describedby="content-unlockMode-help" onChange={e => change({ unlockMode: e.target.value as PathUnlockMode })}>
+                {Object.entries(unlockModes).map(([mode, { label }]) => <option key={mode} value={mode}>{label}</option>)}
+              </select>
+              <span id="content-unlockMode-help" className="text-xs text-muted-foreground">{unlockModes[form.unlockMode].description}</span>
             </div>
           </Section>
           <ContentChapters chapters={form.chapters} rooms={rooms} pathId={id} errors={errors} canDelete={isAdmin} onChange={chapters => change({ chapters })} onCreateRoom={createRoom} onRoom={roomId => guard.request(() => navigate(`/admin/paths/rooms/${roomId}`))} />

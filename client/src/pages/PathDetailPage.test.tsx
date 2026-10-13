@@ -78,6 +78,21 @@ describe('path page', () => {
     expect(await screen.findByText('Przechodź rozdziały krok po kroku.')).toBeInTheDocument();
   });
 
+  it('shows chapter locks and the unlock mode hint', async () => {
+    const locked = path(true);
+    server.use(http.get(`${API_URL}/api/paths/5`, () => HttpResponse.json({
+      ...locked,
+      unlockMode: 'CHAPTER',
+      chapters: locked.chapters.map((chapter) => ({ ...chapter, locked: chapter.id !== 1 })),
+    })));
+    mount();
+
+    const first = await screen.findByRole('region', { name: 'Podstawy' });
+    expect(within(first).queryByText('Zablokowany')).toBeNull();
+    expect(within(screen.getByRole('region', { name: 'Ataki' })).getByText('Zablokowany')).toBeInTheDocument();
+    expect(screen.getByText('Kolejny rozdział otwiera się po ukończeniu wszystkich pokoi poprzedniego.')).toBeInTheDocument();
+  });
+
   it('shows an error when the path cannot be loaded', async () => {
     server.use(http.get(`${API_URL}/api/paths/5`, () => new HttpResponse(null, { status: 500 })));
     mount();

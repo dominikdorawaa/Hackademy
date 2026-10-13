@@ -219,7 +219,10 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     const fetchRoom = async () => {
       try {
         const response = await (preview ? request<RoomDetailDto>(`/api/admin/content/rooms/${id}/preview`, { headers: { Authorization: `Bearer ${token}` } }) : roomApi.getRoom(id ?? '', { 'Authorization': `Bearer ${token}` }));
-        if (!response.ok) throw new Error('Failed to fetch room details');
+        if (!response.ok) {
+          const body = await response.json().catch(() => null);
+          throw new Error(body?.message || 'Failed to fetch room details');
+        }
         const data = await response.json();
         setRoom(data);
         if (data.tasks && data.tasks.length > 0) {
