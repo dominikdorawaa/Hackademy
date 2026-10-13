@@ -1,9 +1,6 @@
 package com.hackademy.server.content;
 
-import tools.jackson.core.StreamReadFeature;
-import tools.jackson.databind.DeserializationFeature;
 import tools.jackson.databind.JsonNode;
-import tools.jackson.databind.ObjectMapper;
 import com.hackademy.server.path.*;
 import com.hackademy.server.path.dto.PathAdminDetailDto;
 import com.hackademy.server.room.*;
@@ -22,10 +19,7 @@ import org.springframework.web.server.ResponseStatusException;
 @Service
 @RequiredArgsConstructor
 public class PathImportService {
-    public static final int MAX_BYTES = 5 * 1024 * 1024;
-    private static final ObjectMapper JSON = tools.jackson.databind.json.JsonMapper.builder()
-            .enable(StreamReadFeature.STRICT_DUPLICATE_DETECTION)
-            .enable(DeserializationFeature.FAIL_ON_TRAILING_TOKENS).build();
+    public static final int MAX_BYTES = ContentImportReader.MAX_BYTES;
     private final PathRepository paths;
     private final PathChapterRepository chapters;
     private final ChapterRoomRepository assignments;
@@ -36,8 +30,8 @@ public class PathImportService {
 
     @Transactional(rollbackFor = IOException.class)
     public PathAdminDetailDto importPath(MultipartFile file) throws IOException {
-        JsonNode root = read(file);
-        new PathImportValidation().validate(root);
+        JsonNode root = ContentImportReader.read(file);
+        new ContentImportValidation().validate(root);
         var path = paths.save(Path.builder().title(root.path("title").asText().trim())
                 .description(root.path("description").asText()).published(false)
                 .unlockMode(PathUnlockMode.valueOf(root.path("unlockMode").asText("OPEN"))).build());
@@ -52,7 +46,7 @@ public class PathImportService {
 
     @Transactional(rollbackFor = IOException.class)
     public PathAdminDetailDto importRooms(Long pathId, ContentRequests.RoomImport target, MultipartFile file) throws IOException {
-        JsonNode root = read(file);
+        JsonNode root = ContentImportReader.read(file);
         if (target == null || target.chapterId() == null || target.contentRevision() == null || target.chaptersRevision() == null) {
             throw new ContentValidation.InvalidContent(Map.of("cel", "Wybierz rozdział i wczytaj aktualną wersję ścieżki"));
         }
@@ -65,24 +59,12 @@ public class PathImportService {
         var links = assignments.findByPathId(pathId).stream().filter(link -> link.getChapterId().equals(chapter.getId())).toList();
         var titles = rooms.findAllById(links.stream().map(ChapterRoom::getRoomId).toList()).stream()
                 .map(Room::getTitle).collect(Collectors.toSet());
-        new PathImportValidation().validateRooms(root, titles, links.size());
+        new ContentImportValidation().validateRooms(root, titles, links.size());
         int nextOrder = links.stream().mapToInt(ChapterRoom::getSortOrder).max().orElse(-1) + 1;
         saveRooms(root.path("rooms"), chapter.getId(), nextOrder);
         path.setChaptersRevision(path.getChaptersRevision() + 1);
         path.setContentRevision(path.getContentRevision() + 1);
         return finish(pathId);
-    }
-
-    private JsonNode read(MultipartFile file) throws IOException {
-        if (file.isEmpty() || file.getSize() > MAX_BYTES) throw invalid("Wybierz niepusty plik JSON do 5 MB");
-        JsonNode root;
-        try {
-            root = JSON.readTree(file.getBytes());
-            if (root == null) throw invalid("Plik nie zawiera dokumentu JSON");
-        } catch (tools.jackson.core.JacksonException error) {
-            throw invalid("Niepoprawny JSON: sprawdź składnię, powtórzone klucze i dodatkową treść po dokumencie");
-        }
-        return root;
     }
 
     private void saveRooms(JsonNode items, Long chapterId, int roomOrder) throws IOException {
@@ -108,7 +90,4 @@ public class PathImportService {
         return pathService.getAdminDetail(pathId);
     }
 
-    private ContentValidation.InvalidContent invalid(String message) {
-        return new ContentValidation.InvalidContent(Map.of("plik", message));
-    }
 }

@@ -22,8 +22,15 @@ import java.util.Map;
 public class ContentController {
     private final ContentService content;
     private final PathImportService pathImport;
+    private final CtfImportService ctfImport;
     private final PathRepository paths;
     private final RoomFileRepository files;
+    @PostMapping(value = "/ctf/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CtfImportService.Result importCtf(@RequestPart("file") MultipartFile file) throws IOException {
+        return ctfImport.importRooms(file);
+    }
     @PostMapping(value = "/paths/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @PreAuthorize("hasRole('ADMIN')")
     @ResponseStatus(HttpStatus.CREATED)

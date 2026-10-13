@@ -33,4 +33,10 @@ Nowe pokoje są dopisywane na końcu wybranego rozdziału jako szkice; pozostaj�
 
 ## Import CTF
 
-Import listy pokoi CTF będzie osobno realizowany w #22. Ten dokument definiuje obecnie format ścieżek z #21.
+Administrator w sekcji Pokoje CTF wybiera „Importuj CTF z JSON” i wgrywa dokument `{"rooms": [...]}`. Przykład jest dostępny w oknie do obejrzenia, skopiowania i pobrania; źródło: `client/src/data/ctf-import-example.json`.
+
+Pokój CTF wymaga `title`, `description`, `difficulty`, `category` i `flag`. Opcjonalne są `shortDescription`, `requiresVpn` (domyślnie false) i `hints` (domyślnie pusta lista). Limity tekstów i podpowiedzi są identyczne jak dla importu ścieżek; plik do 5 MB, lista od 1 do 500 pokoi. Nieznane pola, w tym `points`, `tasks`, `id`, `roomType`, publikacja i pliki, są błędami. Pokój CTF rozwiązuje się flagą; nie importuje zadań PATH.
+
+Punkty liczy wyłącznie backend z trudności: EASY 50, MEDIUM 100, HARD 150, INSANE 200. Tytuły są przycinane i muszą być unikalne w pliku oraz globalnie wśród pokoi CTF, również szkiców; wielkość liter jest rozróżniana. Tytuł istniejącego pokoju PATH nie blokuje importu CTF. Nazwy samouczków pozostają zarezerwowane. Walidacja przed zapisem zbiera błędy wszystkich pokojów, także konflikty tytułów z bazą, z pozycją `pokój 2: title`.
+
+`POST /api/admin/content/ctf/import`, multipart z częścią `file`, jest dostępny tylko dla administratora. Zwraca 201 z `roomIds` i `count`. Import tworzy nowe pokoje CTF jako szkice, z podpowiedziami, w jednej transakcji. Istniejące pokoje i postępy pozostają bez zmian; nowe szkice nie trafiają do list gracza ani Areny do czasu publikacji w edytorze. Błędny dokument zwraca 400 z mapą `fields` i nie zapisuje nic. Konflikt tytułu powstały równocześnie podczas zapisu zwraca 409 i wycofuje całą partię. Pliki do pobrania i publikację dodaje się później w edytorze. Nie wymaga migracji bazy.
