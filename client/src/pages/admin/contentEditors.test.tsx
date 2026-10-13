@@ -159,6 +159,53 @@ describe('draft editors and guarded navigation', () => {
   });
 });
 
+describe('room title and scoring rules', () => {
+  it('shows a duplicate title reported by the backend next to the title field', async () => {
+    server.use(http.put(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ message: 'Rozdział tego pokoju ma już pokój o tym tytule', fields: { title: 'Rozdział tego pokoju ma już pokój o tym tytule' } }, { status: 409 })));
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
+    const title = await screen.findByLabelText('Tytuł *');
+    await user.clear(title); await user.type(title, 'Wstęp');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(await screen.findByText('Rozdział tego pokoju ma już pokój o tym tytule', { selector: '#content-title-error' })).toBeInTheDocument();
+    await waitFor(() => expect(title).toHaveFocus());
+    expect(title).toHaveValue('Wstęp');
+  });
+  it('rejects reserved tutorial titles before saving a new room', async () => {
+    const save = vi.spyOn(contentApi, 'saveRoom');
+    const user = userEvent.setup(); mount('/admin/ctf/new');
+    await user.type(await screen.findByLabelText('Tytuł *'), ' tutorial VPN ');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(await screen.findByText('Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka')).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+  it('keeps the title of an existing tutorial room editable', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, title: 'Tutorial VM', roomType: 'CTF', category: 'Tutorial' }, tasks: { revision: 0, tasks: [] } })));
+    const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, title: 'Tutorial VM', roomType: 'CTF', category: 'Tutorial' }, tasks: { revision: 0, tasks: [] } });
+    const user = userEvent.setup(); mount('/admin/ctf/9');
+    await user.type(await screen.findByLabelText('Opis'), ' nowy');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].title).toBe('Tutorial VM');
+  });
+  it('shows CTF points derived from difficulty without an editable points field', async () => {
+    const user = userEvent.setup(); mount('/admin/ctf/new');
+    await screen.findByLabelText('Tytuł *');
+    expect(screen.queryByLabelText('Punkty *')).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'INSANE');
+    expect(screen.getByText('200 pkt')).toBeInTheDocument();
+  });
+  it('shows a duplicate room title in a chapter reported by the backend', async () => {
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: 5, pathTitle: 'Web' }])),
+      http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })),
+      http.put(`${API_URL}/api/admin/content/paths/5`, () => HttpResponse.json({ message: 'Rozdział 1 zawiera już pokój „Pokój”', fields: { 'chapters.0.rooms': 'Rozdział 1 zawiera już pokój „Pokój”' } }, { status: 409 })));
+    const user = userEvent.setup(); mount('/admin/paths/5');
+    await user.type(await screen.findByLabelText('Nazwa rozdziału 1 *'), ' lokalny');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(await screen.findAllByText('Rozdział 1 zawiera już pokój „Pokój”')).not.toHaveLength(0);
+    expect(screen.getByLabelText('Nazwa rozdziału 1 *')).toHaveValue('Wstęp lokalny');
+  });
+});
+
 describe('administrative preview', () => {
   it('uses the player room view, reveals saved draft hints and never writes player progress', async () => {
     const writes: string[] = [];

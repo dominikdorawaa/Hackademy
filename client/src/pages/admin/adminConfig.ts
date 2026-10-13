@@ -11,3 +11,5 @@ export const pointsForDifficulty: Record<DifficultyLevel, number> = {
   HARD: 150,
   INSANE: 200,
 };
+
+export const reservedRoomTitles = ['tutorial vm', 'tutorial vpn'];

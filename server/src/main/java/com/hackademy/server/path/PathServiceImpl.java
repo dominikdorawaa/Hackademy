@@ -17,6 +17,7 @@ import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import com.hackademy.server.room.Room;
 import com.hackademy.server.room.RoomRepository;
+import com.hackademy.server.room.RoomRuleException;
 import com.hackademy.server.room.UserSolvedRoomRepository;
 import com.hackademy.server.user.UserRepository;
 import lombok.RequiredArgsConstructor;
@@ -266,7 +267,7 @@ public class PathServiceImpl implements PathService {
     @Transactional
     public PathSummaryDto createPath(CreatePathRequest request) {
         List<Long> roomIds = request.roomIds() != null ? request.roomIds() : List.of();
-        validateRooms(null, roomIds);
+        validateChapterTitles(List.of(roomIds), validateRooms(null, roomIds));
 
         Path saved = pathRepository.save(Path.builder()
                 .published(false)
@@ -368,7 +369,9 @@ public class PathServiceImpl implements PathService {
         List<Long> allRoomIds = request.chapters().stream()
                 .flatMap(chapter -> chapter.roomIds() == null ? java.util.stream.Stream.<Long>empty() : chapter.roomIds().stream())
                 .toList();
-        validateRooms(id, allRoomIds);
+        validateChapterTitles(request.chapters().stream()
+                .map(chapter -> chapter.roomIds() == null ? List.<Long>of() : chapter.roomIds())
+                .toList(), validateRooms(id, allRoomIds));
 
         chapterRoomRepository.deleteByPathId(id);
         pathChapterRepository.deleteAll(removed);
@@ -397,7 +400,20 @@ public class PathServiceImpl implements PathService {
         return grouped;
     }
 
-    private void validateRooms(Long pathId, List<Long> roomIds) {
+    private void validateChapterTitles(List<List<Long>> chapterRoomIds, Map<Long, Room> rooms) {
+        for (int index = 0; index < chapterRoomIds.size(); index++) {
+            Set<String> titles = new HashSet<>();
+            for (Long roomId : chapterRoomIds.get(index)) {
+                String title = rooms.get(roomId).getTitle();
+                if (!titles.add(title)) {
+                    throw new RoomRuleException(HttpStatus.CONFLICT, "chapters." + index + ".rooms",
+                            "Rozdział " + (index + 1) + " zawiera już pokój \u201e" + title + "\u201d");
+                }
+            }
+        }
+    }
+
+    private Map<Long, Room> validateRooms(Long pathId, List<Long> roomIds) {
         if (roomIds.stream().anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException("Lista pokoi zawiera pusty identyfikator");
         }
@@ -407,7 +423,7 @@ public class PathServiceImpl implements PathService {
                 throw new IllegalArgumentException("Pokój " + roomId + " występuje w ścieżce więcej niż raz");
             }
         }
-        if (unique.isEmpty()) return;
+        if (unique.isEmpty()) return Map.of();
 
         // Lock in a stable order before reading types and ownership across paths.
         Map<Long, Room> rooms = new HashMap<>();
@@ -431,6 +447,7 @@ public class PathServiceImpl implements PathService {
                         + "\u201d należy już do ścieżki \u201e" + owner.getPathTitle() + "\u201d");
             }
         }
+        return rooms;
     }
 
     private void saveChapterRooms(Long chapterId, List<Long> roomIds) {

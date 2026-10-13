@@ -110,7 +110,7 @@ public class ContentService {
         v.text("flag", r.flag(), 255, r.published() && (r.tasks() == null || r.tasks().isEmpty()));
         if (r.difficulty() == null) v.problem("difficulty", "Wybierz trudność");
         if (r.roomType() == null) v.problem("roomType", "Wybierz typ pokoju");
-        if (r.points() == null || r.points() < 0) v.problem("points", "Podaj nieujemną liczbę punktów");
+        if (r.roomType() == RoomType.PATH && (r.points() == null || r.points() < 0)) v.problem("points", "Podaj nieujemną liczbę punktów");
         var hints = r.hints() == null ? List.<String>of() : r.hints();
         if (hints.size() > 100) v.problem("hints", "Maksymalnie 100 podpowiedzi");
         for (int i = 0; i < hints.size(); i++) v.text("hints." + i, hints.get(i), 2000, true);
@@ -144,6 +144,9 @@ public class ContentService {
             parent = paths.findByIdForUpdate(r.pathId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             revision(r.pathRevision(), parent.getContentRevision());
             chapter = chapters.findById(r.chapterId()).filter(c -> c.getPathId().equals(r.pathId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Rozdział nie należy do tej ścieżki"));
+        }
+        if (chapter != null && assignments.existsRoomWithTitleInChapter(chapter.getId(), r.title().trim())) {
+            throw new RoomRuleException(HttpStatus.CONFLICT, "title", "Ten rozdział ma już pokój o tym tytule");
         }
         Room saved;
         if (id == null) {

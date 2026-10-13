@@ -211,7 +211,7 @@ class ContentDraftsIntegrationTest {
     }
 
     @Test void validatesSanitizedContentAndDuplicateTitleAtTheFieldWithoutPublishingOrLosingData() throws Exception {
-        String admin = token(Role.ADMIN); var first = room(false, "PATH");
+        String admin = token(Role.ADMIN); var first = room(false, "CTF");
         save("rooms", null, first, admin, 201);
         String duplicate = save("rooms", null, first, admin, 409);
         assertTrue(duplicate.contains("title"));
