@@ -34,4 +34,6 @@ These patterns inform the portfolio and earned-badge collection; external rankin
 
 ## Consequences
 
+The profile editor ignores backdrop clicks. Closing with the close button, Cancel or Escape requires confirmation when any personalization field or badge order differs from its initial value. Continuing preserves the draft and focus; discarding closes without saving. Native modal dialogs trap keyboard focus and restore the editor launcher on exit. Closing is blocked while saving, failed saves retain the draft, and successful saves close the editor.
+
 Flyway V6 adds the personalization fields and ordered interests/showcase tables, preserving existing accounts. Reordering constraints are deferred until commit. The backend must be restarted to load the migration and profile editing endpoint before using the new frontend editor. Existing stats, recent-solved and bio APIs remain available. Uploaded avatars, external certificates, new achievement criteria and anonymous sharing are outside this change.

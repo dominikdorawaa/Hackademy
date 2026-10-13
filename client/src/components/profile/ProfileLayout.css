@@ -151,6 +151,11 @@
   .profile-editor { width: min(720px, calc(100vw - 32px)); max-height: 90dvh; overflow-y: auto; margin: auto; padding: 0; border: 1px solid var(--border-color); border-radius: 16px; background: var(--bg-panel); color: var(--text-light); font-family: inherit; scrollbar-width: none; }
   .profile-editor::-webkit-scrollbar { display: none; }
   .profile-editor::backdrop { background: rgb(0 0 0 / 65%); }
+  .profile-discard-confirmation { width: min(440px, calc(100vw - 32px)); max-height: 90dvh; overflow-y: auto; margin: auto; padding: 24px; border: 1px solid var(--profile-divider); border-radius: 12px; background: var(--bg-panel); color: var(--text-light); font-family: inherit; }
+  .profile-discard-confirmation::backdrop { background: rgb(0 0 0 / 55%); }
+  .profile-discard-confirmation h2 { font-size: 20px; }
+  .profile-discard-confirmation p { margin: 12px 0 0; font-size: 14px; color: var(--text-gray); line-height: 1.6; }
+  .profile-discard-actions { display: flex; flex-wrap: wrap; justify-content: flex-end; gap: 10px; margin-top: 24px; }
   .profile-editor-header { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 24px 28px; border-bottom: 1px solid var(--profile-divider); background: var(--bg-panel); }
   .profile-editor-fields { border: 0; margin: 0; padding: 24px 28px; display: grid; gap: 25px; min-width: 0; }
   .profile-editor-fields:disabled { opacity: .65; }

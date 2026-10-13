@@ -19,8 +19,14 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
   const { token } = useAuth();
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
+  const discardDialog = useRef<HTMLDialogElement>(null);
+  const continueButton = useRef<HTMLButtonElement>(null);
+  const discardButton = useRef<HTMLButtonElement>(null);
+  const closeOrigin = useRef<HTMLElement | null>(null);
   const pending = useRef<AbortController | null>(null);
+  const [original] = useState(initial);
   const [draft, setDraft] = useState(initial);
+  const [confirmDiscard, setConfirmDiscard] = useState(false);
   const [avatars, setAvatars] = useState(() => variants(initial.avatarSeed));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
@@ -28,6 +34,9 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
   const earned = badges.filter(badge => badge.earned).sort((a, b) => (b.earnedAt ?? '').localeCompare(a.earnedAt ?? '') || a.id - b.id);
   const pages = Math.ceil(earned.length / 6);
   const invalid = draft.bio.length > 500;
+  const changed = draft.bio !== original.bio || draft.tagline !== original.tagline || draft.avatarSeed !== original.avatarSeed
+    || JSON.stringify(draft.interests) !== JSON.stringify(original.interests)
+    || JSON.stringify(draft.featuredBadgeIds) !== JSON.stringify(original.featuredBadgeIds);
 
   useEffect(() => {
     const element = dialog.current!;
@@ -43,6 +52,25 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     };
   }, []);
 
+  useEffect(() => {
+    if (!confirmDiscard) return;
+    const element = discardDialog.current!;
+    const editor = dialog.current;
+    element.showModal();
+    continueButton.current?.focus();
+    return () => {
+      element.close();
+      if (closeOrigin.current?.isConnected && editor?.open) closeOrigin.current.focus();
+    };
+  }, [confirmDiscard]);
+
+  function requestClose() {
+    if (saving || pending.current || confirmDiscard) return;
+    if (!changed) { onClose(); return; }
+    closeOrigin.current = document.activeElement as HTMLElement | null;
+    setConfirmDiscard(true);
+  }
+
   function toggle<K extends 'interests' | 'featuredBadgeIds'>(key: K, value: ProfilePersonalization[K][number]) {
     setDraft(previous => {
       const values = previous[key] as (string | number)[];
@@ -52,7 +80,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
 
   async function save(event: FormEvent) {
     event.preventDefault();
-    if (saving || invalid) return;
+    if (saving || pending.current || invalid || confirmDiscard) return;
     const controller = new AbortController();
     pending.current = controller;
     setSaving(true); setError('');
@@ -72,16 +100,16 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     } catch {
       if (!controller.signal.aborted) setError('Nie udało się połączyć z serwerem. Twoje zmiany pozostają w formularzu.');
     } finally {
+      if (pending.current === controller) pending.current = null;
       if (!controller.signal.aborted) setSaving(false);
     }
   }
 
   return <dialog ref={dialog} className="profile-editor" aria-labelledby={`${id}-title`}
-    onCancel={event => { event.preventDefault(); if (!saving) onClose(); }}
-    onClick={event => { if (!saving && event.target === event.currentTarget) onClose(); }}>
+    onCancel={event => { event.preventDefault(); requestClose(); }}>
     <header className="profile-editor-header">
       <h2 id={`${id}-title`}>Edytuj profil</h2>
-      <Button variant="ghost" size="sm" disabled={saving} aria-label="Zamknij edycję profilu" onClick={onClose}><ProfileIcon kind="close" weight="bold" /></Button>
+      <Button variant="ghost" size="sm" disabled={saving} aria-label="Zamknij edycję profilu" onClick={requestClose}><ProfileIcon kind="close" weight="bold" /></Button>
     </header>
     <form onSubmit={event => void save(event)}>
       <fieldset disabled={saving} className="profile-editor-fields">
@@ -129,9 +157,27 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
       </fieldset>
       <footer className="profile-editor-footer">
         {error && <p role="alert" className="profile-error">{error}</p>}
-        <Button type="button" variant="ghost" disabled={saving} onClick={onClose}>Anuluj</Button>
+        <Button type="button" variant="ghost" disabled={saving} onClick={requestClose}>Anuluj</Button>
         <Button type="submit" disabled={saving || invalid}>{saving ? 'Zapisywanie…' : 'Zapisz profil'}</Button>
       </footer>
     </form>
+    {confirmDiscard && <dialog ref={discardDialog} className="profile-discard-confirmation" role="alertdialog"
+      aria-labelledby={`${id}-discard-title`} aria-describedby={`${id}-discard-description`}
+      onKeyDown={event => {
+        if (event.key !== 'Tab') return;
+        if (event.shiftKey && document.activeElement === continueButton.current) {
+          event.preventDefault(); discardButton.current?.focus();
+        } else if (!event.shiftKey && document.activeElement === discardButton.current) {
+          event.preventDefault(); continueButton.current?.focus();
+        }
+      }}
+      onCancel={event => { event.preventDefault(); event.stopPropagation(); setConfirmDiscard(false); }}>
+      <h2 id={`${id}-discard-title`}>Niezapisane zmiany</h2>
+      <p id={`${id}-discard-description`}>Jeśli zamkniesz edytor, wprowadzone zmiany zostaną odrzucone.</p>
+      <div className="profile-discard-actions">
+        <Button type="button" ref={continueButton} onClick={() => setConfirmDiscard(false)}>Kontynuuj edycję</Button>
+        <Button type="button" ref={discardButton} variant="outline" onClick={onClose}>Odrzuć zmiany</Button>
+      </div>
+    </dialog>}
   </dialog>;
 }
