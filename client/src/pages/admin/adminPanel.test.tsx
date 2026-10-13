@@ -93,8 +93,7 @@ describe('admin panel layout', () => {
     mountAdmin('/admin/users');
     await screen.findByRole('heading', { name: 'Użytkownicy', level: 1 });
     const user = userEvent.setup();
-    await user.click(screen.getByRole('button', { name: /Zmień motyw/ }));
-    await user.click(screen.getByRole('menuitemradio', { name: 'Jasny' }));
+    await user.click(screen.getByRole('button', { name: 'Włącz jasny motyw' }));
     expect(document.documentElement).toHaveAttribute('data-theme', 'light');
     expect(localStorage.getItem('app-theme')).toBe('light');
   });

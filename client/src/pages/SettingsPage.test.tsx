@@ -21,7 +21,7 @@ describe('settings', () => {
     mount('appearance');
     expect(screen.getByRole('switch', { name: 'Ogranicz animacje' })).toBeInTheDocument();
     expect(screen.queryByRole('group', { name: 'Motyw aplikacji' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Jasny|Ciemny|Systemowy|Zmień motyw/ })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Jasny|Ciemny|Systemowy|Włącz .* motyw/ })).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('switch', { name: 'Ogranicz animacje' }));
     expect(document.documentElement).toHaveAttribute('data-reduced-motion', 'true');
     expect(localStorage.getItem('app-reduced-motion')).toBe('true');
