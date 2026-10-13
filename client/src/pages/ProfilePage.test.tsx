@@ -112,6 +112,49 @@ beforeEach(() => {
 });
 
 describe('user profile integration', () => {
+  it.each(['/profile', '/profile/friend'])('does not fill an empty showcase automatically on %s', async path => {
+    mount(path);
+    await screen.findByText('7/8');
+    expect(screen.queryByRole('region', { name: 'Wyróżnione osiągnięcia' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Wyróżnione osiągnięcia' })).not.toBeInTheDocument();
+    if (path === '/profile') expect(screen.getByRole('button', { name: 'Edytuj profil' })).toBeInTheDocument();
+  });
+
+  it('clears all showcased badges, persists an empty selection and keeps the editor accessible', async () => {
+    let persisted = { ...profileUser, tagline: '', avatarSeed: 'tester-avatar', interests: [] as string[], featuredBadgeIds: [7, 6, 5] };
+    server.use(
+      http.get(url('/user/me'), () => HttpResponse.json(persisted)),
+      http.get(url('/user/:username'), () => HttpResponse.json({ ...publicProfile, featuredBadgeIds: persisted.featuredBadgeIds })),
+      http.patch(url('/user/me/profile'), async ({ request }) => {
+        const body = await request.json() as typeof persisted;
+        persisted = { ...persisted, ...body };
+        return HttpResponse.json(body);
+      }),
+    );
+    const view = mount();
+    await screen.findByText('7/8');
+    expect(screen.getByRole('region', { name: 'Wyróżnione osiągnięcia' })).toBeInTheDocument();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Edytuj profil' }));
+    const editor = within(screen.getByRole('dialog', { name: 'Edytuj profil' }));
+    expect(editor.getByText(/Brak wybranych odznak ukrywa gablotę/)).toBeInTheDocument();
+    for (const id of [7, 6, 5]) await user.click(editor.getByText(`Odznaka ${id}`));
+    await user.click(editor.getByRole('button', { name: 'Zapisz profil' }));
+    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    expect(persisted.featuredBadgeIds).toEqual([]);
+    expect(screen.queryByRole('region', { name: 'Wyróżnione osiągnięcia' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edytuj profil' })).toBeInTheDocument();
+    view.unmount();
+    const reloaded = mount();
+    await screen.findByText('7/8');
+    expect(screen.queryByRole('region', { name: 'Wyróżnione osiągnięcia' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Edytuj profil' })).toBeInTheDocument();
+    reloaded.unmount();
+    mount('/profile/friend');
+    await screen.findByText('7/8');
+    expect(screen.queryByRole('region', { name: 'Wyróżnione osiągnięcia' })).not.toBeInTheDocument();
+  });
+
   it('saves avatar, bio, interests and ordered showcase selections and retains them after reloading', async () => {
     let persisted = { ...profileUser, tagline: '', avatarSeed: 'original-avatar', interests: [] as string[], featuredBadgeIds: [] as number[] };
     const updates: unknown[] = [];
