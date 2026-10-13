@@ -146,7 +146,8 @@
   .profile-stats-period { font-size: 13px; color: var(--text-gray); margin: 6px 0 0; }
   .profile-learning-stats-list { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px 28px; margin: 0; }
   .profile-learning-stats-list > div { min-width: 0; }
-  .profile-learning-stats-list dt { font-size: 13px; line-height: 1.5; color: var(--text-gray); margin-bottom: 8px; }
+  .profile-learning-stats-list dt { display: flex; align-items: center; gap: 8px; font-size: 13px; line-height: 1.5; color: var(--text-gray); margin-bottom: 8px; }
+  .profile-learning-stats-list dt svg { flex-shrink: 0; color: var(--profile-blue); }
   .profile-learning-stats-list dd { margin: 0; color: var(--text-light); font-variant-numeric: tabular-nums; }
   .profile-stat-value { display: block; font-size: clamp(24px, 2.4vw, 32px); font-weight: 600; line-height: 1.15; white-space: nowrap; }
   .profile-stat-unit { display: block; margin-top: 6px; font-size: 12px; line-height: 1.5; color: var(--text-gray); text-wrap: balance; }

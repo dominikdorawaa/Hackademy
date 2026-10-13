@@ -1,5 +1,7 @@
 import type { ActivityDto } from '../../types/api';
-import { localDateKey, profileActivityFacts } from '../../lib/activity';
+import { localDateKey, profileActivityFacts, solvedRoomsLabel } from '../../lib/activity';
+import ProfileIcon from './ProfileIcon';
+import type { ProfileIconKind } from './ProfileIcon';
 
 export default function ProfileLearningStats({ activity, loading }: {
   activity: ActivityDto[] | null;
@@ -9,19 +11,22 @@ export default function ProfileLearningStats({ activity, loading }: {
   const best = facts?.bestDay;
   const rows = best && facts ? [
     {
-      label: 'Rekord jednego dnia',
+      label: 'Rekord dnia',
+      icon: 'award' as ProfileIconKind,
       value: best.count.toLocaleString('pl-PL'),
-      unit: 'rozwiązań',
+      unit: solvedRoomsLabel(best.count).split(' ').at(-1),
     },
     {
       label: 'Najdłuższa seria',
+      icon: 'streak' as ProfileIconKind,
       value: facts.longestStreak.toLocaleString('pl-PL'),
-      unit: facts.longestStreak === 1 ? 'dzień z aktywnością' : 'dni z aktywnością',
+      unit: facts.longestStreak === 1 ? 'dzień' : 'dni',
     },
     {
-      label: 'Średnia w aktywnym dniu',
+      label: 'Średnia',
+      icon: 'network' as ProfileIconKind,
       value: facts.averagePerActiveDay.toLocaleString('pl-PL', { maximumFractionDigits: 1 }),
-      unit: 'rozwiązań',
+      unit: 'na aktywny dzień',
     },
   ] : [];
 
@@ -32,9 +37,9 @@ export default function ProfileLearningStats({ activity, loading }: {
       : !activity ? <p className="profile-muted">Statystyki są niedostępne. Ponów pobieranie w sekcji „Regularność nauki”.</p>
       : !rows.length ? <p className="profile-muted">Statystyki pojawią się po pierwszym rozwiązanym pokoju.</p>
       : <dl className="profile-learning-stats-list">{rows.map(row => <div key={row.label}>
-        <dt>{row.label}</dt><dd><span className="profile-stat-value">{row.value}</span><span className="profile-stat-unit">{row.unit}</span></dd>
+        <dt><ProfileIcon kind={row.icon} size={20} />{row.label}</dt><dd><span className="profile-stat-value">{row.value}</span>{row.label === 'Średnia' && <span className="sr-only"> rozwiązań </span>}<span className="profile-stat-unit">{row.unit}</span></dd>
       </div>)}
-        {best && <div className="profile-stat-date"><dt>Najaktywniejszy dzień</dt>
+        {best && <div className="profile-stat-date"><dt><ProfileIcon kind="calendar" size={20} />Dzień rekordu</dt>
           <dd><time dateTime={localDateKey(best.date)}>{best.date.toLocaleDateString('pl-PL', { day: 'numeric', month: 'long', year: 'numeric' })}</time></dd>
         </div>}
       </dl>}

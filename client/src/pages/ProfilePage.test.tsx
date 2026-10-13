@@ -233,10 +233,10 @@ describe('user profile integration', () => {
     server.use(http.get(url('/user/me/portfolio'), request));
     mount();
     expect(await screen.findByRole('heading', { name: 'Statystyki nauki' })).toBeInTheDocument();
-    expect(await screen.findByText('Rekord jednego dnia')).toBeInTheDocument();
+    expect(await screen.findByText('Rekord dnia')).toBeInTheDocument();
     expect(screen.getByText('Najdłuższa seria')).toBeInTheDocument();
-    expect(screen.getByText('Najaktywniejszy dzień')).toBeInTheDocument();
-    expect(screen.getByText('Średnia w aktywnym dniu')).toBeInTheDocument();
+    expect(screen.getByText('Dzień rekordu')).toBeInTheDocument();
+    expect(screen.getByText('Średnia')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Doświadczenie w Hackademy' })).not.toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
@@ -267,7 +267,7 @@ describe('user profile integration', () => {
     server.use(http.get(url('/user/me/recent-solved'), recentRequest));
     mount();
     expect(await screen.findByRole('heading', { name: 'tester' })).toBeInTheDocument();
-    expect(await screen.findByText('Rekord jednego dnia')).toBeInTheDocument();
+    expect(await screen.findByText('Rekord dnia')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Statystyki nauki' })).toBeInTheDocument();
     expect(screen.queryByRole('progressbar', { name: 'Postęp do następnego poziomu' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Ostatnio rozwiązane pokoje' })).not.toBeInTheDocument();
@@ -596,7 +596,7 @@ describe('user profile integration', () => {
     mount('/profile/friend');
     await userEvent.setup().click(await screen.findByRole('link', { name: 'Drugi profil' }));
     expect(await screen.findByRole('heading', { name: 'second' })).toBeInTheDocument();
-    expect(await screen.findByText('Rekord jednego dnia')).toBeInTheDocument();
+    expect(await screen.findByText('Rekord dnia')).toBeInTheDocument();
     await new Promise(resolve => setTimeout(resolve, 250));
     expect(within(screen.getByRole('region', { name: 'Statystyki nauki' })).queryByText('99')).not.toBeInTheDocument();
   });
