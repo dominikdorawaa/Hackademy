@@ -28,6 +28,12 @@ it('opens navigation, closes it with Escape and restores focus, then closes afte
   expect(screen.getByRole('button', { name: 'Włącz jasny motyw' })).toBeInTheDocument();
   const user = userEvent.setup();
   const menu = screen.getByRole('button', { name: /^Menu$/ });
+  const notifications = screen.getByRole('button', { name: 'Powiadomienia' });
+  await user.click(notifications);
+  expect(notifications).toHaveAttribute('aria-expanded', 'true');
+  expect(screen.getByRole('heading', { name: 'Powiadomienia' })).toBeInTheDocument();
+  await user.keyboard('{Escape}');
+  expect(notifications).toHaveAttribute('aria-expanded', 'false');
   expect(menu).toHaveAttribute('aria-expanded', 'false');
   await user.click(menu);
   expect(menu).toHaveAttribute('aria-expanded', 'true');
