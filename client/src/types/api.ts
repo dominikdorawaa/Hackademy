@@ -189,11 +189,14 @@ export interface PathProgressDto {
   completed: boolean
 }
 
+export type PathUnlockMode = 'OPEN' | 'CHAPTER' | 'ROOM'
+
 export interface PathChapterDto {
   id: number
   title: string
   totalRooms: number
   solvedRooms: number
+  locked?: boolean
   rooms: RoomSummaryDto[]
 }
 
@@ -204,6 +207,7 @@ export interface PathDetailDto {
   bannerUrl: string | null
   hasBanner: boolean
   enrolled: boolean
+  unlockMode?: PathUnlockMode
   rooms: RoomSummaryDto[]
   chapters: PathChapterDto[]
 }
@@ -223,6 +227,7 @@ export interface PathAdminDetailDto {
   bannerUrl: string | null
   hasBanner: boolean
   revision: number
+  unlockMode?: PathUnlockMode
   chapters: PathChapterAdminDto[]
 }
 

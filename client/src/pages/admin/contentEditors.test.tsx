@@ -124,6 +124,22 @@ describe('draft editors and guarded navigation', () => {
     expect(screen.getByLabelText('Tytuł zadania *')).toHaveValue('Pierwsze');
     expect(screen.getByLabelText('Podpowiedź 1 *')).toHaveValue('Podpowiedź lokalna');
   });
+  it('defaults new paths to open and saves the selected unlock mode', async () => {
+    const user = userEvent.setup(); mount('/admin/paths/new');
+    expect(await screen.findByLabelText('Tryb odblokowania')).toHaveValue('OPEN');
+    const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, unlockMode: 'ROOM' });
+    await user.type(screen.getByLabelText('Tytuł *'), 'Kolejka');
+    await user.selectOptions(screen.getByLabelText('Tryb odblokowania'), 'ROOM');
+    expect(screen.getByText(/jedną kolejkę przez całą ścieżkę/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].unlockMode).toBe('ROOM');
+  });
+  it('loads the saved unlock mode of an existing path', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, unlockMode: 'CHAPTER' })));
+    mount('/admin/paths/5');
+    expect(await screen.findByLabelText('Tryb odblokowania')).toHaveValue('CHAPTER');
+  });
   it('adds a room from the side pool to the selected new chapter and saves its assignment', async () => {
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: null, pathTitle: null }])));
     const user = userEvent.setup(); mount('/admin/paths/5');

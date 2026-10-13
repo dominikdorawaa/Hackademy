@@ -18,6 +18,7 @@ import com.hackademy.server.badge.BadgeDto;
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.path.ChapterRoomRepository;
+import com.hackademy.server.path.PathUnlockPolicy;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
 import com.hackademy.server.user.UserServiceImpl;
@@ -61,6 +62,7 @@ public class RoomServiceImpl implements RoomService {
     private final DashboardSummaryCache dashboardSummaryCache;
     private final ChapterRoomRepository chapterRoomRepository;
     private final com.hackademy.server.content.ContentVisibility visibility;
+    private final PathUnlockPolicy pathUnlockPolicy;
 
     private static final Set<String> RESERVED_TITLES = Set.of("tutorial vm", "tutorial vpn");
 
@@ -263,6 +265,7 @@ public class RoomServiceImpl implements RoomService {
             throw new IllegalArgumentException("Room not found with ID: " + id);
         }
         roomRepository.deleteById(id);
+        dashboardSummaryCache.invalidateAllAfterCommit();
     }
     @Override
     @Transactional(readOnly = true)
@@ -289,6 +292,7 @@ public class RoomServiceImpl implements RoomService {
                 throw new IllegalStateException("Ten pokój wymaga połączenia VPN. Musisz najpierw ukończyć pokój 'Tutorial VPN'.");
             }
         }
+        pathUnlockPolicy.requireUnlocked(id, user.getId());
 
         // Use new repository to check if solved
         boolean isSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
@@ -344,6 +348,7 @@ public class RoomServiceImpl implements RoomService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         Room room = roomRepository.findByIdForUpdate(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+        pathUnlockPolicy.requireUnlocked(roomId, user.getId());
         RoomTask task = roomTaskRepository.findById(taskId)
                 .orElseThrow(() -> new IllegalArgumentException("Task not found"));
 
@@ -380,6 +385,7 @@ public class RoomServiceImpl implements RoomService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         Room room = roomRepository.findByIdForUpdate(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found"));
+        pathUnlockPolicy.requireUnlocked(roomId, user.getId());
         List<RoomTask> tasks = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(roomId);
         if (tasks.isEmpty()) {
             return new SolveRoomResponse(false, "Pokój bez zadań wymaga flagi", 0, List.of());
@@ -438,6 +444,7 @@ public class RoomServiceImpl implements RoomService {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        pathUnlockPolicy.requireUnlocked(id, user.getId());
 
         if (flag == null || flag.isBlank() || room.getFlag() == null || room.getFlag().isBlank()) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
@@ -506,6 +513,7 @@ public class RoomServiceImpl implements RoomService {
 
         Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + roomId));
+        pathUnlockPolicy.requireUnlocked(roomId, user.getId());
 
         com.hackademy.server.room.Hint hint = hintRepository.findById(hintId)
                 .orElseThrow(() -> new IllegalArgumentException("Hint not found with ID: " + hintId));
@@ -652,8 +660,11 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional(readOnly = true)
-    public RoomFile getRoomFile(Long roomId) {
+    public RoomFile getRoomFile(Long roomId, String username) {
         visibility.requireRoom(roomId);
+        Long userId = userRepository.findIdByUsername(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        pathUnlockPolicy.requireUnlocked(roomId, userId);
         return roomFileRepository.findByRoomId(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("File not found for room ID: " + roomId));
     }

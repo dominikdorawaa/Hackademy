@@ -273,4 +273,9 @@
 .pd-chapter-empty {
   margin: 0;
 }
+
+.pd-chapter-lock {
+  margin-left: 10px;
+  color: var(--text-gray);
+}
 }

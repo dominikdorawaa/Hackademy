@@ -1,5 +1,6 @@
 package com.hackademy.server.path.dto;
 
+import com.hackademy.server.path.PathUnlockMode;
 import lombok.Builder;
 import java.util.List;
 
@@ -13,5 +14,6 @@ public record PathAdminDetailDto(
     long revision,
     boolean published,
     long contentRevision,
+    PathUnlockMode unlockMode,
     List<PathChapterAdminDto> chapters
 ) {}
