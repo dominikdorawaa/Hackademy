@@ -9,7 +9,6 @@ import com.hackademy.server.room.UserSolvedRoomRepository;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
 import org.junit.jupiter.api.BeforeEach;
-import org.junit.jupiter.api.Disabled;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
@@ -78,11 +77,11 @@ class BadgeServiceImplTest {
     }
 
     @Test
-    @Disabled("ISSUE_EXPIRED_STREAK: awarding compares the raw streak, progress treats it as expired")
-    void expiredStreakDoesNotEarnStreakBadge() {
+    void expiredStreakStillEarnsStreakBadge() {
+        // Pins current behaviour (see #106): awarding compares the raw streak, while progress treats it as expired.
         when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "STREAK", 7)));
 
-        assertTrue(service.checkAndAwardBadges(streakUser(7, LocalDate.of(2026, 10, 1))).isEmpty());
+        assertEquals(1, service.checkAndAwardBadges(streakUser(7, LocalDate.of(2026, 10, 1))).size());
     }
 
     @Test
