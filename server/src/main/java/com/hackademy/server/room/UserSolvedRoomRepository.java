@@ -44,7 +44,7 @@ public interface UserSolvedRoomRepository extends JpaRepository<UserSolvedRoom, 
               usr.room_id AS roomId,
               r.title AS title,
               r.difficulty AS difficulty,
-              r.points AS points,
+              COALESCE(usr.awarded_points, r.points) AS points,
               usr.solved_at AS solvedAt
             FROM user_solved_rooms usr
             JOIN rooms r ON r.id = usr.room_id

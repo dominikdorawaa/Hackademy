@@ -41,8 +41,18 @@ public class UserSolvedRoom {
     @Column(name = "solved_at", nullable = false, updatable = false)
     private LocalDateTime solvedAt;
 
+    // XP granted for this solve after hint penalties; null for solves recorded before it was stored.
+    @Column(name = "awarded_points")
+    private Integer awardedPoints;
+
     public UserSolvedRoom(User user, Room room) {
         this.user = user;
         this.room = room;
+    }
+
+    public UserSolvedRoom(User user, Room room, int awardedPoints) {
+        this.user = user;
+        this.room = room;
+        this.awardedPoints = awardedPoints;
     }
 }

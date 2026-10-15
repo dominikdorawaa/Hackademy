@@ -95,6 +95,9 @@ const difficultyBadge = (difficulty: string) => {
   }
 };
 
+// How many rooms of the current path the dashboard lists, starting just before the next one.
+const ROOMS_SHOWN = 5;
+
 // Above this many rooms the path rail switches from one segment per room to a continuous bar.
 const MAX_RAIL_SEGMENTS = 24;
 
@@ -368,21 +371,27 @@ const UserDashboardPage = () => {
     const sorted = [...ranking].sort((a, b) => (b?.points || 0) - (a?.points || 0));
     const me = userData?.username;
     const idx = me ? sorted.findIndex((x) => x?.username === me) : -1;
+    // Same rule as the server's rankPoints: tied scores share a place, the next score skips past them.
+    // The list is the top of the ranking, so counting higher scores inside it gives the exact place.
+    const rankOf = (points: number) => 1 + sorted.filter((x) => (x?.points || 0) > points).length;
 
     const start = idx < 0 ? 0 : Math.max(0, idx - 2);
     const end = idx < 0 ? Math.min(sorted.length, 5) : Math.min(sorted.length, idx + 3);
-    const visible = sorted.slice(start, end).map((x, i) => ({ ...x, pos: start + i + 1 }));
+    const visible = sorted.slice(start, end).map((x) => ({ ...x, pos: rankOf(x?.points || 0) }));
 
-    const position = idx >= 0 ? idx + 1 : myRank?.rankPoints || null;
-    const above = idx > 0 ? sorted[idx - 1] : null;
-    const below = idx >= 0 && idx < sorted.length - 1 ? sorted[idx + 1] : null;
     const myPoints = idx >= 0 ? sorted[idx]?.points || 0 : stats.points;
+    const position = idx >= 0 ? rankOf(myPoints) : myRank?.rankPoints || null;
+    // Neighbours are the nearest strictly higher and lower scores, so a tie never reads as a gap of 0 XP.
+    const above = idx >= 0 ? ([...sorted].reverse().find((x) => (x?.points || 0) > myPoints) ?? null) : null;
+    const below = idx >= 0 ? (sorted.find((x) => (x?.points || 0) < myPoints) ?? null) : null;
 
     return {
       window: visible,
       position,
       above,
       below,
+      aboveRank: above ? rankOf(above.points || 0) : null,
+      belowRank: below ? rankOf(below.points || 0) : null,
       gapUp: above ? Math.max(0, (above.points || 0) - myPoints) : 0,
       leadDown: below ? Math.max(0, myPoints - (below.points || 0)) : 0,
       myPoints,
@@ -398,8 +407,10 @@ const UserDashboardPage = () => {
     const solved = recentWindow.filter((x) => isToday(x?.solvedAt));
     return {
       flags: solved.length,
+      // `points` is the XP actually awarded for the solve, after hint penalties.
       xp: solved.reduce((sum, x) => sum + (Number(x?.points) || 0), 0),
-      capped: solved.length >= TODAY_WINDOW,
+      // A full window of today's solves may hide older ones from today, so both totals are lower bounds.
+      capped: recentWindow.length >= TODAY_WINDOW && solved.length === recentWindow.length,
     };
   }, [recentWindow]);
 
@@ -410,12 +421,9 @@ const UserDashboardPage = () => {
     <p className="ud-today">
       {today.flags > 0 ? (
         <>
-          <span className="ud-today-label">Dzisiaj</span>
+          <span className="ud-today-label">{today.capped ? 'Dzisiaj, co najmniej' : 'Dzisiaj'}</span>
           <span className="ud-today-xp">+{formatNumberPL(today.xp)} XP</span>
-          <span className="ud-today-flags">
-            {today.capped ? 'ponad ' : ''}
-            {flagsLabelPL(today.flags)}
-          </span>
+          <span className="ud-today-flags">{flagsLabelPL(today.flags)}</span>
         </>
       ) : (
         <span className="ud-today-label">Dzisiaj jeszcze bez flagi. Jeden pokój wystarczy, żeby to zmienić.</span>
@@ -447,10 +455,19 @@ const UserDashboardPage = () => {
   const totalRooms = currentPath?.totalRooms ?? 0;
   const solvedRooms = currentPath?.solvedRooms ?? 0;
   const pathRatio = totalRooms > 0 ? clamp01(solvedRooms / totalRooms) : 0;
-  const nextRoom = currentPathRoomsMini.find((r) => !r.solved && !r.locked) ?? null;
+  // The summary carries every room of the current path, in path order.
+  const nextRoomIdx = currentPathRoomsMini.findIndex((r) => !r.solved && !r.locked);
+  const nextRoom = nextRoomIdx >= 0 ? currentPathRoomsMini[nextRoomIdx] : null;
   const railSegments = totalRooms > 0 && totalRooms <= MAX_RAIL_SEGMENTS ? Array.from({ length: totalRooms }, (_, i) => i) : null;
+  // Open paths can be solved out of order; mark the rail per room when the room list covers the whole path.
+  const railFromRooms = currentPathRoomsMini.length === totalRooms;
+  const segmentClass = (i: number) => {
+    if (railFromRooms) return currentPathRoomsMini[i].solved ? 'is-done' : i === nextRoomIdx ? 'is-current' : '';
+    return i < solvedRooms ? 'is-done' : i === solvedRooms ? 'is-current' : '';
+  };
+  const roomsStart = Math.max(0, Math.min(nextRoomIdx - 1, currentPathRoomsMini.length - ROOMS_SHOWN));
+  const roomsShown = currentPathRoomsMini.slice(roomsStart, roomsStart + ROOMS_SHOWN);
   const xpToNext = Math.max(0, stats.nextLevelPoints - stats.points);
-  const nextRoomNumber = Math.min(totalRooms, solvedRooms + 1);
 
   return (
     <div className="user-dashboard">
@@ -467,7 +484,7 @@ const UserDashboardPage = () => {
                 </h1>
                 <h2 id="ud-next-title">{nextRoom.title}</h2>
                 <p>
-                  Pokój {nextRoomNumber} z {totalRooms}
+                  Pokój {nextRoomIdx + 1} z {Math.max(totalRooms, currentPathRoomsMini.length)}
                   {nextRoom.requiresVpn ? '. Wymaga połączenia VPN.' : ''}
                 </p>
               </div>
@@ -516,10 +533,7 @@ const UserDashboardPage = () => {
               {railSegments ? (
                 <div className="ud-rail" role="img" aria-label={`Ukończono ${solvedRooms} z ${totalRooms} pokoi`}>
                   {railSegments.map((i) => (
-                    <span
-                      key={i}
-                      className={i < solvedRooms ? 'is-done' : i === solvedRooms ? 'is-current' : ''}
-                    />
+                    <span key={i} className={segmentClass(i)} />
                   ))}
                 </div>
               ) : (
@@ -528,9 +542,9 @@ const UserDashboardPage = () => {
                 </div>
               )}
 
-              {currentPathRoomsMini.length > 0 && (
+              {roomsShown.length > 0 && (
                 <ul className="ud-rooms">
-                  {currentPathRoomsMini.map((r) => {
+                  {roomsShown.map((r) => {
                     const status = r.locked ? 'locked' : r.solved ? 'done' : 'open';
                     const statusLabel = r.locked ? 'Zablokowany' : r.solved ? 'Ukończony' : 'Dostępny';
                     const icon = r.locked ? 'fa-lock' : r.solved ? 'fa-check' : 'fa-play';
@@ -720,11 +734,9 @@ const UserDashboardPage = () => {
 
               <p className="ud-gap">
                 {board.above
-                  ? board.gapUp === 0
-                    ? `Masz tyle samo XP co miejsce #${(board.position ?? 2) - 1}. Jedna flaga i jesteś wyżej.`
-                    : `Do miejsca #${(board.position ?? 2) - 1} brakuje Ci ${formatNumberPL(board.gapUp)} XP.`
+                  ? `Do miejsca #${board.aboveRank} brakuje Ci ${formatNumberPL(board.gapUp)} XP.`
                   : board.below
-                    ? `Prowadzisz. Przewaga nad miejscem #2: ${formatNumberPL(board.leadDown)} XP.`
+                    ? `Prowadzisz. Przewaga nad miejscem #${board.belowRank}: ${formatNumberPL(board.leadDown)} XP.`
                     : 'Rozwiąż pokój, żeby pojawić się w rankingu.'}
               </p>
               {board.above && board.position && (
@@ -734,12 +746,12 @@ const UserDashboardPage = () => {
                   </div>
                   <div className="ud-scale-ends">
                     <span className="ud-scale-end">
-                      <span className="ud-place">{board.below ? `#${board.position + 1}` : 'Start'}</span>
+                      <span className="ud-place">{board.below ? `#${board.belowRank}` : 'Start'}</span>
                       <span>{formatNumberPL(board.scaleLow)} XP</span>
                     </span>
                     <span className="ud-scale-end">
                       <span>{formatNumberPL(board.above.points || 0)} XP</span>
-                      <span className="ud-place">#{board.position - 1}</span>
+                      <span className="ud-place">#{board.aboveRank}</span>
                     </span>
                   </div>
                 </div>

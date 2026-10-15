@@ -12,7 +12,17 @@ interface PeekData {
 }
 
 // Profiles change rarely while a dashboard is open; one fetch per username is enough.
+// The friendship part depends on who is signed in, so the cache belongs to one token and is dropped when it changes.
 const peekCache = new Map<string, PeekData>();
+let peekCacheToken: string | null = null;
+
+const cacheFor = (token: string | null) => {
+  if (token !== peekCacheToken) {
+    peekCache.clear();
+    peekCacheToken = token;
+  }
+  return peekCache;
+};
 
 const OPEN_DELAY_MS = 250;
 const CLOSE_DELAY_MS = 150;
@@ -26,7 +36,7 @@ interface ProfilePeekProps {
 
 const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekProps) => {
   const [open, setOpen] = useState(false);
-  const [data, setData] = useState<PeekData | null>(() => peekCache.get(username) ?? null);
+  const [data, setData] = useState<PeekData | null>(() => cacheFor(token).get(username) ?? null);
   const [failed, setFailed] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -56,7 +66,7 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
   };
 
   const load = async () => {
-    const cached = peekCache.get(username);
+    const cached = cacheFor(token).get(username);
     if (cached) {
       setData(cached);
       return;
@@ -70,7 +80,7 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
       const profile = await profileRes.json();
       const stats = statsRes && statsRes.ok ? await statsRes.json() : null;
       const next = { profile, stats };
-      peekCache.set(username, next);
+      cacheFor(token).set(username, next);
       setData(next);
     } catch {
       setFailed(true);
@@ -100,7 +110,7 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
   const setStatus = (status: FriendshipStatus) => {
     if (!data?.stats) return;
     const next = { ...data, stats: { ...data.stats, friendshipStatus: status } };
-    peekCache.set(username, next);
+    cacheFor(token).set(username, next);
     setData(next);
   };
 

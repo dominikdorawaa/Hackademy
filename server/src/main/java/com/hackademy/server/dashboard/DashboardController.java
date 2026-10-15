@@ -98,7 +98,8 @@ public class DashboardController {
 
         CompletableFuture<?> roomsMiniF = CompletableFuture.supplyAsync(() -> {
             if (currentPath == null || currentPath.id() == null) return List.of();
-            return pathService.getPathRoomsMini(currentPath.id(), username, 5).rooms();
+            // The whole path (limit 0): the client needs every room to find the next one and its position.
+            return pathService.getPathRoomsMini(currentPath.id(), username, 0).rooms();
         }, dashboardTaskExecutor);
 
         @SuppressWarnings("unchecked")
