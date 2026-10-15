@@ -2,7 +2,7 @@ package com.hackademy.server.admin;
 
 import com.hackademy.server.dashboard.ActivityWeek;
 import com.hackademy.server.room.RoomType;
-import org.springframework.beans.factory.annotation.Autowired;
+import lombok.RequiredArgsConstructor;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.stereotype.Service;
@@ -20,6 +20,7 @@ import java.util.Map;
 import java.util.Set;
 
 @Service
+@RequiredArgsConstructor
 public class AdminStatsService {
 
     static final Set<Integer> ALLOWED_RANGES = Set.of(7, 30, 90);
@@ -28,16 +29,6 @@ public class AdminStatsService {
 
     private final JdbcTemplate jdbcTemplate;
     private final Clock clock;
-
-    @Autowired
-    public AdminStatsService(JdbcTemplate jdbcTemplate) {
-        this(jdbcTemplate, Clock.systemDefaultZone());
-    }
-
-    AdminStatsService(JdbcTemplate jdbcTemplate, Clock clock) {
-        this.jdbcTemplate = jdbcTemplate;
-        this.clock = clock;
-    }
 
     private record SourceRow(RoomType roomType, Long pathId, String pathTitle, long count) {}
 
