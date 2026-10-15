@@ -165,7 +165,7 @@ class UserServiceImplTest {
 
     @Test
     void portfolioFailsWhenPathTotalIsMissing() {
-        // Pins current behaviour: getMyPathsProgress treats a null total as 0, the portfolio throws instead.
+        // Pins current behaviour (see #104): getMyPathsProgress treats a null total as 0, the portfolio throws instead.
         when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "alice")));
         when(pathRepository.findProgressForUsername("alice")).thenReturn(List.of(new Progress(1L, "Pusta", null, null)));
 

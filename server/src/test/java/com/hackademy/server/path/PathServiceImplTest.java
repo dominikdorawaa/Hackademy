@@ -202,7 +202,7 @@ class PathServiceImplTest {
         service.unenrollUser(5L, "alice");
 
         verify(pathEnrollmentRepository).deleteByUserIdAndPathId(1L, 5L);
-        // Unlike enrollUser and isEnrolled, unenrolling does not check path visibility.
+        // Unlike enrollUser and isEnrolled, unenrolling does not check path visibility (see #104).
         verifyNoInteractions(visibility);
     }
 
