@@ -11,8 +11,10 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -24,7 +26,10 @@ import static org.mockito.Mockito.mock;
 class AdminStatsServiceTest {
 
     private final FakeJdbcTemplate jdbc = new FakeJdbcTemplate();
-    private final AdminStatsService service = new AdminStatsService(jdbc);
+    // A fixed clock keeps the expected timeline stable even if the test runs across midnight.
+    private static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
+    private final AdminStatsService service = new AdminStatsService(jdbc,
+            Clock.fixed(TODAY.atTime(12, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
 
     @Test
     void rejectsUnsupportedRanges() {
@@ -42,19 +47,19 @@ class AdminStatsServiceTest {
         assertEquals(new AdminStatsDto.Totals(0, 0, 0, 0), stats.totals());
         assertEquals(7, stats.rangeDays());
         assertEquals(7, stats.timeline().size());
-        LocalDate today = LocalDate.now();
+        LocalDate today = TODAY;
         for (int i = 0; i < 7; i++) {
             assertEquals(new AdminStatsDto.Day(today.minusDays(6 - i), 0, 0), stats.timeline().get(i));
         }
         assertTrue(stats.solvesBySource().isEmpty());
         assertTrue(stats.recentSolves().isEmpty());
-        assertEquals(List.of(ActivityWeek.currentKey()), jdbc.countArgs.get(2));
+        assertEquals(List.of(ActivityWeek.keyFor(TODAY)), jdbc.countArgs.get(2));
         assertEquals(List.of(AdminStatsService.RECENT_SOLVES_LIMIT), jdbc.recentArgs);
     }
 
     @Test
     void summarizesTotalsTimelineSourcesAndRecentSolves() {
-        LocalDate today = LocalDate.now();
+        LocalDate today = TODAY;
         jdbc.counts.addAll(List.of(4L, 20L, 2L, 1L));
         jdbc.registrations.add(row("day", today, "total", 2L));
         jdbc.solves.add(row("day", today.minusDays(1), "total", 3L));
