@@ -1,6 +1,8 @@
 package com.hackademy.server.path;
 
 import com.hackademy.server.content.ContentVisibility;
+import com.hackademy.server.dashboard.DashboardSummaryCache;
+import com.hackademy.server.dashboard.DashboardSummaryDto;
 import com.hackademy.server.path.dto.ChapterRequest;
 import com.hackademy.server.path.dto.CreatePathRequest;
 import com.hackademy.server.path.dto.PathChapterAdminDto;
@@ -11,6 +13,7 @@ import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import com.hackademy.server.room.Room;
 import com.hackademy.server.room.RoomRepository;
+import com.hackademy.server.room.RoomRuleException;
 import com.hackademy.server.room.RoomService;
 import com.hackademy.server.room.RoomType;
 import com.hackademy.server.room.UserSolvedRoomRepository;
@@ -20,7 +23,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.InOrder;
-import org.mockito.InjectMocks;
+import org.junit.jupiter.api.BeforeEach;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.dao.DataIntegrityViolationException;
@@ -53,7 +56,16 @@ class PathServiceImplTest {
     @Mock UserRepository userRepository;
     @Mock UserSolvedRoomRepository userSolvedRoomRepository;
     @Mock ContentVisibility visibility;
-    @InjectMocks PathServiceImpl service;
+    final DashboardSummaryCache dashboards = new DashboardSummaryCache();
+    PathServiceImpl service;
+
+    @BeforeEach
+    void setUp() {
+        service = new PathServiceImpl(pathRepository, pathChapterRepository, chapterRoomRepository, roomRepository,
+                roomService, pathEnrollmentRepository, userRepository, userSolvedRoomRepository, visibility,
+                new PathUnlockPolicy(chapterRoomRepository), dashboards);
+        dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());
+    }
 
     // ── listing and progress ────────────────────────────────────────────────
 
@@ -151,6 +163,30 @@ class PathServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> service.getPathDetail(5L, "alice"));
     }
 
+    @Test
+    void chapterModeLocksChaptersAfterTheFirstUnfinishedOne() {
+        var path = path(5L, "Web");
+        path.setUnlockMode(PathUnlockMode.CHAPTER);
+        when(pathRepository.findById(5L)).thenReturn(Optional.of(path));
+        when(pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(5L))
+                .thenReturn(List.of(chapter(100L, "Pierwszy", 0), chapter(101L, "Drugi", 1)));
+        when(chapterRoomRepository.findByPathId(5L)).thenReturn(List.of(
+                new ChapterRoom(10L, 100L, 0), new ChapterRoom(11L, 100L, 1), new ChapterRoom(12L, 101L, 0)));
+        when(chapterRoomRepository.findProgression(5L, 1L)).thenReturn(List.of(
+                new Progression(100L, 10L, true), new Progression(100L, 11L, false), new Progression(101L, 12L, false)));
+        when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
+        when(roomService.getAllRoomsByType("alice", RoomType.PATH))
+                .thenReturn(List.of(room(10L, true), room(11L, false), room(12L, false)));
+
+        var detail = service.getPathDetail(5L, "alice");
+
+        assertEquals(PathUnlockMode.CHAPTER, detail.unlockMode());
+        assertFalse(detail.chapters().get(0).locked());
+        assertTrue(detail.chapters().get(1).locked());
+        assertEquals(List.of(false, false, true), detail.rooms().stream().map(RoomSummaryDto::isLocked).toList());
+    }
+
     private void stubDetail(boolean enrolled) {
         var path = path(5L, "Web");
         path.setBannerData(new byte[] {1});
@@ -230,7 +266,7 @@ class PathServiceImplTest {
 
     @Test
     void locksTutorialAndVpnRoomsUntilTutorialsAreSolved() {
-        when(pathRepository.existsById(5L)).thenReturn(true);
+        when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
         when(userSolvedRoomRepository.findSolvedRoomTitlesByUserId(1L, List.of("Tutorial VPN", "Tutorial VM")))
                 .thenReturn(List.of());
@@ -251,7 +287,7 @@ class PathServiceImplTest {
 
     @Test
     void solvedTutorialsUnlockRooms() {
-        when(pathRepository.existsById(5L)).thenReturn(true);
+        when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
         when(userSolvedRoomRepository.findSolvedRoomTitlesByUserId(anyLong(), any()))
                 .thenReturn(List.of("Tutorial VPN", "Tutorial VM"));
@@ -265,8 +301,22 @@ class PathServiceImplTest {
     }
 
     @Test
+    void roomModeLocksEveryRoomAfterTheFirstUnsolvedOne() {
+        when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.ROOM));
+        when(chapterRoomRepository.findProgression(5L, -1L)).thenReturn(List.of(
+                new Progression(100L, 10L, false), new Progression(100L, 11L, false)));
+        when(chapterRoomRepository.findMiniRoomsForUser(5L, -1L, 5)).thenReturn(List.of(
+                new MiniRow(10L, "Pierwszy", false, false),
+                new MiniRow(11L, "Drugi", false, false)));
+
+        var rooms = service.getPathRoomsMini(5L, null, 5).rooms();
+
+        assertEquals(List.of(false, true), rooms.stream().map(PathRoomMiniDto::locked).toList());
+    }
+
+    @Test
     void zeroOrNegativeLimitReturnsAllRoomsForAnonymousUser() {
-        when(pathRepository.existsById(5L)).thenReturn(true);
+        when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
         when(chapterRoomRepository.findRoomIdsOrdered(5L)).thenReturn(List.of(1L, 2L));
         when(chapterRoomRepository.findMiniRoomsForUser(5L, -1L, 2)).thenReturn(List.of());
 
@@ -276,7 +326,7 @@ class PathServiceImplTest {
 
     @Test
     void roomListOfMissingPathFails() {
-        when(pathRepository.existsById(5L)).thenReturn(false);
+        when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.empty());
         assertThrows(IllegalArgumentException.class, () -> service.getPathRoomsMini(5L, "alice", 3));
     }
 
@@ -361,11 +411,23 @@ class PathServiceImplTest {
     }
 
     @Test
+    void rejectsTwoRoomsWithTheSameTitleInOneChapter() {
+        stubPathRooms(room(3L, "Ten sam", RoomType.PATH), room(4L, "Ten sam", RoomType.PATH));
+
+        var error = assertThrows(RoomRuleException.class,
+                () -> service.createPath(new CreatePathRequest("Web", null, null, List.of(3L, 4L))));
+        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
+        assertEquals("chapters.0.rooms", error.field());
+        verify(pathRepository, never()).save(any());
+    }
+
+    @Test
     void deletesExistingPath() {
         when(pathRepository.existsById(5L)).thenReturn(true, false);
 
         service.deletePath(5L);
         verify(pathRepository).deleteById(5L);
+        assertNull(dashboards.getIfFresh(1L), "dashboards show the removed path until refreshed");
 
         assertThrows(IllegalArgumentException.class, () -> service.deletePath(5L));
     }
@@ -443,6 +505,7 @@ class PathServiceImplTest {
         assertEquals(5L, saved.get(0).getPathId());
         verify(chapterRoomRepository).save(argThat(room -> room.getRoomId() == 10L && room.getChapterId() == 102L));
         assertEquals(3, path.getChaptersRevision());
+        assertNull(dashboards.getIfFresh(1L), "dashboards refresh chapter locks");
         assertEquals(1, path.getContentRevision());
         verify(chapterRoomRepository).flush();
     }
@@ -594,4 +657,7 @@ class PathServiceImplTest {
 
     private record Owner(Long getRoomId, Long getPathId, String getPathTitle)
             implements ChapterRoomRepository.RoomOwnerView {}
+
+    private record Progression(Long getChapterId, Long getRoomId, Boolean getSolved)
+            implements ChapterRoomRepository.ProgressionRow {}
 }
