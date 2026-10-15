@@ -1,0 +1,13 @@
+User-agent: *
+Allow: /
+Disallow: /admin
+Disallow: /dashboard
+Disallow: /arena
+Disallow: /learn
+Disallow: /rooms/
+Disallow: /profile
+Disallow: /friends
+Disallow: /vpn
+Disallow: /settings
+
+Sitemap: https://hackademy.app/sitemap.xml
