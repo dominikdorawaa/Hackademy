@@ -1,0 +1,613 @@
+{
+  "schemaVersion": 2,
+  "generatedAt": "2026-10-15T16:09:36+00:00",
+  "title": "Design System: Hackademy",
+  "extensions": {
+    "scope": "Implemented on the user dashboard only (.user-dashboard, --ud-* tokens). The rest of the app still uses the older global styles.",
+    "colorMeta": {
+      "brand-blue": {
+        "role": "primary",
+        "displayName": "Hackademy Blue",
+        "canonical": "#0b63ff",
+        "tonalRamp": [
+          "#001c4c",
+          "#003187",
+          "#0046c1",
+          "#005bfb",
+          "#377fff",
+          "#71a4ff",
+          "#abc9ff",
+          "#e6efff"
+        ]
+      },
+      "cta-hover": {
+        "role": "primary",
+        "displayName": "Hover Blue (dark theme)",
+        "canonical": "#4a8dff",
+        "tonalRamp": [
+          "#001c4c",
+          "#003287",
+          "#0047c1",
+          "#005dfb",
+          "#3781ff",
+          "#71a6ff",
+          "#abcaff",
+          "#e6efff"
+        ]
+      },
+      "next-field": {
+        "role": "primary",
+        "displayName": "Next-Room Field",
+        "canonical": "#142a52",
+        "tonalRamp": [
+          "#0f1f3e",
+          "#1a376c",
+          "#264f9b",
+          "#3167ca",
+          "#5e89d8",
+          "#8dabe3",
+          "#bcceef",
+          "#eaf0fa"
+        ]
+      },
+      "next-field-light": {
+        "role": "primary",
+        "displayName": "Next-Room Field (light)",
+        "canonical": "#d9e5fb",
+        "tonalRamp": [
+          "#071d45",
+          "#0d337a",
+          "#124aaf",
+          "#1860e3",
+          "#4a83ec",
+          "#7ea7f1",
+          "#b3cbf7",
+          "#e8effd"
+        ]
+      },
+      "captured-teal": {
+        "role": "secondary",
+        "displayName": "Captured Teal",
+        "canonical": "#2fd0b0",
+        "tonalRamp": [
+          "#0e3e35",
+          "#196e5d",
+          "#249d85",
+          "#2ecdad",
+          "#5cdac1",
+          "#8be5d3",
+          "#bbf0e5",
+          "#eafaf7"
+        ]
+      },
+      "captured-teal-light": {
+        "role": "secondary",
+        "displayName": "Captured Teal (light)",
+        "canonical": "#0a7d68",
+        "tonalRamp": [
+          "#06473b",
+          "#0a7d68",
+          "#0eb395",
+          "#13e9c2",
+          "#45f0d1",
+          "#7bf4de",
+          "#b1f9ec",
+          "#e7fdf9"
+        ]
+      },
+      "link-blue": {
+        "role": "secondary",
+        "displayName": "Link Blue",
+        "canonical": "#6ea2ff",
+        "tonalRamp": [
+          "#001b4c",
+          "#003087",
+          "#0045c1",
+          "#005afb",
+          "#377eff",
+          "#71a4ff",
+          "#abc9ff",
+          "#e6efff"
+        ]
+      },
+      "link-blue-light": {
+        "role": "secondary",
+        "displayName": "Link Blue (light)",
+        "canonical": "#0b55db",
+        "tonalRamp": [
+          "#041c49",
+          "#063280",
+          "#0947b8",
+          "#0c5def",
+          "#4081f5",
+          "#78a5f8",
+          "#afcafb",
+          "#e7effe"
+        ]
+      },
+      "diff-easy": {
+        "role": "tertiary",
+        "displayName": "Easy Green",
+        "canonical": "#56d364",
+        "tonalRamp": [
+          "#103d15",
+          "#1c6b25",
+          "#289935",
+          "#34c744",
+          "#60d66d",
+          "#8ee298",
+          "#bdeec2",
+          "#ebfaec"
+        ]
+      },
+      "diff-medium": {
+        "role": "tertiary",
+        "displayName": "Medium Amber",
+        "canonical": "#e3b341",
+        "tonalRamp": [
+          "#43320a",
+          "#755811",
+          "#a87e19",
+          "#dba420",
+          "#e5b950",
+          "#edcd83",
+          "#f4e2b6",
+          "#fcf6e9"
+        ]
+      },
+      "diff-hard": {
+        "role": "tertiary",
+        "displayName": "Hard Coral",
+        "canonical": "#ff8a80",
+        "tonalRamp": [
+          "#4c0600",
+          "#870b00",
+          "#c10f00",
+          "#fb1400",
+          "#ff4637",
+          "#ff7c71",
+          "#ffb2ab",
+          "#ffe8e6"
+        ]
+      },
+      "diff-insane": {
+        "role": "tertiary",
+        "displayName": "Insane Violet",
+        "canonical": "#c9a2ff",
+        "tonalRamp": [
+          "#20004c",
+          "#390087",
+          "#5100c1",
+          "#6900fb",
+          "#8b37ff",
+          "#ad71ff",
+          "#ceabff",
+          "#f0e6ff"
+        ]
+      },
+      "streak": {
+        "role": "tertiary",
+        "displayName": "Streak Orange",
+        "canonical": "#ff9f43",
+        "tonalRamp": [
+          "#4c2500",
+          "#874200",
+          "#c15e00",
+          "#fb7b00",
+          "#ff9937",
+          "#ffb671",
+          "#ffd4ab",
+          "#fff2e6"
+        ]
+      },
+      "navy-ground": {
+        "role": "neutral",
+        "displayName": "Navy Ground",
+        "canonical": "#0f1724",
+        "tonalRamp": [
+          "#172236",
+          "#283d5f",
+          "#395788",
+          "#4a71b1",
+          "#7291c4",
+          "#9bb1d5",
+          "#c4d1e6",
+          "#edf1f8"
+        ]
+      },
+      "surface": {
+        "role": "neutral",
+        "displayName": "Navy Surface",
+        "canonical": "#151f30",
+        "tonalRamp": [
+          "#172235",
+          "#293d5e",
+          "#3b5786",
+          "#4d71af",
+          "#7491c2",
+          "#9cb1d4",
+          "#c5d1e6",
+          "#edf1f7"
+        ]
+      },
+      "surface-raised": {
+        "role": "neutral",
+        "displayName": "Raised Navy",
+        "canonical": "#1c2840",
+        "tonalRamp": [
+          "#172135",
+          "#293b5e",
+          "#3b5486",
+          "#4d6daf",
+          "#748ec2",
+          "#9cafd4",
+          "#c5d0e6",
+          "#edf1f7"
+        ]
+      },
+      "board": {
+        "role": "neutral",
+        "displayName": "Board Navy",
+        "canonical": "#0b111c",
+        "tonalRamp": [
+          "#162137",
+          "#263b61",
+          "#36548b",
+          "#476eb4",
+          "#6f8ec6",
+          "#99afd7",
+          "#c3d0e7",
+          "#edf1f8"
+        ]
+      },
+      "track": {
+        "role": "neutral",
+        "displayName": "Track Slate",
+        "canonical": "#26344f",
+        "tonalRamp": [
+          "#192234",
+          "#2c3c5b",
+          "#3f5682",
+          "#5270aa",
+          "#7890be",
+          "#9fb0d1",
+          "#c6d0e4",
+          "#eef1f7"
+        ]
+      },
+      "ink": {
+        "role": "neutral",
+        "displayName": "Cool Ink",
+        "canonical": "#e8edf5",
+        "tonalRamp": [
+          "#172335",
+          "#293d5e",
+          "#3b5887",
+          "#4c72af",
+          "#7392c2",
+          "#9cb2d4",
+          "#c5d1e6",
+          "#edf1f7"
+        ]
+      },
+      "muted": {
+        "role": "neutral",
+        "displayName": "Muted Slate",
+        "canonical": "#9eabbf",
+        "tonalRamp": [
+          "#1e252e",
+          "#364051",
+          "#4d5c74",
+          "#647897",
+          "#8696af",
+          "#a9b5c7",
+          "#cdd3de",
+          "#f0f2f5"
+        ]
+      },
+      "ground-light": {
+        "role": "neutral",
+        "displayName": "Cool Grey Ground",
+        "canonical": "#e5e7eb",
+        "tonalRamp": [
+          "#21252b",
+          "#3b404c",
+          "#545c6d",
+          "#6d788e",
+          "#8e96a8",
+          "#afb5c1",
+          "#d0d3db",
+          "#f1f2f4"
+        ]
+      },
+      "surface-light": {
+        "role": "neutral",
+        "displayName": "Paper Surface",
+        "canonical": "#f9fafb",
+        "tonalRamp": [
+          "#1f262e",
+          "#364351",
+          "#4d6174",
+          "#657e97",
+          "#879baf",
+          "#aab8c6",
+          "#cdd5dd",
+          "#f0f2f5"
+        ]
+      },
+      "board-light": {
+        "role": "neutral",
+        "displayName": "Board Grey",
+        "canonical": "#dfe5ee",
+        "tonalRamp": [
+          "#1b2432",
+          "#2f3f58",
+          "#435b7e",
+          "#5776a4",
+          "#7c95b9",
+          "#a2b4ce",
+          "#c8d3e2",
+          "#eef1f6"
+        ]
+      },
+      "ink-light": {
+        "role": "neutral",
+        "displayName": "Deep Ink",
+        "canonical": "#111827",
+        "tonalRamp": [
+          "#172135",
+          "#293a5e",
+          "#3b5386",
+          "#4c6caf",
+          "#738dc2",
+          "#9caed4",
+          "#c5cfe6",
+          "#edf0f7"
+        ]
+      },
+      "blue-soft": {
+        "role": "primary",
+        "displayName": "Blue Wash",
+        "canonical": "rgba(11, 99, 255, 0.18)"
+      },
+      "blue-soft-light": {
+        "role": "primary",
+        "displayName": "Blue Wash (light)",
+        "canonical": "rgba(11, 99, 255, 0.12)"
+      }
+    },
+    "typographyMeta": {
+      "rank": {
+        "displayName": "Rank",
+        "purpose": "The learner's rank number in the standings card; one per page."
+      },
+      "display": {
+        "displayName": "Display",
+        "purpose": "Next room name and full-page state headlines."
+      },
+      "title": {
+        "displayName": "Title",
+        "purpose": "Section headings at normal width."
+      },
+      "numeral": {
+        "displayName": "Numeral",
+        "purpose": "Condensed heavy XP, counts, positions and scores (1.125 to 2.75rem, width 75 to 85%)."
+      },
+      "body": {
+        "displayName": "Body",
+        "purpose": "Running text, max 60ch in the next-room field."
+      },
+      "label": {
+        "displayName": "Label",
+        "purpose": "Metadata, status words, times, tooltip text; sentence case."
+      }
+    },
+    "shadows": [
+      {
+        "name": "float-dark",
+        "value": "0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45)",
+        "purpose": "Tooltips and profile previews, dark theme. Nothing in the flow."
+      },
+      {
+        "name": "float-light",
+        "value": "0 0 0 1px rgba(15, 23, 36, 0.08), 0 12px 28px rgba(15, 23, 36, 0.16)",
+        "purpose": "Tooltips and profile previews, light theme."
+      }
+    ],
+    "motion": [
+      {
+        "name": "ease-out-expo",
+        "value": "cubic-bezier(0.16, 1, 0.3, 1)",
+        "purpose": "All state transitions and entrances."
+      },
+      {
+        "name": "hover",
+        "value": "160ms",
+        "purpose": "Hover fills, button lift, link underline fade."
+      },
+      {
+        "name": "overlay-in",
+        "value": "140ms",
+        "purpose": "Tooltip and profile preview fade with 4px settle."
+      },
+      {
+        "name": "gap-bar-grow",
+        "value": "1100ms, 200ms delay",
+        "purpose": "XP-gap bar fill grows in on load."
+      },
+      {
+        "name": "skeleton-pulse",
+        "value": "1.4s ease-in-out infinite",
+        "purpose": "Loading skeleton opacity pulse."
+      },
+      {
+        "name": "reduced-motion",
+        "value": "none",
+        "purpose": "All animations and transitions off under prefers-reduced-motion."
+      }
+    ],
+    "breakpoints": [
+      {
+        "name": "single-column",
+        "value": "1080px"
+      },
+      {
+        "name": "compact",
+        "value": "720px"
+      }
+    ]
+  },
+  "components": [
+    {
+      "name": "Primary Button",
+      "kind": "button",
+      "refersTo": "button-primary",
+      "description": "The one solid-blue action per block: enter room, open path, retry.",
+      "html": "<div class=\"ds-root\"><button class=\"ds-btn ds-btn-primary\">Wejdź do pokoju</button></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;border:0;border-radius:var(--ud-radius);font:inherit;font-weight:650;cursor:pointer;white-space:nowrap;transition:transform 160ms var(--ud-ease),background-color 160ms var(--ud-ease);} .ds-btn-primary{background:var(--ud-blue);color:var(--ud-blue-ink);} .ds-btn-primary:hover{background:var(--ud-cta-hover);transform:translateY(-1px);} .ds-btn:active{transform:translateY(1px);} .ds-btn:focus-visible{outline:2px solid var(--ud-link);outline-offset:3px;}"
+    },
+    {
+      "name": "Quiet Button",
+      "kind": "button",
+      "refersTo": "button-quiet",
+      "description": "Secondary action beside a primary one, on a raised tonal step.",
+      "html": "<div class=\"ds-root\"><button class=\"ds-btn ds-btn-quiet\">Przeglądaj ścieżki</button></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;border:0;border-radius:var(--ud-radius);font:inherit;font-weight:650;cursor:pointer;white-space:nowrap;transition:transform 160ms var(--ud-ease),background-color 160ms var(--ud-ease);} .ds-btn-quiet{background:var(--ud-surface-2);color:var(--ud-ink);} .ds-btn:active{transform:translateY(1px);} .ds-btn:focus-visible{outline:2px solid var(--ud-link);outline-offset:3px;}"
+    },
+    {
+      "name": "Small Button",
+      "kind": "button",
+      "refersTo": "button-small",
+      "description": "Row-level action (Challenge) that fills brand blue on hover.",
+      "html": "<div class=\"ds-root\"><button class=\"ds-btn ds-btn-small\">Wyzwij</button></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;border:0;border-radius:var(--ud-radius);font:inherit;font-weight:650;cursor:pointer;white-space:nowrap;transition:transform 160ms var(--ud-ease),background-color 160ms var(--ud-ease);} .ds-btn-small{min-height:36px;padding:0 16px;font-size:0.875rem;background:var(--ud-surface-2);color:var(--ud-ink);} .ds-btn-small:hover{background:var(--ud-blue);color:var(--ud-blue-ink);} .ds-btn:focus-visible{outline:2px solid var(--ud-link);outline-offset:3px;}"
+    },
+    {
+      "name": "Text Link",
+      "kind": "nav",
+      "refersTo": "link",
+      "description": "Link-blue text whose underline fades in on hover.",
+      "html": "<div class=\"ds-root\"><a class=\"ds-link\" href=\"#\">Pełny ranking</a></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-link{color:var(--ud-link);font-weight:600;text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:4px;text-decoration-color:transparent;transition:text-decoration-color 160ms var(--ud-ease);} .ds-link:hover{text-decoration-color:currentColor;} .ds-link:focus-visible{outline:2px solid var(--ud-link);outline-offset:3px;border-radius:6px;}"
+    },
+    {
+      "name": "Place Chip",
+      "kind": "chip",
+      "refersTo": "place-chip",
+      "description": "Condensed rank marker at the ends of the XP-gap bar.",
+      "html": "<div class=\"ds-root\"><span class=\"ds-place\">#4</span></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-place{display:inline-block;padding:2px 8px;border-radius:4px;background:var(--ud-surface-2);color:var(--ud-ink);font-weight:750;font-stretch:85%;}"
+    },
+    {
+      "name": "Next-Room Field",
+      "kind": "card",
+      "refersTo": "next-room-field",
+      "description": "Signature: greeting, next room at display size, and the start button on a tinted blue field.",
+      "html": "<div class=\"ds-root\"><section class=\"ds-next\"><div><p class=\"ds-greet\">Cześć, uidemo. Wracasz do ścieżki Web Security, następny pokój to:</p><h2 class=\"ds-next-title\">SQL Injection: UNION</h2><p class=\"ds-next-meta\">Pokój 4 z 9</p></div><button class=\"ds-btn ds-btn-primary\">Wejdź do pokoju</button></section></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-next{background:var(--ud-hero-bg);color:var(--ud-hero-ink);border-radius:var(--ud-radius);padding:32px 36px;display:flex;flex-wrap:wrap;align-items:flex-end;justify-content:space-between;gap:24px 40px;} .ds-greet{margin:0 0 10px;color:var(--ud-hero-muted);font-size:1.0625rem;font-weight:600;line-height:1.4;} .ds-next-title{margin:0;font-size:clamp(2.25rem,1.4rem + 2.6vw,3.5rem);font-weight:800;font-stretch:85%;line-height:1;letter-spacing:-0.02em;} .ds-next-meta{margin:14px 0 0;color:var(--ud-hero-muted);} .ds-btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 24px;border:0;border-radius:var(--ud-radius);font:inherit;font-weight:650;cursor:pointer;white-space:nowrap;transition:transform 160ms var(--ud-ease),background-color 160ms var(--ud-ease);} .ds-btn-primary{background:var(--ud-blue);color:var(--ud-blue-ink);} .ds-btn-primary:hover{background:var(--ud-cta-hover);transform:translateY(-1px);} .ds-btn:active{transform:translateY(1px);} .ds-btn:focus-visible{outline:2px solid var(--ud-link);outline-offset:3px;}"
+    },
+    {
+      "name": "Path Rail",
+      "kind": "custom",
+      "refersTo": "path-rail",
+      "description": "Signature: one segment per room, teal solved, blue current, track for the rest.",
+      "html": "<div class=\"ds-root\"><div class=\"ds-rail\"><span class=\"is-done\"></span><span class=\"is-done\"></span><span class=\"is-done\"></span><span class=\"is-current\"></span><span></span><span></span><span></span><span></span><span></span></div></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-rail{display:grid;grid-auto-flow:column;grid-auto-columns:1fr;gap:4px;width:420px;} .ds-rail span{height:10px;border-radius:2px;background:var(--ud-track);} .ds-rail span.is-done{background:var(--ud-xp);} .ds-rail span.is-current{background:var(--ud-blue);}"
+    },
+    {
+      "name": "Standings Window",
+      "kind": "card",
+      "refersTo": "standings-card",
+      "description": "Signature: ranking rows on the board step, the learner's own row in solid brand blue.",
+      "html": "<div class=\"ds-root\"><ol class=\"ds-standings\"><li><span class=\"ds-pos\">4</span><span>m4rek</span><span class=\"ds-pts\">680 XP</span></li><li class=\"is-me\"><span class=\"ds-pos\">5</span><span>uidemo</span><span class=\"ds-pts\">640 XP</span></li><li><span class=\"ds-pos\">6</span><span>bajtek</span><span class=\"ds-pts\">610 XP</span></li></ol></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-standings{list-style:none;margin:0;padding:20px 12px;width:340px;background:var(--ud-board);border-radius:var(--ud-radius);display:flex;flex-direction:column;gap:2px;} .ds-standings li{display:grid;grid-template-columns:36px minmax(0,1fr) auto;align-items:baseline;gap:8px;padding:9px 12px;border-radius:var(--ud-radius);} .ds-standings li.is-me{background:var(--ud-blue);color:var(--ud-blue-ink);font-weight:700;} .ds-pos,.ds-pts{font-size:1.125rem;font-weight:750;font-stretch:75%;} .ds-pos{color:var(--ud-muted);} .ds-standings li.is-me .ds-pos{color:inherit;}"
+    },
+    {
+      "name": "Term Tooltip",
+      "kind": "custom",
+      "refersTo": "floating-card",
+      "description": "Dotted-underlined term revealing a floating explanation on hover or focus.",
+      "html": "<div class=\"ds-root\"><span class=\"ds-term\"><button class=\"ds-term-btn\">Elo 1184 <svg width=\"13\" height=\"13\" viewBox=\"0 0 16 16\" aria-hidden=\"true\"><circle cx=\"8\" cy=\"8\" r=\"8\" fill=\"currentColor\"/><rect x=\"7\" y=\"7\" width=\"2\" height=\"5\" fill=\"#0b111c\"/><rect x=\"7\" y=\"4\" width=\"2\" height=\"2\" fill=\"#0b111c\"/></svg></button><span class=\"ds-tip\" role=\"tooltip\"><strong>Elo</strong>Ocena z pojedynków w Arenie.</span></span></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-term{position:relative;display:inline-block;} .ds-term-btn{display:inline-flex;align-items:center;gap:6px;padding:0;border:0;background:none;color:var(--ud-ink);font:inherit;font-weight:650;cursor:help;text-decoration:underline dotted;text-decoration-color:var(--ud-muted);text-underline-offset:4px;} .ds-term-btn svg{color:var(--ud-link);} .ds-term-btn:focus-visible{outline:2px solid var(--ud-link);outline-offset:3px;border-radius:6px;} .ds-tip{position:absolute;left:0;top:calc(100% + 10px);width:260px;padding:12px 14px;border-radius:var(--ud-radius);background:var(--ud-tip-bg);color:var(--ud-ink);font-size:0.875rem;line-height:1.5;box-shadow:var(--ud-float-shadow);opacity:0;visibility:hidden;transform:translateY(-4px);transition:opacity 140ms var(--ud-ease),transform 140ms var(--ud-ease),visibility 0s linear 140ms;} .ds-tip strong{display:block;margin-bottom:4px;} .ds-term:hover .ds-tip,.ds-term:focus-within .ds-tip{opacity:1;visibility:visible;transform:none;transition-delay:0s;}"
+    },
+    {
+      "name": "Recommended Path Card",
+      "kind": "card",
+      "refersTo": "recommended-card",
+      "description": "Blue-wash card in the standings column with a small solid-blue call to action.",
+      "html": "<div class=\"ds-root\"><a class=\"ds-reco\" href=\"#\"><span class=\"ds-reco-title\">Web Security</span><span class=\"ds-reco-desc\">Od żądań HTTP po SQL injection, XSS i SSRF.</span><span class=\"ds-reco-foot\"><span class=\"ds-reco-meta\">Polecana, 9 pokoi</span><span class=\"ds-reco-cta\">Zobacz ścieżkę</span></span></a></div>",
+      "css": ".ds-root{--ud-blue:#0b63ff;--ud-blue-ink:#fff;--ud-cta-hover:#4a8dff;--ud-surface:#151f30;--ud-surface-2:#1c2840;--ud-board:#0b111c;--ud-ink:#e8edf5;--ud-muted:#9eabbf;--ud-track:#26344f;--ud-link:#6ea2ff;--ud-xp:#2fd0b0;--ud-hero-bg:#142a52;--ud-hero-ink:#fff;--ud-hero-muted:#c3d3ef;--ud-tip-bg:#1f2b42;--ud-peek-chip:#2c3a55;--ud-radius:6px;--ud-ease:cubic-bezier(0.16,1,0.3,1);--ud-float-shadow:0 0 0 1px rgba(255,255,255,0.08),0 12px 32px rgba(0,0,0,0.45);font-family:'Archivo',system-ui,sans-serif;font-variant-numeric:tabular-nums;color:var(--ud-ink);} .ds-reco{display:flex;flex-direction:column;gap:6px;width:300px;padding:20px;border-radius:var(--ud-radius);background:rgba(11,99,255,0.18);color:var(--ud-ink);text-decoration:none;} .ds-reco:focus-visible{outline:2px solid var(--ud-link);outline-offset:3px;} .ds-reco-title{font-size:1.375rem;font-weight:800;font-stretch:85%;line-height:1.15;} .ds-reco-desc{color:var(--ud-muted);} .ds-reco-foot{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:12px;margin-top:10px;} .ds-reco-meta{color:var(--ud-muted);font-size:0.875rem;} .ds-reco-cta{padding:7px 14px;border-radius:var(--ud-radius);background:var(--ud-blue);color:var(--ud-blue-ink);font-size:0.875rem;font-weight:650;transition:background-color 160ms var(--ud-ease),transform 160ms var(--ud-ease);} .ds-reco:hover .ds-reco-cta,.ds-reco:focus-visible .ds-reco-cta{background:var(--ud-cta-hover);transform:translateY(-1px);}"
+    }
+  ],
+  "narrative": {
+    "northStar": "The Scoreboard",
+    "overview": "Learning and competition sit side by side as one scoreboard. The left column is the learner's own track: the next room in a blue-tinted field, the path as a segmented rail, level and recent flags, friends. The right column is the standings card: a huge condensed rank number, the XP gap to the place above with a bar, a window of the ranking with the learner's row filled in brand blue, and a recommended path. Neither half hides the other.\n\nThe world is flat and tonal. Depth comes from stepping the navy ground through a few surface tones, never from resting shadows or gradients. One typeface, Archivo, carries everything; its width axis does the expressive work: condensed and heavy for numerals, ranks and room names, normal width for reading text. Numbers are tabular everywhere so scores line up.\n\nColour is functional. Brand blue `#0b63ff` marks action and the learner's own position; teal marks captured XP and completion; the four difficulty colours appear only as state text. Dark and light themes are both first-class and share every rule; only values change.",
+    "keyCharacteristics": [
+      "Two-column scoreboard split: fluid learning column, 380px sticky standings card.",
+      "Flat tonal layering; shadows only on floating overlays.",
+      "Archivo only, with width (wdth 70 to 100) as the hierarchy tool.",
+      "Brand blue reserved for actions, progress fill and \"you are here\".",
+      "Tabular numerals throughout.",
+      "Full parity between dark and light themes."
+    ],
+    "rules": [
+      {
+        "name": "The Blue Means Go Rule",
+        "body": "Brand blue is a solid fill only for an action, a progress fill, or the learner's own position. Large informational fields get the tinted `next-field` or `blue-soft`, never solid brand blue.",
+        "section": "colors"
+      },
+      {
+        "name": "The Teal Is Earned Rule",
+        "body": "Teal appears only for XP gained and rooms completed. Never decorate with it.",
+        "section": "colors"
+      },
+      {
+        "name": "The State-Only Difficulty Rule",
+        "body": "Difficulty colours are text colour on a label, never a background, border or badge fill.",
+        "section": "colors"
+      },
+      {
+        "name": "The Width Is Hierarchy Rule",
+        "body": "Emphasis on numbers and names comes from narrowing the width axis plus weight, not from a second typeface. Reading text stays at normal width.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tabular Rule",
+        "body": "`font-variant-numeric: tabular-nums` is set on the whole surface. Scores must align in columns.",
+        "section": "typography"
+      },
+      {
+        "name": "The No Tracked Caps Rule",
+        "body": "Headings and labels are sentence case with normal or negative tracking. The surface resets letter-spacing to normal on headings and buttons.",
+        "section": "typography"
+      },
+      {
+        "name": "The Tonal Step Rule",
+        "body": "A container separates from its parent by a surface step, never by a shadow or a border.",
+        "section": "elevation"
+      },
+      {
+        "name": "The Only Things That Float Rule",
+        "body": "A shadow means the element is floating above the page (tooltip, preview). If it is in the flow, it is flat.",
+        "section": "elevation"
+      }
+    ],
+    "dos": [
+      "**Do** keep brand blue (`#0b63ff`) as a solid fill only for actions, progress fills and the learner's own row.",
+      "**Do** put large highlighted blocks on a tinted field (`next-field`, `blue-soft`) so the button inside stays the loudest element.",
+      "**Do** separate containers by tonal surface steps (ground, surface, raised surface, board).",
+      "**Do** set numerals in condensed, heavy Archivo (width 70 to 85%, weight 750 to 800) with tabular figures.",
+      "**Do** define every colour for both dark and light themes, and check contrast in both.",
+      "**Do** use 6px corners for containers and controls, 4px for chips, full circles only for avatars.",
+      "**Do** use the 160ms `cubic-bezier(0.16, 1, 0.3, 1)` transition for hover fills, and disable motion under reduced-motion."
+    ],
+    "donts": [
+      "**Don't** add resting shadows or borders to cards; the floating overlay shadow is for tooltips and previews only.",
+      "**Don't** use gradients on surfaces, buttons or text.",
+      "**Don't** use difficulty colours as backgrounds or badge fills; they are label text.",
+      "**Don't** add a second typeface; vary Archivo's width and weight instead.",
+      "**Don't** set headings or labels in tracked uppercase.",
+      "**Don't** use decorative icon tiles (an icon in a coloured square or circle); state marks stay small, bare and coloured by state, and icons inside buttons only accompany a text label."
+    ]
+  }
+}
