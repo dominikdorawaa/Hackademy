@@ -11,6 +11,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+import java.time.Clock;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -28,6 +29,7 @@ public class BadgeServiceImpl implements BadgeService {
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final DashboardSummaryCache dashboardSummaryCache;
+    private final Clock clock;
 
     private static final long CACHE_MS = 30_000; // 30 seconds
     private final AtomicLong cacheTimeMs = new AtomicLong(0);
@@ -82,7 +84,7 @@ public class BadgeServiceImpl implements BadgeService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new com.hackademy.server.exception.UserNotFoundException("User not found"));
         long streak = user.getStreak();
-        if (user.getLastSolvedDate() != null && user.getLastSolvedDate().isBefore(java.time.LocalDate.now().minusDays(1))) {
+        if (user.getLastSolvedDate() != null && user.getLastSolvedDate().isBefore(java.time.LocalDate.now(clock).minusDays(1))) {
             streak = 0;
         }
         Map<String, Long> currentValues = Map.of(
