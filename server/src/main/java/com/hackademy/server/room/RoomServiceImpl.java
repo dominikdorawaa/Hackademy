@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -63,6 +64,7 @@ public class RoomServiceImpl implements RoomService {
     private final ChapterRoomRepository chapterRoomRepository;
     private final com.hackademy.server.content.ContentVisibility visibility;
     private final PathUnlockPolicy pathUnlockPolicy;
+    private final Clock clock;
 
     private static final Set<String> RESERVED_TITLES = Set.of("tutorial vm", "tutorial vpn");
 
@@ -414,7 +416,7 @@ public class RoomServiceImpl implements RoomService {
             room.setSolutionsCount(room.getSolutionsCount() + 1);
 
             // Streak logic
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(clock);
             LocalDate lastSolved = user.getLastSolvedDate();
             if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
                 user.setStreak(user.getStreak() + 1);
@@ -474,7 +476,7 @@ public class RoomServiceImpl implements RoomService {
             room.setSolutionsCount(room.getSolutionsCount() + 1);
             
             // Streak Logic
-            LocalDate today = LocalDate.now();
+            LocalDate today = LocalDate.now(clock);
             LocalDate lastSolved = user.getLastSolvedDate();
 
             if (lastSolved == null) {
