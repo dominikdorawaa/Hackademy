@@ -13,3 +13,9 @@ The focal sequence is preparation, projectile travel and impact. Two correct ans
 Six avatar compositions were rendered offline and inspected. Heads align with the common bodies and preserve distinct faces and hair. Automated tests verify event deduplication in Strict Mode, motion preferences, both attack directions, collision, defeat, HP, controls, reset and cleanup. Build and lint pass.
 
 Live browser inspection of motion smoothness, mobile and tablet layout, and both rendered themes remains unverified because the computer-use environment exposes no browser. This limitation must remain in the PR and handoff; automated animation tests and static SVG rendering do not replace that inspection.
+
+## PixelLab sample
+
+`/arena/prototype/pixellab` compares a generated full-body character with an eight-frame attack. The base image and animation use PixelLab Pixflux and Animate with Text v3. The original API response contains the reference and eight generated frames; the preview plays only the generated frames at 110 ms per frame. All assets are transparent 128x128 PNGs served locally, and a contact sheet exposes every frame without requiring playback. App and operating-system reduced-motion settings disable playback. API keys remain outside the client and repository.
+
+The trial used three subscription generations. Exact prompts, model endpoints, seed, processing and the source terms URL are recorded in `client/public/assets/arena/pixellab/provenance.json`. This sample is separate from both the layered SVG fighters and real matches. All generated frames were inspected in an offline contact sheet; browser playback remains unverified.

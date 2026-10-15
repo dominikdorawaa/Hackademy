@@ -1,0 +1,19 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-10-15T09:30:36.426Z",
+  "characterModel": "create-image-pixflux",
+  "animationModel": "animate-with-text-v3",
+  "seed": 48137,
+  "width": 128,
+  "height": 128,
+  "frameCount": 8,
+  "frameDurationMs": 110,
+  "description": "One full-body cyberpunk arena duelist, a young adult hacker with short dark brown hair, visible expressive face, navy blue techwear jacket with cyan illuminated seams, dark fitted trousers and chunky boots, a high-tech energy gauntlet on the forward hand. Athletic balanced battle stance, facing right in side view, both feet on the same ground plane. Beautiful polished 16-bit action RPG game sprite, deliberate crisp pixels, strong readable silhouette, rich restrained colors, 3-head-tall proportions, face clearly visible in three-quarter profile. Single character centered, entire body and hair within frame with generous empty margins. No weapon held, no text, no scenery, no floor, no shadow, no projectile. Transparent background.",
+  "action": "A grounded energy-gauntlet attack toward the RIGHT. Keep the same exact young hacker character, face, dark hair, navy jacket, cyan trim and boots. Both feet stay planted at the same baseline. Start in the reference idle stance, bend the forward arm to charge, then thrust the gauntlet horizontally to the right at chest height, open palm forward, hold the extended attack briefly, and recover to the original idle stance. Small cyan energy glow around the gauntlet only. No traveling projectile, no background, no camera movement, no scaling, no jumping, no turning, no extra characters. Keep the full character inside the frame and maintain consistent silhouette and clothing.",
+  "background": "transparent",
+  "usage": {
+    "subscriptionGenerations": 3
+  },
+  "processing": "The API returned nine frames. The preview omits the first reference-like frame and plays the following eight frames. PNG files are otherwise unmodified.",
+  "terms": "https://www.pixellab.ai/termsofservice"
+}

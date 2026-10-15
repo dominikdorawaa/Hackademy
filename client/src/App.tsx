@@ -25,6 +25,7 @@ import ProtectedRoute from './components/auth/ProtectedRoute';
 import adminRoutes from './pages/admin/adminRoutes';
 
 const ArenaPrototypePage = lazy(() => import('./pages/ArenaPrototypePage'));
+const PixelLabPreviewPage = lazy(() => import('./pages/PixelLabPreviewPage'));
 
 function SiteLayout() {
   return (
@@ -52,6 +53,7 @@ function App() {
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
             <Route path="/arena/prototype" element={<Suspense fallback={<p role="status">Ładowanie podglądu…</p>}><ArenaPrototypePage /></Suspense>} />
+            <Route path="/arena/prototype/pixellab" element={<Suspense fallback={<p role="status">Ładowanie podglądu…</p>}><PixelLabPreviewPage /></Suspense>} />
             <Route
               path="/arena"
               element={

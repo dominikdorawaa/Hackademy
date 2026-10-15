@@ -1,0 +1,13 @@
+@layer components {
+  .pixellab-comparison { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; }
+  .pixellab-preview figure { margin: 0; }
+  .pixellab-character { display: flex; align-items: center; justify-content: center; min-height: 300px; border: 1px solid var(--battle-line); border-radius: 12px; background: var(--battle-surface); }
+  .pixellab-character img { width: 256px; height: 256px; max-width: 100%; object-fit: contain; image-rendering: pixelated; }
+  .pixellab-preview figcaption { margin: 8px 0 0; font-size: 13px; color: var(--battle-muted); text-align: center; }
+  .pixellab-playback { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 28px 0; }
+  .pixellab-playback p { font-size: 13px; color: var(--battle-muted); }
+  .pixellab-preview h2 { font-size: 18px; margin-bottom: 16px; }
+  .pixellab-frames { display: grid; grid-template-columns: repeat(8, minmax(0, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .pixellab-frames img { display: block; width: 100%; height: auto; image-rendering: pixelated; background: var(--battle-surface); border-radius: 6px; }
+  @media (max-width: 700px) { .pixellab-comparison { gap: 12px; } .pixellab-character { min-height: 180px; } .pixellab-character img { width: 160px; height: 160px; } .pixellab-frames { grid-template-columns: repeat(4, minmax(0, 1fr)); } .pixellab-playback p { flex-basis: 100%; } }
+}

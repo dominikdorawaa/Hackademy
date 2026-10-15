@@ -69,5 +69,6 @@ export default function ArenaPrototypePage() {
       </select>
     </label>)}</div>
     <p className="arena-prototype-note">Dane demonstracyjne. Podgląd nie zmienia Elo ani wyników meczów.{reducedMotion || systemMotion ? ' Ograniczenie animacji jest włączone.' : ''}</p>
+    <Link to="/arena/prototype/pixellab">Porównaj postać i animację PixelLab →</Link>
   </div>;
 }
