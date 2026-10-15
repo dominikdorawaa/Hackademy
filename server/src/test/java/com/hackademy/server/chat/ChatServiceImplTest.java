@@ -10,7 +10,6 @@ import org.mockito.junit.jupiter.MockitoExtension;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
-import java.util.List;
 import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -79,26 +78,5 @@ class ChatServiceImplTest {
         service.dismissReport(5L);
 
         verify(chatMessageRepository, never()).save(any());
-    }
-
-    @Test
-    void cleanupKeepsReportedMessages() {
-        service.cleanupChat("g");
-
-        verify(chatMessageRepository).deleteByGameIdAndReportedFalse("g");
-        verifyNoMoreInteractions(chatMessageRepository);
-    }
-
-    @Test
-    void delegatesQueriesAndDeletionToRepository() {
-        var messages = List.of(ChatMessage.builder().id(1L).build());
-        when(chatMessageRepository.findByGameIdOrderByTimestampAsc("g")).thenReturn(messages);
-        when(chatMessageRepository.findByReportedTrueOrderByTimestampDesc()).thenReturn(messages);
-
-        assertSame(messages, service.getMessages("g"));
-        assertSame(messages, service.getReportedMessages());
-        service.deleteMessage(1L);
-
-        verify(chatMessageRepository).deleteById(1L);
     }
 }

@@ -2,6 +2,7 @@ package com.hackademy.server.friendship;
 
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
+import com.hackademy.server.dashboard.DashboardSummaryDto;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.realtime.RealtimeNotifier;
 import com.hackademy.server.user.User;
@@ -10,7 +11,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
-import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -28,17 +28,26 @@ class FriendshipServiceImplTest {
     @Mock FriendshipRepository friendshipRepository;
     @Mock UserRepository userRepository;
     @Mock BadgeService badgeService;
-    @Mock DashboardSummaryCache dashboardSummaryCache;
     @Mock RealtimeNotifier realtime;
-    @InjectMocks FriendshipServiceImpl service;
+    final DashboardSummaryCache dashboards = new DashboardSummaryCache();
+    FriendshipServiceImpl service;
 
     User alice;
     User bob;
 
     @BeforeEach
     void setUp() {
+        service = new FriendshipServiceImpl(friendshipRepository, userRepository, badgeService, dashboards, realtime);
         alice = user(1L, "alice");
         bob = user(2L, "bob");
+        dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());
+        dashboards.put(2L, DashboardSummaryDto.builder().build(), dashboards.generation());
+    }
+
+    private void assertDashboardsRefreshedFor(Long... userIds) {
+        for (Long userId : userIds) {
+            assertNull(dashboards.getIfFresh(userId), "dashboard of user " + userId + " is stale");
+        }
     }
 
     @Test
@@ -54,8 +63,7 @@ class FriendshipServiceImplTest {
         assertSame(alice, saved.getValue().getRequester());
         assertSame(bob, saved.getValue().getReceiver());
         assertEquals(FriendshipStatus.PENDING, saved.getValue().getStatus());
-        verify(dashboardSummaryCache).invalidateUser(1L);
-        verify(dashboardSummaryCache).invalidateUser(2L);
+        assertDashboardsRefreshedFor(1L, 2L);
         verify(realtime).changed(1L, 2L);
     }
 
@@ -100,8 +108,7 @@ class FriendshipServiceImplTest {
         verify(friendshipRepository).save(request);
         verify(badgeService).checkAndAwardBadges(bob);
         verify(badgeService).checkAndAwardBadges(alice);
-        verify(dashboardSummaryCache).invalidateUser(1L);
-        verify(dashboardSummaryCache).invalidateUser(2L);
+        assertDashboardsRefreshedFor(1L, 2L);
         verify(realtime).changed(1L, 2L);
     }
 
@@ -131,6 +138,7 @@ class FriendshipServiceImplTest {
         service.rejectFriendRequest(2L, 10L);
 
         verify(friendshipRepository).delete(request);
+        assertDashboardsRefreshedFor(1L, 2L);
         verify(realtime).changed(1L, 2L);
     }
 
@@ -156,8 +164,7 @@ class FriendshipServiceImplTest {
         service.removeFriend(1L, 2L);
 
         verify(friendshipRepository).delete(friendship);
-        verify(dashboardSummaryCache).invalidateUser(1L);
-        verify(dashboardSummaryCache).invalidateUser(2L);
+        assertDashboardsRefreshedFor(1L, 2L);
         verify(realtime).changed(1L, 2L);
     }
 
@@ -195,7 +202,7 @@ class FriendshipServiceImplTest {
         service.invalidateProfileCaches();
         service.getFriends(1L);
         verify(friendshipRepository, times(2)).findByUserAndStatus(alice, FriendshipStatus.ACCEPTED);
-        verify(dashboardSummaryCache).invalidateAll();
+        assertDashboardsRefreshedFor(1L, 2L);
     }
 
     @Test

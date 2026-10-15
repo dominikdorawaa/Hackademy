@@ -284,7 +284,7 @@ class PathServiceImplTest {
 
     @Test
     void createsUnpublishedPathWithFirstChapterAndOrderedRooms() {
-        stubPathRooms(room(7L, "A", RoomType.PATH), room(3L, "B", RoomType.PATH));
+        stubPathRooms(room(17L, "A", RoomType.PATH), room(3L, "B", RoomType.PATH));
         when(pathRepository.save(any())).thenAnswer(invocation -> {
             Path path = invocation.getArgument(0);
             path.setId(5L);
@@ -296,7 +296,7 @@ class PathServiceImplTest {
             return chapter;
         });
 
-        var created = service.createPath(new CreatePathRequest("Web", "Opis", "https://img", List.of(7L, 3L)));
+        var created = service.createPath(new CreatePathRequest("Web", "Opis", "https://img", List.of(17L, 3L)));
 
         assertEquals(new PathSummaryDto(5L, false, "Web", "Opis", "https://img", false, 2, false), created);
         var path = ArgumentCaptor.forClass(Path.class);
@@ -308,11 +308,12 @@ class PathServiceImplTest {
         assertEquals(5L, chapter.getValue().getPathId());
         var rooms = ArgumentCaptor.forClass(ChapterRoom.class);
         verify(chapterRoomRepository, times(2)).save(rooms.capture());
-        assertEquals(List.of(7L, 3L), rooms.getAllValues().stream().map(ChapterRoom::getRoomId).toList());
+        assertEquals(List.of(17L, 3L), rooms.getAllValues().stream().map(ChapterRoom::getRoomId).toList());
         assertEquals(List.of(0, 1), rooms.getAllValues().stream().map(ChapterRoom::getSortOrder).toList());
+        // Rooms are locked in ascending id order to avoid deadlocks; a HashSet would yield 17 before 3.
         InOrder lockOrder = inOrder(roomRepository);
         lockOrder.verify(roomRepository).findByIdForUpdate(3L);
-        lockOrder.verify(roomRepository).findByIdForUpdate(7L);
+        lockOrder.verify(roomRepository).findByIdForUpdate(17L);
         verify(chapterRoomRepository).flush();
     }
 
