@@ -409,7 +409,7 @@ public class RoomServiceImpl implements RoomService {
             double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
             if (pointsToAward < 0) pointsToAward = 0;
 
-            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room);
+            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
             userSolvedRoomRepository.save(userSolvedRoom);
 
             user.setPoints(user.getPoints() + (int) pointsToAward);
@@ -469,7 +469,7 @@ public class RoomServiceImpl implements RoomService {
             }
 
             // Create and save UserSolvedRoom entity manually
-            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room);
+            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
             userSolvedRoomRepository.save(userSolvedRoom);
 
             user.setPoints(user.getPoints() + (int) pointsToAward);

@@ -205,6 +205,7 @@ class RoomServiceImplTest {
 
         assertEquals(expected, result.pointsEarned());
         assertEquals(40 + expected, alice.getPoints());
+        verify(userSolvedRoomRepository).save(argThat(s -> s.getAwardedPoints() == expected));
     }
 
     @Test
@@ -345,6 +346,7 @@ class RoomServiceImplTest {
 
         assertEquals(expected, service.completeTaskRoom(2L, "alice").pointsEarned());
         assertEquals(40 + expected, alice.getPoints());
+        verify(userSolvedRoomRepository).save(argThat(s -> s.getAwardedPoints() == expected));
     }
 
     @Test
