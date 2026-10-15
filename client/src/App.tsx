@@ -13,6 +13,7 @@ import LearnPage from './pages/LearnPage';
 import UserDashboardPage from './pages/UserDashboardPage';
 import PathDetailPage from './pages/PathDetailPage';
 import ArenaPage from './pages/ArenaPage';
+import { lazy, Suspense } from 'react';
 import RankingPage from './pages/RankingPage';
 import ProfilePage from './pages/ProfilePage';
 import PublicProfilePage from './pages/PublicProfilePage';
@@ -22,6 +23,8 @@ import VpnPage from './pages/VpnPage';
 import SettingsPage from './pages/SettingsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import adminRoutes from './pages/admin/adminRoutes';
+
+const ArenaPrototypePage = lazy(() => import('./pages/ArenaPrototypePage'));
 
 function SiteLayout() {
   return (
@@ -48,6 +51,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/arena/prototype" element={<Suspense fallback={<p role="status">Ładowanie podglądu…</p>}><ArenaPrototypePage /></Suspense>} />
             <Route
               path="/arena"
               element={

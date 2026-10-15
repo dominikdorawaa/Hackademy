@@ -1,0 +1,65 @@
+@layer components {
+  .arena-prototype { --battle-blue: #85c6ff; --battle-orange: #f5bc7c; --battle-muted: #b7c6db; --battle-line: #3b4d65; --battle-surface: #142135; width: min(1080px, calc(100% - 48px)); margin: 0 auto; padding: 32px 0 64px; color: var(--text-light); }
+  [data-theme='light'] .arena-prototype { --battle-blue: #1759a2; --battle-orange: #995016; --battle-muted: #475569; --battle-line: #a9b8cb; --battle-surface: #f5f8fc; }
+  .arena-prototype a { color: var(--battle-blue); }
+  .arena-prototype-header { display: flex; justify-content: space-between; gap: 24px; align-items: end; margin: 24px 0 28px; }
+  .arena-prototype h1 { margin: 0 0 8px; font-size: clamp(26px, 4vw, 36px); letter-spacing: -.02em; }
+  .arena-prototype-header p { margin: 0; max-width: 58ch; color: var(--battle-muted); font-size: 14px; }
+  .arena-prototype-badge { flex-shrink: 0; border: 1px solid var(--battle-line); border-radius: 6px; padding: 5px 10px; font-size: 12px; color: var(--battle-muted); }
+  .battle-scene { background: var(--battle-surface); border: 1px solid var(--battle-line); border-radius: 16px; overflow: hidden; }
+  .battle-scoreboard { display: grid; grid-template-columns: 1fr 1fr; gap: clamp(24px, 12vw, 180px); padding: 28px 36px 0; }
+  .battle-score > div:first-child { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; margin-bottom: 10px; }
+  .battle-score strong { font-size: 16px; overflow-wrap: anywhere; }
+  .battle-score span { font-variant-numeric: tabular-nums; white-space: nowrap; }
+  .battle-score small { color: var(--battle-muted); font-size: 11px; }
+  .battle-health { height: 8px; background: var(--battle-line); overflow: hidden; border-radius: 2px; }
+  .battle-health > span { display: block; height: 100%; background: var(--battle-blue); transition: width 250ms ease-out; }
+  .battle-score-right .battle-health > span { margin-left: auto; background: var(--battle-orange); }
+  .battle-stage { display: block; width: 100%; height: auto; overflow: visible; }
+  .battle-ground, .battle-stage-corners { fill: none; stroke: var(--battle-line); stroke-width: 1; }
+  .battle-stage-corners { stroke-width: 2; }
+  .battle-shadow { fill: var(--battle-line); opacity: .4; }
+  .battle-stage [data-fighter='left'] { --fighter-accent: #67bdff; }
+  .battle-stage [data-fighter='right'] { --fighter-accent: #f0ab64; }
+  .battle-suit-accent { fill: var(--fighter-accent); }
+  .battle-stage [data-part='body'], .battle-stage [data-part='recoil'] { transform-box: fill-box; transform-origin: 50% 90%; }
+  .battle-stage [data-part='arm'], .battle-stage [data-part='leg'] { transform-box: fill-box; transform-origin: 50% 10%; }
+  .battle-breath { animation: battle-breathe 2.8s ease-in-out infinite; }
+  .battle-stage [data-fighter='right'] .battle-breath { animation-delay: -1.4s; }
+  .battle-stage image { image-rendering: pixelated; }
+  .battle-energy-left { fill: #67bdff; }
+  .battle-energy-right { fill: #f0ab64; }
+  .battle-energy-core { fill: #f1f8ff; }
+  .battle-stage [data-charge], .battle-stage [data-projectile], .battle-stage [data-impact], .battle-stage [data-damage] { opacity: 0; }
+  .battle-stage [data-charge], .battle-stage [data-impact] { transform-box: fill-box; transform-origin: center; }
+  .battle-stage [data-impact] { fill: var(--battle-blue); }
+  .battle-stage [data-damage] { fill: var(--text-light); font-family: inherit; font-size: 26px; font-weight: 700; }
+  .arena-prototype-status { min-height: 52px; display: flex; align-items: center; justify-content: center; margin: 0; padding: 10px 16px; text-align: center; color: var(--battle-muted); font-size: 14px; border-bottom: 1px solid var(--battle-line); }
+  .arena-prototype-controls { padding: 24px 0; display: flex; align-items: end; flex-wrap: wrap; gap: 20px 28px; }
+  .arena-prototype-controls fieldset { border: 0; padding: 0; margin: 0; }
+  .arena-prototype-controls legend, .arena-prototype-avatars label { color: var(--battle-muted); font-size: 12px; margin-bottom: 8px; }
+  .arena-prototype-controls fieldset > div, .arena-prototype-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+  .arena-prototype-controls label { display: inline-flex; align-items: center; gap: 6px; font-size: 14px; margin-right: 14px; }
+  .arena-prototype-controls input { accent-color: var(--primary-blue); }
+  .arena-prototype-actions { margin-left: auto; }
+  .arena-prototype-avatars { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 24px; padding: 20px 0; border-top: 1px solid var(--battle-line); }
+  .arena-prototype-avatars label { display: grid; gap: 6px; margin: 0; }
+  .arena-prototype-avatars select { padding: 10px 12px; border: 1px solid var(--battle-line); border-radius: 6px; color: var(--text-light); background: var(--battle-surface); font: inherit; font-size: 14px; width: 100%; }
+  .arena-prototype-note { margin: 8px 0 0; font-size: 12px; color: var(--battle-muted); }
+  .arena-prototype :is(button, a, select, input):focus-visible { outline: 2px solid var(--battle-blue); outline-offset: 4px; }
+  .battle-scene[data-reduced-motion='true'] .battle-breath { animation: none; }
+  .battle-scene[data-reduced-motion='true'] .battle-health > span { transition: none; }
+  @keyframes battle-breathe { 0%, 100% { transform: translateY(0); } 50% { transform: translateY(-1.5px); } }
+  @media (prefers-reduced-motion: reduce) { .battle-breath { animation: none; } .battle-health > span { transition: none; } }
+  @media (max-width: 600px) {
+    .arena-prototype { width: calc(100% - 32px); padding-top: 24px; }
+    .arena-prototype-header { align-items: start; flex-direction: column; gap: 12px; margin-top: 20px; }
+    .battle-scoreboard { padding: 20px 16px 0; gap: 24px; }
+    .battle-score > div:first-child { flex-direction: column; gap: 2px; }
+    .battle-score-right > div:first-child { align-items: end; }
+    .battle-score strong { font-size: 14px; }
+    .battle-stage { width: 125%; max-width: none; margin-left: -12.5%; }
+    .arena-prototype-actions { margin-left: 0; }
+    .arena-prototype-avatars { gap: 12px; }
+  }
+}
