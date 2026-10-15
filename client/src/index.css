@@ -118,7 +118,8 @@ a {
   margin: 0 auto;
   padding: 0 20px;
 }
-/* --- BUTTONS --- */
+
+/* --- BUTTONS --- */
 .btn {
   display: inline-block;
   padding: 12px 28px;
@@ -735,15 +736,29 @@ footer {
   border-top: 1px solid var(--border-color);
   font-size: 0.9rem;
   color: var(--text-gray);
-  margin-top: 4rem;
 }
 .footer-content {
   display: flex;
+  flex-wrap: wrap;
   justify-content: space-between;
   align-items: center;
+  gap: 1rem 2rem;
+}
+.footer-wordmark {
+  font-family: "JetBrains Mono", monospace;
+  font-weight: 700;
+  color: var(--text-light);
+}
+.footer-wordmark span {
+  color: var(--primary-blue);
+}
+.footer-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem 1.25rem;
 }
 .footer-links a {
-  margin-left: 20px;
+  white-space: nowrap;
 }
 .footer-links a:hover {
   color: var(--primary-blue);
