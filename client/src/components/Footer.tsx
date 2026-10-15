@@ -6,14 +6,8 @@ const Footer = () => {
       <div className="hackademy-container">
         <div className="footer-content">
           <div className="footer-logo">
-            <span
-              style={{
-                fontFamily: "'JetBrains Mono'",
-                fontWeight: 'bold',
-                color: 'white',
-              }}
-            >
-              Hackademy_
+            <span className="footer-wordmark">
+              Hackademy<span>_</span>
             </span>
             <span style={{ display: 'block', marginTop: '5px' }}>
               &copy; 2025 Hackademy Polska.
