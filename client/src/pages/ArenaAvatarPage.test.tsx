@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -122,7 +122,7 @@ it('keeps unsaved changes and explains when the account save fails', async () =>
     http.put(`${API_URL}/api/user/me/avatar`, () => HttpResponse.json({ message: 'Błąd' }, { status: 500 })),
   );
   setup();
-  await waitFor(() => expect(screen.getByText(/Awatar jest zapisany/)).toHaveTextContent('na Twoim koncie'));
+  expect(await screen.findByText('Ten awatar nie jest jeszcze zapisany na Twoim koncie.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('radio', { name: /^Irokez$/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
   expect(await screen.findByText('Nie udało się zapisać awatara na koncie. Spróbuj ponownie.')).toBeInTheDocument();
@@ -163,4 +163,40 @@ it('does not fall back to a browser-only save when the account cannot be loaded'
   fireEvent.click(button);
   expect(saves).toBe(0);
   expect(localStorage.getItem(AVATAR_KEY)).toBeNull();
+});
+
+it('lets a player save the shown avatar when the account has none yet', async () => {
+  localStorage.setItem('token', createToken());
+  let saved: Record<string, string> | null = null;
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), avatar: null })),
+    http.put(`${API_URL}/api/user/me/avatar`, async ({ request }) => { saved = await request.json() as Record<string, string>; return HttpResponse.json(saved); }),
+  );
+  setup();
+  expect(await screen.findByText('Ten awatar nie jest jeszcze zapisany na Twoim koncie.')).toBeInTheDocument();
+  const button = screen.getByRole('button', { name: 'Zapisz awatar' });
+  expect(button).toBeEnabled();
+  fireEvent.click(button);
+  await waitFor(() => expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled());
+  expect(saved).toMatchObject({ outfit: 'baza' });
+  expect(screen.getByText(/zapisany na Twoim koncie i widoczny/)).toBeInTheDocument();
+});
+
+it('shows still animation previews when the system asks for reduced motion', () => {
+  const listeners: (() => void)[] = [];
+  vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query,
+    addEventListener: (_: string, listener: () => void) => listeners.push(listener), removeEventListener: vi.fn() }));
+  vi.useFakeTimers();
+  try {
+    setup();
+    fireEvent.click(screen.getByRole('button', { name: 'Atak' }));
+    const sprite = screen.getByRole('img', { name: 'Awatar, animacja: Atak' });
+    const first = sprite.getAttribute('data-frame');
+    act(() => { vi.advanceTimersByTime(600); });
+    expect(screen.getByRole('img', { name: 'Awatar, animacja: Atak' })).toHaveAttribute('data-frame', first!);
+    expect(listeners).toHaveLength(1);
+  } finally {
+    vi.useRealTimers();
+    vi.unstubAllGlobals();
+  }
 });
