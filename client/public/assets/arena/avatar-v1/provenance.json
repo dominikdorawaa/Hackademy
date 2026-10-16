@@ -1,0 +1,87 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-10-15",
+  "sources": "local-prototype-backups/arena-avatar-v1",
+  "base": {
+    "from": "pixellab-simple-combat-v2/idle.png (bare fists)",
+    "endpoint": "edit-image-pixen",
+    "description": "Same 64x64 pixel-art human fighter, same side pose facing right, same face, navy T-shirt, beige trousers, purple shoes, bare fists, palette and proportions. Remove all hair: completely shaved bald head with a smooth skin-coloured scalp and a clean dark outline around the round skull, ear visible. Nothing else changes. Transparent background.",
+    "seed": 76100
+  },
+  "animations": [
+    {
+      "name": "jab",
+      "endpoint": "animate-with-text-v3",
+      "action": "Strict SIDE PROFILE facing RIGHT throughout. From this compact fighting stance with bare fists, extend only the lead fist straight to the RIGHT in one quick punch, then retract it to the exact initial stance. Rear fist stays near the cheek, elbows tucked. Never face camera, never spread arms sideways. Feet planted, fixed camera, same bald character and palette.",
+      "frameCount": 8,
+      "seed": 76200
+    },
+    {
+      "name": "hook",
+      "endpoint": "animate-with-text-v3",
+      "action": "Strict SIDE PROFILE facing RIGHT throughout. From this tight stance, rotate the torso slightly and swing the rear fist in a short hook to the RIGHT, then retract to the exact initial stance. Lead fist protects the chin throughout. No frontal pose or arms spread left and right. Fixed camera, planted feet, same bald character and colors.",
+      "frameCount": 8,
+      "seed": 76201
+    },
+    {
+      "name": "power",
+      "endpoint": "animate-with-text-v3",
+      "action": "Strict SIDE PROFILE facing RIGHT throughout. From the stance, bend knees slightly, pull the lead fist beside the chin, then drive a powerful straight two-handed push toward the RIGHT and return to the exact initial stance. Elbows stay close to ribs. Never face camera or spread arms sideways. Same bald character, colors, fixed camera, no projectiles.",
+      "frameCount": 8,
+      "seed": 76202
+    },
+    {
+      "name": "hurt",
+      "endpoint": "animate-with-text-v3",
+      "action": "Strict SIDE PROFILE facing RIGHT throughout. Take one hit from the RIGHT, recoil shoulders and head slightly to the LEFT while keeping both fists close together in front of the chin. Recover into the exact initial stance. Elbows tucked, no arms spread sideways. Same bald character, colors and fixed camera.",
+      "frameCount": 4,
+      "seed": 76203
+    },
+    {
+      "name": "defeat",
+      "endpoint": "animate-with-text-v3",
+      "action": "Strict side view facing RIGHT. Take a final hit from the right, knees buckle, stagger backward to the left and fall onto the floor, ending lying down motionless. Keep the same bald human fighter, clothing and colors, full body visible, transparent background and fixed camera. Do not stand back up.",
+      "frameCount": 8,
+      "seed": 76204
+    }
+  ],
+  "headItems": [
+    {
+      "file": "hair-short.png",
+      "endpoint": "edit-image-pixen",
+      "description": "Same bald 64x64 character, exact same pose, face, body, clothes and palette. Only add short messy medium-brown hair with a few spiky tufts, covering the top and back of the skull, sideburn above the ear on the head. Do not change anything else. Transparent background.",
+      "seed": 76300,
+      "sha256": "097a9df6c98d298d9933084ce693ace00e397d0eb97b0b1063211457f38d4895"
+    },
+    {
+      "file": "hair-mohawk.png",
+      "endpoint": "edit-image-pixen",
+      "description": "Same bald 64x64 character, exact same pose, face, body, clothes and palette. Only add a medium-brown mohawk: a tall strip of spiky hair along the middle of the skull, sides shaved on the head. Do not change anything else. Transparent background.",
+      "seed": 76301,
+      "sha256": "3a846bb5c565b34e289ec7b647f36f6b8e3d68a293ddd46f04ad8514a8ab20bd"
+    },
+    {
+      "file": "hair-ponytail.png",
+      "endpoint": "edit-image-pixen",
+      "description": "Same bald 64x64 character, exact same pose, face, body, clothes and palette. Only add medium-brown hair pulled back into a short high ponytail sticking out behind the head on the head. Do not change anything else. Transparent background.",
+      "seed": 76302,
+      "sha256": "ac0331be8c4a5ebc8796f08490d8d4585b12d156c4056e019bd5a9dffb8beced"
+    },
+    {
+      "file": "hat-beanie.png",
+      "endpoint": "edit-image-pixen",
+      "description": "Same bald 64x64 character, exact same pose, face, body, clothes and palette. Only add a bright red knitted winter beanie hat covering the top of the skull down to the ear, with a folded brim on the head. Do not change anything else. Transparent background.",
+      "seed": 76303,
+      "sha256": "9bad95970c6272e6b25cd8479153265f43b16172ff179e641c6f1960a601e71d"
+    },
+    {
+      "file": "hat-cap.png",
+      "endpoint": "edit-image-pixen",
+      "description": "Same bald 64x64 character, exact same pose, face, body, clothes and palette. Only add a bright blue baseball cap with the visor pointing forward to the right on the head. Do not change anything else. Transparent background.",
+      "seed": 76304,
+      "sha256": "b91714c4e42fdf32d8890d8c7da2133c9344c3c725f96dbf1491df8633719ba6"
+    }
+  ],
+  "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row.",
+  "atlasSha256": "75c07b7d235baeb392ebdee9da58c9db732413506514fe6281c7bb4596b6c74f"
+}
