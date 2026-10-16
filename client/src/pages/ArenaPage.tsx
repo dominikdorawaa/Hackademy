@@ -17,15 +17,14 @@ import './ArenaPage.css';
 type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED' | 'CHALLENGING';
 type FriendChallenge = 'sending' | { error: string };
 
-const UNLOCK_LEVEL = 5;
-const UNLOCK_POINTS = (UNLOCK_LEVEL - 1) * 100;
+const UNLOCK_POINTS = 500;
 const FRIENDS_SHOWN = 6;
 const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
 const ArenaPage = () => {
     const { token } = useAuth();
     const [userData, setUserData] = useState<DashboardUser | null>(null);
-    const [myRank, setMyRank] = useState<RankingEntry | null>(null);
+    const [rank, setRank] = useState<{ status: 'loading' | 'ready' | 'error'; entry: RankingEntry | null }>({ status: 'loading', entry: null });
     const { state: realtime, connected, synchronize } = useRealtime();
     const [joiningQueue, setJoiningQueue] = useState(false);
     const gameSession = realtime?.gameSession ?? null;
@@ -35,7 +34,8 @@ const ArenaPage = () => {
     const [error, setError] = useState<string | null>(null);
     const [friends, setFriends] = useState<FriendDto[] | null>(null);
     const [friendsFailed, setFriendsFailed] = useState(false);
-    const [headToHead, setHeadToHead] = useState<Record<string, UserSearchDto>>({});
+    const [headToHead, setHeadToHead] = useState<Record<string, UserSearchDto | 'error'>>({});
+    const [statsLoading, setStatsLoading] = useState(true);
     const [friendChallenges, setFriendChallenges] = useState<Record<string, FriendChallenge>>({});
     const challengedFriends = (realtime?.outgoingChallenges ?? []).map(challenge => challenge.targetUsername);
     const [processingChallengeId, setProcessingChallengeId] = useState<string | null>(null);
@@ -49,9 +49,9 @@ const ArenaPage = () => {
             .then(data => { if (data) setUserData(data); })
             .catch(err => console.error('Failed to fetch user data', err));
         rankingApi.getSummary(headers)
-            .then(response => response.ok ? response.json() : null)
-            .then(data => setMyRank(data?.myRank ?? null))
-            .catch(() => undefined);
+            .then(response => { if (!response.ok) throw new Error('ranking'); return response.json(); })
+            .then(data => setRank(data?.myRank ? { status: 'ready', entry: data.myRank } : { status: 'error', entry: null }))
+            .catch(() => setRank({ status: 'error', entry: null }));
         friendApi.getFriends(headers)
             .then(async response => {
                 if (!response.ok) throw new Error('friends');
@@ -60,12 +60,13 @@ const ArenaPage = () => {
                 const stats = await Promise.all(list.slice(0, FRIENDS_SHOWN).map(async friend => {
                     try {
                         const r = await friendApi.getStats(friend.username, headers);
-                        return r.ok ? [friend.username, await r.json()] as const : null;
-                    } catch { return null; }
+                        return [friend.username, r.ok ? await r.json() as UserSearchDto : 'error' as const] as const;
+                    } catch { return [friend.username, 'error' as const] as const; }
                 }));
-                setHeadToHead(Object.fromEntries(stats.filter(item => item !== null)));
+                setHeadToHead(Object.fromEntries(stats));
+                setStatsLoading(false);
             })
-            .catch(() => setFriendsFailed(true));
+            .catch(() => { setFriendsFailed(true); setStatsLoading(false); });
     }, [token]);
 
     const handleChallengeFriend = async (username: string) => {
@@ -168,30 +169,32 @@ const ArenaPage = () => {
 
     if (!userData) return <div className="user-dashboard"><div className="ud-shell"><p role="status" className="ud-empty">Ładowanie Areny…</p></div></div>;
 
-    const level = levelFromPoints(userData.points);
-    const canPlay = level >= UNLOCK_LEVEL;
+    const canPlay = userData.points >= UNLOCK_POINTS;
     const missing = Math.max(0, UNLOCK_POINTS - userData.points);
     const offline = !connected || !realtime;
-    const elo = myRank?.elo ?? 500;
+    const myRank = rank.entry;
+    const known = rank.status === 'ready' && myRank !== null;
+    const elo = myRank?.elo ?? 0;
     const opponent = gameSession ? (gameSession.player1Id === userData.id ? gameSession.player2Username : gameSession.player1Username) : '';
     const searching = status === 'QUEUE' || joiningQueue;
     const { league, next } = leagueFor(elo);
-    const headline = status === 'GAME' ? 'Walka trwa' : searching ? 'Szukamy rywala' : status === 'CHALLENGING' ? 'Czekamy na odpowiedź' : canPlay ? 'Wejdź na arenę' : 'Arena od poziomu 5';
+    const rankLabel = !known ? (rank.status === 'loading' ? 'Wczytuję Elo…' : 'Nie udało się wczytać Elo') : myRank.rankElo ? `#${myRank.rankElo} w rankingu Elo` : 'Poza rankingiem Elo';
+    const headline = status === 'GAME' ? 'Walka trwa' : searching ? 'Szukamy rywala' : status === 'CHALLENGING' ? 'Czekamy na odpowiedź' : canPlay ? 'Wejdź na arenę' : 'Arena od 500 XP';
 
     return (
         <div className="user-dashboard arena-page" id="arena">
             <div className="ud-shell">
                 <div className="ud-main">
-                    <section className="arena-hero" aria-labelledby="arena-title" style={{ '--league': league.color } as React.CSSProperties}>
+                    <section className="arena-hero" aria-labelledby="arena-title" style={{ '--league': known ? league.color : 'var(--ud-track)' } as React.CSSProperties}>
                         <div className="arena-card">
                             <div className="arena-card-top">
-                                <span className="arena-league">Liga {league.name}</span>
-                                <span className="arena-card-rank">{myRank?.rankElo ? `#${myRank.rankElo} w rankingu Elo` : 'Poza rankingiem Elo'}</span>
+                                {known && <span className="arena-league">Liga {league.name}</span>}
+                                <span className="arena-card-rank" role={known ? undefined : "status"}>{rankLabel}</span>
                             </div>
                             <UserAvatar className="arena-card-portrait" username={userData.username} seed={userData.avatarSeed} avatar={userData.avatar} alt="" />
                             <p className="arena-card-name">{userData.username}</p>
                             <p className="arena-card-elo">
-                                <span className="arena-card-number">{elo}</span>
+                                <span className="arena-card-number">{known ? elo : '–'}</span>
                                 <span className="ud-term">
                                     <button type="button" className="ud-term-btn" aria-describedby="arena-elo-tip">
                                         Elo
@@ -203,7 +206,9 @@ const ArenaPage = () => {
                                     </span>
                                 </span>
                             </p>
-                            {next ? (
+                            {!known ? (
+                                <p className="arena-card-next">{rank.status === 'loading' ? 'Za chwilę zobaczysz swoją ligę.' : 'Odśwież stronę, żeby spróbować ponownie.'}</p>
+                            ) : next ? (
                                 <div className="arena-card-next">
                                     <div className="ud-meter" role="progressbar" aria-label={`Postęp do ligi ${next.name}`} aria-valuemin={league.min} aria-valuemax={next.min} aria-valuenow={elo}>
                                         <span style={{ '--ud-fill': Math.min(1, Math.max(0, (elo - league.min) / (next.min - league.min))) } as React.CSSProperties} />
@@ -235,7 +240,7 @@ const ArenaPage = () => {
                                 <p>Rywal dostaje ten sam pokój co Ty. Szybsza flaga wygrywa i zabiera mu punkty Elo.</p>
                             ) : (
                                 <>
-                                    <p>Pojedynki odblokujesz na poziomie {UNLOCK_LEVEL}. Brakuje Ci {formatNumberPL(missing)} XP.</p>
+                                    <p>Pojedynki odblokujesz od {formatNumberPL(UNLOCK_POINTS)} XP. Brakuje Ci {formatNumberPL(missing)} XP.</p>
                                     <div className="ud-meter arena-unlock" role="progressbar" aria-label="Postęp do odblokowania Areny" aria-valuemin={0} aria-valuemax={UNLOCK_POINTS} aria-valuenow={Math.min(userData.points, UNLOCK_POINTS)}>
                                         <span style={{ '--ud-fill': Math.min(1, userData.points / UNLOCK_POINTS) } as React.CSSProperties} />
                                     </div>
@@ -246,7 +251,7 @@ const ArenaPage = () => {
                         </div>
                         <ol className="arena-ladder" aria-label="Ligi Areny">
                             {LEAGUES.map(item => (
-                                <li key={item.name} className={item === league ? "is-current" : elo >= item.min ? "is-reached" : undefined} style={{ '--tier': item.color } as React.CSSProperties} aria-current={item === league ? "true" : undefined}>
+                                <li key={item.name} className={!known ? undefined : item === league ? "is-current" : elo >= item.min ? "is-reached" : undefined} style={{ '--tier': item.color } as React.CSSProperties} aria-current={known && item === league ? "true" : undefined}>
                                     <span className="arena-ladder-bar" aria-hidden="true" />
                                     <span className="arena-ladder-name">{item.name}</span>
                                     <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${item.min}`}</span>
@@ -318,7 +323,8 @@ const ArenaPage = () => {
                             <ul className="ud-friend-list">
                                 {friends.slice(0, FRIENDS_SHOWN).map(friend => {
                                     const h2h = headToHead[friend.username];
-                                    const played = h2h ? h2h.winsAgainst + h2h.lossesAgainst : 0;
+                                    const record = h2h && h2h !== 'error' ? h2h : null;
+                                    const played = record ? record.winsAgainst + record.lossesAgainst : 0;
                                     const state = friendChallenges[friend.username];
                                     const sent = challengedFriends.includes(friend.username);
                                     return (
@@ -329,7 +335,7 @@ const ArenaPage = () => {
                                                 <span className="ud-friend-xp">{formatNumberPL(friend.points)} XP, poziom {levelFromPoints(friend.points)}</span>
                                             </span>
                                             <span className="ud-friend-h2h">
-                                                {h2h && played > 0 ? <>Bilans <strong>{h2h.winsAgainst}:{h2h.lossesAgainst}</strong></> : 'Jeszcze bez pojedynku'}
+                                                {record ? (played > 0 ? <>Bilans <strong>{record.winsAgainst}:{record.lossesAgainst}</strong></> : 'Jeszcze bez pojedynku') : h2h === undefined && statsLoading ? 'Wczytuję bilans…' : 'Bilans niedostępny'}
                                             </span>
                                             <span className="ud-friend-act">
                                                 {sent ? (

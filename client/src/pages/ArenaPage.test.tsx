@@ -24,10 +24,10 @@ beforeEach(() => {
   realtime.value = { state: state(), connected: true, error: null, synchronize: vi.fn(async () => {}) };
 });
 
-it('locks duels below level five and shows how much XP is missing', async () => {
+it('locks duels below the server threshold of 500 XP and shows how much XP is missing', async () => {
   server.use(http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 150 })));
   mount();
-  expect(await screen.findByText('Pojedynki odblokujesz na poziomie 5. Brakuje Ci 250 XP.')).toBeInTheDocument();
+  expect(await screen.findByText('Pojedynki odblokujesz od 500 XP. Brakuje Ci 350 XP.')).toBeInTheDocument();
   expect(screen.getByRole('progressbar', { name: 'Postęp do odblokowania Areny' })).toHaveAttribute('aria-valuenow', '150');
   expect(screen.getByRole('link', { name: 'Rozwiązuj pokoje' })).toHaveAttribute('href', '/learn');
   expect(screen.queryByRole('button', { name: 'Znajdź przeciwnika' })).not.toBeInTheDocument();
@@ -49,7 +49,7 @@ it('shows Elo, its position and friends with their duel record', async () => {
   expect(screen.getByText('Do ligi Diament brakuje Ci 114 Elo.')).toBeInTheDocument();
   expect(screen.getByRole('listitem', { current: true })).toHaveTextContent('Platyna');
   expect(await screen.findByText('2:1')).toBeInTheDocument();
-  expect(screen.getByText('Jeszcze bez pojedynku')).toBeInTheDocument();
+  expect(screen.getByText('Bilans niedostępny')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Wszyscy znajomi (2)' })).toHaveAttribute('href', '/friends');
   expect(screen.queryByRole('checkbox')).not.toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Zasady pojedynków rankingowych' })).toBeInTheDocument();
@@ -138,5 +138,36 @@ it('explains when friends cannot be loaded', async () => {
   );
   mount();
   expect(await screen.findByText('Nie udało się wczytać znajomych. Odśwież stronę, żeby spróbować ponownie.')).toBeInTheDocument();
-  expect(screen.getByText('500')).toBeInTheDocument();
+  expect(await screen.findByText('Nie udało się wczytać Elo')).toBeInTheDocument();
+  expect(screen.getByText('–')).toBeInTheDocument();
+  expect(screen.queryByText(/^Liga /)).not.toBeInTheDocument();
+  expect(screen.queryByRole('listitem', { current: true })).not.toBeInTheDocument();
+  expect(screen.getByText('Odśwież stronę, żeby spróbować ponownie.')).toBeInTheDocument();
+});
+
+it('keeps players at 400 XP locked because the server requires 500', async () => {
+  server.use(http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 400 })));
+  mount();
+  expect(await screen.findByText('Pojedynki odblokujesz od 500 XP. Brakuje Ci 100 XP.')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Arena od 500 XP' })).toBeInTheDocument();
+});
+
+it('shows loading states, then a confirmed empty record separately from an unavailable one', async () => {
+  let releaseRank!: () => void;
+  let releaseStats!: () => void;
+  const rankGate = new Promise<void>(resolve => { releaseRank = resolve; });
+  const statsGate = new Promise<void>(resolve => { releaseStats = resolve; });
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+    http.get(`${API_URL}/api/ranking/summary`, async () => { await rankGate; return HttpResponse.json({ ranking: [], user: null, myRank: null }); }),
+    http.get(`${API_URL}/api/friends`, () => HttpResponse.json([{ id: 2, username: 'ola', points: 860, streak: 0 }])),
+    http.get(`${API_URL}/api/friends/stats/:name`, async () => { await statsGate; return HttpResponse.json({ id: 2, username: 'ola', points: 860, friendshipStatus: 'FRIENDS', winsAgainst: 0, lossesAgainst: 0 }); }),
+  );
+  mount();
+  expect(await screen.findByText('Wczytuję Elo…')).toBeInTheDocument();
+  expect(await screen.findByText('Wczytuję bilans…')).toBeInTheDocument();
+  releaseStats();
+  expect(await screen.findByText('Jeszcze bez pojedynku')).toBeInTheDocument();
+  releaseRank();
+  expect(await screen.findByText('Nie udało się wczytać Elo')).toBeInTheDocument();
 });
