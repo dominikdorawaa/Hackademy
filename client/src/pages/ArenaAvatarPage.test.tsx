@@ -133,3 +133,34 @@ it('tells guests that the avatar is saved only in this browser', () => {
   setup();
   expect(screen.getByText('Awatar jest zapisany w tej przeglądarce. Zaloguj się, żeby zapisać go na koncie.')).toBeInTheDocument();
 });
+
+it('blocks editing and saving until the account avatar has loaded', async () => {
+  localStorage.setItem('token', createToken());
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  server.use(http.get(currentUserUrl, async () => { await gate; return HttpResponse.json({ ...createUser(), avatar: accountAvatar }); }));
+  setup();
+  expect(await screen.findByText('Wczytuję awatar z Twojego konta…')).toBeInTheDocument();
+  expect(screen.getByRole('radio', { name: /^Daszek$/ })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled();
+  release();
+  await waitFor(() => expect(screen.getByRole('radio', { name: /^Kucyk$/ })).toBeChecked());
+  expect(screen.getByRole('radio', { name: /^Daszek$/ })).toBeEnabled();
+});
+
+it('does not fall back to a browser-only save when the account cannot be loaded', async () => {
+  localStorage.setItem('token', createToken());
+  let saves = 0;
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ message: 'Błąd' }, { status: 503 })),
+    http.put(`${API_URL}/api/user/me/avatar`, () => { saves++; return HttpResponse.json({}); }),
+  );
+  setup();
+  expect(await screen.findByText('Nie udało się wczytać awatara z konta. Odśwież stronę, żeby zapisać zmiany.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('radio', { name: /^Irokez$/ }));
+  const button = screen.getByRole('button', { name: 'Zapisz awatar' });
+  expect(button).toBeDisabled();
+  fireEvent.click(button);
+  expect(saves).toBe(0);
+  expect(localStorage.getItem(AVATAR_KEY)).toBeNull();
+});
