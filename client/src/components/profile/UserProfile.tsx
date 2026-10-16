@@ -200,7 +200,7 @@ export default function UserProfile({ username }: { username?: string }) {
       <header className="profile-header">
         <UserAvatar
           className="profile-avatar"
-          username={person.username} seed={appearance.avatarSeed}
+          username={person.username} seed={appearance.avatarSeed} avatar={person.avatar}
           alt={`Avatar ${person.username}`}
         />
         <div className="profile-identity">

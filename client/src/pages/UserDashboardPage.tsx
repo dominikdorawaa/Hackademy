@@ -659,7 +659,7 @@ const UserDashboardPage = () => {
                   const state = challenges[f.username];
                   return (
                     <li key={f.id} className="ud-friend">
-                      <UserAvatar className="ud-friend-avatar" username={f.username} seed={f.avatarSeed} alt="" />
+                      <UserAvatar className="ud-friend-avatar" username={f.username} seed={f.avatarSeed} avatar={f.avatar} alt="" />
                       <span className="ud-friend-who">
                         <ProfilePeek className="ud-friend-name" username={f.username} token={token} />
                         <span className="ud-friend-xp">
@@ -700,7 +700,7 @@ const UserDashboardPage = () => {
 
         <aside className="ud-board" id="ud-board" aria-labelledby="ud-board-title">
           <Link className="ud-profile" to="/profile">
-            <UserAvatar className="ud-avatar" username={stats.username} seed={userData?.avatarSeed} alt="" />
+            <UserAvatar className="ud-avatar" username={stats.username} seed={userData?.avatarSeed} avatar={userData?.avatar} alt="" />
             <span className="ud-profile-who">
               <span className="ud-profile-name">{stats.username}</span>
               <span className="ud-profile-sub">

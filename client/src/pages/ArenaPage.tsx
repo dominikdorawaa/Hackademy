@@ -300,7 +300,7 @@ const ArenaPage = () => {
                             <>
                                 <div className="matchup-visual">
                                     <div className="player-av p-blue">
-                                        <UserAvatar username={userData.username} seed={userData.avatarSeed} alt="Ty" />
+                                        <UserAvatar username={userData.username} seed={userData.avatarSeed} avatar={userData.avatar} alt="Ty" />
                                     </div>
                                     <div className="vs-icon">VS</div>
                                     <div className="player-av p-red">
@@ -385,7 +385,7 @@ const ArenaPage = () => {
                                         padding: '15px', backgroundColor: 'var(--bg-panel-lighter)', borderRadius: '8px'
                                     }}>
                                         <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <UserAvatar username={friend.username} seed={friend.avatarSeed} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
+                                            <UserAvatar username={friend.username} seed={friend.avatarSeed} avatar={friend.avatar} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
                                             <span style={{ fontWeight: 'bold', color: 'var(--text-light)' }}>{friend.username}</span>
                                         </div>
                                         <button
