@@ -8,12 +8,14 @@
 }
 
 .battle-shell {
+  --battle-gap: 20px;
+  container-type: inline-size;
   max-width: 1040px;
   margin: 0 auto;
   padding: 32px 24px 56px;
   display: flex;
   flex-direction: column;
-  gap: 20px;
+  gap: var(--battle-gap);
 }
 
 .battle-hud {
@@ -108,6 +110,7 @@
 }
 
 .battle-stage {
+  container-type: inline-size;
   --fighter: calc(64 * var(--battle-pixel));
   --left-edge: 12%;
   --right-edge: 88%;
@@ -116,23 +119,29 @@
   align-items: flex-end;
   justify-content: space-between;
   height: calc(66 * var(--battle-pixel));
-  padding: 0 calc(100% - var(--right-edge)) 0 var(--left-edge);
+  padding: 0;
   border-radius: var(--ud-radius);
   background:
     linear-gradient(180deg, rgb(4 9 20 / 0.55) 0, rgb(4 9 20 / 0.1) 38%, transparent 60%),
-    #0b1730 url('/assets/arena/stages/server-room.png') center bottom / cover no-repeat;
+    #0b1730 url('/assets/arena/stages/server-room.png') center calc(100% + 5.5cqw) / cover no-repeat;
   image-rendering: pixelated;
   overflow: hidden;
 }
 
 .battle-fighter {
+  position: absolute;
+  bottom: calc(-9 * var(--battle-pixel));
   width: calc(64 * var(--battle-pixel));
   flex: 0 0 var(--fighter);
   height: calc(64 * var(--battle-pixel));
-  margin-bottom: calc(-6 * var(--battle-pixel));
+}
+
+.battle-fighter.is-me {
+  left: var(--left-edge);
 }
 
 .battle-fighter.is-rival {
+  right: calc(100% - var(--right-edge));
   transform: scaleX(-1);
 }
 
@@ -226,7 +235,7 @@
 
 .battle-damage {
   position: absolute;
-  bottom: calc(52 * var(--battle-pixel));
+  bottom: calc(42 * var(--battle-pixel));
   translate: -50% 0;
   color: #ffe066;
   font-size: calc(7 * var(--battle-pixel));
@@ -283,6 +292,17 @@
   border-radius: var(--ud-radius);
   background: var(--ud-hero-bg);
   color: var(--ud-hero-ink);
+}
+
+.battle-stage:has(+ :is(.battle-card, .battle-result)) {
+  border-bottom-left-radius: 0;
+  border-bottom-right-radius: 0;
+}
+
+.battle-stage + :is(.battle-card, .battle-result) {
+  margin-top: calc(-1 * var(--battle-gap));
+  border-top-left-radius: 0;
+  border-top-right-radius: 0;
 }
 
 .battle-card-meta {
@@ -446,7 +466,7 @@ button.battle-answer:disabled {
 
   .battle-shell {
     padding: 20px 16px 40px;
-    gap: 14px;
+    --battle-gap: 14px;
   }
 
   .battle-hud {

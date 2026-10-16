@@ -47,6 +47,7 @@ it('shows Elo, its position and friends with their duel record', async () => {
   expect(await screen.findByText('1086')).toBeInTheDocument();
   expect(screen.getByText(/#9 w rankingu Elo/)).toBeInTheDocument();
   expect(screen.getByText('Liga Platyna')).toBeInTheDocument();
+  for (const minimum of [600, 800, 1000, 1200]) expect(screen.getByText(`od ${minimum} Elo`)).toBeInTheDocument();
   expect(screen.getByText('Do ligi Diament brakuje Ci 114 Elo.')).toBeInTheDocument();
   expect(screen.getByRole('listitem', { current: true })).toHaveTextContent('Platyna');
   expect(await screen.findByText('2:1')).toBeInTheDocument();

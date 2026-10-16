@@ -10,6 +10,7 @@ import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
 import { levelFromPoints } from '../lib/level';
 import { LEAGUES, leagueFor } from '../components/arena/leagues';
+import { EloHelp } from '../components/arena/EloHelp';
 import type { DashboardUser, FriendDto, RankingEntry, UserSearchDto } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaPage.css';
@@ -192,16 +193,7 @@ const ArenaPage = () => {
                             <p className="arena-card-name">{userData.username}</p>
                             <p className="arena-card-elo">
                                 <span className="arena-card-number">{known ? elo : '–'}</span>
-                                <span className="ud-term">
-                                    <button type="button" className="ud-term-btn" aria-describedby="arena-elo-tip">
-                                        Elo
-                                        <i className="fas fa-circle-info" aria-hidden="true" />
-                                    </button>
-                                    <span role="tooltip" id="arena-elo-tip" className="ud-tip">
-                                        <strong>Elo to Twoja siła w pojedynkach.</strong> Wygrywasz, to rośnie, przegrywasz, to spada.
-                                        Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.
-                                    </span>
-                                </span>
+                                <EloHelp />
                             </p>
                             {!known ? (
                                 <p className="arena-card-next">{rank.status === 'loading' ? 'Za chwilę zobaczysz swoją ligę.' : 'Odśwież stronę, żeby spróbować ponownie.'}</p>
@@ -251,7 +243,7 @@ const ArenaPage = () => {
                                 <li key={item.name} className={!known ? undefined : item === league ? "is-current" : elo >= item.min ? "is-reached" : undefined} style={{ '--tier': item.color } as React.CSSProperties} aria-current={known && item === league ? "true" : undefined}>
                                     <span className="arena-ladder-bar" aria-hidden="true" />
                                     <span className="arena-ladder-name">{item.name}</span>
-                                    <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${item.min}`}</span>
+                                    <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${item.min} Elo`}</span>
                                 </li>
                             ))}
                         </ol>
