@@ -54,6 +54,19 @@ it('keeps working when storage is unavailable', () => {
   expect(() => saveAvatar(DEFAULT_AVATAR)).not.toThrow();
 });
 
+it.each(['constructor', '__proto__', 'toString', 'hasOwnProperty'])('rejects inherited palette name %s in storage and API data', name => {
+  const config = toAvatarConfig(DEFAULT_AVATAR);
+  for (const field of ['skin', 'hairColor', 'topColor', 'bottomColor', 'shoesColor', 'hatColor'] as const) {
+    expect(fromAvatarConfig({ ...config, [field]: name })).toBeNull();
+  }
+  for (const field of ['skin', 'hair', 'top', 'bottom', 'shoes', 'hat'] as const) {
+    localStorage.setItem(AVATAR_KEY, JSON.stringify({ ...DEFAULT_AVATAR, colors: { ...DEFAULT_AVATAR.colors, [field]: name } }));
+    const restored = readAvatar();
+    expect(restored).toEqual(DEFAULT_AVATAR);
+    expect(() => recolorAtlas(new Uint8ClampedArray(), 0, new Map(), spec, restored.colors)).not.toThrow();
+  }
+});
+
 it('recolors an overlay by brightness and keeps its dark outline', () => {
   const overlay = atlas([[0, 0, '#60412d'], [1, 0, '#734c35'], [2, 0, '#2a1f2a'], [3, 0, '#3d2823']]);
   const out = recolorOverlay(overlay, HAIR_RAMPS.niebieskie);
