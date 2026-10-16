@@ -40,7 +40,7 @@ public class RankingController {
             effectiveStreak = 0;
         }
 
-        Map<String, Object> userInfo = Map.of(
+        Map<String, Object> userInfo = new java.util.LinkedHashMap<>(Map.of(
                 "id", user.getId(),
                 "username", user.getUsername(),
                 "avatarSeed", user.getAvatarSeed(),
@@ -50,7 +50,8 @@ public class RankingController {
                 "streak", effectiveStreak,
                 "bio", user.getBio() != null ? user.getBio() : "",
                 "createdAt", user.getCreatedAt()
-        );
+        ));
+        userInfo.put("avatar", userService.getAvatar(user.getId()));
 
         RankingEntry myRank = userServiceImpl.getUserRankFast(user.getId(), user.getUsername(), user.getPoints(), user.getElo());
 

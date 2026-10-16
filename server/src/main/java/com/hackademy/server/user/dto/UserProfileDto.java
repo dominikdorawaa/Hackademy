@@ -18,5 +18,6 @@ public record UserProfileDto(
     String tagline,
     String avatarSeed,
     List<String> interests,
-    List<Long> featuredBadgeIds
+    List<Long> featuredBadgeIds,
+    UserAvatarDto avatar
 ) {}
