@@ -12,6 +12,7 @@ import com.hackademy.server.dashboard.UserWeeklyActiveTimeRepository;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.friendship.FriendshipService;
 import com.hackademy.server.path.PathRepository;
+import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.room.DifficultyLevel;
 import com.hackademy.server.room.RecentSolvedRoomView;
@@ -58,6 +59,8 @@ class UserServiceImplTest {
     @Mock UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
     @Mock UserUnlockedHintRepository userUnlockedHintRepository;
     @Mock PathRepository pathRepository;
+    @Mock UserAvatarRepository userAvatarRepository;
+    @Mock DashboardSummaryCache dashboardSummaryCache;
     @InjectMocks UserServiceImpl service;
 
     @AfterEach

@@ -24,6 +24,8 @@ import com.hackademy.server.user.dto.ProfilePortfolioDto;
 import com.hackademy.server.user.dto.UserSearchDto;
 import com.hackademy.server.user.dto.ProfilePersonalizationDto;
 import com.hackademy.server.user.dto.UpdateProfileRequest;
+import com.hackademy.server.user.dto.UserAvatarDto;
+import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.badge.UserBadgeRepository;
 import com.hackademy.server.room.UserSolvedRoomRepository;
@@ -41,6 +43,7 @@ import java.time.LocalDateTime;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.HashSet;
 import java.util.concurrent.ConcurrentHashMap;
@@ -112,6 +115,8 @@ public class UserServiceImpl implements UserService {
     private final UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
     private final UserUnlockedHintRepository userUnlockedHintRepository;
     private final PathRepository pathRepository;
+    private final UserAvatarRepository userAvatarRepository;
+    private final DashboardSummaryCache dashboardSummaryCache;
 
     @Override
     @Transactional(readOnly = true)
@@ -232,6 +237,36 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public UserAvatarDto getAvatar(Long userId) {
+        return userAvatarRepository.findDtoByUserId(userId);
+    }
+
+    @Override
+    @Transactional
+    public UserAvatarDto saveAvatar(Long userId, UserAvatarDto avatar) {
+        if (!userRepository.existsById(userId)) throw new UserNotFoundException("User not found");
+        UserAvatar entity = userAvatarRepository.findById(userId).orElseGet(() -> UserAvatar.of(userId, avatar));
+        entity.apply(avatar);
+        UserAvatarDto saved = userAvatarRepository.save(entity).toDto();
+        refreshAvatarCaches(userId);
+        return saved;
+    }
+
+    @Override
+    @Transactional
+    public void deleteAvatar(Long userId) {
+        userAvatarRepository.findById(userId).ifPresent(userAvatarRepository::delete);
+        refreshAvatarCaches(userId);
+    }
+
+    private void refreshAvatarCaches(Long userId) {
+        invalidateUserComputedCaches(userId);
+        invalidateGlobalRankingCache();
+        dashboardSummaryCache.invalidateUser(userId);
+    }
+
+    @Override
     public List<RankingEntry> getTop10Ranking() {
         long now = System.currentTimeMillis();
         List<RankingEntry> cached = rankingCache;
@@ -242,13 +277,14 @@ public class UserServiceImpl implements UserService {
         // Return top 100 users sorted by points, but include ELO so frontend can re-sort.
         // Query-side ordering avoids loading the entire users table.
         List<User> top = userRepository.findTopByPointsDesc(PageRequest.of(0, 100));
+        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(top.stream().map(User::getId).toList());
         List<RankingEntry> out = top.stream()
                 .map(user -> new RankingEntry(
                         0, // Rank Points placeholder
                         0, // Rank Elo placeholder
                         user.getUsername(),
                         user.getPoints(),
-                        user.getElo(), user.getAvatarSeed()
+                        user.getElo(), user.getAvatarSeed(), avatars.get(user.getId())
                 ))
                 .collect(Collectors.toList());
         rankingCache = out;
@@ -284,6 +320,7 @@ public class UserServiceImpl implements UserService {
                 .avatarSeed(user.getAvatarSeed())
                 .interests(List.copyOf(user.getInterests()))
                 .featuredBadgeIds(List.copyOf(user.getFeaturedBadgeIds()))
+                .avatar(userAvatarRepository.findDtoByUserId(user.getId()))
                 .badges(badges) // Add badges to DTO
                 .build();
     }
@@ -299,7 +336,7 @@ public class UserServiceImpl implements UserService {
     @Override
     public List<UserSearchDto> searchUsers(String query, Long currentUserId) {
         List<User> users = userRepository.findByUsernameContainingIgnoreCase(query);
-        
+        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(users.stream().map(User::getId).toList());
         return users.stream()
                 .map(user -> {
                     String status = "NONE";
@@ -313,6 +350,7 @@ public class UserServiceImpl implements UserService {
                             .id(user.getId())
                             .username(user.getUsername())
                             .avatarSeed(user.getAvatarSeed())
+                            .avatar(avatars.get(user.getId()))
                             .points(user.getPoints())
                             .friendshipStatus(status)
                             .build();
@@ -359,7 +397,7 @@ public class UserServiceImpl implements UserService {
         // Calculate rank based on ELO
         long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
         
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), user.getAvatarSeed());
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), user.getAvatarSeed(), userAvatarRepository.findDtoByUserId(userId));
         rankCache.put(userId, new CacheEntry<>(now, out));
         return out;
     }
@@ -376,7 +414,7 @@ public class UserServiceImpl implements UserService {
         long rankPoints = userRepository.countByPointsGreaterThan(p) + 1;
         long rankElo = userRepository.countByEloGreaterThan(e) + 1;
         String avatarSeed = userRepository.findById(userId).map(User::getAvatarSeed).orElse(username);
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, avatarSeed);
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, avatarSeed, userAvatarRepository.findDtoByUserId(userId));
         rankCache.put(userId, new CacheEntry<>(now, out));
         return out;
     }

@@ -7,6 +7,7 @@ import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.realtime.RealtimeNotifier;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
+import com.hackademy.server.user.UserAvatarRepository;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -29,6 +30,7 @@ class FriendshipServiceImplTest {
     @Mock UserRepository userRepository;
     @Mock BadgeService badgeService;
     @Mock RealtimeNotifier realtime;
+    @Mock UserAvatarRepository userAvatarRepository;
     final DashboardSummaryCache dashboards = new DashboardSummaryCache();
     FriendshipServiceImpl service;
 
@@ -37,7 +39,7 @@ class FriendshipServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new FriendshipServiceImpl(friendshipRepository, userRepository, badgeService, dashboards, realtime);
+        service = new FriendshipServiceImpl(friendshipRepository, userRepository, badgeService, dashboards, realtime, userAvatarRepository);
         alice = user(1L, "alice");
         bob = user(2L, "bob");
         dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());

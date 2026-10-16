@@ -15,6 +15,7 @@ import com.hackademy.server.user.dto.UpdateProfileRequest;
 import com.hackademy.server.user.dto.ProfilePersonalizationDto;
 import com.hackademy.server.user.dto.NotificationPreferencesDto;
 import com.hackademy.server.user.dto.UpdateNotificationPreferenceRequest;
+import com.hackademy.server.user.dto.UserAvatarDto;
 import jakarta.validation.Valid;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
@@ -95,6 +96,7 @@ public class UserController {
         userInfo.put("avatarSeed", appearance.avatarSeed());
         userInfo.put("interests", appearance.interests());
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
+        userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
 
         return ResponseEntity.ok(userInfo);
     }
@@ -129,6 +131,26 @@ public class UserController {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         userService.updateBio(user.getId(), request);
         return ResponseEntity.ok().build();
+    }
+
+    @GetMapping("/me/avatar")
+    public ResponseEntity<UserAvatarDto> getAvatar() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        UserAvatarDto avatar = userService.getAvatar(user.getId());
+        return avatar == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(avatar);
+    }
+
+    @PutMapping("/me/avatar")
+    public ResponseEntity<UserAvatarDto> saveAvatar(@Valid @RequestBody UserAvatarDto request) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(userService.saveAvatar(user.getId(), request));
+    }
+
+    @DeleteMapping("/me/avatar")
+    public ResponseEntity<Void> deleteAvatar() {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        userService.deleteAvatar(user.getId());
+        return ResponseEntity.noContent().build();
     }
 
     @PatchMapping("/me/profile")
