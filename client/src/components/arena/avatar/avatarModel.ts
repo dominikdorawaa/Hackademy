@@ -138,7 +138,7 @@ export function readAvatar(): Avatar {
   try {
     const saved = JSON.parse(localStorage.getItem(AVATAR_KEY) ?? 'null');
     const outfit = AVATAR_OUTFITS.includes(saved?.outfit) ? saved.outfit as AvatarOutfit : DEFAULT_AVATAR.outfit;
-    const pick = (value: unknown, options: Record<string, Ramp>, fallback: string) => typeof value === 'string' && value in options ? value : fallback;
+    const pick = (value: unknown, options: Record<string, Ramp>, fallback: string) => typeof value === 'string' && Object.hasOwn(options, value) ? value : fallback;
     const choose = <T extends string>(value: unknown, options: readonly T[], fallback: T) => options.includes(value as T) ? value as T : fallback;
     const colors = saved?.colors ?? {};
     return { outfit, hair: choose(saved?.hair, HAIR_STYLES, DEFAULT_AVATAR.hair), hat: choose(saved?.hat, HAT_STYLES, DEFAULT_AVATAR.hat), colors: {
@@ -200,8 +200,8 @@ export function toAvatarConfig(avatar: Avatar): AvatarConfig {
 export function fromAvatarConfig(config: AvatarConfig | null | undefined): Avatar | null {
   if (!config) return null;
   const valid = (AVATAR_OUTFITS as readonly string[]).includes(config.outfit) && (HAIR_STYLES as readonly string[]).includes(config.hair)
-    && (HAT_STYLES as readonly string[]).includes(config.hat) && config.skin in SKIN_RAMPS && config.hairColor in HAIR_RAMPS
-    && [config.topColor, config.bottomColor, config.shoesColor, config.hatColor].every(color => color in CLOTH_RAMPS);
+    && (HAT_STYLES as readonly string[]).includes(config.hat) && Object.hasOwn(SKIN_RAMPS, config.skin) && Object.hasOwn(HAIR_RAMPS, config.hairColor)
+    && [config.topColor, config.bottomColor, config.shoesColor, config.hatColor].every(color => Object.hasOwn(CLOTH_RAMPS, color));
   if (!valid) return null;
   return { outfit: config.outfit as AvatarOutfit, hair: config.hair as HairStyle, hat: config.hat as HatStyle,
     colors: { skin: config.skin, hair: config.hairColor, top: config.topColor, bottom: config.bottomColor, shoes: config.shoesColor, hat: config.hatColor } };
