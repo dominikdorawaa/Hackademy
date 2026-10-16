@@ -114,6 +114,24 @@
   font-weight: 700;
 }
 
+.arena-elo-tip {
+  z-index: 60;
+  width: min(320px, calc(100vw - 32px));
+  padding: 16px 18px;
+  border-radius: var(--ud-radius);
+  background: var(--ud-tip-bg);
+  color: var(--ud-tip-ink);
+  box-shadow: var(--ud-float-shadow);
+  font-size: var(--ud-text-s);
+  line-height: 1.55;
+  text-align: left;
+}
+
+.arena-elo-tip strong {
+  display: block;
+  margin-bottom: 6px;
+}
+
 .arena-card-next {
   width: 100%;
   margin-top: 18px;
@@ -190,6 +208,7 @@
 
 .arena-ladder-min {
   font-size: 0.75rem;
+  text-wrap: balance;
 }
 
 .arena-hero-main {
@@ -360,6 +379,17 @@
 @media (prefers-reduced-motion: reduce) {
   .arena-pulse {
     animation: none;
+  }
+}
+
+@media (max-width: 520px) {
+  .arena-hero-main {
+    padding-inline: 16px;
+  }
+
+  .arena-ladder {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 16px 10px;
   }
 }
 }
