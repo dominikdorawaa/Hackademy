@@ -8,6 +8,7 @@ import { createToken, createUser } from '../test/fixtures/auth';
 import { currentUserUrl } from '../test/mocks/handlers';
 import { server } from '../test/mocks/server';
 import type { RealtimeState } from '../types/realtime';
+import { createGameSession } from '../test/fixtures/arena';
 import ArenaPage from './ArenaPage';
 
 const realtime = vi.hoisted(() => ({ value: { state: null as RealtimeState | null, connected: true, error: null, synchronize: vi.fn(async () => {}) } }));
@@ -16,7 +17,7 @@ vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => realtime.value
 const state = (overrides: Partial<RealtimeState> = {}): RealtimeState => ({
   streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession: null, queued: false, ...overrides,
 });
-const incoming = { id: 'c1', challengerId: 2, challengerUsername: 'rywal', targetId: 1, targetUsername: 'tester', createdAt: '2026-10-11T12:00:00', status: 'PENDING' as const, vpnEnabled: true };
+const incoming = { id: 'c1', challengerId: 2, challengerUsername: 'rywal', targetId: 1, targetUsername: 'tester', createdAt: '2026-10-11T12:00:00', status: 'PENDING' as const };
 const mount = () => render(<MemoryRouter><AuthProvider><ArenaPage /></AuthProvider></MemoryRouter>);
 
 beforeEach(() => {
@@ -74,7 +75,7 @@ it('challenges a friend and explains a refused challenge next to the friend', as
   await waitFor(() => expect(realtime.value.synchronize).toHaveBeenCalled());
   fireEvent.click(within(rows[1]).getByRole('button', { name: 'Wyzwij' }));
   expect(await screen.findByText('Gracz jest offline.')).toBeInTheDocument();
-  expect(bodies).toEqual([{ targetUsername: 'ola', vpnEnabled: false }, { targetUsername: 'kuba', vpnEnabled: false }]);
+  expect(bodies).toEqual([{ targetUsername: 'ola' }, { targetUsername: 'kuba' }]);
 });
 
 it('marks friends who already got a challenge and lets the player cancel waiting', async () => {
@@ -94,7 +95,7 @@ it('marks friends who already got a challenge and lets the player cancel waiting
 });
 
 it('accepts and rejects incoming challenges and shows a refused acceptance', async () => {
-  realtime.value.state = state({ challenges: [incoming, { ...incoming, id: 'c2', challengerUsername: 'drugi', vpnEnabled: false }] });
+  realtime.value.state = state({ challenges: [incoming, { ...incoming, id: 'c2', challengerUsername: 'drugi' }] });
   let rejected = false;
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
@@ -123,11 +124,10 @@ it('reports a refused queue join and returns to an active match', async () => {
   const view = mount();
   fireEvent.click(await screen.findByRole('button', { name: 'Znajdź przeciwnika' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Brak pokoi do pojedynku.');
-  realtime.value.state = state({ gameSession: { id: 'g', player1Id: 2, player1Username: 'rywal', player1Elo: 500, player2Id: 1, player2Username: 'tester', player2Elo: 500, roomId: 7,
-    startTime: '2026-10-11T12:00:00', status: 'ACTIVE', winnerId: null, player1EloChange: null, player2EloChange: null, hintsUsed: {}, finishTimes: {}, penaltiesInSeconds: {} } });
+  realtime.value.state = state({ gameSession: createGameSession({ id: 'g', player1Id: 2, player1Username: 'rywal', player2Id: 1, player2Username: 'tester' }) });
   view.rerender(<MemoryRouter><AuthProvider><ArenaPage /></AuthProvider></MemoryRouter>);
   expect(screen.getByText('Masz trwający mecz z rywal.')).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Wróć do meczu' })).toHaveAttribute('href', '/rooms/7?arena=g');
+  expect(screen.getByRole('link', { name: 'Wróć do walki' })).toHaveAttribute('href', '/arena/battle/g');
 });
 
 it('explains when friends cannot be loaded', async () => {

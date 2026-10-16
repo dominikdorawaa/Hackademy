@@ -16,7 +16,7 @@ import { ThemeProvider } from './ThemeContext';
 import ArenaPage from '../pages/ArenaPage';
 import FriendsPage from '../pages/FriendsPage';
 import * as httpService from '../services/http';
-import RoomPage from '../pages/RoomPage';
+import { createGameSession } from '../test/fixtures/arena';
 
 const connections = vi.hoisted(() => [] as { callbacks: RealtimeCallbacks; start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }[]);
 vi.mock('../components/ArenaChat', () => ({ default: () => null }));
@@ -32,12 +32,7 @@ const snapshot = (revision = 1, streamId = 'server'): RealtimeState => ({
   revision, streamId, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession: null, queued: false,
 });
 
-const game = (id = 'game', status: GameSession['status'] = 'ACTIVE'): GameSession => ({
-  id, status, player1Id: 1, player1Username: 'tester', player1Elo: 500,
-  player2Id: 2, player2Username: 'opponent', player2Elo: 500, roomId: 7,
-  startTime: '2026-10-11T12:00:00', winnerId: null, player1EloChange: null, player2EloChange: null,
-  hintsUsed: {}, finishTimes: {}, penaltiesInSeconds: {},
-});
+const game = (id = 'game', status: GameSession['status'] = 'ACTIVE'): GameSession => createGameSession({ id, status });
 
 function Consumer({ name }: { name: string }) {
   const { state, connected, synchronize } = useRealtime();
@@ -73,47 +68,18 @@ describe('shared realtime state', () => {
       <RealtimeGameNavigation /><GameLocation />
       <Routes>
         <Route path="/arena" element={<ArenaPage />} />
-        <Route path="/rooms/:id" element={<Link to="/arena">Powrót</Link>} />
+        <Route path="/arena/battle/:gameId" element={<Link to="/arena">Powrót</Link>} />
       </Routes>
     </RealtimeProvider></AuthProvider></MemoryRouter>);
     act(() => connections[0].callbacks.ready());
     fireEvent.click(await screen.findByRole('link', { name: 'Powrót' }));
-    const returnLink = await screen.findByRole('link', { name: 'Wróć do meczu' });
-    expect(returnLink).toHaveAttribute('href', '/rooms/7?arena=game');
+    const returnLink = await screen.findByRole('link', { name: 'Wróć do walki' });
+    expect(returnLink).toHaveAttribute('href', '/arena/battle/game');
     expect(screen.queryByRole('button', { name: 'Znajdź przeciwnika' })).not.toBeInTheDocument();
     fireEvent.click(returnLink);
-    expect(screen.getByTestId('game-location')).toHaveTextContent('/rooms/7?arena=game');
+    expect(screen.getByTestId('game-location')).toHaveTextContent('/arena/battle/game');
   });
 
-  it('resets room inputs and the result dialog when a new match starts in the same room', async () => {
-    server.use(
-      http.get(`${API_URL}/api/realtime/state`, () => HttpResponse.json({ ...snapshot(), gameSession: game('a') })),
-      http.get(`${API_URL}/api/arena/game/:id`, ({ params }) => HttpResponse.json(game(String(params.id)))),
-      http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json({
-        id: 7, title: 'Arena room', description: 'Room', difficulty: 'EASY', points: 50, solved: false,
-        hints: [], unlockedHintIds: [], tasks: [], requiresVpn: false,
-      })),
-    );
-    localStorage.setItem('token', createToken());
-    render(<MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider>
-      <RealtimeGameNavigation /><GameLocation />
-      <Routes><Route path="/arena" element={<ArenaPage />} /><Route path="/rooms/:id" element={<RoomPage />} /></Routes>
-    </RealtimeProvider></AuthProvider></MemoryRouter>);
-    act(() => connections[0].callbacks.ready());
-    await screen.findByRole('heading', { name: 'Arena room' });
-    const flagInput = screen.getByPlaceholderText('Wklej flagę tutaj...');
-    fireEvent.change(flagInput, { target: { value: 'old flag' } });
-    act(() => connections[0].callbacks.state({ ...snapshot(2), gameSession: {
-      ...game('a', 'FINISHED'), winnerId: 1, player1EloChange: 16, player2EloChange: -16,
-    } }));
-    await screen.findByText('ZWYCIĘSTWO!');
-    act(() => connections[0].callbacks.state({ ...snapshot(3), gameSession: game('b') }));
-    await waitFor(() => expect(screen.getByTestId('game-location')).toHaveTextContent('/rooms/7?arena=b'));
-    await screen.findByRole('heading', { name: 'Arena room' });
-    expect(screen.queryByText('ZWYCIĘSTWO!')).not.toBeInTheDocument();
-    expect(screen.queryByText('PORAŻKA')).not.toBeInTheDocument();
-    expect(screen.getByPlaceholderText('Wklej flagę tutaj...')).toHaveValue('');
-  });
 
   it.each(['join', 'synchronization'])('allows canceling a confirmed queue while the %s response is pending', async stalled => {
     let requests = 0;
@@ -222,7 +188,7 @@ describe('shared realtime state', () => {
     expect(screen.getByRole('button', { name: 'Anuluj' })).toBeInTheDocument();
     const incoming = { ...snapshot(3), challenges: [{
       id: 'challenge', challengerId: 2, challengerUsername: 'opponent', targetId: 1, targetUsername: 'tester',
-      createdAt: '2026-10-11T12:00:00', status: 'PENDING' as const, vpnEnabled: false,
+      createdAt: '2026-10-11T12:00:00', status: 'PENDING' as const,
     }] };
     act(() => connections[0].callbacks.state(incoming));
     fireEvent.click(screen.getByRole('button', { name: 'Powiadomienia' }));
@@ -233,13 +199,8 @@ describe('shared realtime state', () => {
     act(() => connections[0].callbacks.state(snapshot(4)));
     expect(screen.queryByText('Otrzymane wyzwania (1)')).not.toBeInTheDocument();
     expect(screen.queryByText('1 nowe')).not.toBeInTheDocument();
-    act(() => connections[0].callbacks.state({ ...snapshot(5), gameSession: {
-      id: 'game', player1Id: 1, player1Username: 'tester', player1Elo: 500,
-      player2Id: 2, player2Username: 'opponent', player2Elo: 500, roomId: 7,
-      startTime: '2026-10-11T12:00:00', status: 'ACTIVE', winnerId: null,
-      player1EloChange: null, player2EloChange: null, hintsUsed: {}, finishTimes: {}, penaltiesInSeconds: {},
-    } }));
-    expect(screen.getByTestId('game-location')).toHaveTextContent('/rooms/7?arena=game');
+    act(() => connections[0].callbacks.state({ ...snapshot(5), gameSession: game() }));
+    expect(screen.getByTestId('game-location')).toHaveTextContent('/arena/battle/game');
     vi.useFakeTimers();
     await act(async () => { vi.advanceTimersByTime(60000); });
     vi.useRealTimers();

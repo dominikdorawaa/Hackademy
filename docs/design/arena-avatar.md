@@ -27,3 +27,11 @@ The avatar is stored in `user_avatars` (migration V12): outfit, hairstyle, hat, 
 ## Ranked Arena
 
 `/arena` opens with a player card: the avatar portrait, the Elo league in its colour, the Elo number, the position in the Elo ranking and progress to the next league, next to the call to action and a five-step league ladder. Leagues are computed from Elo in `client/src/components/arena/leagues.ts`: Brąz below 600, Srebro from 600, Złoto from 800, Platyna from 1000 and Diament from 1200. The right column lists friends to challenge with the duel record against each, then the rules of ranked duels.
+
+## Avatar battles
+
+Ranked matches are knowledge battles between the two players' avatars; the Arena no longer uses CTF rooms. Each player starts with 100 HP. A battle has up to 10 rounds: both players get the same question from `arena_questions` (migration V13, 42 Polish questions in five categories) and pick one of four answers within 15 seconds. A correct answer hits the rival for 20 HP regardless of speed, so two correct answers hurt both players. The battle ends on a knockout or after the last round, where more HP wins and equal HP is a draw that keeps Elo. Surrendering, or staying disconnected from the realtime connection for 30 seconds, is a loss.
+
+The server runs the battle (`BattleEngine`, `ArenaServiceImpl`): it draws questions without repeats, accepts one answer per player and round through `POST /api/arena/game/{id}/answer`, resolves the round when both answered or time runs out, shows the result for 3 seconds and opens the next round. The correct answer and the players' choices stay on the server until the round ends. Clients receive the round, deadlines with the server time, HP, who already answered and the last round result through the realtime `STATE` message.
+
+`/arena/battle/:id` shows both avatars facing each other with HP bars, the round and a countdown, the question with four answers, then the correct answer, both choices and who hit. Fighters attack and flinch during the reveal; at the end the winner dances and the loser falls. Reduced motion shows still frames. The result card shows the outcome, its reason and the Elo change.

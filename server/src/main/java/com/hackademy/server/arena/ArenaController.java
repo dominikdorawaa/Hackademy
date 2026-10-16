@@ -2,8 +2,8 @@ package com.hackademy.server.arena;
 
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserService;
-import com.hackademy.server.vpn.VpnService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -15,128 +15,104 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/arena")
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class ArenaController {
+
+    private static final Map<BattleEngine.AnswerResult, String> ANSWER_ERRORS = Map.of(
+            BattleEngine.AnswerResult.WRONG_ROUND, "Ta odpowiedź dotyczy innej rundy. Odpowiedz na bieżące pytanie.",
+            BattleEngine.AnswerResult.NOT_ACTIVE, "Ta runda jest już zakończona.",
+            BattleEngine.AnswerResult.INVALID_ANSWER, "Wybierz jedną z czterech odpowiedzi.",
+            BattleEngine.AnswerResult.ALREADY_ANSWERED, "Odpowiedź w tej rundzie została już wysłana.",
+            BattleEngine.AnswerResult.TOO_LATE, "Czas na odpowiedź minął.");
 
     private final MatchmakingService matchmakingService;
     private final ArenaService arenaService;
     private final UserService userService;
-    private final VpnService vpnService;
+
+    private static User currentUser() {
+        return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+    }
 
     @PostMapping("/join")
-    public ResponseEntity<?> joinQueue(@RequestBody(required = false) Map<String, Boolean> payload) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        
-        if (user.getPoints() < 500) { 
-             return ResponseEntity.badRequest().body(Map.of("message", "Wymagany poziom 5 (500 pkt) aby dołączyć do Areny."));
+    public ResponseEntity<?> joinQueue() {
+        User user = currentUser();
+        if (user.getPoints() < 500) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Do Areny dołączysz od 500 XP."));
         }
-
-        boolean vpnEnabled = payload != null && payload.getOrDefault("vpnEnabled", false);
-
-
-        if (vpnEnabled && !userService.hasSolvedTutorialVpn(user.getId())) {
-            return ResponseEntity.badRequest().body(
-                    Map.of("message", "Aby grać w Arenie z VPN, musisz najpierw ukończyć pokój Tutorial VPN.")
-            );
-        }
-
-        matchmakingService.joinQueue(user.getId(), user.getUsername(), vpnEnabled);
+        matchmakingService.joinQueue(user.getId(), user.getUsername());
         processMatchmaking();
         return ResponseEntity.ok(Map.of("message", "Dołączono do kolejki"));
     }
 
     @PostMapping("/leave")
     public ResponseEntity<?> leaveQueue() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        matchmakingService.leaveQueue(user.getId());
+        matchmakingService.leaveQueue(currentUser().getId());
         return ResponseEntity.ok(Map.of("message", "Opuszczono kolejkę"));
     }
 
     @GetMapping("/status")
     public ResponseEntity<?> checkStatus() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        
-        GameSession session = arenaService.findCurrentGameForUser(user.getId());
-        
-        if (session != null) {
-            return ResponseEntity.ok(session);
-        }
-        return ResponseEntity.noContent().build();
+        GameSession session = arenaService.findCurrentGameForUser(currentUser().getId());
+        return session == null ? ResponseEntity.noContent().build() : ResponseEntity.ok(session);
     }
 
-    @Scheduled(fixedRate = 500) 
+    @Scheduled(fixedRate = 500)
     public synchronized void processMatchmaking() {
-        List<GameSession> sessions = matchmakingService.checkForMatches();
-        for (GameSession session : sessions) {
-            arenaService.addGame(session);
-        }
-    }
-    
-
-    @PostMapping("/game/{gameId}/solve")
-    public ResponseEntity<?> solveArenaRoom(@PathVariable String gameId, @RequestBody Map<String, String> payload) {
-        String flag = payload.get("flag");
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        
-        boolean solved = arenaService.submitFlag(gameId, user.getId(), flag);
-        
-        if (solved) {
-            
-            GameSession session = arenaService.getGameSession(gameId);
-            if ("WAITING_FOR_OPPONENT".equals(session.getStatus())) {
-                 return ResponseEntity.ok(Map.of("message", "Poprawna flaga! Czekanie na wynik przeciwnika (z powodu Twoich kar czasowych)...", "success", true, "status", "WAITING"));
+        for (GameSession session : matchmakingService.checkForMatches()) {
+            try {
+                arenaService.addGame(session);
+            } catch (RuntimeException error) {
+                log.warn("Could not prepare arena match {}", session.getId(), error);
+                continue;
             }
-            return ResponseEntity.ok(Map.of("message", "Poprawna flaga! Wygrałeś!", "success", true, "status", "FINISHED"));
-        } else {
-            return ResponseEntity.badRequest().body(Map.of("message", "Niepoprawna flaga", "success", false));
+            matchmakingService.leaveQueue(session.getPlayer1Id());
+            matchmakingService.leaveQueue(session.getPlayer2Id());
         }
     }
-    
-    @PostMapping("/game/{gameId}/hint")
-    public ResponseEntity<?> useHint(@PathVariable String gameId, @RequestBody Map<String, Long> payload) {
-        Long hintId = payload.get("hintId");
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        arenaService.useHint(gameId, user.getId(), hintId);
-        return ResponseEntity.ok(Map.of("message", "Podpowiedź odblokowana! +2 minuty kary."));
+
+    @PostMapping("/game/{gameId}/answer")
+    public ResponseEntity<?> answer(@PathVariable String gameId, @RequestBody Map<String, Integer> payload) {
+        Integer answer = payload.get("answer");
+        if (answer == null) {
+            return ResponseEntity.badRequest().body(Map.of("message", ANSWER_ERRORS.get(BattleEngine.AnswerResult.INVALID_ANSWER)));
+        }
+        Integer round = payload.get("round");
+        if (round == null || round < 1) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Podaj numer rundy, na którą odpowiadasz."));
+        }
+        var result = arenaService.answer(gameId, currentUser().getId(), round, answer);
+        if (result == BattleEngine.AnswerResult.ACCEPTED) {
+            return ResponseEntity.ok(Map.of("message", "Odpowiedź przyjęta"));
+        }
+        if (result == BattleEngine.AnswerResult.NOT_PLAYER) {
+            return ResponseEntity.notFound().build();
+        }
+        return ResponseEntity.badRequest().body(Map.of("message", ANSWER_ERRORS.get(result)));
     }
-    
+
     @PostMapping("/game/{gameId}/surrender")
     public ResponseEntity<?> surrenderGame(@PathVariable String gameId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        arenaService.surrenderGame(gameId, user.getId());
+        arenaService.surrenderGame(gameId, currentUser().getId());
         return ResponseEntity.ok(Map.of("message", "Poddałeś się!"));
     }
-    
+
     @GetMapping("/game/{gameId}")
     public ResponseEntity<?> getGameStatus(@PathVariable String gameId) {
         GameSession session = arenaService.getGameSession(gameId);
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        if (session != null && (session.getPlayer1Id().equals(user.getId()) || session.getPlayer2Id().equals(user.getId()))) {
+        if (session != null && session.includes(currentUser().getId())) {
             return ResponseEntity.ok(session);
         }
         return ResponseEntity.notFound().build();
     }
 
-    // --- Challenge Endpoints ---
-
     @PostMapping("/challenge/create")
     public ResponseEntity<?> createChallenge(@RequestBody Map<String, Object> payload) {
         String targetUsername = (String) payload.get("targetUsername");
-        Boolean vpnEnabled = (Boolean) payload.getOrDefault("vpnEnabled", false);
-        User challenger = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        
+        User challenger = currentUser();
         try {
             Long targetId = userService.getUserIdByUsername(targetUsername);
-            
-            // Check if target has VPN access if vpnEnabled is true
-            if (vpnEnabled) {
-                boolean targetHasVpn = userService.hasSolvedTutorialVpn(targetId);
-                if (!targetHasVpn) {
-                    return ResponseEntity.badRequest().body(Map.of("message", "Użytkownik " + targetUsername + " nie ma odblokowanego dostępu do VPN."));
-                }
-            }
-            
-            arenaService.createChallenge(challenger.getId(), challenger.getUsername(), targetId, targetUsername, vpnEnabled);
+            arenaService.createChallenge(challenger.getId(), challenger.getUsername(), targetId, targetUsername);
             return ResponseEntity.ok(Map.of("message", "Propozycja została wysłana!"));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
@@ -145,16 +121,13 @@ public class ArenaController {
 
     @GetMapping("/challenges")
     public ResponseEntity<List<Challenge>> getPendingChallenges() {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        return ResponseEntity.ok(arenaService.getPendingChallenges(user.getId()));
+        return ResponseEntity.ok(arenaService.getPendingChallenges(currentUser().getId()));
     }
 
     @PostMapping("/challenge/{challengeId}/accept")
     public ResponseEntity<?> acceptChallenge(@PathVariable String challengeId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         try {
-            GameSession session = arenaService.acceptChallenge(challengeId, user.getId());
-            return ResponseEntity.ok(session);
+            return ResponseEntity.ok(arenaService.acceptChallenge(challengeId, currentUser().getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -162,16 +135,14 @@ public class ArenaController {
 
     @PostMapping("/challenge/{challengeId}/reject")
     public ResponseEntity<?> rejectChallenge(@PathVariable String challengeId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        arenaService.rejectChallenge(challengeId, user.getId());
+        arenaService.rejectChallenge(challengeId, currentUser().getId());
         return ResponseEntity.ok(Map.of("message", "Propozycja została odrzucona!"));
     }
 
     @PostMapping("/challenge/{challengeId}/cancel")
     public ResponseEntity<?> cancelChallenge(@PathVariable String challengeId) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         try {
-            arenaService.cancelChallenge(challengeId, user.getId());
+            arenaService.cancelChallenge(challengeId, currentUser().getId());
             return ResponseEntity.ok(Map.of("message", "Wyzwanie anulowane"));
         } catch (IllegalArgumentException exception) {
             return ResponseEntity.badRequest().body(Map.of("message", exception.getMessage()));

@@ -40,7 +40,7 @@ class RealtimeLoadTest {
             String username = "load" + index;
             var user = users.saveAndFlush(User.builder().username(username).email(username + "@example.com")
                     .password("unused").points(500).build());
-            matchmaking.joinQueue(user.getId(), username, false);
+            matchmaking.joinQueue(user.getId(), username);
             fixtures.add(Map.of("username", username, "token", jwt.generateToken(user), "id", user.getId()));
         }
         Path done = Path.of("target/realtime-load-done.json");

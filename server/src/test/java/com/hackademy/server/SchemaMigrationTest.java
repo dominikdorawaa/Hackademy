@@ -60,7 +60,7 @@ class SchemaMigrationTest {
     @Test
     void migratesEmptyDatabaseWithBadgesOnly() throws Exception {
         var flyway = flyway();
-        assertEquals(12, flyway.migrate().migrationsExecuted);
+        assertEquals(13, flyway.migrate().migrationsExecuted);
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, scalar("SELECT count(*) FROM users"));
         assertEquals(0, scalar("SELECT count(*) FROM rooms"));
@@ -73,7 +73,7 @@ class SchemaMigrationTest {
         Flyway.configure().dataSource(url, username, password)
                 .locations("classpath:db/schema").target("5").load().migrate();
         execute("INSERT INTO users (id, username, email, password, role, points, streak, bio, created_at, updated_at) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 0, 0, 'Learning Linux', now(), now())");
-        assertEquals(7, flyway().migrate().migrationsExecuted);
+        assertEquals(8, flyway().migrate().migrationsExecuted);
         assertEquals("Alice", text("SELECT avatar_seed FROM users WHERE id = 1"));
         assertEquals("Learning Linux", text("SELECT bio FROM users WHERE id = 1"));
         assertEquals("", text("SELECT tagline FROM users WHERE id = 1"));
@@ -117,7 +117,7 @@ class SchemaMigrationTest {
                 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (3, 1, 0), (4, 1, 1), (9, 1, 2);
                 """);
 
-        assertEquals(4, flyway().migrate().migrationsExecuted);
+        assertEquals(5, flyway().migrate().migrationsExecuted);
 
         assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms WHERE id <= 4"));
         assertEquals(10, scalar("SELECT points FROM users WHERE id = 1"));
@@ -165,7 +165,7 @@ class SchemaMigrationTest {
             assertEquals(1, scalar("SELECT count(*) FROM users"));
         }
         try (var ignored = startApplication()) {
-            assertEquals(12, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
+            assertEquals(13, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
         }
     }
 
@@ -254,7 +254,7 @@ class SchemaMigrationTest {
 
         assertEquals(1, flyway("3").migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
-        assertEquals(9, flyway().migrate().migrationsExecuted);
+        assertEquals(10, flyway().migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
         assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
         assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));

@@ -1,6 +1,9 @@
 package com.hackademy.server;
 
+import com.hackademy.server.arena.ArenaQuestion;
+import com.hackademy.server.arena.ArenaQuestionRepository;
 import com.hackademy.server.arena.ArenaService;
+import com.hackademy.server.arena.BattleEngine;
 import com.hackademy.server.arena.GameSession;
 import com.hackademy.server.arena.MatchmakingService;
 import com.hackademy.server.auth.JwtService;
@@ -13,6 +16,7 @@ import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
 import com.jayway.jsonpath.JsonPath;
 import com.zaxxer.hikari.HikariDataSource;
+import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
@@ -53,9 +57,18 @@ class RealtimeIntegrationTest {
     @Autowired private MatchmakingService matchmaking;
     @Autowired private RealtimeStateService states;
     @Autowired private RoomRepository rooms;
+    @Autowired private ArenaQuestionRepository questions;
     @Autowired private PlatformTransactionManager transactions;
     @Autowired private DataSource dataSource;
     private final HttpClient client = HttpClient.newHttpClient();
+
+    @BeforeEach
+    void seedBattleQuestions() {
+        if (questions.count() >= BattleEngine.ROUNDS) return;
+        for (int index = 0; index < BattleEngine.ROUNDS; index++) {
+            questions.save(new ArenaQuestion(null, "Pytanie " + index, "A", "B", "C", "D", 0, "WEB", "EASY"));
+        }
+    }
 
     private User user() {
         String name = "live" + UUID.randomUUID().toString().substring(0, 8);
@@ -113,14 +126,14 @@ class RealtimeIntegrationTest {
             String token = rename(renamed, "renamed" + UUID.randomUUID().toString().substring(0, 8));
             assertEquals(game.getId(), JsonPath.read(state(token), "$.gameSession.id"));
             try (var reusedName = connected(claimName(oldName))) {
-                arena.useHint(game.getId(), renamed.getId(), 9L);
+                assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer(game.getId(), renamed.getId(), 1, 0));
                 assertEquals(game.getId(), JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.gameSession.id"));
                 assertEquals(game.getId(), JsonPath.read(RealtimeSocket.body(sb.receive()), "$.state.gameSession.id"));
                 assertNull(reusedName.poll(100));
                 (player == 1 ? sa : sb).close();
                 try (var reconnected = RealtimeSocket.open(client, port, token)) {
                     reconnected.subscribe();
-                    assertEquals(9, ((Number) JsonPath.read(state(token), "$.gameSession.hintsUsed['" + renamed.getId() + "'][0]")).intValue());
+                    assertEquals(renamed.getId().intValue(), ((Number) JsonPath.read(state(token), "$.gameSession.answeredBy[0]")).intValue());
                     arena.surrenderGame(game.getId(), renamed.getId());
                     assertEquals("FINISHED", JsonPath.read(RealtimeSocket.body(reconnected.receive()), "$.state.gameSession.status"));
                     assertEquals("FINISHED", JsonPath.read(RealtimeSocket.body((player == 1 ? sb : sa).receive()), "$.state.gameSession.status"));
@@ -138,7 +151,7 @@ class RealtimeIntegrationTest {
         String oldName = a.getUsername();
         String newName = "renamed" + UUID.randomUUID().toString().substring(0, 8);
         try (var original = connected(a); var target = connected(b)) {
-            var challenge = arena.createChallenge(a.getId(), oldName, b.getId(), b.getUsername(), false);
+            var challenge = arena.createChallenge(a.getId(), oldName, b.getId(), b.getUsername());
             original.receive();
             target.receive();
             String token = rename(a, newName);
@@ -149,7 +162,7 @@ class RealtimeIntegrationTest {
                 arena.cancelChallenge(challenge.getId(), a.getId());
                 assertEquals(0, (int) JsonPath.read(RealtimeSocket.body(renamed.receive()), "$.state.outgoingChallenges.length()"));
                 target.receive();
-                matchmaking.joinQueue(a.getId(), oldName, false);
+                matchmaking.joinQueue(a.getId(), oldName);
                 assertEquals(true, JsonPath.read(RealtimeSocket.body(renamed.receive()), "$.state.queued"));
                 matchmaking.leaveQueue(a.getId());
                 assertEquals(false, JsonPath.read(RealtimeSocket.body(renamed.receive()), "$.state.queued"));
@@ -262,19 +275,19 @@ class RealtimeIntegrationTest {
         rooms.saveAndFlush(Room.builder().title("live" + UUID.randomUUID()).description("test").difficulty(DifficultyLevel.EASY)
                 .category("test").points(10).flag("test").requiresVpn(false).build());
         try (var sa = connected(a); var sb = connected(b)) {
-            var challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername(), false);
+            var challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername());
             assertEquals(challenge.getId(), JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.outgoingChallenges[0].id"));
             assertEquals(challenge.getId(), JsonPath.read(RealtimeSocket.body(sb.receive()), "$.state.challenges[0].id"));
             arena.rejectChallenge(challenge.getId(), b.getId()); sa.receive(); sb.receive();
-            challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername(), false); sa.receive(); sb.receive();
+            challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername()); sa.receive(); sb.receive();
             assertThrows(IllegalArgumentException.class, () -> arena.cancelChallenge(states.forUser(a.getId()).outgoingChallenges().get(0).getId(), b.getId()));
             arena.cancelChallenge(challenge.getId(), a.getId()); sa.receive(); sb.receive();
-            challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername(), false); sa.receive(); sb.receive();
+            challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername()); sa.receive(); sb.receive();
             var game = arena.acceptChallenge(challenge.getId(), b.getId());
             assertEquals(game.getId(), JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.gameSession.id")); sb.receive();
             arena.surrenderGame(game.getId(), a.getId());
             assertEquals("FINISHED", JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.gameSession.status")); sb.receive();
-            matchmaking.joinQueue(a.getId(), a.getUsername(), false);
+            matchmaking.joinQueue(a.getId(), a.getUsername());
             assertEquals(true, JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.queued"));
             matchmaking.leaveQueue(a.getId());
             assertEquals(false, JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.queued"));
@@ -302,9 +315,9 @@ class RealtimeIntegrationTest {
         rooms.saveAndFlush(Room.builder().title("match" + UUID.randomUUID()).description("test").difficulty(DifficultyLevel.EASY)
                 .category("test").points(10).flag("test").requiresVpn(false).build());
         try (var sa = connected(a); var sb = connected(b)) {
-            matchmaking.joinQueue(a.getId(), a.getUsername(), false);
+            matchmaking.joinQueue(a.getId(), a.getUsername());
             sa.receive();
-            matchmaking.joinQueue(b.getId(), b.getUsername(), false);
+            matchmaking.joinQueue(b.getId(), b.getUsername());
             String gameA = activeGame(sa);
             String gameB = activeGame(sb);
             assertEquals(gameA, gameB);
