@@ -155,7 +155,7 @@ describe('user profile integration', () => {
     expect(screen.queryByRole('region', { name: 'Wyróżnione osiągnięcia' })).not.toBeInTheDocument();
   });
 
-  it('saves avatar, bio, interests and ordered showcase selections and retains them after reloading', async () => {
+  it('saves bio, interests and ordered badges while preserving the avatar after reloading', async () => {
     let persisted = { ...profileUser, tagline: '', avatarSeed: 'original-avatar', interests: [] as string[], featuredBadgeIds: [] as number[] };
     const updates: unknown[] = [];
     server.use(
@@ -177,20 +177,20 @@ describe('user profile integration', () => {
     await user.type(editor.getByRole('textbox', { name: 'O mnie' }), 'Odkrywam cyberbezpieczeństwo');
     await user.click(editor.getByRole('checkbox', { name: 'Linux' }));
     await user.click(editor.getByRole('checkbox', { name: 'Sieci' }));
-    await user.click(editor.getByRole('radio', { name: 'Avatar 2' }));
-    const chosenSeed = new URL(editor.getByRole('radio', { name: 'Avatar 2' }).parentElement!.querySelector('img')!.src).searchParams.get('seed');
+    expect(editor.queryByRole('radio')).not.toBeInTheDocument();
+    expect(editor.queryByRole('button', { name: 'Losuj kolejne' })).not.toBeInTheDocument();
     await user.click(editor.getByRole('checkbox', { name: 'Odznaka 6' }));
     await user.click(editor.getByRole('checkbox', { name: 'Odznaka 7' }));
     await user.click(editor.getByRole('button', { name: 'Zapisz profil' }));
     expect(await screen.findByText('Profil zapisany')).toBeInTheDocument();
-    expect(updates).toEqual([expect.objectContaining({ avatarSeed: chosenSeed, bio: 'Odkrywam cyberbezpieczeństwo', interests: ['LINUX', 'NETWORKS'], featuredBadgeIds: [6, 7] })]);
-    expect(screen.getByRole('img', { name: 'Avatar tester' })).toHaveAttribute('src', expect.stringContaining(chosenSeed!));
+    expect(updates).toEqual([expect.objectContaining({ avatarSeed: 'original-avatar', bio: 'Odkrywam cyberbezpieczeństwo', interests: ['LINUX', 'NETWORKS'], featuredBadgeIds: [6, 7] })]);
+    expect(screen.getByRole('img', { name: 'Avatar tester' })).toHaveAttribute('src', expect.stringContaining('original-avatar'));
     const showcase = within(screen.getByRole('region', { name: 'Wyróżnione osiągnięcia' }));
     expect(showcase.getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual(['Odznaka 6', 'Odznaka 7']);
     rendered.unmount();
     mount();
     expect(await screen.findByText('Odkrywam cyberbezpieczeństwo')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Avatar tester' })).toHaveAttribute('src', expect.stringContaining(chosenSeed!));
+    expect(screen.getByRole('img', { name: 'Avatar tester' })).toHaveAttribute('src', expect.stringContaining('original-avatar'));
   });
 
   it('limits interests and featured badges and cancels all personalization changes', async () => {
@@ -204,9 +204,6 @@ describe('user profile integration', () => {
     expect(editor.getByRole('checkbox', { name: 'Kryptografia' })).toBeDisabled();
     for (const name of ['Odznaka 7', 'Odznaka 6', 'Odznaka 5']) await user.click(editor.getByRole('checkbox', { name }));
     expect(editor.getByRole('checkbox', { name: 'Odznaka 4' })).toBeDisabled();
-    await user.click(editor.getByRole('radio', { name: 'Avatar 2' }));
-    await user.click(editor.getByRole('button', { name: 'Losuj kolejne' }));
-    expect(editor.getByRole('radio', { name: 'Avatar 1' })).toBeChecked();
     await user.click(editor.getByRole('button', { name: 'Anuluj' }));
     await user.click(screen.getByRole('button', { name: 'Odrzuć zmiany' }));
     expect(save).not.toHaveBeenCalled();
@@ -233,10 +230,10 @@ describe('user profile integration', () => {
     server.use(http.get(url('/user/me/portfolio'), request));
     mount();
     expect(await screen.findByRole('heading', { name: 'Statystyki nauki' })).toBeInTheDocument();
-    expect(await screen.findByText('Rekord jednego dnia')).toBeInTheDocument();
+    expect(await screen.findByText('Rekord dnia')).toBeInTheDocument();
     expect(screen.getByText('Najdłuższa seria')).toBeInTheDocument();
-    expect(screen.getByText('Najaktywniejszy dzień')).toBeInTheDocument();
-    expect(screen.getByText('Średnia w aktywnym dniu')).toBeInTheDocument();
+    expect(screen.getByText('Dzień rekordu')).toBeInTheDocument();
+    expect(screen.getByText('Średnia')).toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Doświadczenie w Hackademy' })).not.toBeInTheDocument();
     expect(request).not.toHaveBeenCalled();
   });
@@ -267,7 +264,7 @@ describe('user profile integration', () => {
     server.use(http.get(url('/user/me/recent-solved'), recentRequest));
     mount();
     expect(await screen.findByRole('heading', { name: 'tester' })).toBeInTheDocument();
-    expect(await screen.findByText('Rekord jednego dnia')).toBeInTheDocument();
+    expect(await screen.findByText('Rekord dnia')).toBeInTheDocument();
     expect(await screen.findByRole('heading', { name: 'Statystyki nauki' })).toBeInTheDocument();
     expect(screen.queryByRole('progressbar', { name: 'Postęp do następnego poziomu' })).not.toBeInTheDocument();
     expect(screen.queryByRole('heading', { name: 'Ostatnio rozwiązane pokoje' })).not.toBeInTheDocument();
@@ -596,7 +593,7 @@ describe('user profile integration', () => {
     mount('/profile/friend');
     await userEvent.setup().click(await screen.findByRole('link', { name: 'Drugi profil' }));
     expect(await screen.findByRole('heading', { name: 'second' })).toBeInTheDocument();
-    expect(await screen.findByText('Rekord jednego dnia')).toBeInTheDocument();
+    expect(await screen.findByText('Rekord dnia')).toBeInTheDocument();
     await new Promise(resolve => setTimeout(resolve, 250));
     expect(within(screen.getByRole('region', { name: 'Statystyki nauki' })).queryByText('99')).not.toBeInTheDocument();
   });

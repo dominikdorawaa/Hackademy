@@ -7,8 +7,8 @@
   .badge-goal-progress progress::-moz-progress-bar { background: var(--primary-blue); border-radius: 6px; }
   .badge-catalog {
     width: min(900px, calc(100vw - 32px)); max-height: 90dvh;
-    margin: auto; padding: 0; border: 1px solid var(--border-color); border-radius: 16px;
-    color: var(--text-light); background: var(--bg-panel); font-family: 'Inter', sans-serif;
+    margin: auto; padding: 0; border: 1px solid var(--border-color); border-radius: var(--ud-radius);
+    color: var(--text-light); background: var(--bg-panel); font-family: inherit;
     overflow-y: auto; scrollbar-width: none;
   }
   .badge-catalog::-webkit-scrollbar { display: none; }

@@ -267,6 +267,9 @@ export default function UserProfile({ username }: { username?: string }) {
         {own ? <ResourceContent {...badges}><ProfileBadges badges={profileBadges} own /></ResourceContent>
           : <ProfileBadges badges={profileBadges} own={false} />}
       </section>
+      {!own && friendshipStatus === 'FRIENDS' && <section className="profile-section profile-duels">
+        <h3>Bilans pojedynków</h3><ResourceContent {...stats}>{stats.data && <p>Ty <strong>{stats.data.winsAgainst}</strong> : <strong>{stats.data.lossesAgainst}</strong> {person.username}</p>}</ResourceContent>
+      </section>}
       <div className="profile-details-grid">
         <section className="profile-section profile-activity" aria-labelledby="profile-activity-title">
           <div className="profile-section-heading"><h2 id="profile-activity-title">Regularność nauki</h2></div>
@@ -274,9 +277,6 @@ export default function UserProfile({ username }: { username?: string }) {
         </section>
         <ProfileLearningStats activity={activity.data} loading={activity.loading} />
       </div>
-      {!own && friendshipStatus === 'FRIENDS' && <section className="profile-section profile-duels">
-        <h3>Bilans pojedynków</h3><ResourceContent {...stats}>{stats.data && <p>Ty <strong>{stats.data.winsAgainst}</strong> : <strong>{stats.data.lossesAgainst}</strong> {person.username}</p>}</ResourceContent>
-      </section>}
       {editing && <ProfileEditor username={person.username} initial={appearance} badges={profileBadges} onClose={() => setEditing(false)}
         onUnauthorized={unauthorized} onSaved={value => { setPersonalization(value); setSaved(true); }} />}
     </div>
