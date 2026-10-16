@@ -66,7 +66,7 @@ public class DashboardController {
         }
 
         boolean hasVpnAccess = userService.hasSolvedTutorialVpn(userId);
-        Map<String, Object> userInfo = Map.of(
+        Map<String, Object> userInfo = new java.util.LinkedHashMap<>(Map.of(
                 "id", userId,
                 "username", user.getUsername(),
                 "avatarSeed", user.getAvatarSeed(),
@@ -77,7 +77,8 @@ public class DashboardController {
                 "bio", user.getBio() != null ? user.getBio() : "",
                 "createdAt", user.getCreatedAt(),
                 "hasVpnAccess", hasVpnAccess
-        );
+        ));
+        userInfo.put("avatar", userService.getAvatar(userId));
 
         CompletableFuture<?> myRankF = CompletableFuture.supplyAsync(
                 () -> userServiceImpl.getUserRankFast(userId, username, user.getPoints(), user.getElo()),

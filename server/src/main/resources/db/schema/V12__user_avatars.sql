@@ -1,0 +1,22 @@
+CREATE TABLE user_avatars (
+    user_id bigint PRIMARY KEY REFERENCES users(id) ON DELETE CASCADE,
+    outfit varchar(16) NOT NULL,
+    hair varchar(16) NOT NULL,
+    hat varchar(16) NOT NULL,
+    skin varchar(16) NOT NULL,
+    hair_color varchar(16) NOT NULL,
+    top_color varchar(16) NOT NULL,
+    bottom_color varchar(16) NOT NULL,
+    shoes_color varchar(16) NOT NULL,
+    hat_color varchar(16) NOT NULL,
+    updated_at timestamp NOT NULL DEFAULT now(),
+    CONSTRAINT ck_user_avatars_outfit CHECK (outfit IN ('baza', 'bluza', 'dres')),
+    CONSTRAINT ck_user_avatars_hair CHECK (hair IN ('brak', 'krotkie', 'irokez', 'kucyk')),
+    CONSTRAINT ck_user_avatars_hat CHECK (hat IN ('brak', 'czapka', 'daszek')),
+    CONSTRAINT ck_user_avatars_skin CHECK (skin IN ('porcelanowa', 'jasna', 'oliwkowa', 'brazowa', 'ciemna', 'heban')),
+    CONSTRAINT ck_user_avatars_hair_color CHECK (hair_color IN ('czarne', 'brazowe', 'rude', 'blond', 'siwe', 'niebieskie')),
+    CONSTRAINT ck_user_avatars_top_color CHECK (top_color IN ('granatowy', 'grafitowy', 'bordowy', 'turkusowy', 'piaskowy', 'oliwkowy', 'czerwony', 'bialy')),
+    CONSTRAINT ck_user_avatars_bottom_color CHECK (bottom_color IN ('granatowy', 'grafitowy', 'bordowy', 'turkusowy', 'piaskowy', 'oliwkowy', 'czerwony', 'bialy')),
+    CONSTRAINT ck_user_avatars_shoes_color CHECK (shoes_color IN ('granatowy', 'grafitowy', 'bordowy', 'turkusowy', 'piaskowy', 'oliwkowy', 'czerwony', 'bialy')),
+    CONSTRAINT ck_user_avatars_hat_color CHECK (hat_color IN ('granatowy', 'grafitowy', 'bordowy', 'turkusowy', 'piaskowy', 'oliwkowy', 'czerwony', 'bialy'))
+);
