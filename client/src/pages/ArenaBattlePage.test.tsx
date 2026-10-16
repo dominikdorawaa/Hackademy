@@ -14,7 +14,7 @@ import ArenaBattlePage from './ArenaBattlePage';
 
 const realtime = vi.hoisted(() => ({ value: { state: null as RealtimeState | null, connected: true, error: null, synchronize: async () => {} } }));
 vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => realtime.value }));
-vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({ useAvatarAtlas: () => null, useAvatarPortrait: () => null }));
+vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({ useAvatarAtlas: () => ({ atlas: 'blob:test-atlas', front: null }), useAvatarPortrait: () => null }));
 
 const live = (gameSession: GameSession): RealtimeState => ({
   streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession, queued: false,
@@ -74,8 +74,22 @@ it('reveals the correct answer, both choices and who hit', async () => {
   expect(within(answers[1]).getByText('Poprawna')).toBeInTheDocument();
   expect(within(answers[1]).getByText('Ty')).toBeInTheDocument();
   expect(within(answers[3]).getByText('opponent')).toBeInTheDocument();
-  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '80');
+  await waitFor(() => expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '80'));
   expect(screen.getByRole('timer', { name: 'Następna runda za' })).toHaveTextContent('3');
+  expect(screen.getByTestId('fireball-me')).toHaveTextContent('-20');
+  expect(screen.queryByTestId('fireball-rival')).not.toBeInTheDocument();
+});
+
+it('hides the fireballs when the player asked for reduced motion', async () => {
+  localStorage.setItem('app-reduced-motion', 'true');
+  realtime.value = { ...realtime.value, state: live(createGameSession({
+    phase: 'REVEAL', question: null,
+    lastRound: { round: 1, questionId: 11, content: 'Pytanie', answers: ['A', 'B', 'C', 'D'], correctAnswer: 1, choices: { 1: 1, 2: 0 }, damage: { 1: 0, 2: 20 } },
+  })) };
+  mount();
+  await screen.findByText('Trafiasz! Rywal traci 20 HP.');
+  expect(screen.queryByTestId('fireball-me')).not.toBeInTheDocument();
+  expect(document.querySelector('.battle-page')).toHaveAttribute('data-still', 'true');
 });
 
 it('shows the result with the Elo change when the battle ends', async () => {

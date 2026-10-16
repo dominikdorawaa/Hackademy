@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { createGameSession } from '../../../test/fixtures/arena';
-import { eloChange, fighterFrames, finishText, outcome, outcomeTitle, perspective, roundSummary, secondsLeft } from './battleView';
+import { animatedRound, CAST_MS, choreography, eloChange, finishText, IMPACT_MS, outcome, outcomeTitle, perspective, roundSummary, secondsLeft } from './battleView';
 import type { RoundResult } from '../../../types/api';
 
 const result = (damage: Record<string, number>): RoundResult => ({
@@ -51,17 +51,37 @@ describe('battle view', () => {
     expect(roundSummary(result({}), 1, 2)).toBe('Nikt nie trafił w tej rundzie.');
   });
 
-  it('animates attacks and hits during the reveal and dances or falls at the end', () => {
+  it('casts, waits for the fireball to land and flinches during the reveal', () => {
     const reveal = createGameSession({ phase: 'REVEAL', lastRound: result({ 1: 20, 2: 20 }) });
-    const both = fighterFrames(reveal, 1, 2);
-    expect(both.loop).toBe(false);
-    expect(both.frames).toEqual([10, 11, 12, 13, 14, 15, 16, 17, 37, 38, 39, 40, 0]);
-    expect(fighterFrames({ ...reveal, lastRound: result({}) }, 1, 2)).toEqual({ frames: [0], loop: true });
-    expect(fighterFrames(createGameSession(), 1, 2)).toEqual({ frames: [0], loop: true });
-    const finished = createGameSession({ status: 'FINISHED', winnerId: 1 });
-    expect(fighterFrames(finished, 1, 2)).toMatchObject({ loop: true, frames: expect.arrayContaining([55, 64]) });
-    expect(fighterFrames(finished, 2, 1)).toEqual({ frames: [46, 47, 48, 49, 50, 51, 52, 53], loop: false });
-    expect(fighterFrames({ ...finished, winnerId: null }, 1, 2)).toEqual({ frames: [0], loop: true });
+    const both = choreography(reveal, 1, 2);
+    expect(both.map(segment => segment.ms)).toEqual([CAST_MS, IMPACT_MS - CAST_MS, 440, undefined]);
+    expect(both[0].frames).toEqual([10, 11, 12, 13, 14, 15, 16, 17]);
+    expect(both[2].frames).toEqual([37, 38, 39, 40]);
+    expect(both[3]).toMatchObject({ frames: [0], loop: true });
+    const onlyHurt = choreography({ ...reveal, lastRound: result({ 1: 20, 2: 0 }) }, 1, 2);
+    expect(onlyHurt.map(segment => segment.ms)).toEqual([IMPACT_MS, 440, undefined]);
+    const onlyAttack = choreography({ ...reveal, lastRound: result({ 1: 0, 2: 20 }) }, 1, 2);
+    expect(onlyAttack.map(segment => segment.ms)).toEqual([CAST_MS, undefined]);
+    expect(choreography({ ...reveal, lastRound: result({}) }, 1, 2)).toHaveLength(1);
+    expect(choreography(createGameSession(), 1, 2)).toEqual([{ frames: [0], loop: true, frameTime: 110 }]);
+  });
+
+  it('ends with a dance for the winner and a fall for the loser after the last hit', () => {
+    const knockout = createGameSession({ status: 'FINISHED', winnerId: 1, finishReason: 'KNOCKOUT', lastRound: result({ 1: 0, 2: 20 }) });
+    const winner = choreography(knockout, 1, 2);
+    expect(winner[0].frames).toEqual([10, 11, 12, 13, 14, 15, 16, 17]);
+    expect(winner.slice(0, -1).reduce((sum, segment) => sum + (segment.ms ?? 0), 0)).toBe(IMPACT_MS + 440);
+    expect(winner.at(-1)).toMatchObject({ loop: true, frames: expect.arrayContaining([55, 64]) });
+    const loser = choreography(knockout, 2, 1);
+    expect(loser.at(-1)).toEqual({ frames: [46, 47, 48, 49, 50, 51, 52, 53], loop: false, frameTime: 120 });
+    expect(loser.map(segment => segment.ms)).toEqual([IMPACT_MS, 440, undefined]);
+    const surrendered = { ...knockout, finishReason: 'SURRENDER' as const };
+    expect(animatedRound(surrendered)).toBeNull();
+    expect(choreography(surrendered, 1, 2)).toHaveLength(1);
+    expect(choreography({ ...knockout, winnerId: null, finishReason: 'ROUNDS', lastRound: result({}) }, 1, 2))
+      .toEqual([{ frames: [0], loop: true, frameTime: 110 }]);
+    expect(animatedRound(createGameSession({ phase: 'QUESTION', lastRound: result({ 1: 20 }) }))).toBeNull();
+    expect(animatedRound(createGameSession({ phase: 'REVEAL' }))).toBeNull();
   });
 
   it('counts down against the server clock', () => {

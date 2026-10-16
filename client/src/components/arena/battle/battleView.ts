@@ -74,19 +74,42 @@ export function roundSummary(result: RoundResult, meId: number, rivalId: number)
   return 'Nikt nie trafił w tej rundzie.';
 }
 
-export function fighterFrames(session: GameSession, fighterId: number, opponentId: number): { frames: number[]; loop: boolean } {
-  if (session.status === 'FINISHED') {
-    if (session.winnerId === fighterId) return { frames: VICTORY, loop: true };
-    if (session.winnerId === opponentId) return { frames: DEFEAT, loop: false };
-    return { frames: [0], loop: true };
+export interface Segment { frames: number[]; loop: boolean; frameTime: number; ms?: number }
+
+export const ATTACK_FRAME_MS = 90;
+export const HURT_FRAME_MS = 110;
+export const CAST_MS = ATTACK.length * ATTACK_FRAME_MS;
+export const LAUNCH_MS = 380;
+export const IMPACT_MS = 900;
+
+const IDLE: Segment = { frames: [0], loop: true, frameTime: 110 };
+
+export function animatedRound(session: GameSession): RoundResult | null {
+  if (!session.lastRound) return null;
+  if (session.status === 'ACTIVE') return session.phase === 'REVEAL' ? session.lastRound : null;
+  return session.finishReason === 'KNOCKOUT' || session.finishReason === 'ROUNDS' ? session.lastRound : null;
+}
+
+export function choreography(session: GameSession, fighterId: number, opponentId: number): Segment[] {
+  const rest: Segment = session.status !== 'FINISHED' ? IDLE
+    : session.winnerId === fighterId ? { frames: VICTORY, loop: true, frameTime: 110 }
+    : session.winnerId === opponentId ? { frames: DEFEAT, loop: false, frameTime: 120 }
+    : IDLE;
+  const round = animatedRound(session);
+  if (!round) return [rest];
+  const attacks = (round.damage[opponentId] ?? 0) > 0;
+  const hurt = (round.damage[fighterId] ?? 0) > 0;
+  const segments: Segment[] = [];
+  if (attacks) segments.push({ frames: ATTACK, loop: false, frameTime: ATTACK_FRAME_MS, ms: CAST_MS });
+  if (hurt) {
+    const wait = IMPACT_MS - (attacks ? CAST_MS : 0);
+    if (wait > 0) segments.push({ ...IDLE, ms: wait });
+    segments.push({ frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT.length * HURT_FRAME_MS });
+  } else if (attacks && session.status === 'FINISHED') {
+    segments.push({ ...IDLE, ms: IMPACT_MS + HURT.length * HURT_FRAME_MS - CAST_MS });
   }
-  if (session.phase === 'REVEAL' && session.lastRound) {
-    const attacks = (session.lastRound.damage[opponentId] ?? 0) > 0;
-    const hurt = (session.lastRound.damage[fighterId] ?? 0) > 0;
-    const frames = [...(attacks ? ATTACK : []), ...(hurt ? HURT : [])];
-    if (frames.length) return { frames: [...frames, 0], loop: false };
-  }
-  return { frames: [0], loop: true };
+  segments.push(rest);
+  return segments;
 }
 
 export function secondsLeft(deadline: number, serverTime: number, receivedAt: number, now: number) {

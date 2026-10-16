@@ -1,12 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import UserAvatar from '../components/UserAvatar';
 import ArenaChat from '../components/ArenaChat';
-import { BattleFighter } from '../components/arena/battle/BattleFighter';
+import { BattleScene } from '../components/arena/battle/BattleScene';
 import {
-  eloChange, finishText, fighterFrames, MAX_HP, outcome, outcomeTitle, perspective, roundSummary, secondsLeft,
+  eloChange, finishText, outcome, outcomeTitle, perspective, roundSummary, secondsLeft,
 } from '../components/arena/battle/battleView';
-import type { Fighter } from '../components/arena/battle/battleView';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useArenaSession } from '../hooks/useArenaSession';
@@ -27,23 +25,6 @@ const systemReducedMotion = () => typeof window.matchMedia === 'function' && win
 const appReducedMotion = () => {
   try { return localStorage.getItem('app-reduced-motion') === 'true'; } catch { return false; }
 };
-
-function Plate({ fighter, side }: { fighter: Fighter; side: 'me' | 'rival' }) {
-  const percent = Math.round((fighter.hp / MAX_HP) * 100);
-  return (
-    <div className={`battle-plate is-${side}`}>
-      <UserAvatar className="battle-plate-avatar" username={fighter.username} seed={fighter.seed} avatar={fighter.avatar} alt="" />
-      <div className="battle-plate-info">
-        <p className="battle-plate-name">{side === 'me' ? `${fighter.username} (Ty)` : fighter.username}</p>
-        <p className="battle-plate-elo">Elo {fighter.elo}</p>
-        <div className="battle-hp" role="meter" aria-label={`HP: ${fighter.username}`} aria-valuemin={0} aria-valuemax={MAX_HP} aria-valuenow={fighter.hp}>
-          <span style={{ width: `${percent}%` }} data-low={fighter.hp <= 40} />
-        </div>
-        <p className="battle-plate-hp">{fighter.hp} HP</p>
-      </div>
-    </div>
-  );
-}
 
 export default function ArenaBattlePage() {
   const { gameId = '' } = useParams();
@@ -98,9 +79,6 @@ export default function ArenaBattlePage() {
   const rivalAnswered = session.answeredBy.includes(rival.id);
   const myPick = picked?.round === session.round ? picked.answer : null;
   const reveal = session.phase === 'REVEAL' ? session.lastRound : null;
-  const myFrames = fighterFrames(session, me.id, rival.id);
-  const rivalFrames = fighterFrames(session, rival.id, me.id);
-  const motionKey = `${session.round}-${session.phase}-${session.status}`;
   const result = outcome(session, me.id);
   const change = eloChange(session, me.id);
   const headers = { Authorization: `Bearer ${token}` };
@@ -128,23 +106,14 @@ export default function ArenaBattlePage() {
   };
 
   return (
-    <div className="user-dashboard battle-page">
+    <div className="user-dashboard battle-page" data-still={reducedMotion}>
       <div className="battle-shell">
-        <header className="battle-hud">
-          <Plate fighter={me} side="me" />
+        <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion}>
           <div className="battle-round">
             <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
             {!finished && <p className="battle-timer" role="timer" aria-label={session.phase === 'QUESTION' ? 'Czas na odpowiedź' : 'Następna runda za'}>{left}</p>}
           </div>
-          <Plate fighter={rival} side="rival" />
-        </header>
-
-        <section className="battle-stage" aria-label="Arena walki">
-          <BattleFighter look={me.look} frames={myFrames.frames} loop={myFrames.loop} reducedMotion={reducedMotion}
-            label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} />
-          <BattleFighter look={rival.look} frames={rivalFrames.frames} loop={rivalFrames.loop} reducedMotion={reducedMotion}
-            label={`Awatar rywala, ${rival.username}`} side="rival" motionKey={motionKey} />
-        </section>
+        </BattleScene>
 
         {finished ? (
           <section className={`battle-result is-${result}`} aria-labelledby="battle-result-title">
