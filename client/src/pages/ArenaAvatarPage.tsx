@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
@@ -44,8 +44,19 @@ const NAMES: Record<string, string> = {
   granatowy: 'Granatowy', grafitowy: 'Grafitowy', bordowy: 'Bordowy', turkusowy: 'Turkusowy', piaskowy: 'Piaskowy', oliwkowy: 'Oliwkowy', czerwony: 'Czerwony', bialy: 'Biały',
 };
 
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
+const subscribeReducedMotion = (onChange: () => void) => {
+  if (typeof window.matchMedia !== 'function') return () => undefined;
+  const query = window.matchMedia(REDUCED_MOTION_QUERY);
+  query.addEventListener('change', onChange);
+  return () => query.removeEventListener('change', onChange);
+};
+const systemReducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION_QUERY).matches;
+
 export default function ArenaAvatarPage() {
-  const { reducedMotion } = useTheme();
+  const { reducedMotion: appReducedMotion } = useTheme();
+  const systemReduced = useSyncExternalStore(subscribeReducedMotion, systemReducedMotion, () => false);
+  const reducedMotion = appReducedMotion || systemReduced;
   const [avatar, setAvatar] = useState<Avatar>(readAvatar);
   const [saved, setSaved] = useState(() => JSON.stringify(readAvatar()));
   const [preview, setPreview] = useState('front');
@@ -67,7 +78,7 @@ export default function ArenaAvatarPage() {
         if (!user?.username) throw new Error('account');
         setAccount({ token: sessionToken, status: 'ready', username: user.username });
         const remote = fromAvatarConfig(user.avatar);
-        if (remote) { setAvatar(remote); setSaved(JSON.stringify(remote)); }
+        if (remote) { setAvatar(remote); setSaved(JSON.stringify(remote)); } else setSaved('');
       })
       .catch(() => { if (!controller.signal.aborted) setAccount({ token: sessionToken, status: 'error', username: null }); });
     return () => controller.abort();
@@ -96,6 +107,7 @@ export default function ArenaAvatarPage() {
   const note = status === 'error' ? 'Nie udało się zapisać awatara na koncie. Spróbuj ponownie.'
     : accountState === 'loading' ? 'Wczytuję awatar z Twojego konta…'
     : accountState === 'error' ? 'Nie udało się wczytać awatara z konta. Odśwież stronę, żeby zapisać zmiany.'
+    : signedIn && saved === '' ? 'Ten awatar nie jest jeszcze zapisany na Twoim koncie.'
     : dirty ? 'Masz niezapisane zmiany.'
     : signedIn ? 'Awatar jest zapisany na Twoim koncie i widoczny w profilu, rankingu i u znajomych.'
     : 'Awatar jest zapisany w tej przeglądarce. Zaloguj się, żeby zapisać go na koncie.';
