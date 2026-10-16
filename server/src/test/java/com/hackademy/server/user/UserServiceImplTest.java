@@ -12,7 +12,6 @@ import com.hackademy.server.dashboard.UserWeeklyActiveTimeRepository;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.friendship.FriendshipService;
 import com.hackademy.server.path.PathRepository;
-import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.room.DifficultyLevel;
 import com.hackademy.server.room.RecentSolvedRoomView;
@@ -24,6 +23,7 @@ import com.hackademy.server.user.dto.ProfilePortfolioDto;
 import com.hackademy.server.user.dto.ProfileStatsDto;
 import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateProfileRequest;
+import com.hackademy.server.user.dto.UserAvatarDto;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
@@ -60,7 +60,6 @@ class UserServiceImplTest {
     @Mock UserUnlockedHintRepository userUnlockedHintRepository;
     @Mock PathRepository pathRepository;
     @Mock UserAvatarRepository userAvatarRepository;
-    @Mock DashboardSummaryCache dashboardSummaryCache;
     @InjectMocks UserServiceImpl service;
 
     @AfterEach
@@ -428,6 +427,29 @@ class UserServiceImplTest {
         @Override public String getBannerUrl() { return null; }
         @Override public Boolean getHasBanner() { return false; }
         @Override public Boolean getPublished() { return true; }
+    }
+
+    @Test
+    void refreshesFriendAndDashboardCachesOnlyAfterTheAvatarSaveCommits() {
+        var avatar = new UserAvatarDto("bluza", "irokez", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy");
+        when(userRepository.existsById(1L)).thenReturn(true);
+        when(userAvatarRepository.findById(1L)).thenReturn(Optional.empty());
+        when(userAvatarRepository.save(any(UserAvatar.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        TransactionSynchronizationManager.initSynchronization();
+
+        assertEquals(avatar, service.saveAvatar(1L, avatar));
+        service.deleteAvatar(1L);
+        verifyNoInteractions(friendshipService);
+
+        TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
+        verify(friendshipService, times(2)).invalidateProfileCaches();
+    }
+
+    @Test
+    void refreshesCachesImmediatelyWithoutATransaction() {
+        when(userAvatarRepository.findById(1L)).thenReturn(Optional.empty());
+        service.deleteAvatar(1L);
+        verify(friendshipService).invalidateProfileCaches();
     }
 
     private record Recent(Long getRoomId, String getTitle, DifficultyLevel getDifficulty, Integer getPoints,

@@ -25,7 +25,6 @@ import com.hackademy.server.user.dto.UserSearchDto;
 import com.hackademy.server.user.dto.ProfilePersonalizationDto;
 import com.hackademy.server.user.dto.UpdateProfileRequest;
 import com.hackademy.server.user.dto.UserAvatarDto;
-import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.badge.UserBadgeRepository;
 import com.hackademy.server.room.UserSolvedRoomRepository;
@@ -116,7 +115,6 @@ public class UserServiceImpl implements UserService {
     private final UserUnlockedHintRepository userUnlockedHintRepository;
     private final PathRepository pathRepository;
     private final UserAvatarRepository userAvatarRepository;
-    private final DashboardSummaryCache dashboardSummaryCache;
 
     @Override
     @Transactional(readOnly = true)
@@ -261,9 +259,21 @@ public class UserServiceImpl implements UserService {
     }
 
     private void refreshAvatarCaches(Long userId) {
-        invalidateUserComputedCaches(userId);
-        invalidateGlobalRankingCache();
-        dashboardSummaryCache.invalidateUser(userId);
+        Runnable refresh = () -> {
+            invalidateUserComputedCaches(userId);
+            invalidateGlobalRankingCache();
+            friendshipService.invalidateProfileCaches();
+        };
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            refresh.run();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() {
+                refresh.run();
+            }
+        });
     }
 
     @Override

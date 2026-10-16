@@ -1,8 +1,10 @@
 package com.hackademy.server;
 
+import com.hackademy.server.realtime.RealtimeFriendshipStateService;
 import com.hackademy.server.user.Role;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -14,6 +16,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class AvatarIntegrationTest extends PostgresIntegrationTest {
+    @Autowired
+    private RealtimeFriendshipStateService realtimeFriendships;
+
     private static final String URL = "/api/user/me/avatar";
     private static final String AVATAR = """
             {"outfit":"bluza","hair":"irokez","hat":"brak","skin":"oliwkowa","hairColor":"niebieskie",
@@ -81,6 +86,32 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(status().isOk());
         getAs(receiver, "/api/friends").andExpect(jsonPath("$[0].avatar.hairColor").value("niebieskie"));
         getAs(sender, "/api/friends").andExpect(jsonPath("$[0].avatar").value(nullValue()));
+    }
+
+    @Test
+    void cachedFriendListsAndRealtimeStateShowAnAvatarChange() throws Exception {
+        var friend = account(Role.USER);
+        var viewer = account(Role.USER);
+        var stranger = account(Role.USER);
+        mockMvc.perform(post("/api/friends/request/" + viewer.username()).header("Authorization", "Bearer " + friend.token()))
+                .andExpect(status().isOk());
+        var requests = getAs(viewer, "/api/friends/requests").andReturn();
+        Number requestId = JsonPath.read(requests.getResponse().getContentAsString(), "$[0].id");
+        mockMvc.perform(post("/api/friends/accept/" + requestId).header("Authorization", "Bearer " + viewer.token()))
+                .andExpect(status().isOk());
+        mockMvc.perform(post("/api/friends/request/" + viewer.username()).header("Authorization", "Bearer " + stranger.token()))
+                .andExpect(status().isOk());
+        getAs(viewer, "/api/friends").andExpect(jsonPath("$[0].avatar").value(nullValue()));
+        getAs(viewer, "/api/friends/requests").andExpect(jsonPath("$[0].avatar").value(nullValue()));
+
+        putJson(friend, URL, AVATAR).andExpect(status().isOk());
+        putJson(stranger, URL, AVATAR.replace("\"bluza\"", "\"dres\"")).andExpect(status().isOk());
+
+        getAs(viewer, "/api/friends").andExpect(jsonPath("$[0].avatar.outfit").value("bluza"));
+        getAs(viewer, "/api/friends/requests").andExpect(jsonPath("$[0].avatar.outfit").value("dres"));
+        var state = realtimeFriendships.forUser(viewer.id());
+        assertEquals("bluza", state.friends().get(0).avatar().outfit());
+        assertEquals("dres", state.requests().get(0).avatar().outfit());
     }
 
     @Test
