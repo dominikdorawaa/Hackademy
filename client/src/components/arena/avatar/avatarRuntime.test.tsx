@@ -1,8 +1,8 @@
 import { act, render, renderHook, screen, waitFor } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { AvatarSprite } from './AvatarSprite';
-import { DEFAULT_AVATAR } from './avatarModel';
-import { avatarPortrait, useAvatarAtlas, useAvatarPortrait } from './useAvatarAtlas';
+import { DEFAULT_AVATAR, toAvatarConfig } from './avatarModel';
+import { useAvatarAtlas, useAvatarPortrait } from './useAvatarAtlas';
 import { atlasViewBox } from './fighters';
 
 let decode: () => Promise<void>;
@@ -69,17 +69,40 @@ it('plays looping and one-shot frame sequences and shows a still frame with redu
   const { rerender } = render(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[1, 2, 3]} label="Podgląd" />);
   const sprite = () => screen.getByRole('img', { name: 'Podgląd' });
   expect(sprite()).toHaveAttribute('viewBox', atlasViewBox(1));
-  act(() => vi.advanceTimersByTime(110 * 4));
+  for (let frame = 0; frame < 4; frame++) act(() => vi.advanceTimersByTime(110));
   expect(sprite()).toHaveAttribute('viewBox', atlasViewBox(2));
   rerender(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[4, 5]} loop={false} label="Podgląd" />);
   expect(sprite()).toHaveAttribute('viewBox', atlasViewBox(4));
   act(() => vi.advanceTimersByTime(110 * 5));
   expect(sprite()).toHaveAttribute('viewBox', atlasViewBox(5));
+  expect(vi.getTimerCount()).toBe(0);
   rerender(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[4, 5]} loop={false} reducedMotion label="Podgląd" />);
   expect(sprite()).toHaveAttribute('viewBox', atlasViewBox(5));
   rerender(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[6, 7]} reducedMotion label="Podgląd" />);
   act(() => vi.advanceTimersByTime(1000));
   expect(sprite()).toHaveAttribute('viewBox', atlasViewBox(6));
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('does not schedule a timer for a single frame or a completed animation', () => {
+  vi.useFakeTimers();
+  const { rerender, unmount } = render(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[8]} label="Still" />);
+  expect(vi.getTimerCount()).toBe(0);
+  rerender(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[8]} loop={false} label="Still" />);
+  expect(vi.getTimerCount()).toBe(0);
+  rerender(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[1, 2, 3]} loop={false} label="Still" />);
+  act(() => vi.advanceTimersByTime(110));
+  expect(screen.getByRole('img', { name: 'Still' })).toHaveAttribute('data-frame', '2');
+  act(() => vi.advanceTimersByTime(110));
+  expect(screen.getByRole('img', { name: 'Still' })).toHaveAttribute('data-frame', '3');
+  expect(vi.getTimerCount()).toBe(0);
+  act(() => vi.advanceTimersByTime(1100));
+  expect(vi.getTimerCount()).toBe(0);
+  expect(screen.getByRole('img', { name: 'Still' })).toHaveAttribute('data-frame', '3');
+  rerender(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[4, 5]} loop={false} label="Still" />);
+  expect(vi.getTimerCount()).toBe(1);
+  unmount();
+  expect(vi.getTimerCount()).toBe(0);
 });
 
 it('builds one portrait per avatar and shows none for unknown values', async () => {
@@ -87,14 +110,20 @@ it('builds one portrait per avatar and shows none for unknown values', async () 
   const { result, rerender } = renderHook(({ value }) => useAvatarPortrait(value), { initialProps: { value: config as typeof config | null } });
   await waitFor(() => expect(result.current).toMatch(/^blob:/));
   const first = result.current;
-  expect(await avatarPortrait({ outfit: 'baza', hair: 'irokez', hat: 'brak', colors: { skin: 'heban', hair: 'rude', top: 'bialy', bottom: 'granatowy', shoes: 'czerwony', hat: 'bialy' } })).toBe(first);
+  const other = renderHook(() => useAvatarPortrait(config));
+  await waitFor(() => expect(other.result.current).toBe(first));
   rerender({ value: { ...config, outfit: 'pirat' } });
   expect(result.current).toBeNull();
   rerender({ value: null });
   expect(result.current).toBeNull();
+  expect(URL.revokeObjectURL).not.toHaveBeenCalledWith(first);
+  other.unmount();
 });
 
 it('returns no portrait when the front view cannot be built', async () => {
   decode = () => Promise.reject(new Error('missing'));
-  expect(await avatarPortrait({ outfit: 'dres', hair: 'brak', hat: 'czapka', colors: { skin: 'jasna', hair: 'blond', top: 'bialy', bottom: 'bialy', shoes: 'bialy', hat: 'czerwony' } })).toBeNull();
+  const config = toAvatarConfig({ ...DEFAULT_AVATAR, outfit: 'dres', hair: 'brak', hat: 'czapka' });
+  const { result } = renderHook(() => useAvatarPortrait(config));
+  await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
+  expect(result.current).toBeNull();
 });

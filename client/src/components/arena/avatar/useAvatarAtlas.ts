@@ -4,6 +4,7 @@ import { buildColorMap, CLOTH_RAMPS, compositeOverlay, FRONT_VIEWS, HAIR_RAMPS, 
 import type { Avatar, ColorMap, HeadAnchors } from './avatarModel';
 import { fromAvatarConfig } from './avatarModel';
 import type { AvatarConfig } from '../../../types/api';
+import { createPortraitCache } from './portraitCache';
 
 interface Source { pixels: Uint8ClampedArray; width: number; height: number; map: ColorMap }
 const sources = new Map<Avatar['outfit'], Promise<Source>>();
@@ -98,21 +99,16 @@ export function useAvatarAtlas(avatar: Avatar) {
   return result?.key === key ? result.value : null;
 }
 
-const portraits = new Map<string, Promise<string | null>>();
-
-export function avatarPortrait(avatar: Avatar) {
-  const key = JSON.stringify(avatar);
-  if (!portraits.has(key)) portraits.set(key, (async () => {
-    const front = await loadFront(avatar.outfit);
-    const pixels = recolorAtlas(front.pixels, front.width, front.map, OUTFIT_SPECS[avatar.outfit], avatar.colors);
-    await dressHead(pixels, front.width, avatar, FRONT_VIEWS[avatar.outfit].anchors, 'front/');
-    const face = document.createElement('canvas');
-    face.width = 32; face.height = 32;
-    face.getContext('2d')!.drawImage(toCanvas(pixels, front.width, front.height), 16, 0, 32, 32, 0, 0, 32, 32);
-    return toUrl(face);
-  })().catch(() => { portraits.delete(key); return null; }));
-  return portraits.get(key)!;
-}
+const portraits = createPortraitCache(async key => {
+  const avatar: Avatar = JSON.parse(key);
+  const front = await loadFront(avatar.outfit);
+  const pixels = recolorAtlas(front.pixels, front.width, front.map, OUTFIT_SPECS[avatar.outfit], avatar.colors);
+  await dressHead(pixels, front.width, avatar, FRONT_VIEWS[avatar.outfit].anchors, 'front/');
+  const face = document.createElement('canvas');
+  face.width = 32; face.height = 32;
+  face.getContext('2d')!.drawImage(toCanvas(pixels, front.width, front.height), 16, 0, 32, 32, 0, 0, 32, 32);
+  return toUrl(face);
+});
 
 export function useAvatarPortrait(config: AvatarConfig | null | undefined) {
   const avatar = fromAvatarConfig(config);
@@ -121,8 +117,9 @@ export function useAvatarPortrait(config: AvatarConfig | null | undefined) {
   useEffect(() => {
     if (!key) return;
     let active = true;
-    avatarPortrait(JSON.parse(key)).then(url => { if (active && url) setResult({ key, url }); });
-    return () => { active = false; };
+    const portrait = portraits.acquire(key);
+    portrait.promise.then(url => { if (active && url) setResult({ key, url }); });
+    return () => { active = false; portrait.release(); };
   }, [key]);
   return key && result?.key === key ? result.url : null;
 }
