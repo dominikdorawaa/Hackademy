@@ -322,3 +322,7 @@ Hovering or focusing a username in the standings or friends opens a floating car
 - **Don't** add a second typeface; vary Archivo's width and weight instead.
 - **Don't** set headings or labels in tracked uppercase.
 - **Don't** use decorative icon tiles (an icon in a coloured square or circle); state marks stay small, bare and coloured by state, and icons inside buttons only accompany a text label.
+
+## Profile
+
+The profile shares the Scoreboard theme in `client/src/styles/scoreboard.css`. Its identity header uses the blue field, a square pixel portrait and one primary action. Calendar and learning statistics form one flat surface at the bottom of the profile, below the badge collection and any duel record; they stack on tablet and phone. Featured badges remain optional. Profile and editor use Archivo, 6px corners and the shared theme colours in both modes.

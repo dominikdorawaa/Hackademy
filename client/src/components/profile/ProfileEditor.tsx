@@ -7,10 +7,7 @@ import type { ProfilePersonalization } from '../../lib/profile';
 import { updateProfile } from '../../services/userApi';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
-import UserAvatar from '../UserAvatar';
 import BadgeIcon from './BadgeIcon';
-
-const variants = (current: string) => [current, ...Array.from({ length: 5 }, () => `avatar-${crypto.randomUUID()}`)];
 
 export default function ProfileEditor({ username, initial, badges, onSaved, onClose, onUnauthorized }: {
   username: string; initial: ProfilePersonalization; badges: BadgeDto[];
@@ -27,14 +24,13 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
   const [original] = useState(initial);
   const [draft, setDraft] = useState(initial);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
-  const [avatars, setAvatars] = useState(() => variants(initial.avatarSeed));
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [badgePage, setBadgePage] = useState(0);
   const earned = badges.filter(badge => badge.earned).sort((a, b) => (b.earnedAt ?? '').localeCompare(a.earnedAt ?? '') || a.id - b.id);
   const pages = Math.ceil(earned.length / 6);
   const invalid = draft.bio.length > 500;
-  const changed = draft.bio !== original.bio || draft.tagline !== original.tagline || draft.avatarSeed !== original.avatarSeed
+  const changed = draft.bio !== original.bio || draft.tagline !== original.tagline
     || JSON.stringify(draft.interests) !== JSON.stringify(original.interests)
     || JSON.stringify(draft.featuredBadgeIds) !== JSON.stringify(original.featuredBadgeIds);
 
@@ -113,18 +109,6 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     </header>
     <form onSubmit={event => void save(event)}>
       <fieldset disabled={saving} className="profile-editor-fields">
-        <section className="profile-editor-avatar-section" aria-labelledby={`${id}-avatar`}>
-          <div className="profile-editor-label-row"><h3 id={`${id}-avatar`}>Twój avatar</h3>
-            <Button type="button" variant="outline" size="sm" onClick={() => setAvatars(variants(draft.avatarSeed))}>Losuj kolejne</Button></div>
-          <div className="profile-avatar-options" role="radiogroup" aria-labelledby={`${id}-avatar`}>
-            {avatars.map((seed, index) => <label key={seed} className="profile-avatar-option">
-              <input type="radio" name={`${id}-avatar-choice`} checked={draft.avatarSeed === seed}
-                aria-label={`Avatar ${index + 1}`} onChange={() => setDraft({ ...draft, avatarSeed: seed })} />
-              <UserAvatar username={username} seed={seed} alt="" />
-            </label>)}
-          </div>
-          <p className="profile-muted">Wybierz propozycję lub wylosuj nowe. Avatar zmieni się po zapisaniu.</p>
-        </section>
         <div className="profile-editor-field"><label htmlFor={`${id}-bio`}>O mnie</label>
           <textarea id={`${id}-bio`} value={draft.bio} maxLength={500} rows={4} placeholder="Co Cię interesuje? Czego chcesz się nauczyć?"
             aria-describedby={`${id}-bio-count`} onChange={event => setDraft({ ...draft, bio: event.target.value })} />

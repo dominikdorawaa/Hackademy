@@ -106,10 +106,9 @@ describe('profile editor dismissal', () => {
     expect(screen.getByRole('button', { name: 'Edytuj profil' })).toHaveFocus();
   });
 
-  it.each(['avatar', 'interests', 'badges', 'badge order'])('detects changes to %s without changing bio', async field => {
+  it.each(['interests', 'badges', 'badge order'])('detects changes to %s without changing bio', async field => {
     const { user, editor } = await mountEditor({ ...original, featuredBadgeIds: field === 'badge order' ? [7, 6] : [] });
     const controls = within(editor);
-    if (field === 'avatar') await user.click(controls.getByRole('radio', { name: 'Avatar 2' }));
     if (field === 'interests') await user.click(controls.getByRole('checkbox', { name: 'Linux' }));
     if (field === 'badges' || field === 'badge order') await user.click(controls.getByText('Odznaka 7'));
     if (field === 'badge order') await user.click(controls.getByText('Odznaka 7'));
@@ -126,8 +125,6 @@ describe('profile editor dismissal', () => {
     await user.type(bio, ' updated');
     await user.clear(bio);
     await user.type(bio, original.bio);
-    await user.click(controls.getByRole('radio', { name: 'Avatar 2' }));
-    await user.click(controls.getByRole('radio', { name: 'Avatar 1' }));
     await user.click(controls.getByRole('checkbox', { name: 'Linux' }));
     await user.click(controls.getByRole('checkbox', { name: 'Linux' }));
     await user.click(controls.getByText('Odznaka 7'));
