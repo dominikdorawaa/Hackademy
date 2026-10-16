@@ -8,7 +8,8 @@
   .avatar-heading h1 { margin: 6px 0 0; }
   .avatar-layout { display: grid; grid-template-columns: minmax(0, 1fr) minmax(300px, 400px); gap: 24px; align-items: start; }
   .avatar-preview { display: grid; gap: 12px; position: sticky; top: 96px; }
-  .avatar-stage { display: grid; place-items: end center; min-height: 460px; padding-bottom: 36px; border: 2px solid #2a3f60; border-radius: 14px; background: url('/assets/arena/stages/server-room.png') center bottom / cover no-repeat; image-rendering: pixelated; overflow: hidden; }
+  .avatar-stage { display: grid; place-items: end center; min-height: 460px; padding-bottom: 36px; border: 2px solid var(--battle-line); border-radius: 14px; background: linear-gradient(180deg, transparent 74%, color-mix(in srgb, var(--battle-line) 55%, transparent) 74%), var(--battle-surface); image-rendering: pixelated; overflow: hidden; }
+  .avatar-form { display: contents; }
   .avatar-stage [role='status'] { align-self: center; color: #eef4ff; background: rgb(4 9 20 / .8); padding: 8px 14px; border-radius: 6px; }
   .avatar-front { width: 384px; max-width: 80%; aspect-ratio: 1; image-rendering: pixelated; animation: avatar-breathe 1.6s steps(2) infinite; }
   .avatar-front[data-reduced-motion='true'] { animation: none; }

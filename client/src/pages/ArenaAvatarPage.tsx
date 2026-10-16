@@ -55,24 +55,28 @@ export default function ArenaAvatarPage() {
   const dirty = saved !== JSON.stringify(avatar);
   const setColor = (key: keyof Avatar['colors'], value: string) => setAvatar(current => ({ ...current, colors: { ...current.colors, [key]: value } }));
   const { isAuthenticated, token } = useAuth();
-  const [account, setAccount] = useState<string | null>(null);
+  const sessionToken = isAuthenticated && token ? token : null;
+  const [account, setAccount] = useState<{ token: string; status: 'ready' | 'error'; username: string | null } | null>(null);
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   useEffect(() => {
-    if (!isAuthenticated || !token) return;
+    if (!sessionToken) return;
     const controller = new AbortController();
-    getCurrentUser({ Authorization: `Bearer ${token}` }, controller.signal)
-      .then(response => response.ok ? response.json() : null)
+    getCurrentUser({ Authorization: `Bearer ${sessionToken}` }, controller.signal)
+      .then(response => { if (!response.ok) throw new Error('account'); return response.json(); })
       .then(user => {
-        if (!user?.username) return;
-        setAccount(user.username);
+        if (!user?.username) throw new Error('account');
+        setAccount({ token: sessionToken, status: 'ready', username: user.username });
         const remote = fromAvatarConfig(user.avatar);
         if (remote) { setAvatar(remote); setSaved(JSON.stringify(remote)); }
       })
-      .catch(() => undefined);
+      .catch(() => { if (!controller.signal.aborted) setAccount({ token: sessionToken, status: 'error', username: null }); });
     return () => controller.abort();
-  }, [isAuthenticated, token]);
-  const signedIn = Boolean(isAuthenticated && token && account);
+  }, [sessionToken]);
+  const accountState = !sessionToken ? 'guest' : account?.token !== sessionToken ? 'loading' : account.status;
+  const signedIn = accountState === 'ready';
+  const blocked = accountState === 'loading' || accountState === 'error';
   const save = async () => {
+    if (blocked) return;
     saveAvatar(avatar);
     if (signedIn) {
       setStatus('saving');
@@ -80,7 +84,7 @@ export default function ArenaAvatarPage() {
         const config = toAvatarConfig(avatar);
         const response = await saveAccountAvatar(config, { Authorization: `Bearer ${token}` });
         if (!response.ok) throw new Error('save failed');
-        window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username: account, avatar: config } }));
+        window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username: account?.username, avatar: config } }));
       } catch {
         setStatus('error');
         return;
@@ -90,6 +94,8 @@ export default function ArenaAvatarPage() {
     setStatus('idle');
   };
   const note = status === 'error' ? 'Nie udało się zapisać awatara na koncie. Spróbuj ponownie.'
+    : accountState === 'loading' ? 'Wczytuję awatar z Twojego konta…'
+    : accountState === 'error' ? 'Nie udało się wczytać awatara z konta. Odśwież stronę, żeby zapisać zmiany.'
     : dirty ? 'Masz niezapisane zmiany.'
     : signedIn ? 'Awatar jest zapisany na Twoim koncie i widoczny w profilu, rankingu i u znajomych.'
     : 'Awatar jest zapisany w tej przeglądarce. Zaloguj się, żeby zapisać go na koncie.';
@@ -107,6 +113,7 @@ export default function ArenaAvatarPage() {
         </div>
       </section>
       <div className="avatar-controls">
+        <fieldset className="avatar-form" disabled={accountState === 'loading'} aria-busy={accountState === 'loading'}>
         <fieldset><legend>Sylwetka</legend><div className="avatar-outfits">
           {OUTFITS.map(outfit => <label key={outfit.id} data-selected={avatar.outfit === outfit.id}>
             <input type="radio" name="avatar-outfit" value={outfit.id} checked={avatar.outfit === outfit.id} onChange={() => setAvatar(current => ({ ...current, outfit: outfit.id }))} />
@@ -125,10 +132,11 @@ export default function ArenaAvatarPage() {
             <span style={{ background: `linear-gradient(135deg, ${ramp[3]} 0 50%, ${ramp[1]} 50%)` }} aria-hidden="true" />
           </label>)}
         </div></fieldset>)}
+        </fieldset>
         <div className="avatar-actions">
-          <Button onClick={save} disabled={!dirty || status === 'saving'}>{status === 'saving' ? 'Zapisuję…' : dirty ? 'Zapisz awatar' : 'Zapisano'}</Button>
+          <Button onClick={save} disabled={!dirty || blocked || status === 'saving'}>{status === 'saving' ? 'Zapisuję…' : dirty ? 'Zapisz awatar' : 'Zapisano'}</Button>
         </div>
-        <p className="avatar-note" role="status" aria-live="polite" data-state={status}>{note}</p>
+        <p className="avatar-note" role="status" aria-live="polite" data-state={status === 'error' || accountState === 'error' ? 'error' : status}>{note}</p>
       </div>
     </div>
   </div>;
