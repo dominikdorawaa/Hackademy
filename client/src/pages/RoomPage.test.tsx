@@ -72,3 +72,12 @@ describe('task room completion', () => {
     expect(screen.queryByRole('button', { name: 'Ukończ pokój' })).not.toBeInTheDocument();
   });
 });
+
+describe('path unlock modes', () => {
+  it('explains why a locked path room cannot be entered', async () => {
+    server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json({ message: 'Ten pokój jest jeszcze zablokowany. Ukończ poprzednie pokoje ścieżki.' }, { status: 403 })));
+    localStorage.setItem('token', createToken('USER'));
+    renderWithAuth(<Route path="/rooms/:id" element={<RoomPage />} />, '/rooms/7');
+    expect(await screen.findByText('Błąd: Ten pokój jest jeszcze zablokowany. Ukończ poprzednie pokoje ścieżki.')).toBeInTheDocument();
+  });
+});

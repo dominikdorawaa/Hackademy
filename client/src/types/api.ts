@@ -1,3 +1,15 @@
+export interface AvatarConfig {
+  outfit: string
+  hair: string
+  hat: string
+  skin: string
+  hairColor: string
+  topColor: string
+  bottomColor: string
+  shoesColor: string
+  hatColor: string
+}
+
 export type ApiDate = string
 export type ApiDateTime = string
 export type DifficultyLevel = 'EASY' | 'MEDIUM' | 'HARD' | 'INSANE'
@@ -136,6 +148,7 @@ export interface BadgeDto {
 
 export interface FriendDto {
   avatarSeed?: string
+  avatar?: AvatarConfig | null
   id: number
   username: string
   points: number
@@ -144,6 +157,7 @@ export interface FriendDto {
 
 export interface FriendRequestDto {
   avatarSeed?: string
+  avatar?: AvatarConfig | null
   id: number
   requesterUsername: string
   createdAt: ApiDateTime
@@ -189,11 +203,14 @@ export interface PathProgressDto {
   completed: boolean
 }
 
+export type PathUnlockMode = 'OPEN' | 'CHAPTER' | 'ROOM'
+
 export interface PathChapterDto {
   id: number
   title: string
   totalRooms: number
   solvedRooms: number
+  locked?: boolean
   rooms: RoomSummaryDto[]
 }
 
@@ -204,6 +221,7 @@ export interface PathDetailDto {
   bannerUrl: string | null
   hasBanner: boolean
   enrolled: boolean
+  unlockMode?: PathUnlockMode
   rooms: RoomSummaryDto[]
   chapters: PathChapterDto[]
 }
@@ -223,6 +241,7 @@ export interface PathAdminDetailDto {
   bannerUrl: string | null
   hasBanner: boolean
   revision: number
+  unlockMode?: PathUnlockMode
   chapters: PathChapterAdminDto[]
 }
 
@@ -386,6 +405,7 @@ export interface RecentSolvedRoomDto {
 
 export interface RankingEntry {
   avatarSeed?: string
+  avatar?: AvatarConfig | null
   rankPoints: number | null
   rankElo: number | null
   username: string
@@ -395,6 +415,7 @@ export interface RankingEntry {
 
 export interface RankingUser {
   avatarSeed?: string
+  avatar?: AvatarConfig | null
   tagline?: string
   interests?: string[]
   featuredBadgeIds?: number[]
@@ -447,6 +468,7 @@ export interface ProfilePortfolioDto {
 
 export interface UserProfileDto {
   avatarSeed?: string
+  avatar?: AvatarConfig | null
   tagline?: string
   interests?: string[]
   featuredBadgeIds?: number[]
@@ -469,6 +491,7 @@ export interface ProfileStatsDto {
 
 export interface UserSearchDto {
   avatarSeed?: string
+  avatar?: AvatarConfig | null
   id: number
   username: string
   points: number

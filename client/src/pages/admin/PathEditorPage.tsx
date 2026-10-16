@@ -6,17 +6,23 @@ import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import * as contentApi from '../../services/contentApi';
 import type { PathSave } from '../../services/contentApi';
-import type { PathAdminDetailDto, RoomAdminSummaryDto } from '../../types/api';
+import type { PathAdminDetailDto, PathUnlockMode, RoomAdminSummaryDto } from '../../types/api';
 import { ConfirmAction, FilePicker, LoadingRows, PageHeader, Section, StatusMessage } from '../../components/admin/AdminUi';
 import { TextField, checkText, focusError } from '../../components/admin/ContentFields';
 import type { FieldErrors } from '../../components/admin/ContentFields';
 import { ContentChapters } from '../../components/admin/ContentStructure';
 import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
 import { useAdminAccess } from './adminAccess';
+import PathImportDialog from './PathImportDialog';
 
-const empty: PathSave = { revision: 0, chaptersRevision: 0, title: '', description: '', bannerUrl: null, published: false, chapters: [{ id: null, title: 'Rozdział 1', roomIds: [] }] };
+const empty: PathSave = { revision: 0, chaptersRevision: 0, title: '', description: '', bannerUrl: null, published: false, chapters: [{ id: null, title: 'Rozdział 1', roomIds: [] }], unlockMode: 'OPEN' };
+const unlockModes: Record<PathUnlockMode, { label: string; description: string }> = {
+  OPEN: { label: 'Otwarta', description: 'Wszystkie pokoje są dostępne od razu.' },
+  CHAPTER: { label: 'Rozdziałami', description: 'Rozdział otwiera się po ukończeniu wszystkich pokoi poprzednich rozdziałów.' },
+  ROOM: { label: 'Pokój po pokoju', description: 'Pokoje tworzą jedną kolejkę przez całą ścieżkę; kolejny otwiera się po ukończeniu poprzedniego.' },
+};
 function fromDetail(d: PathAdminDetailDto): PathSave {
-  return { revision: d.contentRevision ?? 0, chaptersRevision: d.revision, title: d.title, description: d.description ?? '', bannerUrl: d.hasBanner ? null : d.bannerUrl, published: d.published ?? true, chapters: d.chapters };
+  return { revision: d.contentRevision ?? 0, chaptersRevision: d.revision, title: d.title, description: d.description ?? '', bannerUrl: d.hasBanner ? null : d.bannerUrl, published: d.published ?? true, chapters: d.chapters, unlockMode: d.unlockMode ?? 'OPEN' };
 }
 export default function PathEditorPage() {
   const { pathId } = useParams();
@@ -112,7 +118,13 @@ function PathEditor({ pathId }: { pathId: string }) {
   return <>
     {guard.dialog}
     <Button asChild variant="ghost" className="mb-3"><Link to="/admin/paths">← Ścieżki</Link></Button>
-    <PageHeader title={id == null ? 'Nowa ścieżka' : form.title || 'Ścieżka'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, token); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
+    <PageHeader title={id == null ? 'Nowa ścieżka' : form.title || 'Ścieżka'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<>{id != null && isAdmin && <PathImportDialog disabled={loading || saving}
+      existing={{ id, title: baseline.title, contentRevision: baseline.revision, chaptersRevision: baseline.chaptersRevision, chapters: baseline.chapters }}
+      requestOpen={open => guard.request(open)} onImported={detail => {
+        const next = fromDetail(detail); formRef.current = next; setForm(next); setBaseline(next); setFile(null);
+        setSuccess('Dodano pokoje jako szkice. Istniejąca ścieżka zachowała swój status publikacji.');
+        setErrors({}); setError(null); setLoading(true); setAttempt(value => value + 1);
+      }} />}<Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, token); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
     {loading ? <LoadingRows label="Ładowanie ścieżki" /> : error && id != null && !form.title ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor ścieżki">
@@ -126,6 +138,15 @@ function PathEditor({ pathId }: { pathId: string }) {
               {errors.bannerFile && <p role="alert" className="text-destructive">{errors.bannerFile}</p>}
               <p className="text-xs text-muted-foreground">Do 5 MB. Wgrany plik ma pierwszeństwo przed URL.</p>
               <BannerImage source={banner} file={file} url={form.bannerUrl} token={token} />
+            </div>
+          </Section>
+          <Section title="Odblokowywanie" description="Ukończone pokoje pozostają dostępne. Blokady samouczków VM i VPN obowiązują dodatkowo.">
+            <div className="grid gap-2">
+              <label htmlFor="content-unlockMode">Tryb odblokowania</label>
+              <select id="content-unlockMode" className="rounded border bg-background p-2" value={form.unlockMode} aria-describedby="content-unlockMode-help" onChange={e => change({ unlockMode: e.target.value as PathUnlockMode })}>
+                {Object.entries(unlockModes).map(([mode, { label }]) => <option key={mode} value={mode}>{label}</option>)}
+              </select>
+              <span id="content-unlockMode-help" className="text-xs text-muted-foreground">{unlockModes[form.unlockMode].description}</span>
             </div>
           </Section>
           <ContentChapters chapters={form.chapters} rooms={rooms} pathId={id} errors={errors} canDelete={isAdmin} onChange={chapters => change({ chapters })} onCreateRoom={createRoom} onRoom={roomId => guard.request(() => navigate(`/admin/paths/rooms/${roomId}`))} />

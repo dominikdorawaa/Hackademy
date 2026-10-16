@@ -1,6 +1,7 @@
 package com.hackademy.server.room;
 
 
+import com.hackademy.server.path.PathLockedException;
 import com.hackademy.server.user.User;
 
 import com.hackademy.server.room.dto.RoomSummaryDto;
@@ -106,6 +107,8 @@ public class RoomController {
                 // Return OK even if already unlocked, so frontend doesn't show error
                 return ResponseEntity.ok(Map.of("message", "Hint already unlocked."));
             }
+        } catch (PathLockedException e) {
+            throw e;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -113,7 +116,8 @@ public class RoomController {
 
     @GetMapping("/{id}/file")
     public ResponseEntity<Resource> downloadRoomFile(@PathVariable Long id) {
-        RoomFile roomFile = roomService.getRoomFile(id);
+        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        RoomFile roomFile = roomService.getRoomFile(id, userDetails.getUsername());
 
         return ResponseEntity.ok()
                 .header(HttpHeaders.CONTENT_DISPOSITION, "attachment; filename=\"" + roomFile.getFileName() + "\"")

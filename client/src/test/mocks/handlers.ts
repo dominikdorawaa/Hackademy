@@ -23,4 +23,6 @@ export const handlers = [
     return HttpResponse.json<AuthResponse>({ token: createToken() });
   }),
   currentUserHandler(),
+  http.get(`${API_URL}/api/ranking/summary`, () => HttpResponse.json({ ranking: [], user: null, myRank: null })),
+  http.get(`${API_URL}/api/friends`, () => HttpResponse.json([])),
 ];

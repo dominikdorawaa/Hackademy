@@ -9,7 +9,7 @@ import type {
   ProfilePortfolioDto,
 } from '../types/api';
 import type { ProfilePersonalization } from '../lib/profile';
-import type { AuthResponse } from '../types/api';
+import type { AuthResponse, AvatarConfig } from '../types/api';
 
 export interface NotificationPreferences {
   friendRequests: boolean;
@@ -52,6 +52,13 @@ export function updateProfile(profile: ProfilePersonalization, headers: HeadersI
   return request<ProfilePersonalization>('/api/user/me/profile', {
     method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
     body: JSON.stringify(profile), signal,
+  });
+}
+
+export function saveAvatar(avatar: AvatarConfig, headers: HeadersInit, signal?: AbortSignal) {
+  return request<AvatarConfig>('/api/user/me/avatar', {
+    method: 'PUT', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    body: JSON.stringify(avatar), signal,
   });
 }
 

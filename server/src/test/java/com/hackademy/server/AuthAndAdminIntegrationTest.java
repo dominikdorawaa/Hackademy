@@ -173,7 +173,7 @@ class AuthAndAdminIntegrationTest {
         for (int index = 0; index < 25; index++) {
             var room = roomRepository.saveAndFlush(Room.builder()
                     .title(username + " room " + index).description("Example room")
-                    .difficulty(DifficultyLevel.EASY).category("Test").points(10).flag("example-flag").build());
+                    .difficulty(DifficultyLevel.EASY).category("Test").points(50).flag("example-flag").build());
             jdbcTemplate.update("INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (?, ?, ?)",
                     owner.getId(), room.getId(), Timestamp.valueOf(LocalDateTime.of(2026, 1, 1, 12, 0).plusDays(index)));
         }
@@ -184,7 +184,7 @@ class AuthAndAdminIntegrationTest {
                     .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(5)))
                     .andExpect(jsonPath("$[0].title").value(username + " room 24"))
                     .andExpect(jsonPath("$[0].difficulty").value("EASY"))
-                    .andExpect(jsonPath("$[0].points").value(10))
+                    .andExpect(jsonPath("$[0].points").value(50))
                     .andExpect(jsonPath("$[0].solvedAt").exists())
                     .andExpect(jsonPath("$[0].flag").doesNotExist())
                     .andExpect(jsonPath("$[0].email").doesNotExist());
@@ -248,7 +248,7 @@ class AuthAndAdminIntegrationTest {
         userRepository.saveAndFlush(owner);
         var room = roomRepository.saveAndFlush(Room.builder().title(username + " facts")
                 .description("Example room").difficulty(DifficultyLevel.EASY).category("Test")
-                .points(10).flag("example-flag").build());
+                .points(50).flag("example-flag").build());
         jdbcTemplate.update("INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (?, ?, ?)",
                 owner.getId(), room.getId(), Timestamp.valueOf(LocalDateTime.now()));
         mockMvc.perform(get("/api/user/me/activity").header("Authorization", "Bearer " + token))
@@ -259,7 +259,7 @@ class AuthAndAdminIntegrationTest {
                 Long.class, "Example hint", room.getId());
         var unsolvedRoom = roomRepository.saveAndFlush(Room.builder().title(username + " unsolved")
                 .description("Example room").difficulty(DifficultyLevel.EASY).category("Test")
-                .points(10).flag("example-flag").build());
+                .points(50).flag("example-flag").build());
         for (var pathKind : new String[] { "complete", "partial", "empty" }) {
             var pathId = jdbcTemplate.queryForObject(
                     "INSERT INTO paths (title, created_at, updated_at) VALUES (?, ?, ?) RETURNING id",
@@ -349,7 +349,7 @@ class AuthAndAdminIntegrationTest {
 
     @Test
     void registersAndLogsInAgainstMigratedDatabase() throws Exception {
-        assertEquals(8, jdbcTemplate.queryForObject(
+        assertEquals(12, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
 
         var username = "user" + UUID.randomUUID().toString().substring(0, 8);

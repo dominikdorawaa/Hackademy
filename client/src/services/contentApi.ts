@@ -1,16 +1,18 @@
 import API_URL from '../apiConfig';
-import type { ChapterRequest, PathAdminDetailDto, RoomAdminDto, RoomTasksAdminDto, RoomTaskRequest, RoomWriteRequest } from '../types/api';
+import type { ChapterRequest, PathAdminDetailDto, PathUnlockMode, RoomAdminDto, RoomTasksAdminDto, RoomTaskRequest, RoomWriteRequest } from '../types/api';
 import type { FieldErrors } from '../components/admin/ContentFields';
 
 export interface PathSave {
   revision: number; chaptersRevision: number; title: string; description: string; bannerUrl: string | null;
-  published: boolean; chapters: ChapterRequest[];
+  published: boolean; chapters: ChapterRequest[]; unlockMode: PathUnlockMode;
 }
 export interface RoomSave extends RoomWriteRequest {
   revision: number; tasksRevision: number; published: boolean; tasks: RoomTaskRequest[]; hints: string[];
   pathId?: number; chapterId?: number; pathRevision?: number; parentDraft?: PathSave; chapterIndex?: number;
 }
 export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null }
+export interface RoomImportTarget { chapterId: number; contentRevision: number; chaptersRevision: number }
+export interface CtfImportResult { roomIds: number[]; count: number }
 export class ContentError extends Error {
   fields: FieldErrors;
   constructor(message: string, fields: FieldErrors = {}) { super(message); this.fields = fields; }
@@ -29,6 +31,21 @@ function multipart(data: unknown, file: File | null) {
 }
 export function savePath(id: number | null, data: PathSave, file: File | null, token: string | null) {
   return contentRequest<PathAdminDetailDto>(id === null ? '/paths' : `/paths/${id}`, token, { method: id === null ? 'POST' : 'PUT', body: multipart(data, file) });
+}
+export function importPath(file: File, token: string | null) {
+  const body = new FormData();
+  body.append('file', file);
+  return contentRequest<PathAdminDetailDto>('/paths/import', token, { method: 'POST', body });
+}
+export function importCtfRooms(file: File, token: string | null) {
+  const body = new FormData(); body.append('file', file);
+  return contentRequest<CtfImportResult>('/ctf/import', token, { method: 'POST', body });
+}
+export function importPathRooms(id: number, target: RoomImportTarget, file: File, token: string | null) {
+  const body = new FormData();
+  body.append('target', new Blob([JSON.stringify(target)], { type: 'application/json' }));
+  body.append('file', file);
+  return contentRequest<PathAdminDetailDto>(`/paths/${id}/rooms/import`, token, { method: 'POST', body });
 }
 export function saveRoom(id: number | null, data: RoomSave, file: File | null, token: string | null) {
   return contentRequest<RoomEditor>(id === null ? '/rooms' : `/rooms/${id}`, token, { method: id === null ? 'POST' : 'PUT', body: multipart(data, file) });

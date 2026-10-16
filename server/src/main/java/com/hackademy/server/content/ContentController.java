@@ -21,8 +21,29 @@ import java.util.Map;
 @PreAuthorize("hasAnyRole('ADMIN', 'EXPERT')")
 public class ContentController {
     private final ContentService content;
+    private final PathImportService pathImport;
+    private final CtfImportService ctfImport;
     private final PathRepository paths;
     private final RoomFileRepository files;
+    @PostMapping(value = "/ctf/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public CtfImportService.Result importCtf(@RequestPart("file") MultipartFile file) throws IOException {
+        return ctfImport.importRooms(file);
+    }
+    @PostMapping(value = "/paths/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PathAdminDetailDto importPath(@RequestPart("file") MultipartFile file) throws IOException {
+        return pathImport.importPath(file);
+    }
+    @PostMapping(value = "/paths/{id}/rooms/import", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('ADMIN')")
+    @ResponseStatus(HttpStatus.CREATED)
+    public PathAdminDetailDto importRooms(@PathVariable Long id, @RequestPart("target") ContentRequests.RoomImport target,
+            @RequestPart("file") MultipartFile file) throws IOException {
+        return pathImport.importRooms(id, target, file);
+    }
     @PostMapping(value = "/paths", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     @ResponseStatus(HttpStatus.CREATED)
     public PathAdminDetailDto createPath(@RequestPart("content") ContentRequests.PathSave request,
@@ -64,8 +85,12 @@ public class ContentController {
     }
     @ExceptionHandler(org.springframework.dao.DataIntegrityViolationException.class)
     public ResponseEntity<?> conflict(org.springframework.dao.DataIntegrityViolationException error) {
-        if (error.getMostSpecificCause().getMessage() != null && error.getMostSpecificCause().getMessage().contains("uq_rooms_title")) {
-            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Pokój o tym tytule już istnieje", "fields", Map.of("title", "Pokój o tym tytule już istnieje")));
+        String cause = error.getMostSpecificCause().getMessage();
+        if (cause != null && cause.contains("uq_rooms_ctf_title")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Pokój CTF o tym tytule już istnieje", "fields", Map.of("title", "Pokój CTF o tym tytule już istnieje")));
+        }
+        if (cause != null && cause.contains("uq_chapter_rooms_title")) {
+            return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Ten rozdział ma już pokój o tym tytule", "fields", Map.of("title", "Ten rozdział ma już pokój o tym tytule")));
         }
         return ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Materiał zmienił się w międzyczasie. Sprawdź przypisania i spróbuj ponownie."));
     }

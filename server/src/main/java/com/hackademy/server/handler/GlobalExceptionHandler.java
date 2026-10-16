@@ -1,6 +1,7 @@
 package com.hackademy.server.handler;
 
 import com.hackademy.server.exception.UserNotFoundException;
+import com.hackademy.server.room.RoomRuleException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -56,6 +57,12 @@ public class GlobalExceptionHandler {
     @ExceptionHandler(MethodArgumentTypeMismatchException.class)
     public ResponseEntity<Map<String, String>> handleMethodArgumentTypeMismatchException(MethodArgumentTypeMismatchException ex) {
         return ResponseEntity.badRequest().body(Map.of("message", "Invalid value for parameter: " + ex.getName()));
+    }
+
+    @ExceptionHandler(RoomRuleException.class)
+    public ResponseEntity<Map<String, Object>> handleRoomRuleException(RoomRuleException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(Map.of("message", ex.getReason(), "fields", Map.of(ex.field(), ex.getReason())));
     }
 
     @ExceptionHandler(ResponseStatusException.class)

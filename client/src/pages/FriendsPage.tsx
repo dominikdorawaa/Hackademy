@@ -165,7 +165,7 @@ const FriendsPage = () => {
                                 borderRadius: '8px'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                    <UserAvatar username={user.username} seed={user.avatarSeed}
+                                    <UserAvatar username={user.username} seed={user.avatarSeed} avatar={user.avatar}
                                         alt="Avatar"
                                         style={{ width: '40px', height: '40px', borderRadius: '50%', backgroundColor: '#333' }}
                                     />
@@ -217,7 +217,7 @@ const FriendsPage = () => {
                                 justifyContent: 'space-between'
                             }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: '15px' }}>
-                                    <UserAvatar username={req.requesterUsername} seed={req.avatarSeed}
+                                    <UserAvatar username={req.requesterUsername} seed={req.avatarSeed} avatar={req.avatar}
                                         alt="Avatar"
                                         style={{ width: '50px', height: '50px', borderRadius: '50%', backgroundColor: '#333' }}
                                     />
@@ -264,7 +264,7 @@ const FriendsPage = () => {
                                 position: 'relative'
                             }}>
                                 <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', textAlign: 'center' }}>
-                                    <UserAvatar username={friend.username} seed={friend.avatarSeed}
+                                    <UserAvatar username={friend.username} seed={friend.avatarSeed} avatar={friend.avatar}
                                         alt="Avatar"
                                         style={{
                                             width: '80px',

@@ -1,8 +1,365 @@
-.arena-section .spinner {
-  animation: arena-spinner-spin 1s linear infinite;
+@layer components {
+.arena-page .arena-title {
+  font-size: var(--ud-display);
+  font-weight: 800;
+  font-stretch: 85%;
+  line-height: 1;
+  letter-spacing: -0.02em;
+  text-wrap: balance;
 }
 
-@keyframes arena-spinner-spin {
-  from { transform: rotate(0deg); }
-  to { transform: rotate(360deg); }
+.arena-console-copy {
+  flex: 1 1 340px;
+  min-width: 0;
+}
+
+.arena-kicker {
+  margin-bottom: 8px;
+  color: var(--ud-hero-muted);
+  font-weight: 600;
+}
+
+.arena-console-copy p:not(.arena-kicker) {
+  margin-top: 12px;
+  max-width: 56ch;
+  color: var(--ud-hero-muted);
+}
+
+.arena-console-actions {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 16px;
+}
+
+.arena-hero {
+  display: grid;
+  grid-template-columns: 300px minmax(0, 1fr);
+  border-radius: var(--ud-radius);
+  overflow: hidden;
+  background: var(--ud-hero-bg);
+  color: var(--ud-hero-ink);
+}
+
+.arena-card {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  padding: 22px 24px 24px;
+  background: color-mix(in srgb, var(--league) 24%, var(--ud-board));
+  color: var(--ud-ink);
+  text-align: center;
+}
+
+.arena-card-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.arena-league {
+  padding: 4px 10px;
+  border-radius: 4px;
+  background: var(--league);
+  color: #0b111c;
+  font-size: 0.8125rem;
+  font-weight: 800;
+}
+
+.arena-card-rank {
+  color: var(--ud-muted);
+  font-size: var(--ud-text-s);
+  font-weight: 600;
+}
+
+.arena-page .arena-card-portrait {
+  width: 168px;
+  height: 168px;
+  margin: 22px 0 14px;
+  border-radius: var(--ud-radius);
+  background: color-mix(in srgb, var(--league) 40%, var(--ud-board));
+  image-rendering: pixelated;
+}
+
+.arena-card-name {
+  max-width: 100%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: 1.25rem;
+  font-weight: 700;
+}
+
+.arena-card-elo {
+  position: relative;
+  display: flex;
+  align-items: baseline;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 6px;
+}
+
+.arena-card-number {
+  font-size: 4.25rem;
+  font-weight: 800;
+  font-stretch: 70%;
+  line-height: 0.9;
+  letter-spacing: -0.03em;
+}
+
+.arena-card-elo .ud-term-btn {
+  color: var(--ud-muted);
+  font-weight: 700;
+}
+
+.arena-card-next {
+  width: 100%;
+  margin-top: 18px;
+  color: var(--ud-muted);
+  font-size: var(--ud-text-s);
+}
+
+.arena-card-next .ud-meter {
+  height: 8px;
+  background: color-mix(in srgb, var(--league) 18%, var(--ud-track));
+}
+
+.arena-card-next .ud-meter span {
+  background: var(--league);
+}
+
+.arena-card-next p {
+  margin-top: 8px;
+}
+
+.arena-card-edit {
+  margin-top: 16px;
+  color: var(--ud-link);
+  font-size: var(--ud-text-s);
+  font-weight: 650;
+}
+
+.arena-card-edit:hover {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+.arena-ladder {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 6px;
+}
+
+.arena-ladder li {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  min-width: 0;
+  color: var(--ud-hero-muted);
+  font-size: var(--ud-text-s);
+}
+
+.arena-ladder-bar {
+  height: 10px;
+  border-radius: 2px;
+  background: color-mix(in srgb, var(--ud-hero-muted) 22%, transparent);
+}
+
+.arena-ladder .is-reached .arena-ladder-bar,
+.arena-ladder .is-current .arena-ladder-bar {
+  background: var(--tier);
+}
+
+.arena-ladder .is-current .arena-ladder-bar {
+  box-shadow: 0 0 0 2px var(--ud-hero-bg), 0 0 0 4px var(--tier);
+}
+
+.arena-ladder-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-weight: 650;
+}
+
+.arena-ladder .is-current .arena-ladder-name {
+  color: var(--ud-hero-ink);
+  font-weight: 800;
+}
+
+.arena-ladder-min {
+  font-size: 0.75rem;
+}
+
+.arena-hero-main {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 28px;
+  min-width: 0;
+  padding: 36px 40px;
+}
+
+.arena-page .arena-go {
+  min-height: 56px;
+  padding: 0 36px;
+  background: var(--ud-blue);
+  color: var(--ud-blue-ink);
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+
+.arena-page .arena-go:hover {
+  background: var(--ud-cta-hover);
+  transform: translateY(-1px);
+}
+
+.arena-page .arena-go:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+}
+
+.arena-waiting {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.arena-pulse {
+  width: 10px;
+  height: 10px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ud-link);
+  animation: arena-pulse 1.2s var(--ud-ease) infinite;
+}
+
+@keyframes arena-pulse {
+  50% { opacity: 0.25; }
+}
+
+.arena-page .ud-next .arena-note {
+  font-size: var(--ud-text-s);
+}
+
+.arena-unlock {
+  margin-top: 16px;
+  max-width: 360px;
+}
+
+.arena-page .arena-error {
+  margin-top: 14px;
+  color: var(--ud-hard);
+  font-weight: 600;
+}
+
+.arena-page .ud-panel .arena-error {
+  font-size: var(--ud-text-s);
+}
+
+.arena-challenge {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+}
+
+.arena-challenge-act {
+  display: flex;
+  gap: 8px;
+}
+
+.arena-page .arena-reject:hover {
+  background: var(--ud-track);
+  color: var(--ud-ink);
+}
+
+.arena-page .arena-board {
+  position: static;
+}
+
+.arena-board .ud-section-head h2 {
+  font-size: 1.125rem;
+}
+
+.arena-board .ud-friend {
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  gap: 2px 12px;
+}
+
+.arena-board .ud-friend-h2h {
+  grid-column: 2;
+  grid-row: 2;
+}
+
+.arena-board .ud-friend-act {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+}
+
+.arena-board-title {
+  font-size: 1.125rem;
+  font-weight: 700;
+  line-height: 1.2;
+}
+
+.arena-rules {
+  counter-reset: arena-rule;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  margin: 16px 0 20px;
+}
+
+.arena-rules li {
+  counter-increment: arena-rule;
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr);
+  gap: 8px;
+  color: var(--ud-muted);
+  font-size: 0.9375rem;
+  line-height: 1.45;
+}
+
+.arena-rules li::before {
+  content: counter(arena-rule);
+  color: var(--ud-ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-stretch: 75%;
+  line-height: 1.3;
+}
+
+@media (max-width: 1180px) and (min-width: 1081px), (max-width: 720px) {
+  .arena-hero {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+@media (max-width: 720px) {
+  .arena-hero-main {
+    padding: 24px 20px;
+  }
+
+  .arena-console-actions {
+    width: 100%;
+    align-items: stretch;
+  }
+
+
+
+  .arena-challenge {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .arena-challenge-act {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-pulse {
+    animation: none;
+  }
+}
 }

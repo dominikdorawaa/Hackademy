@@ -1,5 +1,6 @@
 package com.hackademy.server.path.dto;
 
+import com.hackademy.server.path.PathUnlockMode;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import lombok.Builder;
 import java.util.List;
@@ -12,6 +13,7 @@ public record PathDetailDto(
     String bannerUrl,
     boolean hasBanner,
     boolean enrolled,
+    PathUnlockMode unlockMode,
     List<RoomSummaryDto> rooms,
     List<PathChapterDto> chapters
 ) {}

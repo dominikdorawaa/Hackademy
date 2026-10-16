@@ -28,7 +28,7 @@ public interface RoomService {
     boolean unlockHint(Long roomId, Long hintId, String username);
     // For admin to get the raw entity including flag
     Room getRoomById(Long id);
-    RoomFile getRoomFile(Long roomId);
+    RoomFile getRoomFile(Long roomId, String username);
     List<RoomSummaryDto> getTop3Rooms(); // New method for landing page
     SolveRoomResponse solveTask(Long roomId, Long taskId, String answer, String username);
     SolveRoomResponse completeTaskRoom(Long roomId, String username);

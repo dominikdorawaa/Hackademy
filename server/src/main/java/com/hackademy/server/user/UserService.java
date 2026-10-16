@@ -14,10 +14,14 @@ import com.hackademy.server.user.dto.ProfilePortfolioDto;
 import com.hackademy.server.user.dto.UserSearchDto;
 import com.hackademy.server.user.dto.ProfilePersonalizationDto;
 import com.hackademy.server.user.dto.UpdateProfileRequest;
+import com.hackademy.server.user.dto.UserAvatarDto;
 
 import java.util.List;
 
 public interface UserService {
+    UserAvatarDto getAvatar(Long userId);
+    UserAvatarDto saveAvatar(Long userId, UserAvatarDto avatar);
+    void deleteAvatar(Long userId);
     ProfilePersonalizationDto getPersonalization(Long userId);
     ProfilePersonalizationDto updateProfile(Long userId, UpdateProfileRequest request);
     List<UserAdminView> findAllUsers();

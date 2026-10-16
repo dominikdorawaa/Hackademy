@@ -16,6 +16,8 @@ import java.util.Optional;
 
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
+    @Query("SELECT r.title FROM Room r WHERE r.roomType = :roomType AND r.title IN :titles")
+    List<String> findExistingTitles(@Param("roomType") RoomType roomType, @Param("titles") java.util.Collection<String> titles);
     String VISIBLE = "r.published = true AND NOT EXISTS (SELECT cr.roomId FROM ChapterRoom cr JOIN PathChapter c ON c.id = cr.chapterId JOIN Path p ON p.id = c.pathId WHERE cr.roomId = r.id AND p.published = false)";
 
     @Query("SELECT r.id FROM Room r WHERE " + VISIBLE)
@@ -23,6 +25,10 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
 
     @Query("SELECT COUNT(r) > 0 FROM Room r WHERE r.id = :id AND " + VISIBLE)
     boolean isVisible(@Param("id") Long id);
+
+    boolean existsByTitleAndRoomType(String title, RoomType roomType);
+
+    boolean existsByTitleAndRoomTypeAndIdNot(String title, RoomType roomType, Long id);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Room r WHERE r.id = :id")

@@ -35,6 +35,31 @@ function mount(initial: string, entries: (string | { pathname: string; state?: u
 }
 
 describe('draft editors and guarded navigation', () => {
+  it('guards room import against unsaved edits and reloads the existing path after success', async () => {
+    const user = userEvent.setup(); mount('/admin/paths/5');
+    const importedPath = { ...path, revision: 3, contentRevision: 4, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] };
+    vi.spyOn(contentApi, 'importPathRooms').mockResolvedValue(importedPath);
+    const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, title: 'Web zmieniony', revision: 3, contentRevision: 4 });
+    await user.type(await screen.findByLabelText('Tytuł *'), ' zmieniony');
+    await user.click(screen.getByRole('button', { name: 'Importuj pokoje z JSON' }));
+    expect(await screen.findByRole('dialog', { name: 'Niezapisane zmiany' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Kontynuuj edycję' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Importuj pokoje z JSON' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz i przejdź dalej' }));
+    expect(await screen.findByRole('dialog', { name: 'Dodaj pokoje z JSON' })).toBeInTheDocument();
+    expect(screen.getByText('Ścieżka: Web zmieniony')).toBeInTheDocument();
+    const file = new File(['{"rooms":[]}'], 'rooms.json', { type: 'application/json' });
+    await user.upload(screen.getByLabelText('Plik JSON (do 5 MB)'), file);
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(importedPath)),
+      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: 5 }])));
+    await user.click(screen.getByRole('button', { name: 'Dodaj pokoje jako szkice' }));
+    expect(await screen.findByText(/Dodano pokoje jako szkice/)).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByRole('list', { name: 'Pokoje rozdziału 1' })).toHaveTextContent('Pokój'));
+    expect(contentApi.importPathRooms).toHaveBeenCalledWith(5, { chapterId: 11, contentRevision: 4, chaptersRevision: 3 }, file, expect.any(String));
+    expect(save).toHaveBeenCalledOnce();
+    const event = new Event('beforeunload', { cancelable: true }); window.dispatchEvent(event); expect(event.defaultPrevented).toBe(false);
+  });
   it('opens new path directly in the complete editor and shows counters before typing', async () => {
     const user = userEvent.setup(); const router = mount('/admin/paths');
     await user.click(await screen.findByRole('link', { name: 'Nowa ścieżka' }));
@@ -124,6 +149,22 @@ describe('draft editors and guarded navigation', () => {
     expect(screen.getByLabelText('Tytuł zadania *')).toHaveValue('Pierwsze');
     expect(screen.getByLabelText('Podpowiedź 1 *')).toHaveValue('Podpowiedź lokalna');
   });
+  it('defaults new paths to open and saves the selected unlock mode', async () => {
+    const user = userEvent.setup(); mount('/admin/paths/new');
+    expect(await screen.findByLabelText('Tryb odblokowania')).toHaveValue('OPEN');
+    const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, unlockMode: 'ROOM' });
+    await user.type(screen.getByLabelText('Tytuł *'), 'Kolejka');
+    await user.selectOptions(screen.getByLabelText('Tryb odblokowania'), 'ROOM');
+    expect(screen.getByText(/jedną kolejkę przez całą ścieżkę/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].unlockMode).toBe('ROOM');
+  });
+  it('loads the saved unlock mode of an existing path', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, unlockMode: 'CHAPTER' })));
+    mount('/admin/paths/5');
+    expect(await screen.findByLabelText('Tryb odblokowania')).toHaveValue('CHAPTER');
+  });
   it('adds a room from the side pool to the selected new chapter and saves its assignment', async () => {
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: null, pathTitle: null }])));
     const user = userEvent.setup(); mount('/admin/paths/5');
@@ -156,6 +197,53 @@ describe('draft editors and guarded navigation', () => {
     expect(await screen.findByText('To pole jest wymagane')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByLabelText('Tytuł zadania *')).toHaveFocus());
     expect(router.state.location.pathname).toBe('/admin/paths/rooms/9');
+  });
+});
+
+describe('room title and scoring rules', () => {
+  it('shows a duplicate title reported by the backend next to the title field', async () => {
+    server.use(http.put(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ message: 'Rozdział tego pokoju ma już pokój o tym tytule', fields: { title: 'Rozdział tego pokoju ma już pokój o tym tytule' } }, { status: 409 })));
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
+    const title = await screen.findByLabelText('Tytuł *');
+    await user.clear(title); await user.type(title, 'Wstęp');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(await screen.findByText('Rozdział tego pokoju ma już pokój o tym tytule', { selector: '#content-title-error' })).toBeInTheDocument();
+    await waitFor(() => expect(title).toHaveFocus());
+    expect(title).toHaveValue('Wstęp');
+  });
+  it('rejects reserved tutorial titles before saving a new room', async () => {
+    const save = vi.spyOn(contentApi, 'saveRoom');
+    const user = userEvent.setup(); mount('/admin/ctf/new');
+    await user.type(await screen.findByLabelText('Tytuł *'), ' tutorial VPN ');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(await screen.findByText('Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka')).toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+  it('keeps the title of an existing tutorial room editable', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, title: 'Tutorial VM', roomType: 'CTF', category: 'Tutorial' }, tasks: { revision: 0, tasks: [] } })));
+    const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, title: 'Tutorial VM', roomType: 'CTF', category: 'Tutorial' }, tasks: { revision: 0, tasks: [] } });
+    const user = userEvent.setup(); mount('/admin/ctf/9');
+    await user.type(await screen.findByLabelText('Opis'), ' nowy');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].title).toBe('Tutorial VM');
+  });
+  it('shows CTF points derived from difficulty without an editable points field', async () => {
+    const user = userEvent.setup(); mount('/admin/ctf/new');
+    await screen.findByLabelText('Tytuł *');
+    expect(screen.queryByLabelText('Punkty *')).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'INSANE');
+    expect(screen.getByText('200 pkt')).toBeInTheDocument();
+  });
+  it('shows a duplicate room title in a chapter reported by the backend', async () => {
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: 5, pathTitle: 'Web' }])),
+      http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })),
+      http.put(`${API_URL}/api/admin/content/paths/5`, () => HttpResponse.json({ message: 'Rozdział 1 zawiera już pokój „Pokój”', fields: { 'chapters.0.rooms': 'Rozdział 1 zawiera już pokój „Pokój”' } }, { status: 409 })));
+    const user = userEvent.setup(); mount('/admin/paths/5');
+    await user.type(await screen.findByLabelText('Nazwa rozdziału 1 *'), ' lokalny');
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(await screen.findAllByText('Rozdział 1 zawiera już pokój „Pokój”')).not.toHaveLength(0);
+    expect(screen.getByLabelText('Nazwa rozdziału 1 *')).toHaveValue('Wstęp lokalny');
   });
 });
 

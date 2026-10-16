@@ -134,6 +134,7 @@
 						<exclude>com/hackademy/server/auth/**</exclude>
 						<exclude>com/hackademy/server/filter/**</exclude>
 						<exclude>com/hackademy/server/config/**</exclude>
+						<exclude>com/hackademy/server/vpn/SshVpnShell.class</exclude>
 						<exclude>**/dto/**</exclude>
 						<exclude>**/*Dto.class</exclude>
 						<exclude>**/*Request.class</exclude>

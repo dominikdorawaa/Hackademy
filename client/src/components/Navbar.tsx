@@ -370,7 +370,7 @@ const Navbar = () => {
                 <div ref={menuRef} style={{ position: 'relative' }}>
                   <button type="button" className="nav-account-toggle" data-slot="nav-account"
                     aria-label="Menu konta" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                  <UserAvatar username={userData.username} seed={userData.avatarSeed}
+                  <UserAvatar username={userData.username} seed={userData.avatarSeed} avatar={userData.avatar}
                     alt="User Avatar"
                     className="avatar" 
                     style={{

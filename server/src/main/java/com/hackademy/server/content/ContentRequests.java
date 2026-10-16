@@ -1,5 +1,6 @@
 package com.hackademy.server.content;
 
+import com.hackademy.server.path.PathUnlockMode;
 import com.hackademy.server.path.dto.ChapterRequest;
 import com.hackademy.server.room.DifficultyLevel;
 import com.hackademy.server.room.RoomType;
@@ -8,8 +9,10 @@ import java.util.List;
 
 public final class ContentRequests {
     private ContentRequests() {}
+    public record RoomImport(Long chapterId, Long contentRevision, Long chaptersRevision) {}
     public record PathSave(Long revision, Long chaptersRevision, String title, String description,
-                           String bannerUrl, boolean published, List<ChapterRequest> chapters) {}
+                           String bannerUrl, boolean published, List<ChapterRequest> chapters,
+                           PathUnlockMode unlockMode) {}
     public record RoomSave(Long revision, Long tasksRevision, String title, String description,
                            String shortDescription, DifficultyLevel difficulty, String category, Integer points,
                            String flag, boolean requiresVpn, RoomType roomType, List<String> hints,

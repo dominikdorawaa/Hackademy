@@ -1,6 +1,8 @@
 package com.hackademy.server.dashboard;
 
 import org.springframework.stereotype.Component;
+import org.springframework.transaction.support.TransactionSynchronization;
+import org.springframework.transaction.support.TransactionSynchronizationManager;
 
 import java.util.concurrent.ConcurrentHashMap;
 
@@ -12,6 +14,17 @@ public class DashboardSummaryCache {
     public synchronized long generation() { return generation; }
 
     public synchronized void invalidateAll() { generation++; byUserId.clear(); }
+
+    public void invalidateAllAfterCommit() {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            invalidateAll();
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() { invalidateAll(); }
+        });
+    }
 
     private static final long CACHE_MS = 600_000; // 10 minutes (invalidated on user actions)
 

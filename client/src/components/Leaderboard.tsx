@@ -81,7 +81,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                       style={{ display: 'flex', alignItems: 'center' }}
                     >
                       <div className="player-avatar">
-                          <UserAvatar username={playerName || 'Użytkownik'} seed={player.avatarSeed}
+                          <UserAvatar username={playerName || 'Użytkownik'} seed={player.avatarSeed} avatar={player.avatar}
                           alt="Avatar"
                         />
                       </div>
@@ -119,7 +119,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                   </div>
                   <div className="player-info" style={{ display: 'flex', alignItems: 'center' }}>
                     <div className="player-avatar">
-                        <UserAvatar username={currentUsername || myRank.username} seed={myRank.avatarSeed}
+                        <UserAvatar username={currentUsername || myRank.username} seed={myRank.avatarSeed} avatar={myRank.avatar}
                         alt="Avatar"
                       />
                     </div>

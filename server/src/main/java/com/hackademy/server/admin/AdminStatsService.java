@@ -9,6 +9,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Clock;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
@@ -27,6 +28,7 @@ public class AdminStatsService {
     static final int RECENT_SOLVES_LIMIT = 8;
 
     private final JdbcTemplate jdbcTemplate;
+    private final Clock clock;
 
     private record SourceRow(RoomType roomType, Long pathId, String pathTitle, long count) {}
 
@@ -35,16 +37,16 @@ public class AdminStatsService {
         if (!ALLOWED_RANGES.contains(rangeDays)) {
             throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Zakres musi wynosić 7, 30 lub 90 dni");
         }
-        LocalDate today = LocalDate.now();
+        LocalDate today = LocalDate.now(clock);
         LocalDate start = today.minusDays(rangeDays - 1L);
-        return new AdminStatsDto(totals(), rangeDays, timeline(start, today), solvesBySource(), recentSolves());
+        return new AdminStatsDto(totals(today), rangeDays, timeline(start, today), solvesBySource(), recentSolves());
     }
 
-    private AdminStatsDto.Totals totals() {
+    private AdminStatsDto.Totals totals(LocalDate today) {
         return new AdminStatsDto.Totals(
                 count("SELECT count(*) FROM users"),
                 count("SELECT count(*) FROM user_solved_rooms"),
-                count("SELECT count(DISTINCT user_id) FROM user_weekly_active_time WHERE week_key = ? AND seconds > 0", ActivityWeek.currentKey()),
+                count("SELECT count(DISTINCT user_id) FROM user_weekly_active_time WHERE week_key = ? AND seconds > 0", ActivityWeek.keyFor(today)),
                 count("SELECT count(*) FROM chat_messages WHERE reported")
         );
     }

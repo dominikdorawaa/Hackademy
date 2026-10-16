@@ -6,7 +6,13 @@ import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './PathDetailPage.css';
-import type { PathDetailDto, RoomSummaryDto } from '../types/api';
+import type { PathDetailDto, PathUnlockMode, RoomSummaryDto } from '../types/api';
+
+const unlockModeHints: Record<PathUnlockMode, string> = {
+  OPEN: 'Przechodź rozdziały krok po kroku.',
+  CHAPTER: 'Kolejny rozdział otwiera się po ukończeniu wszystkich pokoi poprzedniego.',
+  ROOM: 'Pokoje otwierają się po kolei. Ukończ bieżący, aby przejść dalej.',
+};
 
 function roomStatus(room: RoomSummaryDto) {
   if (room.locked) return { key: 'locked', label: 'Zablokowane' };
@@ -95,7 +101,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
         <div className="pd-list-header">
           <h2>{path.enrolled ? path.title : 'Program ścieżki'}</h2>
           <span className="pd-muted">
-            {path.enrolled ? 'Przechodź rozdziały krok po kroku.' : 'Musisz dołączyć do ścieżki, aby odblokować zadania.'}
+            {path.enrolled ? unlockModeHints[path.unlockMode ?? 'OPEN'] : 'Musisz dołączyć do ścieżki, aby odblokować zadania.'}
           </span>
         </div>
 
@@ -105,7 +111,10 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
             <section key={chapter.id} className="pd-chapter" aria-labelledby={`pd-chapter-${chapter.id}`}>
               <header className="pd-chapter-header">
                 <div>
-                  <span className="pd-chapter-index">Rozdział {chapterIndex + 1}</span>
+                  <span className="pd-chapter-index">
+                    Rozdział {chapterIndex + 1}
+                    {chapter.locked && <span className="pd-chapter-lock"><i className="fas fa-lock" aria-hidden="true" /> Zablokowany</span>}
+                  </span>
                   <h3 id={`pd-chapter-${chapter.id}`} className="pd-chapter-title">{chapter.title}</h3>
                 </div>
                 <div className="pd-chapter-progress">

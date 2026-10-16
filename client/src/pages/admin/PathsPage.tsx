@@ -9,6 +9,7 @@ import type { PathSummaryDto } from '../../types/api';
 import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
 import { errorText, numberFormat, plural } from '../../components/admin/adminFormat';
 import { useAdminAccess } from './adminAccess';
+import PathImportDialog from './PathImportDialog';
 
 export default function PathsPage() {
   const { token } = useAuth();
@@ -50,7 +51,7 @@ export default function PathsPage() {
       <PageHeader
         title="Ścieżki"
         description="Ścieżka składa się z rozdziałów, a rozdział z pokoi. Kolejność ustawiasz w edytorze ścieżki."
-        actions={<Button asChild><Link to="/admin/paths/new"><Plus />Nowa ścieżka</Link></Button>}
+        actions={<>{isAdmin && <PathImportDialog />}<Button asChild><Link to="/admin/paths/new"><Plus />Nowa ścieżka</Link></Button></>}
       />
       <div className="mb-4 space-y-2">
         {error && <StatusMessage kind="error">{error}</StatusMessage>}

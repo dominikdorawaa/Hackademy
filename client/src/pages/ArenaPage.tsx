@@ -1,19 +1,30 @@
 import UserAvatar from '../components/UserAvatar';
+import ProfilePeek from '../components/ProfilePeek';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
 import * as friendApi from '../services/friendApi';
+import * as rankingApi from '../services/rankingApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
-import type { DashboardUser, FriendDto } from '../types/api';
+import { levelFromPoints } from '../lib/level';
+import { LEAGUES, leagueFor } from '../components/arena/leagues';
+import type { DashboardUser, FriendDto, RankingEntry, UserSearchDto } from '../types/api';
+import './UserDashboardPage.css';
 import './ArenaPage.css';
 
 type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED' | 'CHALLENGING';
+type FriendChallenge = 'sending' | { error: string };
+
+const UNLOCK_POINTS = 500;
+const FRIENDS_SHOWN = 6;
+const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
 const ArenaPage = () => {
     const { token } = useAuth();
     const [userData, setUserData] = useState<DashboardUser | null>(null);
+    const [rank, setRank] = useState<{ status: 'loading' | 'ready' | 'error'; entry: RankingEntry | null }>({ status: 'loading', entry: null });
     const { state: realtime, connected, synchronize } = useRealtime();
     const [joiningQueue, setJoiningQueue] = useState(false);
     const gameSession = realtime?.gameSession ?? null;
@@ -21,85 +32,59 @@ const ArenaPage = () => {
     const status: ArenaStatus = gameSession && gameSession.status !== 'FINISHED' ? 'GAME'
         : realtime?.queued ? 'QUEUE' : realtime?.outgoingChallenges.length ? 'CHALLENGING' : 'IDLE';
     const [error, setError] = useState<string | null>(null);
-
-    // Friend Selection Modal State
-    const [showFriendModal, setShowFriendModal] = useState(false);
-    const [friends, setFriends] = useState<FriendDto[]>([]);
-    const [friendsLoading, setFriendsLoading] = useState(false);
+    const [friends, setFriends] = useState<FriendDto[] | null>(null);
+    const [friendsFailed, setFriendsFailed] = useState(false);
+    const [headToHead, setHeadToHead] = useState<Record<string, UserSearchDto | 'error'>>({});
+    const [statsLoading, setStatsLoading] = useState(true);
+    const [friendChallenges, setFriendChallenges] = useState<Record<string, FriendChallenge>>({});
     const challengedFriends = (realtime?.outgoingChallenges ?? []).map(challenge => challenge.targetUsername);
-
-    // Error Modal State
-    const [showErrorModal, setShowErrorModal] = useState(false);
-    const [errorMessage, setErrorMessage] = useState('');
-
-    // Processing state to prevent double clicks
     const [processingChallengeId, setProcessingChallengeId] = useState<string | null>(null);
     const [acceptedChallenges, setAcceptedChallenges] = useState<string[]>([]);
-
-    // VPN Preference
-    const [vpnEnabled, setVpnEnabled] = useState(false);
-
+    const [challengeError, setChallengeError] = useState<string | null>(null);
 
     useEffect(() => {
-        const fetchUserData = async () => {
-            try {
-                const response = await userApi.getCurrentUser({ 'Authorization': `Bearer ${token}` });
-                if (response.ok) {
-                    const data = await response.json();
-                    setUserData(data);
-                }
-            } catch (err) {
-                console.error("Failed to fetch user data", err);
-            }
-        };
-        fetchUserData();
+        const headers = { Authorization: `Bearer ${token}` };
+        userApi.getCurrentUser(headers)
+            .then(response => response.ok ? response.json() : null)
+            .then(data => { if (data) setUserData(data); })
+            .catch(err => console.error('Failed to fetch user data', err));
+        rankingApi.getSummary(headers)
+            .then(response => { if (!response.ok) throw new Error('ranking'); return response.json(); })
+            .then(data => setRank(data?.myRank ? { status: 'ready', entry: data.myRank } : { status: 'error', entry: null }))
+            .catch(() => setRank({ status: 'error', entry: null }));
+        friendApi.getFriends(headers)
+            .then(async response => {
+                if (!response.ok) throw new Error('friends');
+                const list: FriendDto[] = await response.json();
+                setFriends(list);
+                const stats = await Promise.all(list.slice(0, FRIENDS_SHOWN).map(async friend => {
+                    try {
+                        const r = await friendApi.getStats(friend.username, headers);
+                        return [friend.username, r.ok ? await r.json() as UserSearchDto : 'error' as const] as const;
+                    } catch { return [friend.username, 'error' as const] as const; }
+                }));
+                setHeadToHead(Object.fromEntries(stats));
+                setStatsLoading(false);
+            })
+            .catch(() => { setFriendsFailed(true); setStatsLoading(false); });
     }, [token]);
 
-    const fetchFriends = async () => {
-        setFriendsLoading(true);
-        try {
-            const response = await friendApi.getFriends({ 'Authorization': `Bearer ${token}` });
-            if (response.ok) {
-                const data = await response.json();
-                setFriends(data);
-            }
-        } catch (err) {
-            console.error("Failed to fetch friends", err);
-        } finally {
-            setFriendsLoading(false);
-        }
-    };
-
-    const handleOpenFriendModal = () => {
-        setShowFriendModal(true);
-        fetchFriends();
-    };
-
     const handleChallengeFriend = async (username: string) => {
+        setFriendChallenges(previous => ({ ...previous, [username]: 'sending' }));
         try {
-            const response = await arenaApi.createChallenge({
-                    targetUsername: username,
-                    vpnEnabled: vpnEnabled // Send vpnEnabled status
-                }, {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                });
-
+            const response = await arenaApi.createChallenge({ targetUsername: username, vpnEnabled: false }, {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            });
             if (response.ok) {
-                setShowFriendModal(false);
+                setFriendChallenges(previous => { const next = { ...previous }; delete next[username]; return next; });
                 await synchronize();
             } else {
                 const data = await response.json();
-                // Close friend modal and show error modal
-                setShowFriendModal(false);
-                setErrorMessage(data.message ?? 'Błąd');
-                setShowErrorModal(true);
+                setFriendChallenges(previous => ({ ...previous, [username]: { error: data.message ?? 'Nie udało się wysłać wyzwania.' } }));
             }
-        } catch (err) {
-            console.error("Failed to send challenge", err);
-            setShowFriendModal(false);
-            setErrorMessage("Błąd sieci.");
-            setShowErrorModal(true);
+        } catch {
+            setFriendChallenges(previous => ({ ...previous, [username]: { error: 'Błąd sieci. Spróbuj ponownie.' } }));
         }
     };
 
@@ -108,34 +93,31 @@ const ArenaPage = () => {
         setJoiningQueue(true);
         setError(null);
         try {
-            const response = await arenaApi.joinQueue({ vpnEnabled }, {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                });
-
+            const response = await arenaApi.joinQueue({ vpnEnabled: false }, {
+                'Content-Type': 'application/json',
+                'Authorization': `Bearer ${token}`
+            });
             if (response.ok) {
-                setError(null);
                 setJoiningQueue(false);
                 void synchronize();
             } else {
                 const data = await response.json();
-                setError(data.message ?? 'Błąd');
+                setError(data.message ?? 'Nie udało się dołączyć do kolejki.');
             }
         } catch {
-            setError("Błąd sieci");
+            setError('Błąd sieci. Spróbuj ponownie.');
         } finally {
             setJoiningQueue(false);
         }
     };
 
     const handleLeaveQueue = async () => {
-
         try {
             const response = await arenaApi.leaveQueue({ 'Authorization': `Bearer ${token}` });
             if (!response.ok) throw new Error('Cannot leave queue');
             await synchronize();
         } catch (err) {
-            console.error("Error leaving queue", err);
+            console.error('Error leaving queue', err);
         }
     };
 
@@ -152,23 +134,20 @@ const ArenaPage = () => {
     };
 
     const handleAcceptChallenge = async (challengeId: string) => {
-        if (processingChallengeId === challengeId || acceptedChallenges.includes(challengeId)) return; // Prevent double click
+        if (processingChallengeId === challengeId || acceptedChallenges.includes(challengeId)) return;
         setProcessingChallengeId(challengeId);
-
+        setChallengeError(null);
         try {
             const response = await arenaApi.acceptChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
-
             if (response.ok) {
                 setAcceptedChallenges(prev => [...prev, challengeId]);
                 await synchronize();
-
             } else {
                 const data = await response.json();
-                console.error("Accept failed:", data);
-                alert(data.message);
+                setChallengeError(data.message ?? 'Nie udało się przyjąć wyzwania.');
             }
-        } catch (err) {
-            console.error("Error accepting challenge", err);
+        } catch {
+            setChallengeError('Błąd sieci. Spróbuj ponownie.');
         } finally {
             setProcessingChallengeId(null);
         }
@@ -177,263 +156,217 @@ const ArenaPage = () => {
     const handleRejectChallenge = async (challengeId: string) => {
         if (processingChallengeId === challengeId) return;
         setProcessingChallengeId(challengeId);
-
         try {
             const response = await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
             if (!response.ok) throw new Error('Cannot reject challenge');
             await synchronize();
         } catch (err) {
-            console.error("Error rejecting challenge", err);
+            console.error('Error rejecting challenge', err);
         } finally {
             setProcessingChallengeId(null);
         }
     };
 
-    if (!userData) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Ładowanie...</div>;
+    if (!userData) return <div className="user-dashboard"><div className="ud-shell"><p role="status" className="ud-empty">Ładowanie Areny…</p></div></div>;
 
-    const userLevel = Math.floor(userData.points / 100) + 1;
-    const canPlay = userLevel >= 5;
+    const canPlay = userData.points >= UNLOCK_POINTS;
+    const missing = Math.max(0, UNLOCK_POINTS - userData.points);
+    const offline = !connected || !realtime;
+    const myRank = rank.entry;
+    const known = rank.status === 'ready' && myRank !== null;
+    const elo = myRank?.elo ?? 0;
+    const opponent = gameSession ? (gameSession.player1Id === userData.id ? gameSession.player2Username : gameSession.player1Username) : '';
+    const searching = status === 'QUEUE' || joiningQueue;
+    const { league, next } = leagueFor(elo);
+    const rankLabel = !known ? (rank.status === 'loading' ? 'Wczytuję Elo…' : 'Nie udało się wczytać Elo') : myRank.rankElo ? `#${myRank.rankElo} w rankingu Elo` : 'Poza rankingiem Elo';
+    const headline = status === 'GAME' ? 'Walka trwa' : searching ? 'Szukamy rywala' : status === 'CHALLENGING' ? 'Czekamy na odpowiedź' : canPlay ? 'Wejdź na arenę' : 'Arena od 500 XP';
 
     return (
-        <section className="arena-section" id="arena" style={{ display: 'flex', flexDirection: 'column', alignItems: 'center', minHeight: 'calc(100vh - 170px)', paddingTop: '40px'}}>
-
-            {/* Challenges Section */}
-            {challenges.length > 0 && (
-                <div className="hackademy-container" style={{ maxWidth: '600px', marginBottom: '30px', width: '100%' }}>
-                    <div style={{ backgroundColor: 'rgba(255, 152, 0, 0.1)', border: '1px solid #ff9800', borderRadius: '12px', padding: '20px' }}>
-                        <h3 style={{ color: '#ff9800', marginTop: 0, marginBottom: '15px', fontSize: '1.2rem' }}>
-                            <i className="fas fa-swords" style={{ marginRight: '10px' }}></i>
-                            Otrzymane Wyzwania ({challenges.length})
-                        </h3>
-                        <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                            {challenges.map(challenge => {
-                                const isAccepted = acceptedChallenges.includes(challenge.id);
-                                return (
-                                    <div key={challenge.id} style={{
-                                        display: 'flex',
-                                        justifyContent: 'space-between',
-                                        alignItems: 'center',
-                                        backgroundColor: 'var(--bg-panel)',
-                                        padding: '15px',
-                                        borderRadius: '8px',
-                                        border: '1px solid var(--border-color)'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <UserAvatar username={challenge.challengerUsername} seed={challenge.challengerAvatarSeed} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
-                                            <span style={{ fontWeight: 'bold', color: 'var(--text-light)' }}>{challenge.challengerUsername}</span>
-                                            <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem' }}>wyzywa Cię!</span>
-                                        </div>
-                                        <div style={{ display: 'flex', gap: '10px' }}>
-                                            <button
-                                                onClick={() => handleAcceptChallenge(challenge.id)}
-                                                className="btn btn-primary"
-                                                style={{
-                                                    padding: '5px 15px',
-                                                    fontSize: '0.9rem',
-                                                    opacity: (processingChallengeId === challenge.id || isAccepted) ? 0.5 : 1,
-                                                    cursor: (processingChallengeId === challenge.id || isAccepted) ? 'default' : 'pointer'
-                                                }}
-                                                disabled={processingChallengeId === challenge.id || isAccepted}
-                                            >
-                                                {isAccepted ? 'Zaakceptowano' : 'Akceptuj'}
-                                            </button>
-                                            {!isAccepted && (
-                                                <button
-                                                    onClick={() => handleRejectChallenge(challenge.id)}
-                                                    className="btn btn-outline"
-                                                    style={{ padding: '5px 15px', fontSize: '0.9rem', borderColor: '#e74c3c', color: '#e74c3c', opacity: processingChallengeId === challenge.id ? 0.5 : 1 }}
-                                                    disabled={processingChallengeId === challenge.id}
-                                                >
-                                                    Odrzuć
-                                                </button>
-                                            )}
-                                        </div>
-                                    </div>
-                                );
-                            })}
-                        </div>
-                    </div>
-                </div>
-            )}
-
-            <div className="hackademy-container" style={{ maxWidth: '600px' }}>
-                <div className="elo-card-wrapper">
-                    <div className="elo-card">
-                        <span className="elo-badge">TRYB RANKINGOWY</span>
-
-                        <h3 style={{ marginBottom: '10px', color: 'var(--text-light)' }}>Pojedynki 1v1</h3>
-                        {(!connected || !realtime) && <p role="status">Łączenie z Areną. Poczekaj na połączenie z serwerem.</p>}
-                        <p style={{ color: 'var(--text-gray)', fontSize: '0.9rem', marginBottom: '30px' }}>
-                            Pnij się w drabinie rankingowej. System dobierze Ci przeciwnika o równym poziomie – wygrywa ten, kto szybciej przełamie zabezpieczenia systemu.
-                        </p>
-
-                        {status === 'GAME' && gameSession ? (
-                            <div role="status" style={{ textAlign: 'center', margin: '40px 0' }}>
-                                <p>Masz trwający mecz z {gameSession.player1Id === userData.id ? gameSession.player2Username : gameSession.player1Username}.</p>
-                                <Link className="btn btn-primary" to={`/rooms/${gameSession.roomId}?arena=${gameSession.id}`}>Wróć do meczu</Link>
+        <div className="user-dashboard arena-page" id="arena">
+            <div className="ud-shell">
+                <div className="ud-main">
+                    <section className="arena-hero" aria-labelledby="arena-title" style={{ '--league': known ? league.color : 'var(--ud-track)' } as React.CSSProperties}>
+                        <div className="arena-card">
+                            <div className="arena-card-top">
+                                {known && <span className="arena-league">Liga {league.name}</span>}
+                                <span className="arena-card-rank" role={known ? undefined : "status"}>{rankLabel}</span>
                             </div>
-                        ) : status === 'QUEUE' || joiningQueue ? (
-                            <div role="status" aria-live="polite" style={{ textAlign: 'center', margin: '40px 0' }}>
-                                <div className="spinner" style={{
-                                    width: '50px', height: '50px', border: '5px solid rgba(255,255,255,0.1)',
-                                    borderTop: '5px solid var(--primary-blue)', borderRadius: '50%',
-                                    margin: '0 auto 20px'
-                                }}></div>
-                                <p style={{ color: 'var(--text-light)' }}>{joiningQueue && status !== 'QUEUE' ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}</p>
-                                <button onClick={handleLeaveQueue} disabled={joiningQueue && status !== 'QUEUE'} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
-                                    Anuluj
-                                </button>
-                            </div>
-                        ) : status === 'CHALLENGING' ? (
-                            <div style={{ textAlign: 'center', margin: '40px 0' }}>
-                                <div className="spinner" style={{
-                                    width: '50px', height: '50px', border: '5px solid rgba(255,152,0,0.1)',
-                                    borderTop: '5px solid #ff9800', borderRadius: '50%',
-                                    margin: '0 auto 20px'
-                                }}></div>
-                                <p style={{ color: 'var(--text-light)' }}>Oczekiwanie na akceptację wyzwania...</p>
-                                <button onClick={handleCancelChallenges} className="btn btn-outline" style={{ marginTop: '20px', borderColor: '#e74c3c', color: '#e74c3c' }}>
-                                    Anuluj
-                                </button>
-                            </div>
-                        ) : (
-                            <>
-                                <div className="matchup-visual">
-                                    <div className="player-av p-blue">
-                                        <UserAvatar username={userData.username} seed={userData.avatarSeed} alt="Ty" />
+                            <UserAvatar className="arena-card-portrait" username={userData.username} seed={userData.avatarSeed} avatar={userData.avatar} alt="" />
+                            <p className="arena-card-name">{userData.username}</p>
+                            <p className="arena-card-elo">
+                                <span className="arena-card-number">{known ? elo : '–'}</span>
+                                <span className="ud-term">
+                                    <button type="button" className="ud-term-btn" aria-describedby="arena-elo-tip">
+                                        Elo
+                                        <i className="fas fa-circle-info" aria-hidden="true" />
+                                    </button>
+                                    <span role="tooltip" id="arena-elo-tip" className="ud-tip">
+                                        <strong>Elo to Twoja siła w pojedynkach.</strong> Wygrywasz, to rośnie, przegrywasz, to spada.
+                                        Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.
+                                    </span>
+                                </span>
+                            </p>
+                            {!known ? (
+                                <p className="arena-card-next">{rank.status === 'loading' ? 'Za chwilę zobaczysz swoją ligę.' : 'Odśwież stronę, żeby spróbować ponownie.'}</p>
+                            ) : next ? (
+                                <div className="arena-card-next">
+                                    <div className="ud-meter" role="progressbar" aria-label={`Postęp do ligi ${next.name}`} aria-valuemin={league.min} aria-valuemax={next.min} aria-valuenow={elo}>
+                                        <span style={{ '--ud-fill': Math.min(1, Math.max(0, (elo - league.min) / (next.min - league.min))) } as React.CSSProperties} />
                                     </div>
-                                    <div className="vs-icon">VS</div>
-                                    <div className="player-av p-red">
-                                        <div style={{ width: '100%', height: '100%', backgroundColor: '#333', display: 'flex', alignItems: 'center', justifyContent: 'center', color: '#666', fontSize: '2rem' }}>?</div>
-                                    </div>
+                                    <p>Do ligi {next.name} brakuje Ci {formatNumberPL(next.min - elo)} Elo.</p>
                                 </div>
-
-                                {canPlay ? (
-                                    <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                        <div style={{ marginBottom: '15px', display: 'flex', alignItems: 'center', justifyContent: 'center', gap: '10px' }}>
-                                            <label style={{
-                                                display: 'flex',
-                                                alignItems: 'center',
-                                                gap: '10px',
-                                                cursor: userData.hasVpnAccess ? 'pointer' : 'not-allowed',
-                                                color: userData.hasVpnAccess ? 'var(--text-gray)' : '#555',
-                                                fontSize: '0.9rem'
-                                            }}
-                                            title={!userData.hasVpnAccess ? 'Ukończ "Tutorial VPN", aby odblokować.' : ''}
-                                            >
-                                                <input
-                                                    type="checkbox"
-                                                    checked={vpnEnabled}
-                                                    onChange={(e) => setVpnEnabled(e.target.checked)}
-                                                    disabled={!userData.hasVpnAccess}
-                                                    style={{ width: '18px', height: '18px', cursor: userData.hasVpnAccess ? 'pointer' : 'not-allowed' }}
-                                                />
-                                                Uwzględnij zadania VPN
-                                                {!userData.hasVpnAccess && <i className="fas fa-lock" style={{ fontSize: '0.8rem', marginLeft: '5px' }}></i>}
-                                            </label>
-                                        </div>
-
-                                        <button onClick={handleJoinQueue} disabled={!connected || !realtime} className="elo-btn">
-                                            <i className="fas fa-search"></i> Znajdź Przeciwnika
-                                        </button>
-                                        <button onClick={handleOpenFriendModal} disabled={!connected || !realtime} className="elo-btn elo-btn-outline">
-                                            <i className="fas fa-swords"></i> Wyzwij Znajomego
-                                        </button>
-                                    </div>
-                                ) : (
-                                    <>
-                                        <button className="elo-btn" disabled style={{ cursor: 'not-allowed', opacity: 0.5 }}>
-                                            <i className="fas fa-lock"></i> Zablokowane
-                                        </button>
-                                        <p style={{ color: 'var(--primary-red)', marginTop: '15px', fontSize: '0.9rem' }}>
-                                            <i className="fas fa-lock" style={{ marginRight: '8px' }}></i>
-                                            Wymagany poziom 5 (500 pkt)
-                                        </p>
-                                    </>
-                                )}
-                                {error && <p style={{ color: '#e74c3c', marginTop: '10px' }}>{error}</p>}
-                            </>
-                        )}
-                    </div>
-                </div>
-            </div>
-
-            {/* Friend Selection Modal */}
-            {showFriendModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-                    backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1000
-                }}>
-                    <div style={{
-                        backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '500px',
-                        border: '1px solid var(--border-color)', maxHeight: '80vh', overflowY: 'auto'
-                    }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: '20px' }}>
-                            <h2 style={{ margin: 0, color: 'var(--text-light)' }}>Wybierz Znajomego</h2>
-                            <button onClick={() => setShowFriendModal(false)} style={{ background: 'none', border: 'none', color: 'var(--text-gray)', fontSize: '1.5rem', cursor: 'pointer' }}>&times;</button>
+                            ) : (
+                                <p className="arena-card-next">Najwyższa liga. Broń swojego miejsca.</p>
+                            )}
+                            <Link className="arena-card-edit" to="/arena/avatar">{userData.avatar ? 'Edytuj awatar' : 'Stwórz awatar'}</Link>
                         </div>
-
-                        {friendsLoading ? (
-                            <p style={{ color: 'var(--text-light)' }}>Ładowanie znajomych...</p>
-                        ) : friends.length === 0 ? (
-                            <p style={{ color: 'var(--text-gray)' }}>Nie masz jeszcze znajomych.</p>
-                        ) : (
-                            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-                                {friends.map(friend => (
-                                    <div key={friend.id} style={{
-                                        display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-                                        padding: '15px', backgroundColor: 'var(--bg-panel-lighter)', borderRadius: '8px'
-                                    }}>
-                                        <div style={{ display: 'flex', alignItems: 'center', gap: '10px' }}>
-                                            <UserAvatar username={friend.username} seed={friend.avatarSeed} alt="Avatar" style={{ width: '40px', borderRadius: '50%' }} />
-                                            <span style={{ fontWeight: 'bold', color: 'var(--text-light)' }}>{friend.username}</span>
-                                        </div>
-                                        <button
-                                            onClick={() => handleChallengeFriend(friend.username)}
-                                            className="btn btn-primary"
-                                         disabled={challengedFriends.includes(friend.username)}
-                                            style={{
-                                                padding: '5px 15px',
-                                                fontSize: '0.9rem',
-                                                opacity: challengedFriends.includes(friend.username) ? 0.6 : 1,
-                                            }}
-                                        >
-                                            {challengedFriends.includes(friend.username) ? 'Wyzwano' : 'Wyzwij'}
-                                        </button>
+                        <div className="arena-hero-main">
+                        <div className="arena-console-copy">
+                            <p className="arena-kicker">Tryb rankingowy</p>
+                            <h1 id="arena-title" className="arena-title">{headline}</h1>
+                            {status === 'GAME' && gameSession ? (
+                                <p role="status">Masz trwający mecz z {opponent}.</p>
+                            ) : status === 'QUEUE' || joiningQueue ? (
+                                <p role="status" aria-live="polite" className="arena-waiting">
+                                    <span className="arena-pulse" aria-hidden="true" />
+                                    {joiningQueue && status !== 'QUEUE' ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}
+                                </p>
+                            ) : status === 'CHALLENGING' ? (
+                                <p role="status" aria-live="polite" className="arena-waiting">
+                                    <span className="arena-pulse" aria-hidden="true" />
+                                    Oczekiwanie na akceptację wyzwania...
+                                </p>
+                            ) : canPlay ? (
+                                <p>Rywal dostaje ten sam pokój co Ty. Szybsza flaga wygrywa i zabiera mu punkty Elo.</p>
+                            ) : (
+                                <>
+                                    <p>Pojedynki odblokujesz od {formatNumberPL(UNLOCK_POINTS)} XP. Brakuje Ci {formatNumberPL(missing)} XP.</p>
+                                    <div className="ud-meter arena-unlock" role="progressbar" aria-label="Postęp do odblokowania Areny" aria-valuemin={0} aria-valuemax={UNLOCK_POINTS} aria-valuenow={Math.min(userData.points, UNLOCK_POINTS)}>
+                                        <span style={{ '--ud-fill': Math.min(1, userData.points / UNLOCK_POINTS) } as React.CSSProperties} />
                                     </div>
-                                ))}
+                                </>
+                            )}
+                            {offline && <p role="status" className="arena-note">Łączenie z Areną. Poczekaj na połączenie z serwerem.</p>}
+                            {error && <p role="alert" className="arena-error">{error}</p>}
+                        </div>
+                        <ol className="arena-ladder" aria-label="Ligi Areny">
+                            {LEAGUES.map(item => (
+                                <li key={item.name} className={!known ? undefined : item === league ? "is-current" : elo >= item.min ? "is-reached" : undefined} style={{ '--tier': item.color } as React.CSSProperties} aria-current={known && item === league ? "true" : undefined}>
+                                    <span className="arena-ladder-bar" aria-hidden="true" />
+                                    <span className="arena-ladder-name">{item.name}</span>
+                                    <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${item.min}`}</span>
+                                </li>
+                            ))}
+                        </ol>
+                        <div className="arena-console-actions">
+                            {status === 'GAME' && gameSession ? (
+                                <Link className="ud-btn arena-go" to={`/rooms/${gameSession.roomId}?arena=${gameSession.id}`}>Wróć do meczu</Link>
+                            ) : status === 'QUEUE' || joiningQueue ? (
+                                <button type="button" className="ud-btn ud-btn-quiet" onClick={handleLeaveQueue} disabled={joiningQueue && status !== 'QUEUE'}>Anuluj</button>
+                            ) : status === 'CHALLENGING' ? (
+                                <button type="button" className="ud-btn ud-btn-quiet" onClick={handleCancelChallenges}>Anuluj</button>
+                            ) : canPlay ? (
+                                <button type="button" className="ud-btn arena-go" onClick={handleJoinQueue} disabled={offline}>Znajdź przeciwnika</button>
+                            ) : (
+                                <Link className="ud-btn arena-go" to="/learn">Rozwiązuj pokoje</Link>
+                            )}
+                        </div>
+                        </div>
+                    </section>
+
+                    {challenges.length > 0 && (
+                        <section className="ud-panel" aria-labelledby="arena-challenges-title">
+                            <div className="ud-section-head">
+                                <h2 id="arena-challenges-title">Otrzymane wyzwania ({challenges.length})</h2>
                             </div>
-                        )}
-                    </div>
+                            <ul className="ud-friend-list">
+                                {challenges.map(challenge => {
+                                    const accepted = acceptedChallenges.includes(challenge.id);
+                                    const busy = processingChallengeId === challenge.id;
+                                    return (
+                                        <li key={challenge.id} className="ud-friend arena-challenge">
+                                            <UserAvatar className="ud-friend-avatar" username={challenge.challengerUsername} seed={challenge.challengerAvatarSeed} alt="" />
+                                            <span className="ud-friend-who">
+                                                <ProfilePeek className="ud-friend-name" username={challenge.challengerUsername} token={token} />
+                                                <span className="ud-friend-xp">Wyzywa Cię na pojedynek</span>
+                                            </span>
+                                            <span className="ud-friend-act arena-challenge-act">
+                                                {!accepted && (
+                                                    <button type="button" className="ud-btn ud-btn-small arena-reject" onClick={() => handleRejectChallenge(challenge.id)} disabled={busy}>Odrzuć</button>
+                                                )}
+                                                <button type="button" className="ud-btn ud-btn-small ud-btn-solid" onClick={() => handleAcceptChallenge(challenge.id)} disabled={busy || accepted}>
+                                                    {accepted ? 'Zaakceptowano' : 'Akceptuj'}
+                                                </button>
+                                            </span>
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                            {challengeError && <p role="alert" className="arena-error">{challengeError}</p>}
+                        </section>
+                    )}
                 </div>
-            )}
 
-            {/* Error Modal */}
-            {showErrorModal && (
-                <div style={{
-                    position: 'fixed', top: 0, left: 0, width: '100%', height: '100%',
-                    backgroundColor: 'rgba(0,0,0,0.8)', display: 'flex', justifyContent: 'center', alignItems: 'center', zIndex: 1100
-                }}>
-                    <div style={{
-                        backgroundColor: 'var(--bg-panel)', padding: '30px', borderRadius: '12px', width: '90%', maxWidth: '400px',
-                        border: '1px solid #e74c3c', textAlign: 'center'
-                    }}>
-                        <div style={{ fontSize: '3rem', color: '#e74c3c', marginBottom: '20px' }}>
-                            <i className="fas fa-exclamation-circle"></i>
+                <aside className="ud-board arena-board" aria-label="Znajomi i zasady">
+                    <section className="arena-board-friends" aria-labelledby="arena-friends-title">
+                        <div className="ud-section-head">
+                            <h2 id="arena-friends-title">Wyzwij znajomego</h2>
+                            {friends && friends.length > 0 && <Link className="ud-link" to="/friends">Wszyscy znajomi ({friends.length})</Link>}
                         </div>
-                        <h2 style={{ margin: '0 0 15px 0', color: 'var(--text-light)' }}>Błąd</h2>
-                        <p style={{ color: 'var(--text-gray)', marginBottom: '25px' }}>{errorMessage}</p>
-                        <button
-                            onClick={() => setShowErrorModal(false)}
-                            className="btn btn-primary"
-                            style={{ padding: '10px 30px' }}
-                        >
-                            OK
-                        </button>
-                    </div>
-                </div>
-            )}
-        </section>
+                        {friendsFailed ? (
+                            <p className="ud-empty">Nie udało się wczytać znajomych. Odśwież stronę, żeby spróbować ponownie.</p>
+                        ) : friends === null ? (
+                            <p className="ud-empty">Wczytuję znajomych…</p>
+                        ) : friends.length === 0 ? (
+                            <p className="ud-empty">Nie masz jeszcze znajomych. Dodaj kogoś z rankingu, a potem wyzwij go tutaj na pojedynek.</p>
+                        ) : (
+                            <ul className="ud-friend-list">
+                                {friends.slice(0, FRIENDS_SHOWN).map(friend => {
+                                    const h2h = headToHead[friend.username];
+                                    const record = h2h && h2h !== 'error' ? h2h : null;
+                                    const played = record ? record.winsAgainst + record.lossesAgainst : 0;
+                                    const state = friendChallenges[friend.username];
+                                    const sent = challengedFriends.includes(friend.username);
+                                    return (
+                                        <li key={friend.id} className="ud-friend">
+                                            <UserAvatar className="ud-friend-avatar" username={friend.username} seed={friend.avatarSeed} avatar={friend.avatar} alt="" />
+                                            <span className="ud-friend-who">
+                                                <ProfilePeek className="ud-friend-name" username={friend.username} token={token} />
+                                                <span className="ud-friend-xp">{formatNumberPL(friend.points)} XP, poziom {levelFromPoints(friend.points)}</span>
+                                            </span>
+                                            <span className="ud-friend-h2h">
+                                                {record ? (played > 0 ? <>Bilans <strong>{record.winsAgainst}:{record.lossesAgainst}</strong></> : 'Jeszcze bez pojedynku') : h2h === undefined && statsLoading ? 'Wczytuję bilans…' : 'Bilans niedostępny'}
+                                            </span>
+                                            <span className="ud-friend-act">
+                                                {sent ? (
+                                                    <span className="ud-friend-sent">Wyzwanie wysłane</span>
+                                                ) : (
+                                                    <button type="button" className="ud-btn ud-btn-small" onClick={() => handleChallengeFriend(friend.username)}
+                                                        disabled={!canPlay || offline || status !== 'IDLE' || state === 'sending'}>
+                                                        {state === 'sending' ? 'Wysyłam…' : 'Wyzwij'}
+                                                    </button>
+                                                )}
+                                            </span>
+                                            {state && typeof state === 'object' && <p className="ud-friend-error">{state.error}</p>}
+                                        </li>
+                                    );
+                                })}
+                            </ul>
+                        )}
+                    </section>
+                    <section aria-labelledby="arena-rules-title">
+                        <h2 id="arena-rules-title" className="arena-board-title">Zasady pojedynków rankingowych</h2>
+                        <ol className="arena-rules">
+                            <li>Kolejka łączy Cię z kolejnym czekającym graczem albo grasz z wyzwanym znajomym.</li>
+                            <li>Oboje dostajecie ten sam pokój i startujecie w tej samej chwili.</li>
+                            <li>Wygrywa krótszy czas zdobycia flagi. Każda podpowiedź dolicza 2 minuty.</li>
+                            <li>Poddanie meczu oznacza porażkę. Elo zmienia się po każdym rozstrzygniętym meczu.</li>
+                        </ol>
+                        <Link className="ud-link" to="/ranking">Pełny ranking</Link>
+                    </section>
+                </aside>
+            </div>
+        </div>
     );
 };
 

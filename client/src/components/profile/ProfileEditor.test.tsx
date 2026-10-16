@@ -174,10 +174,13 @@ describe('profile editor dismissal', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(writes).toHaveLength(1);
     finish();
-    await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+    // Closing follows the fetch outside act(), so the unmount effect restoring focus may run after the dialog is gone.
+    await waitFor(() => {
+      expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Edytuj profil' })).toHaveFocus();
+    });
     expect(saved).toHaveBeenCalledWith(expect.objectContaining({ bio: 'Original bio updated' }));
     expect(closed).toHaveBeenCalledOnce();
-    expect(screen.getByRole('button', { name: 'Edytuj profil' })).toHaveFocus();
   });
 
   it.each(['validation', 'server', 'network'])('retains the draft and closing protection after a %s error', async failure => {

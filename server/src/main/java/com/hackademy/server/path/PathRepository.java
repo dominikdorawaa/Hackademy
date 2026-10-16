@@ -17,6 +17,9 @@ public interface PathRepository extends JpaRepository<Path, Long> {
     @Query("SELECT p FROM Path p WHERE p.id = :id")
     Optional<Path> findByIdForUpdate(@Param("id") Long id);
 
+    @Query("SELECT p.unlockMode FROM Path p WHERE p.id = :id")
+    Optional<PathUnlockMode> findUnlockModeById(@Param("id") Long id);
+
     interface PathListView {
         Long getId();
         String getTitle();
