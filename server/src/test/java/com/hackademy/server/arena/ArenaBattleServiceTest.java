@@ -59,6 +59,21 @@ class ArenaBattleServiceTest {
     }
 
     @Test
+    void anAnswerDelayedPastTheRevealCannotAnswerTheNextQuestion() {
+        now.addAndGet(BattleEngine.ROUND_MILLIS);
+        arena.tickBattles();
+        now.addAndGet(BattleEngine.REVEAL_MILLIS);
+        arena.tickBattles();
+        assertEquals(2, state().getRound());
+        assertEquals(BattleEngine.AnswerResult.WRONG_ROUND, arena.answer("game", 1L, 1, 2));
+        assertTrue(state().getAnsweredBy().isEmpty());
+        assertEquals(Map.of(1L, 100, 2L, 100), state().getHp());
+        assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer("game", 1L, 2, 0));
+        assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer("game", 2L, 2, 0));
+        assertEquals(Map.of(1L, 100, 2L, 100), state().getHp());
+    }
+
+    @Test
     void attachesSavedAvatarsToTheBattle() {
         assertEquals(avatar, state().getPlayer1Avatar());
         assertNull(state().getPlayer2Avatar());
@@ -67,7 +82,7 @@ class ArenaBattleServiceTest {
 
     @Test
     void endsTheRoundWhenTimeRunsOutAndOpensTheNextAfterTheReveal() {
-        arena.answer("game", 1L, 2);
+        arena.answer("game", 1L, state().getRound(), 2);
         now.addAndGet(BattleEngine.ROUND_MILLIS);
         arena.tickBattles();
         assertEquals("REVEAL", state().getPhase());
@@ -76,14 +91,14 @@ class ArenaBattleServiceTest {
         arena.tickBattles();
         assertEquals("QUESTION", state().getPhase());
         assertEquals(2, state().getRound());
-        assertEquals(BattleEngine.AnswerResult.NOT_PLAYER, arena.answer("missing", 1L, 0));
+        assertEquals(BattleEngine.AnswerResult.NOT_PLAYER, arena.answer("missing", 1L, state().getRound(), 0));
     }
 
     @Test
     void aKnockoutFinishesTheBattleAndAwardsElo() {
         for (int round = 1; round <= 5; round++) {
-            arena.answer("game", 2L, 2);
-            arena.answer("game", 1L, 0);
+            arena.answer("game", 2L, state().getRound(), 2);
+            arena.answer("game", 1L, state().getRound(), 0);
             now.addAndGet(BattleEngine.REVEAL_MILLIS);
             arena.tickBattles();
         }

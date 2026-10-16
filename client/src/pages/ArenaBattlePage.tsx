@@ -31,9 +31,12 @@ export default function ArenaBattlePage() {
   const { token } = useAuth();
   const { state: realtime } = useRealtime();
   const session = useArenaSession(gameId, token, realtime?.gameSession ?? null);
-  const [meId, setMeId] = useState<number | null>(null);
+  const [identity, setIdentity] = useState<{ token: string; id: number } | null>(null);
+  const [identityError, setIdentityError] = useState<string | null>(null);
+  const [identityAttempt, setIdentityAttempt] = useState(0);
+  const meId = identity?.token === token ? identity?.id ?? null : null;
   const [picked, setPicked] = useState<{ round: number; answer: number } | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const [error, setError] = useState<{ round: number | null; message: string } | null>(null);
   const [confirmSurrender, setConfirmSurrender] = useState(false);
   const [chatOpen, setChatOpen] = useState(false);
   const [clock, setClock] = useState({ serverTime: 0, receivedAt: 0, now: 0 });
@@ -46,11 +49,17 @@ export default function ArenaBattlePage() {
     if (!token) return;
     const controller = new AbortController();
     userApi.getCurrentUser({ Authorization: `Bearer ${token}` }, controller.signal)
-      .then(response => response.ok ? response.json() : null)
-      .then(user => { if (user?.id) setMeId(user.id); })
-      .catch(() => undefined);
+      .then(response => {
+        if (!response.ok) throw new Error('User request failed');
+        return response.json();
+      })
+      .then(user => {
+        if (!Number.isInteger(user?.id) || user.id <= 0) throw new Error('Invalid user');
+        if (!controller.signal.aborted) setIdentity({ token, id: user.id });
+      })
+      .catch(() => { if (!controller.signal.aborted) setIdentityError(token); });
     return () => controller.abort();
-  }, [token]);
+  }, [token, identityAttempt]);
 
   useEffect(() => {
     const update = () => setClock(previous => {
@@ -62,15 +71,23 @@ export default function ArenaBattlePage() {
   }, [serverTime]);
 
   if (!session || meId === null) {
+    const failed = identityError === token && token !== null;
     return (
       <div className="user-dashboard battle-page">
-        <div className="battle-shell"><p role="status" className="ud-empty">Wczytuję walkę…</p><Link className="ud-link" to="/arena">Wróć do Areny</Link></div>
+        <div className="battle-shell">
+          {failed ? <>
+            <p role="alert" className="battle-error">Nie udało się pobrać Twojego konta. Walka trwa dalej. Spróbuj ponownie.</p>
+            <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setIdentityError(null); setIdentityAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
+          </> : <p role="status" className="ud-empty">Wczytuję walkę…</p>}
+          <Link className="ud-link" to="/arena">Wróć do Areny</Link>
+        </div>
       </div>
     );
   }
 
   const { me, rival } = perspective(session, meId);
   const finished = session.status === 'FINISHED';
+  const RevealHeading = finished ? 'h2' : 'h1';
   const deadline = session.phase === 'QUESTION' ? session.roundEndsAt : session.nextRoundAt;
   const left = clock.serverTime === serverTime
     ? secondsLeft(deadline, serverTime, clock.receivedAt, clock.now)
@@ -81,28 +98,30 @@ export default function ArenaBattlePage() {
   const reveal = session.phase === 'REVEAL' ? session.lastRound : null;
   const result = outcome(session, me.id);
   const change = eloChange(session, me.id);
+  const visibleError = error && (error.round === null || error.round === session.round) ? error.message : null;
   const headers = { Authorization: `Bearer ${token}` };
 
   const answer = async (choice: number) => {
-    setPicked({ round: session.round, answer: choice });
+    const round = session.round;
+    setPicked({ round, answer: choice });
     setError(null);
     try {
-      const response = await arenaApi.answerQuestion(session.id, choice, headers);
+      const response = await arenaApi.answerQuestion(session.id, round, choice, headers);
       if (!response.ok) {
         const body = await response.json().catch(() => null);
-        setPicked(null);
-        setError(body?.message ?? 'Nie udało się wysłać odpowiedzi.');
+        setPicked(previous => previous?.round === round ? null : previous);
+        setError({ round, message: body?.message ?? 'Nie udało się wysłać odpowiedzi.' });
       }
     } catch {
-      setPicked(null);
-      setError('Błąd sieci. Spróbuj jeszcze raz.');
+      setPicked(previous => previous?.round === round ? null : previous);
+      setError({ round, message: 'Błąd sieci. Spróbuj jeszcze raz.' });
     }
   };
 
   const surrender = async () => {
     setConfirmSurrender(false);
     const response = await arenaApi.surrender(session.id, headers).catch(() => null);
-    if (!response?.ok) setError('Nie udało się poddać walki.');
+    if (!response?.ok) setError({ round: null, message: 'Nie udało się poddać walki.' });
   };
 
   return (
@@ -115,17 +134,18 @@ export default function ArenaBattlePage() {
           </div>
         </BattleScene>
 
-        {finished ? (
+        {finished && (
           <section className={`battle-result is-${result}`} aria-labelledby="battle-result-title">
             <h1 id="battle-result-title">{outcomeTitle(result)}</h1>
             <p>{finishText(session, me.id)}</p>
             <p className="battle-result-elo">{change > 0 ? `+${change}` : change} Elo</p>
             <Link className="ud-btn ud-btn-solid" to="/arena">Wróć do Areny</Link>
           </section>
-        ) : reveal ? (
+        )}
+        {reveal ? (
           <section className="battle-card" aria-labelledby="battle-question">
             <p className="battle-card-meta">Wynik rundy {reveal.round}</p>
-            <h1 id="battle-question" className="battle-question">{reveal.content}</h1>
+            <RevealHeading id="battle-question" className="battle-question">{reveal.content}</RevealHeading>
             <ol className="battle-answers is-reveal">
               {reveal.answers.map((text, index) => {
                 const correct = index === reveal.correctAnswer;
@@ -146,7 +166,7 @@ export default function ArenaBattlePage() {
             </ol>
             <p className="battle-summary" role="status" aria-live="polite">{roundSummary(reveal, me.id, rival.id)}</p>
           </section>
-        ) : session.question ? (
+        ) : !finished && session.question ? (
           <section className="battle-card" aria-labelledby="battle-question">
             <p className="battle-card-meta">{session.question.category}</p>
             <h1 id="battle-question" className="battle-question">{session.question.content}</h1>
@@ -164,7 +184,7 @@ export default function ArenaBattlePage() {
                 ? (rivalAnswered ? 'Oboje odpowiedzieliście. Za chwilę wynik rundy.' : 'Odpowiedź wysłana. Czekamy na rywala.')
                 : (rivalAnswered ? 'Rywal już odpowiedział.' : 'Wybierz jedną odpowiedź.')}
             </p>
-            {error && <p role="alert" className="battle-error">{error}</p>}
+            {visibleError && <p role="alert" className="battle-error">{visibleError}</p>}
           </section>
         ) : null}
 

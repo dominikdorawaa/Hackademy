@@ -9,7 +9,7 @@ public interface ArenaService {
     void finishGame(String gameId, Long winnerId);
     GameSession findActiveGameForUser(Long userId);
     GameSession findCurrentGameForUser(Long userId);
-    BattleEngine.AnswerResult answer(String gameId, Long userId, int answer);
+    BattleEngine.AnswerResult answer(String gameId, Long userId, int round, int answer);
     void surrenderGame(String gameId, Long userId);
 
     Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername);

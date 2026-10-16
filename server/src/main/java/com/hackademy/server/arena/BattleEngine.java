@@ -14,7 +14,7 @@ public final class BattleEngine {
     public static final long DISCONNECT_MILLIS = 30_000;
     public static final int NO_ANSWER = -1;
 
-    public enum AnswerResult { ACCEPTED, NOT_PLAYER, NOT_ACTIVE, INVALID_ANSWER, ALREADY_ANSWERED, TOO_LATE }
+    public enum AnswerResult { ACCEPTED, NOT_PLAYER, NOT_ACTIVE, WRONG_ROUND, INVALID_ANSWER, ALREADY_ANSWERED, TOO_LATE }
 
     private BattleEngine() {}
 
@@ -28,8 +28,9 @@ public final class BattleEngine {
         openRound(session, 1, now);
     }
 
-    public static AnswerResult answer(GameSession session, Long userId, int answer, long now) {
+    public static AnswerResult answer(GameSession session, Long userId, int round, int answer, long now) {
         if (!session.includes(userId)) return AnswerResult.NOT_PLAYER;
+        if (round != session.getRound()) return AnswerResult.WRONG_ROUND;
         if (!"ACTIVE".equals(session.getStatus()) || !"QUESTION".equals(session.getPhase())) return AnswerResult.NOT_ACTIVE;
         if (answer < 0 || answer >= ANSWERS) return AnswerResult.INVALID_ANSWER;
         if (session.getChoices().containsKey(userId)) return AnswerResult.ALREADY_ANSWERED;

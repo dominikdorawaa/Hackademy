@@ -41,20 +41,24 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.hp['" + first.id() + "']").value(100));
         getAs(outsider, url).andExpect(status().isNotFound());
 
-        postJson(outsider, url + "/answer", "{\"answer\":1}").andExpect(status().isNotFound());
-        postJson(first, url + "/answer", "{\"answer\":7}").andExpect(status().isBadRequest())
+        postJson(outsider, url + "/answer", "{\"round\":1,\"answer\":1}").andExpect(status().isNotFound());
+        postJson(first, url + "/answer", "{\"round\":1,\"answer\":7}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Wybierz jedną z czterech odpowiedzi."));
         postJson(first, url + "/answer", "{}").andExpect(status().isBadRequest());
-        postJson(first, url + "/answer", "{\"answer\":1}").andExpect(status().isOk());
-        postJson(first, url + "/answer", "{\"answer\":2}").andExpect(status().isBadRequest())
+        postJson(first, url + "/answer", "{\"answer\":1}").andExpect(status().isBadRequest());
+        postJson(first, url + "/answer", "{\"round\":0,\"answer\":1}").andExpect(status().isBadRequest());
+        postJson(first, url + "/answer", "{\"round\":2,\"answer\":1}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Ta odpowiedź dotyczy innej rundy. Odpowiedz na bieżące pytanie."));
+        postJson(first, url + "/answer", "{\"round\":1,\"answer\":1}").andExpect(status().isOk());
+        postJson(first, url + "/answer", "{\"round\":1,\"answer\":2}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Odpowiedź w tej rundzie została już wysłana."));
         getAs(second, url).andExpect(jsonPath("$.answeredBy[0]").value(first.id()));
 
-        postJson(second, url + "/answer", "{\"answer\":0}").andExpect(status().isOk());
+        postJson(second, url + "/answer", "{\"round\":1,\"answer\":0}").andExpect(status().isOk());
         getAs(second, url).andExpect(jsonPath("$.phase").value("REVEAL"))
                 .andExpect(jsonPath("$.lastRound.correctAnswer").exists())
                 .andExpect(jsonPath("$.lastRound.choices['" + second.id() + "']").value(0));
-        postJson(second, url + "/answer", "{\"answer\":0}").andExpect(status().isBadRequest())
+        postJson(second, url + "/answer", "{\"round\":1,\"answer\":0}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Ta runda jest już zakończona."));
 
         postJson(second, url + "/surrender", "{}").andExpect(status().isOk());

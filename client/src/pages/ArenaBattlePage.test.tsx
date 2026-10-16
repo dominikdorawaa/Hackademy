@@ -1,8 +1,9 @@
-import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import API_URL from '../apiConfig';
+import * as arenaApi from '../services/arenaApi';
 import { AuthProvider } from '../context/AuthContext';
 import { createGameSession } from '../test/fixtures/arena';
 import { createToken, createUser } from '../test/fixtures/auth';
@@ -19,9 +20,10 @@ vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({ useAvatarAtlas: ()
 const live = (gameSession: GameSession): RealtimeState => ({
   streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession, queued: false,
 });
-const mount = () => render(<MemoryRouter initialEntries={['/arena/battle/game']}><AuthProvider>
+const battle = () => <MemoryRouter initialEntries={['/arena/battle/game']}><AuthProvider>
   <Routes><Route path="/arena/battle/:gameId" element={<ArenaBattlePage />} /></Routes>
-</AuthProvider></MemoryRouter>);
+</AuthProvider></MemoryRouter>;
+const mount = () => render(battle());
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
@@ -46,7 +48,7 @@ it('shows both fighters, the question and the timer, and sends one answer', asyn
   expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '100');
   expect(screen.getByRole('img', { name: 'Twój awatar, tester' })).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: /22/ }));
-  await waitFor(() => expect(body).toEqual({ answer: 1 }));
+  await waitFor(() => expect(body).toEqual({ round: 1, answer: 1 }));
   expect(screen.getByRole('button', { name: /22/ })).toHaveAttribute('aria-pressed', 'true');
   expect(screen.getByRole('button', { name: /21/ })).toBeDisabled();
   expect(screen.getByText('Odpowiedź wysłana. Czekamy na rywala.')).toBeInTheDocument();
@@ -125,4 +127,66 @@ it('waits for the battle before showing it', async () => {
   mount();
   expect(await screen.findByText('Wczytuję walkę…')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
+});
+
+it.each(['KNOCKOUT', 'ROUNDS'] as const)('keeps the deciding answer and both choices visible after %s', async finishReason => {
+  realtime.value = { ...realtime.value, state: live(createGameSession({
+    status: 'FINISHED', phase: 'REVEAL', question: null, winnerId: 1, finishReason,
+    lastRound: { round: 10, questionId: 11, content: 'Pytanie rozstrzygające', answers: ['A', 'B', 'C', 'D'],
+      correctAnswer: 1, choices: { 1: 1, 2: 3 }, damage: { 1: 0, 2: 20 } },
+  })) };
+  mount();
+  expect(await screen.findByRole('heading', { name: 'Zwycięstwo', level: 1 })).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Pytanie rozstrzygające', level: 2 })).toBeInTheDocument();
+  const answers = screen.getAllByRole('listitem');
+  expect(within(answers[1]).getByText('Poprawna')).toBeInTheDocument();
+  expect(within(answers[1]).getByText('Ty')).toBeInTheDocument();
+  expect(within(answers[3]).getByText('opponent')).toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Odpowiedzi' })).not.toBeInTheDocument();
+});
+
+it.each(['server', 'network', 'invalid'] as const)('lets the player retry a failed identity request: %s', async failure => {
+  let attempts = 0;
+  server.use(http.get(currentUserUrl, () => {
+    attempts++;
+    if (attempts > 1) return HttpResponse.json(createUser());
+    return failure === 'network' ? HttpResponse.error() : failure === 'invalid'
+      ? HttpResponse.json({ username: 'tester' }) : HttpResponse.json({}, { status: 500 });
+  }));
+  const view = mount();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Walka trwa dalej');
+  expect(screen.queryByText('Wczytuję walkę…')).not.toBeInTheDocument();
+  realtime.value = { ...realtime.value, state: live(createGameSession({ round: 2 })) };
+  view.rerender(battle());
+  fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+  expect(await screen.findByRole('heading', { name: 'Na którym porcie domyślnie działa SSH?' })).toBeInTheDocument();
+  expect(screen.getByText('Runda 2/10')).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+it('ignores a late rejection from an earlier round without clearing the new answer', async () => {
+  const requests = vi.spyOn(arenaApi, 'answerQuestion');
+  let release!: () => void;
+  const pending = new Promise<void>(resolve => { release = resolve; });
+  const sent: unknown[] = [];
+  server.use(http.post(`${API_URL}/api/arena/game/game/answer`, async ({ request }) => {
+    const body = await request.json() as { round: number; answer: number };
+    sent.push(body);
+    if (body.round === 1) {
+      await pending;
+      return HttpResponse.json({ message: 'Odpowiedź ze starej rundy' }, { status: 400 });
+    }
+    return HttpResponse.json({ message: 'ok' });
+  }));
+  const view = mount();
+  fireEvent.click(await screen.findByRole('button', { name: /22/ }));
+  await waitFor(() => expect(sent).toEqual([{ round: 1, answer: 1 }]));
+  realtime.value = { ...realtime.value, state: live(createGameSession({ round: 2 })) };
+  view.rerender(battle());
+  fireEvent.click(screen.getByRole('button', { name: /23/ }));
+  await waitFor(() => expect(sent).toEqual([{ round: 1, answer: 1 }, { round: 2, answer: 2 }]));
+  await act(async () => { release(); await requests.mock.results[0].value; });
+  await waitFor(() => expect(screen.getByRole('button', { name: /23/ })).toHaveAttribute('aria-pressed', 'true'));
+  expect(screen.getByRole('button', { name: /22/ })).toBeDisabled();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
 });

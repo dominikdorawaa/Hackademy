@@ -54,8 +54,6 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             User secondUser = userRepository.findById(second.id()).orElse(null);
             if (firstUser == null || secondUser == null) continue;
             sessions.add(createGameSession(first, firstUser, second, secondUser));
-            queue.remove(first);
-            queue.remove(second);
         }
         return sessions;
     }

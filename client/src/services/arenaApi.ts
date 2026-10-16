@@ -62,11 +62,11 @@ export function getGame(id: ApiId, headers: HeadersInit) {
   });
 }
 
-export function answerQuestion(id: ApiId, answer: number, headers: HeadersInit) {
+export function answerQuestion(id: ApiId, round: number, answer: number, headers: HeadersInit) {
   return request<MessageResponse>(`/api/arena/game/${id}/answer`, {
     method: 'POST',
     headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ answer }),
+    body: JSON.stringify({ round, answer }),
   });
 }
 

@@ -190,7 +190,7 @@ class ArenaConcurrencyTest {
                 long userId = id;
                 answers.add(executor.submit(() -> {
                     assertTrue(start.await(5, TimeUnit.SECONDS));
-                    return arena.answer("game", userId, 1);
+                    return arena.answer("game", userId, 1, 1);
                 }));
             }
             start.countDown();
@@ -198,7 +198,7 @@ class ArenaConcurrencyTest {
             var snapshot = arena.getGameSession("game");
             assertEquals("REVEAL", snapshot.getPhase());
             assertEquals(Map.of(1L, 80, 2L, 80), snapshot.getHp());
-            assertEquals(BattleEngine.AnswerResult.NOT_ACTIVE, arena.answer("game", 1L, 1));
+            assertEquals(BattleEngine.AnswerResult.NOT_ACTIVE, arena.answer("game", 1L, 1, 1));
         } finally {
             executor.shutdownNow();
         }

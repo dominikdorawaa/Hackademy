@@ -48,13 +48,30 @@ class BattleEngineTest {
     }
 
     @Test
+    void rejectsAnswersForOtherRoundsWithoutConsumingTheCurrentAnswer() {
+        BattleEngine.resolve(session, session.getRoundEndsAt());
+        BattleEngine.nextRound(session, 20_000);
+        assertEquals(WRONG_ROUND, BattleEngine.answer(session, 1L, 1, 2, 20_001));
+        assertEquals(WRONG_ROUND, BattleEngine.answer(session, 1L, 3, 2, 20_001));
+        assertEquals(WRONG_ROUND, BattleEngine.answer(session, 1L, 0, 2, 20_001));
+        assertTrue(session.getChoices().isEmpty());
+        assertTrue(session.getAnsweredBy().isEmpty());
+        assertEquals(Map.of(1L, 100, 2L, 100), session.getHp());
+        assertEquals(ACCEPTED, BattleEngine.answer(session, 1L, 2, 0, 20_001));
+        assertEquals(ACCEPTED, BattleEngine.answer(session, 2L, 2, 0, 20_001));
+        BattleEngine.resolve(session, 20_001);
+        assertEquals(Map.of(1L, 100, 2L, 100), session.getHp());
+        assertEquals(Map.of(1L, 0, 2L, 0), session.getLastRound().choices());
+    }
+
+    @Test
     void validatesEveryAnswer() {
-        assertEquals(NOT_PLAYER, BattleEngine.answer(session, 3L, 2, 2_000));
-        assertEquals(INVALID_ANSWER, BattleEngine.answer(session, 1L, -1, 2_000));
-        assertEquals(INVALID_ANSWER, BattleEngine.answer(session, 1L, 4, 2_000));
-        assertEquals(TOO_LATE, BattleEngine.answer(session, 1L, 2, session.getRoundEndsAt() + 1));
-        assertEquals(ACCEPTED, BattleEngine.answer(session, 1L, 0, 2_000));
-        assertEquals(ALREADY_ANSWERED, BattleEngine.answer(session, 1L, 2, 2_000));
+        assertEquals(NOT_PLAYER, BattleEngine.answer(session, 3L, session.getRound(), 2, 2_000));
+        assertEquals(INVALID_ANSWER, BattleEngine.answer(session, 1L, session.getRound(), -1, 2_000));
+        assertEquals(INVALID_ANSWER, BattleEngine.answer(session, 1L, session.getRound(), 4, 2_000));
+        assertEquals(TOO_LATE, BattleEngine.answer(session, 1L, session.getRound(), 2, session.getRoundEndsAt() + 1));
+        assertEquals(ACCEPTED, BattleEngine.answer(session, 1L, session.getRound(), 0, 2_000));
+        assertEquals(ALREADY_ANSWERED, BattleEngine.answer(session, 1L, session.getRound(), 2, 2_000));
         assertEquals(List.of(1L), session.getAnsweredBy());
         assertFalse(BattleEngine.roundOver(session, 2_000));
         assertTrue(BattleEngine.roundOver(session, session.getRoundEndsAt()));
@@ -62,8 +79,8 @@ class BattleEngineTest {
 
     @Test
     void aCorrectAnswerHitsTheRivalForTwentyRegardlessOfSpeed() {
-        BattleEngine.answer(session, 2L, 1, 1_100);
-        BattleEngine.answer(session, 1L, 2, 9_000);
+        BattleEngine.answer(session, 2L, session.getRound(), 1, 1_100);
+        BattleEngine.answer(session, 1L, session.getRound(), 2, 9_000);
         assertTrue(BattleEngine.roundOver(session, 9_000));
         assertFalse(BattleEngine.resolve(session, 9_000));
         assertEquals(Map.of(1L, 100, 2L, 80), session.getHp());
@@ -74,13 +91,13 @@ class BattleEngineTest {
         assertEquals(Map.of(1L, 0, 2L, 20), result.damage());
         assertEquals("REVEAL", session.getPhase());
         assertNull(session.getQuestion());
-        assertEquals(NOT_ACTIVE, BattleEngine.answer(session, 1L, 2, 9_100));
+        assertEquals(NOT_ACTIVE, BattleEngine.answer(session, 1L, session.getRound(), 2, 9_100));
     }
 
     @Test
     void bothCorrectAnswersHurtBothPlayersAndMissingAnswersDealNothing() {
-        BattleEngine.answer(session, 1L, 2, 2_000);
-        BattleEngine.answer(session, 2L, 2, 2_000);
+        BattleEngine.answer(session, 1L, session.getRound(), 2, 2_000);
+        BattleEngine.answer(session, 2L, session.getRound(), 2, 2_000);
         BattleEngine.resolve(session, 2_000);
         assertEquals(Map.of(1L, 80, 2L, 80), session.getHp());
         BattleEngine.nextRound(session, 5_000);
@@ -105,7 +122,7 @@ class BattleEngineTest {
     void fiveHitsKnockOutTheRival() {
         boolean finished = false;
         for (int round = 1; round <= 5; round++) {
-            BattleEngine.answer(session, 1L, 2, 2_000L * round);
+            BattleEngine.answer(session, 1L, session.getRound(), 2, 2_000L * round);
             finished = BattleEngine.resolve(session, 2_000L * round);
             if (!finished) BattleEngine.nextRound(session, 2_000L * round + 1);
         }

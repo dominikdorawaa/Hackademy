@@ -126,7 +126,7 @@ class RealtimeIntegrationTest {
             String token = rename(renamed, "renamed" + UUID.randomUUID().toString().substring(0, 8));
             assertEquals(game.getId(), JsonPath.read(state(token), "$.gameSession.id"));
             try (var reusedName = connected(claimName(oldName))) {
-                assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer(game.getId(), renamed.getId(), 0));
+                assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer(game.getId(), renamed.getId(), 1, 0));
                 assertEquals(game.getId(), JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.gameSession.id"));
                 assertEquals(game.getId(), JsonPath.read(RealtimeSocket.body(sb.receive()), "$.state.gameSession.id"));
                 assertNull(reusedName.poll(100));

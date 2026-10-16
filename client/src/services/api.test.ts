@@ -90,12 +90,12 @@ describe('HTTP compatibility', () => {
   });
 
   it('sends a battle answer and a room flag to separate endpoints', async () => {
-    await arena.answerQuestion('game-id', 2, jsonHeaders);
+    await arena.answerQuestion('game-id', 3, 2, jsonHeaders);
     await room.solveRoom(7, { flag: 'flag' }, jsonHeaders);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       `${API_URL}/api/arena/game/game-id/answer`, `${API_URL}/api/rooms/7/solve`,
     ]);
-    expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual(['{"answer":2}', '{"flag":"flag"}']);
+    expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual(['{"round":3,"answer":2}', '{"flag":"flag"}']);
   });
 
   it('keeps file bytes and download headers', async () => {

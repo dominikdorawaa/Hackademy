@@ -3,6 +3,7 @@ package com.hackademy.server.arena;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserService;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -14,10 +15,12 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/arena")
 @RequiredArgsConstructor
+@Slf4j
 @CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class ArenaController {
 
     private static final Map<BattleEngine.AnswerResult, String> ANSWER_ERRORS = Map.of(
+            BattleEngine.AnswerResult.WRONG_ROUND, "Ta odpowiedź dotyczy innej rundy. Odpowiedz na bieżące pytanie.",
             BattleEngine.AnswerResult.NOT_ACTIVE, "Ta runda jest już zakończona.",
             BattleEngine.AnswerResult.INVALID_ANSWER, "Wybierz jedną z czterech odpowiedzi.",
             BattleEngine.AnswerResult.ALREADY_ANSWERED, "Odpowiedź w tej rundzie została już wysłana.",
@@ -57,7 +60,14 @@ public class ArenaController {
     @Scheduled(fixedRate = 500)
     public synchronized void processMatchmaking() {
         for (GameSession session : matchmakingService.checkForMatches()) {
-            arenaService.addGame(session);
+            try {
+                arenaService.addGame(session);
+            } catch (RuntimeException error) {
+                log.warn("Could not prepare arena match {}", session.getId(), error);
+                continue;
+            }
+            matchmakingService.leaveQueue(session.getPlayer1Id());
+            matchmakingService.leaveQueue(session.getPlayer2Id());
         }
     }
 
@@ -67,7 +77,11 @@ public class ArenaController {
         if (answer == null) {
             return ResponseEntity.badRequest().body(Map.of("message", ANSWER_ERRORS.get(BattleEngine.AnswerResult.INVALID_ANSWER)));
         }
-        var result = arenaService.answer(gameId, currentUser().getId(), answer);
+        Integer round = payload.get("round");
+        if (round == null || round < 1) {
+            return ResponseEntity.badRequest().body(Map.of("message", "Podaj numer rundy, na którą odpowiadasz."));
+        }
+        var result = arenaService.answer(gameId, currentUser().getId(), round, answer);
         if (result == BattleEngine.AnswerResult.ACCEPTED) {
             return ResponseEntity.ok(Map.of("message", "Odpowiedź przyjęta"));
         }
