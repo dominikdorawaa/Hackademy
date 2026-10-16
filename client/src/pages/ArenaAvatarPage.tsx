@@ -1,10 +1,10 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link } from 'react-router-dom';
+import { ArrowLeft, Check } from 'lucide-react';
 import { useTheme } from '../context/ThemeContext';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentUser, saveAvatar as saveAccountAvatar } from '../services/userApi';
 import { PROFILE_UPDATED } from '../lib/profile';
-import { Button } from '../components/ui/button';
 import { AvatarSprite } from '../components/arena/avatar/AvatarSprite';
 import { useAvatarAtlas } from '../components/arena/avatar/useAvatarAtlas';
 import { CLOTH_RAMPS, fromAvatarConfig, HAIR_RAMPS, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, SKIN_RAMPS, toAvatarConfig } from '../components/arena/avatar/avatarModel';
@@ -12,6 +12,7 @@ import type { Avatar, Ramp } from '../components/arena/avatar/avatarModel';
 import { AVATAR_ATLASES, danceFrames } from '../components/arena/avatar/fighters';
 import type { AvatarAtlasSource } from '../components/arena/avatar/fighters';
 import './ArenaAvatarPage.css';
+import './UserDashboardPage.css';
 
 const OUTFITS: { id: Avatar['outfit']; name: string; description: string }[] = [
   { id: 'baza', name: 'Klasyczna', description: 'Koszulka i proste spodnie.' },
@@ -111,10 +112,16 @@ export default function ArenaAvatarPage() {
     : dirty ? 'Masz niezapisane zmiany.'
     : signedIn ? 'Awatar jest zapisany na Twoim koncie i widoczny w profilu, rankingu i u znajomych.'
     : 'Awatar jest zapisany w tej przeglądarce. Zaloguj się, żeby zapisać go na koncie.';
-  return <div className="avatar-page">
-    <header className="avatar-heading"><div><Link to="/arena">Arena</Link><h1>Twój awatar</h1></div></header>
+  return <div className="user-dashboard avatar-page">
+    <header className="avatar-heading">
+      <div><Link to="/arena"><ArrowLeft size={16} aria-hidden="true" /> Wróć do Areny</Link><h1>Twój awatar</h1></div>
+      <div className="avatar-actions">
+        <button type="button" className="ud-btn ud-btn-solid" onClick={save} disabled={!dirty || blocked || status === 'saving'}>{status === 'saving' ? 'Zapisuję…' : dirty ? 'Zapisz awatar' : 'Zapisano'}</button>
+      </div>
+    </header>
     <div className="avatar-layout">
       <section className="avatar-preview" aria-label="Podgląd awatara">
+        <div className="avatar-preview-heading"><h2>Podgląd</h2><span>{OUTFITS.find(outfit => outfit.id === avatar.outfit)?.name}</span></div>
         <div className="avatar-stage">
           {atlas && active.id === 'front' && atlas.front ? <img className="avatar-front" src={atlas.front} alt="Awatar, widok z przodu" data-reduced-motion={reducedMotion} />
             : atlas ? <AvatarSprite key={active.id} atlas={atlas.atlas} atlasHeight={fighter.atlasHeight} frames={active.frames(fighter.dances)} loop={active.loop} reducedMotion={reducedMotion} label={`Awatar, animacja: ${active.label}`} />
@@ -123,33 +130,44 @@ export default function ArenaAvatarPage() {
         <div className="avatar-animations" role="group" aria-label="Animacja podglądu">
           {PREVIEWS.map(item => <button key={item.id} type="button" aria-pressed={item.id === active.id} onClick={() => setPreview(item.id)}>{item.label}</button>)}
         </div>
+        <p className="avatar-note" role="status" aria-live="polite" data-state={status === 'error' || accountState === 'error' ? 'error' : status}>{note}</p>
       </section>
-      <div className="avatar-controls">
+      <section className="avatar-controls" aria-label="Personalizacja awatara">
         <fieldset className="avatar-form" disabled={accountState === 'loading'} aria-busy={accountState === 'loading'}>
+        <div className="avatar-section">
+        <h2>Ubiór</h2>
         <fieldset><legend>Sylwetka</legend><div className="avatar-outfits">
           {OUTFITS.map(outfit => <label key={outfit.id} data-selected={avatar.outfit === outfit.id}>
             <input type="radio" name="avatar-outfit" value={outfit.id} checked={avatar.outfit === outfit.id} onChange={() => setAvatar(current => ({ ...current, outfit: outfit.id }))} />
+            <span className="avatar-choice-mark" aria-hidden="true">{avatar.outfit === outfit.id && <Check size={14} />}</span>
             <strong>{outfit.name}</strong><small>{outfit.description}</small>
           </label>)}
         </div></fieldset>
+        </div>
+        <div className="avatar-section">
+        <h2>Głowa</h2>
+        <div className="avatar-head-options">
         {([['hair', 'Fryzura', HAIR_STYLES, HAIR_NAMES], ['hat', 'Czapka', HAT_STYLES, HAT_NAMES]] as const).map(([key, legend, options, names]) => <fieldset key={key}><legend>{legend}</legend><div className="avatar-styles">
           {options.map(option => <label key={option} data-selected={avatar[key] === option}>
             <input type="radio" name={`avatar-${key}-style`} value={option} checked={avatar[key] === option} onChange={() => setAvatar(current => ({ ...current, [key]: option }))} />{(names as Record<string, string>)[option]}
           </label>)}
         </div>
           {key === 'hair' && avatar.hat !== 'brak' && avatar.hair !== 'brak' && <p className="avatar-hint">Pod czapką fryzura jest schowana. Zdejmij czapkę, żeby ją zobaczyć.</p>}</fieldset>)}
-        {COLOR_GROUPS.map(group => <fieldset key={group.key}><legend>{group.legend}</legend><div className="avatar-swatches">
+        </div>
+        </div>
+        <div className="avatar-section">
+        <h2>Kolory</h2>
+        <div className="avatar-colors">
+        {COLOR_GROUPS.map(group => <fieldset key={group.key}><legend><span>{group.legend}</span><span className="avatar-color-name">{NAMES[avatar.colors[group.key]]}</span></legend><div className="avatar-swatches">
           {Object.entries(group.options).map(([id, ramp]) => <label key={id} data-selected={avatar.colors[group.key] === id} title={NAMES[id]}>
             <input type="radio" name={`avatar-${group.key}`} value={id} checked={avatar.colors[group.key] === id} onChange={() => setColor(group.key, id)} aria-label={`${group.legend}: ${NAMES[id]}`} />
-            <span style={{ background: `linear-gradient(135deg, ${ramp[3]} 0 50%, ${ramp[1]} 50%)` }} aria-hidden="true" />
+            <span style={{ backgroundColor: ramp[2] }} aria-hidden="true">{avatar.colors[group.key] === id && <Check size={14} style={{ color: ['bialy', 'blond', 'siwe', 'jasna', 'porcelanowa', 'piaskowy'].includes(id) ? '#111827' : '#ffffff' }} />}</span>
           </label>)}
         </div></fieldset>)}
-        </fieldset>
-        <div className="avatar-actions">
-          <Button onClick={save} disabled={!dirty || blocked || status === 'saving'}>{status === 'saving' ? 'Zapisuję…' : dirty ? 'Zapisz awatar' : 'Zapisano'}</Button>
         </div>
-        <p className="avatar-note" role="status" aria-live="polite" data-state={status === 'error' || accountState === 'error' ? 'error' : status}>{note}</p>
-      </div>
+        </div>
+        </fieldset>
+      </section>
     </div>
   </div>;
 }

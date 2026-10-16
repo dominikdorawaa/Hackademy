@@ -1,27 +1,20 @@
 import { sanitizeTaskContent } from '../lib/taskContent';
-import * as userApi from '../services/userApi';
-import * as arenaApi from '../services/arenaApi';
 import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
-import { useRealtime } from '../context/RealtimeContext';
-import { useArenaSession } from '../hooks/useArenaSession';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
-import ArenaResultModal from '../components/common/ArenaResultModal';
-import ArenaChat from '../components/ArenaChat';
 import './RoomPage.css';
-import type { DashboardUser, RoomDetailDto } from '../types/api';
+import type { RoomDetailDto } from '../types/api';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { token } = useAuth();
-  const { state: realtime, synchronize } = useRealtime();
 
   const [room, setRoom] = useState<RoomDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -40,15 +33,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Arena Result Modal State
-  const [showArenaResultModal, setShowArenaResultModal] = useState(false);
-
-  // Arena specific state
-  const [elapsedTime, setElapsedTime] = useState(0);
-  const [penaltyTime, setPenaltyTime] = useState(0);
-  const [userData, setUserData] = useState<DashboardUser | null>(null);
-  const [isChatOpen, setIsChatOpen] = useState(false);
-
   // Training Mode State
   const [isTrainingMode, setIsTrainingMode] = useState(false);
 
@@ -61,50 +45,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
-  // Arena Mode
   const queryParams = new URLSearchParams(location.search);
-  const arenaGameId = queryParams.get('arena');
-  const isArenaMode = !!arenaGameId;
-  const arenaSession = useArenaSession(arenaGameId, token, realtime?.gameSession ?? null);
-
-  // Fetch user data to know current user ID
-  useEffect(() => {
-      if (token) {
-          userApi.getCurrentUser({ 'Authorization': `Bearer ${token}` })
-          .then(res => res.json() as Promise<DashboardUser>)
-          .then(data => setUserData(data))
-          .catch(err => console.error(err));
-      }
-  }, [token]);
-
-  // Timer for Arena
-  useEffect(() => {
-    let timer: ReturnType<typeof setInterval> | undefined;
-    if (isArenaMode && arenaSession && userData) {
-        const startTime = new Date(arenaSession.startTime).getTime();
-        const userFinishTime = arenaSession.finishTimes && arenaSession.finishTimes[userData.id];
-
-        if (userFinishTime) {
-            const finishTime = new Date(userFinishTime).getTime();
-            setElapsedTime(Math.floor((finishTime - startTime) / 1000));
-        } else if (arenaSession.status === 'ACTIVE' || arenaSession.status === 'WAITING_FOR_OPPONENT') {
-            timer = setInterval(() => {
-                const now = new Date().getTime();
-                setElapsedTime(Math.floor((now - startTime) / 1000));
-            }, 1000);
-        }
-    }
-    return () => clearInterval(timer);
-  }, [isArenaMode, arenaSession, userData]);
-
-  useEffect(() => {
-    const session = arenaSession;
-    if (!isArenaMode || !userData || !session) return;
-    const hints = session.hintsUsed?.[userData.id] ?? [];
-    setUnlockedHints(hints);
-    setPenaltyTime(hints.length * 120);
-    if (session.status === 'FINISHED') setShowArenaResultModal(true);
-  }, [isArenaMode, userData, arenaSession]);
 
   const handleUnlockHint = (hintId: number) => {
     if (preview) { setUnlockedHints(current => [...current, hintId]); return; }
@@ -117,21 +58,11 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (!hintToUnlock) return;
 
     try {
-        if (isArenaMode) {
-            const response = await arenaApi.useHint(arenaGameId ?? '', { hintId: hintToUnlock }, {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
-                });
-            if (!response.ok) throw new Error("Failed to use hint in arena");
-            await synchronize();
-            setToast({ message: 'Podpowiedź odblokowana! +2 minuty kary.', type: 'warning' });
-        } else {
-            const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { 'Authorization': `Bearer ${token}` });
-            if (!response.ok) throw new Error('Failed to unlock hint');
-            setUnlockedHints([...unlockedHints, hintToUnlock]);
-            setPotentialPoints(Math.max(0, (room?.points ?? 0) * (1 - (unlockedHints.length + 1) * 0.25)));
-            setToast({ message: 'Podpowiedź odblokowana!', type: 'success' });
-        }
+        const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { 'Authorization': `Bearer ${token}` });
+        if (!response.ok) throw new Error('Failed to unlock hint');
+        setUnlockedHints([...unlockedHints, hintToUnlock]);
+        setPotentialPoints(Math.max(0, (room?.points ?? 0) * (1 - (unlockedHints.length + 1) * 0.25)));
+        setToast({ message: 'Podpowiedź odblokowana!', type: 'success' });
     } catch (err) {
         setToast({ message: err instanceof Error ? err.message : String(err), type: 'error' });
     } finally {
@@ -167,28 +98,19 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     setSubmitMessage('');
 
     try {
-      const response = await (isArenaMode
-        ? arenaApi.solveGame(arenaGameId ?? '', { flag }, {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        })
-        : roomApi.solveRoom(id ?? '', { flag }, {
-          'Content-Type': 'application/json',
-          'Authorization': `Bearer ${token}`
-        }));
+      const response = await roomApi.solveRoom(id ?? '', { flag }, {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`
+      });
 
       const data = await response.json();
       if (response.ok) {
         setSubmitStatus('success');
         setSubmitMessage(data.message ?? '');
-        if (!isArenaMode) {
-            setRoom(prev => prev ? { ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 } : null);
-            setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
-            setSuccessMessage("Misja zakończona sukcesem!");
-            setShowSuccessModal(true);
-        } else if ('status' in data && data.status === 'FINISHED') {
-            setShowArenaResultModal(true);
-        }
+        setRoom(prev => prev ? { ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 } : null);
+        setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
+        setSuccessMessage("Misja zakończona sukcesem!");
+        setShowSuccessModal(true);
       } else {
         setSubmitStatus('error');
         setSubmitMessage(data.message || 'Niepoprawna flaga');
@@ -201,18 +123,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const handleCloseSuccessModal = () => {
       setShowSuccessModal(false);
-      if (isArenaMode) navigate('/arena');
-  };
-
-  const handleCloseArenaResultModal = () => {
-      setShowArenaResultModal(false);
-      navigate('/arena');
-  };
-
-  const formatTime = (seconds: number) => {
-      const mins = Math.floor(seconds / 60);
-      const secs = seconds % 60;
-      return `${mins}:${secs < 10 ? '0' : ''}${secs}`;
   };
 
   useEffect(() => {
@@ -229,19 +139,17 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             const firstIncomplete = data.tasks.find(t => !t.completed);
             setExpandedTasks({ [firstIncomplete ? firstIncomplete.id : data.tasks[0].id]: true });
         }
-        if (!isArenaMode) {
-            if (data.unlockedHintIds) {
-              setUnlockedHints(data.unlockedHintIds);
-              setPotentialPoints(Math.max(0, data.points * (1 - data.unlockedHintIds.length * 0.25)));
-            } else {
-              setPotentialPoints(data.points);
-            }
+        if (data.unlockedHintIds) {
+          setUnlockedHints(data.unlockedHintIds);
+          setPotentialPoints(Math.max(0, data.points * (1 - data.unlockedHintIds.length * 0.25)));
+        } else {
+          setPotentialPoints(data.points);
         }
       } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
       finally { setLoading(false); }
     };
     if (token) fetchRoom();
-  }, [id, token, isArenaMode, preview]);
+  }, [id, token, preview]);
 
   const toggleTask = (taskId: number) => {
     setExpandedTasks(prev => ({ ...prev, [taskId]: !prev[taskId] }));
@@ -307,8 +215,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   if (!room) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
 
   const pointsToDeduct = room.points * 0.25;
-  const isSolved = isArenaMode ? false : room.solved;
-  const showContent = !isSolved || isTrainingMode || isArenaMode;
+  const isSolved = room.solved;
+  const showContent = !isSolved || isTrainingMode;
 
   const tasks = room.tasks || [];
   const completedTasksCount = tasks.filter(t => t.completed).length;
@@ -326,28 +234,11 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
           </div>
       )}
 
-      {isArenaMode && (
-          <ArenaChat
-              gameId={arenaGameId}
-              isOpen={isChatOpen}
-              toggleChat={() => setIsChatOpen(!isChatOpen)}
-          />
-      )}
-
       <div className="room-header">
-        <button onClick={() => navigate(preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : isArenaMode ? '/arena' : '/learn')} className="back-btn">
+        <button onClick={() => navigate(preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : '/learn')} className="back-btn">
             &larr; Powrót
         </button>
         <div className="room-meta-top">
-             {isArenaMode && (
-                 <>
-                    <span className="elo-badge" style={{marginRight: '10px', background: '#ff2d55', borderColor: '#ff2d55', color: 'white'}}>TRYB ARENY</span>
-                    <span className="elo-badge" style={{marginRight: '10px', background: '#333', borderColor: '#555', color: '#fff'}}>
-                        <i className="fas fa-clock"></i> {formatTime(elapsedTime + penaltyTime)}
-                        {penaltyTime > 0 && <span style={{color: '#ff2d55', marginLeft: '5px'}}>(+{formatTime(penaltyTime)})</span>}
-                    </span>
-                 </>
-             )}
              <span className={`difficulty-badge ${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>
              <span className="points-badge">{room.points} pkt</span>
         </div>
@@ -439,7 +330,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 )}
             </div>
 
-            {!isArenaMode && !isSolved && tasks.length > 0 && completedTasksCount === tasks.length && (
+            {!isSolved && tasks.length > 0 && completedTasksCount === tasks.length && (
                 <button type="button" className="btn btn-primary" disabled={finishingRoom}
                     onClick={() => void handleCompleteRoom()}>
                     {finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój'}
@@ -450,7 +341,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             {showContent && room.hints && room.hints.length > 0 && (
                 <div className="hints-section">
                     <h3>Podpowiedzi</h3>
-                    {!isArenaMode && !isTrainingMode && <div className="potential-points">Punkty do zdobycia: <strong>{Math.round(potentialPoints)}</strong></div>}
+                    {!isTrainingMode && <div className="potential-points">Punkty do zdobycia: <strong>{Math.round(potentialPoints)}</strong></div>}
                     {room.hints.map((hint, index) => {
                         const isUnlocked = unlockedHints.includes(hint.id);
                         const isPreviousUnlocked = index === 0 || unlockedHints.includes(room.hints[index - 1].id);
@@ -470,7 +361,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                                         disabled={!canUnlock}
                                         style={{ opacity: canUnlock ? 1 : 0.5, cursor: canUnlock ? 'pointer' : 'not-allowed' }}
                                     >
-                                        {canUnlock ? (isArenaMode ? 'Odblokuj (+2 min kary)' : (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${pointsToDeduct} pkt)`)) : 'Zablokowane (odblokuj poprzednią)'}
+                                        {canUnlock ? (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${pointsToDeduct} pkt)`) : 'Zablokowane (odblokuj poprzednią)'}
                                     </button>
                                 )}
                             </div>
@@ -509,9 +400,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
       <ConfirmationModal
         isOpen={isModalOpen}
-        message={isArenaMode
-            ? "Czy na pewno chcesz odblokować podpowiedź? Zostanie doliczone 2 minuty kary do Twojego czasu!"
-            : (isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - brak kosztu punktowego)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${pointsToDeduct} punktów.`)}
+        message={isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - brak kosztu punktowego)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${pointsToDeduct} punktów.`}
         onConfirm={confirmUnlockHint}
         onCancel={cancelUnlockHint}
       />
@@ -520,12 +409,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         onClose={handleCloseSuccessModal}
         points={earnedPoints}
         message={successMessage}
-      />
-      <ArenaResultModal
-        isOpen={showArenaResultModal}
-        onClose={handleCloseArenaResultModal}
-        session={arenaSession}
-        currentUserId={userData ? userData.id : null}
       />
       {toast && (
         <ToastNotification
@@ -540,8 +423,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
 export default function RoomPage({ preview = false }: { preview?: boolean }) {
   const { id } = useParams();
-  const { search } = useLocation();
   const { token } = useAuth();
-  const gameId = new URLSearchParams(search).get('arena');
-  return <RoomContent preview={preview} key={JSON.stringify([id, gameId, token])} />;
+  return <RoomContent preview={preview} key={JSON.stringify([id, token])} />;
 }

@@ -10,6 +10,7 @@ import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
 import { levelFromPoints } from '../lib/level';
 import { LEAGUES, leagueFor } from '../components/arena/leagues';
+import { EloHelp } from '../components/arena/EloHelp';
 import type { DashboardUser, FriendDto, RankingEntry, UserSearchDto } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaPage.css';
@@ -72,7 +73,7 @@ const ArenaPage = () => {
     const handleChallengeFriend = async (username: string) => {
         setFriendChallenges(previous => ({ ...previous, [username]: 'sending' }));
         try {
-            const response = await arenaApi.createChallenge({ targetUsername: username, vpnEnabled: false }, {
+            const response = await arenaApi.createChallenge({ targetUsername: username }, {
                 'Content-Type': 'application/json',
                 'Authorization': `Bearer ${token}`
             });
@@ -93,10 +94,7 @@ const ArenaPage = () => {
         setJoiningQueue(true);
         setError(null);
         try {
-            const response = await arenaApi.joinQueue({ vpnEnabled: false }, {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
-            });
+            const response = await arenaApi.joinQueue({ 'Authorization': `Bearer ${token}` });
             if (response.ok) {
                 setJoiningQueue(false);
                 void synchronize();
@@ -195,16 +193,7 @@ const ArenaPage = () => {
                             <p className="arena-card-name">{userData.username}</p>
                             <p className="arena-card-elo">
                                 <span className="arena-card-number">{known ? elo : '–'}</span>
-                                <span className="ud-term">
-                                    <button type="button" className="ud-term-btn" aria-describedby="arena-elo-tip">
-                                        Elo
-                                        <i className="fas fa-circle-info" aria-hidden="true" />
-                                    </button>
-                                    <span role="tooltip" id="arena-elo-tip" className="ud-tip">
-                                        <strong>Elo to Twoja siła w pojedynkach.</strong> Wygrywasz, to rośnie, przegrywasz, to spada.
-                                        Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.
-                                    </span>
-                                </span>
+                                <EloHelp />
                             </p>
                             {!known ? (
                                 <p className="arena-card-next">{rank.status === 'loading' ? 'Za chwilę zobaczysz swoją ligę.' : 'Odśwież stronę, żeby spróbować ponownie.'}</p>
@@ -237,7 +226,7 @@ const ArenaPage = () => {
                                     Oczekiwanie na akceptację wyzwania...
                                 </p>
                             ) : canPlay ? (
-                                <p>Rywal dostaje ten sam pokój co Ty. Szybsza flaga wygrywa i zabiera mu punkty Elo.</p>
+                                <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
                             ) : (
                                 <>
                                     <p>Pojedynki odblokujesz od {formatNumberPL(UNLOCK_POINTS)} XP. Brakuje Ci {formatNumberPL(missing)} XP.</p>
@@ -254,13 +243,13 @@ const ArenaPage = () => {
                                 <li key={item.name} className={!known ? undefined : item === league ? "is-current" : elo >= item.min ? "is-reached" : undefined} style={{ '--tier': item.color } as React.CSSProperties} aria-current={known && item === league ? "true" : undefined}>
                                     <span className="arena-ladder-bar" aria-hidden="true" />
                                     <span className="arena-ladder-name">{item.name}</span>
-                                    <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${item.min}`}</span>
+                                    <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${item.min} Elo`}</span>
                                 </li>
                             ))}
                         </ol>
                         <div className="arena-console-actions">
                             {status === 'GAME' && gameSession ? (
-                                <Link className="ud-btn arena-go" to={`/rooms/${gameSession.roomId}?arena=${gameSession.id}`}>Wróć do meczu</Link>
+                                <Link className="ud-btn arena-go" to={`/arena/battle/${gameSession.id}`}>Wróć do walki</Link>
                             ) : status === 'QUEUE' || joiningQueue ? (
                                 <button type="button" className="ud-btn ud-btn-quiet" onClick={handleLeaveQueue} disabled={joiningQueue && status !== 'QUEUE'}>Anuluj</button>
                             ) : status === 'CHALLENGING' ? (
@@ -357,10 +346,10 @@ const ArenaPage = () => {
                     <section aria-labelledby="arena-rules-title">
                         <h2 id="arena-rules-title" className="arena-board-title">Zasady pojedynków rankingowych</h2>
                         <ol className="arena-rules">
-                            <li>Kolejka łączy Cię z kolejnym czekającym graczem albo grasz z wyzwanym znajomym.</li>
-                            <li>Oboje dostajecie ten sam pokój i startujecie w tej samej chwili.</li>
-                            <li>Wygrywa krótszy czas zdobycia flagi. Każda podpowiedź dolicza 2 minuty.</li>
-                            <li>Poddanie meczu oznacza porażkę. Elo zmienia się po każdym rozstrzygniętym meczu.</li>
+                            <li>Twój awatar staje do walki z rywalem z kolejki albo z wyzwanym znajomym. Każdy zaczyna ze 100 HP.</li>
+                            <li>W każdej z 10 rund oboje dostajecie to samo pytanie z cyberbezpieczeństwa i wybieracie jedną z czterech odpowiedzi w 15 sekund.</li>
+                            <li>Poprawna odpowiedź to cios za 20 HP w rywala. Szybkość nie ma znaczenia, a zła odpowiedź nie zadaje obrażeń.</li>
+                            <li>Wygrywa nokaut albo więcej HP po 10 rundach. Remis nie zmienia Elo, a poddanie lub zerwane połączenie na 30 sekund to porażka.</li>
                         </ol>
                         <Link className="ud-link" to="/ranking">Pełny ranking</Link>
                     </section>

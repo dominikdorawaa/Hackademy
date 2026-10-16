@@ -81,3 +81,90 @@ describe('path unlock modes', () => {
     expect(await screen.findByText('Błąd: Ten pokój jest jeszcze zablokowany. Ukończ poprzednie pokoje ścieżki.')).toBeInTheDocument();
   });
 });
+
+function mountCtf(overrides: Partial<RoomDetailDto> = {}) {
+  const room: RoomDetailDto = {
+    id: 7, title: 'Pierwsza flaga', description: 'Znajdź flagę', shortDescription: 'Rozgrzewka', difficulty: 'EASY',
+    points: 50, solutionsCount: 3, createdAt: '2026-10-01T00:00:00', solved: false, requiresVpn: false,
+    hints: [{ id: 1, description: 'Zajrzyj do źródła strony' }, { id: 2, description: 'Szukaj komentarza' }],
+    unlockedHintIds: [], fileName: null, tasks: [], ...overrides,
+  };
+  server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
+  localStorage.setItem('token', createToken('USER'));
+  renderWithAuth(<Route path="/rooms/:id" element={<RoomPage />} />, '/rooms/7');
+}
+
+describe('CTF room', () => {
+  it('rejects a wrong flag and celebrates the right one', async () => {
+    const user = userEvent.setup();
+    server.use(http.post(`${API_URL}/api/rooms/7/solve`, async ({ request }) => {
+      const { flag } = await request.json() as { flag: string };
+      return flag === 'HA-ok'
+        ? HttpResponse.json({ success: true, message: 'Brawo', pointsEarned: 50, newBadges: [] })
+        : HttpResponse.json({ success: false, message: 'Niepoprawna flaga' }, { status: 400 });
+    }));
+    mountCtf();
+    const input = await screen.findByPlaceholderText('Wklej flagę tutaj...');
+    await user.type(input, 'zla');
+    await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
+    expect(await screen.findByText('Niepoprawna flaga')).toBeInTheDocument();
+    await user.clear(input);
+    await user.type(input, 'HA-ok');
+    await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
+    expect(await screen.findByText('Misja zakończona sukcesem!')).toBeInTheDocument();
+    expect(screen.getByText('+50')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Kontynuuj' }));
+    expect(screen.queryByText('Misja zakończona sukcesem!')).not.toBeInTheDocument();
+    expect(screen.getByText('Rozwiązania:')).toHaveTextContent('Rozwiązania: 4');
+  });
+
+  it('reports a network error while sending a flag', async () => {
+    const user = userEvent.setup();
+    server.use(http.post(`${API_URL}/api/rooms/7/solve`, () => HttpResponse.error()));
+    mountCtf();
+    await user.type(await screen.findByPlaceholderText('Wklej flagę tutaj...'), 'x');
+    await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
+    expect(await screen.findByText('Błąd sieci')).toBeInTheDocument();
+  });
+
+  it('unlocks hints in order after confirming the point cost', async () => {
+    const user = userEvent.setup();
+    let unlocks = 0;
+    server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => { unlocks++; return HttpResponse.json({ message: 'ok' }); }));
+    mountCtf();
+    expect(await screen.findByText('Punkty do zdobycia:')).toHaveTextContent('50');
+    expect(screen.getByRole('button', { name: 'Zablokowane (odblokuj poprzednią)' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' }));
+    expect(screen.getByText('Czy na pewno chcesz odblokować tę podpowiedź? To odejmie 12.5 punktów.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Anuluj' }));
+    expect(unlocks).toBe(0);
+    await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' }));
+    await user.click(screen.getByRole('button', { name: 'Tak, odblokuj' }));
+    expect(await screen.findByText('Zajrzyj do źródła strony')).toBeInTheDocument();
+    expect(unlocks).toBe(1);
+    expect(screen.getByText('Punkty do zdobycia:')).toHaveTextContent('38');
+    expect(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' })).toBeEnabled();
+  });
+
+  it('shows a failed hint unlock', async () => {
+    const user = userEvent.setup();
+    server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => HttpResponse.json({ message: 'x' }, { status: 500 })));
+    mountCtf();
+    await user.click(await screen.findByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' }));
+    await user.click(screen.getByRole('button', { name: 'Tak, odblokuj' }));
+    expect(await screen.findByText('Failed to unlock hint')).toBeInTheDocument();
+    expect(screen.queryByText('Zajrzyj do źródła strony')).not.toBeInTheDocument();
+  });
+
+  it('offers a free training run of a solved room with previously unlocked hints', async () => {
+    const user = userEvent.setup();
+    mountCtf({ solved: true, unlockedHintIds: [1] });
+    expect(await screen.findByText('Gratulacje!')).toBeInTheDocument();
+    expect(screen.queryByPlaceholderText('Wklej flagę tutaj...')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Rozwiąż ponownie (Trening)' }));
+    expect(screen.getByPlaceholderText('Wklej flagę tutaj...')).toBeInTheDocument();
+    expect(screen.getByText('Zajrzyj do źródła strony')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Odblokuj (Trening)' })).toBeEnabled();
+    expect(screen.queryByText('Punkty do zdobycia:')).not.toBeInTheDocument();
+  });
+});

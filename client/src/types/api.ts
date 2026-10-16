@@ -67,7 +67,6 @@ export interface CreatePathRequest extends PathMetaRequest {
 
 export interface ChallengeRequest {
   targetUsername: string
-  vpnEnabled?: boolean
 }
 
 export interface Challenge {
@@ -80,12 +79,30 @@ export interface Challenge {
   targetUsername: string
   createdAt: ApiDateTime
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
-  vpnEnabled: boolean
+}
+
+export interface BattleQuestion {
+  id: number
+  content: string
+  category: string
+  answers: string[]
+}
+
+export interface RoundResult {
+  round: number
+  questionId: number
+  content: string
+  answers: string[]
+  correctAnswer: number
+  choices: Record<string, number>
+  damage: Record<string, number>
 }
 
 export interface GameSession {
   player1AvatarSeed?: string
   player2AvatarSeed?: string
+  player1Avatar?: AvatarConfig | null
+  player2Avatar?: AvatarConfig | null
   id: string
   player1Id: number
   player1Username: string
@@ -93,20 +110,22 @@ export interface GameSession {
   player2Id: number
   player2Username: string
   player2Elo: number | null
-  roomId: number
   startTime: ApiDateTime
-  status: 'ACTIVE' | 'FINISHED' | 'WAITING_FOR_OPPONENT'
+  status: 'ACTIVE' | 'FINISHED'
   winnerId: number | null
+  finishReason: 'KNOCKOUT' | 'ROUNDS' | 'SURRENDER' | 'DISCONNECT' | null
   player1EloChange: number | null
   player2EloChange: number | null
-  hintsUsed: Record<string, number[]>
-  finishTimes: Record<string, ApiDateTime>
-  penaltiesInSeconds: Record<string, number>
-}
-
-export interface ArenaSolveResponse extends MessageResponse {
-  success: boolean
-  status?: 'WAITING' | 'FINISHED'
+  round: number
+  totalRounds: number
+  phase: 'QUESTION' | 'REVEAL'
+  roundEndsAt: number
+  nextRoundAt: number
+  serverTime: number
+  hp: Record<string, number>
+  answeredBy: number[]
+  question: BattleQuestion | null
+  lastRound: RoundResult | null
 }
 
 export interface ChatMessage {
