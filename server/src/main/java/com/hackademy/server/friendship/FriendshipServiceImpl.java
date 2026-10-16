@@ -8,11 +8,14 @@ import com.hackademy.server.user.dto.UserSearchDto;
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
+import com.hackademy.server.user.UserAvatarRepository;
+import com.hackademy.server.user.dto.UserAvatarDto;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.stream.Collectors;
@@ -33,6 +36,7 @@ public class FriendshipServiceImpl implements FriendshipService {
     private final BadgeService badgeService; // Inject BadgeService
     private final DashboardSummaryCache dashboardSummaryCache;
     private final RealtimeNotifier realtime;
+    private final UserAvatarRepository userAvatarRepository;
 
     private static final long CACHE_MS = 30_000; // 30 seconds
     private static final class CacheEntry<T> {
@@ -143,11 +147,12 @@ public class FriendshipServiceImpl implements FriendshipService {
 
         List<Friendship> friendships = friendshipRepository.findByUserAndStatus(user, FriendshipStatus.ACCEPTED);
 
-        List<FriendDto> out = friendships.stream()
-                .map(f -> {
-                    User friend = f.getRequester().getId().equals(userId) ? f.getReceiver() : f.getRequester();
-                    return new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), friend.getAvatarSeed());
-                })
+        List<User> friends = friendships.stream()
+                .map(f -> f.getRequester().getId().equals(userId) ? f.getReceiver() : f.getRequester())
+                .toList();
+        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(friends.stream().map(User::getId).toList());
+        List<FriendDto> out = friends.stream()
+                .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), friend.getAvatarSeed(), avatars.get(friend.getId())))
                 .collect(Collectors.toList());
 
         friendsCache.put(userId, new CacheEntry<>(now, out));
@@ -166,8 +171,10 @@ public class FriendshipServiceImpl implements FriendshipService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        List<FriendRequestDto> out = friendshipRepository.findPendingRequestsForUser(user).stream()
-                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), f.getRequester().getAvatarSeed()))
+        List<Friendship> pending = friendshipRepository.findPendingRequestsForUser(user);
+        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(pending.stream().map(f -> f.getRequester().getId()).toList());
+        List<FriendRequestDto> out = pending.stream()
+                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), f.getRequester().getAvatarSeed(), avatars.get(f.getRequester().getId())))
                 .collect(Collectors.toList());
 
         requestsCache.put(userId, new CacheEntry<>(now, out));
