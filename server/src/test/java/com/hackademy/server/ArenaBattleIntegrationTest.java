@@ -1,0 +1,72 @@
+package com.hackademy.server;
+
+import com.hackademy.server.arena.ArenaService;
+import com.hackademy.server.user.Role;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+
+import static org.hamcrest.Matchers.hasSize;
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
+
+class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
+    @Autowired
+    private ArenaService arena;
+
+    @Test
+    void seedsEnoughQuestionsForAFullBattle() {
+        assertEquals(42, jdbcTemplate.queryForObject("SELECT count(*) FROM arena_questions", Integer.class));
+        assertEquals(0, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM arena_questions WHERE correct_answer NOT BETWEEN 0 AND 3", Integer.class));
+    }
+
+    @Test
+    void playersSeeTheQuestionWithoutTheCorrectAnswerAndAnswerOnce() throws Exception {
+        var first = account(Role.USER);
+        var second = account(Role.USER);
+        var outsider = account(Role.USER);
+        var challenge = arena.createChallenge(first.id(), first.username(), second.id(), second.username());
+        String game = arena.acceptChallenge(challenge.getId(), second.id()).getId();
+        String url = "/api/arena/game/" + game;
+
+        getAs(first, url).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("ACTIVE"))
+                .andExpect(jsonPath("$.round").value(1))
+                .andExpect(jsonPath("$.totalRounds").value(10))
+                .andExpect(jsonPath("$.question.answers", hasSize(4)))
+                .andExpect(jsonPath("$.question.correctAnswer").doesNotExist())
+                .andExpect(jsonPath("$.questions").doesNotExist())
+                .andExpect(jsonPath("$.choices").doesNotExist())
+                .andExpect(jsonPath("$.hp['" + first.id() + "']").value(100));
+        getAs(outsider, url).andExpect(status().isNotFound());
+
+        postJson(outsider, url + "/answer", "{\"answer\":1}").andExpect(status().isNotFound());
+        postJson(first, url + "/answer", "{\"answer\":7}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Wybierz jedną z czterech odpowiedzi."));
+        postJson(first, url + "/answer", "{}").andExpect(status().isBadRequest());
+        postJson(first, url + "/answer", "{\"answer\":1}").andExpect(status().isOk());
+        postJson(first, url + "/answer", "{\"answer\":2}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Odpowiedź w tej rundzie została już wysłana."));
+        getAs(second, url).andExpect(jsonPath("$.answeredBy[0]").value(first.id()));
+
+        postJson(second, url + "/answer", "{\"answer\":0}").andExpect(status().isOk());
+        getAs(second, url).andExpect(jsonPath("$.phase").value("REVEAL"))
+                .andExpect(jsonPath("$.lastRound.correctAnswer").exists())
+                .andExpect(jsonPath("$.lastRound.choices['" + second.id() + "']").value(0));
+        postJson(second, url + "/answer", "{\"answer\":0}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Ta runda jest już zakończona."));
+
+        postJson(second, url + "/surrender", "{}").andExpect(status().isOk());
+        getAs(first, url).andExpect(jsonPath("$.status").value("FINISHED"))
+                .andExpect(jsonPath("$.winnerId").value(first.id()))
+                .andExpect(jsonPath("$.finishReason").value("SURRENDER"));
+    }
+
+    @Test
+    void joiningTheQueueNeedsFiveHundredXp() throws Exception {
+        var beginner = account(Role.USER);
+        postJson(beginner, "/api/arena/join", "{}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Do Areny dołączysz od 500 XP."));
+    }
+}

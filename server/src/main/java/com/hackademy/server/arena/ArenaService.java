@@ -1,6 +1,5 @@
 package com.hackademy.server.arena;
 
-
 import java.util.List;
 
 public interface ArenaService {
@@ -10,12 +9,10 @@ public interface ArenaService {
     void finishGame(String gameId, Long winnerId);
     GameSession findActiveGameForUser(Long userId);
     GameSession findCurrentGameForUser(Long userId);
-    boolean submitFlag(String gameId, Long userId, String flag);
-    void useHint(String gameId, Long userId, Long hintId); // Updated method
-    void surrenderGame(String gameId, Long userId); // New method
-    
-    // Challenge methods
-    Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername, boolean vpnEnabled);
+    BattleEngine.AnswerResult answer(String gameId, Long userId, int answer);
+    void surrenderGame(String gameId, Long userId);
+
+    Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername);
     GameSession acceptChallenge(String challengeId, Long userId);
     void rejectChallenge(String challengeId, Long userId);
     List<Challenge> getPendingChallenges(Long userId);

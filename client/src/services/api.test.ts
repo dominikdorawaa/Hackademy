@@ -83,21 +83,19 @@ describe('HTTP compatibility', () => {
     expect(fetchMock.mock.calls.every(([, options]) => options?.headers === headers)).toBe(true);
   });
 
-  it('preserves omission versus false in challenge requests', async () => {
+  it('sends only the rival in challenge requests and no body when joining the queue', async () => {
     await arena.createChallenge({ targetUsername: 'alice' }, jsonHeaders);
-    await arena.createChallenge({ targetUsername: 'alice', vpnEnabled: false }, jsonHeaders);
-    expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual([
-      '{"targetUsername":"alice"}', '{"targetUsername":"alice","vpnEnabled":false}',
-    ]);
+    await arena.joinQueue(jsonHeaders);
+    expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual(['{"targetUsername":"alice"}', undefined]);
   });
 
-  it('uses distinct arena and training solve endpoints', async () => {
-    await arena.solveGame('game-id', { flag: 'flag' }, jsonHeaders);
+  it('sends a battle answer and a room flag to separate endpoints', async () => {
+    await arena.answerQuestion('game-id', 2, jsonHeaders);
     await room.solveRoom(7, { flag: 'flag' }, jsonHeaders);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      `${API_URL}/api/arena/game/game-id/solve`, `${API_URL}/api/rooms/7/solve`,
+      `${API_URL}/api/arena/game/game-id/answer`, `${API_URL}/api/rooms/7/solve`,
     ]);
-    expect(fetchMock.mock.calls.every(([, options]) => options?.body === '{"flag":"flag"}')).toBe(true);
+    expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual(['{"answer":2}', '{"flag":"flag"}']);
   });
 
   it('keeps file bytes and download headers', async () => {

@@ -16,7 +16,7 @@ export default function RealtimeGameNavigation() {
     }
     if (!game || game.status === 'FINISHED' || enteredGame.current === game.id) return;
     enteredGame.current = game.id;
-    const destination = `/rooms/${game.roomId}?arena=${game.id}`;
+    const destination = `/arena/battle/${game.id}`;
     if (location.pathname + location.search !== destination) navigate(destination, { replace: true });
   }, [state, game, location.pathname, location.search, navigate]);
 

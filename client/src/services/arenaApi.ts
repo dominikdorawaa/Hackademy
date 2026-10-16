@@ -1,5 +1,5 @@
 import { request } from './http';
-import type { ApiId, MessageResponse, ChallengeRequest, Challenge, GameSession, ArenaSolveResponse } from '../types/api';
+import type { ApiId, MessageResponse, ChallengeRequest, Challenge, GameSession } from '../types/api';
 
 export function getStatus(headers: HeadersInit) {
   return request<GameSession>(`/api/arena/status`, {
@@ -23,11 +23,10 @@ export function createChallenge(data: ChallengeRequest, headers: HeadersInit) {
   });
 }
 
-export function joinQueue(data: { vpnEnabled: boolean }, headers: HeadersInit) {
+export function joinQueue(headers: HeadersInit) {
   return request<MessageResponse>(`/api/arena/join`, {
     method: 'POST',
     headers,
-    body: JSON.stringify(data),
   });
 }
 
@@ -63,11 +62,11 @@ export function getGame(id: ApiId, headers: HeadersInit) {
   });
 }
 
-export function useHint(id: ApiId, data: { hintId: number }, headers: HeadersInit) {
-  return request<MessageResponse>(`/api/arena/game/${id}/hint`, {
+export function answerQuestion(id: ApiId, answer: number, headers: HeadersInit) {
+  return request<MessageResponse>(`/api/arena/game/${id}/answer`, {
     method: 'POST',
-    headers,
-    body: JSON.stringify(data),
+    headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ answer }),
   });
 }
 
@@ -75,14 +74,6 @@ export function surrender(id: ApiId, headers: HeadersInit) {
   return request<MessageResponse>(`/api/arena/game/${id}/surrender`, {
     method: 'POST',
     headers,
-  });
-}
-
-export function solveGame(id: ApiId, data: { flag: string }, headers: HeadersInit) {
-  return request<ArenaSolveResponse>(`/api/arena/game/${id}/solve`, {
-    method: 'POST',
-    headers,
-    body: JSON.stringify(data),
   });
 }
 

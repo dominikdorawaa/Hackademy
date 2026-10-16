@@ -60,8 +60,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT r.id FROM Room r WHERE " + VISIBLE + " AND r.category != 'Tutorial' AND (:vpnEnabled = true OR r.requiresVpn = false)")
     List<Long> findIdsByVpnRequirement(@Param("vpnEnabled") boolean vpnEnabled);
 
-    @Query("SELECT r.id FROM Room r WHERE " + VISIBLE + " AND r.roomType = com.hackademy.server.room.RoomType.CTF AND r.category != 'Tutorial' AND (:vpnEnabled = true OR r.requiresVpn = false)")
-    List<Long> findCtfIdsByVpnRequirement(@Param("vpnEnabled") boolean vpnEnabled);
 
     // Fetch top 3 rooms excluding Tutorial category using projection
     @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +

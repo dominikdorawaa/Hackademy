@@ -3,9 +3,9 @@ import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { defaultNotificationPreferences } from '../services/userApi';
 import type { RealtimeState } from '../types/realtime';
-import type { GameSession } from '../types/api';
 import RealtimeNotifications from './RealtimeNotifications';
 import RealtimeGameNavigation from './RealtimeGameNavigation';
+import { createGameSession } from '../test/fixtures/arena';
 
 const environment = vi.hoisted(() => ({ token: 'first', state: null as RealtimeState | null, loaded: true,
   preferences: { friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: true } }));
@@ -39,10 +39,8 @@ describe('realtime notification delivery', () => {
     const { rerender } = render(<RealtimeNotifications />);
     environment.state = { ...snapshot(), revision: 2, friendRequests: [request, { ...request, id: 8 }],
       challenges: [{ id: 'challenge', challengerId: 2, challengerUsername: 'second', targetId: 1,
-        targetUsername: 'first', createdAt: request.createdAt, status: 'PENDING', vpnEnabled: false }],
-      gameSession: { id: 'match', status: 'ACTIVE', player1Id: 1, player1Username: 'first', player1Elo: 500,
-        player2Id: 2, player2Username: 'second', player2Elo: 500, roomId: 7, startTime: request.createdAt,
-        winnerId: null, player1EloChange: null, player2EloChange: null, hintsUsed: {}, finishTimes: {}, penaltiesInSeconds: {} } };
+        targetUsername: 'first', createdAt: request.createdAt, status: 'PENDING' }],
+      gameSession: createGameSession({ id: 'match', player1Username: 'first', player2Username: 'second' }) };
     rerender(<RealtimeNotifications />);
     expect(delivered).not.toHaveBeenCalled();
     environment.loaded = true;
@@ -132,12 +130,10 @@ describe('realtime notification delivery', () => {
     function Location() { const location = useLocation(); return <output>{location.pathname}{location.search}</output>; }
     const content = <MemoryRouter><RealtimeNotifications /><RealtimeGameNavigation /><Location /></MemoryRouter>;
     const { rerender, container } = render(content);
-    const game: GameSession = { id: 'match', status: 'ACTIVE', player1Id: 1, player1Username: 'first', player1Elo: 500,
-      player2Id: 2, player2Username: 'second', player2Elo: 500, roomId: 7, startTime: '2026-10-11T12:00:00',
-      winnerId: null, player1EloChange: null, player2EloChange: null, hintsUsed: {}, finishTimes: {}, penaltiesInSeconds: {} };
+    const game = createGameSession({ id: 'match', player1Username: 'first', player2Username: 'second' });
     environment.state = { ...snapshot(), revision: 2, gameSession: game };
     rerender(<MemoryRouter><RealtimeNotifications /><RealtimeGameNavigation /><Location /></MemoryRouter>);
-    expect(container.querySelector('output')).toHaveTextContent('/rooms/7?arena=match');
+    expect(container.querySelector('output')).toHaveTextContent('/arena/battle/match');
     expect(delivered).not.toHaveBeenCalled();
   });
 });

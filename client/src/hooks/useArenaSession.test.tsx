@@ -5,21 +5,16 @@ import { useArenaSession } from './useArenaSession';
 import { server } from '../test/mocks/server';
 import API_URL from '../apiConfig';
 import type { GameSession } from '../types/api';
+import { createGameSession } from '../test/fixtures/arena';
 
-const game = (id = 'a', status: GameSession['status'] = 'ACTIVE'): GameSession => ({
-  id, status, player1Id: 1, player1Username: 'tester', player1Elo: 500,
-  player2Id: 2, player2Username: 'opponent', player2Elo: 500, roomId: 7,
-  startTime: '2026-10-11T12:00:00', winnerId: null, player1EloChange: null, player2EloChange: null,
-  hintsUsed: {}, finishTimes: {}, penaltiesInSeconds: {},
-});
+const game = (id = 'a', status: GameSession['status'] = 'ACTIVE'): GameSession => createGameSession({ id, status });
 
 describe('displayed arena game', () => {
-  it('retains finished state and hints when realtime moves to a newer match', async () => {
+  it('retains the finished battle when realtime moves to a newer match', async () => {
     server.use(http.get(`${API_URL}/api/arena/game/a`, () => HttpResponse.json(game())));
     const { result, rerender } = renderHook(({ live }) => useArenaSession('a', 'token', live),
       { initialProps: { live: game() } });
-    const finished = { ...game('a', 'FINISHED'), winnerId: 1, hintsUsed: { 1: [9] },
-      finishTimes: { 1: '2026-10-11T12:01:00' }, penaltiesInSeconds: { 1: 120 } };
+    const finished = { ...game('a', 'FINISHED'), winnerId: 1, finishReason: 'KNOCKOUT' as const, hp: { 1: 60, 2: 0 } };
     rerender({ live: finished });
     rerender({ live: game('b') });
     await waitFor(() => expect(result.current).toEqual(finished));

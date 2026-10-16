@@ -1,8 +1,7 @@
 package com.hackademy.server.arena;
 
-import com.hackademy.server.room.Hint;
-
-import lombok.AllArgsConstructor;
+import com.fasterxml.jackson.annotation.JsonIgnore;
+import com.hackademy.server.user.dto.UserAvatarDto;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
@@ -14,51 +13,82 @@ import java.util.Map;
 
 @Data
 @NoArgsConstructor
-@AllArgsConstructor
 public class GameSession {
     private String id;
     private Long player1Id;
     private String player1Username;
     private String player1AvatarSeed;
-    private Integer player1Elo; // Initial ELO
-    
+    private UserAvatarDto player1Avatar;
+    private Integer player1Elo;
+
     private Long player2Id;
     private String player2Username;
     private String player2AvatarSeed;
-    private Integer player2Elo; // Initial ELO
-    
-    private Long roomId;
+    private UserAvatarDto player2Avatar;
+    private Integer player2Elo;
+
     private LocalDateTime startTime;
-    private String status; // ACTIVE, FINISHED, WAITING_FOR_OPPONENT
+    private String status;
     private Long winnerId;
-    
+    private String finishReason;
     private Integer player1EloChange;
     private Integer player2EloChange;
-    
-    // New fields for time penalty mechanics
-    // Changed from Integer count to List of Hint IDs
-    private Map<Long, List<Long>> hintsUsed = new HashMap<>(); // userId -> List<HintId>
-    private Map<Long, LocalDateTime> finishTimes = new HashMap<>(); // userId -> finishTime
-    private Map<Long, Long> penaltiesInSeconds = new HashMap<>(); // userId -> penalty seconds
-    
-    public synchronized GameSession snapshot() {
-        Map<Long, List<Long>> hints = new HashMap<>();
-        hintsUsed.forEach((userId, ids) -> hints.put(userId, List.copyOf(ids)));
-        return new GameSession(id, player1Id, player1Username, player1AvatarSeed, player1Elo,
-                player2Id, player2Username, player2AvatarSeed, player2Elo, roomId, startTime, status,
-                winnerId, player1EloChange, player2EloChange, hints,
-                new HashMap<>(finishTimes), new HashMap<>(penaltiesInSeconds));
+
+    private int round;
+    private int totalRounds;
+    private String phase;
+    private long roundEndsAt;
+    private long nextRoundAt;
+    private long serverTime;
+    private Map<Long, Integer> hp = new HashMap<>();
+    private List<Long> answeredBy = new ArrayList<>();
+    private BattleQuestion question;
+    private RoundResult lastRound;
+
+    @JsonIgnore
+    private List<ArenaQuestion> questions = new ArrayList<>();
+    @JsonIgnore
+    private Map<Long, Integer> choices = new HashMap<>();
+    @JsonIgnore
+    private Map<Long, Long> disconnectedSince = new HashMap<>();
+
+    public boolean includes(Long userId) {
+        return player1Id.equals(userId) || player2Id.equals(userId);
     }
 
-    public synchronized void addHintUsage(Long userId, Long hintId) {
-        hintsUsed.computeIfAbsent(userId, k -> new ArrayList<>()).add(hintId);
-        penaltiesInSeconds.put(userId, penaltiesInSeconds.getOrDefault(userId, 0L) + 120L); // +2 minutes per hint
+    public Long opponentOf(Long userId) {
+        return player1Id.equals(userId) ? player2Id : player1Id;
     }
-    
-    public synchronized long getTotalTimeInSeconds(Long userId) {
-        if (!finishTimes.containsKey(userId)) return -1;
-        
-        long duration = java.time.Duration.between(startTime, finishTimes.get(userId)).getSeconds();
-        return duration + penaltiesInSeconds.getOrDefault(userId, 0L);
+
+    public synchronized GameSession snapshot() {
+        GameSession copy = new GameSession();
+        copy.id = id;
+        copy.player1Id = player1Id;
+        copy.player1Username = player1Username;
+        copy.player1AvatarSeed = player1AvatarSeed;
+        copy.player1Avatar = player1Avatar;
+        copy.player1Elo = player1Elo;
+        copy.player2Id = player2Id;
+        copy.player2Username = player2Username;
+        copy.player2AvatarSeed = player2AvatarSeed;
+        copy.player2Avatar = player2Avatar;
+        copy.player2Elo = player2Elo;
+        copy.startTime = startTime;
+        copy.status = status;
+        copy.winnerId = winnerId;
+        copy.finishReason = finishReason;
+        copy.player1EloChange = player1EloChange;
+        copy.player2EloChange = player2EloChange;
+        copy.round = round;
+        copy.totalRounds = totalRounds;
+        copy.phase = phase;
+        copy.roundEndsAt = roundEndsAt;
+        copy.nextRoundAt = nextRoundAt;
+        copy.serverTime = System.currentTimeMillis();
+        copy.hp = new HashMap<>(hp);
+        copy.answeredBy = new ArrayList<>(answeredBy);
+        copy.question = question;
+        copy.lastRound = lastRound;
+        return copy;
     }
 }

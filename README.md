@@ -120,7 +120,7 @@ Po potwierdzeniu subskrypcji przez `READY` frontend pobiera `/api/realtime/state
 
 Po dołączeniu do kolejki backend próbuje od razu znaleźć mecz. Istniejący harmonogram pozostaje zabezpieczeniem dla pozostałych oczekujących graczy. Broker i stan Areny nadal działają w pamięci jednej instancji; skalowanie na wiele instancji wymaga współdzielonego brokera i stanu rozgrywek.
 
-Znalezienie meczu lub przyjęcie wyzwania automatycznie przenosi obu graczy do pokoju, także gdy czekają na stronie znajomych. Arena pokazuje dołączanie do kolejki, szukanie przeciwnika i możliwość anulowania. Przy braku połączenia przyciski rozpoczęcia oczekiwania są zablokowane z widocznym komunikatem.
+Znalezienie meczu lub przyjęcie wyzwania automatycznie przenosi obu graczy na ekran walki awatarów (`/arena/battle/:id`), także gdy czekają na stronie znajomych. Serwer prowadzi walkę: losuje pytania, przyjmuje odpowiedzi, liczy obrażenia i kończy mecz, a stan rundy trafia do obu graczy przez `STATE`. Arena pokazuje dołączanie do kolejki, szukanie przeciwnika i możliwość anulowania. Przy braku połączenia przyciski rozpoczęcia oczekiwania są zablokowane z widocznym komunikatem.
 
 Lokalny frontend i backend uruchamiaj z tej samej wersji repozytorium. Po zmianach backendu zrestartuj uruchomienie w IntelliJ albo przebuduj kontener. Starszy backend bez `/api/realtime/state` i obsługi `/user/queue/realtime` nie obsłuży aktualnego frontendu; działający endpoint `/ws/info` powinien odpowiadać 200.
 

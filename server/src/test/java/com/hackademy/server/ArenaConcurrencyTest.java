@@ -1,14 +1,18 @@
 package com.hackademy.server;
 
+import com.hackademy.server.arena.ArenaPresence;
+import com.hackademy.server.arena.ArenaQuestion;
+import com.hackademy.server.arena.ArenaQuestionRepository;
 import com.hackademy.server.arena.ArenaServiceImpl;
+import com.hackademy.server.arena.BattleEngine;
 import com.hackademy.server.arena.Challenge;
 import com.hackademy.server.arena.GameSession;
 import com.hackademy.server.chat.ChatService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
-import com.hackademy.server.room.RoomRepository;
 import com.hackademy.server.user.User;
+import com.hackademy.server.user.UserAvatarRepository;
 import com.hackademy.server.user.UserRepository;
 import com.hackademy.server.user.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
@@ -16,25 +20,37 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
 
-import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
+import java.util.stream.LongStream;
 
 import static org.junit.jupiter.api.Assertions.*;
+import static org.mockito.ArgumentMatchers.any;
+import static org.mockito.ArgumentMatchers.anyCollection;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Mockito.*;
 
 class ArenaConcurrencyTest {
-    private final RoomRepository rooms = mock(RoomRepository.class);
+    private final ArenaQuestionRepository questions = mock(ArenaQuestionRepository.class);
     private final UserRepository users = mock(UserRepository.class);
+    private final UserAvatarRepository avatars = mock(UserAvatarRepository.class);
     private final ChatService chat = mock(ChatService.class);
     private final RealtimeNotifier realtime = mock(RealtimeNotifier.class);
-    private final ArenaServiceImpl arena = new ArenaServiceImpl(rooms, mock(FriendshipRepository.class), users,
-            chat, mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime);
+    private final ArenaPresence presence = mock(ArenaPresence.class);
+    private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
+            chat, mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
+
+    static List<ArenaQuestion> questionSet() {
+        return LongStream.rangeClosed(1, 10).mapToObj(id -> new ArenaQuestion(id, "Pytanie " + id,
+                "A", "B", "C", "D", 1, "WEB", "EASY")).toList();
+    }
 
     @BeforeEach
     void usersExist() {
@@ -45,25 +61,25 @@ class ArenaConcurrencyTest {
             user.setElo(500);
             when(users.findById(id)).thenReturn(Optional.of(user));
         }
-        when(rooms.findCtfIdsByVpnRequirement(false)).thenReturn(List.of(7L));
+        when(questions.findRandom(anyInt())).thenReturn(questionSet());
+        when(avatars.findDtosByUserIds(anyCollection())).thenReturn(Map.of());
+        when(presence.isConnected(any())).thenReturn(true);
     }
 
     private Challenge challenge() {
-        return arena.createChallenge(1L, "player1", 2L, "player2", false);
+        return arena.createChallenge(1L, "player1", 2L, "player2");
     }
 
     @Test
-    void rejectsFlagsForAnAlreadySelectedRoomAfterMovingItToDrafts() {
-        var room = new com.hackademy.server.room.Room(); room.setId(7L); room.setFlag("flag"); room.setPublished(false);
-        when(rooms.findById(7L)).thenReturn(Optional.of(room));
+    void acceptedChallengeStartsABattleWithoutRevealingAnswers() {
         var session = arena.acceptChallenge(challenge().getId(), 2L);
-        assertFalse(arena.submitFlag(session.getId(), 1L, "flag"));
-        assertTrue(arena.getGameSession(session.getId()).getFinishTimes().isEmpty());
-        verify(users, never()).save(any());
-        room.setPublished(true);
-        assertFalse(arena.submitFlag(session.getId(), 1L, "wrong"));
-        assertTrue(arena.submitFlag(session.getId(), 1L, "flag"));
-        assertEquals("FINISHED", arena.getGameSession(session.getId()).getStatus());
+        assertEquals("ACTIVE", session.getStatus());
+        assertEquals(1, session.getRound());
+        assertEquals(10, session.getTotalRounds());
+        assertEquals(Map.of(1L, 100, 2L, 100), session.getHp());
+        assertEquals(List.of("A", "B", "C", "D"), session.getQuestion().answers());
+        assertTrue(session.getQuestions().isEmpty());
+        assertTrue(session.getChoices().isEmpty());
     }
 
     @Test
@@ -81,18 +97,18 @@ class ArenaConcurrencyTest {
     @ValueSource(strings = {"cancel", "reject", "accept"})
     void acceptingSerializesCompetingChallengeActions(String action) throws Exception {
         var challenge = challenge();
-        var readingRooms = new CountDownLatch(1);
-        var releaseRooms = new CountDownLatch(1);
+        var readingQuestions = new CountDownLatch(1);
+        var releaseQuestions = new CountDownLatch(1);
         var competingStarted = new CountDownLatch(1);
-        when(rooms.findCtfIdsByVpnRequirement(false)).thenAnswer(invocation -> {
-            readingRooms.countDown();
-            assertTrue(releaseRooms.await(5, TimeUnit.SECONDS));
-            return List.of(7L);
+        when(questions.findRandom(anyInt())).thenAnswer(invocation -> {
+            readingQuestions.countDown();
+            assertTrue(releaseQuestions.await(5, TimeUnit.SECONDS));
+            return questionSet();
         });
         var executor = Executors.newFixedThreadPool(2);
         try {
             var accepted = executor.submit(() -> arena.acceptChallenge(challenge.getId(), 2L));
-            assertTrue(readingRooms.await(5, TimeUnit.SECONDS));
+            assertTrue(readingQuestions.await(5, TimeUnit.SECONDS));
             var competing = executor.submit(() -> {
                 competingStarted.countDown();
                 switch (action) {
@@ -106,13 +122,13 @@ class ArenaConcurrencyTest {
             });
             assertTrue(competingStarted.await(5, TimeUnit.SECONDS));
             assertThrows(TimeoutException.class, () -> competing.get(100, TimeUnit.MILLISECONDS));
-            releaseRooms.countDown();
+            releaseQuestions.countDown();
             assertEquals(accepted.get(5, TimeUnit.SECONDS).getId(), arena.findCurrentGameForUser(1L).getId());
             competing.get(5, TimeUnit.SECONDS);
-            verify(rooms, times(1)).findCtfIdsByVpnRequirement(false);
+            verify(questions, times(1)).findRandom(BattleEngine.ROUNDS);
             assertTrue(arena.getOutgoingChallenges(1L).isEmpty());
         } finally {
-            releaseRooms.countDown();
+            releaseQuestions.countDown();
             executor.shutdownNow();
         }
     }
@@ -123,7 +139,7 @@ class ArenaConcurrencyTest {
         var start = new CountDownLatch(1);
         var executor = Executors.newFixedThreadPool(2);
         try {
-            var attempts = new ArrayList<java.util.concurrent.Future<Boolean>>();
+            var attempts = new ArrayList<Future<Boolean>>();
             for (int i = 0; i < 2; i++) attempts.add(executor.submit(() -> {
                 assertTrue(start.await(5, TimeUnit.SECONDS));
                 try {
@@ -137,7 +153,7 @@ class ArenaConcurrencyTest {
             int successes = 0;
             for (var attempt : attempts) if (attempt.get(5, TimeUnit.SECONDS)) successes++;
             assertEquals(1, successes);
-            verify(rooms, times(1)).findCtfIdsByVpnRequirement(false);
+            verify(questions, times(1)).findRandom(BattleEngine.ROUNDS);
         } finally {
             executor.shutdownNow();
         }
@@ -146,58 +162,43 @@ class ArenaConcurrencyTest {
     @Test
     void failedAcceptanceKeepsChallengeAvailableForRetry() {
         var challenge = challenge();
-        when(rooms.findCtfIdsByVpnRequirement(false)).thenReturn(List.of());
+        when(questions.findRandom(anyInt())).thenReturn(List.of());
         assertThrows(IllegalStateException.class, () -> arena.acceptChallenge(challenge.getId(), 2L));
         assertEquals(1, arena.getPendingChallenges(2L).size());
-        when(rooms.findCtfIdsByVpnRequirement(false)).thenReturn(List.of(7L));
+        when(questions.findRandom(anyInt())).thenReturn(questionSet());
         assertNotNull(arena.acceptChallenge(challenge.getId(), 2L));
     }
 
-    private GameSession game() {
+    private void game() {
         var game = new GameSession();
         game.setId("game");
         game.setPlayer1Id(1L);
         game.setPlayer2Id(2L);
         game.setPlayer1Username("player1");
         game.setPlayer2Username("player2");
-        game.setStartTime(LocalDateTime.now());
-        game.setStatus("ACTIVE");
         arena.addGame(game);
-        return game;
     }
 
     @Test
-    void snapshotsRemainConsistentWhileBothPlayersUseHints() throws Exception {
+    void simultaneousAnswersResolveTheRoundOnce() throws Exception {
         game();
-        var executor = Executors.newFixedThreadPool(3);
+        var executor = Executors.newFixedThreadPool(2);
         var start = new CountDownLatch(1);
         try {
-            var writers = new ArrayList<java.util.concurrent.Future<?>>();
+            var answers = new ArrayList<Future<BattleEngine.AnswerResult>>();
             for (long id = 1; id <= 2; id++) {
                 long userId = id;
-                writers.add(executor.submit(() -> {
+                answers.add(executor.submit(() -> {
                     assertTrue(start.await(5, TimeUnit.SECONDS));
-                    for (long hint = 1; hint <= 500; hint++) arena.useHint("game", userId, hint);
-                    return null;
+                    return arena.answer("game", userId, 1);
                 }));
             }
-            var reader = executor.submit(() -> {
-                assertTrue(start.await(5, TimeUnit.SECONDS));
-                for (int i = 0; i < 1000; i++) {
-                    var snapshot = arena.findCurrentGameForUser(1L);
-                    snapshot.getHintsUsed().forEach((id, hints) ->
-                            assertEquals(hints.size() * 120L, snapshot.getPenaltiesInSeconds().get(id)));
-                }
-                return null;
-            });
             start.countDown();
-            for (var writer : writers) writer.get(10, TimeUnit.SECONDS);
-            reader.get(10, TimeUnit.SECONDS);
+            for (var answer : answers) assertEquals(BattleEngine.AnswerResult.ACCEPTED, answer.get(5, TimeUnit.SECONDS));
             var snapshot = arena.getGameSession("game");
-            assertEquals(500, snapshot.getHintsUsed().get(1L).size());
-            assertEquals(500, snapshot.getHintsUsed().get(2L).size());
-            arena.useHint("game", 1L, 501L);
-            assertEquals(500, snapshot.getHintsUsed().get(1L).size());
+            assertEquals("REVEAL", snapshot.getPhase());
+            assertEquals(Map.of(1L, 80, 2L, 80), snapshot.getHp());
+            assertEquals(BattleEngine.AnswerResult.NOT_ACTIVE, arena.answer("game", 1L, 1));
         } finally {
             executor.shutdownNow();
         }
