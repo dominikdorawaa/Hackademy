@@ -15,6 +15,7 @@ import type { Avatar } from '../components/arena/avatar/avatarModel';
 const atlas = vi.hoisted(() => ({ ready: true, front: 'blob:front' as string | null, last: null as null | Avatar }));
 vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
   useAvatarAtlas: (avatar: Avatar) => { atlas.last = avatar; return atlas.ready ? { atlas: 'blob:atlas', front: atlas.front } : null; },
+  useAvatarPortrait: (config: { pose?: string } | null) => config ? `blob:portrait-${config.pose}` : null,
 }));
 
 import ArenaAvatarPage from './ArenaAvatarPage';
@@ -110,8 +111,8 @@ it('loads the avatar from the account and saves changes there', async () => {
   fireEvent.click(screen.getByRole('radio', { name: /^Daszek$/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled());
-  expect(saved).toEqual({ ...accountAvatar, hat: 'daszek' });
-  expect(updates).toEqual([{ username: 'tester', avatar: { ...accountAvatar, hat: 'daszek' } }]);
+  expect(saved).toEqual({ ...accountAvatar, hat: 'daszek', pose: 'przod' });
+  expect(updates).toEqual([{ username: 'tester', avatar: { ...accountAvatar, hat: 'daszek', pose: 'przod' } }]);
   window.removeEventListener(PROFILE_UPDATED, listener);
 });
 
@@ -199,4 +200,18 @@ it('shows still animation previews when the system asks for reduced motion', () 
     vi.useRealTimers();
     vi.unstubAllGlobals();
   }
+});
+
+it('chooses the portrait pose separately from the animation preview and saves it', () => {
+  setup();
+  const poses = screen.getAllByRole<HTMLInputElement>('radio').filter(input => input.name === 'avatar-pose');
+  expect(poses.map(input => input.value)).toEqual(['przod', 'postawa', 'profil']);
+  expect(screen.getByRole('radio', { name: 'Przód' })).toBeChecked();
+  expect(screen.getByRole('radio', { name: 'Profil' }).closest('label')!.querySelector('img')).toHaveAttribute('src', 'blob:portrait-profil');
+  fireEvent.click(screen.getByRole('radio', { name: 'Profil' }));
+  expect(screen.getByRole('radio', { name: 'Profil' })).toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: 'Taniec' }));
+  expect(screen.getByRole('radio', { name: 'Profil' })).toBeChecked();
+  fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
+  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ pose: 'profil' });
 });
