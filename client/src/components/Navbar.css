@@ -304,3 +304,12 @@
   100% { box-shadow: 0 0 0 0 rgba(255, 45, 85, 0); }
 }
 }
+
+.nav-streak-flame {
+  margin: -6px 0 -4px -4px;
+}
+
+.nav-streak-flame.is-out {
+  opacity: 0.55;
+  filter: grayscale(1);
+}

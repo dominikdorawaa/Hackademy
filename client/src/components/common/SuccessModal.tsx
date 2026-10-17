@@ -1,5 +1,6 @@
 import React, { useEffect } from 'react';
 import './SuccessModal.css';
+import { PixelSprite, SPRITES } from '../PixelSprite';
 
 const SuccessModal = ({ isOpen, onClose, points, message }: { isOpen: boolean; onClose: () => void; points: number; message?: string }) => {
   // Close on Escape key
@@ -17,8 +18,8 @@ const SuccessModal = ({ isOpen, onClose, points, message }: { isOpen: boolean; o
   return (
     <div className="success-modal-overlay" onClick={onClose}>
       <div className="success-modal-container" onClick={(e) => e.stopPropagation()}>
-        <div className="success-icon-wrapper">
-          <i className="fas fa-trophy success-icon"></i>
+        <div className="success-flag">
+          <PixelSprite sprite={SPRITES.flag} scale={3} duration={900} />
         </div>
 
         <h2 className="success-title">Gratulacje!</h2>

@@ -23,6 +23,7 @@ import VpnPage from './pages/VpnPage';
 import SettingsPage from './pages/SettingsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import adminRoutes from './pages/admin/adminRoutes';
+import NotFoundPage from './pages/NotFoundPage';
 
 const ArenaAvatarPage = lazy(() => import('./pages/ArenaAvatarPage'));
 const ArenaBattlePage = lazy(() => import('./pages/ArenaBattlePage'));
@@ -136,6 +137,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
         </NotificationPreferencesProvider>
