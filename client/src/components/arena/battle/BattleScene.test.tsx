@@ -1,7 +1,7 @@
 import { act, render, screen } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { BattleScene } from './BattleScene';
-import { perspective } from './battleView';
+import { FINISHERS, perspective } from './battleView';
 import { createGameSession } from '../../../test/fixtures/arena';
 import type { GameSession } from '../../../types/api';
 
@@ -68,16 +68,50 @@ it('waits for both atlases before starting the exchange and HP loss', () => {
   expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '80');
 });
 
-it('starts victory and defeat only after the last projectile lands', () => {
+it('plays the finisher before victory and defeat after a knockout', () => {
   render(scene({ ...exchange({ 1: 0, 2: 20 }), status: 'FINISHED', finishReason: 'KNOCKOUT', winnerId: 1, hp: { 1: 100, 2: 0 } }));
-  advance(720);
-  expect(fighter()).toHaveAttribute('data-frames', '0');
+  const rivalHp = () => screen.getByRole('meter', { name: 'HP: opponent' });
+  expect(fighter()).toHaveAttribute('data-frames', FINISHERS.beam.frames.join(','));
+  expect(screen.getByTestId('finisher-beam')).toHaveTextContent('Cios kończącyPrzeciążenie');
+  expect(screen.getByTestId('finisher-beam')).toHaveClass('from-me');
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
+  expect(fighter('rival')).toHaveAttribute('data-finished-by', 'beam');
+  expect(fighter()).not.toHaveAttribute('data-finished-by');
+  advance(899);
   expect(fighter('rival')).toHaveAttribute('data-frames', '0');
-  advance(180);
+  expect(rivalHp()).toHaveAttribute('aria-valuenow', '20');
+  advance(1);
   expect(fighter('rival')).toHaveAttribute('data-frames', '37,38,39,40');
-  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '0');
+  expect(rivalHp()).toHaveAttribute('aria-valuenow', '0');
   advance(440);
+  expect(fighter('rival')).toHaveAttribute('data-frames', '46,47,48,49,50,51,52,53');
+  expect(fighter()).toHaveAttribute('data-frames', FINISHERS.beam.frames.join(','));
+  advance(760);
   expect(fighter()).toHaveAttribute('data-frames', '55,56,57,58,59,60,61,62,64,65,66,67,68,69,70,71');
+});
+
+it('shows the rival finisher after my last hit lands', () => {
+  render(scene({ ...exchange(), id: 'game1', status: 'FINISHED', finishReason: 'KNOCKOUT', winnerId: 2, hp: { 1: 0, 2: 20 } }));
+  const myHp = () => screen.getByRole('meter', { name: 'HP: tester' }), rivalHp = () => screen.getByRole('meter', { name: 'HP: opponent' });
+  expect(screen.getByTestId('shot-me')).toHaveTextContent('-20');
+  expect(screen.getByTestId('finisher-combo')).toHaveClass('from-rival');
+  expect(fighter()).toHaveAttribute('data-finished-by', 'combo');
+  advance(900);
+  expect(rivalHp()).toHaveAttribute('aria-valuenow', '20');
+  expect(myHp()).toHaveAttribute('aria-valuenow', '20');
+  advance(440);
+  expect(fighter('rival')).toHaveAttribute('data-frames', FINISHERS.combo.frames.join(','));
+  advance(999);
+  expect(myHp()).toHaveAttribute('aria-valuenow', '20');
+  advance(1);
+  expect(myHp()).toHaveAttribute('aria-valuenow', '0');
+  expect(fighter()).toHaveAttribute('data-frames', '37,38,39,40');
+});
+
+it('skips the finisher with reduced motion', () => {
+  render(scene({ ...exchange({ 1: 0, 2: 20 }), status: 'FINISHED', finishReason: 'KNOCKOUT', winnerId: 1, hp: { 1: 100, 2: 0 } }, true));
+  expect(screen.queryByTestId('finisher-beam')).not.toBeInTheDocument();
+  expect(fighter('rival')).not.toHaveAttribute('data-finished-by');
   expect(fighter('rival')).toHaveAttribute('data-frames', '46,47,48,49,50,51,52,53');
 });
 
