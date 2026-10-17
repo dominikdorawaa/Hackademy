@@ -129,9 +129,18 @@ export const FRONT_VIEWS: Record<AvatarOutfit, { image: string; anchors: string 
   dres: { image: 'front/dres.png', anchors: 'front/anchors-dres.json' },
 };
 export const HEAD_ANCHORS: Record<AvatarOutfit, string> = { baza: 'anchors.json', bluza: 'hoodie/anchors.json', dres: 'track/anchors.json' };
+export const PROFILE_VIEWS: Record<AvatarOutfit, { image: string; anchors: string }> = {
+  baza: { image: 'profile/baza.png', anchors: 'profile/anchors-baza.json' },
+  bluza: { image: 'profile/bluza.png', anchors: 'profile/anchors-bluza.json' },
+  dres: { image: 'profile/dres.png', anchors: 'profile/anchors-dres.json' },
+};
+export const AVATAR_POSES = ['przod', 'postawa', 'profil'] as const;
+export type AvatarPose = typeof AVATAR_POSES[number];
+export const PORTRAIT_CROPS: Record<AvatarPose, [number, number]> = { przod: [16, 0], postawa: [18, 1], profil: [17, 0] };
+const toPose = (value: unknown): AvatarPose => (AVATAR_POSES as readonly unknown[]).includes(value) ? value as AvatarPose : 'przod';
 
-export interface Avatar { outfit: AvatarOutfit; colors: AvatarColors & { hat: string }; hair: HairStyle; hat: HatStyle }
-export const DEFAULT_AVATAR: Avatar = { outfit: 'baza', hair: 'krotkie', hat: 'brak', colors: { hair: 'brazowe', skin: 'jasna', top: 'granatowy', bottom: 'piaskowy', shoes: 'grafitowy', hat: 'czerwony' } };
+export interface Avatar { outfit: AvatarOutfit; colors: AvatarColors & { hat: string }; hair: HairStyle; hat: HatStyle; pose: AvatarPose }
+export const DEFAULT_AVATAR: Avatar = { outfit: 'baza', hair: 'krotkie', hat: 'brak', pose: 'przod', colors: { hair: 'brazowe', skin: 'jasna', top: 'granatowy', bottom: 'piaskowy', shoes: 'grafitowy', hat: 'czerwony' } };
 export const AVATAR_KEY = 'hackademy-avatar-v1';
 
 export function readAvatar(): Avatar {
@@ -141,7 +150,7 @@ export function readAvatar(): Avatar {
     const pick = (value: unknown, options: Record<string, Ramp>, fallback: string) => typeof value === 'string' && Object.hasOwn(options, value) ? value : fallback;
     const choose = <T extends string>(value: unknown, options: readonly T[], fallback: T) => options.includes(value as T) ? value as T : fallback;
     const colors = saved?.colors ?? {};
-    return { outfit, hair: choose(saved?.hair, HAIR_STYLES, DEFAULT_AVATAR.hair), hat: choose(saved?.hat, HAT_STYLES, DEFAULT_AVATAR.hat), colors: {
+    return { outfit, hair: choose(saved?.hair, HAIR_STYLES, DEFAULT_AVATAR.hair), hat: choose(saved?.hat, HAT_STYLES, DEFAULT_AVATAR.hat), pose: toPose(saved?.pose), colors: {
       hair: pick(colors.hair, HAIR_RAMPS, DEFAULT_AVATAR.colors.hair), skin: pick(colors.skin, SKIN_RAMPS, DEFAULT_AVATAR.colors.skin),
       top: pick(colors.top, CLOTH_RAMPS, DEFAULT_AVATAR.colors.top), bottom: pick(colors.bottom, CLOTH_RAMPS, DEFAULT_AVATAR.colors.bottom),
       shoes: pick(colors.shoes, CLOTH_RAMPS, DEFAULT_AVATAR.colors.shoes), hat: pick(colors.hat, CLOTH_RAMPS, DEFAULT_AVATAR.colors.hat),
@@ -194,7 +203,7 @@ export function compositeOverlay(atlas: Uint8ClampedArray, width: number, overla
 
 export function toAvatarConfig(avatar: Avatar): AvatarConfig {
   return { outfit: avatar.outfit, hair: avatar.hair, hat: avatar.hat, skin: avatar.colors.skin, hairColor: avatar.colors.hair,
-    topColor: avatar.colors.top, bottomColor: avatar.colors.bottom, shoesColor: avatar.colors.shoes, hatColor: avatar.colors.hat };
+    topColor: avatar.colors.top, bottomColor: avatar.colors.bottom, shoesColor: avatar.colors.shoes, hatColor: avatar.colors.hat, pose: avatar.pose };
 }
 
 export function fromAvatarConfig(config: AvatarConfig | null | undefined): Avatar | null {
@@ -203,6 +212,6 @@ export function fromAvatarConfig(config: AvatarConfig | null | undefined): Avata
     && (HAT_STYLES as readonly string[]).includes(config.hat) && Object.hasOwn(SKIN_RAMPS, config.skin) && Object.hasOwn(HAIR_RAMPS, config.hairColor)
     && [config.topColor, config.bottomColor, config.shoesColor, config.hatColor].every(color => Object.hasOwn(CLOTH_RAMPS, color));
   if (!valid) return null;
-  return { outfit: config.outfit as AvatarOutfit, hair: config.hair as HairStyle, hat: config.hat as HatStyle,
+  return { outfit: config.outfit as AvatarOutfit, hair: config.hair as HairStyle, hat: config.hat as HatStyle, pose: toPose(config.pose),
     colors: { skin: config.skin, hair: config.hairColor, top: config.topColor, bottom: config.bottomColor, shoes: config.shoesColor, hat: config.hatColor } };
 }

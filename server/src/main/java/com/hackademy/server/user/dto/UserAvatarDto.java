@@ -12,7 +12,8 @@ public record UserAvatarDto(
         @NotNull @Pattern(regexp = UserAvatarDto.CLOTH_COLORS) String topColor,
         @NotNull @Pattern(regexp = UserAvatarDto.CLOTH_COLORS) String bottomColor,
         @NotNull @Pattern(regexp = UserAvatarDto.CLOTH_COLORS) String shoesColor,
-        @NotNull @Pattern(regexp = UserAvatarDto.CLOTH_COLORS) String hatColor) {
+        @NotNull @Pattern(regexp = UserAvatarDto.CLOTH_COLORS) String hatColor,
+        @Pattern(regexp = UserAvatarDto.POSES) String pose) {
 
     public static final String OUTFITS = "baza|bluza|dres";
     public static final String HAIR_STYLES = "brak|krotkie|irokez|kucyk";
@@ -20,4 +21,6 @@ public record UserAvatarDto(
     public static final String SKIN_TONES = "porcelanowa|jasna|oliwkowa|brazowa|ciemna|heban";
     public static final String HAIR_COLORS = "czarne|brazowe|rude|blond|siwe|niebieskie";
     public static final String CLOTH_COLORS = "granatowy|grafitowy|bordowy|turkusowy|piaskowy|oliwkowy|czerwony|bialy";
+    public static final String POSES = "przod|postawa|profil";
+    public static final String DEFAULT_POSE = "przod";
 }
