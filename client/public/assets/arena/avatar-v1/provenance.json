@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row.",
   "atlasSha256": {
-    "fighter.png": "d374c66c58ade04b2678dc94ba825935efb4d4c70c6211436d3fd9fef91b064c",
-    "hoodie/fighter.png": "bed6f597539ac3a28c2dd3691414a05593520935cd7ba92727be224cd603dd18",
-    "track/fighter.png": "fa6e09dd7940a5c4630e16f42f4c30103c03f6862a6bc4b36491f89df8408f26"
+    "fighter.png": "dcce0cfac76169f3e91ba9ede8bdd5024b68917759d1721d85d3a1067fba73c7",
+    "hoodie/fighter.png": "4042c45650622a8189e21c480920b433b7c8522f35602e7418a12270b8046711",
+    "track/fighter.png": "0349c65532bf3580c8ba32241fc79ed2aa7f560b27a3bb0813844b2be9e9ef15"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -218,5 +218,36 @@
       }
     },
     "processing": "Rows 8 and 9 of every outfit atlas: column 1 of row 8 is the relaxed pose, then the 15 generated frames follow, and column 0 of both rows repeats the relaxed pose. Alpha is cut at 128, colours snap to the outfit palette, the exact front head is pasted at the tracked head position so the front hair and hat overlays fit in every frame, and frames keep the front view placement so overlays have room above the head. Colours are then remapped so every material keeps the same shade step it has in the front view, so the recoloured dance matches the front sprite, including the zip and folds."
+  },
+  "attack": {
+    "generatedAt": "2026-10-17",
+    "sources": "local-prototype-backups/arena-battle-v2",
+    "outfits": {
+      "baza": {
+        "endpoint": "animate-with-text-v3",
+        "from": "stance cell 0 of the outfit atlas",
+        "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Hacker energy push: from the fighting stance, draw the rear hand back to the hip with the palm open, lean forward and thrust that open palm straight out to the RIGHT at chest height as if firing a blast from the hand, hold the extended palm for a moment, then pull back to the exact initial stance. Front fist stays near the chin, feet planted, head keeps the same size. Same bald character, clothes and colours, fixed camera, no effects, no projectile.",
+        "frameCount": 8,
+        "seed": 88001,
+        "firstAndLastFrame": "stance"
+      },
+      "bluza": {
+        "endpoint": "animate-with-text-v3",
+        "from": "stance cell 0 of the outfit atlas",
+        "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Hacker energy push: from the fighting stance, draw the rear hand back to the hip with the palm open, lean forward and thrust that open palm straight out to the RIGHT at chest height as if firing a blast from the hand, hold the extended palm for a moment, then pull back to the exact initial stance. Front fist stays near the chin, feet planted, head keeps the same size. Same bald character, clothes and colours, fixed camera, no effects, no projectile.",
+        "frameCount": 8,
+        "seed": 88001,
+        "firstAndLastFrame": "stance"
+      },
+      "dres": {
+        "endpoint": "animate-with-text-v3",
+        "from": "stance cell 0 of the outfit atlas",
+        "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Hacker energy push: from the fighting stance, draw the rear hand back to the hip with the palm open, lean forward and thrust that open palm straight out to the RIGHT at chest height as if firing a blast from the hand, hold the extended palm for a moment, then pull back to the exact initial stance. Front fist stays near the chin, feet planted, head keeps the same size. Same bald character, clothes and colours, fixed camera, no effects, no projectile.",
+        "frameCount": 8,
+        "seed": 88001,
+        "firstAndLastFrame": "stance"
+      }
+    },
+    "processing": "Row 1 now holds the palm strike that launches the data packet: column 0 repeats the stance, columns 1 to 8 hold generated frames 1 to 8. Rows 2 and 3 (the old hook and power push, no longer used) are empty. The hurt and fall rows (4 and 5) were re-anchored over the full rotation range and carry the exact stance head sampled exactly like the overlays, so hair and hats no longer slip off falling heads. Every frame keeps alpha at 0 or 255, colours snap to the outfit palette and stray shoe, shirt, trouser and stripe pixels are reassigned to their material."
   }
 }
