@@ -1,0 +1,67 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-10-18",
+  "sources": "local-prototype-backups/arena-leagues-v1",
+  "icons": [
+    {
+      "file": "script-kiddie.png",
+      "endpoint": "create-image-pixflux",
+      "description": "Pixel art league rank badge for a cybersecurity game: a front facing heraldic shield with a thick dark outline, shiny metal rim and a bold simple white symbol in the middle. Centered, transparent background, no text, no letters, no numbers. Bronze copper shield, symbol: a terminal command prompt, a right angle bracket followed by an underscore.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 95001,
+      "processing": "Alpha cut at 128. The prompt symbol was redrawn by hand as a white right angle bracket and underscore with a dark shadow.",
+      "sha256": "a13498f5dbef3eee79e8d0b82aeb8787b9f42ca80a94e480539fcb3b0c7d229c"
+    },
+    {
+      "file": "skaner.png",
+      "endpoint": "create-image-pixflux",
+      "description": "Pixel art league rank badge for a cybersecurity game: a front facing heraldic shield with a thick dark outline, shiny metal rim and a bold simple white symbol in the middle. Centered, transparent background, no text, no letters, no numbers. Polished silver steel shield, symbol: a radar scanner circle with a sweeping line.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 95001,
+      "processing": "Alpha cut at 128.",
+      "sha256": "055325206e206049880127d753cd03ed21084963be6c57c47db057d19f287acd"
+    },
+    {
+      "file": "exploit.png",
+      "endpoint": "create-image-pixflux",
+      "description": "Pixel art league rank badge for a cybersecurity game: a front facing heraldic shield with a thick dark outline, shiny metal rim and a bold simple white symbol in the middle. Centered, transparent background, no text, no letters, no numbers. Shiny gold shield, symbol: a lightning bolt.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 95001,
+      "processing": "Alpha cut at 128.",
+      "sha256": "99f2c57c1e33952ded40e9864a6be309ee73e5a0386069b5eb791696d14aa17a"
+    },
+    {
+      "file": "root.png",
+      "endpoint": "create-image-pixflux",
+      "description": "Pixel art league rank badge for a cybersecurity game: a front facing heraldic shield with a thick dark outline, shiny metal rim and a bold simple white symbol in the middle. Centered, transparent background, no text, no letters, no numbers. Teal platinum shield with a mint glow, symbol: a small crown.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 95001,
+      "processing": "Alpha cut at 128.",
+      "sha256": "1ddc1d9376dcb56fdb21de44e5d59e90f6e9826c568f0e0c2f2b54a8ebc904d7"
+    },
+    {
+      "file": "zero-day.png",
+      "endpoint": "create-image-pixflux",
+      "description": "Pixel art league rank badge for a cybersecurity game: a front facing heraldic shield with a thick dark outline, shiny metal rim and a bold simple white symbol in the middle. Centered, transparent background, no text, no letters, no numbers. Light blue diamond crystal shield with sparkling facets, symbol: a glowing white star burst.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 95001,
+      "processing": "Alpha cut at 128.",
+      "sha256": "f184b578c6ecd8e88292bdca205fbc5becd64ccc3691176352621bd65df7b3fa"
+    }
+  ]
+}
