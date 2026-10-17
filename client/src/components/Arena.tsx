@@ -1,5 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
+import LandingDuel from './LandingDuel';
 
 const Arena = () => {
   const sectionRef = useRef(null);
@@ -84,21 +85,7 @@ const Arena = () => {
                 <span style={{ color: 'var(--primary-red)' }}>RIVAL (1255 ELO)</span>
               </div>
 
-              <div className="matchup-visual">
-                <div className="player-av p-blue">
-                  <img
-                    src="https://api.dicebear.com/7.x/pixel-art/svg?seed=You"
-                    alt="Ty"
-                  />
-                </div>
-                <div className="vs-icon">VS</div>
-                <div className="player-av p-red">
-                  <img
-                    src="https://api.dicebear.com/7.x/pixel-art/svg?seed=Opponent"
-                    alt="Rywal"
-                  />
-                </div>
-              </div>
+              <LandingDuel />
 
               <div
                 style={{

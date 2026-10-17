@@ -422,6 +422,14 @@ a {
   align-items: center;
 }
 
+.step-icon-pixel {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  height: 96px;
+  margin-bottom: 1.5rem;
+}
+
 /* Nowe style ikon zgodne z obrazkiem */
 .step-icon-box {
   width: 80px;
