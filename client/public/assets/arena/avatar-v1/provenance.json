@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row.",
   "atlasSha256": {
-    "fighter.png": "786eaf7c514823b9970292de26fac9295ab247dc424d2b720d11f2013bf9e8b4",
-    "hoodie/fighter.png": "7c1ac516ad46d0cba93e6adb7730802fc948421a01bdfc4119d4df30d9235a7f",
-    "track/fighter.png": "8e840c4d99e4f9f8605e80e5890290b0d35a485ff64b6e24e6a7ea8f4b362837"
+    "fighter.png": "d374c66c58ade04b2678dc94ba825935efb4d4c70c6211436d3fd9fef91b064c",
+    "hoodie/fighter.png": "bed6f597539ac3a28c2dd3691414a05593520935cd7ba92727be224cd603dd18",
+    "track/fighter.png": "fa6e09dd7940a5c4630e16f42f4c30103c03f6862a6bc4b36491f89df8408f26"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -142,5 +142,81 @@
       }
     },
     "processing": "Row 10 of every outfit atlas: column 0 repeats the stance, columns 1 to 8 hold generated frames 0 to 7 (frame 8 equals frame 0 and closes the loop). Alpha is cut at 128, colours snap to the outfit atlas palette, the head from the run pose (with the stance head pixels wherever both overlap) is pasted at the tracked head position so hair and hats sit exactly as in the stance, enclosed gaps of up to 6 pixels are filled, stray shoe or shirt pixels are reassigned to their surrounding material and grey tracksuit stripes are restored to white. Frames are moved down so the lowest foot touches the stance ground line."
+  },
+  "sixseven": {
+    "generatedAt": "2026-10-17",
+    "sources": "local-prototype-backups/arena-sixseven-v1",
+    "outfits": {
+      "baza": {
+        "pose": {
+          "from": "front/baza.png",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character facing the viewer, same face, clothes, colours, size and feet position. Change only the arms: both upper arms hang close to the body, elbows bent 90 degrees, forearms point forward and slightly outward, both open hands palm up at waist height like weighing something. The right hand is a little higher than the left. Full body visible.",
+          "seed": 83001,
+          "variant": 0
+        },
+        "skeleton": {
+          "endpoint": "estimate-skeleton",
+          "from": "pose"
+        },
+        "animation": {
+          "endpoint": "animate-with-skeleton-v3",
+          "description": "bald man in a navy tank top, beige trousers and dark purple shoes",
+          "action": "six seven hand gesture, palms up, hands alternating up and down",
+          "direction": "south",
+          "view": "side",
+          "frames": 15,
+          "seed": 86001,
+          "keypoints": "the estimated skeleton with both elbows bent and the wrists moving up and down in opposite directions, twice"
+        }
+      },
+      "bluza": {
+        "pose": {
+          "from": "front/bluza.png",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character facing the viewer, same face, clothes, colours, size and feet position. Change only the arms: both upper arms hang close to the body, elbows bent 90 degrees, forearms point forward and slightly outward, both open hands palm up at waist height like weighing something. The right hand is a little higher than the left. Full body visible.",
+          "seed": 83001,
+          "variant": 0
+        },
+        "skeleton": {
+          "endpoint": "estimate-skeleton",
+          "from": "pose"
+        },
+        "animation": {
+          "endpoint": "animate-with-skeleton-v3",
+          "description": "bald man in a green hoodie, dark blue jeans and white sneakers",
+          "action": "six seven hand gesture, palms up, hands alternating up and down",
+          "direction": "south",
+          "view": "side",
+          "frames": 15,
+          "seed": 86001,
+          "keypoints": "the estimated skeleton with both elbows bent and the wrists moving up and down in opposite directions, twice"
+        }
+      },
+      "dres": {
+        "pose": {
+          "from": "front/dres.png",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character facing the viewer, same face, clothes, colours, size and feet position. Change only the arms: both upper arms hang close to the body, elbows bent 90 degrees, forearms point forward and slightly outward, both open hands palm up at waist height like weighing something. The right hand is a little higher than the left. Full body visible.",
+          "seed": 83001,
+          "variant": 0
+        },
+        "skeleton": {
+          "endpoint": "estimate-skeleton",
+          "from": "pose"
+        },
+        "animation": {
+          "endpoint": "animate-with-skeleton-v3",
+          "description": "bald man in an orange tracksuit jacket with white stripes, black track pants with white stripes and grey sneakers",
+          "action": "six seven hand gesture, palms up, hands alternating up and down",
+          "direction": "south",
+          "view": "side",
+          "frames": 15,
+          "seed": 86001,
+          "keypoints": "the estimated skeleton with both elbows bent and the wrists moving up and down in opposite directions, twice"
+        }
+      }
+    },
+    "processing": "Rows 8 and 9 of every outfit atlas: column 1 of row 8 is the relaxed pose, then the 15 generated frames follow, and column 0 of both rows repeats the relaxed pose. Alpha is cut at 128, colours snap to the outfit palette, the exact front head is pasted at the tracked head position so the front hair and hat overlays fit in every frame, and frames keep the front view placement so overlays have room above the head. Colours are then remapped so every material keeps the same shade step it has in the front view, so the recoloured dance matches the front sprite, including the zip and folds."
   }
 }

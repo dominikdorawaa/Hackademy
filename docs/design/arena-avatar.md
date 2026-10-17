@@ -14,7 +14,7 @@ Signed-in players load the avatar from the account and save it there; when savin
 
 Colours come from a material map per outfit in `avatarModel.ts`: listed palette colours are assigned to outline, skin, top, bottom, shoes or kept details, other colours follow the nearest listed colour, and each material gets four shade steps, so recoloured sprites keep their shading. Outlines are never recoloured.
 
-`anchors.json` stores, for every atlas cell, where the head is. Hair and hats are recoloured and composited onto every cell at that position before the atlas is shown. Dance frames carry the exact stance head without rotation so overlays never flicker, and the Six-seven pose leaves room above the head so overlays are not cut off.
+`anchors.json` stores, for every atlas cell, where the head is. Hair and hats are recoloured and composited onto every cell at that position before the atlas is shown. Dance frames carry the exact stance head without rotation so overlays never flicker. Six-seven is a 16-frame front view loop generated from a skeleton: palms up, the hands move up and down in opposite directions twice. Every frame carries the exact front head in the front view placement, so front overlays have room above the head and are never cut off.
 
 `RunningAvatar` plays the running loop for any saved avatar, starting from the plain atlas while the recoloured one is being built, so it can be used where a page is loading. Reduced motion shows a still runner.
 
