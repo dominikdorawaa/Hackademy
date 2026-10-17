@@ -2,6 +2,7 @@ import { useState } from 'react';
 import { AvatarSprite } from './arena/avatar/AvatarSprite';
 import { AVATAR_ATLASES } from './arena/avatar/fighters';
 import { useAvatarAtlas } from './arena/avatar/useAvatarAtlas';
+import { DEFAULT_AVATAR } from './arena/avatar/avatarModel';
 import type { Avatar } from './arena/avatar/avatarModel';
 import './LandingDuel.css';
 
@@ -11,12 +12,12 @@ const row = (index: number, count = 8) => Array.from({ length: count }, (_, colu
 export const DUEL_FIGHTERS: { side: 'me' | 'rival'; label: string; look: Avatar; frames: number[] }[] = [
   {
     side: 'me', label: 'Twój awatar wyprowadza cios',
-    look: { outfit: 'bluza', hair: 'krotkie', hat: 'brak', colors: { hair: 'brazowe', skin: 'jasna', top: 'granatowy', bottom: 'grafitowy', shoes: 'bialy', hat: 'czerwony' } },
+    look: { ...DEFAULT_AVATAR, outfit: 'bluza', hair: 'krotkie', hat: 'brak', colors: { hair: 'brazowe', skin: 'jasna', top: 'granatowy', bottom: 'grafitowy', shoes: 'bialy', hat: 'czerwony' } },
     frames: [...idle(10), ...row(1), ...idle(6)],
   },
   {
     side: 'rival', label: 'Awatar rywala przyjmuje cios',
-    look: { outfit: 'dres', hair: 'kucyk', hat: 'brak', colors: { hair: 'rude', skin: 'oliwkowa', top: 'bordowy', bottom: 'granatowy', shoes: 'bialy', hat: 'czerwony' } },
+    look: { ...DEFAULT_AVATAR, outfit: 'dres', hair: 'kucyk', hat: 'brak', colors: { hair: 'rude', skin: 'oliwkowa', top: 'bordowy', bottom: 'granatowy', shoes: 'bialy', hat: 'czerwony' } },
     frames: [...idle(15), ...row(4, 4), ...idle(5)],
   },
 ];
