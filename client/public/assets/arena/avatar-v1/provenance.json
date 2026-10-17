@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row.",
   "atlasSha256": {
-    "fighter.png": "d9b605c374c6a780cd63d7dfd89d2910eafc01d22acbbee531500ee9850de967",
-    "hoodie/fighter.png": "f6792ac1b2e5b028289c30f871f7d351d59fb384e7ba81cf30a950701c7ed437",
-    "track/fighter.png": "931b946022f13bee39f198b51a06624a03c898aae35ed4354e7b9275ff5bf919"
+    "fighter.png": "dcce0cfac76169f3e91ba9ede8bdd5024b68917759d1721d85d3a1067fba73c7",
+    "hoodie/fighter.png": "4042c45650622a8189e21c480920b433b7c8522f35602e7418a12270b8046711",
+    "track/fighter.png": "0349c65532bf3580c8ba32241fc79ed2aa7f560b27a3bb0813844b2be9e9ef15"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -217,7 +217,7 @@
         }
       }
     },
-    "processing": "Rows 8 and 9 of every outfit atlas: column 1 of row 8 is the relaxed pose, then the 15 generated frames follow, and column 0 of both rows repeats the relaxed pose. Alpha is cut at 128, colours snap to the outfit palette, the exact front head is pasted at the tracked head position so the front hair and hat overlays fit in every frame, and frames keep the front view placement so overlays have room above the head."
+    "processing": "Rows 8 and 9 of every outfit atlas: column 1 of row 8 is the relaxed pose, then the 15 generated frames follow, and column 0 of both rows repeats the relaxed pose. Alpha is cut at 128, colours snap to the outfit palette, the exact front head is pasted at the tracked head position so the front hair and hat overlays fit in every frame, and frames keep the front view placement so overlays have room above the head. Colours are then remapped so every material keeps the same shade step it has in the front view, so the recoloured dance matches the front sprite, including the zip and folds."
   },
   "attack": {
     "generatedAt": "2026-10-17",
