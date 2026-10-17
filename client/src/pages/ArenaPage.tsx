@@ -10,6 +10,7 @@ import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
 import { levelFromPoints } from '../lib/level';
 import { LEAGUES, leagueFor } from '../components/arena/leagues';
+import { LeagueIcon } from '../components/arena/LeagueIcon';
 import { EloHelp } from '../components/arena/EloHelp';
 import type { DashboardUser, FriendDto, RankingEntry, UserSearchDto } from '../types/api';
 import './UserDashboardPage.css';
@@ -186,7 +187,7 @@ const ArenaPage = () => {
                     <section className="arena-hero" aria-labelledby="arena-title" style={{ '--league': known ? league.color : 'var(--ud-track)' } as React.CSSProperties}>
                         <div className="arena-card">
                             <div className="arena-card-top">
-                                {known && <span className="arena-league">Liga {league.name}</span>}
+                                {known && <span className="arena-league"><LeagueIcon league={league} glint />Liga {league.name}</span>}
                                 <span className="arena-card-rank" role={known ? undefined : "status"}>{rankLabel}</span>
                             </div>
                             <UserAvatar className="arena-card-portrait" username={userData.username} seed={userData.avatarSeed} avatar={userData.avatar} alt="" />
@@ -241,6 +242,7 @@ const ArenaPage = () => {
                         <ol className="arena-ladder" aria-label="Ligi Areny">
                             {LEAGUES.map(item => (
                                 <li key={item.name} className={!known ? undefined : item === league ? "is-current" : elo >= item.min ? "is-reached" : undefined} style={{ '--tier': item.color } as React.CSSProperties} aria-current={known && item === league ? "true" : undefined}>
+                                    <LeagueIcon league={item} className="arena-ladder-icon" glint={known && item === league} />
                                     <span className="arena-ladder-bar" aria-hidden="true" />
                                     <span className="arena-ladder-name">{item.name}</span>
                                     <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${item.min} Elo`}</span>
