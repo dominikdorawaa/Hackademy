@@ -108,6 +108,8 @@ Zatrzymaj aplikację przez Ctrl+C. Skrypt kończy frontend i zatrzymuje tylko te
 
 Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zewnętrznej bazy z istniejącego `.env`, więc lokalne uruchomienie nie zmieni danych produkcyjnych. Flyway przygotowuje schemat bazy przy starcie backendu z migracji w `db/schema`, a Hibernate sprawdza jego zgodność. Nowa baza zawiera tylko definicje odznak; pierwsze konto administratora nadaj ręcznie po rejestracji poleceniem `UPDATE users SET role = 'ADMIN' WHERE username = '...'`. Zatrzymaj usługi przez `docker compose down`; wolumen bazy zostaje zachowany.
 
+Backend łączy się z bazą przez `DB_URL`, `DB_USERNAME` i `DB_PASSWORD`. Jeśli ustawiony jest niepusty `DATABASE_URL` w formacie `postgres://` lub `postgresql://`, jak na Heroku, ma pierwszeństwo przed `DB_*` i `application.yml`. Połączenie z niego zawsze wymaga SSL: brakujący lub słabszy `sslmode` zmienia się na `require`, a `verify-ca` i `verify-full` pozostają bez zmian.
+
 ## Uwierzytelnianie WebSocket
 
 Endpoint `/ws` korzysta z SockJS i STOMP. Transport HTTP jest dostępny bez tokena, ponieważ przeglądarka przesyła JWT w nagłówku `Authorization: Bearer <token>` ramki STOMP `CONNECT`, a nie w handshake HTTP. Brak ważnego tokena kończy próbę połączenia błędem STOMP; nieuwierzytelniony klient nie może wysyłać wiadomości ani subskrybować kanałów. Nie przekazuj tokena w adresie URL.
