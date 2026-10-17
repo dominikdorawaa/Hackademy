@@ -33,7 +33,7 @@ function decode(file) {
 }
 
 for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
-  test(`${outfit} running frames are whole, anchored and listed in provenance`, () => {
+  test(`${outfit} running and Six-seven frames are whole, anchored and listed in provenance`, () => {
     const file = read(atlasFile), atlas = decode(file), anchors = JSON.parse(read(anchorFile).toString());
     assert.deepEqual([atlas.width, atlas.height], [576, 704]);
     for (let column = 1; column <= 8; column++) {
@@ -48,6 +48,17 @@ for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
       assert.ok(opaque > 300, `cell ${cell} is empty`);
       assert.equal(edge, 0, `cell ${cell} touches its border`);
     }
+    for (const cell of [...Array.from({ length: 8 }, (_, i) => 73 + i), ...Array.from({ length: 8 }, (_, i) => 82 + i)]) {
+      const anchor = anchors.cells[cell], top = Math.floor(cell / 9) * 64, left = (cell % 9) * 64;
+      assert.equal(anchor?.view, 'front', `cell ${cell} has no front head anchor`);
+      assert.equal(atlas.pixels[((top + Math.round(anchor.y)) * 576 + left + Math.round(anchor.x)) * 4 + 3], 255, `cell ${cell} anchor is not on the head`);
+      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+        const alpha = atlas.pixels[((top + y) * 576 + left + x) * 4 + 3];
+        assert.ok(alpha === 0 || alpha === 255, `partial alpha in cell ${cell}`);
+        if (alpha) assert.ok(x > 0 && y > 0 && x < 63 && y < 63, `cell ${cell} touches its border`);
+      }
+    }
+    assert.ok(provenance.sixseven.outfits[outfit].animation.frames === 15);
     assert.equal(provenance.atlasSha256[atlasFile], createHash('sha256').update(file).digest('hex'));
     assert.ok(provenance.run.outfits[outfit].animation.seed > 0);
   });
