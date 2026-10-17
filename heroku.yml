@@ -1,0 +1,5 @@
+build:
+  docker:
+    web: Dockerfile
+run:
+  web: MALLOC_ARENA_MAX=2 exec java -Xmx160m -Xss512k -XX:MaxMetaspaceSize=160m -XX:ReservedCodeCacheSize=96m -XX:CICompilerCount=2 -XX:+UseSerialGC -XX:+ExitOnOutOfMemoryError -jar /app/app.jar
