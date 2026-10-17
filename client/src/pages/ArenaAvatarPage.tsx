@@ -23,7 +23,7 @@ const row = (index: number, count = 8) => Array.from({ length: count }, (_, colu
 const PREVIEWS: { id: string; label: string; frames: (source: AvatarAtlasSource) => number[]; loop: boolean; frameTime?: number }[] = [
   { id: 'front', label: 'Przód', frames: () => [0], loop: true },
   { id: 'idle', label: 'Postawa', frames: () => [0], loop: true },
-  { id: 'attack', label: 'Atak', frames: () => [...row(1), ...row(2), ...row(3)], loop: true },
+  { id: 'attack', label: 'Atak', frames: () => row(1), loop: true },
   { id: 'hurt', label: 'Trafienie', frames: () => [...row(4, 4), 0, 0, 0], loop: true },
   { id: 'defeat', label: 'Upadek', frames: () => row(5), loop: false },
   { id: 'run', label: 'Bieg', frames: source => runFrames(source.run), loop: true, frameTime: RUN_FRAME_TIME },

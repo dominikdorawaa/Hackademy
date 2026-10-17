@@ -43,8 +43,9 @@ it('plays cast, flight, impact and recovery without restarting on session update
   advance(1);
   expect(fighter()).toHaveAttribute('data-frames', '37,38,39,40');
   expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '80');
-  expect(screen.getByTestId('fireball-me')).toHaveTextContent('-20');
-  expect(screen.getByTestId('fireball-rival')).toHaveTextContent('-20');
+  expect(screen.getByTestId('shot-me')).toHaveTextContent('-20');
+  expect(screen.getByTestId('shot-rival')).toHaveTextContent('-20');
+  expect([...screen.getByTestId('shot-me').querySelectorAll('img')].map(image => image.getAttribute('src'))).toEqual(['/assets/arena/effects/data-packet.png', '/assets/arena/effects/data-burst.png']);
   advance(440);
   expect(fighter()).toHaveAttribute('data-frames', '0');
   expect(vi.getTimerCount()).toBe(0);
@@ -55,7 +56,7 @@ it('waits for both atlases before starting the exchange and HP loss', () => {
   const session = exchange({ 1: 0, 2: 20 });
   const view = render(scene(session));
   expect(screen.getByRole('region', { name: 'Arena walki' })).toHaveAttribute('aria-busy', 'true');
-  expect(screen.queryByTestId('fireball-me')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
   advance(2000);
   expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
   assets.ready = true;
@@ -86,14 +87,14 @@ it('cancels the old sequence when the next round begins', () => {
   view.rerender(scene(createGameSession({ round: 2, hp: { 1: 80, 2: 80 } })));
   advance(1500);
   expect(fighter()).toHaveAttribute('data-frames', '0');
-  expect(screen.queryByTestId('fireball-me')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
   expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '80');
   expect(vi.getTimerCount()).toBe(0);
 });
 
 it('keeps damage feedback immediate and still with reduced motion', () => {
   const view = render(scene(exchange(), true));
-  expect(screen.queryByTestId('fireball-me')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
   expect(fighter()).toHaveAttribute('data-frames', '0');
   expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '80');
   expect(vi.getTimerCount()).toBe(0);
@@ -104,7 +105,7 @@ it('keeps damage feedback immediate and still with reduced motion', () => {
 
 it('does not launch projectiles when neither player deals damage', () => {
   render(scene(exchange({ 1: 0, 2: 0 })));
-  expect(screen.queryByTestId('fireball-me')).not.toBeInTheDocument();
-  expect(screen.queryByTestId('fireball-rival')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('shot-rival')).not.toBeInTheDocument();
   expect(fighter()).toHaveAttribute('data-frames', '0');
 });

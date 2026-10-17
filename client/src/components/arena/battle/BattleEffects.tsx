@@ -2,39 +2,7 @@ import type { CSSProperties } from 'react';
 import { IMPACT_MS, LAUNCH_MS } from './battleView';
 import type { RoundResult } from '../../../types/api';
 
-const FIRE = { o: '#d2420c', m: '#ffad4d', w: '#fff3cf' } as const;
-const FIREBALL = [
-  '......ooo..',
-  '...oo.ommo.',
-  '.o.oommwwmo',
-  'oo.ommwwwwm',
-  '.o.oommwwmo',
-  '...oo.ommo.',
-  '......ooo..',
-];
-const BURST = [
-  'o...w...o',
-  '.o..m..o.',
-  '..mmwmm..',
-  '..mwwwm..',
-  'wmwwwwwmw',
-  '..mwwwm..',
-  '..mmwmm..',
-  '.o..m..o.',
-  'o...w...o',
-];
-
-function PixelArt({ pattern, className }: { pattern: readonly string[]; className: string }) {
-  const rows = pattern.length;
-  const cols = pattern[0].length;
-  return (
-    <svg className={className} viewBox={`0 0 ${cols} ${rows}`} shapeRendering="crispEdges" aria-hidden="true">
-      {pattern.flatMap((line, row) => [...line].flatMap((key, col) => key in FIRE
-        ? [<rect key={`${row}-${col}`} x={col} y={row} width={1.05} height={1.05} fill={FIRE[key as keyof typeof FIRE]} />]
-        : []))}
-    </svg>
-  );
-}
+const EFFECTS = '/assets/arena/effects/';
 
 export function BattleEffects({ round, meId, rivalId }: { round: RoundResult | null; meId: number; rivalId: number }) {
   if (!round) return null;
@@ -46,9 +14,9 @@ export function BattleEffects({ round, meId, rivalId }: { round: RoundResult | n
   return (
     <div className="battle-effects" style={timing} aria-hidden="true">
       {shots.map(shot => (
-        <div key={shot.from} className={`battle-shot from-${shot.from}`} data-testid={`fireball-${shot.from}`}>
-          <PixelArt pattern={FIREBALL} className="battle-fireball" />
-          <PixelArt pattern={BURST} className="battle-burst" />
+        <div key={shot.from} className={`battle-shot from-${shot.from}`} data-testid={`shot-${shot.from}`}>
+          <img className="battle-packet" src={`${EFFECTS}data-packet.png`} alt="" />
+          <img className="battle-burst" src={`${EFFECTS}data-burst.png`} alt="" />
           <span className="battle-damage">-{shot.damage}</span>
         </div>
       ))}

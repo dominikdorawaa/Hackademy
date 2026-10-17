@@ -59,7 +59,35 @@ for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
       }
     }
     assert.ok(provenance.sixseven.outfits[outfit].animation.frames === 15);
+    for (let column = 1; column <= 8; column++) {
+      const cell = 9 + column;
+      assert.equal(anchors.cells[cell]?.angle, 0, `attack cell ${cell} has no head anchor`);
+      let opaque = 0;
+      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+        const alpha = atlas.pixels[((64 + y) * 576 + column * 64 + x) * 4 + 3];
+        assert.ok(alpha === 0 || alpha === 255, `partial alpha in attack cell ${cell}`);
+        if (alpha) { opaque++; assert.ok(x > 0 && y > 0 && x < 63 && y < 63, `attack cell ${cell} touches its border`); }
+      }
+      assert.ok(opaque > 300);
+    }
+    for (let cell = 18; cell < 36; cell++) {
+      assert.equal(anchors.cells[cell], undefined);
+      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) assert.equal(atlas.pixels[((Math.floor(cell / 9) * 64 + y) * 576 + (cell % 9) * 64 + x) * 4 + 3], 0);
+    }
+    for (const cell of [37, 38, 39, 40, 46, 47, 48, 49, 50, 51, 52, 53]) assert.ok(Number.isInteger(anchors.cells[cell].x), `fall cell ${cell} keeps a whole-pixel head anchor`);
+    assert.equal(provenance.attack.outfits[outfit].frameCount, 8);
     assert.equal(provenance.atlasSha256[atlasFile], createHash('sha256').update(file).digest('hex'));
     assert.ok(provenance.run.outfits[outfit].animation.seed > 0);
   });
 }
+
+test('battle effects and the arena background match their provenance', () => {
+  const arena = new URL('../public/assets/arena/', import.meta.url);
+  const file = path => readFileSync(new URL(path, arena));
+  const effects = JSON.parse(file('effects/provenance.json').toString());
+  for (const effect of effects.effects) assert.equal(effect.sha256, createHash('sha256').update(file('effects/' + effect.file)).digest('hex'));
+  const stages = JSON.parse(file('stages/provenance.json').toString());
+  const stage = stages.stages.find(entry => entry.file === 'server-room-arena.png');
+  assert.equal(stage.sha256, createHash('sha256').update(file('stages/server-room-arena.png')).digest('hex'));
+  assert.deepEqual([decode(file('stages/server-room-arena.png')).width, decode(file('stages/server-room-arena.png')).height], [400, 288]);
+});
