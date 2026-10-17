@@ -1,14 +1,15 @@
 import type { AvatarOutfit } from './avatarModel';
 
-export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: { groove: number; sixseven: number } }
+export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: { groove: number; sixseven: number }; run: number }
 
 const BASE = '/assets/arena/avatar-v1/';
 const DANCES = { groove: 6, sixseven: 8 };
+const RUN = 10;
 
 export const AVATAR_ATLASES: Record<AvatarOutfit, AvatarAtlasSource> = {
-  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 640, dances: DANCES },
-  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 640, dances: DANCES },
-  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 640, dances: DANCES },
+  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 704, dances: DANCES, run: RUN },
+  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 704, dances: DANCES, run: RUN },
+  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 704, dances: DANCES, run: RUN },
 };
 
 export function atlasViewBox(index: number) {
@@ -16,3 +17,5 @@ export function atlasViewBox(index: number) {
 }
 
 export const danceFrames = (row: number) => [row, row + 1].flatMap(line => Array.from({ length: 8 }, (_, column) => line * 9 + column + 1));
+export const runFrames = (row: number) => Array.from({ length: 8 }, (_, column) => row * 9 + column + 1);
+export const RUN_FRAME_TIME = 90;
