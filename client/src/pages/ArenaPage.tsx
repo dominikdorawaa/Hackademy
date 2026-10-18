@@ -12,7 +12,7 @@ import { levelFromPoints } from '../lib/level';
 import { LEAGUES, leagueFor } from '../components/arena/leagues';
 import { LeagueIcon } from '../components/arena/LeagueIcon';
 import { EloHelp } from '../components/arena/EloHelp';
-import { ArenaLoader } from '../components/arena/ArenaLoader';
+import { ArenaLoader, ArenaRunner } from '../components/arena/ArenaLoader';
 import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
 import type { DashboardUser, FriendDto, RankingEntry, UserSearchDto } from '../types/api';
 import './UserDashboardPage.css';
@@ -230,11 +230,13 @@ const ArenaPage = () => {
                             <h1 id="arena-title" className="arena-title">{headline}</h1>
                             {status === 'GAME' && gameSession ? (
                                 <p role="status">Masz trwający mecz z {opponent}.</p>
-                            ) : status === 'QUEUE' || joiningQueue ? (
-                                <p role="status" aria-live="polite" className="arena-waiting">
-                                    <span className="arena-pulse" aria-hidden="true" />
-                                    {joiningQueue && status !== 'QUEUE' ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}
-                                </p>
+                            ) : searching ? (
+                                <div className="arena-search">
+                                    <ArenaRunner avatar={userData.avatar} className="arena-search-runner" />
+                                    <p role="status" aria-live="polite" className="arena-waiting">
+                                        {joiningQueue && status !== 'QUEUE' ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}
+                                    </p>
+                                </div>
                             ) : status === 'CHALLENGING' ? (
                                 <p role="status" aria-live="polite" className="arena-waiting">
                                     <span className="arena-pulse" aria-hidden="true" />

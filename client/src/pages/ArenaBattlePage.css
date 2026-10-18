@@ -657,7 +657,7 @@
   padding: 0;
 }
 
-.battle-stage-loading .arena-loader-runner {
+.battle-stage-loading .arena-runner {
   width: var(--fighter);
   margin-bottom: calc(-9 * var(--battle-pixel));
 }
