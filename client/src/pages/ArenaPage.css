@@ -60,12 +60,20 @@
 }
 
 .arena-league {
-  padding: 4px 10px;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px 10px 3px 4px;
   border-radius: 4px;
   background: var(--league);
   color: #0b111c;
   font-size: 0.8125rem;
   font-weight: 800;
+}
+
+.arena-league .league-icon {
+  width: 24px;
+  height: 24px;
 }
 
 .arena-card-rank {
@@ -177,6 +185,31 @@
   min-width: 0;
   color: var(--ud-hero-muted);
   font-size: var(--ud-text-s);
+}
+
+.arena-ladder-icon {
+  width: 40px;
+  height: 40px;
+  transition: filter 160ms cubic-bezier(0.16, 1, 0.3, 1), opacity 160ms cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.arena-ladder li:not(.is-current, .is-reached) .arena-ladder-icon {
+  opacity: 0.5;
+  filter: grayscale(1);
+}
+
+.arena-ladder .is-current .arena-ladder-icon {
+  animation: arena-league-float 2.4s steps(4, end) infinite;
+}
+
+@keyframes arena-league-float {
+  50% { translate: 0 -2px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-ladder .is-current .arena-ladder-icon {
+    animation: none;
+  }
 }
 
 .arena-ladder-bar {

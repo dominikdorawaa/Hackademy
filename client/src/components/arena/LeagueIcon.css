@@ -1,0 +1,37 @@
+.league-icon {
+  position: relative;
+  display: inline-block;
+  flex: none;
+  width: 32px;
+  height: 32px;
+}
+
+.league-icon img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.league-icon[data-glint='true']::after {
+  position: absolute;
+  inset: 0;
+  background: linear-gradient(115deg, transparent 40%, rgb(255 255 255 / 0.8) 50%, transparent 60%) no-repeat;
+  background-size: 300% 100%;
+  content: '';
+  -webkit-mask: var(--league-icon) center / 100% 100% no-repeat;
+  mask: var(--league-icon) center / 100% 100% no-repeat;
+  animation: league-glint 3.2s steps(16, end) infinite;
+}
+
+@keyframes league-glint {
+  0% { background-position: 120% 0; }
+  45%, 100% { background-position: -20% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .league-icon[data-glint='true']::after {
+    animation: none;
+    opacity: 0;
+  }
+}

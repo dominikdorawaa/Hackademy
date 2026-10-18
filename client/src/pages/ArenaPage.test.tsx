@@ -46,10 +46,14 @@ it('shows Elo, its position and friends with their duel record', async () => {
   mount();
   expect(await screen.findByText('1086')).toBeInTheDocument();
   expect(screen.getByText(/#9 w rankingu Elo/)).toBeInTheDocument();
-  expect(screen.getByText('Liga Platyna')).toBeInTheDocument();
+  expect(screen.getByText('Liga Root')).toBeInTheDocument();
   for (const minimum of [600, 800, 1000, 1200]) expect(screen.getByText(`od ${minimum} Elo`)).toBeInTheDocument();
-  expect(screen.getByText('Do ligi Diament brakuje Ci 114 Elo.')).toBeInTheDocument();
-  expect(screen.getByRole('listitem', { current: true })).toHaveTextContent('Platyna');
+  expect(screen.getByText('Do ligi Zero-day brakuje Ci 114 Elo.')).toBeInTheDocument();
+  expect(screen.getByRole('listitem', { current: true })).toHaveTextContent('Root');
+  expect(document.querySelector('.arena-league .league-icon')).toHaveAttribute('data-league', 'root');
+  expect(screen.getByRole('listitem', { current: true }).querySelector('.league-icon')).toHaveAttribute('data-glint', 'true');
+  expect(document.querySelectorAll('.arena-ladder .league-icon')).toHaveLength(5);
+  expect(document.querySelectorAll('.arena-ladder .league-icon[data-glint="true"]')).toHaveLength(1);
   expect(await screen.findByText('2:1')).toBeInTheDocument();
   expect(screen.getByText('Bilans niedostępny')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Wszyscy znajomi (2)' })).toHaveAttribute('href', '/friends');
