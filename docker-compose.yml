@@ -35,7 +35,8 @@ services:
 
   frontend:
     build:
-      context: ./client
+      context: .
+      dockerfile: client/Dockerfile
       args:
         VITE_API_URL: http://localhost:8080
     ports:

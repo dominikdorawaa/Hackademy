@@ -26,6 +26,7 @@ import adminRoutes from './pages/admin/adminRoutes';
 import NotFoundPage from './pages/NotFoundPage';
 import { ArenaLoader } from './components/arena/ArenaLoader';
 
+const UkosPage = lazy(() => import('./ukos/UkosPage'));
 const ArenaAvatarPage = lazy(() => import('./pages/ArenaAvatarPage'));
 const ArenaBattlePage = lazy(() => import('./pages/ArenaBattlePage'));
 
@@ -65,6 +66,7 @@ function App() {
                 </ProtectedRoute>
               }
             />
+            <Route path="/learn/ukos" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Ładowanie Dyżuru Zero" />}><UkosPage /></Suspense></ProtectedRoute>} />
             <Route path="/ranking" element={<RankingPage />} />
             <Route
               path="/dashboard"

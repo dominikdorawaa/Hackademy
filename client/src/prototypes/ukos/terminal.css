@@ -1,0 +1,21 @@
+:is(.zero-terminal, .ukos-terminal) .xterm {
+  background-color: #0b1220;
+  overflow: hidden;
+}
+
+:is(.zero-terminal, .ukos-terminal) .xterm .xterm-viewport {
+  background-color: transparent;
+  overflow: hidden;
+  scrollbar-width: none;
+}
+
+:is(.zero-terminal, .ukos-terminal) .xterm .xterm-viewport::-webkit-scrollbar {
+  display: none;
+}
+
+:is(.zero-terminal, .ukos-terminal)
+  .xterm
+  .xterm-scrollable-element
+  > .scrollbar {
+  display: none;
+}

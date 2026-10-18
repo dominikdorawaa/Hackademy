@@ -58,6 +58,7 @@ public class PathServiceImpl implements PathService {
     private final com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
 
     private static final String DEFAULT_CHAPTER_TITLE = "Rozdział 1";
+    static final String SYSTEM_PATH_LOCKED = "Ścieżka systemowa jest utrzymywana w kodzie. Nie można jej zmieniać ani usuwać w panelu.";
 
     private Long resolveUserId(String username) {
         if (username == null) return null;
@@ -82,6 +83,7 @@ public class PathServiceImpl implements PathService {
                         .hasBanner(Boolean.TRUE.equals(p.getHasBanner()))
                         .roomsCount(p.getRoomsCount() == null ? 0 : p.getRoomsCount())
                         .enrolled(enrolledIds.contains(p.getId()))
+                        .systemKey(p.getSystemKey())
                         .build())
                 .toList();
     }
@@ -303,10 +305,9 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional
     public void deletePath(Long id) {
-        if (!pathRepository.existsById(id)) {
-            throw new IllegalArgumentException("Path not found");
-        }
-        pathRepository.deleteById(id);
+        Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        requireEditable(path);
+        pathRepository.delete(path);
         dashboardSummaryCache.invalidateAllAfterCommit();
     }
 
@@ -332,6 +333,7 @@ public class PathServiceImpl implements PathService {
                 .contentRevision(path.getContentRevision())
                 .unlockMode(path.getUnlockMode())
                 .chapters(chapters)
+                .systemKey(path.getSystemKey())
                 .build();
     }
 
@@ -339,6 +341,7 @@ public class PathServiceImpl implements PathService {
     @Transactional
     public void updatePathMeta(Long id, UpdatePathMetaRequest request) {
         Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        requireEditable(path);
         path.setContentRevision(path.getContentRevision() + 1);
         path.setTitle(request.title());
         path.setDescription(request.description());
@@ -350,6 +353,7 @@ public class PathServiceImpl implements PathService {
     @Transactional
     public PathAdminDetailDto updatePathChapters(Long id, UpdatePathChaptersRequest request, boolean canDeleteChapters) {
         Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        requireEditable(path);
         if (request.revision() == null || request.revision() != path.getChaptersRevision()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Rozdziały zmieniły się w międzyczasie. Odśwież stronę przed ponowną edycją.");
@@ -480,6 +484,7 @@ public class PathServiceImpl implements PathService {
     public void uploadBanner(Long id, MultipartFile file) {
         if (file == null || file.isEmpty()) return;
         Path path = pathRepository.findByIdForUpdate(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
+        requireEditable(path);
         try {
             path.setContentRevision(path.getContentRevision() + 1);
             path.setBannerData(file.getBytes());
@@ -504,5 +509,19 @@ public class PathServiceImpl implements PathService {
         visibility.requirePath(id);
         Path path = pathRepository.findById(id).orElseThrow(() -> new IllegalArgumentException("Path not found"));
         return path.getBannerMime();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public void requireEditable(Long id) {
+        if (pathRepository.existsByIdAndSystemKeyIsNotNull(id)) throw locked();
+    }
+
+    private void requireEditable(Path path) {
+        if (path.getSystemKey() != null) throw locked();
+    }
+
+    private static ResponseStatusException locked() {
+        return new ResponseStatusException(HttpStatus.FORBIDDEN, SYSTEM_PATH_LOCKED);
     }
 }

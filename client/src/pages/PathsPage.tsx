@@ -1,11 +1,20 @@
 import * as pathApi from '../services/pathApi';
 import API_URL from '../apiConfig';
 import React, { useEffect, useState } from 'react';
-import { useNavigate } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './PathsPage.css';
+import '../ukos/ukos.css';
 import { LoadingSkeleton, Skeleton, SkeletonText } from '../components/common/Skeleton';
 import type { PathSummaryDto } from '../types/api';
+
+const UkosPathCard = ({ p }: { p: PathSummaryDto }) => (
+  <Link to="/learn/ukos" className="path-card zero-path-card">
+    <div className="zero-path-art" aria-hidden="true">~/$ <span>{p.title.toUpperCase()}</span></div>
+    <div className="path-card-body"><div className="path-card-kicker">UKOS · INTERAKTYWNY LINUX</div><div className="path-card-title">{p.title}</div><p className="path-card-desc">{p.description}</p></div>
+    <div className="path-card-footer"><span className="path-pill">Bash · nano · pliki</span><span>Otwórz ścieżkę →</span></div>
+  </Link>
+);
 
 const PathsPage = () => {
   const { token, logout } = useAuth();
@@ -184,9 +193,7 @@ const PathsPage = () => {
             <h3>Brak ścieżek.</h3>
           </div>
         ) : (
-          paths.map((p) => (
-            <PathCard key={p.id} p={p} />
-          ))
+          paths.map((p) => (p.systemKey === 'ukos' ? <UkosPathCard key={p.id} p={p} /> : <PathCard key={p.id} p={p} />))
         )}
       </div>
     </div>

@@ -50,6 +50,7 @@ public class PathImportService {
         if (target == null || target.chapterId() == null || target.contentRevision() == null || target.chaptersRevision() == null) {
             throw new ContentValidation.InvalidContent(Map.of("cel", "Wybierz rozdział i wczytaj aktualną wersję ścieżki"));
         }
+        pathService.requireEditable(pathId);
         var path = paths.findByIdForUpdate(pathId).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
         if (target.contentRevision() != path.getContentRevision() || target.chaptersRevision() != path.getChaptersRevision()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, "Ścieżka zmieniła się w międzyczasie. Wczytaj aktualną wersję przed importem.");

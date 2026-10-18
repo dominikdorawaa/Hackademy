@@ -1,0 +1,439 @@
+.zero-course {
+  padding-top: 32px;
+  padding-bottom: 56px;
+  color: var(--text-light, #e4eaf4);
+}
+.zero-course button {
+  border: 1px solid #34435a;
+  border-radius: 8px;
+  background: #202e42;
+  color: #e4eaf4;
+  padding: 10px 16px;
+  cursor: pointer;
+  font: inherit;
+  font-size: 14px;
+}
+.zero-course button:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+.zero-course button:focus-visible,
+.zero-course a:focus-visible {
+  outline: 2px solid #80b7ff;
+  outline-offset: 4px;
+}
+.zero-course button.zero-primary {
+  background: #91baff;
+  color: #101a2a;
+  border-color: transparent;
+  font-weight: 700;
+}
+.zero-course button.zero-text-button {
+  background: transparent;
+  border-color: transparent;
+  color: #9bc3ff;
+  padding-left: 0;
+}
+.zero-back {
+  color: #a4b5cd;
+  font-size: 14px;
+  text-decoration: none;
+}
+.zero-hero {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 32px;
+  margin: 42px 0 32px;
+}
+.zero-kicker {
+  display: block;
+  color: #8cb7f5;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.12em;
+  margin-bottom: 16px;
+}
+.zero-hero h1 {
+  font-size: clamp(36px, 5vw, 64px);
+  line-height: 1.06;
+  letter-spacing: -0.035em;
+  margin: 0 0 20px;
+}
+.zero-hero h1 span {
+  display: block;
+  color: #b2bfd1;
+  font-size: clamp(18px, 2vw, 27px);
+  font-weight: 400;
+  letter-spacing: -0.02em;
+  margin-top: 16px;
+}
+.zero-course p {
+  line-height: 1.75;
+  color: #b1bfd2;
+}
+.zero-hero p {
+  max-width: 680px;
+}
+.zero-hero-mark {
+  font: 52px monospace;
+  color: #759fd2;
+  padding: 35px;
+  border: 1px solid #2c405d;
+  border-radius: 24px;
+  background: #142236;
+}
+.zero-hero-mark span {
+  display: block;
+  font-size: 15px;
+  text-align: right;
+  margin-top: 20px;
+}
+.zero-status,
+.zero-progress-label {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 12px;
+  font-size: 12px;
+  color: #9cb0ca;
+}
+.zero-status {
+  padding: 16px 0;
+  border-top: 1px solid #29374c;
+  border-bottom: 1px solid #29374c;
+  margin-bottom: 26px;
+}
+.zero-course progress {
+  accent-color: #7aaeff;
+  width: 100%;
+  height: 5px;
+  display: block;
+  border: none;
+  border-radius: 8px;
+  margin: 16px 0 30px;
+}
+.zero-course progress::-webkit-progress-bar {
+  background: #2b3c56;
+  border-radius: 8px;
+}
+.zero-course progress::-webkit-progress-value {
+  background: #7aaeff;
+  border-radius: 8px;
+}
+.zero-workshop {
+  display: grid;
+  grid-template-columns: minmax(310px, 0.8fr) minmax(0, 1.5fr);
+  gap: 24px;
+  height: clamp(580px, 80dvh, 900px);
+  align-items: stretch;
+}
+.zero-lesson {
+  background: #172437;
+  border: 1px solid #26364e;
+  border-radius: 14px;
+  padding: 26px;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+  scrollbar-color: #4a607e transparent;
+}
+.zero-lesson h2 {
+  font-size: 27px;
+  line-height: 1.25;
+  margin-top: 0;
+  letter-spacing: -0.025em;
+}
+.zero-task {
+  border-left: 3px solid #8cb7f5;
+  padding: 16px;
+  background: #1e3048;
+  margin: 24px 0;
+  border-radius: 0 8px 8px 0;
+}
+.zero-task p {
+  margin-bottom: 0;
+}
+.zero-task-paths {
+  display: grid;
+  gap: 8px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+}
+.zero-task-paths code {
+  color: #d5e6ff;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.zero-course .zero-muted {
+  color: #91a4be;
+  font-size: 12px;
+}
+.zero-hint {
+  background: #21334b;
+  padding: 12px;
+  border-radius: 8px;
+  font-size: 13px;
+  overflow-wrap: anywhere;
+}
+.zero-step-list {
+  display: grid;
+  gap: 4px;
+  margin-top: 28px;
+  border-top: 1px solid #2c3a50;
+  padding-top: 16px;
+}
+.zero-course .zero-step-list button {
+  display: flex;
+  text-align: left;
+  align-items: baseline;
+  gap: 14px;
+  font-size: 12px;
+  background: transparent;
+  border-color: transparent;
+  padding: 8px 0;
+  color: #9cacc2;
+}
+.zero-step-list button span {
+  flex: 0 0 20px;
+  color: #85aad9;
+}
+.zero-course .zero-step-list button[aria-current] {
+  color: #e7eef9;
+  font-weight: 700;
+}
+.zero-terminal-panel {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  min-height: 0;
+  background: #101b2c;
+  border: 1px solid #28384e;
+  border-radius: 14px;
+  overflow: hidden;
+  position: sticky;
+  top: 20px;
+}
+.zero-terminal-header {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #1d2b40;
+  font-size: 12px;
+  color: #adbed5;
+}
+.zero-terminal-header i {
+  width: 7px;
+  height: 7px;
+  border-radius: 100%;
+  display: inline-block;
+  background: #7b8da7;
+  margin-right: 8px;
+}
+.zero-terminal-header i[data-ready="true"] {
+  background: #58cfab;
+}
+.zero-terminal {
+  flex: 1;
+  min-height: 180px;
+  background: #0b1220;
+  overflow: hidden;
+}
+.zero-terminal .xterm {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px 10px 8px 16px;
+}
+.zero-terminal-footer {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px;
+  color: #94a9c4;
+  font-size: 11px;
+}
+.zero-terminal-footer div {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.zero-course .zero-terminal-footer button {
+  padding: 7px 10px;
+  font-size: 12px;
+}
+.zero-start {
+  padding: 30px;
+  position: absolute;
+  inset: 80px 30px auto;
+  border: 1px solid #314562;
+  border-radius: 12px;
+  background: #142238;
+}
+.zero-start h3 {
+  margin-top: 0;
+}
+.zero-reset,
+.zero-local-note {
+  margin: 0;
+  padding: 0 16px 16px;
+}
+.zero-alert {
+  padding: 18px;
+  border: 1px solid #826845;
+  border-radius: 10px;
+  background: #2b281f;
+  margin-bottom: 20px;
+  color: #f6d5a9;
+}
+.zero-alert p {
+  margin: 4px 0 12px;
+}
+.zero-lab-card {
+  display: flex;
+  justify-content: space-between;
+  gap: 28px;
+  padding: 32px;
+  background: linear-gradient(120deg, #1e3552, #172436);
+  border: 1px solid #375173;
+  border-radius: 16px;
+}
+.zero-lab-card h2 {
+  margin: 0;
+  font-size: 30px;
+}
+.zero-lab-card p {
+  max-width: 680px;
+}
+.zero-lab-card progress {
+  margin-bottom: 12px;
+}
+.zero-lab-actions {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  justify-content: center;
+  flex-shrink: 0;
+}
+.zero-tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  color: #a5bfdf;
+  font-size: 12px;
+}
+.zero-tags span {
+  border: 1px solid #3a506d;
+  padding: 5px 9px;
+  border-radius: 20px;
+}
+.zero-roadmap {
+  margin-top: 40px;
+}
+.zero-roadmap > div {
+  display: flex;
+  align-items: center;
+  gap: 22px;
+  border-bottom: 1px solid #26354a;
+  padding: 18px 6px;
+  color: #8396b0;
+}
+.zero-roadmap h3 {
+  flex: 1;
+  font-size: 15px;
+  font-weight: 400;
+  margin: 0;
+  color: #acbad0;
+}
+.zero-roadmap > div > span:last-child {
+  font-size: 11px;
+}
+.zero-success {
+  border: 1px solid #315c56;
+  border-radius: 14px;
+  background: #152c2e;
+  padding: 26px;
+  margin: 26px 0;
+}
+.zero-reading {
+  border: 1px solid #30415a;
+  border-radius: 10px;
+  padding: 20px;
+  margin-top: 32px;
+}
+.zero-reading summary {
+  cursor: pointer;
+}
+.zero-reading article {
+  margin-top: 30px;
+}
+.zero-source {
+  margin-top: 40px;
+  color: #92a4bd;
+  font-size: 12px;
+}
+.zero-source a {
+  color: #94bdf3;
+}
+.path-card.zero-path-card {
+  display: block;
+  text-decoration: none;
+  color: inherit;
+}
+.zero-path-art {
+  background: linear-gradient(125deg, #1c435b, #1a2338);
+  color: #8ad7c3;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 28px;
+  min-height: 150px;
+  font: 40px monospace;
+}
+.zero-path-art span {
+  font: 11px sans-serif;
+  color: #b4dbd3;
+  letter-spacing: 0.1em;
+}
+@media (max-width: 999px) {
+  .zero-hero-mark {
+    display: none;
+  }
+  .zero-lab-card {
+    flex-direction: column;
+    padding: 22px;
+  }
+  .zero-lab-actions {
+    align-items: flex-start;
+  }
+  .zero-course {
+    padding-top: 24px;
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .zero-course * {
+    scroll-behavior: auto;
+  }
+}
+
+.zero-in-session .zero-hero {
+  margin: 20px 0;
+}
+.zero-in-session .zero-hero h1 {
+  font-size: 32px;
+  margin: 0;
+}
+.zero-in-session .zero-hero h1 span {
+  font-size: 16px;
+  margin-top: 8px;
+}
+.zero-in-session .zero-hero p,
+.zero-in-session .zero-hero-mark {
+  display: none;
+}
+.zero-in-session .zero-hero .zero-kicker {
+  margin-bottom: 10px;
+}

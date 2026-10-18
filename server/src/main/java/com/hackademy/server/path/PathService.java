@@ -19,6 +19,8 @@ public interface PathService {
     PathRoomsMiniResponse getPathRoomsMini(Long id, String username, int limit);
     PathSummaryDto createPath(CreatePathRequest request);
     void deletePath(Long id);
+
+    void requireEditable(Long id);
     PathAdminDetailDto getAdminDetail(Long id);
     void updatePathMeta(Long id, UpdatePathMetaRequest request);
     PathAdminDetailDto updatePathChapters(Long id, UpdatePathChaptersRequest request, boolean canDeleteChapters);

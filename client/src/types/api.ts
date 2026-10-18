@@ -219,6 +219,7 @@ export interface PathSummaryDto {
   hasBanner: boolean
   roomsCount: number
   enrolled: boolean
+  systemKey?: string | null
 }
 
 export interface PathProgressDto {
@@ -271,6 +272,7 @@ export interface PathAdminDetailDto {
   revision: number
   unlockMode?: PathUnlockMode
   chapters: PathChapterAdminDto[]
+  systemKey?: string | null
 }
 
 export interface ChapterRequest {

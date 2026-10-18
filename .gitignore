@@ -40,3 +40,9 @@ server/target/
 ### Mac OS ###
 .DS_Store
 application.properties
+client/prototypes/runtime/
+client/dist-ukos/
+client/test-results/
+client/playwright-report/
+
+client/test-results-course/

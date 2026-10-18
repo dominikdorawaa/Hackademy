@@ -1,5 +1,6 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
+import { Lock } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import API_URL from '../../apiConfig';
 import { useAuth } from '../../context/AuthContext';
@@ -49,13 +50,14 @@ function PathEditor({ pathId }: { pathId: string }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
   const [attempt, setAttempt] = useState(0);
+  const [systemKey, setSystemKey] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
     Promise.all([idRef.current == null ? Promise.resolve(null) : adminApi.getPath(idRef.current, token), adminApi.getAllRoomsAdmin(token)])
       .then(([detail, pool]) => {
         if (!active) return;
         if (idRef.current != null && !detail) throw new Error('Nie znaleziono ścieżki.');
-        if (detail) { const next = fromDetail(detail); setForm(next); setBaseline(next); if (detail.hasBanner) setBanner(`${API_URL}/api/admin/content/paths/${detail.id}/banner`); }
+        if (detail) { const next = fromDetail(detail); setForm(next); setBaseline(next); setSystemKey(detail.systemKey ?? null); if (detail.hasBanner) setBanner(`${API_URL}/api/admin/content/paths/${detail.id}/banner`); }
         setRooms(pool ?? []); setError(null);
       }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
@@ -115,6 +117,7 @@ function PathEditor({ pathId }: { pathId: string }) {
       navigate('/admin/paths/rooms/new', { state: { parentDraft: { ...source, chapters: list }, parentId: idRef.current, chapterIndex: targetIndex } });
     }
   });
+  if (systemKey) return <SystemPath title={form.title} description={form.description} systemKey={systemKey} />;
   return <>
     {guard.dialog}
     <Button asChild variant="ghost" className="mb-3"><Link to="/admin/paths">← Ścieżki</Link></Button>
@@ -156,6 +159,21 @@ function PathEditor({ pathId }: { pathId: string }) {
           </div>
         </fieldset>
       </form>}
+  </>;
+}
+const systemRoutes: Record<string, string> = { ukos: '/learn/ukos' };
+function SystemPath({ title, description, systemKey }: { title: string; description: string; systemKey: string }) {
+  const route = systemRoutes[systemKey];
+  return <>
+    <Button asChild variant="ghost" className="mb-3"><Link to="/admin/paths">← Ścieżki</Link></Button>
+    <PageHeader title={title} description="Status: Opublikowany · Ścieżka systemowa" actions={route && <Button asChild variant="outline"><Link to={route}>Otwórz ścieżkę</Link></Button>} />
+    <StatusMessage kind="warning">Ta ścieżka jest utrzymywana w kodzie aplikacji. Nie można jej edytować ani usunąć w panelu. Usunąć ją może tylko developer z dostępem do bazy danych.</StatusMessage>
+    <Section title="Informacje" className="mt-4">
+      <dl className="grid gap-4">
+        <div><dt className="text-xs text-muted-foreground">Tytuł</dt><dd className="flex items-center gap-2 font-medium"><Lock className="size-4" aria-hidden="true" />{title}</dd></div>
+        <div><dt className="text-xs text-muted-foreground">Opis</dt><dd>{description || 'Bez opisu'}</dd></div>
+      </dl>
+    </Section>
   </>;
 }
 export function BannerImage({ source, file, url, token }: { source: string | null; file: File | null; url: string | null; token: string | null }) {
