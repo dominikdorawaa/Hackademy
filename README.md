@@ -12,7 +12,7 @@ Hackademy wypełnia lukę na polskim rynku edukacji w zakresie cyberbezpieczeńs
 ## 🌍 Wersja Live
 
 Platforma jest dostępna online Możesz ją przetestować pod adresem:
-👉 **[https://hackademy-front.onrender.com](https://hackademy-front.onrender.com)**
+👉 **[https://hackademy.app](https://hackademy.app)**
 
 ---
 
@@ -109,6 +109,10 @@ Zatrzymaj aplikację przez Ctrl+C. Skrypt kończy frontend i zatrzymuje tylko te
 Compose uruchamia własny PostgreSQL w trwałym wolumenie. Nie używa adresu zewnętrznej bazy z istniejącego `.env`, więc lokalne uruchomienie nie zmieni danych produkcyjnych. Flyway przygotowuje schemat bazy przy starcie backendu z migracji w `db/schema`, a Hibernate sprawdza jego zgodność. Nowa baza zawiera tylko definicje odznak; pierwsze konto administratora nadaj ręcznie po rejestracji poleceniem `UPDATE users SET role = 'ADMIN' WHERE username = '...'`. Zatrzymaj usługi przez `docker compose down`; wolumen bazy zostaje zachowany.
 
 Backend łączy się z bazą przez `DB_URL`, `DB_USERNAME` i `DB_PASSWORD`. Jeśli ustawiony jest niepusty `DATABASE_URL` w formacie `postgres://` lub `postgresql://`, jak na Heroku, ma pierwszeństwo przed `DB_*` i `application.yml`. Połączenie z niego zawsze wymaga SSL: brakujący lub słabszy `sslmode` zmienia się na `require`, a `verify-ca` i `verify-full` pozostają bez zmian.
+
+## Wdrożenie produkcyjne
+
+Frontend działa na Cloudflare Pages, a backend i baza na Heroku. Architekturę, wdrażanie, konfigurację, kopie zapasowe i procedurę powrotu opisuje [docs/deployment.md](docs/deployment.md).
 
 ## Uwierzytelnianie WebSocket
 
