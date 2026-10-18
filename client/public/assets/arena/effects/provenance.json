@@ -26,6 +26,42 @@
       "seed": 89001,
       "processing": "Alpha cut at 128 and cropped to the visible pixels.",
       "sha256": "46f613234bc1fb76b2ee1469ae8d6a37c06117a0d4c0f18db84c5bcc0ce52c2a"
+    },
+    {
+      "file": "finisher-beam.png",
+      "endpoint": "create-image-pixflux",
+      "description": "A thick straight horizontal laser beam of pure energy, a bright white core band with cyan glow bands above and below and soft teal outer edges, perfectly even thickness along the whole length, small white square sparks around it, both ends cut flat, no arrow head, no point. Chunky clean pixel art for a 64px browser fighting game, cyan, teal and white palette, transparent background, no text.",
+      "imageSize": {
+        "width": 128,
+        "height": 32
+      },
+      "seed": 92004,
+      "processing": "Alpha cut at 128 and cropped to the visible pixels.",
+      "sha256": "7395de02b67bf457be9c73f07038268835eaec408dbe56c627f6d273d680e457"
+    },
+    {
+      "file": "finisher-orb.png",
+      "endpoint": "create-image-pixflux",
+      "description": "A glowing ball of cyan energy crackling with tiny white lightning sparks and small square data pixels orbiting it, charging power. Chunky clean pixel art for a 64px browser fighting game, cyan, teal and white palette, transparent background, no text.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 92002,
+      "processing": "Alpha cut at 128 and cropped to the visible pixels.",
+      "sha256": "de0118e57735a47ba7193c51c9b55ee2b794748af453e49e3dfed85f3d2ae173"
+    },
+    {
+      "file": "finisher-blast.png",
+      "endpoint": "create-image-pixflux",
+      "description": "A large digital glitch explosion: chunky cyan, white and a little magenta square pixels and broken scanline fragments bursting outward from the center, a strong finishing hit. Chunky clean pixel art for a 64px browser fighting game, transparent background, no text.",
+      "imageSize": {
+        "width": 64,
+        "height": 64
+      },
+      "seed": 92001,
+      "processing": "Alpha cut at 128 and cropped to the visible pixels.",
+      "sha256": "44898dfa9bd5067c67f8bd85ae8747ed0372bc837b829af0b62dcc24803fe576"
     }
   ]
 }

@@ -51,6 +51,10 @@ it('customizes colors, previews animations and saves the avatar', () => {
   expect(screen.getByRole('img', { name: 'Awatar, animacja: Bieg' })).toHaveAttribute('data-frame', '91');
   fireEvent.click(screen.getByRole('button', { name: 'Six-seven' }));
   expect(screen.getByRole('img', { name: 'Awatar, animacja: Six-seven' })).toHaveAttribute('data-frame', '73');
+  fireEvent.click(screen.getByRole('button', { name: 'Przeciążenie' }));
+  expect(screen.getByRole('img', { name: 'Awatar, animacja: Przeciążenie' })).toHaveAttribute('data-frame', '19');
+  fireEvent.click(screen.getByRole('button', { name: 'Ctrl+Alt+Del' }));
+  expect(screen.getByRole('img', { name: 'Awatar, animacja: Ctrl+Alt+Del' })).toHaveAttribute('data-frame', '100');
   fireEvent.click(screen.getByRole('button', { name: 'Taniec' }));
   expect(screen.getByRole('img', { name: 'Awatar, animacja: Taniec' })).toHaveAttribute('data-frame', '55');
   fireEvent.click(screen.getByRole('button', { name: 'Upadek' }));

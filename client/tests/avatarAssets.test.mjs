@@ -9,6 +9,7 @@ const ROOT = new URL('../public/assets/arena/avatar-v1/', import.meta.url);
 const read = path => readFileSync(new URL(path, ROOT));
 const ATLASES = { baza: ['fighter.png', 'anchors.json'], bluza: ['hoodie/fighter.png', 'hoodie/anchors.json'], dres: ['track/fighter.png', 'track/anchors.json'] };
 const RUN_ROW = 10;
+const FINISHER_ROWS = [2, 3, 11, 12];
 const provenance = JSON.parse(read('provenance.json').toString());
 const modelSource = readFileSync(new URL('../src/components/arena/avatar/avatarModel.ts', import.meta.url), 'utf8');
 const model = await import('data:text/javascript,' + encodeURIComponent(ts.transpileModule(modelSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText));
@@ -40,7 +41,7 @@ function decode(file) {
 for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
   test(`${outfit} running and Six-seven frames are whole, anchored and listed in provenance`, () => {
     const file = read(atlasFile), atlas = decode(file), anchors = JSON.parse(read(anchorFile).toString());
-    assert.deepEqual([atlas.width, atlas.height], [576, 704]);
+    assert.deepEqual([atlas.width, atlas.height], [576, 832]);
     for (let column = 1; column <= 8; column++) {
       const cell = RUN_ROW * 9 + column, top = RUN_ROW * 64, left = column * 64;
       assert.equal(anchors.cells[cell]?.angle, 0);
@@ -75,10 +76,19 @@ for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
       }
       assert.ok(opaque > 300);
     }
-    for (let cell = 18; cell < 36; cell++) {
-      assert.equal(anchors.cells[cell], undefined);
-      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) assert.equal(atlas.pixels[((Math.floor(cell / 9) * 64 + y) * 576 + (cell % 9) * 64 + x) * 4 + 3], 0);
+    for (const row of FINISHER_ROWS) for (let column = 0; column <= 8; column++) {
+      const cell = row * 9 + column, anchor = anchors.cells[cell];
+      assert.ok(anchor && (column === 0 || (Number.isInteger(anchor.x) && Number.isInteger(anchor.y))), `finisher cell ${cell} has no whole-pixel head anchor`);
+      assert.equal(atlas.pixels[((row * 64 + Math.round(anchor.y)) * 576 + column * 64 + Math.round(anchor.x)) * 4 + 3], 255, `finisher cell ${cell} anchor is not on the head`);
+      let opaque = 0;
+      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+        const alpha = atlas.pixels[((row * 64 + y) * 576 + column * 64 + x) * 4 + 3];
+        assert.ok(alpha === 0 || alpha === 255, `partial alpha in finisher cell ${cell}`);
+        if (alpha) { opaque++; assert.ok(x > 0 && y > 0 && x < 63 && y < 63, `finisher cell ${cell} touches its border`); }
+      }
+      assert.ok(opaque > 300, `finisher cell ${cell} is empty`);
     }
+    for (const move of ['beam', 'combo']) assert.equal(provenance.finishers.moves[move].outfits[outfit].frameCount, 16);
     for (const cell of [37, 38, 39, 40, 46, 47, 48, 49, 50, 51, 52, 53]) assert.ok(Number.isInteger(anchors.cells[cell].x), `fall cell ${cell} keeps a whole-pixel head anchor`);
     assert.equal(provenance.attack.outfits[outfit].frameCount, 8);
     assert.equal(provenance.atlasSha256[atlasFile], createHash('sha256').update(file).digest('hex'));
