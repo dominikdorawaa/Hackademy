@@ -13,6 +13,7 @@ afterEach(() => { vi.useRealTimers(); vi.unstubAllGlobals(); });
 
 const loader = (label = 'Wczytuję walkę') => screen.getByRole('status', { name: label });
 const sprite = () => loader().querySelector('.avatar-sprite')!;
+const runner = () => loader().querySelector('.arena-runner')!;
 const href = () => sprite().querySelector('image')!.getAttribute('href');
 const firstRunFrame = String(runFrames(AVATAR_ATLASES.baza.run)[0]);
 
@@ -34,7 +35,7 @@ it('runs the default character from the plain atlas while no avatar is known', (
   expect(sprite()).toHaveAttribute('data-frame', firstRunFrame);
   act(() => vi.advanceTimersByTime(RUN_FRAME_TIME));
   expect(sprite()).not.toHaveAttribute('data-frame', firstRunFrame);
-  expect(loader()).toHaveAttribute('data-still', 'false');
+  expect(runner()).toHaveAttribute('data-still', 'false');
 });
 
 it('runs the avatar saved in the creator, and the recolored atlas once it is ready', () => {
@@ -60,7 +61,7 @@ it('shows a still figure when the in-app setting reduces motion', () => {
   vi.useFakeTimers();
   localStorage.setItem('app-reduced-motion', 'true');
   render(<ThemeProvider><ArenaLoader label="Wczytuję walkę" /></ThemeProvider>);
-  expect(loader()).toHaveAttribute('data-still', 'true');
+  expect(runner()).toHaveAttribute('data-still', 'true');
   act(() => vi.advanceTimersByTime(RUN_FRAME_TIME * 4));
   expect(sprite()).toHaveAttribute('data-frame', firstRunFrame);
   expect(vi.getTimerCount()).toBe(0);
@@ -73,10 +74,10 @@ it('stops running as soon as the system asks for reduced motion', () => {
   vi.stubGlobal('matchMedia', (query: string) => ({ get matches() { return matches && query.includes('reduce'); }, media: query,
     addEventListener: (_: string, listener: () => void) => listeners.push(listener), removeEventListener: vi.fn() }));
   render(<ArenaLoader label="Wczytuję walkę" />);
-  expect(loader()).toHaveAttribute('data-still', 'false');
+  expect(runner()).toHaveAttribute('data-still', 'false');
   matches = true;
   act(() => listeners.forEach(listener => listener()));
-  expect(loader()).toHaveAttribute('data-still', 'true');
+  expect(runner()).toHaveAttribute('data-still', 'true');
   expect(sprite()).toHaveAttribute('data-frame', firstRunFrame);
   expect(vi.getTimerCount()).toBe(0);
 });
