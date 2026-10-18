@@ -43,6 +43,11 @@ describe('battle view', () => {
     const draw = createGameSession({ status: 'FINISHED', winnerId: null, finishReason: 'ROUNDS' });
     expect(outcome(draw, 1)).toBe('draw');
     expect(finishText(draw, 1)).toContain('tyle samo HP');
+    const cancelled = createGameSession({ status: 'FINISHED', winnerId: null, finishReason: 'CANCELLED', player1EloChange: 0, player2EloChange: 0 });
+    expect(outcome(cancelled, 1)).toBe('cancelled');
+    expect(outcomeTitle('cancelled')).toBe('Mecz anulowany');
+    expect(finishText(cancelled, 2)).toBe('Serwer został zrestartowany w trakcie walki, więc mecz anulowano. Elo się nie zmienia.');
+    expect(eloChange(cancelled, 1)).toBe(0);
     expect(eloChange(draw, 1)).toBe(0);
   });
 

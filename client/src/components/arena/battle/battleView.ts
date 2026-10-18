@@ -14,7 +14,7 @@ export interface Fighter {
   avatar: GameSession['player1Avatar']
 }
 
-export type Outcome = 'win' | 'loss' | 'draw';
+export type Outcome = 'win' | 'loss' | 'draw' | 'cancelled';
 
 const row = (index: number, count = 8) => Array.from({ length: count }, (_, column) => index * 9 + column + 1);
 const ATTACK = row(1);
@@ -44,11 +44,13 @@ export function perspective(session: GameSession, meId: number) {
 }
 
 export function outcome(session: GameSession, meId: number): Outcome {
+  if (session.finishReason === 'CANCELLED') return 'cancelled';
   if (session.winnerId == null) return 'draw';
   return session.winnerId === meId ? 'win' : 'loss';
 }
 
 export function outcomeTitle(result: Outcome) {
+  if (result === 'cancelled') return 'Mecz anulowany';
   return result === 'win' ? 'Zwycięstwo' : result === 'loss' ? 'Porażka' : 'Remis';
 }
 
@@ -61,6 +63,7 @@ export function finishText(session: GameSession, meId: number) {
       return won ? 'Rywal padł po Twoim ciosie.' : 'Twój awatar został znokautowany.';
     }
     case 'SURRENDER': return won ? 'Rywal się poddał.' : 'Poddałeś walkę.';
+    case 'CANCELLED': return 'Serwer został zrestartowany w trakcie walki, więc mecz anulowano. Elo się nie zmienia.';
     case 'DISCONNECT': return won ? 'Rywal stracił połączenie na dłużej niż 30 sekund.' : 'Straciłeś połączenie na dłużej niż 30 sekund.';
     default: return session.winnerId == null ? 'Po 10 rundach macie tyle samo HP. Elo się nie zmienia.' : won ? 'Po 10 rundach masz więcej HP.' : 'Po 10 rundach rywal ma więcej HP.';
   }
