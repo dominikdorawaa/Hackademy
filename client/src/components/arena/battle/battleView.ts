@@ -1,6 +1,7 @@
 import { DEFAULT_AVATAR, fromAvatarConfig } from '../avatar/avatarModel';
 import type { Avatar } from '../avatar/avatarModel';
 import { danceFrames } from '../avatar/fighters';
+import type { FinisherMove } from '../avatar/fighters';
 import type { GameSession, RoundResult } from '../../../types/api';
 
 export interface Fighter {
@@ -54,7 +55,11 @@ export function outcomeTitle(result: Outcome) {
 export function finishText(session: GameSession, meId: number) {
   const won = session.winnerId === meId;
   switch (session.finishReason) {
-    case 'KNOCKOUT': return won ? 'Rywal padł po Twoim ciosie.' : 'Twój awatar został znokautowany.';
+    case 'KNOCKOUT': {
+      const finish = finisher(session);
+      if (finish) return won ? `Rywal padł po Twoim ciosie kończącym: ${FINISHERS[finish.move].name}.` : `Twój awatar padł po ciosie kończącym: ${FINISHERS[finish.move].name}.`;
+      return won ? 'Rywal padł po Twoim ciosie.' : 'Twój awatar został znokautowany.';
+    }
     case 'SURRENDER': return won ? 'Rywal się poddał.' : 'Poddałeś walkę.';
     case 'DISCONNECT': return won ? 'Rywal stracił połączenie na dłużej niż 30 sekund.' : 'Straciłeś połączenie na dłużej niż 30 sekund.';
     default: return session.winnerId == null ? 'Po 10 rundach macie tyle samo HP. Elo się nie zmienia.' : won ? 'Po 10 rundach masz więcej HP.' : 'Po 10 rundach rywal ma więcej HP.';
@@ -79,10 +84,54 @@ export interface Segment { frames: number[]; loop: boolean; frameTime: number; m
 export const ATTACK_FRAME_MS = 90;
 export const HURT_FRAME_MS = 110;
 export const CAST_MS = ATTACK.length * ATTACK_FRAME_MS;
+export const HURT_MS = HURT.length * HURT_FRAME_MS;
 export const LAUNCH_MS = 380;
 export const IMPACT_MS = 900;
 
 const IDLE: Segment = { frames: [0], loop: true, frameTime: 110 };
+
+export interface FinisherSpec { name: string; frames: number[]; impact: number; hits: number[] }
+export interface Finisher { move: FinisherMove; winnerId: number; loserId: number; start: number; impact: number; end: number }
+
+const hold = (frames: number[], index: number, times: number) => [...frames.slice(0, index + 1), ...Array<number>(times).fill(frames[index]), ...frames.slice(index + 1)];
+export const FINISHER_FRAME_MS = 100;
+export const FINISHER_MOVES: FinisherMove[] = ['beam', 'combo'];
+export const FINISHERS: Record<FinisherMove, FinisherSpec> = {
+  beam: { name: 'Przeciążenie', frames: hold(danceFrames(2), 11, 5), impact: 9, hits: [] },
+  combo: { name: 'Ctrl+Alt+Del', frames: hold(danceFrames(11), 10, 3), impact: 10, hits: [2, 6] },
+};
+
+export function finisher(session: GameSession): Finisher | null {
+  const round = session.lastRound;
+  if (session.status !== 'FINISHED' || session.finishReason !== 'KNOCKOUT' || session.winnerId == null || !round) return null;
+  const winnerId = session.winnerId;
+  const loserId = winnerId === session.player1Id ? session.player2Id : session.player1Id;
+  if (!((round.damage[loserId] ?? 0) > 0)) return null;
+  const move = FINISHER_MOVES[[...String(session.id)].reduce((sum, char) => sum + char.charCodeAt(0), 0) % FINISHER_MOVES.length];
+  const spec = FINISHERS[move];
+  const start = (round.damage[winnerId] ?? 0) > 0 ? IMPACT_MS + HURT_MS : 0;
+  return { move, winnerId, loserId, start, impact: start + spec.impact * FINISHER_FRAME_MS, end: start + spec.frames.length * FINISHER_FRAME_MS };
+}
+
+export function impactAt(session: GameSession, fighterId: number) {
+  const finish = finisher(session);
+  return finish?.loserId === fighterId ? finish.impact : IMPACT_MS;
+}
+
+function finishing(finish: Finisher, round: RoundResult, fighterId: number, rest: Segment): Segment[] {
+  const segments: Segment[] = [];
+  if (fighterId === finish.winnerId) {
+    if (finish.start > 0) segments.push({ ...IDLE, ms: IMPACT_MS }, { frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT_MS });
+    const frames = FINISHERS[finish.move].frames;
+    segments.push({ frames, loop: false, frameTime: FINISHER_FRAME_MS, ms: frames.length * FINISHER_FRAME_MS });
+  } else {
+    const attacked = (round.damage[finish.winnerId] ?? 0) > 0;
+    if (attacked) segments.push({ frames: ATTACK, loop: false, frameTime: ATTACK_FRAME_MS, ms: CAST_MS });
+    segments.push({ ...IDLE, ms: finish.impact - (attacked ? CAST_MS : 0) }, { frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT_MS });
+  }
+  segments.push(rest);
+  return segments;
+}
 
 export function animatedRound(session: GameSession): RoundResult | null {
   if (!session.lastRound) return null;
@@ -97,6 +146,8 @@ export function choreography(session: GameSession, fighterId: number, opponentId
     : IDLE;
   const round = animatedRound(session);
   if (!round) return [rest];
+  const finish = finisher(session);
+  if (finish) return finishing(finish, round, fighterId, rest);
   const attacks = (round.damage[opponentId] ?? 0) > 0;
   const hurt = (round.damage[fighterId] ?? 0) > 0;
   const segments: Segment[] = [];
@@ -104,9 +155,9 @@ export function choreography(session: GameSession, fighterId: number, opponentId
   if (hurt) {
     const wait = IMPACT_MS - (attacks ? CAST_MS : 0);
     if (wait > 0) segments.push({ ...IDLE, ms: wait });
-    segments.push({ frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT.length * HURT_FRAME_MS });
+    segments.push({ frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT_MS });
   } else if (attacks && session.status === 'FINISHED') {
-    segments.push({ ...IDLE, ms: IMPACT_MS + HURT.length * HURT_FRAME_MS - CAST_MS });
+    segments.push({ ...IDLE, ms: IMPACT_MS + HURT_MS - CAST_MS });
   }
   segments.push(rest);
   return segments;

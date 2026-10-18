@@ -8,6 +8,7 @@ export interface AvatarConfig {
   bottomColor: string
   shoesColor: string
   hatColor: string
+  pose?: string
 }
 
 export type ApiDate = string

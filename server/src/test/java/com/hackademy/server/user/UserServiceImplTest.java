@@ -431,7 +431,7 @@ class UserServiceImplTest {
 
     @Test
     void refreshesFriendAndDashboardCachesOnlyAfterTheAvatarSaveCommits() {
-        var avatar = new UserAvatarDto("bluza", "irokez", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy");
+        var avatar = new UserAvatarDto("bluza", "irokez", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "profil");
         when(userRepository.existsById(1L)).thenReturn(true);
         when(userAvatarRepository.findById(1L)).thenReturn(Optional.empty());
         when(userAvatarRepository.save(any(UserAvatar.class))).thenAnswer(invocation -> invocation.getArgument(0));

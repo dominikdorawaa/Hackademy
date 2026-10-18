@@ -62,6 +62,21 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void savesThePortraitPoseAndKeepsTheFrontPoseForOlderClients() throws Exception {
+        var owner = account(Role.USER);
+        var viewer = account(Role.USER);
+        putJson(owner, URL, AVATAR).andExpect(status().isOk()).andExpect(jsonPath("$.pose").value("przod"));
+        putJson(owner, URL, AVATAR.replace("}", ",\"pose\":\"profil\"}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.pose").value("profil"));
+        getAs(viewer, "/api/user/" + owner.username()).andExpect(jsonPath("$.avatar.pose").value("profil"));
+        getAs(owner, "/api/ranking/summary").andExpect(jsonPath("$.myRank.avatar.pose").value("profil"));
+        putJson(owner, URL, AVATAR.replace("}", ",\"pose\":\"bokiem\"}")).andExpect(status().isBadRequest());
+        putJson(owner, URL, AVATAR.replace("}", ",\"pose\":\"postawa\"}")).andExpect(status().isOk());
+        getAs(owner, URL).andExpect(jsonPath("$.pose").value("postawa"));
+        assertEquals("postawa", jdbcTemplate.queryForObject("SELECT pose FROM user_avatars WHERE user_id = ?", String.class, owner.id()));
+    }
+
+    @Test
     void deletingTheAvatarFallsBackToTheGeneratedPortrait() throws Exception {
         var owner = account(Role.USER);
         putJson(owner, URL, AVATAR).andExpect(status().isOk());
