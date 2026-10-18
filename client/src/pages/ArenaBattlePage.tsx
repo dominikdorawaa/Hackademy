@@ -31,7 +31,7 @@ export default function ArenaBattlePage() {
   const { gameId = '' } = useParams();
   const { token } = useAuth();
   const { state: realtime } = useRealtime();
-  const session = useArenaSession(gameId, token, realtime?.gameSession ?? null);
+  const { session, missing } = useArenaSession(gameId, token, realtime?.gameSession ?? null);
   const [identity, setIdentity] = useState<{ token: string; id: number } | null>(null);
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [identityAttempt, setIdentityAttempt] = useState(0);
@@ -82,7 +82,7 @@ export default function ArenaBattlePage() {
     return (
       <div className="user-dashboard battle-page">
         <div className="battle-shell">
-          {failed ? <>
+          {missing ? <p role="status" className="ud-empty">Tej walki nie ma już na serwerze. Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło.</p> : failed ? <>
             <p role="alert" className="battle-error">Nie udało się pobrać Twojego konta. Walka trwa dalej. Spróbuj ponownie.</p>
             <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setIdentityError(null); setIdentityAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
           </> : <p role="status" className="ud-empty">Wczytuję walkę…</p>}

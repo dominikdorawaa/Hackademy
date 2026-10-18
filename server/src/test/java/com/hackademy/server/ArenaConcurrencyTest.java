@@ -211,7 +211,7 @@ class ArenaConcurrencyTest {
             var second = executor.submit(() -> arena.finishGame("game", 2L));
             first.get(5, TimeUnit.SECONDS);
             second.get(5, TimeUnit.SECONDS);
-            verify(users, times(2)).save(any(User.class));
+            verify(users, times(1)).saveAll(any());
             assertEquals("FINISHED", arena.getGameSession("game").getStatus());
         } finally {
             executor.shutdownNow();
