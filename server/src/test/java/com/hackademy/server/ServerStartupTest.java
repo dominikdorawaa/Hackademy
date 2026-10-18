@@ -21,7 +21,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "DB_USERNAME=sa",
         "DB_PASSWORD=",
         "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
-        "FRONTEND_URL=https://hackademy-front.onrender.com",
+        "FRONTEND_URL=https://hackademy.app",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })
@@ -42,9 +42,9 @@ class ServerStartupTest {
 
     @Test
     void allowsOnlyConfiguredFrontendOrigin() throws Exception {
-        mockMvc.perform(get("/health").header("Origin", "https://hackademy-front.onrender.com"))
+        mockMvc.perform(get("/health").header("Origin", "https://hackademy.app"))
                 .andExpect(status().isOk())
-                .andExpect(header().string("Access-Control-Allow-Origin", "https://hackademy-front.onrender.com"));
+                .andExpect(header().string("Access-Control-Allow-Origin", "https://hackademy.app"));
 
         mockMvc.perform(get("/health").header("Origin", "http://localhost:5173"))
                 .andExpect(status().isForbidden());
