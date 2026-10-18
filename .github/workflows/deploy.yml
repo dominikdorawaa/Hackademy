@@ -14,11 +14,11 @@ permissions:
   contents: read
 
 env:
-  BACKEND_DEPLOY_ENABLED: 'false'
+  BACKEND_DEPLOY_ENABLED: 'true'
   HEROKU_APP: hackademy
-  BACKEND_HEALTH_URL: https://hackademy-6d39a54d38e4.herokuapp.com/health
+  BACKEND_HEALTH_URL: https://api.hackademy.app/health
   PAGES_PROJECT: hackademy
-  VITE_API_URL: https://hackademy-twth.onrender.com
+  VITE_API_URL: https://api.hackademy.app
   WRANGLER_VERSION: 4.151.1
 
 jobs:
