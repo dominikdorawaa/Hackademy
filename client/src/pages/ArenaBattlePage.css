@@ -201,31 +201,10 @@
   position: absolute;
   bottom: calc(50 * var(--battle-pixel));
   z-index: 1;
-  max-width: calc(48 * var(--battle-pixel));
-  padding: 6px 12px;
-  border: 2px solid #050a14;
-  border-radius: 12px;
-  background: #f4f7ff;
-  color: #0b1630;
-  font-weight: 800;
-  line-height: 1.1;
-  text-align: center;
+  line-height: 0;
   translate: -50% 0;
+  filter: drop-shadow(0 4px 0 rgb(5 10 20 / 0.45));
   animation: battle-reaction-pop 3000ms ease-out both;
-}
-
-.battle-reaction::after {
-  content: '';
-  position: absolute;
-  left: 50%;
-  bottom: -8px;
-  width: 12px;
-  height: 12px;
-  border-right: 2px solid #050a14;
-  border-bottom: 2px solid #050a14;
-  background: inherit;
-  translate: -50% 0;
-  rotate: 45deg;
 }
 
 .battle-reaction.is-me {
@@ -234,23 +213,6 @@
 
 .battle-reaction.is-rival {
   left: calc(var(--right-edge) - 0.55 * var(--fighter));
-}
-
-.battle-reaction.is-emote {
-  max-width: none;
-  padding: 0;
-  border: 0;
-  background: none;
-  line-height: 0;
-  filter: drop-shadow(0 4px 0 rgb(5 10 20 / 0.45));
-}
-
-.battle-reaction.is-emote::after {
-  content: none;
-}
-
-.battle-reaction.is-animation {
-  background: #ffe066;
 }
 
 @keyframes battle-reaction-pop {
@@ -923,12 +885,7 @@ button.battle-answer:disabled {
     height: 40px;
   }
 
-  .battle-reaction {
-    padding: 4px 8px;
-    font-size: var(--ud-text-s);
-  }
-
-  .battle-reaction.is-emote .pixel-sprite {
+  .battle-reaction .pixel-sprite {
     zoom: 0.6;
   }
 

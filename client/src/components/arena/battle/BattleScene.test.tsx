@@ -153,7 +153,7 @@ it('shows a rival reaction above their fighter and plays 67 while they stand idl
   render(scene(reacted('67', 2)));
   expect(fighter('rival')).toHaveAttribute('data-frames', danceFrames(8).join(','));
   expect(fighter('rival')).toHaveAttribute('data-idle', 'false');
-  expect(document.querySelector('.battle-reaction.is-rival')).toHaveTextContent('67');
+  expect(document.querySelector('.battle-reaction')).toBeNull();
   expect(screen.getByText('opponent: Six-seven')).toHaveAttribute('role', 'status');
   expect(fighter()).toHaveAttribute('data-idle', 'true');
 });
@@ -162,7 +162,8 @@ it('lets a blow play before a reaction animation and never changes HP', () => {
   const session = { ...exchange({ 1: 0, 2: 20 }), reactions: [{ id: 5, senderId: 1, reaction: 'groove', sentAt: 999_500 }] };
   render(scene(session));
   expect(fighter()).toHaveAttribute('data-frames', '10,11,12,13,14,15,16,17');
-  expect(document.querySelector('.battle-reaction.is-me')).toHaveTextContent('Luz');
+  expect(document.querySelector('.battle-reaction')).toBeNull();
+  expect(screen.getByText('Ty: Taniec Luz')).toBeInTheDocument();
   expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
   advance(720);
   expect(fighter()).toHaveAttribute('data-frames', danceFrames(6).join(','));
@@ -173,13 +174,15 @@ it('lets a blow play before a reaction animation and never changes HP', () => {
 it('keeps the finished pose and shows only the bubble after the match ends', () => {
   render(scene(reacted('67', 1, { status: 'FINISHED', winnerId: 2, finishReason: 'SURRENDER', phase: 'QUESTION' })));
   expect(fighter()).not.toHaveAttribute('data-frames', danceFrames(8).join(','));
-  expect(document.querySelector('.battle-reaction.is-me')).toHaveTextContent('67');
+  expect(document.querySelector('.battle-reaction')).toBeNull();
+  expect(screen.getByText('Ty: Six-seven')).toBeInTheDocument();
 });
 
 it('shows reactions without dancing for reduced motion and drops old or unknown ones', () => {
   const view = render(scene(reacted('67', 2), true));
   expect(fighter('rival')).toHaveAttribute('data-frames', '0');
-  expect(document.querySelector('.battle-reaction.is-rival')).toHaveTextContent('67');
+  expect(document.querySelector('.battle-reaction')).toBeNull();
+  expect(screen.getByText('opponent: Six-seven')).toBeInTheDocument();
   view.rerender(scene(reacted('laugh', 2), false, 1_002_000));
   expect(document.querySelector('.battle-reaction')).toBeNull();
   view.rerender(scene(reacted('hello', 2)));
@@ -193,7 +196,7 @@ it('shows reactions without dancing for reduced motion and drops old or unknown 
 it('drops the dance once it has played but keeps the bubble a little longer', () => {
   render(scene(reacted('67', 2), false, 999_000 + 16 * 110 + 500));
   expect(fighter('rival')).toHaveAttribute('data-frames', '0');
-  expect(document.querySelector('.battle-reaction.is-rival')).toHaveTextContent('67');
+  expect(document.querySelector('.battle-reaction')).toBeNull();
 });
 
 it('shows the animated PixelLab emote above the fighter', () => {
