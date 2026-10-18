@@ -6,8 +6,8 @@
   --battle-glass-muted: #b4c3dc;
   --battle-me: #5fb4ff;
   --battle-rival: #ffb15c;
-  --battle-ok: var(--ud-xp);
-  --battle-bad: var(--ud-hard);
+  --battle-ok: #2fd0b0;
+  --battle-bad: #ff8a80;
   --battle-pixel: 4px;
 }
 
