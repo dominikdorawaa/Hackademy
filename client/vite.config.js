@@ -8,6 +8,9 @@ export default defineConfig({
     global: 'globalThis',
   },
   plugins: [react(), tailwindcss()],
+  build: {
+    assetsDir: 'static',
+  },
   resolve: {
     alias: {
       '@': fileURLToPath(new URL('./src', import.meta.url)),
