@@ -160,10 +160,12 @@
 }
 
 .battle-fighter.is-me {
+  --away: -1;
   left: var(--left-edge);
 }
 
 .battle-fighter.is-rival {
+  --away: 1;
   right: calc(100% - var(--right-edge));
   transform: scaleX(-1);
 }
@@ -359,8 +361,9 @@
 }
 
 .from-rival .battle-finish-beam {
-  transform-origin: right center;
+  transform-origin: center;
   scale: -1 1;
+  animation-name: battle-finish-beam-rival;
 }
 
 @keyframes battle-finish-beam {
@@ -368,6 +371,13 @@
   20% { opacity: 1; transform: scaleX(1) scaleY(1.2); }
   75% { opacity: 1; transform: scaleX(1) scaleY(1); }
   100% { opacity: 0; transform: scaleX(1) scaleY(0); }
+}
+
+@keyframes battle-finish-beam-rival {
+  0% { opacity: 1; clip-path: inset(0 100% 0 0); transform: scaleY(1); }
+  20% { opacity: 1; clip-path: inset(0); transform: scaleY(1.2); }
+  75% { opacity: 1; clip-path: inset(0); transform: scaleY(1); }
+  100% { opacity: 0; clip-path: inset(0); transform: scaleY(0); }
 }
 
 .battle-finish-hit {
@@ -458,10 +468,10 @@
 
 @keyframes battle-knockback {
   0% { translate: 0 0; filter: brightness(2.4); }
-  20% { translate: calc(-6 * var(--battle-pixel)) calc(-3 * var(--battle-pixel)); filter: brightness(1.4); }
-  45% { translate: calc(-8 * var(--battle-pixel)) 0; filter: none; }
-  60% { translate: calc(-7 * var(--battle-pixel)) 0; }
-  100% { translate: calc(-7 * var(--battle-pixel)) 0; }
+  20% { translate: calc(6 * var(--away) * var(--battle-pixel)) calc(-3 * var(--battle-pixel)); filter: brightness(1.4); }
+  45% { translate: calc(8 * var(--away) * var(--battle-pixel)) 0; filter: none; }
+  60% { translate: calc(7 * var(--away) * var(--battle-pixel)) 0; }
+  100% { translate: calc(7 * var(--away) * var(--battle-pixel)) 0; }
 }
 
 .battle-fighter[data-finished-by='beam'] {
@@ -470,12 +480,12 @@
 
 @keyframes battle-glitch {
   0% { translate: 0 0; filter: brightness(2.4) drop-shadow(0 0 6px rgb(80 230 255)); }
-  15% { translate: calc(-2 * var(--battle-pixel)) 0; filter: brightness(1.6) hue-rotate(160deg); opacity: 0.55; }
-  30% { translate: calc(2 * var(--battle-pixel)) 0; filter: brightness(2.2) drop-shadow(0 0 6px rgb(80 230 255)); opacity: 1; }
-  45% { translate: calc(-1 * var(--battle-pixel)) 0; filter: hue-rotate(260deg); opacity: 0.7; }
-  60% { translate: calc(-4 * var(--battle-pixel)) 0; filter: brightness(1.8); opacity: 1; }
-  80% { translate: calc(-5 * var(--battle-pixel)) 0; filter: none; }
-  100% { translate: calc(-5 * var(--battle-pixel)) 0; filter: none; }
+  15% { translate: calc(2 * var(--away) * var(--battle-pixel)) 0; filter: brightness(1.6) hue-rotate(160deg); opacity: 0.55; }
+  30% { translate: calc(-2 * var(--away) * var(--battle-pixel)) 0; filter: brightness(2.2) drop-shadow(0 0 6px rgb(80 230 255)); opacity: 1; }
+  45% { translate: calc(1 * var(--away) * var(--battle-pixel)) 0; filter: hue-rotate(260deg); opacity: 0.7; }
+  60% { translate: calc(4 * var(--away) * var(--battle-pixel)) 0; filter: brightness(1.8); opacity: 1; }
+  80% { translate: calc(5 * var(--away) * var(--battle-pixel)) 0; filter: none; }
+  100% { translate: calc(5 * var(--away) * var(--battle-pixel)) 0; filter: none; }
 }
 
 .battle-page[data-still='true'] .battle-fighter .avatar-sprite {
