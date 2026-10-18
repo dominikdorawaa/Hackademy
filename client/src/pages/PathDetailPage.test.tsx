@@ -1,4 +1,4 @@
-import { Route } from 'react-router-dom';
+import { Route, useLocation } from 'react-router-dom';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -43,7 +43,24 @@ function mount() {
   return renderWithAuth(<Route path="/learn/paths/:id" element={<PathDetailPage />} />, '/learn/paths/5');
 }
 
+function OpenedRoom() {
+  const location = useLocation();
+  return <p>{location.pathname + location.search}</p>;
+}
+
 describe('path page', () => {
+  it('opens a room with this path as its return context', async () => {
+    server.use(http.get(`${API_URL}/api/paths/5`, () => HttpResponse.json(path(true))));
+    localStorage.setItem('token', createToken('USER'));
+    renderWithAuth(<>
+      <Route path="/learn/paths/:id" element={<PathDetailPage />} />
+      <Route path="/rooms/:id" element={<OpenedRoom />} />
+    </>, '/learn/paths/5');
+    const first = await screen.findByRole('region', { name: 'Podstawy' });
+    await userEvent.click(within(first).getAllByRole('button', { name: /Start/ })[0]);
+    expect(await screen.findByText('/rooms/2?pathId=5')).toBeInTheDocument();
+  });
+
   it('groups rooms into chapters with progress for each chapter', async () => {
     server.use(http.get(`${API_URL}/api/paths/5`, () => HttpResponse.json(path(true))));
     mount();

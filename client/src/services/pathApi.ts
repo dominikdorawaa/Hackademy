@@ -30,9 +30,10 @@ export function enroll(id: ApiId, headers: HeadersInit) {
 }
 
 
-export function getPath(id: ApiId, headers: HeadersInit) {
+export function getPath(id: ApiId, headers: HeadersInit, signal?: AbortSignal) {
   return request<PathDetailDto>(`/api/paths/${id}`, {
     method: 'GET',
     headers,
+    signal,
   });
 }
