@@ -29,6 +29,8 @@ const PREVIEWS: { id: string; label: string; frames: (source: AvatarAtlasSource)
   { id: 'run', label: 'Bieg', frames: source => runFrames(source.run), loop: true, frameTime: RUN_FRAME_TIME },
   { id: 'groove', label: 'Taniec', frames: source => danceFrames(source.dances.groove), loop: true },
   { id: 'sixseven', label: 'Six-seven', frames: source => danceFrames(source.dances.sixseven), loop: true },
+  { id: 'beam', label: 'Przeciążenie', frames: source => [...danceFrames(source.finishers.beam), 0, 0, 0], loop: true, frameTime: 100 },
+  { id: 'combo', label: 'Ctrl+Alt+Del', frames: source => [...danceFrames(source.finishers.combo), 0, 0, 0], loop: true, frameTime: 100 },
 ];
 const COLOR_GROUPS: { key: keyof Avatar['colors']; legend: string; options: Record<string, Ramp> }[] = [
   { key: 'skin', legend: 'Skóra', options: SKIN_RAMPS },
