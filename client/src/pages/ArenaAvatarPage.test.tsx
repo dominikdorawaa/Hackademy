@@ -47,6 +47,9 @@ it('customizes colors, previews animations and saves the avatar', () => {
   fireEvent.click(screen.getByRole('radio', { name: 'Buty: Czerwony' }));
   expect(atlas.last!.colors).toMatchObject({ skin: 'heban', hair: 'rude', top: 'turkusowy', bottom: 'bialy', shoes: 'czerwony' });
   expect(screen.getByText('Masz niezapisane zmiany.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Bieg' }));
+  expect(screen.getByRole('button', { name: 'Bieg' })).toHaveAttribute('aria-pressed', 'true');
+  expect(screen.getByRole('img', { name: 'Awatar, animacja: Bieg' })).toHaveAttribute('data-frame', '91');
   fireEvent.click(screen.getByRole('button', { name: 'Six-seven' }));
   expect(screen.getByRole('img', { name: 'Awatar, animacja: Six-seven' })).toHaveAttribute('data-frame', '73');
   fireEvent.click(screen.getByRole('button', { name: 'Taniec' }));

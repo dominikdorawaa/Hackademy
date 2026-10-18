@@ -127,66 +127,68 @@ export default function ArenaBattlePage() {
   return (
     <div className="user-dashboard battle-page" data-still={reducedMotion}>
       <div className="battle-shell">
-        <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion}>
-          <div className="battle-round">
-            <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
-            {!finished && <p className="battle-timer" role="timer" aria-label={session.phase === 'QUESTION' ? 'Czas na odpowiedź' : 'Następna runda za'}>{left}</p>}
-          </div>
-        </BattleScene>
+        <div className="battle-arena">
+          <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion}>
+            <div className="battle-round">
+              <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
+              {!finished && <p className="battle-timer" role="timer" aria-label={session.phase === 'QUESTION' ? 'Czas na odpowiedź' : 'Następna runda za'}>{left}</p>}
+            </div>
+          </BattleScene>
 
-        {finished && (
-          <section className={`battle-result is-${result}`} aria-labelledby="battle-result-title">
-            <h1 id="battle-result-title">{outcomeTitle(result)}</h1>
-            <p>{finishText(session, me.id)}</p>
-            <p className="battle-result-elo">{change > 0 ? `+${change}` : change} Elo</p>
-            <Link className="ud-btn ud-btn-solid" to="/arena">Wróć do Areny</Link>
-          </section>
-        )}
-        {reveal ? (
-          <section className="battle-card" aria-labelledby="battle-question">
-            <p className="battle-card-meta">Wynik rundy {reveal.round}</p>
-            <RevealHeading id="battle-question" className="battle-question">{reveal.content}</RevealHeading>
-            <ol className="battle-answers is-reveal">
-              {reveal.answers.map((text, index) => {
-                const correct = index === reveal.correctAnswer;
-                const mine = reveal.choices[me.id] === index;
-                const theirs = reveal.choices[rival.id] === index;
-                return (
-                  <li key={index} className={`battle-answer${correct ? ' is-correct' : ''}${mine && !correct ? ' is-wrong' : ''}`}>
+          {finished && (
+            <section className={`battle-result is-${result}`} aria-labelledby="battle-result-title">
+              <h1 id="battle-result-title">{outcomeTitle(result)}</h1>
+              <p>{finishText(session, me.id)}</p>
+              <p className="battle-result-elo">{change > 0 ? `+${change}` : change} Elo</p>
+              <Link className="ud-btn ud-btn-solid" to="/arena">Wróć do Areny</Link>
+            </section>
+          )}
+          {reveal ? (
+            <section className="battle-card" aria-labelledby="battle-question">
+              <p className="battle-card-meta">Wynik rundy {reveal.round}</p>
+              <RevealHeading id="battle-question" className="battle-question">{reveal.content}</RevealHeading>
+              <ol className="battle-answers is-reveal">
+                {reveal.answers.map((text, index) => {
+                  const correct = index === reveal.correctAnswer;
+                  const mine = reveal.choices[me.id] === index;
+                  const theirs = reveal.choices[rival.id] === index;
+                  return (
+                    <li key={index} className={`battle-answer${correct ? ' is-correct' : ''}${mine && !correct ? ' is-wrong' : ''}`}>
+                      <span className="battle-answer-letter">{LETTERS[index]}</span>
+                      <span className="battle-answer-text">{text}</span>
+                      <span className="battle-answer-tags">
+                        {correct && <span>Poprawna</span>}
+                        {mine && <span>Ty</span>}
+                        {theirs && <span>{rival.username}</span>}
+                      </span>
+                    </li>
+                  );
+                })}
+              </ol>
+              <p className="battle-summary" role="status" aria-live="polite">{roundSummary(reveal, me.id, rival.id)}</p>
+            </section>
+          ) : !finished && session.question ? (
+            <section className="battle-card" aria-labelledby="battle-question">
+              <p className="battle-card-meta">{session.question.category}</p>
+              <h1 id="battle-question" className="battle-question">{session.question.content}</h1>
+              <div className="battle-answers" role="group" aria-label="Odpowiedzi">
+                {session.question.answers.map((text, index) => (
+                  <button key={index} type="button" className={`battle-answer${myPick === index ? ' is-picked' : ''}`}
+                    onClick={() => void answer(index)} disabled={answered || myPick !== null} aria-pressed={myPick === index}>
                     <span className="battle-answer-letter">{LETTERS[index]}</span>
                     <span className="battle-answer-text">{text}</span>
-                    <span className="battle-answer-tags">
-                      {correct && <span>Poprawna</span>}
-                      {mine && <span>Ty</span>}
-                      {theirs && <span>{rival.username}</span>}
-                    </span>
-                  </li>
-                );
-              })}
-            </ol>
-            <p className="battle-summary" role="status" aria-live="polite">{roundSummary(reveal, me.id, rival.id)}</p>
-          </section>
-        ) : !finished && session.question ? (
-          <section className="battle-card" aria-labelledby="battle-question">
-            <p className="battle-card-meta">{session.question.category}</p>
-            <h1 id="battle-question" className="battle-question">{session.question.content}</h1>
-            <div className="battle-answers" role="group" aria-label="Odpowiedzi">
-              {session.question.answers.map((text, index) => (
-                <button key={index} type="button" className={`battle-answer${myPick === index ? ' is-picked' : ''}`}
-                  onClick={() => void answer(index)} disabled={answered || myPick !== null} aria-pressed={myPick === index}>
-                  <span className="battle-answer-letter">{LETTERS[index]}</span>
-                  <span className="battle-answer-text">{text}</span>
-                </button>
-              ))}
-            </div>
-            <p className="battle-summary" role="status" aria-live="polite">
-              {answered || myPick !== null
-                ? (rivalAnswered ? 'Oboje odpowiedzieliście. Za chwilę wynik rundy.' : 'Odpowiedź wysłana. Czekamy na rywala.')
-                : (rivalAnswered ? 'Rywal już odpowiedział.' : 'Wybierz jedną odpowiedź.')}
-            </p>
-            {visibleError && <p role="alert" className="battle-error">{visibleError}</p>}
-          </section>
-        ) : null}
+                  </button>
+                ))}
+              </div>
+              <p className="battle-summary" role="status" aria-live="polite">
+                {answered || myPick !== null
+                  ? (rivalAnswered ? 'Oboje odpowiedzieliście. Za chwilę wynik rundy.' : 'Odpowiedź wysłana. Czekamy na rywala.')
+                  : (rivalAnswered ? 'Rywal już odpowiedział.' : 'Wybierz jedną odpowiedź.')}
+              </p>
+              {visibleError && <p role="alert" className="battle-error">{visibleError}</p>}
+            </section>
+          ) : null}
+        </div>
 
         {!finished && (
           <div className="battle-actions">

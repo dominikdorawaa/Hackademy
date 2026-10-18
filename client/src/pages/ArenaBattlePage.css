@@ -1,9 +1,13 @@
 @layer components {
 .battle-page {
+  --battle-glass: rgb(6 12 28 / 0.68);
+  --battle-glass-line: rgb(120 200 255 / 0.22);
+  --battle-glass-ink: #eef4ff;
+  --battle-glass-muted: #b4c3dc;
   --battle-me: #5fb4ff;
   --battle-rival: #ffb15c;
-  --battle-ok: var(--ud-xp);
-  --battle-bad: var(--ud-hard);
+  --battle-ok: #2fd0b0;
+  --battle-bad: #ff8a80;
   --battle-pixel: 4px;
 }
 
@@ -16,6 +20,22 @@
   display: flex;
   flex-direction: column;
   gap: var(--battle-gap);
+}
+
+.battle-arena {
+  --arena-pad: 20px;
+  container-type: inline-size;
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+  padding: var(--arena-pad);
+  border-radius: var(--ud-radius);
+  color: var(--battle-glass-ink);
+  background:
+    linear-gradient(180deg, rgb(4 9 20 / 0.35) 0, rgb(4 9 20 / 0) 22%, rgb(4 9 20 / 0) 46%, rgb(4 9 20 / 0.45) 70%, rgb(4 9 20 / 0.7) 100%),
+    #1d4a63 url('/assets/arena/stages/server-room-arena.png') center top / cover no-repeat;
+  image-rendering: pixelated;
+  overflow: hidden;
 }
 
 .battle-hud {
@@ -31,8 +51,10 @@
   align-items: center;
   gap: 14px;
   padding: 14px 16px;
+  border: 1px solid var(--battle-glass-line);
   border-radius: var(--ud-radius);
-  background: var(--ud-surface);
+  background: var(--battle-glass);
+  backdrop-filter: blur(3px);
 }
 
 .battle-plate.is-rival {
@@ -49,7 +71,7 @@
   height: 56px;
   border-radius: var(--ud-radius);
   image-rendering: pixelated;
-  background: var(--ud-surface-2);
+  background: rgb(255 255 255 / 0.08);
 }
 
 .battle-plate-info {
@@ -65,7 +87,7 @@
 
 .battle-plate-elo,
 .battle-plate-hp {
-  color: var(--ud-muted);
+  color: var(--battle-glass-muted);
   font-size: var(--ud-text-s);
 }
 
@@ -73,7 +95,7 @@
   height: 12px;
   margin: 6px 0 4px;
   border-radius: 6px;
-  background: var(--ud-track);
+  background: rgb(255 255 255 / 0.14);
   overflow: hidden;
 }
 
@@ -94,11 +116,16 @@
 }
 
 .battle-round {
+  min-width: 96px;
+  padding: 8px 14px;
+  border: 1px solid var(--battle-glass-line);
+  border-radius: var(--ud-radius);
+  background: var(--battle-glass);
   text-align: center;
 }
 
 .battle-round-label {
-  color: var(--ud-muted);
+  color: var(--battle-glass-muted);
   font-weight: 600;
 }
 
@@ -119,12 +146,8 @@
   align-items: flex-end;
   justify-content: space-between;
   height: calc(66 * var(--battle-pixel));
+  margin: -8px calc(-1 * var(--arena-pad)) 0;
   padding: 0;
-  border-radius: var(--ud-radius);
-  background:
-    linear-gradient(180deg, rgb(4 9 20 / 0.55) 0, rgb(4 9 20 / 0.1) 38%, transparent 60%),
-    #0b1730 url('/assets/arena/stages/server-room.png') center calc(100% + 5.5cqw) / cover no-repeat;
-  image-rendering: pixelated;
   overflow: hidden;
 }
 
@@ -174,26 +197,27 @@
   inset: 0;
 }
 
-.battle-fireball,
+.battle-packet,
 .battle-burst {
   position: absolute;
   bottom: var(--chest);
+  max-width: none;
   image-rendering: pixelated;
-  filter: drop-shadow(0 0 calc(2 * var(--battle-pixel)) rgb(255 150 60 / 0.75));
+  filter: drop-shadow(0 0 calc(2 * var(--battle-pixel)) rgb(80 230 255 / 0.8));
 }
 
-.battle-fireball {
+.battle-packet {
   width: calc(11 * var(--cell));
-  height: calc(7 * var(--cell));
+  height: calc(5.87 * var(--cell));
   opacity: 0;
 }
 
-.from-me .battle-fireball {
+.from-me .battle-packet {
   left: calc(var(--hand-left) - 5.5 * var(--cell));
   animation: battle-fly-right calc(var(--impact) - var(--launch)) linear var(--launch) forwards;
 }
 
-.from-rival .battle-fireball {
+.from-rival .battle-packet {
   left: calc(var(--hand-right) - 5.5 * var(--cell));
   scale: -1 1;
   animation: battle-fly-left calc(var(--impact) - var(--launch)) linear var(--launch) forwards;
@@ -212,9 +236,9 @@
 }
 
 .battle-burst {
-  width: calc(9 * var(--cell) * 1.6);
-  height: calc(9 * var(--cell) * 1.6);
-  margin-bottom: calc(-2 * var(--cell));
+  width: calc(14 * var(--cell));
+  height: calc(14.56 * var(--cell));
+  margin-bottom: calc(-9 * var(--cell));
   opacity: 0;
   animation: battle-burst 420ms steps(4, end) var(--impact) both;
 }
@@ -278,8 +302,8 @@
   margin: auto;
   padding: 12px 16px;
   border-radius: var(--ud-radius);
-  color: #e8edf5;
-  background: #0b1730;
+  color: var(--battle-glass-ink);
+  background: var(--battle-glass);
 }
 
 .battle-page[data-still='true'] .battle-hp span {
@@ -288,25 +312,17 @@
 
 .battle-card,
 .battle-result {
-  padding: 24px 28px;
+  position: relative;
+  padding: 22px 26px;
+  border: 1px solid var(--battle-glass-line);
   border-radius: var(--ud-radius);
-  background: var(--ud-hero-bg);
-  color: var(--ud-hero-ink);
-}
-
-.battle-stage:has(+ :is(.battle-card, .battle-result)) {
-  border-bottom-left-radius: 0;
-  border-bottom-right-radius: 0;
-}
-
-.battle-stage + :is(.battle-card, .battle-result) {
-  margin-top: calc(-1 * var(--battle-gap));
-  border-top-left-radius: 0;
-  border-top-right-radius: 0;
+  background: var(--battle-glass);
+  color: var(--battle-glass-ink);
+  backdrop-filter: blur(4px);
 }
 
 .battle-card-meta {
-  color: var(--ud-hero-muted);
+  color: var(--battle-glass-muted);
   font-weight: 600;
   font-size: var(--ud-text-s);
 }
@@ -334,10 +350,10 @@
   gap: 12px;
   min-height: 56px;
   padding: 10px 14px;
-  border: 0;
+  border: 1px solid rgb(255 255 255 / 0.1);
   border-radius: var(--ud-radius);
-  background: var(--ud-surface);
-  color: var(--ud-ink);
+  background: rgb(255 255 255 / 0.08);
+  color: var(--battle-glass-ink);
   font: inherit;
   text-align: left;
   transition: background-color 160ms var(--ud-ease), transform 160ms var(--ud-ease);
@@ -348,7 +364,7 @@ button.battle-answer {
 }
 
 button.battle-answer:hover:not(:disabled) {
-  background: var(--ud-surface-2);
+  background: rgb(255 255 255 / 0.16);
   transform: translateY(-1px);
 }
 
@@ -364,11 +380,13 @@ button.battle-answer:disabled {
 }
 
 .battle-answer.is-correct {
-  background: color-mix(in srgb, var(--battle-ok) 26%, var(--ud-surface));
+  border-color: color-mix(in srgb, var(--battle-ok) 60%, transparent);
+  background: color-mix(in srgb, var(--battle-ok) 30%, rgb(6 12 28 / 0.6));
 }
 
 .battle-answer.is-wrong {
-  background: color-mix(in srgb, var(--battle-bad) 24%, var(--ud-surface));
+  border-color: color-mix(in srgb, var(--battle-bad) 60%, transparent);
+  background: color-mix(in srgb, var(--battle-bad) 30%, rgb(6 12 28 / 0.6));
 }
 
 .battle-answer-letter {
@@ -377,7 +395,7 @@ button.battle-answer:disabled {
   width: 32px;
   height: 32px;
   border-radius: 4px;
-  background: var(--ud-surface-2);
+  background: rgb(255 255 255 / 0.12);
   font-weight: 800;
 }
 
@@ -395,12 +413,12 @@ button.battle-answer:disabled {
 .battle-answer-tags span {
   padding: 2px 6px;
   border-radius: 4px;
-  background: var(--ud-surface-2);
+  background: rgb(255 255 255 / 0.14);
 }
 
 .battle-summary {
   margin-top: 16px;
-  color: var(--ud-hero-muted);
+  color: var(--battle-glass-muted);
   font-weight: 600;
 }
 
@@ -423,12 +441,12 @@ button.battle-answer:disabled {
 
 .battle-result p {
   margin-top: 12px;
-  color: var(--ud-hero-muted);
+  color: var(--battle-glass-muted);
 }
 
 .battle-result .battle-result-elo {
   margin: 16px 0 20px;
-  color: var(--ud-hero-ink);
+  color: var(--battle-glass-ink);
   font-size: 1.5rem;
   font-weight: 800;
 }
@@ -469,6 +487,15 @@ button.battle-answer:disabled {
     --battle-gap: 14px;
   }
 
+  .battle-arena {
+    --arena-pad: 12px;
+    gap: 12px;
+    background:
+      linear-gradient(180deg, rgb(4 9 20 / 0.3) 0, rgb(4 9 20 / 0) 120px, rgb(4 9 20 / 0) 300px, rgb(4 9 20 / 0.55) 520px),
+      url('/assets/arena/stages/server-room-arena.png') center top / auto 520px no-repeat,
+      linear-gradient(180deg, #36758d 0, #1d4a63 520px, #0a1a33 900px);
+  }
+
   .battle-hud {
     grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
   }
@@ -503,7 +530,7 @@ button.battle-answer:disabled {
 
   .battle-card,
   .battle-result {
-    padding: 20px;
+    padding: 16px;
   }
 
   .battle-answers {
