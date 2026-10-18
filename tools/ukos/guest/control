@@ -1,0 +1,110 @@
+#!/bin/bash
+set -u
+H=/home/student
+seed() {
+  mkdir -p /opt/ukos "$H/archiwum/tymczasowe"
+  printf '%s\n' \
+    'RAPORT ZMIANY NOCNEJ' \
+    'Status: sprawa w toku' \
+    '' \
+    'Serwer szkoleniowy znów działa, ale wymaga obserwacji.' \
+    'Dyżur dzienny rozpoczyna się o 08:00.' \
+    '' \
+    'Gdy raport trafi do bieżących, zostaw zespołowi notatkę' \
+    'z tekstem: Gotowy do pracy.' > /opt/ukos/raport.txt
+  cp /opt/ukos/raport.txt "$H/archiwum/raport.txt"
+  printf 'SPRAWA ZAMKNIĘTA\nDrukarka w sali 3 naprawiona 12.10.\n' > "$H/archiwum/awaria-drukarki.txt"
+  printf '%s\n' \
+    'Wiadomość od nocnej zmiany' \
+    '' \
+    'Wybacz bałagan. W nocy padł serwer i działaliśmy w pośpiechu.' \
+    'Dzisiejszy raport.txt trafił przez pomyłkę do archiwum, a tam' \
+    'trzymamy wyłącznie zamknięte sprawy. Zespół szuka go w bieżących.' \
+    '' \
+    'Załóż katalog biezace na sprawy w toku i przenieś do niego raport.' \
+    'Zanim go ruszysz, zostaw w archiwum kopię zapasową raport-kopia.txt.' \
+    'Resztę znajdziesz w samym raporcie.' > "$H/.wiadomosc"
+  chown -R 1000:1000 "$H"
+}
+seed
+printf 'CONTROL_READY\n'
+while IFS=$'\t' read -r action id value; do
+  case "$action" in
+    TIME)
+      if [[ "$id" =~ ^[0-9]+$ ]]; then date -s "@$id" >/dev/null; fi
+      ;;
+    START)
+      touch /run/ukos-start
+      ;;
+    CHECKPOINT)
+      if [[ "$value" =~ ^[0-6]$ ]]; then
+        if [ "$value" -ge 3 ]; then mkdir -p /home/student/archiwum/raporty; fi
+        if [ "$value" -ge 4 ]; then printf 'Gotowy do pracy\n' > /home/student/archiwum/notatka.txt; fi
+        if [ "$value" -ge 5 ]; then cp /home/student/archiwum/raport.txt /home/student/archiwum/raporty/raport.txt; fi
+        if [ "$value" -ge 6 ]; then mv /home/student/archiwum/notatka.txt /home/student/archiwum/raporty/notatka.txt; fi
+        chown -R 1000:1000 /home/student
+        touch /run/ukos-start
+      fi
+      ;;
+    LAB_CHECKPOINT)
+      if [[ "$value" =~ ^([0-9]|1[0-5])$ ]]; then
+        if [ "$value" -ge 6 ]; then mkdir -p "$H/biezace"; fi
+        if [ "$value" -ge 7 ]; then rmdir "$H/archiwum/tymczasowe"; fi
+        if [ "$value" -ge 10 ]; then cp /opt/ukos/raport.txt "$H/archiwum/raport-kopia.txt"; fi
+        if [ "$value" -ge 11 ]; then mv "$H/archiwum/raport.txt" "$H/biezace/raport.txt"; fi
+        if [ "$value" -ge 13 ]; then touch "$H/biezace/notatka.txt"; fi
+        if [ "$value" -ge 14 ]; then printf 'Gotowy do pracy\n' > "$H/biezace/notatka.txt"; fi
+        chown -R 1000:1000 "$H"
+        touch /run/ukos-start
+      fi
+      ;;
+    RESTORE)
+      if printf %s "$value" | base64 -d > /run/restore.tar.gz && gzip -t /run/restore.tar.gz && tar -tzf /run/restore.tar.gz | grep -Eq '^student(/|$)' && ! tar -tzf /run/restore.tar.gz | grep -Ev '^student(/|$)' >/dev/null && ! tar -tzf /run/restore.tar.gz | grep -Eq '(^/|(^|/)\.\.(/|$))'; then
+        rm -rf /home/student
+        mkdir -p /home/student
+        if tar -xzf /run/restore.tar.gz -C /home --no-same-owner; then
+          chown -R 1000:1000 /home/student
+          printf 'RESTORED\t%s\n' "$id"
+        else
+          printf 'ERROR\t%s\tNie udało się odtworzyć plików.\n' "$id"
+        fi
+      else
+        printf 'ERROR\t%s\tZapis warsztatu jest uszkodzony.\n' "$id"
+      fi
+      touch /run/ukos-start
+      ;;
+    CHECK)
+      pass=0
+      case "$value" in
+        lab-directory) [ -d "$H/biezace" ] && pass=1 ;;
+        lab-remove) [ ! -e "$H/archiwum/tymczasowe" ] && [ -f "$H/archiwum/awaria-drukarki.txt" ] && pass=1 ;;
+        lab-copy) [ ! -L "$H/archiwum/raport-kopia.txt" ] && cmp -s /opt/ukos/raport.txt "$H/archiwum/raport-kopia.txt" && pass=1 ;;
+        lab-move) [ ! -e "$H/archiwum/raport.txt" ] && [ ! -L "$H/biezace/raport.txt" ] && cmp -s /opt/ukos/raport.txt "$H/biezace/raport.txt" && pass=1 ;;
+        lab-touch) [ -f "$H/biezace/notatka.txt" ] && pass=1 ;;
+        lab-note) [ -f "$H/biezace/notatka.txt" ] && [ ! -L "$H/biezace/notatka.txt" ] && grep -q 'Gotowy do pracy' "$H/biezace/notatka.txt" && pass=1 ;;
+        directory) [ -d /home/student/archiwum/raporty ] && pass=1 ;;
+        note) [ -f /home/student/archiwum/notatka.txt ] && [ ! -L /home/student/archiwum/notatka.txt ] && grep -q 'Gotowy do pracy' /home/student/archiwum/notatka.txt && pass=1 ;;
+        copy) cmp -s /opt/ukos/raport.txt /home/student/archiwum/raporty/raport.txt && pass=1 ;;
+        move) [ ! -e /home/student/archiwum/notatka.txt ] && [ -f /home/student/archiwum/raporty/notatka.txt ] && grep -q 'Gotowy do pracy' /home/student/archiwum/raporty/notatka.txt && pass=1 ;;
+      esac
+      printf 'CHECK\t%s\t%s\n' "$id" "$pass"
+      ;;
+    EXPORT)
+      if [ "$(du -sm /home/student | cut -f1)" -gt 4 ]; then
+        printf 'ERROR\t%s\tWarsztat przekroczył limit zapisu 4 MiB.\n' "$id"
+      elif tar -czf /run/archive.tar.gz -C /home student 2>/run/tar-error; then
+        printf 'ARCHIVE\t%s\t' "$id"
+        base64 -w0 /run/archive.tar.gz
+        printf '\n'
+      else
+        printf 'ERROR\t%s\tPliki zmieniły się podczas zapisu. Spróbuj ponownie.\n' "$id"
+      fi
+      ;;
+    RESIZE)
+      if [[ "$id" =~ ^[0-9]+$ && "$value" =~ ^[0-9]+$ ]]; then
+        stty -F /dev/ttyS0 cols "$id" rows "$value"
+        pkill -WINCH -u student || true
+      fi
+      ;;
+  esac
+done

@@ -1,0 +1,22 @@
+export TERM=xterm-256color
+export LANG=C.UTF-8
+export LC_ALL=C.UTF-8
+export HISTFILE=$HOME/.bash_history
+export HISTSIZE=500
+export HISTFILESIZE=500
+export HISTCONTROL=
+export HISTIGNORE=
+export PS1='\[\e[38;5;75m\]student@hackademy\[\e[0m\]:\[\e[38;5;114m\]\w\[\e[0m\]$ '
+shopt -s checkwinsize histappend
+bind 'set enable-bracketed-paste on'
+__ukos_prompt() {
+  local result=$1 command kind
+  command=$(HISTTIMEFORMAT= history 1)
+  command=${command#*[0-9]  }
+  kind=$(type -t "${command%% *}" 2>/dev/null)
+  printf 'PROMPT\t%s\t%s\t%s\t%s\n' "$result" "$(printf %s "$command" | base64 -w0)" "$(printf %s "$PWD" | base64 -w0)" "$kind" > /dev/ttyS2
+  history -w
+}
+PROMPT_COMMAND='__ukos_prompt "$?"'
+printf '\e[2J\e[H'
+printf 'DYŻUR ZERO · warsztat techniczny\r\nBash i pliki działają wewnątrz tej przeglądarki.\r\n\r\n'
