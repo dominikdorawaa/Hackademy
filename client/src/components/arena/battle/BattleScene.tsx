@@ -6,6 +6,7 @@ import { BattleEffects } from './BattleEffects';
 import { BattleFighter } from './BattleFighter';
 import { QuickChatMenu } from './QuickChatMenu';
 import { PixelSprite } from '../../PixelSprite';
+import { ArenaLoader } from '../ArenaLoader';
 import { reactionDance, shownReaction } from './quickChat';
 import type { ShownReaction } from './quickChat';
 import { animatedRound, choreography, finisher, impactAt, MAX_HP } from './battleView';
@@ -79,7 +80,7 @@ export function BattleScene({ session, me, rival, reducedMotion, serverNow, quic
         <EmoteBubble side="me" shown={meReaction} still={reducedMotion} />
         <EmoteBubble side="rival" shown={rivalReaction} still={reducedMotion} />
         {!reducedMotion && <BattleEffects key={motionKey} round={exchange} meId={me.id} rivalId={rival.id} finish={finish} />}
-      </> : <p className="battle-stage-loading" role="status">Przygotowuję postacie…</p>}
+      </> : <ArenaLoader label="Przygotowuję postacie" avatar={me.avatar} className="battle-stage-loading" />}
       <p className="sr-only" role="status" aria-live="polite">{announced}</p>
     </section>
   </>;

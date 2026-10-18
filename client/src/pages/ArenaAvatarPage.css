@@ -65,6 +65,8 @@
   }
   .avatar-stage::before { position: absolute; z-index: -1; inset: auto 0 0; height: 48px; background: var(--ud-surface-2); content: ''; }
   .avatar-stage [role='status'] { align-self: center; color: var(--ud-muted); font-size: var(--ud-text-s); }
+  .avatar-stage .avatar-stage-loader { align-self: end; width: min(352px, 100%); min-height: 0; padding: 0; }
+  .avatar-stage-loader .arena-loader-runner { width: 100%; }
   .avatar-front, .avatar-stage .avatar-sprite { display: block; width: min(352px, 100%); max-width: 100%; aspect-ratio: 1; image-rendering: pixelated; }
   .avatar-animations { display: flex; flex-wrap: wrap; gap: 6px; }
   .avatar-animations button, .avatar-styles label {

@@ -7,6 +7,7 @@ import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { roomHref } from '../lib/roomReturn';
 import './PathDetailPage.css';
+import { LoadingSkeleton, Skeleton, SkeletonText } from '../components/common/Skeleton';
 import type { PathDetailDto, PathUnlockMode, RoomSummaryDto } from '../types/api';
 
 const unlockModeHints: Record<PathUnlockMode, string> = {
@@ -66,7 +67,19 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
     }
   };
 
-  if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Ładowanie ścieżki...</div>;
+  if (loading) return <div className="hackademy-container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
+    <LoadingSkeleton label="Ładowanie ścieżki" className="hk-skeleton-stack is-loose">
+      <Skeleton width={160} height={20} />
+      <div className="hk-skeleton-stack">
+        <Skeleton width="min(480px, 80%)" height={36} />
+        <SkeletonText lines={2} />
+      </div>
+      {[0, 1].map(index => <div key={index} className="hk-skeleton-stack">
+        <div className="hk-skeleton-pair"><Skeleton width={90} height={12} /><Skeleton width="40%" height={22} /></div>
+        {[0, 1, 2].map(row => <Skeleton key={row} height={56} radius={10} />)}
+      </div>)}
+    </LoadingSkeleton>
+  </div>;
   if (error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Błąd: {error}</div>;
   if (!path) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Nie znaleziono ścieżki</div>;
 

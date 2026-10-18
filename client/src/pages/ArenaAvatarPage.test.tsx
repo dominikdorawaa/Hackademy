@@ -26,7 +26,9 @@ const setup = () => render(<MemoryRouter><AuthProvider><ThemeProvider><ArenaAvat
 it('waits for the recolored atlas before showing the preview', () => {
   atlas.ready = false;
   setup();
-  expect(screen.getByText('Przygotowuję postać…')).toHaveAttribute('role', 'status');
+  const loader = screen.getByRole('status', { name: 'Przygotowuję postać' });
+  expect(loader).not.toHaveAttribute('aria-busy');
+  expect(loader.querySelector('.avatar-sprite image')).toHaveAttribute('href', '/assets/arena/avatar-v1/fighter.png');
   expect(screen.queryByRole('img', { name: /Awatar, animacja/ })).not.toBeInTheDocument();
 });
 

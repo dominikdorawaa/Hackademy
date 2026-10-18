@@ -1,0 +1,68 @@
+@layer components {
+:where(.hk-skeleton) {
+  display: block;
+  max-width: 100%;
+  height: 1em;
+  border-radius: var(--ud-radius, 6px);
+}
+
+.hk-skeleton {
+  background: var(--ud-surface, var(--bg-panel-lighter));
+  animation: hk-skeleton-pulse 1.4s ease-in-out infinite;
+}
+
+.hk-skeleton[data-tone='raised'] {
+  background: var(--ud-surface-2, var(--bg-panel-lighter));
+}
+
+.hk-skeleton[data-tone='wash'] {
+  background: var(--ud-blue-soft, color-mix(in srgb, var(--primary-blue) 18%, transparent));
+}
+
+.hk-skeleton-text {
+  display: grid;
+  gap: 0.6em;
+}
+
+.hk-skeleton-stack {
+  display: grid;
+  gap: 12px;
+}
+
+.hk-skeleton-stack.is-loose {
+  gap: 24px;
+}
+
+.hk-skeleton-stack.is-centered {
+  justify-items: center;
+}
+
+.hk-skeleton-stack.is-centered > .hk-skeleton-row {
+  justify-content: center;
+}
+
+.hk-skeleton-pair {
+  display: grid;
+  gap: 6px;
+}
+
+.hk-skeleton-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+}
+
+@keyframes hk-skeleton-pulse {
+  50% { opacity: 0.55; }
+}
+
+html[data-reduced-motion='true'] .hk-skeleton {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-skeleton {
+    animation: none;
+  }
+}
+}

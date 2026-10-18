@@ -336,10 +336,10 @@
 }
 
 .task-question-box {
-  background: rgba(0, 0, 0, 0.2);
-  border-left: 4px solid #3b82f6;
+  background: var(--bg-panel-lighter);
+  border: 1px solid var(--border-color);
   padding: 16px;
-  border-radius: 0 8px 8px 0;
+  border-radius: 8px;
 }
 
 .task-question-text {

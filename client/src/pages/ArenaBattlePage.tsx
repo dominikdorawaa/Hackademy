@@ -1,4 +1,4 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
@@ -8,31 +8,23 @@ import {
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useArenaSession } from '../hooks/useArenaSession';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { ArenaLoader } from '../components/arena/ArenaLoader';
 import * as arenaApi from '../services/arenaApi';
 import * as userApi from '../services/userApi';
+import type { AvatarConfig } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaBattlePage.css';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 const NOTICE_MS = 4000;
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-const subscribeReducedMotion = (onChange: () => void) => {
-  if (typeof window.matchMedia !== 'function') return () => undefined;
-  const query = window.matchMedia(REDUCED_MOTION_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-};
-const systemReducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION_QUERY).matches;
-const appReducedMotion = () => {
-  try { return localStorage.getItem('app-reduced-motion') === 'true'; } catch { return false; }
-};
 
 export default function ArenaBattlePage() {
   const { gameId = '' } = useParams();
   const { token } = useAuth();
   const { state: realtime } = useRealtime();
   const { session, missing } = useArenaSession(gameId, token, realtime?.gameSession ?? null);
-  const [identity, setIdentity] = useState<{ token: string; id: number } | null>(null);
+  const [identity, setIdentity] = useState<{ token: string; id: number; avatar: AvatarConfig | null } | null>(null);
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [identityAttempt, setIdentityAttempt] = useState(0);
   const meId = identity?.token === token ? identity?.id ?? null : null;
@@ -41,9 +33,7 @@ export default function ArenaBattlePage() {
   const [confirmSurrender, setConfirmSurrender] = useState(false);
   const [reactionNotice, setReactionNotice] = useState<string | null>(null);
   const [clock, setClock] = useState({ serverTime: 0, receivedAt: 0, now: 0 });
-  const systemReduced = useSyncExternalStore(subscribeReducedMotion, systemReducedMotion, () => false);
-  const [appReduced] = useState(appReducedMotion);
-  const reducedMotion = systemReduced || appReduced;
+  const reducedMotion = useReducedMotion();
   const serverTime = session?.serverTime ?? 0;
 
   useEffect(() => {
@@ -56,7 +46,7 @@ export default function ArenaBattlePage() {
       })
       .then(user => {
         if (!Number.isInteger(user?.id) || user.id <= 0) throw new Error('Invalid user');
-        if (!controller.signal.aborted) setIdentity({ token, id: user.id });
+        if (!controller.signal.aborted) setIdentity({ token, id: user.id, avatar: user.avatar ?? null });
       })
       .catch(() => { if (!controller.signal.aborted) setIdentityError(token); });
     return () => controller.abort();
@@ -85,7 +75,7 @@ export default function ArenaBattlePage() {
           {missing ? <p role="status" className="ud-empty">Tej walki nie ma już na serwerze. Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło.</p> : failed ? <>
             <p role="alert" className="battle-error">Nie udało się pobrać Twojego konta. Walka trwa dalej. Spróbuj ponownie.</p>
             <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setIdentityError(null); setIdentityAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
-          </> : <p role="status" className="ud-empty">Wczytuję walkę…</p>}
+          </> : <ArenaLoader label="Wczytuję walkę" avatar={identity?.token === token ? identity.avatar : null} />}
           <Link className="ud-link" to="/arena">Wróć do Areny</Link>
         </div>
       </div>

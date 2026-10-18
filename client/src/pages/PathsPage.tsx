@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './PathsPage.css';
+import { LoadingSkeleton, Skeleton, SkeletonText } from '../components/common/Skeleton';
 import type { PathSummaryDto } from '../types/api';
 
 const PathsPage = () => {
@@ -137,9 +138,24 @@ const PathsPage = () => {
 
   if (loading) {
     return (
-      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-        <h1>Ścieżki</h1>
-        <p style={{ color: 'var(--text-gray)' }}>Ładowanie...</p>
+      <div className="hackademy-container paths-wrap">
+        <header className="paths-header">
+          <div>
+            <h1 className="paths-title">Ścieżki</h1>
+            <p className="paths-count"><Skeleton width={110} /></p>
+          </div>
+        </header>
+        <LoadingSkeleton label="Ładowanie ścieżek" className="paths-grid">
+          {[0, 1, 2].map(index => <div key={index} className="path-card" aria-hidden="true">
+            <Skeleton height={130} radius={0} />
+            <div className="path-card-body hk-skeleton-stack">
+              <Skeleton width={70} height={12} />
+              <Skeleton width="80%" height={22} />
+              <SkeletonText lines={2} />
+            </div>
+            <div className="path-card-footer"><Skeleton width={90} height={28} radius={999} /><Skeleton width={72} height={32} /></div>
+          </div>)}
+        </LoadingSkeleton>
       </div>
     );
   }
