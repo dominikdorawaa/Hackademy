@@ -7,6 +7,8 @@ import Navbar from './Navbar';
 import API_URL from '../apiConfig';
 import { createToken } from '../test/fixtures/auth';
 import { server } from '../test/mocks/server';
+import { currentUserUrl } from '../test/mocks/handlers';
+import { createUser } from '../test/fixtures/auth';
 import { renderWithAuth } from '../test/renderWithAuth';
 import type { Challenge, FriendRequestDto } from '../types/api';
 
@@ -51,4 +53,19 @@ it('opens navigation, closes it with Escape and restores focus, then closes afte
   await waitFor(() =>
     expect(screen.queryByRole('link', { name: 'Profil' })).not.toBeInTheDocument(),
   );
+});
+
+it.each([[0, true], [3, false]])('shows a pixel flame for a %i day streak, lit only while the streak lasts', async (streak, out) => {
+  localStorage.setItem('token', createToken());
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), streak })),
+    http.get(`${API_URL}/api/friends/requests`, () => HttpResponse.json<FriendRequestDto[]>([])),
+    http.get(`${API_URL}/api/arena/challenges`, () => HttpResponse.json<Challenge[]>([])),
+  );
+  renderWithAuth(<Route path="*" element={<Navbar />} />, '/profile');
+  const counter = await screen.findByTitle('Dni z rzędu');
+  await waitFor(() => expect(counter).toHaveTextContent(String(streak)));
+  const flame = counter.querySelector('.pixel-sprite');
+  expect(flame).toHaveAttribute('data-still', String(out));
+  expect(flame?.classList.contains('is-out')).toBe(out);
 });

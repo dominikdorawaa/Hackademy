@@ -112,6 +112,7 @@ describe('CTF room', () => {
     await user.type(input, 'HA-ok');
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     expect(await screen.findByText('Misja zakończona sukcesem!')).toBeInTheDocument();
+    expect(document.querySelector('.success-flag .pixel-sprite')).toBeInTheDocument();
     expect(screen.getByText('+50')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Kontynuuj' }));
     expect(screen.queryByText('Misja zakończona sukcesem!')).not.toBeInTheDocument();

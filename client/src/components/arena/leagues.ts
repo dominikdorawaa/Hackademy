@@ -1,11 +1,14 @@
-export interface League { name: string; min: number; color: string }
+export type LeagueId = 'script-kiddie' | 'skaner' | 'exploit' | 'root' | 'zero-day';
+export interface League { id: LeagueId; name: string; min: number; color: string; icon: string }
+
+const ICONS = '/assets/arena/leagues/';
 
 export const LEAGUES: League[] = [
-  { name: 'Brąz', min: 0, color: '#c98a52' },
-  { name: 'Srebro', min: 600, color: '#aebcd0' },
-  { name: 'Złoto', min: 800, color: '#e3b341' },
-  { name: 'Platyna', min: 1000, color: '#4fd1c5' },
-  { name: 'Diament', min: 1200, color: '#8fb3ff' },
+  { id: 'script-kiddie', name: 'Script Kiddie', min: 0, color: '#c98a52', icon: `${ICONS}script-kiddie.png` },
+  { id: 'skaner', name: 'Skaner', min: 600, color: '#aebcd0', icon: `${ICONS}skaner.png` },
+  { id: 'exploit', name: 'Exploit', min: 800, color: '#e3b341', icon: `${ICONS}exploit.png` },
+  { id: 'root', name: 'Root', min: 1000, color: '#4fd1c5', icon: `${ICONS}root.png` },
+  { id: 'zero-day', name: 'Zero-day', min: 1200, color: '#8fb3ff', icon: `${ICONS}zero-day.png` },
 ];
 
 export function leagueFor(elo: number) {

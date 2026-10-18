@@ -42,6 +42,30 @@
   box-shadow: 0 0 10px #00ff88;
 }
 
+.success-flag {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 20px;
+  animation: success-flag-plant 520ms steps(6, end) both;
+}
+
+@keyframes success-flag-plant {
+  0% { opacity: 0; transform: translateY(-36px); }
+  60% { opacity: 1; transform: translateY(6px); }
+  80% { transform: translateY(-3px); }
+  100% { transform: translateY(0); }
+}
+
+html[data-reduced-motion='true'] .success-flag {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .success-flag {
+    animation: none;
+  }
+}
+
 .success-icon-wrapper {
   width: 80px;
   height: 80px;

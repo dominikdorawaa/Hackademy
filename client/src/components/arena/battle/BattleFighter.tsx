@@ -1,9 +1,10 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { AvatarSprite } from '../avatar/AvatarSprite';
 import { AVATAR_ATLASES } from '../avatar/fighters';
 import type { AvatarAtlas } from '../avatar/useAvatarAtlas';
 import type { Avatar } from '../avatar/avatarModel';
-import type { Segment } from './battleView';
+import type { Finisher, Segment } from './battleView';
 
 function useSegment(segments: Segment[], motionKey: string, reducedMotion: boolean) {
   const [progress, setProgress] = useState({ key: motionKey, index: 0 });
@@ -22,13 +23,14 @@ function useSegment(segments: Segment[], motionKey: string, reducedMotion: boole
   return { segment: segments[index], index };
 }
 
-export function BattleFighter({ look, atlas, segments, reducedMotion, label, side, motionKey }: {
-  look: Avatar; atlas: AvatarAtlas; segments: Segment[]; reducedMotion: boolean; label: string; side: 'me' | 'rival'; motionKey: string;
+export function BattleFighter({ look, atlas, segments, reducedMotion, label, side, motionKey, finishedBy = null }: {
+  look: Avatar; atlas: AvatarAtlas; segments: Segment[]; reducedMotion: boolean; label: string; side: 'me' | 'rival'; motionKey: string; finishedBy?: Finisher | null;
 }) {
   const { segment, index } = useSegment(segments, motionKey, reducedMotion);
   const idle = segment.loop && segment.frames.length === 1;
   return (
-    <div className={`battle-fighter is-${side}`} data-idle={idle} data-frames={segment.frames.join(',')}>
+    <div className={`battle-fighter is-${side}`} data-idle={idle} data-frames={segment.frames.join(',')} data-finished-by={finishedBy?.move}
+      style={finishedBy ? { '--finish-impact': `${finishedBy.impact}ms` } as CSSProperties : undefined}>
       <AvatarSprite key={`${motionKey}-${index}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
           frames={segment.frames} loop={segment.loop} frameTime={segment.frameTime} reducedMotion={reducedMotion} label={label} />
     </div>

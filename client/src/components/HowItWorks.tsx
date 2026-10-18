@@ -1,4 +1,5 @@
 import React, { useEffect, useRef, useState } from 'react';
+import { PixelSprite, SPRITES } from './PixelSprite';
 
 const HowItWorks = () => {
   const sectionRef = useRef(null);
@@ -33,8 +34,8 @@ const HowItWorks = () => {
 
         <div className="steps-grid">
           <div className="step-item">
-            <div className="step-icon-box icon-blue">
-              <i className="fas fa-door-open"></i>
+            <div className="step-icon-pixel">
+              <PixelSprite sprite={SPRITES.room} scale={2} duration={1400} />
             </div>
             <h3>Wybierz Pokój</h3>
             <p>
@@ -44,8 +45,8 @@ const HowItWorks = () => {
           </div>
 
           <div className="step-item">
-            <div className="step-icon-box icon-red">
-              <i className="fas fa-puzzle-piece"></i>
+            <div className="step-icon-pixel">
+              <PixelSprite sprite={SPRITES.puzzle} scale={2} duration={1200} />
             </div>
             <h3>Rozwiąż Zadania</h3>
             <p>
@@ -55,8 +56,8 @@ const HowItWorks = () => {
           </div>
 
           <div className="step-item">
-            <div className="step-icon-box icon-purple">
-              <i className="fas fa-trophy"></i>
+            <div className="step-icon-pixel">
+              <PixelSprite sprite={SPRITES.trophy} scale={2} duration={1100} />
             </div>
             <h3>Zdobywaj Odznaki</h3>
             <p>
