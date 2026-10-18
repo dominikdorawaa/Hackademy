@@ -82,7 +82,74 @@ describe('path unlock modes', () => {
   });
 });
 
-function mountCtf(overrides: Partial<RoomDetailDto> = {}) {
+describe('return navigation', () => {
+  const sharedRoom = { id: 7, title: 'HTTP', difficulty: 'EASY', points: 50, solved: false, locked: false, requiresVpn: false };
+  const path = (id: number, title: string, rooms: unknown[]) => ({
+    id, title, description: '', bannerUrl: null, hasBanner: false, enrolled: true, rooms: [],
+    chapters: [{ id: id * 10, title: 'Rozdział', totalRooms: rooms.length, solvedRooms: 0, rooms }],
+  });
+
+  function mountAt(url: string, ...overrides: Parameters<typeof server.use>) {
+    server.use(
+      http.get(`${API_URL}/api/paths/1`, () => HttpResponse.json(path(1, 'Web', [sharedRoom]))),
+      http.get(`${API_URL}/api/paths/2`, () => HttpResponse.json(path(2, 'Sieci', [sharedRoom]))),
+      http.get(`${API_URL}/api/paths/3`, () => HttpResponse.json(path(3, 'Inna', [{ ...sharedRoom, id: 8 }]))),
+      http.get(`${API_URL}/api/paths/404`, () => HttpResponse.json({ message: 'Nie znaleziono' }, { status: 404 })),
+    );
+    server.use(...overrides);
+    return mountCtf({}, url);
+  }
+
+  it.each([[1, 'Web'], [2, 'Sieci']])('returns a shared room to path %i it was opened from', async (pathId, title) => {
+    mountAt(`/rooms/7?pathId=${pathId}`);
+    const back = await screen.findByRole('button', { name: `Wróć do ścieżki: ${title}` });
+    await userEvent.click(back);
+    expect(screen.getByTestId('location')).toHaveTextContent(`/learn/paths/${pathId}:PUSH`);
+  });
+
+  it('keeps the path context after a refresh and after closing the completion modal', async () => {
+    const user = userEvent.setup();
+    server.use(http.post(`${API_URL}/api/rooms/7/solve`, () => HttpResponse.json({ success: true, message: 'Brawo', pointsEarned: 50, newBadges: [] })));
+    mountAt('/rooms/7?pathId=2').unmount();
+    mountAt('/rooms/7?pathId=2');
+    expect(await screen.findByRole('button', { name: 'Wróć do ścieżki: Sieci' })).toBeInTheDocument();
+    await user.type(await screen.findByPlaceholderText('Wklej flagę tutaj...'), 'HA-ok');
+    await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
+    await user.click(await screen.findByRole('button', { name: 'Kontynuuj' }));
+    expect(await screen.findByRole('button', { name: 'Wróć do ścieżki: Sieci' })).toBeInTheDocument();
+  });
+
+  it('falls back to learning for a direct link without context', async () => {
+    mountAt('/rooms/7');
+    await userEvent.click(await screen.findByRole('button', { name: 'Wróć do nauki' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/learn:PUSH');
+  });
+
+  it('returns to the dashboard when the room was opened there', async () => {
+    mountAt('/rooms/7?from=dashboard');
+    await userEvent.click(await screen.findByRole('button', { name: 'Wróć do dashboardu' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/dashboard:PUSH');
+  });
+
+  it.each([['404', 'a removed path'], ['3', 'a path without this room'], ['abc', 'a malformed path id']])('ignores %s (%s) and returns to learning', async (pathId) => {
+    mountAt(`/rooms/7?pathId=${pathId}`);
+    await userEvent.click(await screen.findByRole('button', { name: 'Wróć do nauki' }));
+    expect(screen.queryByRole('button', { name: /Wróć do ścieżki/ })).not.toBeInTheDocument();
+    expect(screen.getByTestId('location')).toHaveTextContent('/learn:PUSH');
+  });
+
+  it('does not send the player anywhere until the path context is checked', async () => {
+    let release: () => void = () => {};
+    const gate = new Promise<void>(resolve => { release = resolve; });
+    mountAt('/rooms/7?pathId=2', http.get(`${API_URL}/api/paths/2`, async () => { await gate; return HttpResponse.json(path(2, 'Sieci', [sharedRoom])); }));
+    const pending = await screen.findByRole('button', { name: 'Powrót' });
+    expect(pending).toBeDisabled();
+    release();
+    expect(await screen.findByRole('button', { name: 'Wróć do ścieżki: Sieci' })).toBeEnabled();
+  });
+});
+
+function mountCtf(overrides: Partial<RoomDetailDto> = {}, url = '/rooms/7') {
   const room: RoomDetailDto = {
     id: 7, title: 'Pierwsza flaga', description: 'Znajdź flagę', shortDescription: 'Rozgrzewka', difficulty: 'EASY',
     points: 50, solutionsCount: 3, createdAt: '2026-10-01T00:00:00', solved: false, requiresVpn: false,
@@ -91,7 +158,7 @@ function mountCtf(overrides: Partial<RoomDetailDto> = {}) {
   };
   server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
   localStorage.setItem('token', createToken('USER'));
-  renderWithAuth(<Route path="/rooms/:id" element={<RoomPage />} />, '/rooms/7');
+  return renderWithAuth(<Route path="/rooms/:id" element={<RoomPage />} />, url);
 }
 
 describe('CTF room', () => {
