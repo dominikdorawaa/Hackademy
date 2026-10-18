@@ -39,6 +39,8 @@
 }
 
 .battle-hud {
+  position: relative;
+  z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
   align-items: center;
@@ -76,6 +78,153 @@
 
 .battle-plate-info {
   min-width: 0;
+}
+
+.quick-chat {
+  position: relative;
+  width: 56px;
+  height: 56px;
+}
+
+.quick-chat-trigger {
+  position: relative;
+  display: block;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ud-radius);
+  background: none;
+  cursor: pointer;
+}
+
+.quick-chat-trigger:hover .battle-plate-avatar,
+.quick-chat-trigger[aria-expanded='true'] .battle-plate-avatar {
+  outline: 2px solid var(--battle-me);
+  outline-offset: 2px;
+}
+
+.quick-chat-trigger:focus-visible {
+  outline: 3px solid var(--battle-glass-ink);
+  outline-offset: 3px;
+}
+
+.quick-chat-badge {
+  position: absolute;
+  right: -6px;
+  bottom: -6px;
+  display: grid;
+  place-items: center;
+  width: 22px;
+  height: 22px;
+  border: 1px solid var(--battle-glass-line);
+  border-radius: 50%;
+  background: #0b1630;
+  font-size: 12px;
+  line-height: 1;
+}
+
+.quick-chat-menu {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: min(288px, calc(100vw - 48px));
+  padding: 12px;
+  display: grid;
+  gap: 10px;
+  border: 1px solid var(--battle-glass-line);
+  border-radius: var(--ud-radius);
+  background: rgb(6 12 28 / 0.94);
+  box-shadow: 0 12px 32px rgb(0 0 0 / 0.45);
+  color: var(--battle-glass-ink);
+}
+
+.quick-chat-group-label {
+  margin-bottom: 6px;
+  color: var(--battle-glass-muted);
+  font-size: var(--ud-text-s);
+  font-weight: 600;
+}
+
+.quick-chat-items {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.quick-chat-item {
+  min-width: 44px;
+  min-height: 40px;
+  padding: 6px 10px;
+  border: 1px solid var(--battle-glass-line);
+  border-radius: var(--ud-radius);
+  background: rgb(255 255 255 / 0.06);
+  color: inherit;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quick-chat-group.is-emote .quick-chat-item {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 52px;
+  padding: 4px;
+}
+
+.quick-chat-item:hover,
+.quick-chat-item:focus-visible {
+  border-color: var(--battle-me);
+  background: color-mix(in srgb, var(--battle-me) 22%, transparent);
+  outline: none;
+}
+
+.quick-chat-notice {
+  position: absolute;
+  top: calc(100% + 10px);
+  left: 0;
+  width: max-content;
+  max-width: min(260px, calc(100vw - 48px));
+  padding: 8px 10px;
+  border-radius: var(--ud-radius);
+  background: rgb(6 12 28 / 0.94);
+  color: var(--battle-bad);
+  font-size: var(--ud-text-s);
+  font-weight: 600;
+}
+
+.quick-chat-menu ~ .quick-chat-notice {
+  display: none;
+}
+
+.battle-reaction {
+  position: absolute;
+  bottom: calc(50 * var(--battle-pixel));
+  z-index: 1;
+  line-height: 0;
+  translate: -50% 0;
+  filter: drop-shadow(0 4px 0 rgb(5 10 20 / 0.45));
+  animation: battle-reaction-pop 3000ms ease-out both;
+}
+
+.battle-reaction.is-me {
+  left: calc(var(--left-edge) + 0.55 * var(--fighter));
+}
+
+.battle-reaction.is-rival {
+  left: calc(var(--right-edge) - 0.55 * var(--fighter));
+}
+
+@keyframes battle-reaction-pop {
+  0% { opacity: 0; scale: 0.6; }
+  8% { opacity: 1; scale: 1.08; }
+  14% { scale: 1; }
+  85% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+.battle-page[data-still='true'] .battle-reaction {
+  animation: none;
 }
 
 .battle-plate-name {
@@ -671,10 +820,6 @@ button.battle-answer:disabled {
   font-size: var(--ud-text-s);
 }
 
-.battle-page .arena-chat-container:not(.open) {
-  box-shadow: none;
-}
-
 .battle-page .battle-surrender:hover {
   background: var(--ud-hard);
 }
@@ -725,6 +870,25 @@ button.battle-answer:disabled {
     display: none;
   }
 
+  .battle-plate.is-me:has(.quick-chat) {
+    grid-template-columns: 40px minmax(0, 1fr);
+  }
+
+  .quick-chat {
+    width: 40px;
+    height: 40px;
+  }
+
+  .quick-chat .battle-plate-avatar {
+    display: block;
+    width: 40px;
+    height: 40px;
+  }
+
+  .battle-reaction .pixel-sprite {
+    zoom: 0.6;
+  }
+
   .battle-stage {
     --left-edge: 6%;
     --right-edge: 94%;
@@ -738,11 +902,6 @@ button.battle-answer:disabled {
   .battle-answers {
     grid-template-columns: minmax(0, 1fr);
   }
-
-  .battle-page .chat-toggle-btn {
-    top: auto;
-    bottom: 16px;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -752,6 +911,7 @@ button.battle-answer:disabled {
   }
 
   .battle-fighter .avatar-sprite,
+  .battle-reaction,
   .battle-effects * {
     animation: none !important;
   }

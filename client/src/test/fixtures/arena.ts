@@ -25,6 +25,7 @@ export function createGameSession(overrides: Partial<GameSession> = {}): GameSes
     answeredBy: [],
     question: { id: 11, content: 'Na którym porcie domyślnie działa SSH?', category: 'SIECI', answers: ['21', '22', '23', '25'] },
     lastRound: null,
+    reactions: [],
     ...overrides,
   };
 }

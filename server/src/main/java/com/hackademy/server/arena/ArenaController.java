@@ -4,11 +4,14 @@ import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
+import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
+import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -93,8 +96,31 @@ public class ArenaController {
 
     @PostMapping("/game/{gameId}/surrender")
     public ResponseEntity<?> surrenderGame(@PathVariable String gameId) {
-        arenaService.surrenderGame(gameId, currentUser().getId());
-        return ResponseEntity.ok(Map.of("message", "Poddałeś się!"));
+        return switch (arenaService.surrenderGame(gameId, currentUser().getId())) {
+            case SURRENDERED -> ResponseEntity.ok(Map.of("message", "Poddałeś się!"));
+            case NOT_PLAYER -> ResponseEntity.notFound().build();
+            case NOT_ACTIVE -> ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Ta walka jest już zakończona."));
+        };
+    }
+
+    @PostMapping("/game/{gameId}/reaction")
+    public ResponseEntity<?> react(@PathVariable String gameId, @RequestBody(required = false) Map<String, String> payload) {
+        String reaction = payload == null ? null : payload.get("reaction");
+        ReactionOutcome outcome = arenaService.react(gameId, currentUser().getId(), reaction);
+        return switch (outcome.status()) {
+            case SENT -> ResponseEntity.ok(Map.of("message", "Reakcja wysłana"));
+            case NOT_PLAYER -> ResponseEntity.notFound().build();
+            case UNKNOWN_REACTION -> ResponseEntity.badRequest().body(Map.of("message", "Wybierz reakcję z menu."));
+            case MUTED -> ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
+                    "message", "Masz wyciszone reakcje.",
+                    "mutedUntil", outcome.mutedUntil().atOffset(ZoneOffset.UTC).toInstant().toString()));
+            case TOO_FAST -> {
+                long seconds = Math.max(1, (outcome.retryAfterMillis() + 999) / 1000);
+                yield ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                        .header(HttpHeaders.RETRY_AFTER, Long.toString(seconds))
+                        .body(Map.of("message", "Za szybko. Poczekaj chwilę przed kolejną reakcją.", "retryAfter", seconds));
+            }
+        };
     }
 
     @GetMapping("/game/{gameId}")

@@ -7,7 +7,6 @@ import com.hackademy.server.arena.ArenaServiceImpl;
 import com.hackademy.server.arena.BattleEngine;
 import com.hackademy.server.arena.Challenge;
 import com.hackademy.server.arena.GameSession;
-import com.hackademy.server.chat.ChatService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
@@ -41,11 +40,10 @@ class ArenaConcurrencyTest {
     private final ArenaQuestionRepository questions = mock(ArenaQuestionRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final UserAvatarRepository avatars = mock(UserAvatarRepository.class);
-    private final ChatService chat = mock(ChatService.class);
     private final RealtimeNotifier realtime = mock(RealtimeNotifier.class);
     private final ArenaPresence presence = mock(ArenaPresence.class);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            chat, mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
 
     static List<ArenaQuestion> questionSet() {
         return LongStream.rangeClosed(1, 10).mapToObj(id -> new ArenaQuestion(id, "Pytanie " + id,
@@ -214,7 +212,6 @@ class ArenaConcurrencyTest {
             first.get(5, TimeUnit.SECONDS);
             second.get(5, TimeUnit.SECONDS);
             verify(users, times(2)).save(any(User.class));
-            verify(chat, times(1)).cleanupChat("game");
             assertEquals("FINISHED", arena.getGameSession("game").getStatus());
         } finally {
             executor.shutdownNow();

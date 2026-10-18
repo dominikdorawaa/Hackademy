@@ -6,7 +6,6 @@ import * as user from './userApi';
 import * as path from './pathApi';
 import * as room from './roomApi';
 import * as arena from './arenaApi';
-import * as chat from './chatApi';
 import * as vpn from './vpnApi';
 import * as admin from './adminRequests';
 import * as legacyAdmin from './adminApi';
@@ -34,10 +33,10 @@ describe('HTTP compatibility', () => {
     expect(await response.text()).toBe('original error');
   });
 
-  it('keeps a chat mute error as JSON, including its timestamp', async () => {
-    const error = { message: 'User is muted', mutedUntil: '2026-10-06T18:00:00Z' };
+  it('keeps a reaction mute error as JSON, including its timestamp', async () => {
+    const error = { message: 'Masz wyciszone reakcje.', mutedUntil: '2026-10-06T18:00:00Z' };
     fetchMock.mockResolvedValue(Response.json(error, { status: 403 }));
-    const response = await chat.sendMessage('abc', { content: 'hello' }, jsonHeaders);
+    const response = await arena.sendReaction('abc', 'ez', jsonHeaders);
     expect(response.status).toBe(403);
     expect(await response.json()).toEqual(error);
   });

@@ -118,7 +118,7 @@ Dozwolony origin określa `FRONTEND_URL`, tak samo jak dla REST API. Po zalogowa
 
 Navbar, Arena, lista znajomych i status rozgrywki korzystają ze wspólnego `RealtimeProvider`. Backend wysyła `STATE` z aktualnym stanem odbiorcy po zmianie; zmiany znajomości są dostarczane dopiero po commitcie. Osobny executor zwalnia połączenie transakcji przed odczytem stanu. Powiadomienia nie uruchamiają dodatkowych żądań HTTP.
 
-Po potwierdzeniu subskrypcji przez `READY` frontend pobiera `/api/realtime/state`. Powtarza synchronizację po reconnect i powrocie do widocznej karty. Numer rewizji i identyfikator uruchomienia serwera chronią przed duplikatami i spóźnionymi odpowiedziami. Akcje nadal używają HTTP, a wylogowanie zamyka połączenie i czyści stan konta. Nie ma okresowego pollingu zaproszeń, wyzwań ani statusu meczu. Polling czatu jest poza zakresem tej zmiany.
+Po potwierdzeniu subskrypcji przez `READY` frontend pobiera `/api/realtime/state`. Powtarza synchronizację po reconnect i powrocie do widocznej karty. Numer rewizji i identyfikator uruchomienia serwera chronią przed duplikatami i spóźnionymi odpowiedziami. Akcje nadal używają HTTP, a wylogowanie zamyka połączenie i czyści stan konta. Nie ma okresowego pollingu zaproszeń, wyzwań ani statusu meczu. Reakcje Quick Chat docierają do obu graczy w tym samym stanie meczu, a stary czat tekstowy razem z jego pollingiem został usunięty.
 
 Po dołączeniu do kolejki backend próbuje od razu znaleźć mecz. Istniejący harmonogram pozostaje zabezpieczeniem dla pozostałych oczekujących graczy. Broker i stan Areny nadal działają w pamięci jednej instancji; skalowanie na wiele instancji wymaga współdzielonego brokera i stanu rozgrywek.
 

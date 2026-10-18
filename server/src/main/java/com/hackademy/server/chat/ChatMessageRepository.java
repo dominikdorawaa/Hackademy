@@ -7,7 +7,5 @@ import java.util.List;
 
 @Repository
 public interface ChatMessageRepository extends JpaRepository<ChatMessage, Long> {
-    List<ChatMessage> findByGameIdOrderByTimestampAsc(String gameId);
-    void deleteByGameIdAndReportedFalse(String gameId);
     List<ChatMessage> findByReportedTrueOrderByTimestampDesc();
 }

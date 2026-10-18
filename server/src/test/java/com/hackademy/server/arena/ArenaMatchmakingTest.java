@@ -1,6 +1,5 @@
 package com.hackademy.server.arena;
 
-import com.hackademy.server.chat.ChatService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
@@ -34,7 +33,7 @@ class ArenaMatchmakingTest {
     private final UserService userService = mock(UserService.class);
     private final MatchmakingServiceImpl matchmaking = new MatchmakingServiceImpl(users, realtime);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            mock(ChatService.class), mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, mock(ArenaPresence.class));
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, mock(ArenaPresence.class));
     private final ArenaController controller = new ArenaController(matchmaking, arena, userService);
 
     @BeforeEach
