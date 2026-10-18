@@ -32,7 +32,7 @@ class ArenaBattleServiceTest {
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
             chat, mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
     private final AtomicLong now = new AtomicLong(10_000);
-    private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy");
+    private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod");
 
     @BeforeEach
     void setUp() {

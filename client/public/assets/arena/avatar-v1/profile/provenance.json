@@ -1,0 +1,35 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-10-17",
+  "sources": "local-prototype-backups/arena-profile-v1",
+  "outfits": {
+    "baza": {
+      "file": "baza.png",
+      "from": "stance cell 0 of the outfit atlas",
+      "endpoint": "edit-image-pixen",
+      "description": "Same bald 64x64 pixel-art character, same head, face, clothes, colours and size, strict side view facing right. Change only the pose to a calm upright standing profile: back straight, both arms hanging relaxed along the body, hands open at the hips, feet together under the body. Nothing in front of the face.",
+      "seed": 87002,
+      "variant": 0,
+      "sha256": "fcd8f5562a560401a93a40090a85f908f2471c0ee611ff5b67e300cee9850ca5"
+    },
+    "bluza": {
+      "file": "bluza.png",
+      "from": "stance cell 0 of the outfit atlas",
+      "endpoint": "edit-image-pixen",
+      "description": "Same bald 64x64 pixel-art character, same head, face, clothes, colours and size, strict side view facing right. Change only the pose to a calm upright standing profile: back straight, both arms hanging relaxed along the body, hands open at the hips, feet together under the body. Nothing in front of the face.",
+      "seed": 87002,
+      "variant": 0,
+      "sha256": "34c8a04a0447e36cff8691045ce2f565dfbae6db872c1c34bd1034aa7e84c689"
+    },
+    "dres": {
+      "file": "dres.png",
+      "from": "stance cell 0 of the outfit atlas",
+      "endpoint": "edit-image-pixen",
+      "description": "Same bald 64x64 pixel-art character, same head, face, clothes, colours and size, strict side view facing right. Change only the pose to a calm upright standing profile: back straight, both arms hanging relaxed along the body, hands open at the hips, feet together under the body. Nothing in front of the face.",
+      "seed": 87002,
+      "variant": 0,
+      "sha256": "846e0e0b74d81c816917fe7f45856a38aed8ca285f75e2bfa0ed8a5920536de0"
+    }
+  },
+  "processing": "Alpha is cut at 128 and colours snap to the outfit atlas palette. The stance head is pasted at the tracked head position so the side hair and hat overlays fit exactly, small enclosed gaps are filled and stray shoe or shirt pixels are reassigned to their material. anchors-<outfit>.json stores that head position for the side overlays."
+}

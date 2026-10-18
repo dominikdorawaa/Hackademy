@@ -6,8 +6,8 @@ import { useAuth } from '../context/AuthContext';
 import { getCurrentUser, saveAvatar as saveAccountAvatar } from '../services/userApi';
 import { PROFILE_UPDATED } from '../lib/profile';
 import { AvatarSprite } from '../components/arena/avatar/AvatarSprite';
-import { useAvatarAtlas } from '../components/arena/avatar/useAvatarAtlas';
-import { CLOTH_RAMPS, fromAvatarConfig, HAIR_RAMPS, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, SKIN_RAMPS, toAvatarConfig } from '../components/arena/avatar/avatarModel';
+import { useAvatarAtlas, useAvatarPortrait } from '../components/arena/avatar/useAvatarAtlas';
+import { AVATAR_POSES, CLOTH_RAMPS, fromAvatarConfig, HAIR_RAMPS, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, SKIN_RAMPS, toAvatarConfig } from '../components/arena/avatar/avatarModel';
 import type { Avatar, Ramp } from '../components/arena/avatar/avatarModel';
 import { AVATAR_ATLASES, danceFrames, RUN_FRAME_TIME, runFrames } from '../components/arena/avatar/fighters';
 import type { AvatarAtlasSource } from '../components/arena/avatar/fighters';
@@ -47,6 +47,12 @@ const NAMES: Record<string, string> = {
   czarne: 'Czarne', brazowe: 'Brązowe', rude: 'Rude', blond: 'Blond', siwe: 'Siwe', niebieskie: 'Niebieskie',
   granatowy: 'Granatowy', grafitowy: 'Grafitowy', bordowy: 'Bordowy', turkusowy: 'Turkusowy', piaskowy: 'Piaskowy', oliwkowy: 'Oliwkowy', czerwony: 'Czerwony', bialy: 'Biały',
 };
+const POSE_NAMES: Record<Avatar['pose'], string> = { przod: 'Przód', postawa: 'Postawa', profil: 'Profil' };
+
+function PosePortrait({ avatar }: { avatar: Avatar }) {
+  const portrait = useAvatarPortrait(toAvatarConfig(avatar));
+  return portrait ? <img className="avatar-pose-image" src={portrait} alt="" /> : <span className="avatar-pose-image" aria-hidden="true" />;
+}
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const subscribeReducedMotion = (onChange: () => void) => {
@@ -168,6 +174,17 @@ export default function ArenaAvatarPage() {
           </label>)}
         </div></fieldset>)}
         </div>
+        </div>
+        <div className="avatar-section">
+        <h2>Ikona profilu</h2>
+        <fieldset><legend>Poza na ikonie</legend><div className="avatar-poses">
+          {AVATAR_POSES.map(pose => <label key={pose} data-selected={avatar.pose === pose}>
+            <input type="radio" name="avatar-pose" value={pose} checked={avatar.pose === pose} onChange={() => setAvatar(current => ({ ...current, pose }))} />
+            <PosePortrait avatar={{ ...avatar, pose }} />
+            <span>{POSE_NAMES[pose]}</span>
+          </label>)}
+        </div>
+        <p className="avatar-hint">Ikona pojawia się w profilu, nawigacji, rankingu, u znajomych i w Arenie. Animacje w podglądzie jej nie zmieniają.</p></fieldset>
         </div>
         </fieldset>
       </section>
