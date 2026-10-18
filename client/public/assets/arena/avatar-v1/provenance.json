@@ -83,5 +83,64 @@
     }
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row.",
-  "atlasSha256": "75c07b7d235baeb392ebdee9da58c9db732413506514fe6281c7bb4596b6c74f"
+  "atlasSha256": {
+    "fighter.png": "786eaf7c514823b9970292de26fac9295ab247dc424d2b720d11f2013bf9e8b4",
+    "hoodie/fighter.png": "7c1ac516ad46d0cba93e6adb7730802fc948421a01bdfc4119d4df30d9235a7f",
+    "track/fighter.png": "8e840c4d99e4f9f8605e80e5890290b0d35a485ff64b6e24e6a7ea8f4b362837"
+  },
+  "run": {
+    "generatedAt": "2026-10-17",
+    "sources": "local-prototype-backups/arena-run-v1",
+    "outfits": {
+      "baza": {
+        "pose": {
+          "from": "stance cell 0 of the outfit atlas",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character, same face, clothes, colours and size. Change only the pose to running: mid-stride side view facing right, front knee lifted, rear leg pushing back, elbows bent about 90 degrees, arms swinging, relaxed open fists. Feet on the same ground line, full body visible.",
+          "seed": 81002,
+          "variant": 0
+        },
+        "animation": {
+          "endpoint": "animate-with-text-v3",
+          "action": "Seamless looping running cycle in place. Strict SIDE VIEW facing RIGHT every frame, never turn toward the camera. Legs alternate: the lifted front knee comes down while the rear leg swings forward, then the other leg lifts; arms pump opposite to the legs with bent elbows. Small up and down bounce of the whole body, head keeps the same size and shape. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no dust.",
+          "frameCount": 8,
+          "seed": 82001,
+          "firstAndLastFrame": "pose"
+        }
+      },
+      "bluza": {
+        "pose": {
+          "from": "stance cell 0 of the outfit atlas",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character, same face, clothes, colours and size. Change only the pose to running: mid-stride side view facing right, front knee lifted, rear leg pushing back, elbows bent about 90 degrees, arms swinging, relaxed open fists. Feet on the same ground line, full body visible.",
+          "seed": 81002,
+          "variant": 0
+        },
+        "animation": {
+          "endpoint": "animate-with-text-v3",
+          "action": "Seamless looping running cycle in place. Strict SIDE VIEW facing RIGHT every frame, never turn toward the camera. Legs alternate: the lifted front knee comes down while the rear leg swings forward, then the other leg lifts; arms pump opposite to the legs with bent elbows. Small up and down bounce of the whole body, head keeps the same size and shape. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no dust.",
+          "frameCount": 8,
+          "seed": 82001,
+          "firstAndLastFrame": "pose"
+        }
+      },
+      "dres": {
+        "pose": {
+          "from": "stance cell 0 of the outfit atlas",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character, same face, clothes, colours and size. Change only the pose to running: mid-stride side view facing right, front knee lifted, rear leg pushing back, elbows bent about 90 degrees, arms swinging, relaxed open fists. Feet on the same ground line, full body visible.",
+          "seed": 81002,
+          "variant": 0
+        },
+        "animation": {
+          "endpoint": "animate-with-text-v3",
+          "action": "Seamless looping running cycle in place. Strict SIDE VIEW facing RIGHT every frame, never turn toward the camera. Legs alternate: the lifted front knee comes down while the rear leg swings forward, then the other leg lifts; arms pump opposite to the legs with bent elbows. Small up and down bounce of the whole body, head keeps the same size and shape. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no dust.",
+          "frameCount": 8,
+          "seed": 82003,
+          "firstAndLastFrame": "pose"
+        }
+      }
+    },
+    "processing": "Row 10 of every outfit atlas: column 0 repeats the stance, columns 1 to 8 hold generated frames 0 to 7 (frame 8 equals frame 0 and closes the loop). Alpha is cut at 128, colours snap to the outfit atlas palette, the head from the run pose (with the stance head pixels wherever both overlap) is pasted at the tracked head position so hair and hats sit exactly as in the stance, enclosed gaps of up to 6 pixels are filled, stray shoe or shirt pixels are reassigned to their surrounding material and grey tracksuit stripes are restored to white. Frames are moved down so the lowest foot touches the stance ground line."
+  }
 }
