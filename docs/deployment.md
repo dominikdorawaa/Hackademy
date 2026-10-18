@@ -95,7 +95,7 @@ Przywrócenie kopii nadpisuje całą bazę: `heroku pg:backups:restore <id> DATA
 | Próba na Heroku | identyczne liczby wierszy, sekwencje i treść; logowanie, pojedynek, bannery, pliki i realtime działają; pamięć dyno do 336 MB |
 | Przełączenie 18.10.2026 | Neon w trybie tylko do odczytu, końcowy zrzut 23 tabel i 15 sekwencji zgodny w całości; użytkownicy pozostali zalogowani |
 
-## Przełączenie i powrót
+## Przełączenie i postępowanie przy awarii
 
 Przełączenie wykonano tak:
 
@@ -105,13 +105,9 @@ Przełączenie wykonano tak:
 4. `FRONTEND_URL=https://hackademy.app` i uruchomienie dyno.
 5. Domena `hackademy.app` w projekcie Pages, reguła `www to apex` i rekord `www` z proxy.
 
-Dopóki Render i Neon istnieją, powrót wygląda tak:
+Po przełączeniu usunięto usługi Render i `render.yaml`. Projekt Neon pozostaje tymczasowo jako dodatkowa kopia danych sprzed przełączenia, w trybie tylko do odczytu; aplikacja z niego nie korzysta. Kopia Heroku `b001` z 18.10.2026 zawiera te same dane, więc Neon można usunąć w dowolnym momencie.
 
-1. W projekcie Pages usuń domenę `hackademy.app` i przywróć rekordy: A `@` na `216.24.57.1` oraz CNAME `www` na `hackademy-front.onrender.com`, oba bez proxy. Wyłącz regułę `www to apex`.
-2. W Neon wykonaj `ALTER DATABASE neondb SET default_transaction_read_only = off;`.
-3. Zapisy wykonane na Heroku po przełączeniu nie wrócą do Neon. Nigdy nie dopuszczaj do zapisów w obu bazach jednocześnie.
-
-Po kilku dniach stabilnej pracy usuwamy `render.yaml`, właściciel workspace usuwa usługi Render, a po wykonaniu końcowej kopii Neon usuwamy projekt Neon. Od tego momentu powrotem są kopie zapasowe Heroku.
+Przy awarii po wdrożeniu najpierw cofnij zmianę przez revert PR-a na `main`; workflow wdroży poprzednią wersję tą samą drogą. Przy utracie lub uszkodzeniu danych przywróć ostatnią poprawną kopię zgodnie z sekcją „Kopie zapasowe”.
 
 ## Certyfikat i domeny
 
