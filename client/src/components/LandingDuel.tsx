@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useSyncExternalStore } from 'react';
 import { AvatarSprite } from './arena/avatar/AvatarSprite';
 import { AVATAR_ATLASES } from './arena/avatar/fighters';
 import { useAvatarAtlas } from './arena/avatar/useAvatarAtlas';
@@ -22,8 +22,16 @@ export const DUEL_FIGHTERS: { side: 'me' | 'rival'; label: string; look: Avatar;
   },
 ];
 
+const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const prefersStill = () => document.documentElement.dataset.reducedMotion === 'true'
-  || (typeof window.matchMedia === 'function' && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  || (typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION_QUERY).matches);
+const subscribeStill = (onChange: () => void) => {
+  const query = typeof window.matchMedia === 'function' ? window.matchMedia(REDUCED_MOTION_QUERY) : null;
+  const observer = new MutationObserver(onChange);
+  query?.addEventListener('change', onChange);
+  observer.observe(document.documentElement, { attributes: true, attributeFilter: ['data-reduced-motion'] });
+  return () => { query?.removeEventListener('change', onChange); observer.disconnect(); };
+};
 
 function DuelFighter({ fighter, still }: { fighter: typeof DUEL_FIGHTERS[number]; still: boolean }) {
   const atlas = useAvatarAtlas(fighter.look);
@@ -36,9 +44,9 @@ function DuelFighter({ fighter, still }: { fighter: typeof DUEL_FIGHTERS[number]
 }
 
 export default function LandingDuel() {
-  const [still] = useState(prefersStill);
+  const still = useSyncExternalStore(subscribeStill, prefersStill, () => false);
   return (
-    <div className="landing-duel">
+    <div className="landing-duel" aria-hidden="true">
       <DuelFighter fighter={DUEL_FIGHTERS[0]} still={still} />
       <div className="vs-icon">VS</div>
       <DuelFighter fighter={DUEL_FIGHTERS[1]} still={still} />
