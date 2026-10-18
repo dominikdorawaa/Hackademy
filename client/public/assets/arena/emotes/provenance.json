@@ -1,0 +1,107 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-10-18",
+  "sources": "local-prototype-backups/arena-emotes-v1",
+  "emotes": [
+    {
+      "file": "ez.png",
+      "frames": 8,
+      "frameWidth": 38,
+      "frameHeight": 29,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "game chat sticker emote, bold chunky 3D pixel letters EZ, glowing cyan with lighter top bevel and darker bottom, thick black outline, small white sparkles around",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 99004,
+        "initImage": "hand drawn block letters, init-ez.png",
+        "initImageStrength": 60
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the letters E and Z stay exactly the same shape and size, only a small white star sparkle twinkles on the top right corner and a thin light glint slides over the letters",
+        "frameCount": 8,
+        "seed": 99202,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 5, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
+      "sha256": "c852f05c02e2f0a7b7754f31cdbc177a40c0338314cb5a8f4e06bbefa93b9f11"
+    },
+    {
+      "file": "gg.png",
+      "frames": 8,
+      "frameWidth": 36,
+      "frameHeight": 26,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "game chat sticker emote, bold chunky 3D pixel letters GG, shiny gold with lighter top bevel and darker bottom, thick black outline, small star sparkles around",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 99004,
+        "initImage": "hand drawn block letters, init-gg.png",
+        "initImageStrength": 60
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the letters G and G stay exactly the same shape and size, only small golden star sparkles twinkle around them and a thin light glint slides over the letters",
+        "frameCount": 8,
+        "seed": 99201,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 5, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
+      "sha256": "234919a42a66ded2bc51762559553c0752ef0c7bbfb3a30fa5422f2338f7a65f"
+    },
+    {
+      "file": "laugh.png",
+      "frames": 8,
+      "frameWidth": 44,
+      "frameHeight": 44,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "round yellow emoji face laughing hard with eyes squeezed shut and big tears of joy, open mouth, game chat sticker",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 99001
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the face shakes with laughter, bouncing up and down while tears of joy fly out",
+        "frameCount": 8,
+        "seed": 99101,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 5, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
+      "sha256": "00f76630fddbced5f5e85c349019836e673e8cba2b657f6a30afca21359bb87f"
+    },
+    {
+      "file": "shock.png",
+      "frames": 7,
+      "frameWidth": 42,
+      "frameHeight": 44,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "round yellow emoji face shocked and screaming, wide eyes, hands on cheeks, open mouth, game chat sticker",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 99001
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the face shakes quickly side to side in panic, the eyes stay wide open and the mouth stays open screaming the whole time",
+        "frameCount": 8,
+        "seed": 99201,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
+      "sha256": "a5fd8aff2d941728c7dbd7e7bd470f3fb9d00f8e5a22915630865f61930d4f25"
+    }
+  ]
+}

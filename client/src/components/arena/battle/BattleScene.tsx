@@ -5,6 +5,7 @@ import { useAvatarAtlas } from '../avatar/useAvatarAtlas';
 import { BattleEffects } from './BattleEffects';
 import { BattleFighter } from './BattleFighter';
 import { QuickChatMenu } from './QuickChatMenu';
+import { PixelSprite } from '../../PixelSprite';
 import { reactionDance, shownReaction } from './quickChat';
 import type { ShownReaction } from './quickChat';
 import { animatedRound, choreography, finisher, impactAt, MAX_HP } from './battleView';
@@ -29,9 +30,12 @@ function Plate({ fighter, side, hp, quickChat }: { fighter: Fighter; side: 'me' 
   );
 }
 
-function ReactionBubble({ side, shown }: { side: 'me' | 'rival'; shown: ShownReaction | null }) {
+function ReactionBubble({ side, shown, still }: { side: 'me' | 'rival'; shown: ShownReaction | null; still: boolean }) {
   if (!shown) return null;
-  return <p key={shown.key} className={`battle-reaction is-${side} is-${shown.reaction.kind}`} aria-hidden="true">{shown.reaction.text}</p>;
+  const { sprite } = shown.reaction;
+  return <p key={shown.key} className={`battle-reaction is-${side} is-${shown.reaction.kind}`} aria-hidden="true" data-reaction={shown.reaction.id}>
+    {sprite ? <PixelSprite sprite={sprite} scale={2} duration={sprite.frames * 110} still={still} /> : shown.reaction.text}
+  </p>;
 }
 
 export function BattleScene({ session, me, rival, reducedMotion, serverNow, quickChat, children }: {
@@ -72,8 +76,8 @@ export function BattleScene({ session, me, rival, reducedMotion, serverNow, quic
           label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} finishedBy={finishedBy(me)} reaction={reactionDance(meReaction)} />
         <BattleFighter key={`rival-${motionKey}`} look={rival.look} atlas={rivalAtlas} segments={choreography(session, rival.id, me.id)} reducedMotion={reducedMotion}
           label={`Awatar rywala, ${rival.username}`} side="rival" motionKey={motionKey} finishedBy={finishedBy(rival)} reaction={reactionDance(rivalReaction)} />
-        <ReactionBubble side="me" shown={meReaction} />
-        <ReactionBubble side="rival" shown={rivalReaction} />
+        <ReactionBubble side="me" shown={meReaction} still={reducedMotion} />
+        <ReactionBubble side="rival" shown={rivalReaction} still={reducedMotion} />
         {!reducedMotion && <BattleEffects key={motionKey} round={exchange} meId={me.id} rivalId={rival.id} finish={finish} />}
       </> : <p className="battle-stage-loading" role="status">Przygotowuję postacie…</p>}
       <p className="sr-only" role="status" aria-live="polite">{announced}</p>

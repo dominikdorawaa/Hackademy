@@ -164,9 +164,12 @@
   cursor: pointer;
 }
 
-.quick-chat-group.is-emoji .quick-chat-item {
-  font-size: 1.25rem;
-  line-height: 1;
+.quick-chat-group.is-emote .quick-chat-item {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 52px;
+  padding: 4px;
 }
 
 .quick-chat-item:hover,
@@ -233,8 +236,17 @@
   left: calc(var(--right-edge) - 0.55 * var(--fighter));
 }
 
-.battle-reaction.is-emoji {
-  font-size: 1.75rem;
+.battle-reaction.is-emote {
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: none;
+  line-height: 0;
+  filter: drop-shadow(0 4px 0 rgb(5 10 20 / 0.45));
+}
+
+.battle-reaction.is-emote::after {
+  content: none;
 }
 
 .battle-reaction.is-animation {
@@ -916,8 +928,8 @@ button.battle-answer:disabled {
     font-size: var(--ud-text-s);
   }
 
-  .battle-reaction.is-emoji {
-    font-size: 1.25rem;
+  .battle-reaction.is-emote .pixel-sprite {
+    zoom: 0.6;
   }
 
   .battle-stage {

@@ -180,11 +180,13 @@ it('shows reactions without dancing for reduced motion and drops old or unknown 
   const view = render(scene(reacted('67', 2), true));
   expect(fighter('rival')).toHaveAttribute('data-frames', '0');
   expect(document.querySelector('.battle-reaction.is-rival')).toHaveTextContent('67');
-  view.rerender(scene(reacted('fire', 2), false, 1_002_000));
+  view.rerender(scene(reacted('laugh', 2), false, 1_002_000));
   expect(document.querySelector('.battle-reaction')).toBeNull();
   view.rerender(scene(reacted('hello', 2)));
   expect(document.querySelector('.battle-reaction')).toBeNull();
-  view.rerender(scene(reacted('fire', 2), false, 998_000));
+  view.rerender(scene(reacted('laugh', 2), false, 998_000));
+  expect(document.querySelector('.battle-reaction')).toBeNull();
+  view.rerender(scene(reacted('fire', 2)));
   expect(document.querySelector('.battle-reaction')).toBeNull();
 });
 
@@ -192,4 +194,14 @@ it('drops the dance once it has played but keeps the bubble a little longer', ()
   render(scene(reacted('67', 2), false, 999_000 + 16 * 110 + 500));
   expect(fighter('rival')).toHaveAttribute('data-frames', '0');
   expect(document.querySelector('.battle-reaction.is-rival')).toHaveTextContent('67');
+});
+
+it('shows the animated PixelLab emote above the fighter', () => {
+  const view = render(scene(reacted('gg', 2)));
+  const bubble = document.querySelector('.battle-reaction.is-rival')!;
+  expect(bubble).toHaveAttribute('data-reaction', 'gg');
+  expect(bubble.querySelector('.pixel-sprite')).toHaveAttribute('data-still', 'false');
+  expect(fighter('rival')).toHaveAttribute('data-frames', '0');
+  view.rerender(scene(reacted('ez', 2), true));
+  expect(document.querySelector('.battle-reaction .pixel-sprite')).toHaveAttribute('data-still', 'true');
 });

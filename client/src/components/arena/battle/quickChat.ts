@@ -1,27 +1,29 @@
 import { danceFrames } from '../avatar/fighters';
+import type { SpriteSheet } from '../../PixelSprite';
 import type { ArenaReaction, GameSession } from '../../../types/api';
 
-export type ReactionKind = 'phrase' | 'emoji' | 'animation';
+export type ReactionKind = 'emote' | 'animation';
 
-export interface QuickReaction { id: string; kind: ReactionKind; text: string; name: string; frames?: number[] }
+export interface QuickReaction { id: string; kind: ReactionKind; text: string; name: string; sprite?: SpriteSheet; frames?: number[] }
 
 export const REACTION_GROUPS: { kind: ReactionKind; label: string }[] = [
-  { kind: 'phrase', label: 'Frazy' },
-  { kind: 'emoji', label: 'Emotki' },
-  { kind: 'animation', label: 'Animacje' },
+  { kind: 'emote', label: 'Emotki' },
+  { kind: 'animation', label: 'Tańce' },
 ];
 
+const EMOTES = '/assets/arena/emotes/';
+export const EMOTE_SPRITES = {
+  ez: { src: `${EMOTES}ez.png`, frames: 8, width: 38, height: 29 },
+  gg: { src: `${EMOTES}gg.png`, frames: 8, width: 36, height: 26 },
+  laugh: { src: `${EMOTES}laugh.png`, frames: 8, width: 44, height: 44 },
+  shock: { src: `${EMOTES}shock.png`, frames: 7, width: 42, height: 44 },
+} satisfies Record<string, SpriteSheet>;
+
 export const QUICK_REACTIONS: QuickReaction[] = [
-  { id: 'ez', kind: 'phrase', text: 'EZ', name: 'EZ' },
-  { id: 'gg', kind: 'phrase', text: 'GG', name: 'GG' },
-  { id: 'nice', kind: 'phrase', text: 'Nice!', name: 'Nice!' },
-  { id: 'oops', kind: 'phrase', text: 'Ups', name: 'Ups' },
-  { id: 'close', kind: 'phrase', text: 'Było blisko', name: 'Było blisko' },
-  { id: 'fire', kind: 'emoji', text: '🔥', name: 'Ogień' },
-  { id: 'laugh', kind: 'emoji', text: '😂', name: 'Śmiech' },
-  { id: 'shock', kind: 'emoji', text: '😱', name: 'Szok' },
-  { id: 'clap', kind: 'emoji', text: '👏', name: 'Brawa' },
-  { id: 'cool', kind: 'emoji', text: '😎', name: 'Luzik' },
+  { id: 'ez', kind: 'emote', text: 'EZ', name: 'EZ', sprite: EMOTE_SPRITES.ez },
+  { id: 'gg', kind: 'emote', text: 'GG', name: 'GG', sprite: EMOTE_SPRITES.gg },
+  { id: 'laugh', kind: 'emote', text: 'Śmiech', name: 'Śmiech', sprite: EMOTE_SPRITES.laugh },
+  { id: 'shock', kind: 'emote', text: 'Szok', name: 'Szok', sprite: EMOTE_SPRITES.shock },
   { id: '67', kind: 'animation', text: '67', name: 'Six-seven', frames: danceFrames(8) },
   { id: 'groove', kind: 'animation', text: 'Luz', name: 'Taniec Luz', frames: danceFrames(6) },
 ];

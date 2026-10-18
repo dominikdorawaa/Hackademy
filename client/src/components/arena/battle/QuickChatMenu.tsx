@@ -1,5 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
+import { PixelSprite } from '../../PixelSprite';
 import { QUICK_REACTIONS, REACTION_GROUPS } from './quickChat';
 
 export function QuickChatMenu({ children, onPick, notice }: { children: ReactNode; onPick: (id: string) => void; notice: string | null }) {
@@ -53,7 +54,7 @@ export function QuickChatMenu({ children, onPick, notice }: { children: ReactNod
                   return (
                     <button key={reaction.id} ref={element => { items.current[slot] = element; }} type="button" role="menuitem" tabIndex={-1}
                       className="quick-chat-item" aria-label={reaction.name} onClick={() => pick(reaction.id)}>
-                      {reaction.text}
+                      {reaction.sprite ? <PixelSprite sprite={reaction.sprite} duration={reaction.sprite.frames * 110} /> : reaction.text}
                     </button>
                   );
                 })}

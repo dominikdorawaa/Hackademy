@@ -13,6 +13,8 @@ import org.junit.jupiter.api.Test;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
+import java.util.Arrays;
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -176,6 +178,9 @@ class ArenaBattleServiceTest {
         assertEquals(ReactionOutcome.Status.NOT_PLAYER, arena.react("missing", 1L, "ez").status());
         assertEquals(ReactionOutcome.Status.UNKNOWN_REACTION, arena.react("game", 1L, "hello").status());
         assertEquals(ReactionOutcome.Status.UNKNOWN_REACTION, arena.react("game", 1L, null).status());
+        assertEquals(ReactionOutcome.Status.UNKNOWN_REACTION, arena.react("game", 1L, "fire").status());
+        assertEquals(List.of("ez", "gg", "laugh", "shock", "67", "groove"),
+                Arrays.stream(QuickReaction.values()).map(QuickReaction::id).toList());
         assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "67").status());
         var after = state();
         assertEquals(1, after.getReactions().size());
@@ -198,14 +203,14 @@ class ArenaBattleServiceTest {
         assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 2L, "gg").status());
         for (int sent = 1; sent < ArenaServiceImpl.REACTION_WINDOW_LIMIT; sent++) {
             now.addAndGet(ArenaServiceImpl.REACTION_GAP_MILLIS);
-            assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "fire").status());
+            assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "laugh").status());
         }
         now.addAndGet(ArenaServiceImpl.REACTION_GAP_MILLIS);
-        var windowFull = arena.react("game", 1L, "fire");
+        var windowFull = arena.react("game", 1L, "laugh");
         assertEquals(ReactionOutcome.Status.TOO_FAST, windowFull.status());
         assertEquals(ArenaServiceImpl.REACTION_WINDOW_MILLIS - 5 * ArenaServiceImpl.REACTION_GAP_MILLIS, windowFull.retryAfterMillis());
         now.addAndGet(windowFull.retryAfterMillis());
-        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "fire").status());
+        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "laugh").status());
         assertEquals(ArenaServiceImpl.REACTIONS_KEPT, state().getReactions().size() + 1);
     }
 
@@ -213,7 +218,7 @@ class ArenaBattleServiceTest {
     void onlyTheNewestReactionsAreKept() {
         for (int sent = 0; sent < ArenaServiceImpl.REACTIONS_KEPT + 3; sent++) {
             now.addAndGet(ArenaServiceImpl.REACTION_WINDOW_MILLIS);
-            arena.react("game", 1L + sent % 2, "clap");
+            arena.react("game", 1L + sent % 2, "shock");
         }
         var reactions = state().getReactions();
         assertEquals(ArenaServiceImpl.REACTIONS_KEPT, reactions.size());

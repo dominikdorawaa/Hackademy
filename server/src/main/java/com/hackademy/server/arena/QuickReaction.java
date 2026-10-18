@@ -6,14 +6,8 @@ import java.util.Optional;
 public enum QuickReaction {
     EZ("ez"),
     GG("gg"),
-    NICE("nice"),
-    OOPS("oops"),
-    CLOSE("close"),
-    FIRE("fire"),
     LAUGH("laugh"),
     SHOCK("shock"),
-    CLAP("clap"),
-    COOL("cool"),
     SIX_SEVEN("67"),
     GROOVE("groove");
 

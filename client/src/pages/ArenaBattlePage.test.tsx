@@ -218,10 +218,10 @@ it('explains a muted or too fast reaction', async () => {
   fireEvent.click(screen.getByRole('menuitem', { name: 'GG' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Masz wyciszone reakcje na stałe.');
   await openQuickChat();
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Ogień' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Śmiech' }));
   expect(await screen.findByText('Za szybko. Kolejna reakcja za 2 s.')).toBeInTheDocument();
   await openQuickChat();
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Brawa' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Szok' }));
   expect(await screen.findByText('Błąd sieci. Spróbuj jeszcze raz.')).toBeInTheDocument();
 });
 
