@@ -1,6 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createGameSession } from '../../../test/fixtures/arena';
-import { animatedRound, CAST_MS, choreography, eloChange, finishText, IMPACT_MS, outcome, outcomeTitle, perspective, roundSummary, secondsLeft } from './battleView';
+import {
+  animatedRound, CAST_MS, choreography, eloChange, finisher, FINISHER_FRAME_MS, FINISHERS, finishText, IMPACT_MS, impactAt, outcome, outcomeTitle, perspective, roundSummary, secondsLeft,
+} from './battleView';
 import type { RoundResult } from '../../../types/api';
 
 const result = (damage: Record<string, number>): RoundResult => ({
@@ -66,15 +68,19 @@ describe('battle view', () => {
     expect(choreography(createGameSession(), 1, 2)).toEqual([{ frames: [0], loop: true, frameTime: 110 }]);
   });
 
-  it('ends with a dance for the winner and a fall for the loser after the last hit', () => {
+  it('ends a knockout with a finisher, then a dance for the winner and a fall for the loser', () => {
     const knockout = createGameSession({ status: 'FINISHED', winnerId: 1, finishReason: 'KNOCKOUT', lastRound: result({ 1: 0, 2: 20 }) });
+    expect(finisher(knockout)).toEqual({ move: 'beam', winnerId: 1, loserId: 2, start: 0, impact: 900, end: 2100 });
     const winner = choreography(knockout, 1, 2);
-    expect(winner[0].frames).toEqual([10, 11, 12, 13, 14, 15, 16, 17]);
-    expect(winner.slice(0, -1).reduce((sum, segment) => sum + (segment.ms ?? 0), 0)).toBe(IMPACT_MS + 440);
+    expect(winner[0]).toEqual({ frames: FINISHERS.beam.frames, loop: false, frameTime: FINISHER_FRAME_MS, ms: 2100 });
+    expect(FINISHERS.beam.frames.slice(10, 18)).toEqual([30, 31, 31, 31, 31, 31, 31, 32]);
     expect(winner.at(-1)).toMatchObject({ loop: true, frames: expect.arrayContaining([55, 64]) });
     const loser = choreography(knockout, 2, 1);
     expect(loser.at(-1)).toEqual({ frames: [46, 47, 48, 49, 50, 51, 52, 53], loop: false, frameTime: 120 });
-    expect(loser.map(segment => segment.ms)).toEqual([IMPACT_MS, 440, undefined]);
+    expect(loser.map(segment => segment.ms)).toEqual([900, 440, undefined]);
+    expect(impactAt(knockout, 2)).toBe(900);
+    expect(finishText(knockout, 1)).toBe('Rywal padł po Twoim ciosie kończącym: Przeciążenie.');
+    expect(finishText(knockout, 2)).toBe('Twój awatar padł po ciosie kończącym: Przeciążenie.');
     const surrendered = { ...knockout, finishReason: 'SURRENDER' as const };
     expect(animatedRound(surrendered)).toBeNull();
     expect(choreography(surrendered, 1, 2)).toHaveLength(1);
@@ -82,6 +88,24 @@ describe('battle view', () => {
       .toEqual([{ frames: [0], loop: true, frameTime: 110 }]);
     expect(animatedRound(createGameSession({ phase: 'QUESTION', lastRound: result({ 1: 20 }) }))).toBeNull();
     expect(animatedRound(createGameSession({ phase: 'REVEAL' }))).toBeNull();
+  });
+
+  it('lets the loser land a last hit before the finisher and skips finishers without a knockout blow', () => {
+    const trade = createGameSession({ id: 'game1', status: 'FINISHED', winnerId: 1, finishReason: 'KNOCKOUT', lastRound: result({ 1: 20, 2: 20 }) });
+    expect(finisher(trade)).toEqual({ move: 'combo', winnerId: 1, loserId: 2, start: 1340, impact: 2340, end: 3240 });
+    expect(choreography(trade, 1, 2).map(segment => segment.ms)).toEqual([IMPACT_MS, 440, 1900, undefined]);
+    expect(choreography(trade, 1, 2)[2].frames).toEqual(FINISHERS.combo.frames);
+    const loser = choreography(trade, 2, 1);
+    expect(loser.map(segment => segment.ms)).toEqual([CAST_MS, 2340 - CAST_MS, 440, undefined]);
+    expect(loser[0].frames).toEqual([10, 11, 12, 13, 14, 15, 16, 17]);
+    expect(impactAt(trade, 1)).toBe(IMPACT_MS);
+    expect(impactAt(trade, 2)).toBe(2340);
+    expect(finishText(trade, 2)).toBe('Twój awatar padł po ciosie kończącym: Ctrl+Alt+Del.');
+    expect(finisher({ ...trade, winnerId: null })).toBeNull();
+    expect(finisher({ ...trade, finishReason: 'ROUNDS' })).toBeNull();
+    expect(finisher({ ...trade, lastRound: result({ 1: 20, 2: 0 }) })).toBeNull();
+    expect(finisher({ ...trade, lastRound: null })).toBeNull();
+    expect(finisher({ ...trade, status: 'ACTIVE' })).toBeNull();
   });
 
   it('counts down against the server clock', () => {
