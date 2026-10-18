@@ -27,7 +27,7 @@ it('waits for the recolored atlas before showing the preview', () => {
   atlas.ready = false;
   setup();
   const loader = screen.getByRole('status', { name: 'Przygotowuję postać' });
-  expect(loader).toHaveAttribute('aria-busy', 'true');
+  expect(loader).not.toHaveAttribute('aria-busy');
   expect(loader.querySelector('.avatar-sprite image')).toHaveAttribute('href', '/assets/arena/avatar-v1/fighter.png');
   expect(screen.queryByRole('img', { name: /Awatar, animacja/ })).not.toBeInTheDocument();
 });

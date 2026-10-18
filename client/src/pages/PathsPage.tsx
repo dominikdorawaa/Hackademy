@@ -142,15 +142,15 @@ const PathsPage = () => {
         <header className="paths-header">
           <div>
             <h1 className="paths-title">Ścieżki</h1>
-            <Skeleton width={110} height={16} style={{ marginTop: 8 }} />
+            <p className="paths-count"><Skeleton width={110} /></p>
           </div>
         </header>
         <LoadingSkeleton label="Ładowanie ścieżek" className="paths-grid">
-          {[0, 1, 2].map(index => <div key={index} className="path-card" aria-hidden="true" style={{ cursor: 'default' }}>
+          {[0, 1, 2].map(index => <div key={index} className="path-card" aria-hidden="true">
             <Skeleton height={130} radius={0} />
-            <div className="path-card-body">
+            <div className="path-card-body hk-skeleton-stack">
               <Skeleton width={70} height={12} />
-              <Skeleton width="80%" height={22} style={{ margin: '10px 0 12px' }} />
+              <Skeleton width="80%" height={22} />
               <SkeletonText lines={2} />
             </div>
             <div className="path-card-footer"><Skeleton width={90} height={28} radius={999} /><Skeleton width={72} height={32} /></div>

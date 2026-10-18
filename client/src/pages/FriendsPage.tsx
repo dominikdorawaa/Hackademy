@@ -125,18 +125,16 @@ const FriendsPage = () => {
         <p role="alert">{error}</p>
         <button className="btn-primary" onClick={() => void synchronize()}>Spróbuj ponownie</button>
     </div>;
-    if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-        <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', color: 'var(--text-light)' }}>Znajomi</h1>
-        <LoadingSkeleton label="Wczytuję znajomych">
-            <Skeleton height={124} radius={12} style={{ marginBottom: 40 }} />
-            <Skeleton width={180} height={24} style={{ marginBottom: 16 }} />
-            {[0, 1, 2].map(row => <Skeleton key={row} height={72} radius={8} style={{ marginBottom: 10 }} />)}
-        </LoadingSkeleton>
-    </div>;
-
     return (
         <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
             <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', color: 'var(--text-light)' }}>Znajomi</h1>
+            {loading ? <LoadingSkeleton label="Wczytuję znajomych" className="hk-skeleton-stack is-loose">
+                <Skeleton height={124} radius={12} />
+                <div className="hk-skeleton-stack">
+                    <Skeleton width={180} height={24} />
+                    {[0, 1, 2].map(row => <Skeleton key={row} height={72} radius={8} />)}
+                </div>
+            </LoadingSkeleton> : <>
 
             {/* Search Section */}
             <div style={{ marginBottom: '40px', backgroundColor: 'var(--bg-panel)', padding: '20px', borderRadius: '12px', border: '1px solid var(--border-color)' }}>
@@ -337,6 +335,7 @@ const FriendsPage = () => {
                     </div>
                 )}
             </div>
+            </>}
         </div>
     );
 };

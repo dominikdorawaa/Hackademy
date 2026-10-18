@@ -18,7 +18,7 @@ const firstRunFrame = String(runFrames(AVATAR_ATLASES.baza.run)[0]);
 
 it('announces loading and keeps the running figure decorative and out of the tab order', () => {
   render(<ArenaLoader label="Wczytuję walkę" className="extra" />);
-  expect(loader()).toHaveAttribute('aria-busy', 'true');
+  expect(loader()).not.toHaveAttribute('aria-busy');
   expect(loader()).toHaveClass('arena-loader', 'extra');
   expect(loader()).toHaveTextContent('Wczytuję walkę');
   expect(sprite().closest('[aria-hidden="true"]')).not.toBeNull();

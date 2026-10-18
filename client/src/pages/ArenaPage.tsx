@@ -50,6 +50,8 @@ const ArenaPage = () => {
 
     useEffect(() => {
         let cancelled = false;
+        setUserFailed(false);
+        setUserData(null);
         userApi.getCurrentUser({ Authorization: `Bearer ${token}` })
             .then(response => { if (!response.ok) throw new Error('user'); return response.json(); })
             .then(data => { if (!data) throw new Error('user'); if (!cancelled) setUserData(data); })
@@ -177,7 +179,7 @@ const ArenaPage = () => {
 
     if (!userData) return <div className="user-dashboard"><div className="ud-shell arena-pending">{userFailed ? <div className="arena-pending-error">
         <p role="alert" className="arena-error">Nie udało się wczytać Twojego konta.</p>
-        <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setUserFailed(false); setUserAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
+        <button type="button" className="ud-btn ud-btn-solid" onClick={() => setUserAttempt(attempt => attempt + 1)}>Spróbuj ponownie</button>
     </div> : <ArenaLoader label="Ładowanie Areny" />}</div></div>;
 
     const canPlay = userData.points >= UNLOCK_POINTS;

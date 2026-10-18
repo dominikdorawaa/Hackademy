@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import API_URL from '../apiConfig';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { createToken, createUser } from '../test/fixtures/auth';
 import { currentUserUrl } from '../test/mocks/handlers';
 import { server } from '../test/mocks/server';
@@ -159,22 +159,46 @@ it('keeps players at 400 XP locked because the server requires 500', async () =>
 
 it('runs the player avatar while the account loads and offers a retry when it fails', async () => {
   let failing = true;
-  let release!: () => void;
-  const gate = new Promise<void>(resolve => { release = resolve; });
+  let releaseFailure!: () => void;
+  let releaseRetry!: () => void;
+  const failure = new Promise<void>(resolve => { releaseFailure = resolve; });
+  const retry = new Promise<void>(resolve => { releaseRetry = resolve; });
   server.use(http.get(currentUserUrl, async () => {
-    if (failing) { await gate; return HttpResponse.json({ message: 'awaria' }, { status: 503 }); }
+    if (failing) { await failure; return HttpResponse.json({ message: 'awaria' }, { status: 503 }); }
+    await retry;
     return HttpResponse.json({ ...createUser(), points: 900 });
   }));
   mount();
   const loader = screen.getByRole('status', { name: 'Ładowanie Areny' });
-  expect(loader).toHaveAttribute('aria-busy', 'true');
   expect(loader.querySelector('.avatar-sprite')).not.toBeNull();
-  release();
+  releaseFailure();
   expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się wczytać Twojego konta.');
   expect(screen.queryByRole('status', { name: 'Ładowanie Areny' })).not.toBeInTheDocument();
   failing = false;
   fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
-  expect(screen.getByRole('status', { name: 'Ładowanie Areny' })).toBeInTheDocument();
+  expect(await screen.findByRole('status', { name: 'Ładowanie Areny' })).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Spróbuj ponownie' })).not.toBeInTheDocument();
+  releaseRetry();
+  expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
+});
+
+it('drops the old account error while a new session loads the Arena', async () => {
+  const second = createToken('USER', Math.floor(Date.now() / 1000) + 7200);
+  let releaseSecond!: () => void;
+  const pending = new Promise<void>(resolve => { releaseSecond = resolve; });
+  server.use(http.get(currentUserUrl, async ({ request }) => {
+    if (request.headers.get('Authorization') !== `Bearer ${second}`) return HttpResponse.json({ message: 'awaria' }, { status: 503 });
+    await pending;
+    return HttpResponse.json({ ...createUser(), points: 900 });
+  }));
+  const SwitchAccount = () => { const { login } = useAuth(); return <button type="button" onClick={() => login(second)}>Przełącz konto</button>; };
+  render(<MemoryRouter><AuthProvider><SwitchAccount /><ArenaPage /></AuthProvider></MemoryRouter>);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się wczytać Twojego konta.');
+  fireEvent.click(screen.getByRole('button', { name: 'Przełącz konto' }));
+  expect(await screen.findByRole('status', { name: 'Ładowanie Areny' })).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  releaseSecond();
   expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
 });
 

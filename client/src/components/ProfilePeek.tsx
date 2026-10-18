@@ -193,7 +193,7 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
         <span className="ud-peek-card" id={cardId} role="group" aria-label={`Podgląd profilu ${username}`}>
           {!profile && !failed && <LoadingSkeleton as="span" label="Wczytuję profil" className="ud-peek-head">
             <Skeleton className="ud-peek-avatar" radius="50%" />
-            <span className="ud-peek-who"><Skeleton width={120} height={16} style={{ marginBottom: 6 }} /><Skeleton width={160} height={12} /></span>
+            <span className="ud-peek-who hk-skeleton-pair"><Skeleton width={120} height={16} /><Skeleton width={160} height={12} /></span>
           </LoadingSkeleton>}
           {failed && <span className="ud-peek-loading">Nie udało się wczytać profilu.</span>}
           {profile && (

@@ -182,7 +182,7 @@ export default function SettingsPage() {
         </>}
         {section === 'notifications' && <>
           {preferenceError && <div className="settings-error"><p role="alert">{preferenceError}</p>{!loaded && <button className="settings-button" onClick={reload}>Spróbuj ponownie</button>}</div>}
-          {!loaded && !preferenceError && <p role="status" aria-busy="true" aria-label="Ładowanie preferencji" className="sr-only">Ładowanie preferencji</p>}
+          {!loaded && !preferenceError && <p role="status" aria-label="Ładowanie preferencji" className="sr-only">Ładowanie preferencji</p>}
           <h3 className="settings-group-title">Powiadomienia w aplikacji</h3>
           <SettingRow title="Zaproszenia do znajomych" description="Pokaż nowe prośby w centrum powiadomień.">{notificationSwitch('friendRequests', 'Zaproszenia do znajomych')}</SettingRow>
           <SettingRow title="Wyzwania w Arenie" description="Pokaż zaproszenia do pojedynku w centrum powiadomień.">{notificationSwitch('challenges', 'Wyzwania w Arenie')}</SettingRow>

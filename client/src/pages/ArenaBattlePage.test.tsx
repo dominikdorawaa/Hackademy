@@ -125,7 +125,7 @@ it('waits for the battle before showing it', async () => {
   realtime.value = { ...realtime.value, state: null };
   server.use(http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json({ message: 'awaria' }, { status: 503 })));
   mount();
-  expect(await screen.findByRole('status', { name: 'Wczytuję walkę' })).toHaveAttribute('aria-busy', 'true');
+  expect(await screen.findByRole('status', { name: 'Wczytuję walkę' })).not.toHaveAttribute('aria-busy');
   expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
 });
 

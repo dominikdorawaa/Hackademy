@@ -16,10 +16,20 @@ import FriendsPage from './FriendsPage';
 import ProfilePage from './ProfilePage';
 import ProfilePeek from '../components/ProfilePeek';
 
-const realtime = vi.hoisted(() => ({ value: { state: null as RealtimeState | null, connected: true, error: null as string | null, synchronize: vi.fn(async () => {}) } }));
-vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => realtime.value }));
+const realtime = vi.hoisted(() => {
+  const listeners = new Set<() => void>();
+  const store = {
+    value: { state: null as RealtimeState | null, connected: true, error: null as string | null, synchronize: async () => {} },
+    subscribe: (listener: () => void) => { listeners.add(listener); return () => { listeners.delete(listener); }; },
+    publish: (state: RealtimeState) => { store.value = { ...store.value, state }; listeners.forEach(listener => listener()); },
+  };
+  return store;
+});
+vi.mock('../context/RealtimeContext', async () => {
+  const { useSyncExternalStore } = await import('react');
+  return { useRealtime: () => useSyncExternalStore(realtime.subscribe, () => realtime.value) };
+});
 
-/** A response held back until the test releases it, so the loading state can be inspected. */
 function gate() {
   let release!: () => void;
   const opened = new Promise<void>(resolve => { release = resolve; });
@@ -28,7 +38,7 @@ function gate() {
 
 function expectSkeleton(label: string) {
   const region = screen.getByRole('status', { name: label });
-  expect(region).toHaveAttribute('aria-busy', 'true');
+  expect(region).not.toHaveAttribute('aria-busy');
   expect(region.querySelectorAll('[data-skeleton]').length).toBeGreaterThan(0);
   return region;
 }
@@ -83,13 +93,14 @@ describe('player pages show skeletons while loading', () => {
   });
 
   it('friends, until the realtime state arrives', () => {
-    const view = mount('/friends', '/friends', <FriendsPage />);
-    expectSkeleton('Wczytuję znajomych');
-    realtime.value = { ...realtime.value, state: { streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession: null, queued: false } };
-    view.unmount();
     mount('/friends', '/friends', <FriendsPage />);
+    const heading = screen.getByRole('heading', { name: 'Znajomi', level: 1 });
+    expectSkeleton('Wczytuję znajomych');
+    expect(screen.queryByRole('heading', { name: 'Znajdź znajomych' })).not.toBeInTheDocument();
+    act(() => realtime.publish({ streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession: null, queued: false }));
     expect(screen.queryByRole('status', { name: 'Wczytuję znajomych' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Znajdź znajomych' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Znajomi', level: 1 })).toBe(heading);
   });
 
   it('own profile with its activity and statistics', async () => {

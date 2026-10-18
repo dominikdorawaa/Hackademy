@@ -212,14 +212,18 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   };
 
   if (loading) return <div className="room-page-container hackademy-container">
-    <LoadingSkeleton label="Ładowanie pokoju">
-      <Skeleton height={8} radius={4} style={{ marginBottom: 24 }} />
-      <Skeleton width={110} height={20} style={{ marginBottom: 16 }} />
-      <div style={{ display: 'flex', gap: 8, marginBottom: 12 }}><Skeleton width={70} height={24} radius={999} /><Skeleton width={70} height={24} radius={999} /></div>
-      <Skeleton width="min(520px, 80%)" height={36} style={{ marginBottom: 12 }} />
-      <Skeleton width="min(360px, 60%)" height={16} style={{ marginBottom: 32 }} />
-      <Skeleton height={180} radius={12} style={{ marginBottom: 16 }} />
-      {[0, 1, 2].map(row => <Skeleton key={row} height={64} radius={12} style={{ marginBottom: 12 }} />)}
+    <LoadingSkeleton label="Ładowanie pokoju" className="hk-skeleton-stack is-loose">
+      <Skeleton height={8} radius={4} />
+      <div className="hk-skeleton-stack">
+        <Skeleton width={110} height={20} />
+        <div className="hk-skeleton-row"><Skeleton width={70} height={24} radius={999} /><Skeleton width={70} height={24} radius={999} /></div>
+        <Skeleton width="min(520px, 80%)" height={36} />
+        <Skeleton width="min(360px, 60%)" height={16} />
+      </div>
+      <div className="hk-skeleton-stack">
+        <Skeleton height={180} radius={12} />
+        {[0, 1, 2].map(row => <Skeleton key={row} height={64} radius={12} />)}
+      </div>
     </LoadingSkeleton>
   </div>;
   if (error) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;

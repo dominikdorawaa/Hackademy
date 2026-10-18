@@ -19,7 +19,6 @@
   image-rendering: pixelated;
 }
 
-/* The ground scrolls under the feet, so the runner seems to move without leaving the box. */
 .arena-loader-ground {
   display: block;
   height: 4px;

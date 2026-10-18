@@ -1043,9 +1043,9 @@ a.ud-room-row:hover {
 }
 
 /* --- Loading and error states --- */
-.ud-skel-next { height: 168px; border-radius: var(--ud-radius); }
-.ud-skel-block { height: 220px; border-radius: var(--ud-radius); }
-.ud-skel-rank { height: 180px; border-radius: var(--ud-radius); margin-bottom: 16px; }
+.ud-skel-next { height: 168px; }
+.ud-skel-block { height: 220px; }
+.ud-skel-rank { height: 180px; margin-bottom: 16px; }
 
 .ud-state {
   max-width: 640px;

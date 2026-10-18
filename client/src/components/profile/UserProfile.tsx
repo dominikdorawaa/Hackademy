@@ -26,17 +26,25 @@ import './ProfileLayout.css';
 
 function ProfileSkeleton() {
   return (
-    <LoadingSkeleton label="Ładowanie profilu">
-      <Skeleton width={160} height={14} style={{ marginBottom: 24 }} />
+    <LoadingSkeleton label="Ładowanie profilu" className="hk-skeleton-stack is-loose">
+      <Skeleton width={160} height={14} />
       <div className="profile-header" aria-hidden="true">
-        <Skeleton className="profile-avatar-skeleton" radius="var(--ud-radius)" />
-        <div className="profile-identity">
-          <Skeleton width="min(280px, 70%)" height={36} style={{ marginBottom: 12 }} />
+        <Skeleton className="profile-avatar-skeleton" />
+        <div className="profile-identity hk-skeleton-stack">
+          <Skeleton width="min(280px, 70%)" height={36} />
           <SkeletonText lines={2} />
         </div>
       </div>
-      <Skeleton height={160} radius={12} style={{ marginTop: 24 }} />
-      <Skeleton height={220} radius={12} style={{ marginTop: 24 }} />
+      <Skeleton height={160} radius={12} />
+      <Skeleton height={220} radius={12} />
+    </LoadingSkeleton>
+  );
+}
+
+function TextSkeleton({ label }: { label: string }) {
+  return (
+    <LoadingSkeleton label={label}>
+      <SkeletonText lines={2} />
     </LoadingSkeleton>
   );
 }
@@ -45,23 +53,16 @@ function ResourceContent({
   loading,
   error,
   retry,
-  label,
-  skeleton,
+  placeholder,
   children,
 }: {
   loading: boolean;
   error: string | null;
   retry: () => void;
-  label: string;
-  skeleton?: ReactNode;
+  placeholder: ReactNode;
   children: ReactNode;
 }) {
-  if (loading)
-    return skeleton ?? (
-      <LoadingSkeleton label={label}>
-        <SkeletonText lines={2} />
-      </LoadingSkeleton>
-    );
+  if (loading) return placeholder;
   if (error)
     return (
       <div className="profile-section-error">
@@ -188,7 +189,7 @@ export default function UserProfile({ username }: { username?: string }) {
   if (profile.loading || !profile.data)
     return (
       <div className="profile-page">
-        <ResourceContent {...profile} label="Ładowanie profilu" skeleton={<ProfileSkeleton />}>
+        <ResourceContent {...profile} placeholder={<ProfileSkeleton />}>
           <p className="profile-muted">Profil jest niedostępny.</p>
         </ResourceContent>
       </div>
@@ -245,7 +246,7 @@ export default function UserProfile({ username }: { username?: string }) {
           {!own && (
             <div className="profile-header-actions">
               <>
-                <ResourceContent {...friendship} label="Sprawdzam relację" skeleton={<LoadingSkeleton label="Sprawdzam relację"><Skeleton width={170} height={36} radius={8} /></LoadingSkeleton>}>
+                <ResourceContent {...friendship} placeholder={<LoadingSkeleton label="Sprawdzam relację"><Skeleton width={170} height={36} radius={8} /></LoadingSkeleton>}>
                   {friendshipStatus === 'NONE' && (
                     <Button
                       disabled={sending}
@@ -286,16 +287,16 @@ export default function UserProfile({ username }: { username?: string }) {
       <section className="profile-section profile-badges" aria-labelledby="profile-badges-title">
         <div className="profile-section-heading">
           <h2 id="profile-badges-title">Osiągnięcia</h2></div>
-        {own ? <ResourceContent {...badges} label="Ładowanie osiągnięć"><ProfileBadges badges={profileBadges} own /></ResourceContent>
+        {own ? <ResourceContent {...badges} placeholder={<TextSkeleton label="Ładowanie osiągnięć" />}><ProfileBadges badges={profileBadges} own /></ResourceContent>
           : <ProfileBadges badges={profileBadges} own={false} />}
       </section>
       {!own && friendshipStatus === 'FRIENDS' && <section className="profile-section profile-duels">
-        <h3>Bilans pojedynków</h3><ResourceContent {...stats} label="Ładowanie bilansu">{stats.data && <p>Ty <strong>{stats.data.winsAgainst}</strong> : <strong>{stats.data.lossesAgainst}</strong> {person.username}</p>}</ResourceContent>
+        <h3>Bilans pojedynków</h3><ResourceContent {...stats} placeholder={<TextSkeleton label="Ładowanie bilansu" />}>{stats.data && <p>Ty <strong>{stats.data.winsAgainst}</strong> : <strong>{stats.data.lossesAgainst}</strong> {person.username}</p>}</ResourceContent>
       </section>}
       <div className="profile-details-grid">
         <section className="profile-section profile-activity" aria-labelledby="profile-activity-title">
           <div className="profile-section-heading"><h2 id="profile-activity-title">Regularność nauki</h2></div>
-          <ResourceContent {...activity} label="Ładowanie aktywności" skeleton={<LoadingSkeleton label="Ładowanie aktywności"><Skeleton height={140} radius={8} /></LoadingSkeleton>}><ActivityCalendar data={activity.data ?? []} /></ResourceContent>
+          <ResourceContent {...activity} placeholder={<LoadingSkeleton label="Ładowanie aktywności"><Skeleton height={140} radius={8} /></LoadingSkeleton>}><ActivityCalendar data={activity.data ?? []} /></ResourceContent>
         </section>
         <ProfileLearningStats activity={activity.data} loading={activity.loading} />
       </div>

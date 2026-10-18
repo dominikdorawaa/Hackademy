@@ -49,7 +49,6 @@ const storedReducedMotion = () => {
   try { return localStorage.getItem('app-reduced-motion') === 'true'; } catch { return false; }
 };
 
-/** The in-app "reduce animations" setting, also readable outside a ThemeProvider. */
 export const useAppReducedMotion = () => {
   const context = useContext(ThemeContext);
   const [stored] = useState(storedReducedMotion);

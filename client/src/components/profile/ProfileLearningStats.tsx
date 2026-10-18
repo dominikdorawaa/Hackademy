@@ -35,7 +35,7 @@ export default function ProfileLearningStats({ activity, loading }: {
     <div className="profile-stats-heading"><h2 id="profile-learning-stats-title">Statystyki nauki</h2>
       <p className="profile-stats-period">Ostatnie 12 tygodni</p></div>
     {loading ? <LoadingSkeleton label="Ładowanie statystyk" className="profile-learning-stats-list">
-      {[0, 1, 2, 3].map(index => <div key={index} aria-hidden="true"><Skeleton width="45%" height={16} style={{ marginBottom: 8 }} /><Skeleton width={64} height={28} /></div>)}
+      {[0, 1, 2, 3].map(index => <div key={index} className="hk-skeleton-pair" aria-hidden="true"><Skeleton width="45%" height={16} /><Skeleton width={64} height={28} /></div>)}
     </LoadingSkeleton>
       : !activity ? <p className="profile-muted">Statystyki są niedostępne. Ponów pobieranie w sekcji „Regularność nauki”.</p>
       : !rows.length ? <p className="profile-muted">Statystyki pojawią się po pierwszym rozwiązanym pokoju.</p>

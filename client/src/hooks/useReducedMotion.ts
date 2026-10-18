@@ -11,7 +11,6 @@ const subscribe = (onChange: () => void) => {
 };
 const systemReducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION_QUERY).matches;
 
-/** True when the system or the in-app setting asks for less motion. */
 export function useReducedMotion() {
   const system = useSyncExternalStore(subscribe, systemReducedMotion, () => false);
   const app = useAppReducedMotion();

@@ -108,7 +108,7 @@ const DashboardSkeleton = () => (
   <div className="user-dashboard">
     <LoadingSkeleton label="Ładowanie dashboardu" className="ud-shell">
       <div className="ud-main">
-        <Skeleton className="ud-skel-next" />
+        <Skeleton className="ud-skel-next" tone="wash" />
         <Skeleton className="ud-skel-block" />
         <div className="ud-pair">
           <Skeleton className="ud-skel-block" />
@@ -116,7 +116,7 @@ const DashboardSkeleton = () => (
         </div>
       </div>
       <div className="ud-board">
-        <Skeleton className="ud-skel-rank" />
+        <Skeleton className="ud-skel-rank" tone="raised" />
         <Skeleton className="ud-skel-block" />
       </div>
     </LoadingSkeleton>

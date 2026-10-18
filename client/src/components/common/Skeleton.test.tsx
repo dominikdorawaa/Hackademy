@@ -8,7 +8,7 @@ it('announces the loading region by its label and hides the placeholder shapes',
     <SkeletonText lines={3} />
   </LoadingSkeleton>);
   const region = screen.getByRole('status', { name: 'Ładowanie ścieżek' });
-  expect(region).toHaveAttribute('aria-busy', 'true');
+  expect(region).not.toHaveAttribute('aria-busy');
   expect(region).toHaveClass('hk-skeleton-group', 'paths-grid');
   expect(region).toHaveTextContent('Ładowanie ścieżek');
   const shapes = region.querySelectorAll('[data-skeleton]');
@@ -27,6 +27,11 @@ it('sizes blocks and shortens the last line of text', () => {
   expect(first.style.width).toBe('100%');
   expect(last.style.width).toBe('60%');
   expect(region.querySelector('.hk-skeleton-text')).toHaveClass('extra');
+});
+
+it('marks the documented surface for each block', () => {
+  const { container } = render(<><Skeleton /><Skeleton tone="raised" /><Skeleton tone="wash" /></>);
+  expect([...container.querySelectorAll('[data-skeleton]')].map(block => block.getAttribute('data-tone'))).toEqual(['surface', 'raised', 'wash']);
 });
 
 it('keeps a single text line at full width', () => {

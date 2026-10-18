@@ -29,11 +29,11 @@ const HomePage = () => {
   if (loading || isAuthenticated) {
     return (
       <div className="hackademy-container" style={{ paddingTop: '64px', paddingBottom: '64px', minHeight: '50vh' }}>
-        <LoadingSkeleton label={loading ? 'Ładowanie strony' : 'Przekierowuję do dashboardu'}>
-          <Skeleton width="min(560px, 90%)" height={48} style={{ margin: '0 auto 20px' }} />
-          <Skeleton width="min(420px, 70%)" height={18} style={{ margin: '0 auto 10px' }} />
-          <Skeleton width="min(360px, 60%)" height={18} style={{ margin: '0 auto 32px' }} />
-          <div style={{ display: 'flex', gap: 12, justifyContent: 'center' }}>
+        <LoadingSkeleton label={loading ? 'Ładowanie strony' : 'Przekierowuję do dashboardu'} className="hk-skeleton-stack is-centered">
+          <Skeleton width="min(560px, 90%)" height={48} />
+          <Skeleton width="min(420px, 70%)" height={18} />
+          <Skeleton width="min(360px, 60%)" height={18} />
+          <div className="hk-skeleton-row">
             <Skeleton width={160} height={44} radius={8} />
             <Skeleton width={160} height={44} radius={8} />
           </div>

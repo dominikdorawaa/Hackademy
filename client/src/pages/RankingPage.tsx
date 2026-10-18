@@ -49,9 +49,9 @@ const RankingPage = () => {
         <h1 style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
         <LoadingSkeleton label="Ładowanie rankingów">
           <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', justifyContent: 'center' }}>
-            {[0, 1].map(board => <div key={board} style={{ flex: '1 1 400px', minWidth: '300px' }}>
-              <Skeleton width="50%" height={26} style={{ marginBottom: 20 }} />
-              {Array.from({ length: 10 }, (_, row) => <Skeleton key={row} height={48} radius={8} style={{ marginBottom: 8 }} />)}
+            {[0, 1].map(board => <div key={board} className="hk-skeleton-stack" style={{ flex: '1 1 400px', minWidth: '300px' }}>
+              <Skeleton width="50%" height={26} />
+              {Array.from({ length: 10 }, (_, row) => <Skeleton key={row} height={48} radius={8} />)}
             </div>)}
           </div>
         </LoadingSkeleton>

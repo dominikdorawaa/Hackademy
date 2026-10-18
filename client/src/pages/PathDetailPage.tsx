@@ -67,14 +67,15 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
   };
 
   if (loading) return <div className="hackademy-container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
-    <LoadingSkeleton label="Ładowanie ścieżki">
-      <Skeleton width={160} height={20} style={{ marginBottom: 24 }} />
-      <Skeleton width="min(480px, 80%)" height={36} style={{ marginBottom: 12 }} />
-      <SkeletonText lines={2} />
-      {[0, 1].map(index => <div key={index} style={{ marginTop: 32 }}>
-        <Skeleton width={90} height={12} style={{ marginBottom: 8 }} />
-        <Skeleton width="40%" height={22} style={{ marginBottom: 16 }} />
-        {[0, 1, 2].map(row => <Skeleton key={row} height={56} radius={10} style={{ marginBottom: 10 }} />)}
+    <LoadingSkeleton label="Ładowanie ścieżki" className="hk-skeleton-stack is-loose">
+      <Skeleton width={160} height={20} />
+      <div className="hk-skeleton-stack">
+        <Skeleton width="min(480px, 80%)" height={36} />
+        <SkeletonText lines={2} />
+      </div>
+      {[0, 1].map(index => <div key={index} className="hk-skeleton-stack">
+        <div className="hk-skeleton-pair"><Skeleton width={90} height={12} /><Skeleton width="40%" height={22} /></div>
+        {[0, 1, 2].map(row => <Skeleton key={row} height={56} radius={10} />)}
       </div>)}
     </LoadingSkeleton>
   </div>;
