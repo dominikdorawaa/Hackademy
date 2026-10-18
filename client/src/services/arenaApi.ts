@@ -70,6 +70,14 @@ export function answerQuestion(id: ApiId, round: number, answer: number, headers
   });
 }
 
+export function sendReaction(id: ApiId, reaction: string, headers: HeadersInit) {
+  return request<MessageResponse>(`/api/arena/game/${id}/reaction`, {
+    method: 'POST',
+    headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ reaction }),
+  });
+}
+
 export function surrender(id: ApiId, headers: HeadersInit) {
   return request<MessageResponse>(`/api/arena/game/${id}/surrender`, {
     method: 'POST',

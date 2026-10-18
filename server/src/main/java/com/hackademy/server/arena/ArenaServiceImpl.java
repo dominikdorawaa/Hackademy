@@ -1,6 +1,5 @@
 package com.hackademy.server.arena;
 
-import com.hackademy.server.chat.ChatService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
@@ -13,11 +12,15 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.time.LocalDateTime;
+import java.time.ZoneOffset;
+import java.util.ArrayDeque;
+import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.stream.Collectors;
 
@@ -25,11 +28,15 @@ import java.util.stream.Collectors;
 @RequiredArgsConstructor
 public class ArenaServiceImpl implements ArenaService {
 
+    static final long REACTION_GAP_MILLIS = 1_500;
+    static final long REACTION_WINDOW_MILLIS = 10_000;
+    static final int REACTION_WINDOW_LIMIT = 5;
+    static final int REACTIONS_KEPT = 8;
+
     private final ArenaQuestionRepository questionRepository;
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
     private final UserAvatarRepository avatarRepository;
-    private final ChatService chatService;
     private final UserServiceImpl userServiceImpl;
     private final DashboardSummaryCache dashboardSummaryCache;
     private final RealtimeNotifier realtime;
@@ -37,6 +44,8 @@ public class ArenaServiceImpl implements ArenaService {
 
     private final Map<String, GameSession> activeGames = new ConcurrentHashMap<>();
     private final Map<String, Challenge> challenges = new ConcurrentHashMap<>();
+    private final Map<Long, Deque<Long>> recentReactions = new ConcurrentHashMap<>();
+    private final AtomicLong reactionIds = new AtomicLong();
     private LongSupplier clock = System::currentTimeMillis;
 
     void useClock(LongSupplier clock) {
@@ -135,7 +144,6 @@ public class ArenaServiceImpl implements ArenaService {
         session.setPlayer1EloChange(0);
         session.setPlayer2EloChange(0);
         if (winnerId != null) recordWin(session, winnerId);
-        chatService.cleanupChat(session.getId());
         realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
     }
 
@@ -209,14 +217,42 @@ public class ArenaServiceImpl implements ArenaService {
     }
 
     @Override
-    public void surrenderGame(String gameId, Long userId) {
+    public SurrenderResult surrenderGame(String gameId, Long userId) {
         GameSession session = activeGames.get(gameId);
-        if (session == null) return;
+        if (session == null || !session.includes(userId)) return SurrenderResult.NOT_PLAYER;
         synchronized (session) {
-            if ("ACTIVE".equals(session.getStatus()) && session.includes(userId)) {
-                finish(session, session.opponentOf(userId), "SURRENDER");
-            }
+            if (!"ACTIVE".equals(session.getStatus())) return SurrenderResult.NOT_ACTIVE;
+            finish(session, session.opponentOf(userId), "SURRENDER");
+            return SurrenderResult.SURRENDERED;
         }
+    }
+
+    @Override
+    public ReactionOutcome react(String gameId, Long userId, String reactionId) {
+        GameSession session = activeGames.get(gameId);
+        if (session == null || !session.includes(userId)) return ReactionOutcome.of(ReactionOutcome.Status.NOT_PLAYER);
+        var reaction = QuickReaction.fromId(reactionId);
+        if (reaction.isEmpty()) return ReactionOutcome.of(ReactionOutcome.Status.UNKNOWN_REACTION);
+        var mutedUntil = userRepository.findById(userId).map(User::getMutedUntil).orElse(null);
+        if (mutedUntil != null && mutedUntil.isAfter(LocalDateTime.now(ZoneOffset.UTC))) {
+            return new ReactionOutcome(ReactionOutcome.Status.MUTED, mutedUntil, 0);
+        }
+        long now = clock.getAsLong();
+        Deque<Long> sent = recentReactions.computeIfAbsent(userId, ignored -> new ArrayDeque<>());
+        synchronized (sent) {
+            while (!sent.isEmpty() && now - sent.peekFirst() >= REACTION_WINDOW_MILLIS) sent.pollFirst();
+            long wait = sent.isEmpty() ? 0 : REACTION_GAP_MILLIS - (now - sent.peekLast());
+            if (sent.size() >= REACTION_WINDOW_LIMIT) wait = Math.max(wait, REACTION_WINDOW_MILLIS - (now - sent.peekFirst()));
+            if (wait > 0) return new ReactionOutcome(ReactionOutcome.Status.TOO_FAST, null, wait);
+            sent.addLast(now);
+        }
+        synchronized (session) {
+            var reactions = session.getReactions();
+            reactions.add(new ArenaReaction(reactionIds.incrementAndGet(), userId, reaction.get().id(), now));
+            while (reactions.size() > REACTIONS_KEPT) reactions.remove(0);
+        }
+        realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+        return ReactionOutcome.of(ReactionOutcome.Status.SENT);
     }
 
     @Override

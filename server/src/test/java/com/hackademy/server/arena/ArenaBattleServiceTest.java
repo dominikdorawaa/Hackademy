@@ -1,6 +1,5 @@
 package com.hackademy.server.arena;
 
-import com.hackademy.server.chat.ChatService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
@@ -12,6 +11,8 @@ import com.hackademy.server.user.dto.UserAvatarDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.time.LocalDateTime;
+import java.time.ZoneOffset;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.atomic.AtomicLong;
@@ -26,11 +27,10 @@ class ArenaBattleServiceTest {
     private final ArenaQuestionRepository questions = mock(ArenaQuestionRepository.class);
     private final UserRepository users = mock(UserRepository.class);
     private final UserAvatarRepository avatars = mock(UserAvatarRepository.class);
-    private final ChatService chat = mock(ChatService.class);
     private final RealtimeNotifier realtime = mock(RealtimeNotifier.class);
     private final ArenaPresence presence = mock(ArenaPresence.class);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            chat, mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
     private final AtomicLong now = new AtomicLong(10_000);
     private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod");
 
@@ -109,7 +109,6 @@ class ArenaBattleServiceTest {
         assertEquals(16, finished.getPlayer2EloChange());
         assertEquals(-16, finished.getPlayer1EloChange());
         verify(users, times(2)).save(any(User.class));
-        verify(chat).cleanupChat("game");
         assertNull(arena.findActiveGameForUser(1L));
     }
 
@@ -158,12 +157,85 @@ class ArenaBattleServiceTest {
 
     @Test
     void surrenderGivesTheWinToTheRivalOnlyForParticipants() {
-        arena.surrenderGame("game", 3L);
+        assertEquals(SurrenderResult.NOT_PLAYER, arena.surrenderGame("game", 3L));
         assertEquals("ACTIVE", state().getStatus());
-        arena.surrenderGame("game", 1L);
+        verify(users, never()).save(any());
+        assertEquals(SurrenderResult.SURRENDERED, arena.surrenderGame("game", 1L));
         assertEquals("SURRENDER", state().getFinishReason());
         assertEquals(2L, state().getWinnerId());
-        arena.surrenderGame("missing", 1L);
+        assertEquals(SurrenderResult.NOT_ACTIVE, arena.surrenderGame("game", 2L));
+        assertEquals(2L, state().getWinnerId());
+        assertEquals(SurrenderResult.NOT_PLAYER, arena.surrenderGame("missing", 1L));
         arena.finishGame("missing", 1L);
+    }
+
+    @Test
+    void reactionsReachOnlyTheGameAndKeepTheBattleUntouched() {
+        var before = state();
+        assertEquals(ReactionOutcome.Status.NOT_PLAYER, arena.react("game", 3L, "ez").status());
+        assertEquals(ReactionOutcome.Status.NOT_PLAYER, arena.react("missing", 1L, "ez").status());
+        assertEquals(ReactionOutcome.Status.UNKNOWN_REACTION, arena.react("game", 1L, "hello").status());
+        assertEquals(ReactionOutcome.Status.UNKNOWN_REACTION, arena.react("game", 1L, null).status());
+        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "67").status());
+        var after = state();
+        assertEquals(1, after.getReactions().size());
+        var reaction = after.getReactions().get(0);
+        assertEquals(1L, reaction.senderId());
+        assertEquals("67", reaction.reaction());
+        assertEquals(now.get(), reaction.sentAt());
+        assertEquals(before.getRoundEndsAt(), after.getRoundEndsAt());
+        assertEquals(before.getHp(), after.getHp());
+        assertEquals(before.getAnsweredBy(), after.getAnsweredBy());
+        verify(realtime, times(2)).changed(1L, 2L);
+    }
+
+    @Test
+    void reactionsAreRateLimitedPerPlayer() {
+        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "ez").status());
+        var tooSoon = arena.react("game", 1L, "gg");
+        assertEquals(ReactionOutcome.Status.TOO_FAST, tooSoon.status());
+        assertEquals(ArenaServiceImpl.REACTION_GAP_MILLIS, tooSoon.retryAfterMillis());
+        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 2L, "gg").status());
+        for (int sent = 1; sent < ArenaServiceImpl.REACTION_WINDOW_LIMIT; sent++) {
+            now.addAndGet(ArenaServiceImpl.REACTION_GAP_MILLIS);
+            assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "fire").status());
+        }
+        now.addAndGet(ArenaServiceImpl.REACTION_GAP_MILLIS);
+        var windowFull = arena.react("game", 1L, "fire");
+        assertEquals(ReactionOutcome.Status.TOO_FAST, windowFull.status());
+        assertEquals(ArenaServiceImpl.REACTION_WINDOW_MILLIS - 5 * ArenaServiceImpl.REACTION_GAP_MILLIS, windowFull.retryAfterMillis());
+        now.addAndGet(windowFull.retryAfterMillis());
+        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "fire").status());
+        assertEquals(ArenaServiceImpl.REACTIONS_KEPT, state().getReactions().size() + 1);
+    }
+
+    @Test
+    void onlyTheNewestReactionsAreKept() {
+        for (int sent = 0; sent < ArenaServiceImpl.REACTIONS_KEPT + 3; sent++) {
+            now.addAndGet(ArenaServiceImpl.REACTION_WINDOW_MILLIS);
+            arena.react("game", 1L + sent % 2, "clap");
+        }
+        var reactions = state().getReactions();
+        assertEquals(ArenaServiceImpl.REACTIONS_KEPT, reactions.size());
+        assertTrue(reactions.get(0).id() < reactions.get(reactions.size() - 1).id());
+    }
+
+    @Test
+    void mutedPlayersCannotReactUntilTheMuteEnds() {
+        var muted = users.findById(1L).orElseThrow();
+        muted.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).plusMinutes(5));
+        var outcome = arena.react("game", 1L, "ez");
+        assertEquals(ReactionOutcome.Status.MUTED, outcome.status());
+        assertEquals(muted.getMutedUntil(), outcome.mutedUntil());
+        assertTrue(state().getReactions().isEmpty());
+        muted.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1));
+        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "ez").status());
+    }
+
+    @Test
+    void playersCanStillReactOnTheResultScreen() {
+        arena.surrenderGame("game", 1L);
+        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 2L, "gg").status());
+        assertEquals("FINISHED", state().getStatus());
     }
 }
