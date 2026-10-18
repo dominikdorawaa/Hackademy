@@ -296,6 +296,22 @@
   gap: 10px;
 }
 
+.arena-search {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.arena-console-copy .arena-search p {
+  margin-top: 0;
+}
+
+.arena-search .arena-search-runner {
+  width: 96px;
+  flex: none;
+}
+
 .arena-pulse {
   width: 10px;
   height: 10px;
