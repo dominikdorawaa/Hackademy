@@ -105,7 +105,7 @@ Przełączenie wykonano tak:
 4. `FRONTEND_URL=https://hackademy.app` i uruchomienie dyno.
 5. Domena `hackademy.app` w projekcie Pages, reguła `www to apex` i rekord `www` z proxy.
 
-Po przełączeniu usunięto usługi Render, `render.yaml` i projekt Neon. Końcową kopią danych z Neon jest kopia Heroku `b001` z 18.10.2026.
+Po przełączeniu usunięto usługi Render i `render.yaml`. Projekt Neon pozostaje tymczasowo jako dodatkowa kopia danych sprzed przełączenia, w trybie tylko do odczytu; aplikacja z niego nie korzysta. Kopia Heroku `b001` z 18.10.2026 zawiera te same dane, więc Neon można usunąć w dowolnym momencie.
 
 Przy awarii po wdrożeniu najpierw cofnij zmianę przez revert PR-a na `main`; workflow wdroży poprzednią wersję tą samą drogą. Przy utracie lub uszkodzeniu danych przywróć ostatnią poprawną kopię zgodnie z sekcją „Kopie zapasowe”.
 
