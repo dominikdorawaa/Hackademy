@@ -11,4 +11,5 @@ RUN useradd --system --uid 10001 --create-home appuser
 COPY --from=build /app/server/target/*.jar /app/app.jar
 USER appuser
 EXPOSE 8080
-ENTRYPOINT ["java", "-jar", "/app/app.jar"]
+ENTRYPOINT []
+CMD ["java", "-jar", "/app/app.jar"]
