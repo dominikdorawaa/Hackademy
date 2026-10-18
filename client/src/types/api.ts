@@ -127,6 +127,14 @@ export interface GameSession {
   answeredBy: number[]
   question: BattleQuestion | null
   lastRound: RoundResult | null
+  reactions?: ArenaReaction[]
+}
+
+export interface ArenaReaction {
+  id: number
+  senderId: number
+  reaction: string
+  sentAt: number
 }
 
 export interface ChatMessage {

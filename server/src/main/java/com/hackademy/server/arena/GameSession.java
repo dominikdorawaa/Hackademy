@@ -44,6 +44,7 @@ public class GameSession {
     private List<Long> answeredBy = new ArrayList<>();
     private BattleQuestion question;
     private RoundResult lastRound;
+    private List<ArenaReaction> reactions = new ArrayList<>();
 
     @JsonIgnore
     private List<ArenaQuestion> questions = new ArrayList<>();
@@ -89,6 +90,7 @@ public class GameSession {
         copy.answeredBy = new ArrayList<>(answeredBy);
         copy.question = question;
         copy.lastRound = lastRound;
+        copy.reactions = new ArrayList<>(reactions);
         return copy;
     }
 }
