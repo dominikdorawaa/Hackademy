@@ -1,7 +1,7 @@
 import { useEffect, useState, useSyncExternalStore } from 'react';
 import { Link, useParams } from 'react-router-dom';
-import ArenaChat from '../components/ArenaChat';
 import { BattleScene } from '../components/arena/battle/BattleScene';
+import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
   eloChange, finishText, outcome, outcomeTitle, perspective, roundSummary, secondsLeft,
 } from '../components/arena/battle/battleView';
@@ -14,6 +14,7 @@ import './UserDashboardPage.css';
 import './ArenaBattlePage.css';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
+const NOTICE_MS = 4000;
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const subscribeReducedMotion = (onChange: () => void) => {
   if (typeof window.matchMedia !== 'function') return () => undefined;
@@ -38,7 +39,7 @@ export default function ArenaBattlePage() {
   const [picked, setPicked] = useState<{ round: number; answer: number } | null>(null);
   const [error, setError] = useState<{ round: number | null; message: string } | null>(null);
   const [confirmSurrender, setConfirmSurrender] = useState(false);
-  const [chatOpen, setChatOpen] = useState(false);
+  const [reactionNotice, setReactionNotice] = useState<string | null>(null);
   const [clock, setClock] = useState({ serverTime: 0, receivedAt: 0, now: 0 });
   const systemReduced = useSyncExternalStore(subscribeReducedMotion, systemReducedMotion, () => false);
   const [appReduced] = useState(appReducedMotion);
@@ -60,6 +61,12 @@ export default function ArenaBattlePage() {
       .catch(() => { if (!controller.signal.aborted) setIdentityError(token); });
     return () => controller.abort();
   }, [token, identityAttempt]);
+
+  useEffect(() => {
+    if (!reactionNotice) return;
+    const timer = setTimeout(() => setReactionNotice(null), NOTICE_MS);
+    return () => clearTimeout(timer);
+  }, [reactionNotice]);
 
   useEffect(() => {
     const update = () => setClock(previous => {
@@ -100,6 +107,7 @@ export default function ArenaBattlePage() {
   const change = eloChange(session, me.id);
   const visibleError = error && (error.round === null || error.round === session.round) ? error.message : null;
   const headers = { Authorization: `Bearer ${token}` };
+  const serverNow = clock.serverTime === serverTime ? clock.now + (serverTime - clock.receivedAt) : serverTime;
 
   const answer = async (choice: number) => {
     const round = session.round;
@@ -118,6 +126,16 @@ export default function ArenaBattlePage() {
     }
   };
 
+  const react = async (reaction: string) => {
+    setReactionNotice(null);
+    try {
+      const response = await arenaApi.sendReaction(session.id, reaction, headers);
+      if (!response.ok) setReactionNotice(reactionRefusal(response.status, await response.json().catch(() => null)));
+    } catch {
+      setReactionNotice('Błąd sieci. Spróbuj jeszcze raz.');
+    }
+  };
+
   const surrender = async () => {
     setConfirmSurrender(false);
     const response = await arenaApi.surrender(session.id, headers).catch(() => null);
@@ -128,7 +146,8 @@ export default function ArenaBattlePage() {
     <div className="user-dashboard battle-page" data-still={reducedMotion}>
       <div className="battle-shell">
         <div className="battle-arena">
-          <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion}>
+          <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
+            quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>
             <div className="battle-round">
               <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
               {!finished && <p className="battle-timer" role="timer" aria-label={session.phase === 'QUESTION' ? 'Czas na odpowiedź' : 'Następna runda za'}>{left}</p>}
@@ -204,7 +223,6 @@ export default function ArenaBattlePage() {
           </div>
         )}
       </div>
-      <ArenaChat gameId={session.id} isOpen={chatOpen} toggleChat={() => setChatOpen(open => !open)} />
     </div>
   );
 }

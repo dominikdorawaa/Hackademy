@@ -12,6 +12,7 @@ import { server } from '../test/mocks/server';
 import type { GameSession } from '../types/api';
 import type { RealtimeState } from '../types/realtime';
 import ArenaBattlePage from './ArenaBattlePage';
+import { reactionRefusal } from '../components/arena/battle/quickChat';
 
 const realtime = vi.hoisted(() => ({ value: { state: null as RealtimeState | null, connected: true, error: null, synchronize: async () => {} } }));
 vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => realtime.value }));
@@ -32,7 +33,6 @@ beforeEach(() => {
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json(createUser())),
     http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json(createGameSession())),
-    http.get(`${API_URL}/api/chat/:id`, () => HttpResponse.json([])),
   );
 });
 
@@ -189,4 +189,55 @@ it('ignores a late rejection from an earlier round without clearing the new answ
   await waitFor(() => expect(screen.getByRole('button', { name: /23/ })).toHaveAttribute('aria-pressed', 'true'));
   expect(screen.getByRole('button', { name: /22/ })).toBeDisabled();
   expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+});
+
+const openQuickChat = async () => {
+  fireEvent.click(await screen.findByRole('button', { name: 'Szybkie reakcje' }));
+  return screen.getByRole('menu', { name: 'Szybkie reakcje' });
+};
+
+it('sends a quick reaction from the own portrait and has no text chat', async () => {
+  let body: unknown = null;
+  server.use(http.post(`${API_URL}/api/arena/game/game/reaction`, async ({ request }) => { body = await request.json(); return HttpResponse.json({ message: 'ok' }); }));
+  mount();
+  await openQuickChat();
+  fireEvent.click(screen.getByRole('menuitem', { name: 'EZ' }));
+  await waitFor(() => expect(body).toEqual({ reaction: 'ez' }));
+  expect(screen.queryByRole('textbox')).toBeNull();
+  expect(screen.queryByRole('alert')).toBeNull();
+});
+
+it('explains a muted or too fast reaction', async () => {
+  const replies = [
+    HttpResponse.json({ message: 'Masz wyciszone reakcje.', mutedUntil: '2126-01-01T12:00:00Z' }, { status: 403 }),
+    HttpResponse.json({ message: 'Za szybko.', retryAfter: 2 }, { status: 429 }),
+  ];
+  server.use(http.post(`${API_URL}/api/arena/game/game/reaction`, () => replies.shift() ?? HttpResponse.error()));
+  mount();
+  await openQuickChat();
+  fireEvent.click(screen.getByRole('menuitem', { name: 'GG' }));
+  expect(await screen.findByRole('alert')).toHaveTextContent('Masz wyciszone reakcje na stałe.');
+  await openQuickChat();
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Śmiech' }));
+  expect(await screen.findByText('Za szybko. Kolejna reakcja za 2 s.')).toBeInTheDocument();
+  await openQuickChat();
+  fireEvent.click(screen.getByRole('menuitem', { name: 'Szok' }));
+  expect(await screen.findByText('Błąd sieci. Spróbuj jeszcze raz.')).toBeInTheDocument();
+});
+
+it('shows the rival reaction to the player', async () => {
+  realtime.value = { ...realtime.value, state: live(createGameSession({ reactions: [{ id: 1, senderId: 2, reaction: 'laugh', sentAt: 999_500 }] })) };
+  mount();
+  expect(await screen.findByText('opponent: Śmiech')).toBeInTheDocument();
+});
+
+it('words every refused reaction', () => {
+  const now = Date.parse('2026-10-18T12:00:00Z');
+  expect(reactionRefusal(403, { mutedUntil: '2026-10-18T12:30:00Z' }, now)).toMatch(/^Masz wyciszone reakcje do .+.$/);
+  expect(reactionRefusal(403, { mutedUntil: '2126-10-18T12:00:00Z' }, now)).toBe('Masz wyciszone reakcje na stałe.');
+  expect(reactionRefusal(403, { mutedUntil: 'nie data' }, now)).toBe('Masz wyciszone reakcje.');
+  expect(reactionRefusal(403, null, now)).toBe('Nie udało się wysłać reakcji.');
+  expect(reactionRefusal(429, {}, now)).toBe('Za szybko. Kolejna reakcja za 1 s.');
+  expect(reactionRefusal(404, null, now)).toBe('Ta walka nie jest już dostępna.');
+  expect(reactionRefusal(500, null, now)).toBe('Nie udało się wysłać reakcji.');
 });

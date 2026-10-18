@@ -5,6 +5,7 @@ import { AVATAR_ATLASES } from '../avatar/fighters';
 import type { AvatarAtlas } from '../avatar/useAvatarAtlas';
 import type { Avatar } from '../avatar/avatarModel';
 import type { Finisher, Segment } from './battleView';
+import { REACTION_FRAME_MS } from './quickChat';
 
 function useSegment(segments: Segment[], motionKey: string, reducedMotion: boolean) {
   const [progress, setProgress] = useState({ key: motionKey, index: 0 });
@@ -23,16 +24,20 @@ function useSegment(segments: Segment[], motionKey: string, reducedMotion: boole
   return { segment: segments[index], index };
 }
 
-export function BattleFighter({ look, atlas, segments, reducedMotion, label, side, motionKey, finishedBy = null }: {
+export function BattleFighter({ look, atlas, segments, reducedMotion, label, side, motionKey, finishedBy = null, reaction = null }: {
   look: Avatar; atlas: AvatarAtlas; segments: Segment[]; reducedMotion: boolean; label: string; side: 'me' | 'rival'; motionKey: string; finishedBy?: Finisher | null;
+  reaction?: { key: number; frames: number[] } | null;
 }) {
   const { segment, index } = useSegment(segments, motionKey, reducedMotion);
   const idle = segment.loop && segment.frames.length === 1;
+  const dance = reaction && idle && index === segments.length - 1 && !reducedMotion ? reaction : null;
   return (
-    <div className={`battle-fighter is-${side}`} data-idle={idle} data-frames={segment.frames.join(',')} data-finished-by={finishedBy?.move}
+    <div className={`battle-fighter is-${side}`} data-idle={idle && !dance} data-frames={(dance?.frames ?? segment.frames).join(',')} data-finished-by={finishedBy?.move}
       style={finishedBy ? { '--finish-impact': `${finishedBy.impact}ms` } as CSSProperties : undefined}>
-      <AvatarSprite key={`${motionKey}-${index}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
-          frames={segment.frames} loop={segment.loop} frameTime={segment.frameTime} reducedMotion={reducedMotion} label={label} />
+      {dance ? <AvatarSprite key={`reaction-${dance.key}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
+          frames={dance.frames} loop={false} frameTime={REACTION_FRAME_MS} label={label} />
+        : <AvatarSprite key={`${motionKey}-${index}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
+          frames={segment.frames} loop={segment.loop} frameTime={segment.frameTime} reducedMotion={reducedMotion} label={label} />}
     </div>
   );
 }

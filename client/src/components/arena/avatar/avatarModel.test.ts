@@ -87,6 +87,16 @@ it('places an overlay on each anchored frame with translation and rotation', () 
   expect(target.filter((_, index) => index % 4 === 3 && target[index] === 255)).toHaveLength(2);
 });
 
+it('keeps head items above the floor line of a lying frame', () => {
+  const target = new Uint8ClampedArray(64 * 64 * 4);
+  const overlay = atlas([[10, 8, '#ff0000'], [10, 12, '#00ff00']]);
+  compositeOverlay(target, 64, overlay, { center: [10, 10], cells: { 0: { angle: 0, x: 30, y: 52, floor: 52 } } });
+  const at = (x: number, y: number) => [...target.slice((y * 64 + x) * 4, (y * 64 + x) * 4 + 4)];
+  expect(at(30, 50)).toEqual([255, 0, 0, 255]);
+  expect(at(30, 54)).toEqual([0, 0, 0, 0]);
+  expect(target.filter((_, index) => index % 4 === 3 && target[index] === 255)).toHaveLength(1);
+});
+
 it('uses front overlays and the front head center only for front-view cells', () => {
   const target = new Uint8ClampedArray(128 * 64 * 4);
   const overlay = atlas([[30, 5, '#00ff00']]);

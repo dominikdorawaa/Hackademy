@@ -19,7 +19,6 @@ import * as httpService from '../services/http';
 import { createGameSession } from '../test/fixtures/arena';
 
 const connections = vi.hoisted(() => [] as { callbacks: RealtimeCallbacks; start: ReturnType<typeof vi.fn>; stop: ReturnType<typeof vi.fn> }[]);
-vi.mock('../components/ArenaChat', () => ({ default: () => null }));
 vi.mock('../services/RealtimeConnection', () => ({
   RealtimeConnection: class {
     start = vi.fn();
