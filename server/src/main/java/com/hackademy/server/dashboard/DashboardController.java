@@ -104,7 +104,10 @@ public class DashboardController {
         }, dashboardTaskExecutor);
 
         @SuppressWarnings("unchecked")
-        List<PathSummaryDto> allPaths = (List<PathSummaryDto>) allPathsF.join();
+        List<PathSummaryDto> listed = (List<PathSummaryDto>) allPathsF.join();
+        List<PathSummaryDto> allPaths = listed == null ? List.of() : listed.stream()
+                .filter(path -> path.systemKey() == null)
+                .toList();
         PathSummaryDto recommended = null;
         if (allPaths != null && !allPaths.isEmpty()) {
             int idx = ThreadLocalRandom.current().nextInt(allPaths.size());

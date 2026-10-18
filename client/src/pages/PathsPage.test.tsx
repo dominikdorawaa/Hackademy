@@ -27,11 +27,12 @@ const mount = () => renderWithAuth(<>
 it('lists paths, loads banners in view and enrolls without opening the path', async () => {
   let enrolled = 0;
   server.use(
-    http.get(`${API_URL}/api/paths`, () => HttpResponse.json([path(1, false), path(2, true)])),
+    http.get(`${API_URL}/api/paths`, () => HttpResponse.json([path(1, false), path(2, true), { ...path(3, false), title: 'Dyżur Zero', systemKey: 'ukos' }])),
     http.post(`${API_URL}/api/paths/1/enroll`, () => { enrolled++; return new HttpResponse(null, { status: 200 }); }),
   );
   mount();
-  expect(await screen.findByText('Dostępne: 2')).toBeInTheDocument();
+  expect(await screen.findByText('Dostępne: 3')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /Dyżur Zero/ })).toHaveAttribute('href', '/learn/ukos');
   await waitFor(() => expect(document.querySelector('.path-card-media img')).toHaveAttribute('src', `${API_URL}/banner.png`));
   fireEvent.click(screen.getByRole('button', { name: 'Dołącz' }));
   await waitFor(() => expect(screen.getAllByText('Zapisany')).toHaveLength(2));

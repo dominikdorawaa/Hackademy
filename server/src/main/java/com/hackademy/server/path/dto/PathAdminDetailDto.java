@@ -15,5 +15,6 @@ public record PathAdminDetailDto(
     boolean published,
     long contentRevision,
     PathUnlockMode unlockMode,
-    List<PathChapterAdminDto> chapters
+    List<PathChapterAdminDto> chapters,
+    String systemKey
 ) {}

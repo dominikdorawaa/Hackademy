@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Pencil, Plus, Trash2 } from 'lucide-react';
+import { Eye, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '../../context/AuthContext';
@@ -77,6 +78,7 @@ export default function PathsPage() {
                 <TableRow key={path.id}>
                   <TableCell className="font-medium">
                     <Link to={`/admin/paths/${path.id}`} className="hover:text-primary hover:underline underline-offset-4">{path.title}</Link><span className="ml-2 text-xs text-muted-foreground">{path.published === false ? 'Szkic' : 'Opublikowany'}</span>
+                    {path.systemKey && <Badge variant="secondary" className="ml-2"><Lock />Systemowa</Badge>}
                   </TableCell>
                   <TableCell className="hidden max-w-sm truncate text-muted-foreground md:table-cell">{path.description || 'Bez opisu'}</TableCell>
                   <TableCell className="text-right tabular-nums">
@@ -84,10 +86,10 @@ export default function PathsPage() {
                   </TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
-                      <Button asChild variant="ghost" size="icon-sm" aria-label={`Edytuj ${path.title}`}>
-                        <Link to={`/admin/paths/${path.id}`}><Pencil /></Link>
+                      <Button asChild variant="ghost" size="icon-sm" aria-label={`${path.systemKey ? 'Zobacz' : 'Edytuj'} ${path.title}`}>
+                        <Link to={`/admin/paths/${path.id}`}>{path.systemKey ? <Eye /> : <Pencil />}</Link>
                       </Button>
-                      {isAdmin && (
+                      {isAdmin && !path.systemKey && (
                         <ConfirmAction
                           title={`Usunąć ścieżkę „${path.title}”?`}
                           description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną, ale nie będą przypisane do żadnej ścieżki."
