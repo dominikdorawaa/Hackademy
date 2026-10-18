@@ -28,7 +28,7 @@ The avatar is stored in `user_avatars` (migration V12, pose added in V14): outfi
 
 ## Ranked Arena
 
-`/arena` opens with a player card: the avatar portrait, the Elo league in its colour, the Elo number, the position in the Elo ranking and progress to the next league, next to the call to action and a five-step league ladder. Leagues are computed from Elo in `client/src/components/arena/leagues.ts`: Brąz below 600, Srebro from 600, Złoto from 800, Platyna from 1000 and Diament from 1200. The right column lists friends to challenge with the duel record against each, then the rules of ranked duels.
+`/arena` opens with a player card: the avatar portrait, the Elo league in its colour, the Elo number, the position in the Elo ranking and progress to the next league, next to the call to action and a five-step league ladder. Leagues are computed from Elo in `client/src/components/arena/leagues.ts`: Script Kiddie below 600, Skaner from 600, Exploit from 800, Root from 1000 and Zero-day from 1200. Each league has a pixel shield icon generated in PixelLab (`client/public/assets/arena/leagues`, listed in `provenance.json`) with its own symbol: a terminal prompt, a scanner, a lightning bolt, a crown and a star. `LeagueIcon` shows it on the player card and on the ladder; the current league's icon floats and catches a light glint, and unreached leagues are greyed out, so the league reads without relying on colour. The right column lists friends to challenge with the duel record against each, then the rules of ranked duels.
 
 ## Avatar battles
 
