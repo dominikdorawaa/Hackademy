@@ -1,0 +1,31 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-10-17",
+  "sources": "local-prototype-backups/arena-battle-v2",
+  "effects": [
+    {
+      "file": "data-packet.png",
+      "endpoint": "create-image-pixflux",
+      "description": "A glowing cyan data packet projectile flying to the right: a small bright cube of light with tiny white binary digits inside, short teal light trail behind it on the left. Chunky clean pixel art for a 64px browser fighting game, cyan, teal and white palette, transparent background, no text.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 89001,
+      "processing": "Alpha cut at 128 and cropped to the visible pixels.",
+      "sha256": "a1008a6a2ea5914cc92277fc4c3c87a276e2b7ae4bc169f087a774ee1eb19baa"
+    },
+    {
+      "file": "data-burst.png",
+      "endpoint": "create-image-pixflux",
+      "description": "A cyan digital impact burst: a small explosion of glowing cyan and white square pixels and short light rays radiating from the center, like a glitch hit spark. Chunky clean pixel art for a 64px browser fighting game, cyan, teal and white palette, transparent background, no text.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 89001,
+      "processing": "Alpha cut at 128 and cropped to the visible pixels.",
+      "sha256": "46f613234bc1fb76b2ee1469ae8d6a37c06117a0d4c0f18db84c5bcc0ce52c2a"
+    }
+  ]
+}

@@ -78,11 +78,11 @@ it('reveals the correct answer, both choices and who hit', async () => {
   expect(within(answers[3]).getByText('opponent')).toBeInTheDocument();
   await waitFor(() => expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '80'));
   expect(screen.getByRole('timer', { name: 'Następna runda za' })).toHaveTextContent('3');
-  expect(screen.getByTestId('fireball-me')).toHaveTextContent('-20');
-  expect(screen.queryByTestId('fireball-rival')).not.toBeInTheDocument();
+  expect(screen.getByTestId('shot-me')).toHaveTextContent('-20');
+  expect(screen.queryByTestId('shot-rival')).not.toBeInTheDocument();
 });
 
-it('hides the fireballs when the player asked for reduced motion', async () => {
+it('hides the shots when the player asked for reduced motion', async () => {
   localStorage.setItem('app-reduced-motion', 'true');
   realtime.value = { ...realtime.value, state: live(createGameSession({
     phase: 'REVEAL', question: null,
@@ -90,7 +90,7 @@ it('hides the fireballs when the player asked for reduced motion', async () => {
   })) };
   mount();
   await screen.findByText('Trafiasz! Rywal traci 20 HP.');
-  expect(screen.queryByTestId('fireball-me')).not.toBeInTheDocument();
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
   expect(document.querySelector('.battle-page')).toHaveAttribute('data-still', 'true');
 });
 
