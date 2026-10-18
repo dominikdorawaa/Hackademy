@@ -5,23 +5,20 @@
   "processing": "None. Images are served unchanged and scaled with nearest-neighbor rendering.",
   "stages": [
     {
-      "file": "server-room.png",
+      "file": "server-room-arena.png",
       "endpoint": "create-image-pixflux-background",
-      "description": "Underground cybersecurity training arena inside a server room: tall server racks on the far left and far right with small blinking blue and green status lights, a large wall screen in the back center showing abstract green code lines and a simple padlock shield symbol, cable trays along the ceiling, soft blue ceiling lights, metal grate floor. Side-view 2D fighting game stage background, wide horizontal composition, camera at eye level. Chunky clean pixel art matching simple 64px browser fighting game characters, limited palette, dark navy and deep blue base with cyan and teal accents, readable large shapes. The center and the lower middle stay calm and empty for two fighters. Flat dark floor across the bottom fifth of the image, straight horizontal floor edge. No people, no characters, no text, no letters, no logos, no UI.",
+      "description": "Underground cybersecurity training arena inside a server room, seen from slightly above: tall server racks on the far left and far right with small blinking blue and green status lights, a large wall screen in the back center showing abstract green code lines and a simple padlock shield symbol, cable trays along the ceiling, soft blue ceiling lights. A wide dark metal grate floor fills the whole lower half of the image with subtle cyan floor light strips and faint perspective lines, calm and empty so text panels can sit on top of it. Side-view 2D fighting game stage background. Chunky clean pixel art matching simple 64px browser fighting game characters, limited palette, dark navy and deep blue base with cyan and teal accents. No people, no characters, no text, no letters, no logos, no UI.",
       "imageSize": {
         "width": 400,
-        "height": 188
+        "height": 300
       },
-      "outline": "selective outline",
-      "shading": "medium shading",
-      "detail": "medium detail",
-      "view": "side",
-      "seed": 73101,
-      "usage": {
-        "type": "generations",
-        "generations": 1
+      "seed": 73301,
+      "initImage": {
+        "from": "server-room room from seed 73203 (init strength 150) with its floor stretched in perspective to the bottom",
+        "strength": 200
       },
-      "sha256": "157ddb9cad5f48ea050b34d79d6b2fc2383dff867ac294ed8008a52bc71e6314"
+      "processing": "The dark bottom band below row 287 is cropped, so the image is 400x288. Used behind the whole battle arena.",
+      "sha256": "508f5e2c96004516247b1cd30974425a63de2c39657d733fa9db4366442e5e87"
     }
   ]
 }
