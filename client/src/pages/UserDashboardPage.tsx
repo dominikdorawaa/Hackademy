@@ -8,6 +8,7 @@ import { levelFromPoints, rankTitleFromPoints } from '../lib/level';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { roomHref } from '../lib/roomReturn';
 import './UserDashboardPage.css';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
@@ -491,7 +492,7 @@ const UserDashboardPage = () => {
                   {nextRoom.requiresVpn ? '. Wymaga połączenia VPN.' : ''}
                 </p>
               </div>
-              <Link className="ud-btn ud-btn-inverse" to={`/rooms/${nextRoom.id}`}>
+              <Link className="ud-btn ud-btn-inverse" to={roomHref(nextRoom.id, { kind: 'path', pathId: currentPath.id })}>
                 Wejdź do pokoju
               </Link>
             </section>
@@ -563,7 +564,7 @@ const UserDashboardPage = () => {
                         {r.locked ? (
                           <div className="ud-room-row">{content}</div>
                         ) : (
-                          <Link className="ud-room-row" to={`/rooms/${r.id}`}>
+                          <Link className="ud-room-row" to={roomHref(r.id, currentPath ? { kind: 'path', pathId: currentPath.id } : { kind: 'dashboard' })}>
                             {content}
                           </Link>
                         )}
@@ -625,7 +626,7 @@ const UserDashboardPage = () => {
                     const diff = difficultyBadge(x?.difficulty);
                     return (
                       <li key={x?.roomId}>
-                        <Link className="ud-flag" to={`/rooms/${x.roomId}`}>
+                        <Link className="ud-flag" to={roomHref(x.roomId, { kind: 'dashboard' })}>
                           <span className="ud-flag-title">{x?.title}</span>
                           <span className={`ud-diff is-${diff.cls}`}>{diff.label}</span>
                           <span className="ud-flag-xp">+{x?.points ?? 0} XP</span>

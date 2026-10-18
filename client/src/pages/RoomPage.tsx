@@ -10,6 +10,7 @@ import SuccessModal from '../components/common/SuccessModal';
 import './RoomPage.css';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import type { RoomDetailDto } from '../types/api';
+import { useRoomReturn } from '../hooks/useRoomReturn';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
@@ -47,6 +48,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
   const queryParams = new URLSearchParams(location.search);
+  const roomReturn = useRoomReturn(preview ? undefined : id, location.search, token);
 
   const handleUnlockHint = (hintId: number) => {
     if (preview) { setUnlockedHints(current => [...current, hintId]); return; }
@@ -250,8 +252,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       )}
 
       <div className="room-header">
-        <button onClick={() => navigate(preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : '/learn')} className="back-btn">
-            &larr; Powrót
+        <button type="button" disabled={!preview && roomReturn.pending} aria-busy={!preview && roomReturn.pending} onClick={() => navigate(preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : roomReturn.to)} className="back-btn">
+            <span aria-hidden="true">&larr;</span> {preview ? 'Powrót' : roomReturn.label}
         </button>
         <div className="room-meta-top">
              <span className={`difficulty-badge ${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>

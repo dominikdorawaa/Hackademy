@@ -5,6 +5,7 @@ import { BannerImage } from './admin/PathEditorPage';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { roomHref } from '../lib/roomReturn';
 import './PathDetailPage.css';
 import { LoadingSkeleton, Skeleton, SkeletonText } from '../components/common/Skeleton';
 import type { PathDetailDto, PathUnlockMode, RoomSummaryDto } from '../types/api';
@@ -178,7 +179,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
                             <button
                               className={`btn ${r.locked ? 'btn-outline' : 'btn-primary'}`}
                               disabled={r.locked}
-                              onClick={() => navigate(preview ? `/admin/preview/rooms/${r.id}?kind=PATH&pathId=${id}` : `/rooms/${r.id}`)}
+                              onClick={() => navigate(preview ? `/admin/preview/rooms/${r.id}?kind=PATH&pathId=${id}` : roomHref(r.id, id ? { kind: 'path', pathId: id } : undefined))}
                               style={{ padding: '8px 16px', fontSize: '0.9rem' }}
                             >
                               {r.solved ? 'Powtórz' : 'Start'} <i className="fas fa-arrow-right" style={{ marginLeft: '8px' }} />
