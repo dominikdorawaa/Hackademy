@@ -179,7 +179,7 @@ export function recolorOverlay(pixels: Uint8ClampedArray, ramp: Ramp) {
   return out;
 }
 
-export interface HeadAnchor { angle: number; x: number; y: number; view?: 'side' | 'front' }
+export interface HeadAnchor { angle: number; x: number; y: number; view?: 'side' | 'front'; floor?: number }
 export interface HeadAnchors { center: [number, number]; frontCenter?: [number, number]; cells: Record<string, HeadAnchor | null> }
 
 export function compositeOverlay(atlas: Uint8ClampedArray, width: number, overlay: Uint8ClampedArray, anchors: HeadAnchors, view: 'side' | 'front' = 'side') {
@@ -189,7 +189,8 @@ export function compositeOverlay(atlas: Uint8ClampedArray, width: number, overla
     const index = Number(key), cellX = (index % (width / 64)) * 64, cellY = Math.floor(index / (width / 64)) * 64;
     if ((cellY + 64) * width * 4 > atlas.length) continue;
     const radians = -anchor.angle * Math.PI / 180, cos = Math.cos(radians), sin = Math.sin(radians);
-    for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+    const bottom = Math.min(63, anchor.floor ?? 63);
+    for (let y = 0; y <= bottom; y++) for (let x = 0; x < 64; x++) {
       const dx = x - anchor.x, dy = y - anchor.y;
       const sx = Math.round(centerX + dx * cos - dy * sin), sy = Math.round(centerY + dx * sin + dy * cos);
       if (sx < 0 || sy < 0 || sx > 63 || sy > 63) continue;

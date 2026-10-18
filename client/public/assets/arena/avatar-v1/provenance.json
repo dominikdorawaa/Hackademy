@@ -82,11 +82,11 @@
       "sha256": "b91714c4e42fdf32d8890d8c7da2133c9344c3c725f96dbf1491df8633719ba6"
     }
   ],
-  "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) uses the whole head of the calm side profile, chin included, upright and resting on the forearm, so head items sit on the head and no squashed face shows under it.",
+  "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the whole calm side profile turned 90 degrees clockwise, lying flat face down with the head forward on the y=54 ground line; its anchor turns the head items the same way and its floor value stops them at the ground.",
   "atlasSha256": {
-    "fighter.png": "41e64e20f202d7a97c23e34ac37347f634de9b761caffbd47582e144f9e0f860",
-    "hoodie/fighter.png": "0bbc31687e6126c375d99c033d4cb4116753b51388684bf8314c027926465ec7",
-    "track/fighter.png": "9f94a4edccf8726834ab972b28103785b4f4a503da0a0b38a6226d8c08f0e495"
+    "fighter.png": "7f8da23b0e138badc43399ec4f4f4fa1e5ef0d0e8e42bd5e55ead405fd0b6b0e",
+    "hoodie/fighter.png": "e7361e7748867115eb69cb0dbe17314a943e0a816acaf64940fb824a04b067e0",
+    "track/fighter.png": "22e895f3a8e3596c84eabe70391104e957ea1e9b2a35366cf6dfc3c01a43f48b"
   },
   "run": {
     "generatedAt": "2026-10-17",
