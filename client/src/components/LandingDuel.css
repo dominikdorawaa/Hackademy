@@ -1,0 +1,36 @@
+.landing-duel {
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 4px;
+  margin-bottom: 25px;
+}
+
+.landing-fighter {
+  width: 128px;
+  height: 128px;
+  margin-bottom: -18px;
+}
+
+.landing-fighter.is-rival {
+  transform: scaleX(-1);
+}
+
+.landing-fighter .avatar-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.landing-duel .vs-icon {
+  align-self: center;
+}
+
+@media (max-width: 480px) {
+  .landing-fighter {
+    width: 96px;
+    height: 96px;
+    margin-bottom: -14px;
+  }
+}

@@ -437,6 +437,17 @@ a.ud-room-row:hover {
   max-width: 44ch;
 }
 
+.ud-flags-empty {
+  display: flex;
+  align-items: flex-end;
+  gap: 20px;
+  margin-top: 14px;
+}
+
+.ud-flags-empty .ud-empty {
+  margin-top: 0;
+}
+
 /* --- Standings: the competition column --- */
 .ud-board {
   position: sticky;

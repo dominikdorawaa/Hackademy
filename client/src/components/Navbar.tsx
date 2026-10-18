@@ -1,3 +1,4 @@
+import { PixelSprite, SPRITES } from './PixelSprite';
 import UserAvatar from '../components/UserAvatar';
 import * as userApi from '../services/userApi';
 import * as friendApi from '../services/friendApi';
@@ -363,7 +364,7 @@ const Navbar = () => {
                     borderRadius: '20px',
                     border: '1px solid rgba(255, 152, 0, 0.3)'
                 }} title="Dni z rzędu">
-                    <i className="fas fa-fire"></i>
+                    <PixelSprite sprite={SPRITES.flame} still={!userData.streak} className={userData.streak ? 'nav-streak-flame' : 'nav-streak-flame is-out'} />
                     <span>{userData.streak || 0}</span>
                 </div>
 

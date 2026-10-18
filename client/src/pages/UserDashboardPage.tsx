@@ -9,6 +9,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './UserDashboardPage.css';
+import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import type { DashboardUser, FriendDto, UserSearchDto, RankingEntry, RecentSolvedRoomDto, PathSummaryDto, PathProgressDto, PathRoomMiniDto } from '../types/api';
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
@@ -610,9 +611,12 @@ const UserDashboardPage = () => {
             <section className="ud-panel ud-flags" aria-labelledby="ud-flags-title">
               <h2 id="ud-flags-title">Ostatnio zdobyte flagi</h2>
               {recentList.length === 0 ? (
-                <p className="ud-empty">
-                  Tu pojawią się rozwiązane pokoje. Pierwszą flagę zdobędziesz w dowolnej ścieżce.
-                </p>
+                <div className="ud-flags-empty">
+                  <PixelSprite sprite={SPRITES.flag} scale={2} duration={900} className="ud-flags-sprite" />
+                  <p className="ud-empty">
+                    Tu pojawią się rozwiązane pokoje. Pierwszą flagę zdobędziesz w dowolnej ścieżce.
+                  </p>
+                </div>
               ) : (
                 <ul className="ud-flag-list">
                   {recentList.map((x) => {
