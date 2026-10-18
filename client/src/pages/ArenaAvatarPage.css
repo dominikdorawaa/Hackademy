@@ -100,6 +100,11 @@
   .avatar-styles, .avatar-swatches { display: flex; flex-wrap: wrap; gap: 8px; }
   .avatar-styles label, .avatar-swatches label { position: relative; }
   .avatar-hint { margin-top: 10px; }
+  .avatar-poses { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 8px; }
+  .avatar-poses label { position: relative; display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 12px 8px; border-radius: var(--ud-radius); background: var(--ud-surface-2); font-size: var(--ud-text-s); font-weight: 600; cursor: pointer; }
+  .avatar-poses label:hover { background: var(--ud-track); }
+  .avatar-poses label[data-selected='true'] { background: var(--ud-blue-soft); outline: 2px solid var(--ud-link); outline-offset: -2px; }
+  .avatar-pose-image { display: block; width: 64px; height: 64px; border-radius: var(--ud-radius); background: var(--ud-surface); image-rendering: pixelated; }
   .avatar-colors { display: grid; gap: 18px; }
   .avatar-colors legend > span { display: inline-block; }
   .avatar-color-name { float: right; font-weight: 400; }

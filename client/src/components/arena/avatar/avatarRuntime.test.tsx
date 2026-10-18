@@ -127,3 +127,13 @@ it('returns no portrait when the front view cannot be built', async () => {
   await act(async () => { await new Promise(resolve => setTimeout(resolve, 0)); });
   expect(result.current).toBeNull();
 });
+
+it('builds a separate portrait for each pose', async () => {
+  const base = toAvatarConfig({ ...DEFAULT_AVATAR, outfit: 'bluza', hair: 'kucyk' });
+  const front = renderHook(() => useAvatarPortrait(base));
+  const stance = renderHook(() => useAvatarPortrait({ ...base, pose: 'postawa' }));
+  const side = renderHook(() => useAvatarPortrait({ ...base, pose: 'profil' }));
+  await waitFor(() => [front, stance, side].forEach(hook => expect(hook.result.current).toMatch(/^blob:/)));
+  expect(new Set([front.result.current, stance.result.current, side.result.current]).size).toBe(3);
+  expect(fetch).toHaveBeenCalledWith('/assets/arena/avatar-v1/profile/anchors-bluza.json');
+});

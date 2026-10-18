@@ -1,0 +1,24 @@
+.pixel-sprite {
+  display: inline-block;
+  flex: none;
+  width: var(--sprite-width);
+  height: var(--sprite-height);
+  background: var(--sprite) 0 0 / calc(var(--sprite-width) * var(--sprite-frames)) var(--sprite-height) no-repeat;
+  image-rendering: pixelated;
+  animation: pixel-sprite-play var(--sprite-duration) steps(var(--sprite-frames)) infinite;
+}
+
+@keyframes pixel-sprite-play {
+  to { background-position-x: calc(var(--sprite-width) * var(--sprite-frames) * -1); }
+}
+
+.pixel-sprite[data-still='true'],
+html[data-reduced-motion='true'] .pixel-sprite {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .pixel-sprite {
+    animation: none;
+  }
+}

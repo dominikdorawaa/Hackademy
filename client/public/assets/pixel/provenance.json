@@ -1,0 +1,151 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-10-18",
+  "sources": "local-prototype-backups/pixel-accents-v1",
+  "sprites": [
+    {
+      "file": "streak-flame.png",
+      "frames": 8,
+      "frameWidth": 23,
+      "frameHeight": 25,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "A single cartoon fire flame icon: orange outer flame, yellow middle, white hot core, pointed tip curling up, no logs, no wood, no campfire, just the flame. Clean chunky pixel art icon, centered, transparent background, no text.",
+        "imageSize": {
+          "width": 32,
+          "height": 32
+        },
+        "seed": 95001
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "The fire flame flickers and dances in place: the tips sway left and right and stretch up and down, the bright core pulses. The flame stays the same size, same position and same colours, seamless loop, no smoke, no sparks.",
+        "frameCount": 8,
+        "seed": 96001,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, pixels below the ground line of the first frame removed, a generated shadow under the flag base removed, the first eight frames packed side by side as a looping sprite sheet. The logs under the generated flame were removed and a one pixel dark outline was added before animating.",
+      "sha256": "476c5c65793fca2883a98a71f86990062878b8bf6955c87fb1bf9e7cd72a0799"
+    },
+    {
+      "file": "capture-flag.png",
+      "frames": 8,
+      "frameWidth": 28,
+      "frameHeight": 44,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "A capture the flag trophy: a bright cyan pennant flag with a white lightning bolt emblem on a dark metal pole planted into a small dark server box with blinking green lights. Clean chunky pixel art icon for a web app, centered, transparent background, no text, no letters.",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 94002
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "The cyan flag waves in the wind, the cloth ripples from the pole to the tip. The pole and the server box stay perfectly still, the small green lights on the box blink. Seamless loop, same colours.",
+        "frameCount": 8,
+        "seed": 96001,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, pixels below the ground line of the first frame removed, a generated shadow under the flag base removed, the first eight frames packed side by side as a looping sprite sheet.",
+      "sha256": "669fc85c9aa6856298de7fb6d77abb010aca4cfec3e34112136b2fbe609ea3d8"
+    },
+    {
+      "file": "lost-bug.png",
+      "frames": 8,
+      "frameWidth": 38,
+      "frameHeight": 37,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "A cute small software bug creature: a round dark blue beetle with glowing cyan circuit lines on its shell, big friendly white eyes, six short legs and two antennas, seen from the side walking right. Clean chunky pixel art icon for a web app, centered, transparent background, no text, no letters.",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 94002
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "The little beetle walks in place to the right: its six legs step in a walking cycle, the antennas bob and the body bounces slightly. It stays in the same place, seamless walk loop, same colours.",
+        "frameCount": 8,
+        "seed": 96001,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, pixels below the ground line of the first frame removed, a generated shadow under the flag base removed, the first eight frames packed side by side as a looping sprite sheet.",
+      "sha256": "29d0081f3de2c2d60777f07281fa67805fd8915c490d663c5b769be217f961dd"
+    },
+    {
+      "file": "step-room.png",
+      "frames": 8,
+      "frameWidth": 42,
+      "frameHeight": 43,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "A sturdy blue metal server room door slightly open with bright cyan light shining out of the gap, a small keypad lock next to it. Clean chunky pixel art icon for a web app, front view, centered, thick dark outline, transparent background, no text, no letters.",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 97002
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "The metal door slowly swings a little wider open and then back, the cyan light from inside pulses brighter and dimmer, the keypad light blinks. The door frame stays still, same colours, seamless loop.",
+        "frameCount": 8,
+        "seed": 98001,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, pixels below the ground line of the first frame removed, a generated shadow under the flag base removed, the first eight frames packed side by side as a looping sprite sheet.",
+      "sha256": "1876314c82bef0d634851b015b27f5ef9a9db038b949109a33dfb9d6bf4899ea"
+    },
+    {
+      "file": "step-puzzle.png",
+      "frames": 8,
+      "frameWidth": 42,
+      "frameHeight": 27,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "Two red jigsaw puzzle pieces about to snap together, with a tiny white binary code pattern on them. Clean chunky pixel art icon for a web app, front view, centered, thick dark outline, transparent background, no text, no letters.",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 97002
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "The two puzzle pieces slide toward each other, snap together into one piece with a small bounce, then slide apart again. Same colours, same size, seamless loop.",
+        "frameCount": 8,
+        "seed": 98001,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, pixels below the ground line of the first frame removed, a generated shadow under the flag base removed, the first eight frames packed side by side as a looping sprite sheet.",
+      "sha256": "ecb4be19a68c76cad67f8d476efd108422f962d66647a369a31a1bc5a6bd800f"
+    },
+    {
+      "file": "step-trophy.png",
+      "frames": 8,
+      "frameWidth": 34,
+      "frameHeight": 42,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "A shiny purple and gold trophy cup with a small star on the front, standing on a dark base. Clean chunky pixel art icon for a web app, front view, centered, thick dark outline, transparent background, no text, no letters.",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 97002
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "The trophy hops up slightly and lands with a tiny bounce while the gold star on it twinkles. The trophy keeps its shape and colours, seamless loop.",
+        "frameCount": 8,
+        "seed": 98001,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, pixels below the ground line of the first frame removed, a generated shadow under the flag base removed, the first eight frames packed side by side as a looping sprite sheet.",
+      "sha256": "2fc4dc81fa28165fb3b6fca9a14566d9f2b8094a0e80bf74e2aebce5fbabc41e"
+    }
+  ]
+}

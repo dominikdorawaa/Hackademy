@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AVATAR_ATLASES } from './fighters';
-import { buildColorMap, CLOTH_RAMPS, compositeOverlay, FRONT_VIEWS, HAIR_RAMPS, HEAD_ANCHORS, HEAD_OVERLAYS, OUTFIT_SPECS, recolorAtlas, recolorOverlay } from './avatarModel';
+import { buildColorMap, CLOTH_RAMPS, compositeOverlay, FRONT_VIEWS, HAIR_RAMPS, HEAD_ANCHORS, HEAD_OVERLAYS, OUTFIT_SPECS, PORTRAIT_CROPS, PROFILE_VIEWS, recolorAtlas, recolorOverlay } from './avatarModel';
 import type { Avatar, ColorMap, HeadAnchors } from './avatarModel';
 import { fromAvatarConfig } from './avatarModel';
 import type { AvatarConfig } from '../../../types/api';
@@ -39,10 +39,27 @@ function loadSource(outfit: Avatar['outfit']) {
   return sources.get(outfit)!;
 }
 
-const fronts = new Map<Avatar['outfit'], Promise<Source>>();
-function loadFront(outfit: Avatar['outfit']) {
-  if (!fronts.has(outfit)) fronts.set(outfit, readPixels(HEAD_BASE + FRONT_VIEWS[outfit].image).then(result => ({ ...result, map: buildColorMap(result.pixels, OUTFIT_SPECS[outfit]) })).catch(error => { fronts.delete(outfit); throw error; }));
-  return fronts.get(outfit)!;
+const views = new Map<string, Promise<Source>>();
+function loadView(outfit: Avatar['outfit'], image: string) {
+  if (!views.has(image)) views.set(image, readPixels(HEAD_BASE + image).then(result => ({ ...result, map: buildColorMap(result.pixels, OUTFIT_SPECS[outfit]) })).catch(error => { views.delete(image); throw error; }));
+  return views.get(image)!;
+}
+const loadFront = (outfit: Avatar['outfit']) => loadView(outfit, FRONT_VIEWS[outfit].image);
+
+async function portraitPixels(avatar: Avatar) {
+  const spec = OUTFIT_SPECS[avatar.outfit];
+  if (avatar.pose === 'postawa') {
+    const source = await loadSource(avatar.outfit), cell = new Uint8ClampedArray(64 * 64 * 4);
+    for (let y = 0; y < 64; y++) cell.set(source.pixels.subarray(y * source.width * 4, y * source.width * 4 + 256), y * 256);
+    const pixels = recolorAtlas(cell, 64, source.map, spec, avatar.colors);
+    await dressHead(pixels, 64, avatar, HEAD_ANCHORS[avatar.outfit], '');
+    return pixels;
+  }
+  const view = avatar.pose === 'profil' ? PROFILE_VIEWS[avatar.outfit] : FRONT_VIEWS[avatar.outfit];
+  const source = await loadView(avatar.outfit, view.image);
+  const pixels = recolorAtlas(source.pixels, source.width, source.map, spec, avatar.colors);
+  await dressHead(pixels, source.width, avatar, view.anchors, avatar.pose === 'profil' ? '' : 'front/');
+  return pixels;
 }
 
 async function dressHead(pixels: Uint8ClampedArray, width: number, avatar: Avatar, anchorFile: string, prefix: string) {
@@ -101,12 +118,10 @@ export function useAvatarAtlas(avatar: Avatar) {
 
 const portraits = createPortraitCache(async key => {
   const avatar: Avatar = JSON.parse(key);
-  const front = await loadFront(avatar.outfit);
-  const pixels = recolorAtlas(front.pixels, front.width, front.map, OUTFIT_SPECS[avatar.outfit], avatar.colors);
-  await dressHead(pixels, front.width, avatar, FRONT_VIEWS[avatar.outfit].anchors, 'front/');
+  const pixels = await portraitPixels(avatar), [left, top] = PORTRAIT_CROPS[avatar.pose];
   const face = document.createElement('canvas');
   face.width = 32; face.height = 32;
-  face.getContext('2d')!.drawImage(toCanvas(pixels, front.width, front.height), 16, 0, 32, 32, 0, 0, 32, 32);
+  face.getContext('2d')!.drawImage(toCanvas(pixels, 64, 64), left, top, 32, 32, 0, 0, 32, 32);
   return toUrl(face);
 });
 

@@ -4,7 +4,7 @@ import UserAvatar from '../../UserAvatar';
 import { useAvatarAtlas } from '../avatar/useAvatarAtlas';
 import { BattleEffects } from './BattleEffects';
 import { BattleFighter } from './BattleFighter';
-import { animatedRound, choreography, IMPACT_MS, MAX_HP } from './battleView';
+import { animatedRound, choreography, finisher, impactAt, MAX_HP } from './battleView';
 import type { Fighter } from './battleView';
 import type { GameSession } from '../../../types/api';
 
@@ -33,15 +33,20 @@ export function BattleScene({ session, me, rival, reducedMotion, children }: {
   const ready = Boolean(meAtlas && rivalAtlas);
   const exchange = animatedRound(session);
   const motionKey = `${session.id}-${session.round}-${session.phase}-${session.status}`;
-  const [impact, setImpact] = useState<string | null>(null);
+  const finish = finisher(session);
+  const [landed, setLanded] = useState<{ key: string; ids: number[] }>({ key: '', ids: [] });
   const animate = Boolean(exchange && !reducedMotion);
+  const meImpact = impactAt(session, me.id), rivalImpact = impactAt(session, rival.id);
   useEffect(() => {
     if (!ready || !animate) return;
-    const timer = setTimeout(() => setImpact(motionKey), IMPACT_MS);
-    return () => clearTimeout(timer);
-  }, [ready, animate, motionKey]);
-  const hp = (fighter: Fighter) => animate && impact !== motionKey
+    const timers = ([[me.id, meImpact], [rival.id, rivalImpact]] as const).map(([id, ms]) => setTimeout(() => setLanded(previous => ({
+      key: motionKey, ids: [...(previous.key === motionKey ? previous.ids : []), id],
+    })), ms));
+    return () => timers.forEach(clearTimeout);
+  }, [ready, animate, motionKey, me.id, rival.id, meImpact, rivalImpact]);
+  const hp = (fighter: Fighter) => animate && !(landed.key === motionKey && landed.ids.includes(fighter.id))
     ? Math.min(MAX_HP, fighter.hp + (exchange?.damage[fighter.id] ?? 0)) : fighter.hp;
+  const finishedBy = (fighter: Fighter) => finish && animate && finish.loserId === fighter.id ? finish : null;
 
   return <>
     <header className="battle-hud">
@@ -52,10 +57,10 @@ export function BattleScene({ session, me, rival, reducedMotion, children }: {
     <section className="battle-stage" aria-label="Arena walki" aria-busy={!ready}>
       {meAtlas && rivalAtlas ? <>
         <BattleFighter key={`me-${motionKey}`} look={me.look} atlas={meAtlas} segments={choreography(session, me.id, rival.id)} reducedMotion={reducedMotion}
-          label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} />
+          label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} finishedBy={finishedBy(me)} />
         <BattleFighter key={`rival-${motionKey}`} look={rival.look} atlas={rivalAtlas} segments={choreography(session, rival.id, me.id)} reducedMotion={reducedMotion}
-          label={`Awatar rywala, ${rival.username}`} side="rival" motionKey={motionKey} />
-        {!reducedMotion && <BattleEffects key={motionKey} round={exchange} meId={me.id} rivalId={rival.id} />}
+          label={`Awatar rywala, ${rival.username}`} side="rival" motionKey={motionKey} finishedBy={finishedBy(rival)} />
+        {!reducedMotion && <BattleEffects key={motionKey} round={exchange} meId={me.id} rivalId={rival.id} finish={finish} />}
       </> : <p className="battle-stage-loading" role="status">Przygotowuję postacie…</p>}
     </section>
   </>;

@@ -82,6 +82,243 @@
       "sha256": "b91714c4e42fdf32d8890d8c7da2133c9344c3c725f96dbf1491df8633719ba6"
     }
   ],
-  "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row.",
-  "atlasSha256": "75c07b7d235baeb392ebdee9da58c9db732413506514fe6281c7bb4596b6c74f"
+  "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) has the idle head restamped upright, 3 px higher and outlined, so head items rest on top of the head instead of covering the face.",
+  "atlasSha256": {
+    "fighter.png": "e2e917b40f2cae04e45b5730f397d547c1f80af53591f3339de2d880e84ec1e5",
+    "hoodie/fighter.png": "1cbb9e7d7e536ae52aeba0627fb3064addf2a4f3f1a4db878d4c5533a4dd699c",
+    "track/fighter.png": "f2220fa40c2684ff398acbac51c6f8eb43cf203a5218ca60a6057a826f0c604c"
+  },
+  "run": {
+    "generatedAt": "2026-10-17",
+    "sources": "local-prototype-backups/arena-run-v1",
+    "outfits": {
+      "baza": {
+        "pose": {
+          "from": "stance cell 0 of the outfit atlas",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character, same face, clothes, colours and size. Change only the pose to running: mid-stride side view facing right, front knee lifted, rear leg pushing back, elbows bent about 90 degrees, arms swinging, relaxed open fists. Feet on the same ground line, full body visible.",
+          "seed": 81002,
+          "variant": 0
+        },
+        "animation": {
+          "endpoint": "animate-with-text-v3",
+          "action": "Seamless looping running cycle in place. Strict SIDE VIEW facing RIGHT every frame, never turn toward the camera. Legs alternate: the lifted front knee comes down while the rear leg swings forward, then the other leg lifts; arms pump opposite to the legs with bent elbows. Small up and down bounce of the whole body, head keeps the same size and shape. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no dust.",
+          "frameCount": 8,
+          "seed": 82001,
+          "firstAndLastFrame": "pose"
+        }
+      },
+      "bluza": {
+        "pose": {
+          "from": "stance cell 0 of the outfit atlas",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character, same face, clothes, colours and size. Change only the pose to running: mid-stride side view facing right, front knee lifted, rear leg pushing back, elbows bent about 90 degrees, arms swinging, relaxed open fists. Feet on the same ground line, full body visible.",
+          "seed": 81002,
+          "variant": 0
+        },
+        "animation": {
+          "endpoint": "animate-with-text-v3",
+          "action": "Seamless looping running cycle in place. Strict SIDE VIEW facing RIGHT every frame, never turn toward the camera. Legs alternate: the lifted front knee comes down while the rear leg swings forward, then the other leg lifts; arms pump opposite to the legs with bent elbows. Small up and down bounce of the whole body, head keeps the same size and shape. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no dust.",
+          "frameCount": 8,
+          "seed": 82001,
+          "firstAndLastFrame": "pose"
+        }
+      },
+      "dres": {
+        "pose": {
+          "from": "stance cell 0 of the outfit atlas",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character, same face, clothes, colours and size. Change only the pose to running: mid-stride side view facing right, front knee lifted, rear leg pushing back, elbows bent about 90 degrees, arms swinging, relaxed open fists. Feet on the same ground line, full body visible.",
+          "seed": 81002,
+          "variant": 0
+        },
+        "animation": {
+          "endpoint": "animate-with-text-v3",
+          "action": "Seamless looping running cycle in place. Strict SIDE VIEW facing RIGHT every frame, never turn toward the camera. Legs alternate: the lifted front knee comes down while the rear leg swings forward, then the other leg lifts; arms pump opposite to the legs with bent elbows. Small up and down bounce of the whole body, head keeps the same size and shape. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no dust.",
+          "frameCount": 8,
+          "seed": 82003,
+          "firstAndLastFrame": "pose"
+        }
+      }
+    },
+    "processing": "Row 10 of every outfit atlas: column 0 repeats the stance, columns 1 to 8 hold generated frames 0 to 7 (frame 8 equals frame 0 and closes the loop). Alpha is cut at 128, colours snap to the outfit atlas palette, the head from the run pose (with the stance head pixels wherever both overlap) is pasted at the tracked head position so hair and hats sit exactly as in the stance, enclosed gaps of up to 6 pixels are filled, stray shoe or shirt pixels are reassigned to their surrounding material and grey tracksuit stripes are restored to white. Frames are moved down so the lowest foot touches the stance ground line."
+  },
+  "sixseven": {
+    "generatedAt": "2026-10-17",
+    "sources": "local-prototype-backups/arena-sixseven-v1",
+    "outfits": {
+      "baza": {
+        "pose": {
+          "from": "front/baza.png",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character facing the viewer, same face, clothes, colours, size and feet position. Change only the arms: both upper arms hang close to the body, elbows bent 90 degrees, forearms point forward and slightly outward, both open hands palm up at waist height like weighing something. The right hand is a little higher than the left. Full body visible.",
+          "seed": 83001,
+          "variant": 0
+        },
+        "skeleton": {
+          "endpoint": "estimate-skeleton",
+          "from": "pose"
+        },
+        "animation": {
+          "endpoint": "animate-with-skeleton-v3",
+          "description": "bald man in a navy tank top, beige trousers and dark purple shoes",
+          "action": "six seven hand gesture, palms up, hands alternating up and down",
+          "direction": "south",
+          "view": "side",
+          "frames": 15,
+          "seed": 86001,
+          "keypoints": "the estimated skeleton with both elbows bent and the wrists moving up and down in opposite directions, twice"
+        }
+      },
+      "bluza": {
+        "pose": {
+          "from": "front/bluza.png",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character facing the viewer, same face, clothes, colours, size and feet position. Change only the arms: both upper arms hang close to the body, elbows bent 90 degrees, forearms point forward and slightly outward, both open hands palm up at waist height like weighing something. The right hand is a little higher than the left. Full body visible.",
+          "seed": 83001,
+          "variant": 0
+        },
+        "skeleton": {
+          "endpoint": "estimate-skeleton",
+          "from": "pose"
+        },
+        "animation": {
+          "endpoint": "animate-with-skeleton-v3",
+          "description": "bald man in a green hoodie, dark blue jeans and white sneakers",
+          "action": "six seven hand gesture, palms up, hands alternating up and down",
+          "direction": "south",
+          "view": "side",
+          "frames": 15,
+          "seed": 86001,
+          "keypoints": "the estimated skeleton with both elbows bent and the wrists moving up and down in opposite directions, twice"
+        }
+      },
+      "dres": {
+        "pose": {
+          "from": "front/dres.png",
+          "endpoint": "edit-image-pixen",
+          "description": "Same bald 64x64 pixel-art character facing the viewer, same face, clothes, colours, size and feet position. Change only the arms: both upper arms hang close to the body, elbows bent 90 degrees, forearms point forward and slightly outward, both open hands palm up at waist height like weighing something. The right hand is a little higher than the left. Full body visible.",
+          "seed": 83001,
+          "variant": 0
+        },
+        "skeleton": {
+          "endpoint": "estimate-skeleton",
+          "from": "pose"
+        },
+        "animation": {
+          "endpoint": "animate-with-skeleton-v3",
+          "description": "bald man in an orange tracksuit jacket with white stripes, black track pants with white stripes and grey sneakers",
+          "action": "six seven hand gesture, palms up, hands alternating up and down",
+          "direction": "south",
+          "view": "side",
+          "frames": 15,
+          "seed": 86001,
+          "keypoints": "the estimated skeleton with both elbows bent and the wrists moving up and down in opposite directions, twice"
+        }
+      }
+    },
+    "processing": "Rows 8 and 9 of every outfit atlas: column 1 of row 8 is the relaxed pose, then the 15 generated frames follow, and column 0 of both rows repeats the relaxed pose. Alpha is cut at 128, colours snap to the outfit palette, the exact front head is pasted at the tracked head position so the front hair and hat overlays fit in every frame, and frames keep the front view placement so overlays have room above the head. Colours are then remapped so every material keeps the same shade step it has in the front view, so the recoloured dance matches the front sprite, including the zip and folds."
+  },
+  "attack": {
+    "generatedAt": "2026-10-17",
+    "sources": "local-prototype-backups/arena-battle-v2",
+    "outfits": {
+      "baza": {
+        "endpoint": "animate-with-text-v3",
+        "from": "stance cell 0 of the outfit atlas",
+        "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Hacker energy push: from the fighting stance, draw the rear hand back to the hip with the palm open, lean forward and thrust that open palm straight out to the RIGHT at chest height as if firing a blast from the hand, hold the extended palm for a moment, then pull back to the exact initial stance. Front fist stays near the chin, feet planted, head keeps the same size. Same bald character, clothes and colours, fixed camera, no effects, no projectile.",
+        "frameCount": 8,
+        "seed": 88001,
+        "firstAndLastFrame": "stance"
+      },
+      "bluza": {
+        "endpoint": "animate-with-text-v3",
+        "from": "stance cell 0 of the outfit atlas",
+        "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Hacker energy push: from the fighting stance, draw the rear hand back to the hip with the palm open, lean forward and thrust that open palm straight out to the RIGHT at chest height as if firing a blast from the hand, hold the extended palm for a moment, then pull back to the exact initial stance. Front fist stays near the chin, feet planted, head keeps the same size. Same bald character, clothes and colours, fixed camera, no effects, no projectile.",
+        "frameCount": 8,
+        "seed": 88001,
+        "firstAndLastFrame": "stance"
+      },
+      "dres": {
+        "endpoint": "animate-with-text-v3",
+        "from": "stance cell 0 of the outfit atlas",
+        "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Hacker energy push: from the fighting stance, draw the rear hand back to the hip with the palm open, lean forward and thrust that open palm straight out to the RIGHT at chest height as if firing a blast from the hand, hold the extended palm for a moment, then pull back to the exact initial stance. Front fist stays near the chin, feet planted, head keeps the same size. Same bald character, clothes and colours, fixed camera, no effects, no projectile.",
+        "frameCount": 8,
+        "seed": 88001,
+        "firstAndLastFrame": "stance"
+      }
+    },
+    "processing": "Row 1 now holds the palm strike that launches the data packet: column 0 repeats the stance, columns 1 to 8 hold generated frames 1 to 8. Rows 2 and 3 (the old hook and power push, no longer used) are empty. The hurt and fall rows (4 and 5) were re-anchored over the full rotation range and carry the exact stance head sampled exactly like the overlays, so hair and hats no longer slip off falling heads. Every frame keeps alpha at 0 or 255, colours snap to the outfit palette and stray shoe, shirt, trouser and stripe pixels are reassigned to their material."
+  },
+  "finishers": {
+    "generatedAt": "2026-10-18",
+    "sources": "local-prototype-backups/arena-finishers-v1",
+    "moves": {
+      "beam": {
+        "rows": "rows 2 and 3",
+        "outfits": {
+          "baza": {
+            "endpoint": "animate-with-text-v3",
+            "from": "stance cell 0 of the outfit atlas",
+            "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Finishing move, double palm energy blast: frames 1 to 5 pull both hands back together beside the rear hip with the palms cupped as if charging energy, knees bent low, frames 6 to 11 lunge forward and push BOTH arms fully straight out to the RIGHT at chest height with both open palms together facing forward, holding the pose, frames 12 to 16 pull back into the exact initial fighting stance. Same bald character, clothes and colours, same head size, feet stay on the ground, fixed camera, no effects.",
+            "frameCount": 16,
+            "seed": 91002,
+            "firstAndLastFrame": "stance"
+          },
+          "bluza": {
+            "endpoint": "animate-with-text-v3",
+            "from": "stance cell 0 of the outfit atlas",
+            "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Finishing move, double palm energy blast: frames 1 to 5 pull both hands back together beside the rear hip with the palms cupped as if charging energy, knees bent low, frames 6 to 11 lunge forward and push BOTH arms fully straight out to the RIGHT at chest height with both open palms together facing forward, holding the pose, frames 12 to 16 pull back into the exact initial fighting stance. Same bald character, clothes and colours, same head size, feet stay on the ground, fixed camera, no effects.",
+            "frameCount": 16,
+            "seed": 91001,
+            "firstAndLastFrame": "stance"
+          },
+          "dres": {
+            "endpoint": "animate-with-text-v3",
+            "from": "stance cell 0 of the outfit atlas",
+            "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back. Finishing move, double palm energy blast: frames 1 to 5 pull both hands back together beside the rear hip with the palms cupped as if charging energy, knees bent low, frames 6 to 11 lunge forward and push BOTH arms fully straight out to the RIGHT at chest height with both open palms together facing forward, holding the pose, frames 12 to 16 pull back into the exact initial fighting stance. Same bald character, clothes and colours, same head size, feet stay on the ground, fixed camera, no effects.",
+            "frameCount": 16,
+            "seed": 91002,
+            "firstAndLastFrame": "stance"
+          }
+        }
+      },
+      "combo": {
+        "rows": "rows 11 and 12",
+        "outfits": {
+          "baza": {
+            "endpoint": "animate-with-text-v3",
+            "from": "stance cell 0 of the outfit atlas",
+            "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back, the face always points to the right. Finishing three hit combo moving forward to the RIGHT: frames 1 to 3 a fast straight jab with the front fist to the RIGHT, frames 4 to 6 a fast straight cross with the rear fist to the RIGHT, frames 7 to 11 step forward and swing the rear fist in a big overhand smash forward and down to the RIGHT at chest height, leaning forward with the arm fully extended, frames 12 to 16 return to the exact initial fighting stance. Same bald character, clothes and colours, same head size, feet stay on the ground, fixed camera, no effects.",
+            "frameCount": 16,
+            "seed": 93002,
+            "firstAndLastFrame": "stance",
+            "hitFrames": "4,9,14",
+            "retimed": "frames remapped so the three hits land on atlas columns 3 and 7 of the first row and column 3 of the second row"
+          },
+          "bluza": {
+            "endpoint": "animate-with-text-v3",
+            "from": "stance cell 0 of the outfit atlas",
+            "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back, the face always points to the right. Finishing three hit combo moving forward to the RIGHT: frames 1 to 3 a fast straight jab with the front fist to the RIGHT, frames 4 to 6 a fast straight cross with the rear fist to the RIGHT, frames 7 to 11 step forward and swing the rear fist in a big overhand smash forward and down to the RIGHT at chest height, leaning forward with the arm fully extended, frames 12 to 16 return to the exact initial fighting stance. Same bald character, clothes and colours, same head size, feet stay on the ground, fixed camera, no effects.",
+            "frameCount": 16,
+            "seed": 93002,
+            "firstAndLastFrame": "stance",
+            "hitFrames": "5,9,13",
+            "retimed": "frames remapped so the three hits land on atlas columns 3 and 7 of the first row and column 3 of the second row"
+          },
+          "dres": {
+            "endpoint": "animate-with-text-v3",
+            "from": "stance cell 0 of the outfit atlas",
+            "action": "Strict SIDE PROFILE facing RIGHT every frame, never turn toward the camera or show the back, the face always points to the right. Finishing three hit combo moving forward to the RIGHT: frames 1 to 3 a fast straight jab with the front fist to the RIGHT, frames 4 to 6 a fast straight cross with the rear fist to the RIGHT, frames 7 to 11 step forward and swing the rear fist in a big overhand smash forward and down to the RIGHT at chest height, leaning forward with the arm fully extended, frames 12 to 16 return to the exact initial fighting stance. Same bald character, clothes and colours, same head size, feet stay on the ground, fixed camera, no effects.",
+            "frameCount": 16,
+            "seed": 93002,
+            "firstAndLastFrame": "stance",
+            "hitFrames": "5,12,14",
+            "retimed": "frames remapped so the three hits land on atlas columns 3 and 7 of the first row and column 3 of the second row"
+          }
+        }
+      }
+    },
+    "processing": "Column 0 of both rows repeats the stance and the 16 generated frames follow. Alpha is cut at 128, colours snap to the outfit palette, the exact side head is pasted at the tracked head position, holes are filled, clothing materials are cleaned up and every frame is tracked again with rotation so hair and hat overlays sit on the head."
+  }
 }

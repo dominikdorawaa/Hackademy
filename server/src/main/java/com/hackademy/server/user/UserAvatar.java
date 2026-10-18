@@ -52,6 +52,9 @@ public class UserAvatar {
     @Column(name = "hat_color", nullable = false, length = 16)
     private String hatColor;
 
+    @Column(nullable = false, length = 16)
+    private String pose = UserAvatarDto.DEFAULT_POSE;
+
     @UpdateTimestamp
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
@@ -73,9 +76,10 @@ public class UserAvatar {
         bottomColor = dto.bottomColor();
         shoesColor = dto.shoesColor();
         hatColor = dto.hatColor();
+        pose = dto.pose() == null ? UserAvatarDto.DEFAULT_POSE : dto.pose();
     }
 
     public UserAvatarDto toDto() {
-        return new UserAvatarDto(outfit, hair, hat, skin, hairColor, topColor, bottomColor, shoesColor, hatColor);
+        return new UserAvatarDto(outfit, hair, hat, skin, hairColor, topColor, bottomColor, shoesColor, hatColor, pose);
     }
 }

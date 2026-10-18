@@ -6,10 +6,10 @@ import { useAuth } from '../context/AuthContext';
 import { getCurrentUser, saveAvatar as saveAccountAvatar } from '../services/userApi';
 import { PROFILE_UPDATED } from '../lib/profile';
 import { AvatarSprite } from '../components/arena/avatar/AvatarSprite';
-import { useAvatarAtlas } from '../components/arena/avatar/useAvatarAtlas';
-import { CLOTH_RAMPS, fromAvatarConfig, HAIR_RAMPS, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, SKIN_RAMPS, toAvatarConfig } from '../components/arena/avatar/avatarModel';
+import { useAvatarAtlas, useAvatarPortrait } from '../components/arena/avatar/useAvatarAtlas';
+import { AVATAR_POSES, CLOTH_RAMPS, fromAvatarConfig, HAIR_RAMPS, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, SKIN_RAMPS, toAvatarConfig } from '../components/arena/avatar/avatarModel';
 import type { Avatar, Ramp } from '../components/arena/avatar/avatarModel';
-import { AVATAR_ATLASES, danceFrames } from '../components/arena/avatar/fighters';
+import { AVATAR_ATLASES, danceFrames, RUN_FRAME_TIME, runFrames } from '../components/arena/avatar/fighters';
 import type { AvatarAtlasSource } from '../components/arena/avatar/fighters';
 import './ArenaAvatarPage.css';
 import './UserDashboardPage.css';
@@ -20,14 +20,17 @@ const OUTFITS: { id: Avatar['outfit']; name: string; description: string }[] = [
   { id: 'dres', name: 'Dres', description: 'Kurtka dresowa z paskami i spodnie z lampasem.' },
 ];
 const row = (index: number, count = 8) => Array.from({ length: count }, (_, column) => index * 9 + column + 1);
-const PREVIEWS: { id: string; label: string; frames: (dances: AvatarAtlasSource['dances']) => number[]; loop: boolean }[] = [
+const PREVIEWS: { id: string; label: string; frames: (source: AvatarAtlasSource) => number[]; loop: boolean; frameTime?: number }[] = [
   { id: 'front', label: 'Przód', frames: () => [0], loop: true },
   { id: 'idle', label: 'Postawa', frames: () => [0], loop: true },
-  { id: 'attack', label: 'Atak', frames: () => [...row(1), ...row(2), ...row(3)], loop: true },
+  { id: 'attack', label: 'Atak', frames: () => row(1), loop: true },
   { id: 'hurt', label: 'Trafienie', frames: () => [...row(4, 4), 0, 0, 0], loop: true },
   { id: 'defeat', label: 'Upadek', frames: () => row(5), loop: false },
-  { id: 'groove', label: 'Taniec', frames: dances => danceFrames(dances.groove), loop: true },
-  { id: 'sixseven', label: 'Six-seven', frames: dances => danceFrames(dances.sixseven), loop: true },
+  { id: 'run', label: 'Bieg', frames: source => runFrames(source.run), loop: true, frameTime: RUN_FRAME_TIME },
+  { id: 'groove', label: 'Taniec', frames: source => danceFrames(source.dances.groove), loop: true },
+  { id: 'sixseven', label: 'Six-seven', frames: source => danceFrames(source.dances.sixseven), loop: true },
+  { id: 'beam', label: 'Przeciążenie', frames: source => [...danceFrames(source.finishers.beam), 0, 0, 0], loop: true, frameTime: 100 },
+  { id: 'combo', label: 'Ctrl+Alt+Del', frames: source => [...danceFrames(source.finishers.combo), 0, 0, 0], loop: true, frameTime: 100 },
 ];
 const COLOR_GROUPS: { key: keyof Avatar['colors']; legend: string; options: Record<string, Ramp> }[] = [
   { key: 'skin', legend: 'Skóra', options: SKIN_RAMPS },
@@ -44,6 +47,12 @@ const NAMES: Record<string, string> = {
   czarne: 'Czarne', brazowe: 'Brązowe', rude: 'Rude', blond: 'Blond', siwe: 'Siwe', niebieskie: 'Niebieskie',
   granatowy: 'Granatowy', grafitowy: 'Grafitowy', bordowy: 'Bordowy', turkusowy: 'Turkusowy', piaskowy: 'Piaskowy', oliwkowy: 'Oliwkowy', czerwony: 'Czerwony', bialy: 'Biały',
 };
+const POSE_NAMES: Record<Avatar['pose'], string> = { przod: 'Przód', postawa: 'Postawa', profil: 'Profil' };
+
+function PosePortrait({ avatar }: { avatar: Avatar }) {
+  const portrait = useAvatarPortrait(toAvatarConfig(avatar));
+  return portrait ? <img className="avatar-pose-image" src={portrait} alt="" /> : <span className="avatar-pose-image" aria-hidden="true" />;
+}
 
 const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
 const subscribeReducedMotion = (onChange: () => void) => {
@@ -124,7 +133,7 @@ export default function ArenaAvatarPage() {
         <div className="avatar-preview-heading"><h2>Podgląd</h2><span>{OUTFITS.find(outfit => outfit.id === avatar.outfit)?.name}</span></div>
         <div className="avatar-stage">
           {atlas && active.id === 'front' && atlas.front ? <img className="avatar-front" src={atlas.front} alt="Awatar, widok z przodu" data-reduced-motion={reducedMotion} />
-            : atlas ? <AvatarSprite key={active.id} atlas={atlas.atlas} atlasHeight={fighter.atlasHeight} frames={active.frames(fighter.dances)} loop={active.loop} reducedMotion={reducedMotion} label={`Awatar, animacja: ${active.label}`} />
+            : atlas ? <AvatarSprite key={active.id} atlas={atlas.atlas} atlasHeight={fighter.atlasHeight} frames={active.frames(fighter)} loop={active.loop} frameTime={active.frameTime} reducedMotion={reducedMotion} label={`Awatar, animacja: ${active.label}`} />
             : <p role="status">Przygotowuję postać…</p>}
         </div>
         <div className="avatar-animations" role="group" aria-label="Animacja podglądu">
@@ -165,6 +174,17 @@ export default function ArenaAvatarPage() {
           </label>)}
         </div></fieldset>)}
         </div>
+        </div>
+        <div className="avatar-section">
+        <h2>Ikona profilu</h2>
+        <fieldset><legend>Poza na ikonie</legend><div className="avatar-poses">
+          {AVATAR_POSES.map(pose => <label key={pose} data-selected={avatar.pose === pose}>
+            <input type="radio" name="avatar-pose" value={pose} checked={avatar.pose === pose} onChange={() => setAvatar(current => ({ ...current, pose }))} />
+            <PosePortrait avatar={{ ...avatar, pose }} />
+            <span>{POSE_NAMES[pose]}</span>
+          </label>)}
+        </div>
+        <p className="avatar-hint">Ikona pojawia się w profilu, nawigacji, rankingu, u znajomych i w Arenie. Animacje w podglądzie jej nie zmieniają.</p></fieldset>
         </div>
         </fieldset>
       </section>
