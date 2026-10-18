@@ -10,6 +10,8 @@ import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import './UserDashboardPage.css';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
+import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
+import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
 import type { DashboardUser, FriendDto, UserSearchDto, RankingEntry, RecentSolvedRoomDto, PathSummaryDto, PathProgressDto, PathRoomMiniDto } from '../types/api';
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
@@ -103,21 +105,21 @@ const ROOMS_SHOWN = 5;
 const MAX_RAIL_SEGMENTS = 24;
 
 const DashboardSkeleton = () => (
-  <div className="user-dashboard" aria-busy="true" aria-label="Ładowanie dashboardu">
-    <div className="ud-shell">
+  <div className="user-dashboard">
+    <LoadingSkeleton label="Ładowanie dashboardu" className="ud-shell">
       <div className="ud-main">
-        <div className="ud-skel ud-skel-next" />
-        <div className="ud-skel ud-skel-block" />
+        <Skeleton className="ud-skel-next" />
+        <Skeleton className="ud-skel-block" />
         <div className="ud-pair">
-          <div className="ud-skel ud-skel-block" />
-          <div className="ud-skel ud-skel-block" />
+          <Skeleton className="ud-skel-block" />
+          <Skeleton className="ud-skel-block" />
         </div>
       </div>
       <div className="ud-board">
-        <div className="ud-skel ud-skel-rank" />
-        <div className="ud-skel ud-skel-block" />
+        <Skeleton className="ud-skel-rank" />
+        <Skeleton className="ud-skel-block" />
       </div>
-    </div>
+    </LoadingSkeleton>
   </div>
 );
 
@@ -649,7 +651,7 @@ const UserDashboardPage = () => {
             {friendsFailed ? (
               <p className="ud-empty">Nie udało się wczytać znajomych. Odśwież stronę, żeby spróbować ponownie.</p>
             ) : friends === null ? (
-              <p className="ud-empty">Wczytuję znajomych…</p>
+              <FriendRowsSkeleton />
             ) : friends.length === 0 ? (
               <p className="ud-empty">
                 Nie masz jeszcze znajomych. Najedź na kogoś w rankingu obok i dodaj go jednym kliknięciem, a potem

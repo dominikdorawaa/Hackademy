@@ -125,7 +125,7 @@ it('waits for the battle before showing it', async () => {
   realtime.value = { ...realtime.value, state: null };
   server.use(http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json({ message: 'awaria' }, { status: 503 })));
   mount();
-  expect(await screen.findByText('Wczytuję walkę…')).toBeInTheDocument();
+  expect(await screen.findByRole('status', { name: 'Wczytuję walkę' })).toHaveAttribute('aria-busy', 'true');
   expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
 });
 
@@ -155,7 +155,7 @@ it.each(['server', 'network', 'invalid'] as const)('lets the player retry a fail
   }));
   const view = mount();
   expect(await screen.findByRole('alert')).toHaveTextContent('Walka trwa dalej');
-  expect(screen.queryByText('Wczytuję walkę…')).not.toBeInTheDocument();
+  expect(screen.queryByRole('status', { name: 'Wczytuję walkę' })).not.toBeInTheDocument();
   realtime.value = { ...realtime.value, state: live(createGameSession({ round: 2 })) };
   view.rerender(battle());
   fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
@@ -246,8 +246,8 @@ it('explains that a battle missing after a server restart was cancelled', async 
   realtime.value = { ...realtime.value, state: null };
   server.use(http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json({ message: 'brak' }, { status: 404 })));
   mount();
-  expect(await screen.findByRole('status')).toHaveTextContent('Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło.');
-  expect(screen.queryByText('Wczytuję walkę…')).not.toBeInTheDocument();
+  expect(await screen.findByText(/Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło\./)).toHaveAttribute('role', 'status');
+  expect(screen.queryByRole('status', { name: 'Wczytuję walkę' })).not.toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
 });
 

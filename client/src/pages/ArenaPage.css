@@ -1,4 +1,21 @@
 @layer components {
+.arena-pending {
+  display: block;
+}
+
+.arena-pending-error {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  min-height: 320px;
+  align-content: center;
+}
+
+.arena-pending-error .arena-error {
+  color: var(--ud-hard);
+  font-weight: 600;
+}
+
 .arena-page .arena-title {
   font-size: var(--ud-display);
   font-weight: 800;

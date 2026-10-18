@@ -20,25 +20,47 @@ import type { ProfilePersonalization } from '../../lib/profile';
 import ProfileLearningStats from './ProfileLearningStats';
 import ProfileBadges from './ProfileBadges';
 import { Button } from '../ui/button';
+import { LoadingSkeleton, Skeleton, SkeletonText } from '../common/Skeleton';
 import '../../pages/ProfilePage.css';
 import './ProfileLayout.css';
+
+function ProfileSkeleton() {
+  return (
+    <LoadingSkeleton label="Ładowanie profilu">
+      <Skeleton width={160} height={14} style={{ marginBottom: 24 }} />
+      <div className="profile-header" aria-hidden="true">
+        <Skeleton className="profile-avatar-skeleton" radius="var(--ud-radius)" />
+        <div className="profile-identity">
+          <Skeleton width="min(280px, 70%)" height={36} style={{ marginBottom: 12 }} />
+          <SkeletonText lines={2} />
+        </div>
+      </div>
+      <Skeleton height={160} radius={12} style={{ marginTop: 24 }} />
+      <Skeleton height={220} radius={12} style={{ marginTop: 24 }} />
+    </LoadingSkeleton>
+  );
+}
 
 function ResourceContent({
   loading,
   error,
   retry,
+  label,
+  skeleton,
   children,
 }: {
   loading: boolean;
   error: string | null;
   retry: () => void;
+  label: string;
+  skeleton?: ReactNode;
   children: ReactNode;
 }) {
   if (loading)
-    return (
-      <p role="status" className="profile-muted">
-        Ładowanie…
-      </p>
+    return skeleton ?? (
+      <LoadingSkeleton label={label}>
+        <SkeletonText lines={2} />
+      </LoadingSkeleton>
     );
   if (error)
     return (
@@ -166,7 +188,7 @@ export default function UserProfile({ username }: { username?: string }) {
   if (profile.loading || !profile.data)
     return (
       <div className="profile-page">
-        <ResourceContent {...profile}>
+        <ResourceContent {...profile} label="Ładowanie profilu" skeleton={<ProfileSkeleton />}>
           <p className="profile-muted">Profil jest niedostępny.</p>
         </ResourceContent>
       </div>
@@ -223,7 +245,7 @@ export default function UserProfile({ username }: { username?: string }) {
           {!own && (
             <div className="profile-header-actions">
               <>
-                <ResourceContent {...friendship}>
+                <ResourceContent {...friendship} label="Sprawdzam relację" skeleton={<LoadingSkeleton label="Sprawdzam relację"><Skeleton width={170} height={36} radius={8} /></LoadingSkeleton>}>
                   {friendshipStatus === 'NONE' && (
                     <Button
                       disabled={sending}
@@ -264,16 +286,16 @@ export default function UserProfile({ username }: { username?: string }) {
       <section className="profile-section profile-badges" aria-labelledby="profile-badges-title">
         <div className="profile-section-heading">
           <h2 id="profile-badges-title">Osiągnięcia</h2></div>
-        {own ? <ResourceContent {...badges}><ProfileBadges badges={profileBadges} own /></ResourceContent>
+        {own ? <ResourceContent {...badges} label="Ładowanie osiągnięć"><ProfileBadges badges={profileBadges} own /></ResourceContent>
           : <ProfileBadges badges={profileBadges} own={false} />}
       </section>
       {!own && friendshipStatus === 'FRIENDS' && <section className="profile-section profile-duels">
-        <h3>Bilans pojedynków</h3><ResourceContent {...stats}>{stats.data && <p>Ty <strong>{stats.data.winsAgainst}</strong> : <strong>{stats.data.lossesAgainst}</strong> {person.username}</p>}</ResourceContent>
+        <h3>Bilans pojedynków</h3><ResourceContent {...stats} label="Ładowanie bilansu">{stats.data && <p>Ty <strong>{stats.data.winsAgainst}</strong> : <strong>{stats.data.lossesAgainst}</strong> {person.username}</p>}</ResourceContent>
       </section>}
       <div className="profile-details-grid">
         <section className="profile-section profile-activity" aria-labelledby="profile-activity-title">
           <div className="profile-section-heading"><h2 id="profile-activity-title">Regularność nauki</h2></div>
-          <ResourceContent {...activity}><ActivityCalendar data={activity.data ?? []} /></ResourceContent>
+          <ResourceContent {...activity} label="Ładowanie aktywności" skeleton={<LoadingSkeleton label="Ładowanie aktywności"><Skeleton height={140} radius={8} /></LoadingSkeleton>}><ActivityCalendar data={activity.data ?? []} /></ResourceContent>
         </section>
         <ProfileLearningStats activity={activity.data} loading={activity.loading} />
       </div>

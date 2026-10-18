@@ -1043,19 +1043,9 @@ a.ud-room-row:hover {
 }
 
 /* --- Loading and error states --- */
-.ud-skel {
-  border-radius: var(--ud-radius);
-  background: var(--ud-surface);
-  animation: ud-pulse 1.4s ease-in-out infinite;
-}
-
-.ud-skel-next { height: 168px; background: var(--ud-blue-soft); }
-.ud-skel-block { height: 220px; }
-.ud-skel-rank { height: 180px; background: var(--ud-surface-2); margin-bottom: 16px; }
-
-@keyframes ud-pulse {
-  50% { opacity: 0.55; }
-}
+.ud-skel-next { height: 168px; border-radius: var(--ud-radius); }
+.ud-skel-block { height: 220px; border-radius: var(--ud-radius); }
+.ud-skel-rank { height: 180px; border-radius: var(--ud-radius); margin-bottom: 16px; }
 
 .ud-state {
   max-width: 640px;
@@ -1174,8 +1164,7 @@ a.ud-room-row:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .ud-scale-fill,
-  .ud-peek-card,
-  .ud-skel {
+  .ud-peek-card {
     animation: none;
   }
 

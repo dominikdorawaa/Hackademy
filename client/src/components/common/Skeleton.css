@@ -1,0 +1,47 @@
+@layer components {
+:root {
+  --hk-skeleton-base: rgba(148, 163, 184, 0.14);
+  --hk-skeleton-shine: rgba(148, 163, 184, 0.28);
+}
+
+[data-theme='light'] {
+  --hk-skeleton-base: rgba(15, 23, 36, 0.08);
+  --hk-skeleton-shine: rgba(15, 23, 36, 0.02);
+}
+
+/* Zero-specificity defaults, so a page class can set the size and corners of a placeholder. */
+:where(.hk-skeleton) {
+  display: block;
+  max-width: 100%;
+  height: 1em;
+  border-radius: 6px;
+}
+
+.hk-skeleton {
+  background: linear-gradient(90deg, var(--hk-skeleton-base) 0 40%, var(--hk-skeleton-shine) 50%, var(--hk-skeleton-base) 60% 100%);
+  background-size: 300% 100%;
+  animation: hk-skeleton-shimmer 1.6s linear infinite;
+}
+
+.hk-skeleton-text {
+  display: grid;
+  gap: 0.6em;
+}
+
+@keyframes hk-skeleton-shimmer {
+  from { background-position: 100% 0; }
+  to { background-position: 0 0; }
+}
+
+html[data-reduced-motion='true'] .hk-skeleton {
+  animation: none;
+  background: var(--hk-skeleton-base);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .hk-skeleton {
+    animation: none;
+    background: var(--hk-skeleton-base);
+  }
+}
+}

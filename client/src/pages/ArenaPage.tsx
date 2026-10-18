@@ -12,6 +12,8 @@ import { levelFromPoints } from '../lib/level';
 import { LEAGUES, leagueFor } from '../components/arena/leagues';
 import { LeagueIcon } from '../components/arena/LeagueIcon';
 import { EloHelp } from '../components/arena/EloHelp';
+import { ArenaLoader } from '../components/arena/ArenaLoader';
+import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
 import type { DashboardUser, FriendDto, RankingEntry, UserSearchDto } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaPage.css';
@@ -26,6 +28,8 @@ const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 const ArenaPage = () => {
     const { token } = useAuth();
     const [userData, setUserData] = useState<DashboardUser | null>(null);
+    const [userFailed, setUserFailed] = useState(false);
+    const [userAttempt, setUserAttempt] = useState(0);
     const [rank, setRank] = useState<{ status: 'loading' | 'ready' | 'error'; entry: RankingEntry | null }>({ status: 'loading', entry: null });
     const { state: realtime, connected, synchronize } = useRealtime();
     const [joiningQueue, setJoiningQueue] = useState(false);
@@ -45,11 +49,16 @@ const ArenaPage = () => {
     const [challengeError, setChallengeError] = useState<string | null>(null);
 
     useEffect(() => {
+        let cancelled = false;
+        userApi.getCurrentUser({ Authorization: `Bearer ${token}` })
+            .then(response => { if (!response.ok) throw new Error('user'); return response.json(); })
+            .then(data => { if (!data) throw new Error('user'); if (!cancelled) setUserData(data); })
+            .catch(() => { if (!cancelled) setUserFailed(true); });
+        return () => { cancelled = true; };
+    }, [token, userAttempt]);
+
+    useEffect(() => {
         const headers = { Authorization: `Bearer ${token}` };
-        userApi.getCurrentUser(headers)
-            .then(response => response.ok ? response.json() : null)
-            .then(data => { if (data) setUserData(data); })
-            .catch(err => console.error('Failed to fetch user data', err));
         rankingApi.getSummary(headers)
             .then(response => { if (!response.ok) throw new Error('ranking'); return response.json(); })
             .then(data => setRank(data?.myRank ? { status: 'ready', entry: data.myRank } : { status: 'error', entry: null }))
@@ -166,7 +175,10 @@ const ArenaPage = () => {
         }
     };
 
-    if (!userData) return <div className="user-dashboard"><div className="ud-shell"><p role="status" className="ud-empty">Ładowanie Areny…</p></div></div>;
+    if (!userData) return <div className="user-dashboard"><div className="ud-shell arena-pending">{userFailed ? <div className="arena-pending-error">
+        <p role="alert" className="arena-error">Nie udało się wczytać Twojego konta.</p>
+        <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setUserFailed(false); setUserAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
+    </div> : <ArenaLoader label="Ładowanie Areny" />}</div></div>;
 
     const canPlay = userData.points >= UNLOCK_POINTS;
     const missing = Math.max(0, UNLOCK_POINTS - userData.points);
@@ -307,7 +319,7 @@ const ArenaPage = () => {
                         {friendsFailed ? (
                             <p className="ud-empty">Nie udało się wczytać znajomych. Odśwież stronę, żeby spróbować ponownie.</p>
                         ) : friends === null ? (
-                            <p className="ud-empty">Wczytuję znajomych…</p>
+                            <FriendRowsSkeleton />
                         ) : friends.length === 0 ? (
                             <p className="ud-empty">Nie masz jeszcze znajomych. Dodaj kogoś z rankingu, a potem wyzwij go tutaj na pojedynek.</p>
                         ) : (

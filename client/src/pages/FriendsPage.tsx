@@ -7,6 +7,7 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
 import type { UserSearchDto } from '../types/api';
+import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 
 const FriendsPage = () => {
     const { token } = useAuth();
@@ -124,7 +125,14 @@ const FriendsPage = () => {
         <p role="alert">{error}</p>
         <button className="btn-primary" onClick={() => void synchronize()}>Spróbuj ponownie</button>
     </div>;
-    if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px' }}><h1>Ładowanie...</h1></div>;
+    if (loading) return <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
+        <h1 style={{ fontSize: '2.5rem', marginBottom: '30px', color: 'var(--text-light)' }}>Znajomi</h1>
+        <LoadingSkeleton label="Wczytuję znajomych">
+            <Skeleton height={124} radius={12} style={{ marginBottom: 40 }} />
+            <Skeleton width={180} height={24} style={{ marginBottom: 16 }} />
+            {[0, 1, 2].map(row => <Skeleton key={row} height={72} radius={8} style={{ marginBottom: 10 }} />)}
+        </LoadingSkeleton>
+    </div>;
 
     return (
         <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>

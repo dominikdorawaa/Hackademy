@@ -157,6 +157,42 @@ it('keeps players at 400 XP locked because the server requires 500', async () =>
   expect(screen.getByRole('heading', { name: 'Arena od 500 XP' })).toBeInTheDocument();
 });
 
+it('runs the player avatar while the account loads and offers a retry when it fails', async () => {
+  let failing = true;
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  server.use(http.get(currentUserUrl, async () => {
+    if (failing) { await gate; return HttpResponse.json({ message: 'awaria' }, { status: 503 }); }
+    return HttpResponse.json({ ...createUser(), points: 900 });
+  }));
+  mount();
+  const loader = screen.getByRole('status', { name: 'Ładowanie Areny' });
+  expect(loader).toHaveAttribute('aria-busy', 'true');
+  expect(loader.querySelector('.avatar-sprite')).not.toBeNull();
+  release();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się wczytać Twojego konta.');
+  expect(screen.queryByRole('status', { name: 'Ładowanie Areny' })).not.toBeInTheDocument();
+  failing = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+  expect(screen.getByRole('status', { name: 'Ładowanie Areny' })).toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
+});
+
+it('shows placeholder rows while friends load', async () => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+    http.get(`${API_URL}/api/friends`, async () => { await gate; return HttpResponse.json([]); }),
+  );
+  mount();
+  const rows = await screen.findByRole('status', { name: 'Wczytuję znajomych' });
+  expect(rows.querySelectorAll('.ud-friend')).toHaveLength(3);
+  release();
+  expect(await screen.findByText(/Nie masz jeszcze znajomych/)).toBeInTheDocument();
+  expect(screen.queryByRole('status', { name: 'Wczytuję znajomych' })).not.toBeInTheDocument();
+});
+
 it('shows loading states, then a confirmed empty record separately from an unavailable one', async () => {
   let releaseRank!: () => void;
   let releaseStats!: () => void;

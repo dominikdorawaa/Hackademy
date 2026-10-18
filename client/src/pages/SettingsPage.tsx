@@ -9,6 +9,7 @@ import type { NotificationPreferences } from '../services/userApi';
 import type { DashboardUser } from '../types/api';
 import type { ApiResponse } from '../services/http';
 import './SettingsPage.css';
+import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 
 const sections = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.' },
@@ -146,7 +147,9 @@ export default function SettingsPage() {
     const saved = await update(key, value);
     if (saved) setFeedback({ message: 'Preferencje zostały zapisane.', error: false });
   };
-  const notificationSwitch = (key: keyof NotificationPreferences, label: string, unavailable = false) => <Switch label={label}
+  const notificationSwitch = (key: keyof NotificationPreferences, label: string, unavailable = false) => !loaded && !preferenceError
+    ? <Skeleton width={44} height={26} radius={20} />
+    : <Switch label={label}
     checked={preferences[key]} disabled={!loaded || saving || busy === 'permission' || unavailable}
     onChange={value => void changeNotification(key, value)} />;
 
@@ -160,7 +163,12 @@ export default function SettingsPage() {
         {section === 'account' && <>
           <h3 className="settings-group-title">Dane konta</h3>
           {accountError ? <div className="settings-error"><p role="alert">{accountError}</p><button className="settings-button" onClick={() => setAccountAttempt(value => value + 1)}>Spróbuj ponownie</button></div>
-            : !account ? <p role="status">Ładowanie danych konta…</p> : <>
+            : !account ? <LoadingSkeleton label="Ładowanie danych konta" className="settings-form">
+              <Skeleton width={140} height={14} />
+              <Skeleton height={42} radius={8} />
+              <Skeleton width="70%" height={14} />
+              <Skeleton width={130} height={40} radius={8} />
+            </LoadingSkeleton> : <>
               <form className="settings-form" onSubmit={event => void changeName(event)}>
                 <label htmlFor="settings-username">Nazwa użytkownika</label>
                 <input id="settings-username" autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} required minLength={3} maxLength={20} disabled={!!busy} aria-describedby="settings-username-help" />
@@ -174,7 +182,7 @@ export default function SettingsPage() {
         </>}
         {section === 'notifications' && <>
           {preferenceError && <div className="settings-error"><p role="alert">{preferenceError}</p>{!loaded && <button className="settings-button" onClick={reload}>Spróbuj ponownie</button>}</div>}
-          {!loaded && !preferenceError && <p role="status">Ładowanie preferencji…</p>}
+          {!loaded && !preferenceError && <p role="status" aria-busy="true" aria-label="Ładowanie preferencji" className="sr-only">Ładowanie preferencji</p>}
           <h3 className="settings-group-title">Powiadomienia w aplikacji</h3>
           <SettingRow title="Zaproszenia do znajomych" description="Pokaż nowe prośby w centrum powiadomień.">{notificationSwitch('friendRequests', 'Zaproszenia do znajomych')}</SettingRow>
           <SettingRow title="Wyzwania w Arenie" description="Pokaż zaproszenia do pojedynku w centrum powiadomień.">{notificationSwitch('challenges', 'Wyzwania w Arenie')}</SettingRow>
