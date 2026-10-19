@@ -77,7 +77,7 @@ const RankingPage = () => {
   return (
     <div style={{ paddingTop: '40px', paddingBottom: '40px' }}>
       <div className="hackademy-container">
-        <h1 data-tour="ranking" style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
+        <h1 style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
 
         <div style={{
             display: 'flex',
@@ -85,7 +85,7 @@ const RankingPage = () => {
             gap: '40px',
             justifyContent: 'center'
         }}>
-            <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
+            <div data-tour="ranking-points" style={{ flex: '1 1 400px', minWidth: '300px' }}>
                 <Leaderboard
                     players={top10Points}
                     showTitle={false}
@@ -95,7 +95,7 @@ const RankingPage = () => {
                     myRank={myRank}
                 />
             </div>
-            <div style={{ flex: '1 1 400px', minWidth: '300px' }}>
+            <div data-tour="ranking-elo" style={{ flex: '1 1 400px', minWidth: '300px' }}>
                 <Leaderboard
                     players={top10Elo}
                     showTitle={false}

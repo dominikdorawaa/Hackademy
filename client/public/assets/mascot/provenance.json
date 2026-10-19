@@ -11,13 +11,29 @@
     },
     "seed": 99602
   },
-  "processing": "Alpha cut at 128, the generated grey ground shadow under the feet removed, the first eight frames of each animation cropped to their shared bounds and packed side by side as looping sprite sheets.",
+  "rotations": [
+    {
+      "endpoint": "rotate",
+      "from": "base, south",
+      "to": "east",
+      "seed": 2,
+      "file": "walk-side base"
+    },
+    {
+      "endpoint": "rotate",
+      "from": "base, south",
+      "to": "north",
+      "seed": 2,
+      "file": "walk-back base"
+    }
+  ],
+  "processing": "Alpha cut at 128, the generated grey ground shadow under the feet removed, the first eight frames of each animation (or the listed picked frames) cropped to their shared bounds and packed side by side as looping sprite sheets. The calm sheet holds the first idle frame and blinks once.",
   "sprites": [
     {
       "file": "penguin-idle.png",
       "frames": 8,
-      "frameWidth": 56,
-      "frameHeight": 59,
+      "frameWidth": 58,
+      "frameHeight": 60,
       "animation": {
         "endpoint": "animate-with-text-v3",
         "action": "the penguin stands in place breathing gently, the body bobs slightly up and down and the eyes blink once, the flippers stay in the same pose, same size and position, seamless loop",
@@ -25,13 +41,13 @@
         "seed": 99701,
         "firstAndLastFrame": "base"
       },
-      "sha256": "7bca7970806233c0278c9108f57dd750e006b03304b4af56b4fe6834d574e53d"
+      "sha256": "8132ab4ed8c1f9b79d2e75e346fc8b58e51103927f123aecfcc471d17af5552f"
     },
     {
       "file": "penguin-talk.png",
       "frames": 8,
-      "frameWidth": 56,
-      "frameHeight": 59,
+      "frameWidth": 58,
+      "frameHeight": 60,
       "animation": {
         "endpoint": "animate-with-text-v3",
         "action": "the penguin talks happily: the beak opens and closes as if speaking, the head tilts a little and the flippers make small friendly gestures, same size and position, seamless loop",
@@ -39,13 +55,13 @@
         "seed": 99701,
         "firstAndLastFrame": "base"
       },
-      "sha256": "ca3f00425727e0b5c870a689e19f2723bcd59187631c86a064f99dfabdcde3e7"
+      "sha256": "502d42648b7a39214207ae3390346cd8a7a79f14c4bb976514a5af4bc93f17cb"
     },
     {
       "file": "penguin-wave.png",
       "frames": 8,
-      "frameWidth": 56,
-      "frameHeight": 59,
+      "frameWidth": 58,
+      "frameHeight": 60,
       "animation": {
         "endpoint": "animate-with-text-v3",
         "action": "the penguin waves hello with its right flipper raised high, waving side to side twice, smiling, the rest of the body stays in place, seamless loop",
@@ -53,7 +69,75 @@
         "seed": 99702,
         "firstAndLastFrame": "base"
       },
-      "sha256": "cc12f1af7f5b46732a3eefc10381836f3843849807c0444dc7fe96a4b8097c1f"
+      "sha256": "2f5ce713aa844637a25d503536c17ec891ff767447030baf984e92c21f11066f"
+    },
+    {
+      "file": "penguin-walk-front.png",
+      "frames": 8,
+      "frameWidth": 58,
+      "frameHeight": 60,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the penguin walks toward the viewer in place with a waddle walk cycle: the orange feet step one after the other, the body rocks side to side and bobs, the flippers swing, seamless walk loop, stays in the same position",
+        "frameCount": 8,
+        "seed": 99962,
+        "firstAndLastFrame": "base"
+      },
+      "sha256": "33239d288528e80947da84f8112dce4b2e85aa6400cbfc00cef658ba13730b18"
+    },
+    {
+      "file": "penguin-walk-side.png",
+      "frames": 8,
+      "frameWidth": 58,
+      "frameHeight": 60,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the penguin walks to the right in place with a cute waddle walk cycle: the orange feet step forward one after the other, the body rocks slightly and bobs up and down, the flippers swing, seamless walk loop, stays in the same position",
+        "frameCount": 8,
+        "seed": 99961,
+        "firstAndLastFrame": "base"
+      },
+      "sha256": "ea59295d333a215039a99c2920500cc36c2b1be6241e5379df1dbc4740b66321"
+    },
+    {
+      "file": "penguin-walk-back.png",
+      "frames": 8,
+      "frameWidth": 58,
+      "frameHeight": 60,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the penguin walks away from the viewer in place with a waddle walk cycle seen from behind: the orange feet step one after the other, the body rocks side to side and bobs, the flippers swing, seamless walk loop, stays in the same position",
+        "frameCount": 8,
+        "seed": 99962,
+        "firstAndLastFrame": "base"
+      },
+      "sha256": "a724b261ee38d62873e2ed86bec7d484ba6e8c5ada01dc6533eb875765d485a2"
+    },
+    {
+      "file": "penguin-calm.png",
+      "frames": 10,
+      "pickedFrames": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      "frameWidth": 58,
+      "frameHeight": 60,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the penguin stands in place breathing gently, the body bobs slightly up and down and the eyes blink once, the flippers stay in the same pose, same size and position, seamless loop",
+        "frameCount": 8,
+        "seed": 99701,
+        "firstAndLastFrame": "base"
+      },
+      "sha256": "35cb96475761126a6f54debda8cda34697e40a942fdec4a66db91d205237b506"
     }
   ]
 }
