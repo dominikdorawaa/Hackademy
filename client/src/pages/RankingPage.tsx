@@ -79,7 +79,7 @@ const RankingPage = () => {
   return (
     <div style={{ paddingTop: '40px', paddingBottom: '40px' }}>
       <div className="hackademy-container">
-        <h1 style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
+        <h1 data-tour="ranking" style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
 
         <div style={{
             display: 'flex',

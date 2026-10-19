@@ -17,13 +17,11 @@ public class GameSession {
     private String id;
     private Long player1Id;
     private String player1Username;
-    private String player1AvatarSeed;
     private UserAvatarDto player1Avatar;
     private Integer player1Elo;
 
     private Long player2Id;
     private String player2Username;
-    private String player2AvatarSeed;
     private UserAvatarDto player2Avatar;
     private Integer player2Elo;
 
@@ -66,12 +64,10 @@ public class GameSession {
         copy.id = id;
         copy.player1Id = player1Id;
         copy.player1Username = player1Username;
-        copy.player1AvatarSeed = player1AvatarSeed;
         copy.player1Avatar = player1Avatar;
         copy.player1Elo = player1Elo;
         copy.player2Id = player2Id;
         copy.player2Username = player2Username;
-        copy.player2AvatarSeed = player2AvatarSeed;
         copy.player2Avatar = player2Avatar;
         copy.player2Elo = player2Elo;
         copy.startTime = startTime;

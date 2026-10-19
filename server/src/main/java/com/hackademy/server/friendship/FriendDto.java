@@ -7,14 +7,9 @@ public record FriendDto(
     String username,
     int points,
     int streak,
-    String avatarSeed,
     UserAvatarDto avatar
 ) {
-    public FriendDto(Long id, String username, int points, int streak, String avatarSeed) {
-        this(id, username, points, streak, avatarSeed, null);
-    }
-
     public FriendDto(Long id, String username, int points, int streak) {
-        this(id, username, points, streak, username, null);
+        this(id, username, points, streak, null);
     }
 }

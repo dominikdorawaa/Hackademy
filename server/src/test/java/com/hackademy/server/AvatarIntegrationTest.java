@@ -38,7 +38,7 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
 
         getAs(owner, URL).andExpect(status().isOk()).andExpect(jsonPath("$.hair").value("irokez"));
         getAs(owner, "/api/user/me").andExpect(jsonPath("$.avatar.topColor").value("bordowy"))
-                .andExpect(jsonPath("$.avatarSeed").value(owner.username()));
+                .andExpect(jsonPath("$.avatarSeed").doesNotExist());
         getAs(viewer, "/api/user/" + owner.username()).andExpect(jsonPath("$.avatar.outfit").value("bluza"));
         getAs(viewer, "/api/user/search?query=" + owner.username()).andExpect(jsonPath("$[0].avatar.skin").value("oliwkowa"));
         getAs(owner, "/api/ranking/summary").andExpect(jsonPath("$.myRank.avatar.shoesColor").value("bialy"));
@@ -83,7 +83,7 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
         mockMvc.perform(delete(URL).header("Authorization", "Bearer " + owner.token())).andExpect(status().isNoContent());
         getAs(owner, URL).andExpect(status().isNoContent());
         getAs(owner, "/api/user/me").andExpect(jsonPath("$.avatar").value(nullValue()))
-                .andExpect(jsonPath("$.avatarSeed").value(owner.username()));
+                .andExpect(jsonPath("$.avatarSeed").doesNotExist());
         mockMvc.perform(delete(URL).header("Authorization", "Bearer " + owner.token())).andExpect(status().isNoContent());
     }
 

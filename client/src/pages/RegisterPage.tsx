@@ -48,7 +48,7 @@ const RegisterPage = () => {
           await delay(500);
           login(responseData.token);
           await delay(500);
-          navigate('/dashboard');
+          navigate('/witaj');
         } else {
           // Fallback: redirect to login page if no token
           await delay(1000);

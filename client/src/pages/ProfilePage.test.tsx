@@ -121,7 +121,7 @@ describe('user profile integration', () => {
   });
 
   it('clears all showcased badges, persists an empty selection and keeps the editor accessible', async () => {
-    let persisted = { ...profileUser, tagline: '', avatarSeed: 'tester-avatar', interests: [] as string[], featuredBadgeIds: [7, 6, 5] };
+    let persisted = { ...profileUser, tagline: '', interests: [] as string[], featuredBadgeIds: [7, 6, 5] };
     server.use(
       http.get(url('/user/me'), () => HttpResponse.json(persisted)),
       http.get(url('/user/:username'), () => HttpResponse.json({ ...publicProfile, featuredBadgeIds: persisted.featuredBadgeIds })),
@@ -156,7 +156,7 @@ describe('user profile integration', () => {
   });
 
   it('saves bio, interests and ordered badges while preserving the avatar after reloading', async () => {
-    let persisted = { ...profileUser, tagline: '', avatarSeed: 'original-avatar', interests: [] as string[], featuredBadgeIds: [] as number[] };
+    let persisted = { ...profileUser, tagline: '', interests: [] as string[], featuredBadgeIds: [] as number[] };
     const updates: unknown[] = [];
     server.use(
       http.get(url('/user/me'), () => HttpResponse.json(persisted)),
@@ -183,14 +183,14 @@ describe('user profile integration', () => {
     await user.click(editor.getByRole('checkbox', { name: 'Odznaka 7' }));
     await user.click(editor.getByRole('button', { name: 'Zapisz profil' }));
     expect(await screen.findByText('Profil zapisany')).toBeInTheDocument();
-    expect(updates).toEqual([expect.objectContaining({ avatarSeed: 'original-avatar', bio: 'Odkrywam cyberbezpieczeństwo', interests: ['LINUX', 'NETWORKS'], featuredBadgeIds: [6, 7] })]);
-    expect(screen.getByRole('img', { name: 'Avatar tester' })).toHaveAttribute('src', expect.stringContaining('original-avatar'));
+    expect(updates).toEqual([expect.objectContaining({ bio: 'Odkrywam cyberbezpieczeństwo', interests: ['LINUX', 'NETWORKS'], featuredBadgeIds: [6, 7] })]);
+    expect(screen.getByRole('img', { name: 'Avatar tester' }).getAttribute('src')).not.toContain('dicebear');
     const showcase = within(screen.getByRole('region', { name: 'Wyróżnione osiągnięcia' }));
     expect(showcase.getAllByRole('heading', { level: 3 }).map(heading => heading.textContent)).toEqual(['Odznaka 6', 'Odznaka 7']);
     rendered.unmount();
     mount();
     expect(await screen.findByText('Odkrywam cyberbezpieczeństwo')).toBeInTheDocument();
-    expect(screen.getByRole('img', { name: 'Avatar tester' })).toHaveAttribute('src', expect.stringContaining('original-avatar'));
+    expect(screen.getByRole('img', { name: 'Avatar tester' }).getAttribute('src')).not.toContain('dicebear');
   });
 
   it('limits interests and featured badges and cancels all personalization changes', async () => {

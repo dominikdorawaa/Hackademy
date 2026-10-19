@@ -308,7 +308,7 @@ const Navbar = () => {
                                             <li key={`${notif.type}-${notif.id}`} className="notification-item" style={{ borderBottom: '1px solid var(--border-color)' }}>
                                                 <div className="notification-content">
                                                     <div className="notification-avatar">
-                                                        <UserAvatar username={notif.from} seed={notif.type === 'FRIEND_REQUEST' ? notif.data.avatarSeed : notif.data.challengerAvatarSeed}
+                                                        <UserAvatar username={notif.from} avatar={notif.type === 'FRIEND_REQUEST' ? notif.data.avatar : notif.data.challengerAvatar}
                                                             alt="Avatar" 
                                                             style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} 
                                                         />
@@ -371,7 +371,7 @@ const Navbar = () => {
                 <div ref={menuRef} style={{ position: 'relative' }}>
                   <button type="button" className="nav-account-toggle" data-slot="nav-account"
                     aria-label="Menu konta" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                  <UserAvatar username={userData.username} seed={userData.avatarSeed} avatar={userData.avatar}
+                  <UserAvatar username={userData.username} avatar={userData.avatar}
                     alt="User Avatar"
                     className="avatar" 
                     style={{

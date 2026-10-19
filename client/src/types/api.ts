@@ -71,8 +71,8 @@ export interface ChallengeRequest {
 }
 
 export interface Challenge {
-  challengerAvatarSeed?: string
-  targetAvatarSeed?: string
+  challengerAvatar?: AvatarConfig | null
+  targetAvatar?: AvatarConfig | null
   id: string
   challengerId: number
   challengerUsername: string
@@ -100,8 +100,6 @@ export interface RoundResult {
 }
 
 export interface GameSession {
-  player1AvatarSeed?: string
-  player2AvatarSeed?: string
   player1Avatar?: AvatarConfig | null
   player2Avatar?: AvatarConfig | null
   id: string
@@ -175,7 +173,6 @@ export interface BadgeDto {
 }
 
 export interface FriendDto {
-  avatarSeed?: string
   avatar?: AvatarConfig | null
   id: number
   username: string
@@ -184,7 +181,6 @@ export interface FriendDto {
 }
 
 export interface FriendRequestDto {
-  avatarSeed?: string
   avatar?: AvatarConfig | null
   id: number
   requesterUsername: string
@@ -434,7 +430,6 @@ export interface RecentSolvedRoomDto {
 }
 
 export interface RankingEntry {
-  avatarSeed?: string
   avatar?: AvatarConfig | null
   rankPoints: number | null
   rankElo: number | null
@@ -444,7 +439,6 @@ export interface RankingEntry {
 }
 
 export interface RankingUser {
-  avatarSeed?: string
   avatar?: AvatarConfig | null
   tagline?: string
   interests?: string[]
@@ -497,7 +491,6 @@ export interface ProfilePortfolioDto {
 }
 
 export interface UserProfileDto {
-  avatarSeed?: string
   avatar?: AvatarConfig | null
   tagline?: string
   interests?: string[]
@@ -520,7 +513,6 @@ export interface ProfileStatsDto {
 }
 
 export interface UserSearchDto {
-  avatarSeed?: string
   avatar?: AvatarConfig | null
   id: number
   username: string
@@ -528,4 +520,11 @@ export interface UserSearchDto {
   friendshipStatus: FriendshipStatus
   winsAgainst: number
   lossesAgainst: number
+}
+
+export type TourStatus = 'PENDING' | 'COMPLETED' | 'SKIPPED'
+
+export interface OnboardingState {
+  avatarConfirmed: boolean
+  tourStatus: TourStatus
 }

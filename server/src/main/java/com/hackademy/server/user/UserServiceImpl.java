@@ -58,7 +58,7 @@ public class UserServiceImpl implements UserService {
 
     private ProfilePersonalizationDto personalization(User user) {
         return new ProfilePersonalizationDto(
-                user.getBio() == null ? "" : user.getBio(), user.getTagline(), user.getAvatarSeed(),
+                user.getBio() == null ? "" : user.getBio(), user.getTagline(),
                 List.copyOf(user.getInterests()), List.copyOf(user.getFeaturedBadgeIds()));
     }
 
@@ -86,7 +86,6 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setBio(request.bio().strip());
         user.setTagline(request.tagline().strip());
-        user.setAvatarSeed(request.avatarSeed().strip());
         user.getInterests().clear();
         user.getInterests().addAll(request.interests());
         user.getFeaturedBadgeIds().clear();
@@ -294,7 +293,7 @@ public class UserServiceImpl implements UserService {
                         0, // Rank Elo placeholder
                         user.getUsername(),
                         user.getPoints(),
-                        user.getElo(), user.getAvatarSeed(), avatars.get(user.getId())
+                        user.getElo(), avatars.get(user.getId())
                 ))
                 .collect(Collectors.toList());
         rankingCache = out;
@@ -327,7 +326,6 @@ public class UserServiceImpl implements UserService {
                 .streak(effectiveStreak)
                 .bio(user.getBio())
                 .tagline(user.getTagline())
-                .avatarSeed(user.getAvatarSeed())
                 .interests(List.copyOf(user.getInterests()))
                 .featuredBadgeIds(List.copyOf(user.getFeaturedBadgeIds()))
                 .avatar(userAvatarRepository.findDtoByUserId(user.getId()))
@@ -359,7 +357,6 @@ public class UserServiceImpl implements UserService {
                     return UserSearchDto.builder()
                             .id(user.getId())
                             .username(user.getUsername())
-                            .avatarSeed(user.getAvatarSeed())
                             .avatar(avatars.get(user.getId()))
                             .points(user.getPoints())
                             .friendshipStatus(status)
@@ -407,7 +404,7 @@ public class UserServiceImpl implements UserService {
         // Calculate rank based on ELO
         long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
         
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), user.getAvatarSeed(), userAvatarRepository.findDtoByUserId(userId));
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), userAvatarRepository.findDtoByUserId(userId));
         rankCache.put(userId, new CacheEntry<>(now, out));
         return out;
     }
@@ -423,8 +420,7 @@ public class UserServiceImpl implements UserService {
         int e = elo == null ? 500 : elo;
         long rankPoints = userRepository.countByPointsGreaterThan(p) + 1;
         long rankElo = userRepository.countByEloGreaterThan(e) + 1;
-        String avatarSeed = userRepository.findById(userId).map(User::getAvatarSeed).orElse(username);
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, avatarSeed, userAvatarRepository.findDtoByUserId(userId));
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, userAvatarRepository.findDtoByUserId(userId));
         rankCache.put(userId, new CacheEntry<>(now, out));
         return out;
     }

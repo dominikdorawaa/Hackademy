@@ -8,14 +8,9 @@ public record RankingEntry(
     String username,
     Integer points,
     Integer elo,
-    String avatarSeed,
     UserAvatarDto avatar
 ) {
-    public RankingEntry(Integer rankPoints, Integer rankElo, String username, Integer points, Integer elo, String avatarSeed) {
-        this(rankPoints, rankElo, username, points, elo, avatarSeed, null);
-    }
-
     public RankingEntry(Integer rankPoints, Integer rankElo, String username, Integer points, Integer elo) {
-        this(rankPoints, rankElo, username, points, elo, username, null);
+        this(rankPoints, rankElo, username, points, elo, null);
     }
 }

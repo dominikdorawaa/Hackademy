@@ -273,8 +273,9 @@ public class ArenaServiceImpl implements ArenaService {
     public Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername) {
         Challenge challenge = new Challenge(UUID.randomUUID().toString(), challengerId, challengerUsername,
                 targetId, targetUsername, LocalDateTime.now(), "PENDING");
-        challenge.setChallengerAvatarSeed(userRepository.findById(challengerId).map(User::getAvatarSeed).orElse(challengerUsername));
-        challenge.setTargetAvatarSeed(userRepository.findById(targetId).map(User::getAvatarSeed).orElse(targetUsername));
+        var avatars = avatarRepository.findDtosByUserIds(List.of(challengerId, targetId));
+        challenge.setChallengerAvatar(avatars.get(challengerId));
+        challenge.setTargetAvatar(avatars.get(targetId));
         challenges.put(challenge.getId(), challenge);
         realtime.changed(challengerId, targetId);
         return challenge;
@@ -298,11 +299,9 @@ public class ArenaServiceImpl implements ArenaService {
             session.setId(UUID.randomUUID().toString());
             session.setPlayer1Id(challenger.getId());
             session.setPlayer1Username(challenge.getChallengerUsername());
-            session.setPlayer1AvatarSeed(challenger.getAvatarSeed());
             session.setPlayer1Elo(challenger.getElo());
             session.setPlayer2Id(target.getId());
             session.setPlayer2Username(challenge.getTargetUsername());
-            session.setPlayer2AvatarSeed(target.getAvatarSeed());
             session.setPlayer2Elo(target.getElo());
             prepareBattle(session);
             activeGames.put(session.getId(), session);

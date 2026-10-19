@@ -1,0 +1,74 @@
+@layer components {
+.guided-tour {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.tour-dim {
+  position: absolute;
+  inset: 0;
+  background: rgb(5 10 20 / 0.62);
+  pointer-events: auto;
+}
+
+.tour-dim.has-spotlight {
+  background: transparent;
+}
+
+.tour-spotlight {
+  position: fixed;
+  border: 3px solid var(--ud-link);
+  border-radius: 12px;
+  box-shadow: 0 0 0 9999px rgb(5 10 20 / 0.62), 0 0 0 6px rgb(110 162 255 / 0.25);
+  transition: top 280ms var(--ud-ease), left 280ms var(--ud-ease), width 280ms var(--ud-ease), height 280ms var(--ud-ease);
+  pointer-events: none;
+}
+
+.tour-bubble {
+  position: fixed;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: auto;
+}
+
+.tour-bubble.is-dock {
+  right: 16px;
+  bottom: 16px;
+  left: 16px;
+  width: auto;
+  max-width: 520px;
+  margin: 0 auto;
+}
+
+.tour-progress {
+  margin-right: auto;
+  color: var(--ud-muted);
+  font-size: var(--ud-text-s);
+  font-weight: 700;
+}
+
+.tour-skip {
+  flex-basis: 100%;
+  justify-content: center;
+}
+
+.tour-error {
+  color: var(--ud-peek-error);
+  font-weight: 600;
+}
+
+.guided-tour[data-reduced-motion='true'] .tour-spotlight {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight {
+    transition: none;
+  }
+}
+}
+
+html[data-tour-active] main {
+  padding-bottom: 300px;
+}

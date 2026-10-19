@@ -1,5 +1,7 @@
 import { Routes, Route, Outlet } from 'react-router-dom';
 import { AuthProvider } from './context/AuthContext';
+import { OnboardingProvider } from './context/OnboardingContext';
+import GuidedTour from './components/tour/GuidedTour';
 import Navbar from './components/Navbar';
 import RealtimeGameNavigation from './components/RealtimeGameNavigation';
 import { RealtimeProvider } from './context/RealtimeContext';
@@ -28,6 +30,7 @@ import { ArenaLoader } from './components/arena/ArenaLoader';
 
 const UkosPage = lazy(() => import('./ukos/UkosPage'));
 const ArenaAvatarPage = lazy(() => import('./pages/ArenaAvatarPage'));
+const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const ArenaBattlePage = lazy(() => import('./pages/ArenaBattlePage'));
 
 function SiteLayout() {
@@ -39,6 +42,7 @@ function SiteLayout() {
       <main className="flex-grow">
         <Outlet />
       </main>
+      <GuidedTour />
       <Footer />
     </div>
   );
@@ -47,6 +51,7 @@ function SiteLayout() {
 function App() {
   return (
     <AuthProvider>
+      <OnboardingProvider>
       <RealtimeProvider>
         <NotificationPreferencesProvider>
         <Routes>
@@ -55,6 +60,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login" element={<LoginPage />} />
             <Route path="/register" element={<RegisterPage />} />
+            <Route path="/witaj" element={<ProtectedRoute onboarding><Suspense fallback={<ArenaLoader label="Wczytuję powitanie" />}><OnboardingPage /></Suspense></ProtectedRoute>} />
             <Route path="/arena/avatar" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Ładowanie kreatora awatara" />}><ArenaAvatarPage /></Suspense></ProtectedRoute>} />
 
             <Route path="/arena/battle/:gameId" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Wczytuję walkę" />}><ArenaBattlePage /></Suspense></ProtectedRoute>} />
@@ -145,6 +151,7 @@ function App() {
         </Routes>
         </NotificationPreferencesProvider>
       </RealtimeProvider>
+      </OnboardingProvider>
     </AuthProvider>
   );
 }

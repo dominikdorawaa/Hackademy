@@ -214,7 +214,7 @@ describe('shared realtime state', () => {
     expect(connections).toHaveLength(1);
     await act(async () => connections[0].callbacks.ready());
     await waitFor(() => expect(screen.getByTestId('arena')).toHaveTextContent('1:online:0'));
-    act(() => connections[0].callbacks.state({ ...snapshot(2), friendRequests: [{ id: 7, requesterUsername: 'friend', createdAt: '2026-10-11', avatarSeed: 'friend' }] }));
+    act(() => connections[0].callbacks.state({ ...snapshot(2), friendRequests: [{ id: 7, requesterUsername: 'friend', createdAt: '2026-10-11' }] }));
     expect(screen.getByTestId('navbar')).toHaveTextContent('2:online:1');
     expect(screen.getByTestId('arena')).toHaveTextContent('2:online:1');
     vi.useFakeTimers();

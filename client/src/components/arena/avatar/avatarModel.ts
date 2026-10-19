@@ -202,6 +202,17 @@ export function compositeOverlay(atlas: Uint8ClampedArray, width: number, overla
   return atlas;
 }
 
+export function avatarFromUsername(username: string): Avatar {
+  let hash = 2166136261;
+  for (const char of username.toLowerCase()) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
+  const pick = <T,>(options: readonly T[]) => { const value = options[hash % options.length]; hash = Math.imul(hash ^ (hash >>> 13), 2246822519) >>> 0; return value; };
+  const cloth = Object.keys(CLOTH_RAMPS);
+  return {
+    outfit: pick(AVATAR_OUTFITS), hair: pick(['krotkie', 'krotkie', 'irokez', 'kucyk', 'brak'] as const), hat: pick(['brak', 'brak', 'brak', 'czapka', 'daszek'] as const), pose: 'przod',
+    colors: { skin: pick(Object.keys(SKIN_RAMPS)), hair: pick(Object.keys(HAIR_RAMPS)), top: pick(cloth), bottom: pick(cloth), shoes: pick(cloth), hat: pick(cloth) },
+  };
+}
+
 export function toAvatarConfig(avatar: Avatar): AvatarConfig {
   return { outfit: avatar.outfit, hair: avatar.hair, hat: avatar.hat, skin: avatar.colors.skin, hairColor: avatar.colors.hair,
     topColor: avatar.colors.top, bottomColor: avatar.colors.bottom, shoesColor: avatar.colors.shoes, hatColor: avatar.colors.hat, pose: avatar.pose };

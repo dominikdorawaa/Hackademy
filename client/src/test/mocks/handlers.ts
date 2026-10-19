@@ -6,6 +6,7 @@ import { defaultNotificationPreferences } from '../../services/userApi';
 
 export const loginUrl = `${API_URL}/api/auth/login`;
 export const currentUserUrl = `${API_URL}/api/user/me`;
+export const onboardingUrl = `${API_URL}/api/user/me/onboarding`;
 
 export function currentUserHandler(role: Role = 'USER') {
   return http.get<never, never, DashboardUser>(currentUserUrl, () => {
@@ -23,6 +24,7 @@ export const handlers = [
     return HttpResponse.json<AuthResponse>({ token: createToken() });
   }),
   currentUserHandler(),
+  http.get(onboardingUrl, () => HttpResponse.json({ avatarConfirmed: true, tourStatus: 'COMPLETED' })),
   http.get(`${API_URL}/api/ranking/summary`, () => HttpResponse.json({ ranking: [], user: null, myRank: null })),
   http.get(`${API_URL}/api/friends`, () => HttpResponse.json([])),
 ];

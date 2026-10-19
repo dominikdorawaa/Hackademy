@@ -209,8 +209,8 @@ class FriendshipServiceImplTest {
         var friends = service.getFriends(1L);
 
         assertEquals(List.of(
-                new FriendDto(2L, "bob", 20, 2, "bob-seed"),
-                new FriendDto(3L, "carol", 30, 3, "carol-seed")), friends);
+                new FriendDto(2L, "bob", 20, 2),
+                new FriendDto(3L, "carol", 30, 3)), friends);
         assertSame(friends, service.getFriends(1L));
         verify(friendshipRepository, times(1)).findByUserAndStatus(alice, FriendshipStatus.ACCEPTED);
 
@@ -237,7 +237,7 @@ class FriendshipServiceImplTest {
 
         var requests = service.getPendingRequests(1L);
 
-        assertEquals(List.of(new FriendRequestDto(10L, "bob", request.getCreatedAt(), "bob-seed")), requests);
+        assertEquals(List.of(new FriendRequestDto(10L, "bob", request.getCreatedAt())), requests);
         assertSame(requests, service.getPendingRequests(1L));
         verify(friendshipRepository, times(1)).findPendingRequestsForUser(alice);
 
@@ -294,7 +294,6 @@ class FriendshipServiceImplTest {
         var asRequester = service.getFriendshipStats(1L, "bob");
         assertEquals(2L, asRequester.id());
         assertEquals("bob", asRequester.username());
-        assertEquals("bob-seed", asRequester.avatarSeed());
         assertEquals(20, asRequester.points());
         assertEquals("FRIENDS", asRequester.friendshipStatus());
         assertEquals(5, asRequester.winsAgainst());
@@ -329,7 +328,6 @@ class FriendshipServiceImplTest {
         return User.builder()
                 .id(id)
                 .username(username)
-                .avatarSeed(username + "-seed")
                 .points((int) id * 10)
                 .streak((int) id)
                 .build();
