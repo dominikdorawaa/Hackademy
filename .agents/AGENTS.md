@@ -13,6 +13,7 @@
 - Tytuły ticketów na GitHubie pisz po angielsku, krótko i konkretnie, tak aby nadawały się na nazwę gałęzi. Szczegóły umieszczaj w opisie ticketa.
 - Nie dodawaj do ticketów etykiety `ready-for-agent`. Używaj tylko etykiet opisujących obszar i rodzaj zmiany (np. `backend`, `frontend`, `testing`, `ci`).
 - Treść ticketów (issues) i opisy PR na GitHubie pisz po polsku. Tytuły issues i PR pisz po angielsku.
+- Adresy stron we frontendzie i ścieżki API piszemy po angielsku (np. `/privacy`, `/welcome`), bo serwis jest także dla osób z zagranicy. Treść stron może być po polsku.
 - Przy tworzeniu PR na GitHubie użyj tytułu ticketa jako tytułu PR i automatycznie przygotuj krótki opis na podstawie rzeczywistych zmian oraz wyników weryfikacji.
 - Zmiany w `AGENTS.md` nie wymagają osobnego PR ani gałęzi. Dołączaj je jako osobny commit do bieżącej gałęzi z innymi zmianami.
 - Przed rozpoczęciem zmian utwórz osobną gałąź od aktualnego `main`. Jeśli istnieje ticket, nazwij gałąź zgodnie z jego nazwą. Nie commituj ani nie pushuj bezpośrednio z `main`.
