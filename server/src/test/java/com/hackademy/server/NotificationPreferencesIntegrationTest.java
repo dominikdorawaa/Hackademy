@@ -24,11 +24,11 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
     void changingOneFieldDoesNotUndoAnotherTabsChange() throws Exception {
         var user = account(Role.USER);
         getAs(user, URL).andExpect(jsonPath("$.friendRequests").value(true));
-        getAs(user, URL).andExpect(jsonPath("$.sound").value(false));
+        getAs(user, URL).andExpect(jsonPath("$.sound").value(true));
         patchPreference(user, "{\"preference\":\"friendRequests\",\"enabled\":false}").andExpect(status().isOk());
-        patchPreference(user, "{\"preference\":\"sound\",\"enabled\":true}").andExpect(status().isOk())
-                .andExpect(jsonPath("$.friendRequests").value(false)).andExpect(jsonPath("$.sound").value(true));
-        getAs(user, URL).andExpect(jsonPath("$.friendRequests").value(false)).andExpect(jsonPath("$.sound").value(true));
+        patchPreference(user, "{\"preference\":\"sound\",\"enabled\":false}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.friendRequests").value(false)).andExpect(jsonPath("$.sound").value(false));
+        getAs(user, URL).andExpect(jsonPath("$.friendRequests").value(false)).andExpect(jsonPath("$.sound").value(false));
     }
 
     @Test
@@ -44,12 +44,12 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
         var second = CompletableFuture.runAsync(() -> {
             try {
                 gate.await();
-                patchPreference(user, "{\"preference\":\"sound\",\"enabled\":true}").andExpect(status().isOk());
+                patchPreference(user, "{\"preference\":\"sound\",\"enabled\":false}").andExpect(status().isOk());
             } catch (Exception exception) { throw new RuntimeException(exception); }
         });
         gate.countDown();
         CompletableFuture.allOf(first, second).get(10, TimeUnit.SECONDS);
-        getAs(user, URL).andExpect(jsonPath("$.friendRequests").value(false)).andExpect(jsonPath("$.sound").value(true));
+        getAs(user, URL).andExpect(jsonPath("$.friendRequests").value(false)).andExpect(jsonPath("$.sound").value(false));
     }
 
     @Test
@@ -58,13 +58,14 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
         var second = account(Role.USER);
         getAs(first, URL).andExpect(status().isOk())
                 .andExpect(jsonPath("$.friendRequests").value(true))
-                .andExpect(jsonPath("$.sound").value(false));
+                .andExpect(jsonPath("$.sound").value(true));
         patchPreference(first, """
                 {"preference":"friendRequests","enabled":false}
                 """)
                 .andExpect(status().isOk()).andExpect(jsonPath("$.friendRequests").value(false));
         getAs(first, URL).andExpect(status().isOk())
                 .andExpect(jsonPath("$.friendRequests").value(false))
+                .andExpect(jsonPath("$.sound").value(true))
                 .andExpect(jsonPath("$.browserNotifications").value(false));
         getAs(second, URL).andExpect(status().isOk())
                 .andExpect(jsonPath("$.friendRequests").value(true))
@@ -74,8 +75,8 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
     @Test
     void rejectsIncompletePreferencesWithoutOverwritingPreviousValues() throws Exception {
         var user = account(Role.USER);
-        patchPreference(user, "{\"sound\":true}").andExpect(status().isBadRequest());
-        getAs(user, URL).andExpect(status().isOk()).andExpect(jsonPath("$.sound").value(false));
+        patchPreference(user, "{\"sound\":false}").andExpect(status().isBadRequest());
+        getAs(user, URL).andExpect(status().isOk()).andExpect(jsonPath("$.sound").value(true));
     }
 
     @Test
@@ -91,6 +92,6 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
         patchPreference(user, "{\"preference\":\"unknown\",\"enabled\":true}").andExpect(status().isBadRequest());
         patchPreference(user, "{\"preference\":\"sound\"}").andExpect(status().isBadRequest());
         patchPreference(user, "{\"preference\":\"sound\",\"enabled\":null}").andExpect(status().isBadRequest());
-        getAs(user, URL).andExpect(jsonPath("$.sound").value(false));
+        getAs(user, URL).andExpect(jsonPath("$.sound").value(true));
     }
 }

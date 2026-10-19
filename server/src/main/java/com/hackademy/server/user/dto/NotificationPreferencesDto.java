@@ -9,6 +9,6 @@ public record NotificationPreferencesDto(
         @NotNull Boolean sound,
         @NotNull Boolean browserNotifications) {
     public static NotificationPreferencesDto defaults() {
-        return new NotificationPreferencesDto(true, true, true, false, false);
+        return new NotificationPreferencesDto(true, true, true, true, false);
     }
 }

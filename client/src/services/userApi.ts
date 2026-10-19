@@ -20,7 +20,7 @@ export interface NotificationPreferences {
 }
 
 export const defaultNotificationPreferences: NotificationPreferences = {
-  friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: false,
+  friendRequests: true, challenges: true, matchFound: true, sound: true, browserNotifications: false,
 };
 
 export function getNotificationPreferences(headers: HeadersInit, signal?: AbortSignal) {

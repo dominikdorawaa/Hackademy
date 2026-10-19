@@ -11,7 +11,7 @@ public interface NotificationPreferencesRepository extends JpaRepository<Notific
             INSERT INTO user_notification_preferences
                 (user_id, friend_requests, challenges, match_found, sound, browser_notifications)
             VALUES (:userId, COALESCE(:friendRequests, TRUE), COALESCE(:challenges, TRUE),
-                COALESCE(:matchFound, TRUE), COALESCE(:sound, FALSE), COALESCE(:browserNotifications, FALSE))
+                COALESCE(:matchFound, TRUE), COALESCE(:sound, TRUE), COALESCE(:browserNotifications, FALSE))
             ON CONFLICT (user_id) DO UPDATE SET
                 friend_requests = COALESCE(:friendRequests, user_notification_preferences.friend_requests),
                 challenges = COALESCE(:challenges, user_notification_preferences.challenges),
