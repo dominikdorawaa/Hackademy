@@ -19,7 +19,7 @@
   margin: 0;
   font-family: 'Pixelify Sans', 'JetBrains Mono', monospace;
   font-size: clamp(1.9rem, 1.3rem + 1.8vw, 2.75rem);
-  font-weight: 700;
+  font-weight: 600;
   outline: none;
 }
 
