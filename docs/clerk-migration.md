@@ -26,7 +26,7 @@ Na Heroku ustaw produkcyjny `CLERK_ISSUER` i zachowaj `FRONTEND_URL=https://hack
 ## Import istniejących kont
 
 1. Wykonaj kopię bazy. Zapisz identyfikatory ostatnich działających wdrożeń API i Pages. Zamknij możliwość rejestracji w docelowej instancji Clerka na czas importu i odetnij zapisy w starej aplikacji. Importu nie uruchamiaj równolegle z obsługą użytkowników ani z drugim importerem.
-2. Uruchom nowy artefakt jako osobny proces z dostępem do tej samej bazy, bez publicznego portu. Flyway dodaje V20: unikalny `clerk_user_id` i opcjonalne hasło. Nie usuwaj ani nie zmieniaj wcześniejszych migracji.
+2. Uruchom nowy artefakt jako osobny proces z dostępem do tej samej bazy, bez publicznego portu. Flyway dodaje V21: unikalny `clerk_user_id` i opcjonalne hasło. Nie usuwaj ani nie zmieniaj wcześniejszych migracji.
 3. Przekaż importerowi `CLERK_ISSUER`, `CLERK_SECRET_KEY`, dane bazy i `CLERK_IMPORT_USERS=true`, np. przez bezpieczne zmienne procesu: `java -jar server.jar --server.port=0`. Nie umieszczaj sekretu w poleceniu ani historii terminala. W normalnym serwerze `CLERK_IMPORT_USERS` musi pozostać `false`.
 4. Import tworzy użytkowników z dotychczasowym e-mailem i hashem bcrypt oraz `external_id` równym lokalnemu ID. Od razu zapisuje zwrócony identyfikator Clerka w lokalnym koncie. Nazwy, role, punkty, znajomi, awatary i postępy pozostają w tej samej bazie.
 5. Powtórzenie pomija już powiązane konta. Jeśli poprzedni przebieg utworzył konto zewnętrzne, ale nie zapisał powiązania, importer odzyskuje je przez `external_id`. Nie dołącza kont po samym e-mailu. Konflikt z istniejącym kontem Clerka lub błąd API daje niezerowy kod wyjścia i wymaga ustalenia właściciela. Nie naprawiaj konfliktu przez automatyczne przejęcie konta.
@@ -38,7 +38,7 @@ Przy dużej liczbie kont zaplanuj limit zapytań Backend API Clerka. Importer ra
 
 ## Powrót po niepowodzeniu
 
-Przed otwarciem zapisów można przywrócić poprzednie wdrożenia API i Pages oraz ich wcześniejszy sekret JWT. V20 jest zmianą addytywną, stare konta zachowują hashe. Nie cofaj Flyway ręcznie. Jeśli stare wydanie nie rozpoznaje nowszej migracji, użyj przygotowanego wydania zgodności lub odtwórz backup w osobnej bazie i skieruj stare API do tej bazy.
+Przed otwarciem zapisów można przywrócić poprzednie wdrożenia API i Pages oraz ich wcześniejszy sekret JWT. V21 jest zmianą addytywną, stare konta zachowują hashe. Nie cofaj Flyway ręcznie. Jeśli stare wydanie nie rozpoznaje nowszej migracji, użyj przygotowanego wydania zgodności lub odtwórz backup w osobnej bazie i skieruj stare API do tej bazy.
 
 Po otwarciu zapisów nie przywracaj ślepo backupu: utraciłby nowy postęp. Konta utworzone w Clerk po przełączeniu nie mają lokalnego hasła, a zmiany hasła w Clerk nie aktualizują starego hasha. Wymagają uzgodnionego odzyskania dostępu przed powrotem do starego logowania. Ponownie zatrzymaj zapisy, uzgodnij dane i sposób odzyskania dostępu, następnie przełącz oba wdrożenia. Nie obiecuj automatycznego bezstratnego rollbacku po zmianach kont.
 
