@@ -2,11 +2,13 @@ import { useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
+import { loudestEvent, playSound, unlockAudio } from '../lib/notificationSounds';
+import type { SoundEvent } from '../lib/notificationSounds';
 import './RealtimeNotifications.css';
 
 interface Alert {
   id: string;
-  category: 'friendRequests' | 'challenges' | 'matchFound' | 'friendOnline';
+  category: SoundEvent;
   title: string;
   body: string;
   friendId?: number;
@@ -34,7 +36,6 @@ export default function RealtimeNotifications() {
   const { preferences, loaded } = useNotificationPreferences();
   const seen = useRef<{ token: string | null; stream: string; ids: Set<string>; offlineFriends: Set<number>;
     pending: Map<string, Alert> } | null>(null);
-  const audio = useRef<AudioContext | null>(null);
   const lastOnlineToast = useRef(new Map<number, number>());
   const nextToastId = useRef(0);
   const toastTimers = useRef(new Map<number, number>());
@@ -47,19 +48,12 @@ export default function RealtimeNotifications() {
 
   useEffect(() => {
     if (!preferences.sound || !token) return;
-    const unlock = () => {
-      try {
-        audio.current ??= new AudioContext();
-        void audio.current.resume().catch(() => {});
-      } catch { return; }
-    };
+    const unlock = () => { void unlockAudio(); };
     document.addEventListener('pointerdown', unlock);
     document.addEventListener('keydown', unlock);
     return () => {
       document.removeEventListener('pointerdown', unlock);
       document.removeEventListener('keydown', unlock);
-      void audio.current?.close().catch(() => {});
-      audio.current = null;
     };
   }, [preferences.sound, token]);
 
@@ -107,19 +101,8 @@ export default function RealtimeNotifications() {
       setToasts(current => [...current, { id, text: onlineSummary }]);
       toastTimers.current.set(id, window.setTimeout(() => dismiss(id), TOAST_DURATION_MS));
     }
-    if (eligible.length && preferences.sound && audio.current?.state === 'running') {
-      const context = audio.current;
-      const oscillator = context.createOscillator();
-      const gain = context.createGain();
-      oscillator.frequency.value = 660;
-      gain.gain.setValueAtTime(0.07, context.currentTime);
-      gain.gain.exponentialRampToValueAtTime(0.001, context.currentTime + 0.18);
-      oscillator.connect(gain);
-      gain.connect(context.destination);
-      oscillator.start();
-      oscillator.stop(context.currentTime + 0.2);
-      oscillator.onended = () => { oscillator.disconnect(); gain.disconnect(); };
-    }
+    const signal = loudestEvent(eligible.map(event => event.category));
+    if (signal && preferences.sound) playSound(signal);
     if (preferences.browserNotifications && document.visibilityState === 'hidden'
       && 'Notification' in window && Notification.permission === 'granted') {
       const notifications = [...eligible.filter(event => event.friendId === undefined),

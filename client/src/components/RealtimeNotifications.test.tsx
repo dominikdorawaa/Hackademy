@@ -11,6 +11,9 @@ const environment = vi.hoisted(() => ({ token: 'first', state: null as RealtimeS
   preferences: { friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: true, friendOnline: true } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ token: environment.token }) }));
 vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state }) }));
+const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), unlock: vi.fn(async () => true) }));
+vi.mock('../lib/notificationSounds', async importOriginal => ({
+  ...await importOriginal<typeof import('../lib/notificationSounds')>(), playSound: sounds.play, unlockAudio: sounds.unlock }));
 vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPreferences: () => ({ preferences: environment.preferences, loaded: environment.loaded }) }));
 
 const delivered = vi.fn();
@@ -20,6 +23,8 @@ const request = { id: 7, requesterUsername: 'friend', createdAt: '2026-10-11T12:
 
 beforeEach(() => {
   delivered.mockClear();
+  sounds.play.mockClear();
+  sounds.unlock.mockClear();
   environment.token = 'first';
   environment.state = snapshot();
   environment.loaded = true;
@@ -136,6 +141,40 @@ describe('realtime notification delivery', () => {
     expect(container.querySelector('output')).toHaveTextContent('/arena/battle/match');
     expect(delivered).not.toHaveBeenCalled();
   });
+
+  it('plays one signal for the most urgent new event only when sound is on', () => {
+    environment.preferences = { ...environment.preferences, sound: true };
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request],
+      gameSession: createGameSession({ id: 'match', player1Username: 'first', player2Username: 'second' }) };
+    rerender(<RealtimeNotifications />);
+    expect(sounds.play).toHaveBeenCalledTimes(1);
+    expect(sounds.play).toHaveBeenCalledWith('matchFound');
+    environment.preferences = { ...environment.preferences, sound: false };
+    environment.state = { ...environment.state, revision: 3, friendRequests: [request, { ...request, id: 8 }] };
+    rerender(<RealtimeNotifications />);
+    expect(sounds.play).toHaveBeenCalledTimes(1);
+  });
+
+  it('stays silent for muted categories and unlocks audio on the first interaction', () => {
+    environment.preferences = { ...environment.preferences, sound: true, friendRequests: false };
+    const { rerender } = render(<RealtimeNotifications />);
+    document.dispatchEvent(new Event('pointerdown'));
+    expect(sounds.unlock).toHaveBeenCalledTimes(1);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request] };
+    rerender(<RealtimeNotifications />);
+    expect(sounds.play).not.toHaveBeenCalled();
+  });
+
+  it('keeps a found match silent when its switch is off', () => {
+    environment.preferences = { ...environment.preferences, sound: true, matchFound: false };
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2,
+      gameSession: createGameSession({ id: 'match', player1Username: 'first', player2Username: 'second' }) };
+    rerender(<RealtimeNotifications />);
+    expect(sounds.play).not.toHaveBeenCalled();
+    expect(delivered).not.toHaveBeenCalled();
+  });
 });
 
 describe('friend online toasts', () => {
@@ -231,25 +270,13 @@ describe('friend online toasts', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 
-  it('plays the notification sound once audio is unlocked', () => {
-    const started = vi.fn();
-    const node = () => ({ connect: vi.fn(), disconnect: vi.fn(), frequency: { value: 0 },
-      gain: { setValueAtTime: vi.fn(), exponentialRampToValueAtTime: vi.fn() }, start: started, stop: vi.fn(), onended: null as null | (() => void) });
-    vi.stubGlobal('AudioContext', class {
-      state = 'running';
-      currentTime = 0;
-      destination = {};
-      resume = () => Promise.resolve();
-      close = () => Promise.resolve();
-      createOscillator = node;
-      createGain = node;
-    });
+  it('plays the friend online sound when a friend comes online', () => {
     environment.preferences = { ...environment.preferences, sound: true };
     environment.state = withFriends(1, friend(2, 'ola', false));
     const { rerender } = render(<RealtimeNotifications />);
-    fireEvent.pointerDown(document);
     environment.state = withFriends(2, friend(2, 'ola', true));
     rerender(<RealtimeNotifications />);
-    expect(started).toHaveBeenCalledTimes(1);
+    expect(sounds.play).toHaveBeenCalledTimes(1);
+    expect(sounds.play).toHaveBeenCalledWith('friendOnline');
   });
 });

@@ -11,6 +11,10 @@ import API_URL from '../apiConfig';
 import { defaultNotificationPreferences } from '../services/userApi';
 import SettingsPage from './SettingsPage';
 
+const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), unlock: vi.fn(async () => true) }));
+vi.mock('../lib/notificationSounds', async importOriginal => ({
+  ...await importOriginal<typeof import('../lib/notificationSounds')>(), playSound: sounds.play, unlockAudio: sounds.unlock }));
+
 function mount(section = 'account') {
   localStorage.setItem('token', createToken());
   render(<MemoryRouter initialEntries={[`/settings?section=${section}`]}><AuthProvider><ThemeProvider><NotificationPreferencesProvider><SettingsPage /></NotificationPreferencesProvider></ThemeProvider></AuthProvider></MemoryRouter>);
@@ -94,7 +98,7 @@ describe('settings', () => {
     }));
     try {
       mount('notifications');
-      const toggle = await screen.findByRole('switch', { name: 'Powiadomienia przeglądarkowe' });
+      const toggle = await screen.findByRole('switch', { name: 'Powiadomienia systemowe' });
       await waitFor(() => expect(toggle).toBeEnabled());
       fireEvent.click(toggle);
       await screen.findByText(/Przeglądarka nie udzieliła zgody/);
@@ -144,5 +148,90 @@ describe('settings', () => {
     await screen.findByText('Hasło zostało zmienione.');
     expect(screen.getByLabelText('Obecne hasło')).toHaveValue('');
     expect(screen.getByLabelText('Nowe hasło')).toHaveValue('');
+  });
+
+  it('explains what each event triggers and updates the summary live', async () => {
+    let saved = { ...defaultNotificationPreferences };
+    server.use(
+      http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(saved)),
+      http.patch(`${API_URL}/api/user/me/notification-preferences`, async ({ request }) => {
+        const change = await request.json() as { preference: keyof typeof saved; enabled: boolean };
+        saved = { ...saved, [change.preference]: change.enabled };
+        return HttpResponse.json(saved);
+      }),
+    );
+    mount('notifications');
+    const summary = await screen.findByText('Zaproszenie do znajomych', { selector: 'dt' });
+    const outcome = (name: string) => screen.getByText(name, { selector: 'dt' }).nextElementSibling;
+    await waitFor(() => expect(outcome('Zaproszenie do znajomych')).toHaveTextContent('dzwonek w górnym pasku, dźwięk'));
+    expect(summary).toBeInTheDocument();
+    expect(outcome('Znaleziony mecz')).toHaveTextContent('dźwięk');
+    expect(screen.getAllByText(/dzwonku w górnym pasku/)).toHaveLength(3);
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Dźwięk powiadomień' }));
+    await screen.findByText('Preferencje zostały zapisane.');
+    expect(outcome('Zaproszenie do znajomych')).toHaveTextContent(/^dzwonek w górnym pasku$/);
+    expect(outcome('Znaleziony mecz')).toHaveTextContent('mecz otworzy się bez sygnału');
+    expect(screen.getByRole('switch', { name: 'Znaleziony mecz' })).toBeDisabled();
+    expect(screen.getByText(/aby ta opcja miała efekt/)).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('switch', { name: 'Zaproszenia do znajomych' }));
+    await waitFor(() => expect(outcome('Zaproszenie do znajomych')).toHaveTextContent('tylko na stronie Znajomi'));
+  });
+
+  it('previews every sound right away, even with sound switched off', async () => {
+    server.use(http.get(`${API_URL}/api/user/me/notification-preferences`,
+      () => HttpResponse.json({ ...defaultNotificationPreferences, sound: false })));
+    mount('notifications');
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Dźwięk powiadomień' })).toHaveAttribute('aria-checked', 'false'));
+    fireEvent.click(screen.getByRole('button', { name: 'Odtwórz próbnie: Wyzwanie w Arenie' }));
+    await waitFor(() => expect(sounds.play).toHaveBeenCalledWith('challenges'));
+    expect(await screen.findByText(/Włącz „Dźwięk”/)).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Wariant sygnału: Znaleziony mecz' }), { target: { value: 'alarm' } });
+    await waitFor(() => expect(sounds.play).toHaveBeenCalledWith('matchFound'));
+    expect(localStorage.getItem('sound-variant:matchFound')).toBe('alarm');
+
+    sounds.unlock.mockResolvedValueOnce(false);
+    fireEvent.click(screen.getByRole('button', { name: 'Odtwórz próbnie: Zaproszenie do znajomych' }));
+    expect(await screen.findByText('Ta przeglądarka nie odtwarza dźwięków na tej stronie.')).toBeInTheDocument();
+  });
+
+  it('sends a test system notification or says what is missing', async () => {
+    const shown = vi.fn();
+    const permission = vi.fn(async () => 'granted');
+    class FakeNotification {
+      static permission = 'default';
+      static requestPermission = permission;
+      constructor(title: string) { shown(title); }
+    }
+    vi.stubGlobal('isSecureContext', true);
+    vi.stubGlobal('Notification', FakeNotification);
+    server.use(http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(defaultNotificationPreferences)));
+    try {
+      mount('notifications');
+      const preview = await screen.findByRole('button', { name: 'Wyślij próbne' });
+      fireEvent.click(preview);
+      await screen.findByText(/Wysłano próbne powiadomienie/);
+      expect(permission).toHaveBeenCalledTimes(1);
+      expect(shown).toHaveBeenCalledWith('Próbne powiadomienie Hackademy');
+
+      FakeNotification.permission = 'denied';
+      fireEvent.click(preview);
+      await screen.findByText(/Przeglądarka blokuje powiadomienia/);
+      expect(shown).toHaveBeenCalledTimes(1);
+    } finally { vi.unstubAllGlobals(); }
+  });
+
+  it('treats system notifications without browser permission as no signal for a found match', async () => {
+    vi.stubGlobal('isSecureContext', true);
+    vi.stubGlobal('Notification', { permission: 'denied', requestPermission: vi.fn() });
+    server.use(http.get(`${API_URL}/api/user/me/notification-preferences`,
+      () => HttpResponse.json({ ...defaultNotificationPreferences, sound: false, browserNotifications: true })));
+    try {
+      mount('notifications');
+      await waitFor(() => expect(screen.getByRole('switch', { name: 'Znaleziony mecz' })).toBeDisabled());
+      expect(screen.getByText(/ta przeglądarka nie ma zgody/)).toBeInTheDocument();
+    } finally { vi.unstubAllGlobals(); }
   });
 });
