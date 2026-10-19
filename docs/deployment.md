@@ -36,7 +36,7 @@ Sekrety repozytorium (dodaje je właściciel repozytorium):
 | `CLOUDFLARE_API_TOKEN` | token z jednym uprawnieniem `Account / Cloudflare Pages / Edit` |
 | `CLOUDFLARE_ACCOUNT_ID` | identyfikator konta Cloudflare |
 
-Po rotacji tokenu właściciel repozytorium podmienia sekret, a stary token jest odwoływany.
+Po rotacji tokenu właściciel repozytorium podmienia sekret, a stary token jest odwoływany. Workflow nie zmienia konfiguracji strefy Cloudflare; robi to ręcznie skrypt z sekcji „Ochrona API przez Cloudflare”.
 
 ## Zmiany API
 
@@ -114,6 +114,109 @@ Przy awarii po wdrożeniu najpierw cofnij zmianę przez revert PR-a na `main`; w
 
 - `heroku certs:auto -a hackademy` pokazuje stan certyfikatu ACM. Prawidłowy stan to `Cert issued`; odnowienie następuje miesiąc przed wygaśnięciem.
 - Jeśli ACM zgłasza błąd, sprawdź, czy rekord `api` wskazuje adres z `heroku domains -a hackademy`, czy tryb SSL to Full (strict) i czy `http://api.hackademy.app/.well-known/acme-challenge/test` przekierowuje do `va-acm.heroku.com`.
-- CORS dopuszcza tylko `https://hackademy.app`, więc `www.hackademy.app` ani `hackademy.pages.dev` z podglądami nie mogą wywoływać API. Dodatkowy origin wymaga ustawienia `CORS_ALLOWED_ORIGINS` z pełną listą, łącznie z `https://hackademy.app`, bo ta zmienna zastępuje `FRONTEND_URL`. Bezpośredni adres `hackademy-6d39a54d38e4.herokuapp.com` nadal odpowiada; odrzucanie ruchu z pominięciem Cloudflare opisuje #131.
+- CORS dopuszcza tylko `https://hackademy.app`, więc `www.hackademy.app` ani `hackademy.pages.dev` z podglądami nie mogą wywoływać API. Dodatkowy origin wymaga ustawienia `CORS_ALLOWED_ORIGINS` z pełną listą, łącznie z `https://hackademy.app`, bo ta zmienna zastępuje `FRONTEND_URL`. Bezpośredni adres `hackademy-6d39a54d38e4.herokuapp.com` odpowiada `403`, gdy ustawiono `ORIGIN_GUARD_SECRETS` (sekcja „Ochrona API przez Cloudflare”).
 
 Integracja Clerka wymaga przeprowadzenia [procedury migracji kont](clerk-migration.md) przed wdrożeniem. Build Cloudflare Pages otrzymuje produkcyjny `VITE_CLERK_PUBLISHABLE_KEY` ze zmiennej repozytorium GitHub. Klucz sekretny służy wyłącznie do importu; zwykła obsługa API weryfikuje JWT przez JWKS.
+
+## Ochrona API przez Cloudflare
+
+Konfiguracja strefy jest w `tools/cloudflare/` (#131): `rules.mjs` opisuje reguły, a `apply.mjs` zapisuje je w Cloudflare. Skrypt nadpisuje w całości tylko fazy `http_request_late_transform`, `http_request_cache_settings`, `http_config_settings` i `http_ratelimit` oraz ustawienie `min_tls_version`. Reguł przekierowań (`api https`, `www to apex`) i reguł zarządzanych nie zmienia. Przed zapisem odczytuje fazy i przerywa, jeśli znajdzie regułę dodaną poza skryptem (bez prefiksu `hackademy_` w `ref`), chyba że podano `--force`. Taką regułę trzeba najpierw przenieść do `rules.mjs`.
+
+Dla usuniętego `/api/auth` nie ma i nie dodajemy żadnej reguły. Logowanie obsługuje Clerk na `clerk.hackademy.app` i `accounts.hackademy.app` (rekordy DNS bez proxy).
+
+### Cache
+
+| Ruch | Zasada |
+| --- | --- |
+| `/static/*` na Pages | `public, max-age=31536000, immutable`; nazwy plików zawierają skrót treści |
+| HTML, głębokie linki SPA, favikony, logotypy, `/assets/*`, `robots.txt`, `sitemap.xml`, `/prototypes/runtime/*` | `public, max-age=0, must-revalidate`; przeglądarka sprawdza ETag przy każdym wejściu, więc po wdrożeniu dostaje nowe pliki |
+| `api.hackademy.app` | reguła cache `cache: false`; odpowiedzi nigdy nie trafiają do cache Cloudflare |
+
+- Pages łączy nagłówki wszystkich pasujących reguł `_headers`, a powtórzony nagłówek skleja przecinkiem. Reguła `/static/*` najpierw odłącza wartość z `/*` (`! Cache-Control`), więc pliki z `/static/` mają jedną politykę. Pilnuje tego test `client/src/lib/pagesHeaders.test.ts`.
+- `/*` dodaje też `X-Content-Type-Options: nosniff`. CSP nie dodajemy, bo wymaga osobnego sprawdzenia z Clerkiem.
+- Strefa ma Browser Cache TTL 4 h, które może podnieść `max-age=0` plików statycznych. Reguła cache dla `hackademy.app` ustawia `browser_ttl: respect_origin`, żeby obowiązywał `_headers`.
+- Strefa ma poziom cache aggressive, więc bez reguły Cloudflare mógłby zapisać odpowiedź API, której adres kończy się rozszerzeniem z domyślnej listy, np. plik VPN albo chroniony plik pokoju, i podać ją innemu użytkownikowi. `cache: false` wyłącza cache całej domeny API niezależnie od nagłówków backendu (`Cache-Control: no-store`). WebSocket i SockJS (`/ws`) zawsze trafiają do backendu.
+
+### Ustawienia ochrony
+
+- Dla `api.hackademy.app` reguła konfiguracji ustawia `security_level: essentially_off` i wyłącza Browser Integrity Check. Wyzwanie Cloudflare to strona HTML, której `fetch`, XHR ani WebSocket nie rozwiążą, więc każde wyzwanie kończy się błędem w aplikacji. Najbardziej narażona jest klasa za jednym adresem NAT. Browser Integrity Check może zablokować lub sprawdzić żądanie z nietypowymi nagłówkami, a API nie serwuje stron. Dostęp chroni JWT Clerka, a nadużycia ogranicza limit żądań. `hackademy.app` zachowuje ustawienia strefy.
+- `min_tls_version` to 1.2 dla całej strefy.
+- Nadal działają Cloudflare Managed Free Ruleset i ochrona DDoS L7.
+
+Limit żądań to jedyna reguła `http_ratelimit` dostępna w planie Free:
+
+| Wzorzec ścieżki | Endpoint |
+| --- | --- |
+| `/api/rooms/*/solve` | flaga pokoju i flaga zadania |
+| `/api/rooms/*/hints/*/unlock` | odblokowanie podpowiedzi |
+| `/api/friends/request/*` | zaproszenie do znajomych |
+| `/api/arena/challenge/create` | wyzwanie na arenie |
+
+- Próg: 60 żądań w 10 s na adres IP w jednym centrum danych Cloudflare, potem blokada na 10 s. Klasa 30 osób za jednym NAT, w której każdy wysyła dwie odpowiedzi w tych samych 10 s, mieści się w limicie. Skrypt z jednego adresu wyśle najwyżej 6 takich żądań na sekundę.
+- Plan Free pozwala w wyrażeniu tylko na ścieżkę, bez hosta, metody i wyrażeń regularnych. Reguła używa więc operatora `wildcard`, w którym `*` obejmuje też `/`. Ścieżki `/api/` istnieją tylko w API, a pod tymi adresami backend przyjmuje tylko POST. Reguła nie obejmuje `/ws`, odpowiedzi w pojedynku (`/api/arena/game/{id}/answer`) ani zwykłych zapytań GET.
+
+Plan Free nie zatrzyma każdego ataku. Limit liczy się osobno w każdym centrum danych, nie ma własnych reguł WAF w trybie zarządzanym, ochrony przed botami ani płatnych produktów. Autoryzacja i walidacja zostają w backendzie.
+
+### Weryfikacja pochodzenia
+
+1. Transform Rule dodaje do każdego żądania do `api.hackademy.app` nagłówek `X-Origin-Verify` z sekretem. Wartość wysłana przez klienta zostaje nadpisana.
+2. Backend porównuje nagłówek z listą `ORIGIN_GUARD_SECRETS` (wartości oddzielone przecinkami). Bez zgodności zwraca `403` z pustą treścią, zanim zadziała Spring Security, kontrolery i baza. Pusta lub nieustawiona zmienna wyłącza sprawdzanie.
+3. Backend uznaje `CF-Connecting-IP` za adres klienta dopiero po zgodnym sekrecie.
+4. `/health` też wymaga nagłówka; workflow wdrożenia sprawdza go przez `api.hackademy.app`. ACME nie potrzebuje wyjątku, bo router Heroku odpowiada na `/.well-known/acme-challenge/` przed aplikacją.
+
+Sekret nie trafia do repozytorium, przeglądarki, odpowiedzi ani logów. Przechowujemy go w menedżerze haseł. Skrypt pokazuje go zawsze jako `[redacted]`.
+
+### Uruchomienie skryptu
+
+Skrypt wymaga Node 24 i nie ma zależności. Bez `--apply` niczego nie zmienia i tylko wypisuje planowane żądania. `--diff` dodatkowo odczytuje obecne reguły ze strefy.
+
+| Zmienna | Opis |
+| --- | --- |
+| `CLOUDFLARE_API_TOKEN` | osobny token tylko na czas zmiany, nie token Pages z sekretów GitHub |
+| `CLOUDFLARE_ZONE_ID` | identyfikator strefy `hackademy.app` z panelu Cloudflare (Overview) |
+| `ORIGIN_VERIFY_SECRET` | sekret wysyłany przez Cloudflare; co najmniej 32 znaki `A-Z`, `a-z`, `0-9`, `_`, `-` |
+
+Token tworzymy w panelu (My Profile, API Tokens) tylko dla strefy `hackademy.app`, z krótkim czasem ważności, np. 1 dzień, i uprawnieniami Zone: Transform Rules Edit, Cache Rules Edit, Config Rules Edit, Zone WAF Edit (limit żądań) oraz Zone Settings Edit. Po zmianie token usuwamy.
+
+### Kolejność wdrożenia
+
+1. Wdrożenie backendu z filtrem, bez `ORIGIN_GUARD_SECRETS` (filtr wyłączony).
+2. Wygenerowanie sekretu przez `openssl rand -hex 32` i zapis w menedżerze haseł.
+3. Konfiguracja Cloudflare:
+
+   ```bash
+   read -rs CLOUDFLARE_API_TOKEN && export CLOUDFLARE_API_TOKEN
+   read -rs ORIGIN_VERIFY_SECRET && export ORIGIN_VERIFY_SECRET
+   export CLOUDFLARE_ZONE_ID=0123456789abcdef0123456789abcdef
+   node tools/cloudflare/apply.mjs --diff
+   node tools/cloudflare/apply.mjs --apply
+   ```
+
+4. Włączenie filtra: `heroku config:set ORIGIN_GUARD_SECRETS="$ORIGIN_VERIFY_SECRET" -a hackademy > /dev/null` (przekierowanie, bo Heroku wypisuje ustawioną wartość).
+5. Sprawdzenie według listy poniżej.
+
+### Lista kontrolna
+
+- `curl -s -o /dev/null -w '%{http_code}\n' https://hackademy-6d39a54d38e4.herokuapp.com/health` zwraca `403`.
+- `curl -fsS https://api.hackademy.app/health` zwraca `200`.
+- `curl -sI https://api.hackademy.app/health` pokazuje `cf-cache-status: DYNAMIC` lub `BYPASS`, nigdy `HIT`.
+- `curl -sI https://hackademy.app/paths/test` pokazuje `cache-control: public, max-age=0, must-revalidate`, a plik z `/static/` z tej strony `immutable`.
+- W przeglądarce: logowanie, lista pokoi, wysłanie flagi, odświeżenie głębokiego linku.
+- Realtime: w narzędziach deweloperskich połączenie `wss://api.hackademy.app/ws/.../websocket` z kodem `101` i ramkami STOMP, heartbeat bez rozłączeń przez kilka minut, ponowne połączenie po wyłączeniu i włączeniu sieci oraz zapasowy transport SockJS przy zablokowanym WebSocket.
+- Dwa konta w dwóch przeglądarkach: ten sam endpoint, np. `/api/user/me`, zwraca dane właściwego konta, a `cf-cache-status` to `DYNAMIC` lub `BYPASS`.
+- ACME: `heroku certs:auto -a hackademy` pokazuje `Cert issued`, a `curl -sI http://api.hackademy.app/.well-known/acme-challenge/test` przekierowuje do `va-acm.heroku.com`.
+
+### Wycofanie
+
+1. Najpierw `heroku config:unset ORIGIN_GUARD_SECRETS -a hackademy`. W odwrotnej kolejności API zacznie odpowiadać `403`.
+2. `node tools/cloudflare/apply.mjs --remove-origin-header --apply` usuwa tylko nagłówek. `node tools/cloudflare/apply.mjs --rollback --apply` czyści wszystkie cztery fazy i przywraca TLS 1.0, czyli stan sprzed #131. Oba polecenia wymagają `CLOUDFLARE_API_TOKEN` i `CLOUDFLARE_ZONE_ID`; bez `--apply` pokazują tylko plan.
+3. Jeśli problem jest w backendzie, cofamy go revertem PR-a.
+
+### Rotacja sekretu
+
+Sekret zmieniamy po wycieku lub gdy dostęp traci osoba, która go znała.
+
+1. `heroku config:set ORIGIN_GUARD_SECRETS="stary,nowy" -a hackademy > /dev/null`.
+2. `node tools/cloudflare/apply.mjs --apply` z nowym `ORIGIN_VERIFY_SECRET`.
+3. Sprawdzenie `/health` przez `api.hackademy.app` (`200`) i adres Heroku (`403`).
+4. `heroku config:set ORIGIN_GUARD_SECRETS="nowy" -a hackademy > /dev/null` i aktualizacja menedżera haseł.
