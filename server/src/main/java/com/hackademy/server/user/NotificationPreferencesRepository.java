@@ -9,17 +9,20 @@ public interface NotificationPreferencesRepository extends JpaRepository<Notific
     @Modifying(clearAutomatically = true)
     @Query(value = """
             INSERT INTO user_notification_preferences
-                (user_id, friend_requests, challenges, match_found, sound, browser_notifications)
+                (user_id, friend_requests, challenges, match_found, sound, browser_notifications, friend_online)
             VALUES (:userId, COALESCE(:friendRequests, TRUE), COALESCE(:challenges, TRUE),
-                COALESCE(:matchFound, TRUE), COALESCE(:sound, FALSE), COALESCE(:browserNotifications, FALSE))
+                COALESCE(:matchFound, TRUE), COALESCE(:sound, FALSE), COALESCE(:browserNotifications, FALSE),
+                COALESCE(:friendOnline, TRUE))
             ON CONFLICT (user_id) DO UPDATE SET
                 friend_requests = COALESCE(:friendRequests, user_notification_preferences.friend_requests),
                 challenges = COALESCE(:challenges, user_notification_preferences.challenges),
                 match_found = COALESCE(:matchFound, user_notification_preferences.match_found),
                 sound = COALESCE(:sound, user_notification_preferences.sound),
-                browser_notifications = COALESCE(:browserNotifications, user_notification_preferences.browser_notifications)
+                browser_notifications = COALESCE(:browserNotifications, user_notification_preferences.browser_notifications),
+                friend_online = COALESCE(:friendOnline, user_notification_preferences.friend_online)
             """, nativeQuery = true)
     int updatePreference(@Param("userId") Long userId, @Param("friendRequests") Boolean friendRequests,
             @Param("challenges") Boolean challenges, @Param("matchFound") Boolean matchFound,
-            @Param("sound") Boolean sound, @Param("browserNotifications") Boolean browserNotifications);
+            @Param("sound") Boolean sound, @Param("browserNotifications") Boolean browserNotifications,
+            @Param("friendOnline") Boolean friendOnline);
 }
