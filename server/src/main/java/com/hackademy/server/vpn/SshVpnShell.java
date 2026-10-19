@@ -6,6 +6,8 @@ import org.apache.sshd.client.channel.ClientChannelEvent;
 import org.apache.sshd.client.session.ClientSession;
 import org.apache.sshd.common.config.keys.FilePasswordProvider;
 import org.apache.sshd.common.util.security.SecurityUtils;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.core.io.ResourceLoader;
 import org.springframework.stereotype.Component;
@@ -20,6 +22,8 @@ import java.util.concurrent.TimeUnit;
 
 @Component
 public class SshVpnShell implements VpnShell {
+
+    private static final Logger log = LoggerFactory.getLogger(SshVpnShell.class);
 
     private final ResourceLoader resourceLoader;
 
@@ -77,9 +81,7 @@ public class SshVpnShell implements VpnShell {
                     channel.waitFor(EnumSet.of(ClientChannelEvent.CLOSED), TimeUnit.SECONDS.toMillis(30));
                 }
 
-                // Log output for debugging
-                System.out.println("VPN Script Output: " + outputStream.toString());
-                System.err.println("VPN Script Error: " + errorStream.toString());
+                logScriptOutput(outputStream.toString(), errorStream.toString());
 
                 ByteArrayOutputStream responseStream = new ByteArrayOutputStream();
                 try (ClientChannel channel = session.createExecChannel(readCommand)) {
@@ -90,6 +92,13 @@ public class SshVpnShell implements VpnShell {
 
                 return responseStream.toByteArray();
             }
+        }
+    }
+
+    static void logScriptOutput(String output, String errorOutput) {
+        log.debug("VPN script output: {}", output);
+        if (!errorOutput.isBlank()) {
+            log.warn("VPN script error output: {}", errorOutput);
         }
     }
 }
