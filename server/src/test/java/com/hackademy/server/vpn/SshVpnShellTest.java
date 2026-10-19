@@ -22,12 +22,14 @@ class SshVpnShellTest {
     private final ByteArrayOutputStream stdout = new ByteArrayOutputStream();
     private final ByteArrayOutputStream stderr = new ByteArrayOutputStream();
     private Level previousLevel;
+    private boolean previousAdditive;
     private PrintStream previousOut;
     private PrintStream previousErr;
 
     @BeforeEach
     void captureOutput() {
         previousLevel = logger.getLevel();
+        previousAdditive = logger.isAdditive();
         logger.setLevel(Level.DEBUG);
         // Keep the root console appender out, so anything on stdout/stderr comes from println.
         logger.setAdditive(false);
@@ -35,8 +37,8 @@ class SshVpnShellTest {
         logger.addAppender(events);
         previousOut = System.out;
         previousErr = System.err;
-        System.setOut(new PrintStream(stdout));
-        System.setErr(new PrintStream(stderr));
+        System.setOut(new PrintStream(stdout, true));
+        System.setErr(new PrintStream(stderr, true));
     }
 
     @AfterEach
@@ -45,7 +47,7 @@ class SshVpnShellTest {
         System.setErr(previousErr);
         logger.detachAppender(events);
         logger.setLevel(previousLevel);
-        logger.setAdditive(true);
+        logger.setAdditive(previousAdditive);
     }
 
     @Test
