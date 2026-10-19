@@ -4,7 +4,7 @@ import './Mascot.css';
 
 export type MascotMood = 'idle' | 'talk' | 'wave';
 
-const sheet = (mood: MascotMood): SpriteSheet => ({ src: `/assets/mascot/penguin-${mood}.png`, frames: 8, width: 50, height: 56 });
+const sheet = (mood: MascotMood): SpriteSheet => ({ src: `/assets/mascot/penguin-${mood}.png`, frames: 8, width: 53, height: 58 });
 export const MASCOT_SPRITES: Record<MascotMood, SpriteSheet> = { idle: sheet('idle'), talk: sheet('talk'), wave: sheet('wave') };
 const DURATION: Record<MascotMood, number> = { idle: 1400, talk: 900, wave: 1000 };
 

@@ -4,56 +4,56 @@
   "sources": "local-prototype-backups/onboarding-mascot-v1",
   "base": {
     "endpoint": "create-image-pixflux",
-    "description": "cute friendly chibi penguin mascot standing and facing the viewer, front view, no clothes, no hood, no hoodie, wearing only big gaming headphones on its head over the ears, big shiny eyes, orange beak and feet, white belly, black back, one flipper raised in a friendly greeting, full body, centered, pixel art game character",
+    "description": "cute chibi penguin mascot facing the viewer, front view, bare round black head with nothing on top, a pair of headphones hanging down around the neck with the two round ear cups resting on the white chest under the beak, orange beak and feet, white belly, one flipper raised in greeting, no clothes, no hat, full body, centered, pixel art game character",
     "imageSize": {
       "width": 64,
       "height": 64
     },
-    "seed": 99802
+    "seed": 99821
   },
   "processing": "Alpha cut at 128, any generated grey ground shadow under the feet removed, the first eight frames of each animation cropped to their shared bounds and packed side by side as looping sprite sheets.",
   "sprites": [
     {
       "file": "penguin-idle.png",
       "frames": 8,
-      "frameWidth": 50,
-      "frameHeight": 56,
+      "frameWidth": 53,
+      "frameHeight": 58,
       "animation": {
         "endpoint": "animate-with-text-v3",
-        "action": "the penguin stands in place breathing gently, the body bobs slightly up and down and the eyes blink once, the headphones stay on its head, same pose, same size and position, seamless loop",
+        "action": "the penguin stands in place breathing gently, the body bobs slightly up and down and the eyes blink once, the headphones stay around its neck on the chest, same pose, same size and position, seamless loop",
         "frameCount": 8,
-        "seed": 99901,
+        "seed": 99911,
         "firstAndLastFrame": "base"
       },
-      "sha256": "429fed9528ac218990c2c6425c5aeb5c1673dd2a788dd1ff5eda4cebe38da626"
+      "sha256": "b3ed19581f80a4e8587cf97e1d4817d6c20abb4650c994ab9a0313b5867438de"
     },
     {
       "file": "penguin-talk.png",
       "frames": 8,
-      "frameWidth": 50,
-      "frameHeight": 56,
+      "frameWidth": 53,
+      "frameHeight": 58,
       "animation": {
         "endpoint": "animate-with-text-v3",
-        "action": "the penguin talks happily: the beak opens and closes as if speaking, the head tilts a little and the flippers make small friendly gestures, the headphones stay on its head, same size and position, seamless loop",
+        "action": "the penguin talks happily: the beak opens and closes as if speaking, the head tilts a little and the flippers make small friendly gestures, the headphones stay around its neck, same size and position, seamless loop",
         "frameCount": 8,
-        "seed": 99901,
+        "seed": 99912,
         "firstAndLastFrame": "base"
       },
-      "sha256": "d9b095b2eb6e2981970b833ad4c379d39bc8da6dce86279b020c67e429711e30"
+      "sha256": "c2e96483619226000fed89dfcdba3495eb3e71a0d4526fbb3a83ea70fe7b0c86"
     },
     {
       "file": "penguin-wave.png",
       "frames": 8,
-      "frameWidth": 50,
-      "frameHeight": 56,
+      "frameWidth": 53,
+      "frameHeight": 58,
       "animation": {
         "endpoint": "animate-with-text-v3",
-        "action": "the penguin waves hello with its raised flipper, waving side to side twice, smiling, the headphones stay on its head, the rest of the body stays in place, seamless loop",
+        "action": "the penguin waves hello with its raised flipper, waving side to side twice, smiling, the headphones stay around its neck, the rest of the body stays in place, seamless loop",
         "frameCount": 8,
-        "seed": 99902,
+        "seed": 99911,
         "firstAndLastFrame": "base"
       },
-      "sha256": "e0d9c96e09ce08fd28834c6c607795f0553091e5363810f6e1e16d62a05a079f"
+      "sha256": "de77360b314a7417a170ac67604a064d7ee20395c1b10f3a0f0465e124fa3d14"
     }
   ]
 }
