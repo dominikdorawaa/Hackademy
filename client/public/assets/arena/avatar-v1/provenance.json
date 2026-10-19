@@ -82,11 +82,11 @@
       "sha256": "b91714c4e42fdf32d8890d8c7da2133c9344c3c725f96dbf1491df8633719ba6"
     }
   ],
-  "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab collapse animation that starts from cell 52, so the fighter ends limp on the stomach with the head down on the arms; its anchor follows the tilted head and its floor value stops head items at the y=54 ground line.",
+  "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "34df5c0c103a5be6e837da31cb71ad4484c7fcf9c08997cec79064889c87ab1e",
-    "hoodie/fighter.png": "6db0befec2b4ef06c2270077cb052f780501a5d1b8f81726e08dad781ff3dd76",
-    "track/fighter.png": "e28ae232df22129b9bc0fe5942e0f7e3213c9ce2ab7e05b433b81181697f06dc"
+    "fighter.png": "e33b9be06a4e247ee3f121869c887943273ad7de4353b93f162a4c3e7d39455a",
+    "hoodie/fighter.png": "b14e6aeb6e64ca215c79cde1fe84175774dccd66b4ef59cd412365b87457f1a0",
+    "track/fighter.png": "9c6f7b98a2aea77bff46092705c535199253c1caff9e062f81e0e87703b1f618"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -324,22 +324,22 @@
   "defeatCollapse": {
     "endpoint": "animate-with-text-v3",
     "firstFrame": "atlas cell 52 of each outfit",
-    "action": "the knocked out fighter collapses completely: the head drops down and rests sideways on the floor, the arms go limp and slide flat, the body lies still on the stomach, legs relaxed",
-    "frameCount": 6,
+    "action": "the knocked out fighter slowly sinks lower: the head lowers and rests on the floor in profile with the eyes closed, the face stays visible from the side, the arms relax flat on the floor, the body stays lying on the stomach",
+    "frameCount": 4,
     "outfits": {
       "baza": {
-        "seed": 99401,
-        "frame": 6
+        "seed": 99501,
+        "frame": 4
       },
       "bluza": {
-        "seed": 99401,
-        "frame": 6
+        "seed": 99501,
+        "frame": 4
       },
       "dres": {
-        "seed": 99402,
-        "frame": 6
+        "seed": 99501,
+        "frame": 4
       }
     },
-    "processing": "Alpha cut at 128, colours snapped to the outfit palette, small holes filled, stray clothing colours inside the head cleaned, the bottom set on the y=54 ground line."
+    "processing": "Alpha cut at 128, colours snapped to the outfit palette, small holes filled, the bottom set on the y=54 ground line, the idle head restamped at the best fitting angle and stray colours around the head cleaned."
   }
 }
