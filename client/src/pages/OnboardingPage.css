@@ -7,6 +7,7 @@
 
 .onboarding-step {
   margin: 0 0 4px;
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace;
   color: var(--ud-link);
   font-size: var(--ud-text-s);
   font-weight: 700;
@@ -16,8 +17,9 @@
 
 .onboarding-title {
   margin: 0;
-  font-size: clamp(1.75rem, 1.2rem + 1.6vw, 2.5rem);
-  font-weight: 800;
+  font-family: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  font-size: clamp(1.9rem, 1.3rem + 1.8vw, 2.75rem);
+  font-weight: 700;
   outline: none;
 }
 

@@ -1,5 +1,6 @@
 @layer components {
 .mascot-bubble {
+  --font-pixel: 'Pixelify Sans', 'JetBrains Mono', monospace;
   display: flex;
   align-items: flex-end;
   gap: 12px;
@@ -16,6 +17,7 @@
   background: var(--ud-surface);
   color: var(--ud-ink);
   box-shadow: var(--ud-float-shadow);
+  font-family: var(--font-pixel);
 }
 
 .mascot-bubble-box::before {
@@ -40,13 +42,16 @@
 
 .mascot-bubble-title {
   margin: 0 0 6px;
-  font-size: 1.15rem;
-  font-weight: 800;
+  font-family: inherit;
+  font-size: 1.3rem;
+  font-weight: 700;
+  letter-spacing: 0.01em;
 }
 
 .mascot-bubble-text p {
   margin: 0;
-  line-height: 1.5;
+  font-size: 1.05rem;
+  line-height: 1.45;
 }
 
 .mascot-bubble-text p + p {
@@ -59,6 +64,10 @@
   align-items: center;
   gap: 8px;
   margin-top: 14px;
+}
+
+.mascot-bubble-actions :is(button, a, span) {
+  font-family: inherit;
 }
 
 @media (max-width: 560px) {
