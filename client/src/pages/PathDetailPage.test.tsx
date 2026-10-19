@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { Route, useLocation } from 'react-router-dom';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -39,7 +40,7 @@ const path = (enrolled: boolean): PathDetailDto => ({
 });
 
 function mount() {
-  localStorage.setItem('token', createToken('USER'));
+  setClerkSession(createToken('USER'));
   return renderWithAuth(<Route path="/learn/paths/:id" element={<PathDetailPage />} />, '/learn/paths/5');
 }
 
@@ -51,7 +52,7 @@ function OpenedRoom() {
 describe('path page', () => {
   it('opens a room with this path as its return context', async () => {
     server.use(http.get(`${API_URL}/api/paths/5`, () => HttpResponse.json(path(true))));
-    localStorage.setItem('token', createToken('USER'));
+    setClerkSession(createToken('USER'));
     renderWithAuth(<>
       <Route path="/learn/paths/:id" element={<PathDetailPage />} />
       <Route path="/rooms/:id" element={<OpenedRoom />} />

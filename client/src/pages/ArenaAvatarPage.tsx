@@ -45,25 +45,25 @@ export default function ArenaAvatarPage() {
   const active = PREVIEWS.find(item => item.id === preview) ?? PREVIEWS[0];
   const dirty = saved !== JSON.stringify(avatar);
   const setColor = (key: keyof Avatar['colors'], value: string) => setAvatar(current => ({ ...current, colors: { ...current.colors, [key]: value } }));
-  const { isAuthenticated, token } = useAuth();
-  const sessionToken = isAuthenticated && token ? token : null;
-  const [account, setAccount] = useState<{ token: string; status: 'ready' | 'error'; username: string | null } | null>(null);
+  const { isAuthenticated, sessionKey } = useAuth();
+  const sessionToken = isAuthenticated && sessionKey ? sessionKey : null;
+  const [account, setAccount] = useState<{ sessionKey: string; status: 'ready' | 'error'; username: string | null } | null>(null);
   const [status, setStatus] = useState<'idle' | 'saving' | 'error'>('idle');
   useEffect(() => {
     if (!sessionToken) return;
     const controller = new AbortController();
-    getCurrentUser({ Authorization: `Bearer ${sessionToken}` }, controller.signal)
+    getCurrentUser({ sessionKey: sessionToken }, controller.signal)
       .then(response => { if (!response.ok) throw new Error('account'); return response.json(); })
       .then(user => {
         if (!user?.username) throw new Error('account');
-        setAccount({ token: sessionToken, status: 'ready', username: user.username });
+        setAccount({ sessionKey: sessionToken, status: 'ready', username: user.username });
         const remote = fromAvatarConfig(user.avatar);
         if (remote) { setAvatar(remote); setSaved(JSON.stringify(remote)); } else setSaved('');
       })
-      .catch(() => { if (!controller.signal.aborted) setAccount({ token: sessionToken, status: 'error', username: null }); });
+      .catch(() => { if (!controller.signal.aborted) setAccount({ sessionKey: sessionToken, status: 'error', username: null }); });
     return () => controller.abort();
   }, [sessionToken]);
-  const accountState = !sessionToken ? 'guest' : account?.token !== sessionToken ? 'loading' : account.status;
+  const accountState = !sessionToken ? 'guest' : account?.sessionKey !== sessionToken ? 'loading' : account.status;
   const signedIn = accountState === 'ready';
   const blocked = accountState === 'loading' || accountState === 'error';
   const save = async () => {
@@ -73,7 +73,7 @@ export default function ArenaAvatarPage() {
       setStatus('saving');
       try {
         const config = toAvatarConfig(avatar);
-        const response = await saveAccountAvatar(config, { Authorization: `Bearer ${token}` });
+        const response = await saveAccountAvatar(config, { sessionKey });
         if (!response.ok) throw new Error('save failed');
         window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username: account?.username, avatar: config } }));
       } catch {

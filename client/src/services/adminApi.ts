@@ -1,4 +1,4 @@
-import API_URL from '../apiConfig';
+import { request as apiRequest } from './http';
 import type {
     AdminStatsDto,
     ApiId,
@@ -19,24 +19,21 @@ import type {
 } from '../types/api';
 
 interface AdminRequestOptions extends Omit<RequestInit, 'headers'> {
-    token: string | null;
+    sessionKey: string | null;
     headers?: Record<string, string>;
 }
-const API_BASE_URL = API_URL + '/api/admin';
+const API_BASE_URL = '/api/admin';
 
 const request = async <T>(endpoint: string, options: AdminRequestOptions): Promise<T | undefined> => {
-    const { token, ...restOptions } = options;
+    const { sessionKey, ...restOptions } = options;
     const headers: Record<string, string> = {
         'Content-Type': 'application/json',
         ...options.headers,
     };
 
-    if (token) {
-        headers['Authorization'] = `Bearer ${token}`;
-    }
-
-    const response = await fetch(`${API_BASE_URL}${endpoint}`, {
+    const response = await apiRequest(`${API_BASE_URL}${endpoint}`, {
         ...restOptions,
+        auth: { sessionKey },
         headers,
     });
 
@@ -68,126 +65,126 @@ export const readResponse = async <T>(response: Response): Promise<T | undefined
     return (text ? JSON.parse(text) : undefined) as T | undefined;
 };
 
-export const getUsers = (token: string | null) => {
-    return request<UserAdminView[]>('/users', { method: 'GET', token });
+export const getUsers = (sessionKey: string | null) => {
+    return request<UserAdminView[]>('/users', { method: 'GET', sessionKey });
 };
 
-export const deleteUser = (id: ApiId, token: string | null) => {
-    return request<void>(`/users/${id}`, { method: 'DELETE', token });
+export const deleteUser = (id: ApiId, sessionKey: string | null) => {
+    return request<void>(`/users/${id}`, { method: 'DELETE', sessionKey });
 };
 
-export const updateUserRole = (id: ApiId, role: Role, token: string | null) => {
+export const updateUserRole = (id: ApiId, role: Role, sessionKey: string | null) => {
     return request<UserAdminView>(`/users/${id}/role`, {
         method: 'PUT',
-        token,
+        sessionKey,
         body: JSON.stringify({ role }),
     });
 };
 
-export const createRoom = (roomData: RoomWriteRequest, token: string | null) => {
+export const createRoom = (roomData: RoomWriteRequest, sessionKey: string | null) => {
     return request<RoomAdminDto>('/rooms', {
         method: 'POST',
-        token,
+        sessionKey,
         body: JSON.stringify(roomData),
     });
 };
 
-export const getRooms = (token: string | null) => {
-    return request<RoomAdminSummaryDto[]>('/rooms', { method: 'GET', token });
+export const getRooms = (sessionKey: string | null) => {
+    return request<RoomAdminSummaryDto[]>('/rooms', { method: 'GET', sessionKey });
 };
 
-export const getAllRoomsAdmin = (token: string | null) => {
+export const getAllRoomsAdmin = (sessionKey: string | null) => {
 
-     return request<RoomAdminSummaryDto[]>('/rooms', { method: 'GET', token });
+     return request<RoomAdminSummaryDto[]>('/rooms', { method: 'GET', sessionKey });
 };
 
-export const getRoomAdmin = (id: ApiId, token: string | null) => {
-    return request<RoomAdminDto>(`/rooms/${id}`, { method: 'GET', token });
+export const getRoomAdmin = (id: ApiId, sessionKey: string | null) => {
+    return request<RoomAdminDto>(`/rooms/${id}`, { method: 'GET', sessionKey });
 };
 
-export const updateRoom = (id: ApiId, roomData: RoomWriteRequest, token: string | null) => {
+export const updateRoom = (id: ApiId, roomData: RoomWriteRequest, sessionKey: string | null) => {
     return request<RoomAdminDto>(`/rooms/${id}`, {
         method: 'PUT',
-        token,
+        sessionKey,
         body: JSON.stringify(roomData),
     });
 };
 
-export const deleteRoom = (id: ApiId, token: string | null) => {
+export const deleteRoom = (id: ApiId, sessionKey: string | null) => {
     return request<void>(`/rooms/${id}`, {
         method: 'DELETE',
-        token,
+        sessionKey,
     });
 };
 
-export const getStats = (range: StatsRange, token: string | null) => {
-    return request<AdminStatsDto>(`/stats?range=${range}`, { method: 'GET', token });
+export const getStats = (range: StatsRange, sessionKey: string | null) => {
+    return request<AdminStatsDto>(`/stats?range=${range}`, { method: 'GET', sessionKey });
 };
 
-export const getPaths = (token: string | null) => {
-    return request<PathSummaryDto[]>('/paths', { method: 'GET', token });
+export const getPaths = (sessionKey: string | null) => {
+    return request<PathSummaryDto[]>('/paths', { method: 'GET', sessionKey });
 };
 
-export const getPath = (id: ApiId, token: string | null) => {
-    return request<PathAdminDetailDto>(`/paths/${id}`, { method: 'GET', token });
+export const getPath = (id: ApiId, sessionKey: string | null) => {
+    return request<PathAdminDetailDto>(`/paths/${id}`, { method: 'GET', sessionKey });
 };
 
-export const createPath = (data: CreatePathRequest, token: string | null) => {
+export const createPath = (data: CreatePathRequest, sessionKey: string | null) => {
     return request<PathSummaryDto>('/paths', {
         method: 'POST',
-        token,
+        sessionKey,
         body: JSON.stringify(data),
     });
 };
 
-export const updatePath = (id: ApiId, data: PathMetaRequest, token: string | null) => {
+export const updatePath = (id: ApiId, data: PathMetaRequest, sessionKey: string | null) => {
     return request<void>(`/paths/${id}`, {
         method: 'PUT',
-        token,
+        sessionKey,
         body: JSON.stringify(data),
     });
 };
 
-export const updatePathChapters = (id: ApiId, revision: number, chapters: ChapterRequest[], token: string | null) => {
+export const updatePathChapters = (id: ApiId, revision: number, chapters: ChapterRequest[], sessionKey: string | null) => {
     return request<PathAdminDetailDto>(`/paths/${id}/chapters`, {
         method: 'PUT',
-        token,
+        sessionKey,
         body: JSON.stringify({ revision, chapters }),
     });
 };
 
-export const deletePath = (id: ApiId, token: string | null) => {
-    return request<void>(`/paths/${id}`, { method: 'DELETE', token });
+export const deletePath = (id: ApiId, sessionKey: string | null) => {
+    return request<void>(`/paths/${id}`, { method: 'DELETE', sessionKey });
 };
 
-export const getRoomTasks = (id: ApiId, token: string | null) => {
-    return request<RoomTasksAdminDto>(`/rooms/${id}/tasks`, { method: 'GET', token });
+export const getRoomTasks = (id: ApiId, sessionKey: string | null) => {
+    return request<RoomTasksAdminDto>(`/rooms/${id}/tasks`, { method: 'GET', sessionKey });
 };
 
-export const updateRoomTasks = (id: ApiId, revision: number, tasks: RoomTaskRequest[], token: string | null) => {
+export const updateRoomTasks = (id: ApiId, revision: number, tasks: RoomTaskRequest[], sessionKey: string | null) => {
     return request<RoomTasksAdminDto>(`/rooms/${id}/tasks`, {
         method: 'PUT',
-        token,
+        sessionKey,
         body: JSON.stringify({ revision, tasks }),
     });
 };
 
-export const getReports = (token: string | null) => {
-    return request<ChatMessage[]>('/reports', { method: 'GET', token });
+export const getReports = (sessionKey: string | null) => {
+    return request<ChatMessage[]>('/reports', { method: 'GET', sessionKey });
 };
 
-export const deleteReport = (id: ApiId, token: string | null) => {
-    return request<void>(`/reports/${id}`, { method: 'DELETE', token });
+export const deleteReport = (id: ApiId, sessionKey: string | null) => {
+    return request<void>(`/reports/${id}`, { method: 'DELETE', sessionKey });
 };
 
-export const dismissReport = (id: ApiId, token: string | null) => {
-    return request<void>(`/reports/${id}/dismiss`, { method: 'POST', token });
+export const dismissReport = (id: ApiId, sessionKey: string | null) => {
+    return request<void>(`/reports/${id}/dismiss`, { method: 'POST', sessionKey });
 };
 
-export const muteUser = (id: ApiId, duration: number, token: string | null) => {
+export const muteUser = (id: ApiId, duration: number, sessionKey: string | null) => {
     return request<void>(`/users/${id}/mute`, {
         method: 'POST',
-        token,
+        sessionKey,
         body: JSON.stringify({ duration }),
     });
 };

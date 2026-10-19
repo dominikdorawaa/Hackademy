@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route } from 'react-router-dom';
@@ -16,7 +17,7 @@ const tasks: RoomTaskAdminDto[] = [
 ];
 
 function mount(respond: (body: RoomTaskRequest[]) => Response | Promise<Response>, initial: RoomTaskAdminDto[] | (() => Response) = tasks) {
-  localStorage.setItem('token', createToken('EXPERT'));
+  setClerkSession(createToken('EXPERT'));
   server.use(
     http.get(`${API_URL}/api/admin/rooms/7/tasks`, () => typeof initial === 'function' ? initial() : HttpResponse.json({ revision: 0, tasks: initial })),
     http.put(`${API_URL}/api/admin/rooms/7/tasks`, async ({ request }) => {

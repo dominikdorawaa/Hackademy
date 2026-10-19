@@ -6,7 +6,7 @@ import { useAuth } from '../context/AuthContext';
 import type { RankingEntry, RankingUser } from '../types/api';
 
 const RankingPage = () => {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const [players, setPlayers] = useState<RankingEntry[]>([]);
   const [currentUser, setCurrentUser] = useState<RankingUser | null>(null);
   const [myRank, setMyRank] = useState<RankingEntry | null>(null);
@@ -19,9 +19,7 @@ const RankingPage = () => {
         setLoading(true);
         setError(null);
 
-        const headers = {
-          'Content-Type': 'application/json',
-          ...(token && { 'Authorization': `Bearer ${token}` })
+        const headers = {sessionKey
         };
 
         const res = await rankingApi.getSummary(headers);
@@ -41,7 +39,7 @@ const RankingPage = () => {
     };
 
     fetchData();
-  }, [token]);
+  }, [sessionKey]);
 
   if (loading) {
     return (

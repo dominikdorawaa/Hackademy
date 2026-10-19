@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
         "DB_URL=jdbc:h2:mem:hackademy_concurrency_test",
         "DB_USERNAME=sa",
         "DB_PASSWORD=",
-        "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop"
 })

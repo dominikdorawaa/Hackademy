@@ -25,9 +25,7 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
@@ -37,7 +35,7 @@ import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+@SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
 class AuthAndAdminIntegrationTest {
@@ -140,7 +138,7 @@ class AuthAndAdminIntegrationTest {
             assertEquals(originalTagline, userRepository.findByUsername(username).orElseThrow().getTagline());
         }
         mockMvc.perform(patch("/api/user/me/profile").contentType("application/json").content(valid))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
@@ -170,9 +168,7 @@ class AuthAndAdminIntegrationTest {
     @Test
     void exposesRecentSolvedRoomsToEveryAuthenticatedRoleWithBoundedLimits() throws Exception {
         var username = "history" + UUID.randomUUID().toString().substring(0, 8);
-        mockMvc.perform(post("/api/auth/register").contentType("application/json")
-                .content(registerBody(username, username + "@example.com"))).andExpect(status().isOk());
-        var owner = userRepository.findByUsername(username).orElseThrow();
+        var owner = ClerkTestTokens.createUser(userRepository, username, Role.USER);
         for (int index = 0; index < 25; index++) {
             var room = roomRepository.saveAndFlush(Room.builder()
                     .title(username + " room " + index).description("Example room")
@@ -203,8 +199,8 @@ class AuthAndAdminIntegrationTest {
                     .andExpect(jsonPath("$.completedPaths", hasSize(0)))
                     .andExpect(jsonPath("$.email").doesNotExist()).andExpect(jsonPath("$.flag").doesNotExist());
         }
-        mockMvc.perform(get(url)).andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/user/" + username + "/portfolio")).andExpect(status().isForbidden());
+        mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/user/" + username + "/portfolio")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/user/missing" + UUID.randomUUID() + "/portfolio")
                 .header("Authorization", "Bearer " + tokenFor(Role.USER))).andExpect(status().isNotFound());
         mockMvc.perform(get("/api/user/missing" + UUID.randomUUID() + "/recent-solved")
@@ -303,7 +299,7 @@ class AuthAndAdminIntegrationTest {
                     .andExpect(jsonPath("$.unlockedHints").value(0)).andExpect(jsonPath("$.earnedBadges").value(0))
                     .andExpect(jsonPath("$.completedPaths").value(0));
         }
-        mockMvc.perform(get("/api/user/" + username + "/stats")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/user/" + username + "/stats")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/user/" + username + "/portfolio").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.completedPaths", hasSize(1)))
                 .andExpect(jsonPath("$.completedPaths[0].title").value(username + " complete"))
@@ -351,38 +347,30 @@ class AuthAndAdminIntegrationTest {
     }
 
     @Test
-    void registersAndLogsInAgainstMigratedDatabase() throws Exception {
-        assertEquals(18, jdbcTemplate.queryForObject(
+    void provisionsClerkUsersAgainstMigratedDatabase() throws Exception {
+        assertEquals(19, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
 
-        var username = "user" + UUID.randomUUID().toString().substring(0, 8);
-        var email = username + "@example.com";
-        var registration = mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(registerBody(username, email)))
-                .andExpect(status().isOk())
-                .andReturn();
-        assertNotNull(JsonPath.read(registration.getResponse().getContentAsString(), "$.token"));
+        var clerkUserId = "user_" + UUID.randomUUID().toString().replace("-", "");
+        var email = "new" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        var token = ClerkTestTokens.token(clerkUserId, ClerkTestTokens.DEFAULT_ORIGIN,
+                java.util.Map.of("email", email.toUpperCase(), "email_verified", true));
+        var first = mockMvc.perform(get("/api/user/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.email").value(email)).andReturn().getResponse().getContentAsString();
+        mockMvc.perform(get("/api/user/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value((Integer) JsonPath.read(first, "$.id")));
 
-        var savedUser = userRepository.findByEmail(email).orElseThrow();
+        var savedUser = userRepository.findByClerkUserId(clerkUserId).orElseThrow();
         assertEquals(Role.USER, savedUser.getRole());
-        assertNotEquals("password123", savedUser.getPassword());
-
-        var login = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(loginBody(email.toUpperCase(), "password123")))
-                .andExpect(status().isOk())
-                .andReturn();
-        assertFalse(((String) JsonPath.read(login.getResponse().getContentAsString(), "$.token")).isBlank());
-
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(loginBody(email, "wrong-password")))
+        assertEquals(email, savedUser.getEmail());
+        assertNull(savedUser.getPassword());
+        mockMvc.perform(post("/api/auth/login").contentType("application/json")
+                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(registerBody(username, email)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content("{\"username\":\"someone\",\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -406,35 +394,8 @@ class AuthAndAdminIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    private String tokenFor(Role role) throws Exception {
+    private String tokenFor(Role role) {
         var username = role.name().toLowerCase() + UUID.randomUUID().toString().substring(0, 8);
-        var email = username + "@example.com";
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(registerBody(username, email)))
-                .andExpect(status().isOk());
-
-        var savedUser = userRepository.findByEmail(email).orElseThrow();
-        savedUser.setRole(role);
-        userRepository.saveAndFlush(savedUser);
-
-        var login = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(loginBody(email, "password123")))
-                .andExpect(status().isOk())
-                .andReturn();
-        return JsonPath.read(login.getResponse().getContentAsString(), "$.token");
-    }
-
-    private String registerBody(String username, String email) {
-        return """
-                {"username":"%s","email":"%s","password":"password123"}
-                """.formatted(username, email);
-    }
-
-    private String loginBody(String email, String password) {
-        return """
-                {"email":"%s","password":"%s"}
-                """.formatted(email, password);
+        return ClerkTestTokens.tokenFor(ClerkTestTokens.createUser(userRepository, username, role));
     }
 }

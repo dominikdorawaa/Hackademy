@@ -30,10 +30,12 @@ server:
 application:
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:${FRONTEND_URL:http://localhost:5173}}
-  security:
-    jwt:
-      secret-key: ${JWT_SECRET}
-      expiration: ${JWT_EXPIRATION_MS:86400000}
+  clerk:
+    issuer: ${CLERK_ISSUER}
+    jwt-key: ${CLERK_JWT_KEY:}
+    secret-key: ${CLERK_SECRET_KEY:}
+    api-url: ${CLERK_API_URL:https://api.clerk.com/v1}
+    import-users: ${CLERK_IMPORT_USERS:false}
 
 vpn:
   server:

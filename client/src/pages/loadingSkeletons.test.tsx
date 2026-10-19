@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { act, screen } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route } from 'react-router-dom';
@@ -46,7 +47,7 @@ function expectSkeleton(label: string) {
 const mount = (path: string, route: string, element: ReactNode) => renderWithAuth(<Route path={route} element={element} />, path);
 
 beforeEach(() => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   realtime.value = { ...realtime.value, state: null, error: null };
 });
 
@@ -128,7 +129,7 @@ describe('player pages show skeletons while loading', () => {
       http.get(`${API_URL}/api/user/:username`, async () => { await pending.wait(); return HttpResponse.json({ ...createUser(), username: 'ola', points: 120, streak: 2, badges: [] }); }),
       http.get(`${API_URL}/api/friends/stats/:username`, () => HttpResponse.json({ message: 'x' }, { status: 404 })),
     );
-    mount('/', '/', <ProfilePeek username="ola" token={createToken()} />);
+    mount('/', '/', <ProfilePeek username="ola" sessionKey={`session:${createToken()}`} />);
     act(() => screen.getByRole('link', { name: 'ola' }).focus());
     await screen.findByRole('status', { name: 'Wczytuję profil' });
     const card = expectSkeleton('Wczytuję profil');

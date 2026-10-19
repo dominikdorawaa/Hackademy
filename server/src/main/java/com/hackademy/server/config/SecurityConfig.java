@@ -1,10 +1,10 @@
 package com.hackademy.server.config;
 
-import com.hackademy.server.filter.JwtAuthFilter;
-import org.springframework.beans.factory.annotation.Autowired;
+import com.hackademy.server.clerk.ClerkAuthenticationFilter;
+import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
-import org.springframework.security.authentication.AuthenticationProvider;
+import org.springframework.http.HttpStatus;
 import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
@@ -12,6 +12,7 @@ import org.springframework.security.config.annotation.web.configuration.EnableWe
 import org.springframework.security.config.annotation.web.configurers.AbstractHttpConfigurer;
 import org.springframework.security.config.http.SessionCreationPolicy;
 import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.HttpStatusEntryPoint;
 import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
 import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 
@@ -21,13 +22,17 @@ import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 @EnableMethodSecurity
 public class SecurityConfig {
 
-    private final JwtAuthFilter jwtAuthFilter;
-    private final AuthenticationProvider authenticationProvider;
+    private final ClerkAuthenticationFilter clerkAuthenticationFilter;
 
-    @Autowired
-    public SecurityConfig(JwtAuthFilter jwtAuthFilter, AuthenticationProvider authenticationProvider) {
-        this.jwtAuthFilter = jwtAuthFilter;
-        this.authenticationProvider = authenticationProvider;
+    public SecurityConfig(ClerkAuthenticationFilter clerkAuthenticationFilter) {
+        this.clerkAuthenticationFilter = clerkAuthenticationFilter;
+    }
+
+    @Bean
+    public FilterRegistrationBean<ClerkAuthenticationFilter> clerkAuthenticationFilterRegistration() {
+        FilterRegistrationBean<ClerkAuthenticationFilter> registration = new FilterRegistrationBean<>(clerkAuthenticationFilter);
+        registration.setEnabled(false);
+        return registration;
     }
 
     @Bean
@@ -35,20 +40,22 @@ public class SecurityConfig {
         http
             .cors(Customizer.withDefaults())
             .csrf(AbstractHttpConfigurer::disable)
+            .httpBasic(AbstractHttpConfigurer::disable)
+            .formLogin(AbstractHttpConfigurer::disable)
+            .logout(AbstractHttpConfigurer::disable)
             .authorizeHttpRequests(authorize -> authorize
                 .requestMatchers("/").permitAll()
                 .requestMatchers("/health").permitAll()
                 .requestMatchers("/ws", "/ws/**").permitAll()
-                .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/user/ranking").permitAll()
                 .requestMatchers("/api/ranking/**").permitAll()
-                .requestMatchers("/api/rooms/top3").permitAll() // Allow public access to top 3 rooms
+                .requestMatchers("/api/rooms/top3").permitAll()
                 .requestMatchers(RegexRequestMatcher.regexMatcher("^/api/paths/.*/banner$")).permitAll()
                 .anyRequest().authenticated()
             )
-            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS)) // Set session management to stateless
-            .authenticationProvider(authenticationProvider)
-            .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+            .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+            .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
+            .addFilterBefore(clerkAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
 
         return http.build();
     }

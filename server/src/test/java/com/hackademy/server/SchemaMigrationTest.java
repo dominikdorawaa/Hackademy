@@ -1,8 +1,8 @@
 package com.hackademy.server;
 
-import com.hackademy.server.auth.AuthService;
-import com.hackademy.server.auth.LoginRequest;
-import com.hackademy.server.auth.RegisterRequest;
+import com.hackademy.server.clerk.ClerkUserResolver;
+import org.springframework.security.authentication.BadCredentialsException;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.flywaydb.core.Flyway;
 import org.junit.jupiter.api.AfterEach;
 import org.junit.jupiter.api.BeforeEach;
@@ -19,7 +19,6 @@ import java.sql.SQLException;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
@@ -60,7 +59,7 @@ class SchemaMigrationTest {
     @Test
     void migratesEmptyDatabaseWithBadgesOnly() throws Exception {
         var flyway = flyway();
-        assertEquals(18, flyway.migrate().migrationsExecuted);
+        assertEquals(19, flyway.migrate().migrationsExecuted);
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, scalar("SELECT count(*) FROM users"));
         assertEquals(0, scalar("SELECT count(*) FROM rooms"));
@@ -76,7 +75,7 @@ class SchemaMigrationTest {
         execute("INSERT INTO users (id, username, email, password, role, points, streak, bio, created_at, updated_at) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 0, 0, 'Learning Linux', now(), now())");
         assertEquals(11, flyway("16").migrate().migrationsExecuted);
         assertEquals("Alice", text("SELECT avatar_seed FROM users WHERE id = 1"));
-        assertEquals(2, flyway().migrate().migrationsExecuted);
+        assertEquals(3, flyway().migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'avatar_seed'"));
         assertEquals("COMPLETED", text("SELECT tour_status FROM users WHERE id = 1"));
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE id = 1 AND avatar_confirmed_at IS NOT NULL"));
@@ -92,7 +91,7 @@ class SchemaMigrationTest {
         flyway("13").migrate();
         insertUser(1, "Alice", "alice@example.com");
         execute("INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color) VALUES (1, 'dres', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy')");
-        assertEquals(5, flyway().migrate().migrationsExecuted);
+        assertEquals(6, flyway().migrate().migrationsExecuted);
         assertEquals("przod", text("SELECT pose FROM user_avatars WHERE user_id = 1"));
         assertEquals("kucyk", text("SELECT hair FROM user_avatars WHERE user_id = 1"));
         execute("UPDATE user_avatars SET pose = 'profil' WHERE user_id = 1");
@@ -135,7 +134,7 @@ class SchemaMigrationTest {
                 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (3, 1, 0), (4, 1, 1), (9, 1, 2);
                 """);
 
-        assertEquals(10, flyway().migrate().migrationsExecuted);
+        assertEquals(11, flyway().migrate().migrationsExecuted);
 
         assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms WHERE id <= 4"));
         assertEquals(10, scalar("SELECT points FROM users WHERE id = 1"));
@@ -171,20 +170,25 @@ class SchemaMigrationTest {
     }
 
     @Test
-    void startsApplicationTwiceAndRegistersUser() throws Exception {
+    void startsApplicationTwiceAndProvisionsClerkUser() throws Exception {
         try (var context = startApplication()) {
-            var authService = context.getBean(AuthService.class);
-            authService.register(new RegisterRequest("Tester", " Tester@Example.com ", "password123"));
-            assertEquals("tester@example.com", text("SELECT email FROM users WHERE username = 'Tester'"));
-            assertEquals(500, scalar("SELECT elo FROM users WHERE username = 'Tester'"));
-            assertNotNull(authService.login(new LoginRequest("TESTER@example.com", "password123")).token());
-            authService.register(new RegisterRequest("tester", "other@example.com", "password123"));
-            authService.register(new RegisterRequest("Other", "tester@EXAMPLE.com", "password123"));
+            var resolver = context.getBean(ClerkUserResolver.class);
+            var first = resolver.resolve(clerkJwt("user_schema_a", " Tester@Example.com "));
+            assertEquals("tester@example.com", text("SELECT email FROM users WHERE clerk_user_id = 'user_schema_a'"));
+            assertEquals(500, scalar("SELECT elo FROM users WHERE clerk_user_id = 'user_schema_a'"));
+            assertEquals(first.getId(), resolver.resolve(clerkJwt("user_schema_a", "tester@example.com")).getId());
+            assertThrows(BadCredentialsException.class, () -> resolver.resolve(clerkJwt("user_schema_b", "TESTER@example.com")));
             assertEquals(1, scalar("SELECT count(*) FROM users"));
+            assertEquals(1, scalar("SELECT count(*) FROM users WHERE password IS NULL"));
         }
         try (var ignored = startApplication()) {
-            assertEquals(18, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
+            assertEquals(19, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
         }
+    }
+
+    private static Jwt clerkJwt(String subject, String email) {
+        return Jwt.withTokenValue("token").header("alg", "RS256").subject(subject)
+                .claim("email", email.trim()).claim("email_verified", true).build();
     }
 
     @Test
@@ -196,6 +200,8 @@ class SchemaMigrationTest {
         assertSqlState("23505", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at) VALUES (3, 'Carol', 'alice@example.com', 'p', 'USER', 0, 0, now(), now())");
         assertSqlState("23514", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at) VALUES (3, 'Carol', 'Carol@example.com', 'p', 'USER', 0, 0, now(), now())");
         assertSqlState("23514", "INSERT INTO users (id, username, email, password, role, points, streak, created_at, updated_at) VALUES (3, 'Carol', 'carol@example.com', 'p', 'GUEST', 0, 0, now(), now())");
+        execute("INSERT INTO users (id, username, email, role, points, streak, created_at, updated_at, clerk_user_id) VALUES (3, 'Carol', 'carol@example.com', 'USER', 0, 0, now(), now(), 'user_carol')");
+        assertSqlState("23505", "INSERT INTO users (id, username, email, role, points, streak, created_at, updated_at, clerk_user_id) VALUES (4, 'Dave', 'dave@example.com', 'USER', 0, 0, now(), now(), 'user_carol')");
         execute("INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (1, 2, 'PENDING', 0, 0, now())");
         assertSqlState("23505", "INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (2, 1, 'PENDING', 0, 0, now())");
         assertSqlState("23514", "INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (1, 1, 'PENDING', 0, 0, now())");
@@ -272,7 +278,7 @@ class SchemaMigrationTest {
 
         assertEquals(1, flyway("3").migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
-        assertEquals(15, flyway().migrate().migrationsExecuted);
+        assertEquals(16, flyway().migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
         assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
         assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));
@@ -299,7 +305,6 @@ class SchemaMigrationTest {
                 "--DB_URL=" + url,
                 "--DB_USERNAME=" + username,
                 "--DB_PASSWORD=" + password,
-                "--JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
                 "--server.port=0"
         );
     }

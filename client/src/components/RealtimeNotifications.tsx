@@ -11,14 +11,14 @@ interface Alert {
 }
 
 export default function RealtimeNotifications() {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const { state } = useRealtime();
   const { preferences, loaded } = useNotificationPreferences();
-  const seen = useRef<{ token: string | null; stream: string; ids: Set<string>; pending: Map<string, Alert> } | null>(null);
+  const seen = useRef<{ sessionKey: string | null; stream: string; ids: Set<string>; pending: Map<string, Alert> } | null>(null);
   const audio = useRef<AudioContext | null>(null);
 
   useEffect(() => {
-    if (!preferences.sound || !token) return;
+    if (!preferences.sound || !sessionKey) return;
     const unlock = () => {
       try {
         audio.current ??= new AudioContext();
@@ -33,10 +33,10 @@ export default function RealtimeNotifications() {
       void audio.current?.close().catch(() => {});
       audio.current = null;
     };
-  }, [preferences.sound, token]);
+  }, [preferences.sound, sessionKey]);
 
   useEffect(() => {
-    if (!state || !token) {
+    if (!state || !sessionKey) {
       seen.current = null;
       return;
     }
@@ -48,8 +48,8 @@ export default function RealtimeNotifications() {
       ...(state.gameSession?.status === 'ACTIVE' ? [{ id: `match:${state.gameSession.id}`,
         category: 'matchFound' as const, title: 'Mecz jest gotowy', body: 'Znaleźliśmy przeciwnika. Twój pojedynek zaraz się rozpocznie.' }] : []),
     ];
-    if (!seen.current || seen.current.token !== token || seen.current.stream !== state.streamId) {
-      seen.current = { token, stream: state.streamId, ids: new Set(events.map(event => event.id)), pending: new Map() };
+    if (!seen.current || seen.current.sessionKey !== sessionKey || seen.current.stream !== state.streamId) {
+      seen.current = { sessionKey, stream: state.streamId, ids: new Set(events.map(event => event.id)), pending: new Map() };
       return;
     }
     const history = seen.current;
@@ -84,7 +84,7 @@ export default function RealtimeNotifications() {
         } catch { return; }
       });
     }
-  }, [state, token, preferences, loaded]);
+  }, [state, sessionKey, preferences, loaded]);
 
   return null;
 }

@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { useState } from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -17,7 +18,7 @@ let writes: ProfilePersonalization[];
 
 beforeEach(() => {
   writes = [];
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(http.patch(endpoint, async ({ request }) => {
     const profile = await request.json() as ProfilePersonalization;
     writes.push(profile);

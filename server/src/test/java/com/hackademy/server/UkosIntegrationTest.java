@@ -13,7 +13,7 @@ class UkosIntegrationTest extends PostgresIntegrationTest {
     void progressIsPrivateMonotonicAndDoesNotAwardPoints() throws Exception {
         var alice = account(Role.USER);
         var bob = account(Role.USER);
-        mockMvc.perform(get(URL)).andExpect(status().isForbidden());
+        mockMvc.perform(get(URL)).andExpect(status().isUnauthorized());
         getAs(alice, URL).andExpect(status().isOk()).andExpect(jsonPath("$.completedSteps").value(0));
         putJson(alice, URL + "/progress", "{\"completedSteps\":7}").andExpect(status().isOk()).andExpect(jsonPath("$.completedSteps").value(7));
         putJson(alice, URL + "/progress", "{\"completedSteps\":2}").andExpect(jsonPath("$.completedSteps").value(7));

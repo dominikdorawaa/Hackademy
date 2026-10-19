@@ -1,11 +1,6 @@
 package com.hackademy.server;
 
-import com.hackademy.server.auth.JwtService;
-import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
-import io.jsonwebtoken.Jwts;
-import io.jsonwebtoken.io.Decoders;
-import io.jsonwebtoken.security.Keys;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.MethodSource;
@@ -21,7 +16,8 @@ import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.net.http.WebSocketHandshakeException;
 import java.time.Duration;
-import java.util.Date;
+import java.time.Instant;
+import java.util.Map;
 import java.util.UUID;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.CompletionStage;
@@ -44,7 +40,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "DB_URL=jdbc:h2:mem:websocket_auth_test",
         "DB_USERNAME=sa",
         "DB_PASSWORD=",
-        "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "FRONTEND_URL=https://frontend.example.com",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop"
@@ -52,13 +47,9 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 @AutoConfigureMockMvc
 class WebSocketAuthenticationIntegrationTest {
     private static final String ORIGIN = "https://frontend.example.com";
-    private static final String SECRET = "MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=";
 
     @Value("${local.server.port}")
     private int port;
-
-    @Autowired
-    private JwtService jwtService;
 
     @Autowired
     private UserRepository userRepository;
@@ -70,10 +61,9 @@ class WebSocketAuthenticationIntegrationTest {
     @Test
     void connectsWithValidJwtAndCanSubscribeToItsOwnState() throws Exception {
         String username = "socket" + UUID.randomUUID().toString().substring(0, 8);
-        var user = userRepository.saveAndFlush(User.builder()
-                .username(username).email(username + "@example.com").password("unused").build());
+        var user = ClerkTestTokens.createUser(userRepository, username, com.hackademy.server.user.Role.USER);
         try (var socket = connect(ORIGIN)) {
-            socket.send(connectFrame("Authorization:Bearer " + jwtService.generateToken(user) + "\n"));
+            socket.send(connectFrame("Authorization:Bearer " + ClerkTestTokens.tokenFor(user, ORIGIN) + "\n"));
             String reply = socket.receive();
             assertTrue(reply.startsWith("CONNECTED\n"), reply);
             assertTrue(reply.contains("user-name:" + user.getId() + "\n"), reply);
@@ -126,24 +116,33 @@ class WebSocketAuthenticationIntegrationTest {
         mockMvc.perform(get("/ws/info").header("Origin", "https://untrusted.example.com"))
                 .andExpect(status().isForbidden());
         mockMvc.perform(get("/api/user/me"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     private static Stream<String> invalidAuthorizationHeaders() {
-        var key = Keys.hmacShaKeyFor(Decoders.BASE64.decode(SECRET));
-        String expired = Jwts.builder().subject("tester")
-                .expiration(new Date(System.currentTimeMillis() - 60000)).signWith(key).compact();
-        String missingSubject = Jwts.builder()
-                .expiration(new Date(System.currentTimeMillis() + 60000)).signWith(key).compact();
-        String unknownUser = Jwts.builder().subject("nonexistent-socket-user")
-                .expiration(new Date(System.currentTimeMillis() + 60000)).signWith(key).compact();
-        String wrongSignature = Jwts.builder().subject("tester")
-                .expiration(new Date(System.currentTimeMillis() + 60000))
-                .signWith(Keys.hmacShaKeyFor(new byte[32])).compact();
+        var now = Instant.now();
+        var email = Map.<String, Object>of("email", "socket-new@example.com", "email_verified", true);
+        String expired = ClerkTestTokens.sign(ClerkTestTokens.keys(),
+                ClerkTestTokens.builder("user_expired", ORIGIN, now.minusSeconds(300), now.minusSeconds(120), email).build());
+        String missingSubject = ClerkTestTokens.sign(ClerkTestTokens.keys(),
+                ClerkTestTokens.builder(null, ORIGIN, now, now.plusSeconds(60), email).build());
+        String unknownWithoutEmail = ClerkTestTokens.token("user_without_email", ORIGIN, Map.of());
+        String unverifiedEmail = ClerkTestTokens.token("user_unverified", ORIGIN,
+                Map.of("email", "socket-unverified@example.com", "email_verified", false));
+        String otherOrigin = ClerkTestTokens.token("user_other_origin", "https://untrusted.example.com", email);
+        String pendingSession = ClerkTestTokens.token("user_pending", ORIGIN, Map.of("sts", "pending", "email", "p@example.com", "email_verified", true));
+        String otherIssuer = ClerkTestTokens.sign(ClerkTestTokens.keys(),
+                ClerkTestTokens.builder("user_issuer", ORIGIN, now, now.plusSeconds(60), email).issuer("https://evil.clerk.accounts.dev").build());
+        String wrongSignature = ClerkTestTokens.sign(ClerkTestTokens.generate(),
+                ClerkTestTokens.builder("user_signature", ORIGIN, now, now.plusSeconds(60), email).build());
         return Stream.of("", "Authorization:Basic invalid\n", "Authorization:Bearer \n",
                 "Authorization:Bearer invalid\n", "Authorization:Bearer " + expired + "\n",
                 "Authorization:Bearer " + missingSubject + "\n",
-                "Authorization:Bearer " + unknownUser + "\n",
+                "Authorization:Bearer " + unknownWithoutEmail + "\n",
+                "Authorization:Bearer " + unverifiedEmail + "\n",
+                "Authorization:Bearer " + otherOrigin + "\n",
+                "Authorization:Bearer " + pendingSession + "\n",
+                "Authorization:Bearer " + otherIssuer + "\n",
                 "Authorization:Bearer " + wrongSignature + "\n",
                 "Authorization:Bearer invalid\nAuthorization:Bearer other\n");
     }

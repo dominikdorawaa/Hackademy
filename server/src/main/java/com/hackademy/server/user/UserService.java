@@ -1,8 +1,6 @@
 package com.hackademy.server.user;
 
 import com.hackademy.server.dashboard.ActivityDto;
-import com.hackademy.server.auth.AuthResponse;
-import com.hackademy.server.user.dto.ChangePasswordRequest;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
@@ -27,8 +25,7 @@ public interface UserService {
     List<UserAdminView> findAllUsers();
     void deleteUser(Long id);
     UserAdminView updateUserRole(Long id, Role newRole);
-    void changePassword(Long userId, ChangePasswordRequest request);
-    AuthResponse updateUsername(Long userId, UpdateUsernameRequest request);
+    String updateUsername(Long userId, UpdateUsernameRequest request);
     List<RankingEntry> getTop10Ranking();
     UserProfileDto getPublicProfile(String username);
     ProfileStatsDto getProfileStats(Long userId);

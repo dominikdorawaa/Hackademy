@@ -55,7 +55,7 @@ export default function ChaptersEditor({
   roomHref?: (roomId: number) => string;
   newRoomHref?: string;
 }) {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const [chapters, setChapters] = useState<DraftChapter[]>(() => toDrafts(savedChapters));
   const [baseline, setBaseline] = useState(savedChapters);
   const [targetKey, setTargetKey] = useState<string | null>(null);
@@ -127,7 +127,7 @@ export default function ChaptersEditor({
     }
     setSaving(true);
     try {
-      const detail = await adminApi.updatePathChapters(pathId, revision, toRequest(chapters), token);
+      const detail = await adminApi.updatePathChapters(pathId, revision, toRequest(chapters), sessionKey);
       if (!detail) throw new Error('Nie udało się zapisać rozdziałów.');
       onSaved(detail);
       setShowProblems(false);
@@ -144,7 +144,7 @@ export default function ChaptersEditor({
     if (saving) return;
     setSaving(true);
     try {
-      const detail = await adminApi.getPath(pathId, token);
+      const detail = await adminApi.getPath(pathId, sessionKey);
       if (!detail) throw new Error('Nie udało się wczytać rozdziałów.');
       onSaved(detail);
       setShowProblems(false);

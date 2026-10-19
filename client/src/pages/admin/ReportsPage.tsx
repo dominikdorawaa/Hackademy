@@ -32,7 +32,7 @@ const muteDurations: [number, string][] = [
 ];
 
 export default function ReportsPage() {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const [reports, setReports] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,18 +43,18 @@ export default function ReportsPage() {
 
   const load = useCallback(async () => {
     try {
-      setReports((await adminApi.getReports(token)) ?? []);
+      setReports((await adminApi.getReports(sessionKey)) ?? []);
       setError(null);
     } catch (err) {
       setError(errorText(err, 'Nie udało się pobrać zgłoszeń.'));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [sessionKey]);
 
   useEffect(() => {
-    if (token) void load();
-  }, [token, load]);
+    if (sessionKey) void load();
+  }, [sessionKey, load]);
 
   const removeFromList = (id: number) => setReports((current) => current.filter((report) => report.id !== id));
 
@@ -74,7 +74,7 @@ export default function ReportsPage() {
     if (!muteTarget) return;
     setMuting(true);
     await run(
-      () => adminApi.muteUser(muteTarget.senderId, Number(muteDuration), token),
+      () => adminApi.muteUser(muteTarget.senderId, Number(muteDuration), sessionKey),
       muteTarget.id,
       `Użytkownik ${muteTarget.senderUsername} został wyciszony.`,
       'Nie udało się wyciszyć użytkownika.',
@@ -118,7 +118,7 @@ export default function ReportsPage() {
                       <Button
                         variant="ghost"
                         size="sm"
-                        onClick={() => void run(() => adminApi.dismissReport(report.id, token), report.id, 'Zgłoszenie odrzucone.', 'Nie udało się odrzucić zgłoszenia.')}
+                        onClick={() => void run(() => adminApi.dismissReport(report.id, sessionKey), report.id, 'Zgłoszenie odrzucone.', 'Nie udało się odrzucić zgłoszenia.')}
                       >
                         Odrzuć
                       </Button>
@@ -129,7 +129,7 @@ export default function ReportsPage() {
                         title="Usunąć wiadomość?"
                         description="Wiadomość zniknie z czatu i z listy zgłoszeń."
                         confirmLabel="Usuń wiadomość"
-                        onConfirm={() => run(() => adminApi.deleteReport(report.id, token), report.id, 'Wiadomość usunięta.', 'Nie udało się usunąć wiadomości.')}
+                        onConfirm={() => run(() => adminApi.deleteReport(report.id, sessionKey), report.id, 'Wiadomość usunięta.', 'Nie udało się usunąć wiadomości.')}
                         trigger={<Button variant="destructive" size="sm">Usuń</Button>}
                       />
                     </div>

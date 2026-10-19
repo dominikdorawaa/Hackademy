@@ -1,5 +1,6 @@
 import { Client } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
+import { sessionToken } from './http';
 import API_URL from '../apiConfig';
 import type { RealtimeEnvelope, RealtimeState } from '../types/realtime';
 
@@ -13,10 +14,19 @@ export class RealtimeConnection {
   private readonly client: Client;
   private stopped = false;
 
-  constructor(token: string, callbacks: RealtimeCallbacks) {
+  constructor(sessionKey: string, callbacks: RealtimeCallbacks) {
     this.client = new Client({
       webSocketFactory: () => new SockJS(`${API_URL}/ws`),
-      connectHeaders: { Authorization: `Bearer ${token}` },
+      beforeConnect: async () => {
+        try {
+          const token = await sessionToken({ sessionKey });
+          if (this.stopped) return;
+          this.client.connectHeaders = { Authorization: `Bearer ${token}` };
+        } catch {
+          callbacks.disconnected();
+          await this.stop();
+        }
+      },
       reconnectDelay: 5000,
       connectionTimeout: 10000,
       heartbeatIncoming: 10000,

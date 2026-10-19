@@ -1,9 +1,10 @@
+import { setClerkSession } from '../test/clerk';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import API_URL from '../apiConfig';
-import { AuthProvider, useAuth } from '../context/AuthContext';
+import { AuthProvider } from '../context/AuthContext';
 import { createToken, createUser } from '../test/fixtures/auth';
 import { currentUserUrl } from '../test/mocks/handlers';
 import { server } from '../test/mocks/server';
@@ -23,7 +24,7 @@ const incoming = { id: 'c1', challengerId: 2, challengerUsername: 'rywal', targe
 const mount = () => render(<MemoryRouter><AuthProvider><ArenaPage /></AuthProvider></MemoryRouter>);
 
 beforeEach(() => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   realtime.value = { state: state(), connected: true, error: null, synchronize: vi.fn(async () => {}) };
 });
 
@@ -194,7 +195,7 @@ it('drops the old account error while a new session loads the Arena', async () =
     await pending;
     return HttpResponse.json({ ...createUser(), points: 900 });
   }));
-  const SwitchAccount = () => { const { login } = useAuth(); return <button type="button" onClick={() => login(second)}>Przełącz konto</button>; };
+  const SwitchAccount = () => { return <button type="button" onClick={() => setClerkSession(second)}>Przełącz konto</button>; };
   render(<MemoryRouter><AuthProvider><SwitchAccount /><ArenaPage /></AuthProvider></MemoryRouter>);
   expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się wczytać Twojego konta.');
   fireEvent.click(screen.getByRole('button', { name: 'Przełącz konto' }));

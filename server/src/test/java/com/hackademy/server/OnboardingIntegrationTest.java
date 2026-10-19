@@ -60,6 +60,6 @@ class OnboardingIntegrationTest extends PostgresIntegrationTest {
     @Test
     void onboardingNeedsAnAccount() throws Exception {
         mockMvc.perform(get(URL))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 }

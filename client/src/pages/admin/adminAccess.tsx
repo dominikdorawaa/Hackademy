@@ -24,41 +24,41 @@ export function useAdminAccess() {
 }
 
 type AccessState =
-  | { token: string | null; status: 'checking' }
-  | { token: string | null; status: 'denied' | 'error' }
-  | { token: string | null; status: 'allowed'; role: PanelRole; username: string };
+  | { sessionKey: string | null; status: 'checking' }
+  | { sessionKey: string | null; status: 'denied' | 'error' }
+  | { sessionKey: string | null; status: 'allowed'; role: PanelRole; username: string };
 
 export function AdminAccessRoute({ children }: PropsWithChildren) {
-  const { isAuthenticated, token, loading } = useAuth();
-  const [access, setAccess] = useState<AccessState>({ token: null, status: 'checking' });
+  const { isAuthenticated, sessionKey, loading } = useAuth();
+  const [access, setAccess] = useState<AccessState>({ sessionKey: null, status: 'checking' });
 
   useEffect(() => {
-    if (!isAuthenticated || !token) return;
+    if (!isAuthenticated || !sessionKey) return;
 
     const controller = new AbortController();
 
-    getCurrentUser({ Authorization: `Bearer ${token}` }, controller.signal)
+    getCurrentUser({ sessionKey }, controller.signal)
       .then((response) => {
         if (!response.ok) throw new Error(`HTTP ${response.status}`);
         return response.json();
       })
       .then((currentUser) => {
         if (currentUser.role === 'ADMIN' || currentUser.role === 'EXPERT') {
-          setAccess({ token, status: 'allowed', role: currentUser.role, username: currentUser.username });
+          setAccess({ sessionKey, status: 'allowed', role: currentUser.role, username: currentUser.username });
         } else {
-          setAccess({ token, status: 'denied' });
+          setAccess({ sessionKey, status: 'denied' });
         }
       })
       .catch((error: unknown) => {
         if (!(error instanceof Error && error.name === 'AbortError')) {
-          setAccess({ token, status: 'error' });
+          setAccess({ sessionKey, status: 'error' });
         }
       });
 
     return () => controller.abort();
-  }, [isAuthenticated, token]);
+  }, [isAuthenticated, sessionKey]);
 
-  if (loading || (isAuthenticated && (access.token !== token || access.status === 'checking'))) {
+  if (loading || (isAuthenticated && (access.sessionKey !== sessionKey || access.status === 'checking'))) {
     return (
       <div role="status" className="flex min-h-screen items-center justify-center bg-background text-sm text-muted-foreground">
         Sprawdzanie uprawnień…

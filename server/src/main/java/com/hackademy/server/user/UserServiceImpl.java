@@ -1,6 +1,5 @@
 package com.hackademy.server.user;
 
-import com.hackademy.server.auth.JwtService;
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.UserWeeklyActiveTime;
 import com.hackademy.server.dashboard.UserWeeklyActiveTimeId;
@@ -10,9 +9,7 @@ import com.hackademy.server.room.UserUnlockedHintRepository;
 import com.hackademy.server.path.PathRepository;
 
 import com.hackademy.server.dashboard.ActivityDto;
-import com.hackademy.server.auth.AuthResponse;
 import com.hackademy.server.badge.BadgeDto;
-import com.hackademy.server.user.dto.ChangePasswordRequest;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
@@ -32,7 +29,6 @@ import com.hackademy.server.room.RecentSolvedRoomView;
 import com.hackademy.server.dashboard.UserWeeklyActiveTimeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -106,8 +102,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
     private final UserBadgeRepository userBadgeRepository; // Inject UserBadgeRepository
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
     private final FriendshipService friendshipService;
     private final BadgeService badgeService;
     private final UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
@@ -199,20 +193,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void changePassword(Long userId, ChangePasswordRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Incorrect current password");
-        }
-
-        user.setPassword(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
-    }
-
-    @Override
-    public AuthResponse updateUsername(Long userId, UpdateUsernameRequest request) {
+    public String updateUsername(Long userId, UpdateUsernameRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -223,15 +204,11 @@ public class UserServiceImpl implements UserService {
         });
 
         if (user.getUsername().equals(request.newUsername())) {
-             String newToken = jwtService.generateToken(user);
-             return new AuthResponse(newToken);
+            return user.getUsername();
         }
 
         user.setUsername(request.newUsername());
-        User updatedUser = userRepository.save(user);
-
-        String newToken = jwtService.generateToken(updatedUser);
-        return new AuthResponse(newToken);
+        return userRepository.save(user).getUsername();
     }
 
     @Override

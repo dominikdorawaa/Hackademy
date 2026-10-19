@@ -7,9 +7,9 @@ import RealtimeNotifications from './RealtimeNotifications';
 import RealtimeGameNavigation from './RealtimeGameNavigation';
 import { createGameSession } from '../test/fixtures/arena';
 
-const environment = vi.hoisted(() => ({ token: 'first', state: null as RealtimeState | null, loaded: true,
+const environment = vi.hoisted(() => ({ sessionKey: 'first', state: null as RealtimeState | null, loaded: true,
   preferences: { friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: true } }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ token: environment.token }) }));
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ sessionKey: environment.sessionKey }) }));
 vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state }) }));
 vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPreferences: () => ({ preferences: environment.preferences, loaded: environment.loaded }) }));
 
@@ -20,7 +20,7 @@ const request = { id: 7, requesterUsername: 'friend', createdAt: '2026-10-11T12:
 
 beforeEach(() => {
   delivered.mockClear();
-  environment.token = 'first';
+  environment.sessionKey = 'first';
   environment.state = snapshot();
   environment.loaded = true;
   environment.preferences = { ...defaultNotificationPreferences, browserNotifications: true };
@@ -79,7 +79,7 @@ describe('realtime notification delivery', () => {
     environment.loaded = false;
     environment.state = { ...snapshot(), revision: 4, friendRequests: [{ ...request, id: 9 }] };
     rerender(<RealtimeNotifications />);
-    environment.token = 'second';
+    environment.sessionKey = 'second';
     environment.state = snapshot();
     environment.loaded = true;
     rerender(<RealtimeNotifications />);
@@ -116,7 +116,7 @@ describe('realtime notification delivery', () => {
 
   it('resets the notification baseline when accounts change', () => {
     const { rerender } = render(<RealtimeNotifications />);
-    environment.token = 'second';
+    environment.sessionKey = 'second';
     environment.state = { ...snapshot(), friendRequests: [request] };
     rerender(<RealtimeNotifications />);
     expect(delivered).not.toHaveBeenCalled();

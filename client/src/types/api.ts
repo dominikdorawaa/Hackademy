@@ -18,10 +18,6 @@ export type RoomType = 'CTF' | 'PATH'
 export type Role = 'USER' | 'ADMIN' | 'EXPERT'
 export type FriendshipStatus = 'NONE' | 'FRIENDS' | 'REQUEST_SENT' | 'REQUEST_RECEIVED' | 'SELF'
 
-export interface AuthResponse {
-  token: string
-}
-
 export type ApiId = string | number
 
 export interface ApiError {

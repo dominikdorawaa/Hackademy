@@ -1,3 +1,4 @@
+import { setClerkSession, openUserProfile } from '../test/clerk';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -12,7 +13,7 @@ import { defaultNotificationPreferences } from '../services/userApi';
 import SettingsPage from './SettingsPage';
 
 function mount(section = 'account') {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   render(<MemoryRouter initialEntries={[`/settings?section=${section}`]}><AuthProvider><ThemeProvider><NotificationPreferencesProvider><SettingsPage /></NotificationPreferencesProvider></ThemeProvider></AuthProvider></MemoryRouter>);
 }
 
@@ -84,14 +85,12 @@ describe('settings', () => {
     } finally { vi.unstubAllGlobals(); }
   });
 
-  it('rotates the auth token after renaming the account', async () => {
-    const payload = btoa(JSON.stringify({ sub: 'newtester', roles: ['ROLE_USER'], exp: 2000000000 }));
-    const nextToken = `header.${payload}.signature`;
+  it('renames the local profile without rotating the Clerk session', async () => {
     server.use(
       http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(defaultNotificationPreferences)),
       http.patch(`${API_URL}/api/user/me/username`, async ({ request }) => {
         expect(await request.json()).toEqual({ newUsername: 'newtester' });
-        return HttpResponse.json({ token: nextToken });
+        return HttpResponse.json({ username: 'newtester' });
       }),
     );
     mount();
@@ -99,30 +98,13 @@ describe('settings', () => {
     fireEvent.change(field, { target: { value: 'newtester' } });
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz nazwę' }));
     await screen.findByText('Nazwa użytkownika została zmieniona.');
-    expect(localStorage.getItem('token')).toBe(nextToken);
+    expect(localStorage.getItem('token')).toBeNull();
   });
 
-  it('validates password confirmation and clears fields after a successful change', async () => {
-    let calls = 0;
-    server.use(
-      http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(defaultNotificationPreferences)),
-      http.patch(`${API_URL}/api/user/me/password`, async ({ request }) => {
-        calls += 1;
-        expect(await request.json()).toEqual({ currentPassword: 'old-password', newPassword: 'new-password' });
-        return new HttpResponse(null, { status: 200 });
-      }),
-    );
+  it('opens Clerk account security for password and connected account changes', () => {
     mount('security');
-    fireEvent.change(screen.getByLabelText('Obecne hasło'), { target: { value: 'old-password' } });
-    fireEvent.change(screen.getByLabelText('Nowe hasło'), { target: { value: 'new-password' } });
-    fireEvent.change(screen.getByLabelText('Powtórz nowe hasło'), { target: { value: 'different' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Zmień hasło' }));
-    expect(screen.getByText('Nowe hasła muszą być identyczne.')).toBeInTheDocument();
-    expect(calls).toBe(0);
-    fireEvent.change(screen.getByLabelText('Powtórz nowe hasło'), { target: { value: 'new-password' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Zmień hasło' }));
-    await screen.findByText('Hasło zostało zmienione.');
-    expect(screen.getByLabelText('Obecne hasło')).toHaveValue('');
-    expect(screen.getByLabelText('Nowe hasło')).toHaveValue('');
+    fireEvent.click(screen.getByRole('button', { name: 'Zarządzaj dostępem' }));
+    expect(openUserProfile).toHaveBeenCalledOnce();
+    expect(screen.queryByLabelText('Obecne hasło')).toBeNull();
   });
 });
