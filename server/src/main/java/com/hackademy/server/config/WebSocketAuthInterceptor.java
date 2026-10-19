@@ -2,6 +2,7 @@ package com.hackademy.server.config;
 
 import com.hackademy.server.clerk.ClerkTokenAuthenticator;
 import com.hackademy.server.user.User;
+import com.hackademy.server.user.AccountAccess;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -20,6 +21,7 @@ import org.springframework.stereotype.Component;
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
     private final ClerkTokenAuthenticator authenticator;
+    private final AccountAccess accounts;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -33,6 +35,8 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
             accessor.setUser(authenticate(accessor));
         } else if (!(accessor.getUser() instanceof Authentication authentication) || !authentication.isAuthenticated()) {
             throw new BadCredentialsException("WebSocket authentication required");
+        } else if (!accounts.isActive(Long.valueOf(authentication.getName()))) {
+            throw new BadCredentialsException("WebSocket account has been deleted");
         }
         if (accessor.getCommand() == StompCommand.SUBSCRIBE
                 && !"/user/queue/realtime".equals(accessor.getDestination())) {

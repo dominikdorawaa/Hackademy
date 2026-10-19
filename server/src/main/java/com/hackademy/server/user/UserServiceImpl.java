@@ -100,6 +100,7 @@ public class UserServiceImpl implements UserService {
     }
 
     private final UserRepository userRepository;
+    private final AccountDeletionService accountDeletionService;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
     private final UserBadgeRepository userBadgeRepository; // Inject UserBadgeRepository
     private final FriendshipService friendshipService;
@@ -166,21 +167,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    @Transactional // Ensure transactional deletion
     public void deleteUser(Long id) {
-        if (!userRepository.existsById(id)) {
-            throw new UserNotFoundException("User with ID: " + id + " not found.");
-        }
-        
-        // Manually delete related entities to avoid constraint violation
-        userBadgeRepository.deleteByUserId(id);
-        
-        // Also delete solved rooms if needed (though usually handled by cascade or separate repo)
-        // Assuming UserSolvedRoom has cascade or we need to delete it too.
-        // Let's check if UserSolvedRoomRepository has deleteByUserId
-        // If not, we might need to add it too, but let's start with badges as that was the error.
-
-        userRepository.deleteById(id);
+        accountDeletionService.delete(id);
+        invalidateGlobalRankingCache();
+        rankCache.remove(id);
+        tutorialVpnSolvedCache.remove(id);
+        friendshipService.invalidateProfileCaches();
     }
 
     @Override

@@ -31,6 +31,14 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     Optional<User> findByClerkUserId(String clerkUserId);
 
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.id = :id")
+    Optional<User> findByIdForUpdate(Long id);
+
+    @Lock(LockModeType.PESSIMISTIC_WRITE)
+    @Query("SELECT u FROM User u WHERE u.clerkUserId = :clerkUserId")
+    Optional<User> findByClerkUserIdForUpdate(String clerkUserId);
+
     List<User> findByClerkUserIdIsNullOrderByIdAsc();
 
     @Modifying

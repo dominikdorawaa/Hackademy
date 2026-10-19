@@ -68,6 +68,33 @@ class ClerkBackendClientTest {
         server.verify();
     }
 
+    @Test
+    void deletesTheExactIdentityAndAcceptsAnAlreadyMissingUser() {
+        var builder = RestClient.builder();
+        var server = MockRestServiceServer.bindTo(builder).build();
+        var client = new ClerkBackendClient(builder, new ClerkProperties(ClerkTestIssuer.VALUE, null, "sk_test_x", API));
+        server.expect(requestTo(API + "/users/user_12")).andExpect(method(HttpMethod.DELETE))
+                .andExpect(header("Authorization", "Bearer sk_test_x"))
+                .andRespond(withSuccess());
+        server.expect(requestTo(API + "/users/user_12")).andRespond(
+                org.springframework.test.web.client.response.MockRestResponseCreators.withResourceNotFound());
+        client.delete("user_12");
+        client.delete("user_12");
+        server.verify();
+    }
+
+    @org.junit.jupiter.params.ParameterizedTest
+    @org.junit.jupiter.params.provider.ValueSource(ints = {401, 403, 429, 500})
+    void deletionDoesNotHideBackendFailures(int status) {
+        var builder = RestClient.builder();
+        var server = MockRestServiceServer.bindTo(builder).build();
+        var client = new ClerkBackendClient(builder, new ClerkProperties(ClerkTestIssuer.VALUE, null, "sk_test_x", API));
+        server.expect(requestTo(API + "/users/user_12")).andRespond(
+                org.springframework.test.web.client.response.MockRestResponseCreators.withStatus(org.springframework.http.HttpStatus.valueOf(status)));
+        assertThrows(org.springframework.web.client.RestClientResponseException.class, () -> client.delete("user_12"));
+        server.verify();
+    }
+
     private static final class ClerkTestIssuer {
         static final String VALUE = "https://example.clerk.accounts.dev";
     }
