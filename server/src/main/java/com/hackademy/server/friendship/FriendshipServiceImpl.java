@@ -160,7 +160,7 @@ public class FriendshipServiceImpl implements FriendshipService {
                 .toList();
         Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(friends.stream().map(User::getId).toList());
         List<FriendDto> out = friends.stream()
-                .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), friend.getAvatarSeed(), avatars.get(friend.getId())))
+                .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), avatars.get(friend.getId())))
                 .collect(Collectors.toList());
 
         friendsCache.put(userId, new CacheEntry<>(now, out));
@@ -182,7 +182,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         List<Friendship> pending = friendshipRepository.findPendingRequestsForUser(user);
         Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(pending.stream().map(f -> f.getRequester().getId()).toList());
         List<FriendRequestDto> out = pending.stream()
-                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), f.getRequester().getAvatarSeed(), avatars.get(f.getRequester().getId())))
+                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), avatars.get(f.getRequester().getId())))
                 .collect(Collectors.toList());
 
         requestsCache.put(userId, new CacheEntry<>(now, out));
@@ -252,7 +252,6 @@ public class FriendshipServiceImpl implements FriendshipService {
         return UserSearchDto.builder()
                 .id(otherUser.getId())
                 .username(otherUser.getUsername())
-                .avatarSeed(otherUser.getAvatarSeed())
                 .points(otherUser.getPoints())
                 .friendshipStatus(status)
                 .winsAgainst(wins)

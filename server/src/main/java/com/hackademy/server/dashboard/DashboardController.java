@@ -69,7 +69,6 @@ public class DashboardController {
         Map<String, Object> userInfo = new java.util.LinkedHashMap<>(Map.of(
                 "id", userId,
                 "username", user.getUsername(),
-                "avatarSeed", user.getAvatarSeed(),
                 "email", user.getEmail(),
                 "role", user.getRole(),
                 "points", user.getPoints(),

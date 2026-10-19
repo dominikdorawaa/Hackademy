@@ -199,7 +199,7 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
           {profile && (
             <>
               <span className="ud-peek-head">
-                <UserAvatar className="ud-peek-avatar" username={profile.username} seed={profile.avatarSeed} alt="" />
+                <UserAvatar className="ud-peek-avatar" username={profile.username} avatar={profile.avatar} alt="" />
                 <span className="ud-peek-who">
                   <span className="ud-peek-name">{profile.username}</span>
                   <span className="ud-peek-level">

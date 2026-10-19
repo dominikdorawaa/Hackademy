@@ -108,7 +108,7 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
     localStorage.setItem('token', jwt([role]));
     mount();
     const allowed = Guard === ProtectedRoute || role !== 'ROLE_USER';
-    await waitFor(() => expect(screen.queryByText(/Loading\.\.\.|Sprawdzanie uprawnień/)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/Wczytuję…|Sprawdzanie uprawnień/)).toBeNull());
     expect(screen.queryByText('private content') !== null).toBe(allowed);
     if (!allowed) {
       await waitFor(() => {
@@ -124,7 +124,7 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
       return null;
     });
     mount();
-    expect(initialMarkup).toMatch(Guard === AdminRoute ? /Sprawdzanie uprawnień/ : /Loading\.\.\./);
+    expect(initialMarkup).toMatch(Guard === AdminRoute ? /Sprawdzanie uprawnień/ : /Wczytuję…/);
     expect(initialMarkup).not.toContain('private content');
   });
 

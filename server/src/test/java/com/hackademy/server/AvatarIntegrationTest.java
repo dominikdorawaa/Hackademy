@@ -4,10 +4,14 @@ import com.hackademy.server.realtime.RealtimeFriendshipStateService;
 import com.hackademy.server.user.Role;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.beans.factory.annotation.Autowired;
+
+import java.util.List;
 
 import static org.hamcrest.Matchers.nullValue;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
@@ -38,11 +42,26 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
 
         getAs(owner, URL).andExpect(status().isOk()).andExpect(jsonPath("$.hair").value("irokez"));
         getAs(owner, "/api/user/me").andExpect(jsonPath("$.avatar.topColor").value("bordowy"))
-                .andExpect(jsonPath("$.avatarSeed").value(owner.username()));
+                .andExpect(jsonPath("$.avatarSeed").doesNotExist());
         getAs(viewer, "/api/user/" + owner.username()).andExpect(jsonPath("$.avatar.outfit").value("bluza"));
         getAs(viewer, "/api/user/search?query=" + owner.username()).andExpect(jsonPath("$[0].avatar.skin").value("oliwkowa"));
         getAs(owner, "/api/ranking/summary").andExpect(jsonPath("$.myRank.avatar.shoesColor").value("bialy"));
         getAs(viewer, "/api/user/" + viewer.username()).andExpect(jsonPath("$.avatar").value(nullValue()));
+    }
+
+    @Test
+    void acceptsAnyHexColourNextToTheNamedOnes() throws Exception {
+        var owner = account(Role.USER);
+        var custom = AVATAR.replace("\"skin\":\"oliwkowa\"", "\"skin\":\"#c58c6d\"").replace("\"topColor\":\"bordowy\"", "\"topColor\":\"#00ff88\"");
+        putJson(owner, URL, custom).andExpect(status().isOk())
+                .andExpect(jsonPath("$.skin").value("#c58c6d"))
+                .andExpect(jsonPath("$.topColor").value("#00ff88"));
+        for (var wrong : List.of("#00FF88", "#00ff8", "00ff88", "#00ff88aa", "rgb(0,255,136)")) {
+            putJson(owner, URL, custom.replace("#00ff88", wrong)).andExpect(status().isBadRequest());
+        }
+        getAs(owner, URL).andExpect(jsonPath("$.topColor").value("#00ff88"));
+        assertEquals("#c58c6d", jdbcTemplate.queryForObject("SELECT skin FROM user_avatars WHERE user_id = ?", String.class, owner.id()));
+        assertThrows(DataIntegrityViolationException.class, () -> jdbcTemplate.update("UPDATE user_avatars SET hat_color = '#XYZ123' WHERE user_id = ?", owner.id()));
     }
 
     @Test
@@ -83,7 +102,7 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
         mockMvc.perform(delete(URL).header("Authorization", "Bearer " + owner.token())).andExpect(status().isNoContent());
         getAs(owner, URL).andExpect(status().isNoContent());
         getAs(owner, "/api/user/me").andExpect(jsonPath("$.avatar").value(nullValue()))
-                .andExpect(jsonPath("$.avatarSeed").value(owner.username()));
+                .andExpect(jsonPath("$.avatarSeed").doesNotExist());
         mockMvc.perform(delete(URL).header("Authorization", "Bearer " + owner.token())).andExpect(status().isNoContent());
     }
 

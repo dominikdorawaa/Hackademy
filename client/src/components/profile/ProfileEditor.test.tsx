@@ -12,7 +12,7 @@ import { server } from '../../test/mocks/server';
 import ProfileEditor from './ProfileEditor';
 
 const endpoint = `${API_URL}/api/user/me/profile`;
-const original: ProfilePersonalization = { bio: 'Original bio', tagline: '', avatarSeed: 'original-avatar', interests: [], featuredBadgeIds: [] };
+const original: ProfilePersonalization = { bio: 'Original bio', tagline: '', interests: [], featuredBadgeIds: [] };
 let writes: ProfilePersonalization[];
 
 beforeEach(() => {

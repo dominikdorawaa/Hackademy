@@ -204,7 +204,7 @@ const ArenaPage = () => {
                                 {known && <span className="arena-league"><LeagueIcon league={league} glint />Liga {league.name}</span>}
                                 <span className="arena-card-rank" role={known ? undefined : "status"}>{rankLabel}</span>
                             </div>
-                            <UserAvatar className="arena-card-portrait" username={userData.username} seed={userData.avatarSeed} avatar={userData.avatar} alt="" />
+                            <UserAvatar className="arena-card-portrait" username={userData.username} avatar={userData.avatar} alt="" />
                             <p className="arena-card-name">{userData.username}</p>
                             <p className="arena-card-elo">
                                 <span className="arena-card-number">{known ? elo : '–'}</span>
@@ -225,7 +225,7 @@ const ArenaPage = () => {
                             <Link className="arena-card-edit" to="/arena/avatar">{userData.avatar ? 'Edytuj awatar' : 'Stwórz awatar'}</Link>
                         </div>
                         <div className="arena-hero-main">
-                        <div className="arena-console-copy">
+                        <div className="arena-console-copy" data-tour="arena">
                             <p className="arena-kicker">Tryb rankingowy</p>
                             <h1 id="arena-title" className="arena-title">{headline}</h1>
                             {status === 'GAME' && gameSession ? (
@@ -292,7 +292,7 @@ const ArenaPage = () => {
                                     const busy = processingChallengeId === challenge.id;
                                     return (
                                         <li key={challenge.id} className="ud-friend arena-challenge">
-                                            <UserAvatar className="ud-friend-avatar" username={challenge.challengerUsername} seed={challenge.challengerAvatarSeed} alt="" />
+                                            <UserAvatar className="ud-friend-avatar" username={challenge.challengerUsername} avatar={challenge.challengerAvatar} alt="" />
                                             <span className="ud-friend-who">
                                                 <ProfilePeek className="ud-friend-name" username={challenge.challengerUsername} token={token} />
                                                 <span className="ud-friend-xp">Wyzywa Cię na pojedynek</span>
@@ -336,7 +336,7 @@ const ArenaPage = () => {
                                     const sent = challengedFriends.includes(friend.username);
                                     return (
                                         <li key={friend.id} className="ud-friend">
-                                            <UserAvatar className="ud-friend-avatar" username={friend.username} seed={friend.avatarSeed} avatar={friend.avatar} alt="" />
+                                            <UserAvatar className="ud-friend-avatar" username={friend.username} avatar={friend.avatar} alt="" />
                                             <span className="ud-friend-who">
                                                 <ProfilePeek className="ud-friend-name" username={friend.username} token={token} />
                                                 <span className="ud-friend-xp">{formatNumberPL(friend.points)} XP, poziom {levelFromPoints(friend.points)}</span>

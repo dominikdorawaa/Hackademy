@@ -205,7 +205,7 @@ export default function UserProfile({ username }: { username?: string }) {
       ? person.badges
       : [];
   const appearance: ProfilePersonalization = personalization ?? {
-    bio: person.bio ?? '', tagline: person.tagline ?? '', avatarSeed: person.avatarSeed || person.username,
+    bio: person.bio ?? '', tagline: person.tagline ?? '',
     interests: person.interests ?? [], featuredBadgeIds: person.featuredBadgeIds ?? [],
   };
   const beginner = own && !appearance.bio && !appearance.interests.length;
@@ -220,10 +220,10 @@ export default function UserProfile({ username }: { username?: string }) {
         <span aria-hidden="true">/</span>
         <span>Profil</span>
       </div>
-      <header className="profile-header">
+      <header className="profile-header" data-tour={own ? 'profile' : undefined}>
         <UserAvatar
           className="profile-avatar"
-          username={person.username} seed={appearance.avatarSeed} avatar={person.avatar}
+          username={person.username} avatar={person.avatar}
           alt={`Avatar ${person.username}`}
         />
         <div className="profile-identity">

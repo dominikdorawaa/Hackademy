@@ -36,6 +36,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final OnboardingService onboardingService;
     private final NotificationPreferencesRepository notificationPreferencesRepository;
 
     @GetMapping("/me/notification-preferences")
@@ -93,10 +94,10 @@ public class UserController {
         ProfilePersonalizationDto appearance = userService.getPersonalization(userDetails.getId());
         userInfo.put("bio", appearance.bio());
         userInfo.put("tagline", appearance.tagline());
-        userInfo.put("avatarSeed", appearance.avatarSeed());
         userInfo.put("interests", appearance.interests());
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
         userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
+        userInfo.put("onboarding", onboardingService.get(userDetails.getId()));
 
         return ResponseEntity.ok(userInfo);
     }

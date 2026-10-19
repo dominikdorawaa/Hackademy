@@ -8,6 +8,8 @@ The player picks an outfit (Klasyczna, Bluza or Dres), a hairstyle (short, mohaw
 
 Signed-in players load the avatar from the account and save it there; when saving fails the creator keeps the unsaved changes and says so, and the navigation bar updates without reloading. Guests keep a browser-only copy.
 
+Every colour group offers six or seven of the most popular colours that fit the sprites (all six skin tones and hair colours; white, graphite, navy, red, burgundy, olive and sand for clothes) and a rainbow square that opens a colour wheel. The wheel picks hue and saturation, a slider sets brightness and a field takes any hex code; arrow keys move on the wheel. A custom colour is stored as `#rrggbb` (lowercase) in the same column as the named ones (migration V18 and `UserAvatarDto` accept both), and `rampFromHex` turns it into the four shade steps used for recolouring. Older named colours outside the presets, such as turquoise, stay valid and show as the custom choice.
+
 ## Assets
 
 `client/public/assets/arena/avatar-v1` holds one 576x832 atlas per outfit (`fighter.png`, `hoodie/fighter.png`, `track/fighter.png`): rows for stance, the palm strike, the Przeciążenie finisher in rows 2 and 3, hurt and fall, then Luz in rows 6 and 7, Six-seven in rows 8 and 9, an eight-frame running loop in row 10 and the Ctrl+Alt+Del finisher in rows 11 and 12. All outfits share one bald head, so the same hair and hat overlays fit every outfit. The front view lives in `avatar-v1/front` with its own overlays and anchors. The calm side profile lives in `avatar-v1/profile`, one image and one head anchor per outfit, and reuses the side hair and hat overlays. Every generated image is listed with its source in `provenance.json` and `front/provenance-hashes.json`.
@@ -20,11 +22,11 @@ Colours come from a material map per outfit in `avatarModel.ts`: listed palette 
 
 ## Account storage
 
-The avatar is stored in `user_avatars` (migration V12, pose added in V14): outfit, hairstyle, hat, skin, the five colour choices and the portrait pose, each limited by a database CHECK constraint and by `@Pattern` validation on `UserAvatarDto`. A missing row means the player keeps the generated DiceBear image. `GET`, `PUT` and `DELETE /api/user/me/avatar` read, save and remove it. The avatar is returned as `avatar` next to `avatarSeed` in `/api/user/me`, public profiles, user search, friends, friend requests, the ranking and the dashboard. Lists load avatars for all listed users in one query, and saving refreshes the ranking and dashboard caches of that player.
+The avatar is stored in `user_avatars` (migration V12, pose added in V14): outfit, hairstyle, hat, skin, the five colour choices and the portrait pose, each limited by a database CHECK constraint and by `@Pattern` validation on `UserAvatarDto`. A missing row means the player is drawn with a look derived from the username (`avatarFromUsername` in `avatarModel.ts`), built from the same outfits, hairstyles, hats and colours. `GET`, `PUT` and `DELETE /api/user/me/avatar` read, save and remove it. The avatar is returned as `avatar` in `/api/user/me`, public profiles, user search, friends, friend requests, the ranking, the dashboard and arena challenges. Lists load avatars for all listed users in one query, and saving refreshes the ranking and dashboard caches of that player.
 
 ## Display
 
-`UserAvatar` takes the optional avatar and shows a 32x32 portrait in the saved pose, cut from the recoloured front view, the stance cell of the outfit atlas or the side profile. A missing or unknown pose falls back to the front view, so new poses can be added later. Portraits are built once per distinct avatar and shared across the page. Until the portrait is ready, or when the server sends values the client does not know, it shows the DiceBear image.
+`UserAvatar` takes the optional avatar and shows a 32x32 portrait in the saved pose, cut from the recoloured front view, the stance cell of the outfit atlas or the side profile. A missing or unknown pose falls back to the front view, so new poses can be added later. Portraits are built once per distinct avatar and shared across the page. When the server sends values the client does not know, it uses the look derived from the username, and until a portrait is drawn it shows a local placeholder with the initials. No external avatar service is used.
 
 ## Ranked Arena
 

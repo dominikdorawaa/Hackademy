@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import { AVATAR_ATLASES } from './fighters';
-import { buildColorMap, CLOTH_RAMPS, compositeOverlay, FRONT_VIEWS, HAIR_RAMPS, HEAD_ANCHORS, HEAD_OVERLAYS, OUTFIT_SPECS, PORTRAIT_CROPS, PROFILE_VIEWS, recolorAtlas, recolorOverlay } from './avatarModel';
+import { buildColorMap, CLOTH_RAMPS, compositeOverlay, rampFor, FRONT_VIEWS, HAIR_RAMPS, HEAD_ANCHORS, HEAD_OVERLAYS, OUTFIT_SPECS, PORTRAIT_CROPS, PROFILE_VIEWS, recolorAtlas, recolorOverlay } from './avatarModel';
 import type { Avatar, ColorMap, HeadAnchors } from './avatarModel';
 import { fromAvatarConfig } from './avatarModel';
 import type { AvatarConfig } from '../../../types/api';
@@ -67,8 +67,8 @@ async function dressHead(pixels: Uint8ClampedArray, width: number, avatar: Avata
   const views: ['side' | 'front', string][] = [['side', prefix]];
   if (Object.values(anchors.cells).some(anchor => anchor?.view === 'front')) views.push(['front', 'front/']);
   for (const [view, folder] of views) {
-    if (avatar.hair !== 'brak' && avatar.hat === 'brak') compositeOverlay(pixels, width, recolorOverlay(await loadOverlay(folder + HEAD_OVERLAYS[avatar.hair]), HAIR_RAMPS[avatar.colors.hair]), anchors, view);
-    if (avatar.hat !== 'brak') compositeOverlay(pixels, width, recolorOverlay(await loadOverlay(folder + HEAD_OVERLAYS[avatar.hat]), CLOTH_RAMPS[avatar.colors.hat]), anchors, view);
+    if (avatar.hair !== 'brak' && avatar.hat === 'brak') compositeOverlay(pixels, width, recolorOverlay(await loadOverlay(folder + HEAD_OVERLAYS[avatar.hair]), rampFor(HAIR_RAMPS, avatar.colors.hair)), anchors, view);
+    if (avatar.hat !== 'brak') compositeOverlay(pixels, width, recolorOverlay(await loadOverlay(folder + HEAD_OVERLAYS[avatar.hat]), rampFor(CLOTH_RAMPS, avatar.colors.hat)), anchors, view);
   }
   return pixels;
 }

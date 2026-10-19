@@ -285,6 +285,13 @@ class ArenaBattleServiceTest {
     }
 
     @Test
+    void challengesCarryThePlayersAvatars() {
+        var challenge = arena.createChallenge(1L, "player1", 2L, "player2");
+        assertEquals(avatar, challenge.getChallengerAvatar());
+        assertNull(challenge.getTargetAvatar());
+    }
+
+    @Test
     void acceptingAChallengeWhileShuttingDownIsRefused() {
         var challenge = arena.createChallenge(1L, "player1", 2L, "player2");
         arena.cancelActiveGames();

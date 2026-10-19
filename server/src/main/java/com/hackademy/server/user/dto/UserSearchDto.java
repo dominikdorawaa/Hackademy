@@ -10,6 +10,5 @@ public record UserSearchDto(
     String friendshipStatus,
     int winsAgainst,
     int lossesAgainst,
-    String avatarSeed,
     UserAvatarDto avatar
 ) {}

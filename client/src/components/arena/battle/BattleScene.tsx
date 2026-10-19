@@ -15,7 +15,7 @@ import type { GameSession } from '../../../types/api';
 
 function Plate({ fighter, side, hp, quickChat }: { fighter: Fighter; side: 'me' | 'rival'; hp: number; quickChat?: { onPick: (id: string) => void; notice: string | null } }) {
   const percent = Math.round((hp / MAX_HP) * 100);
-  const avatar = <UserAvatar className="battle-plate-avatar" username={fighter.username} seed={fighter.seed} avatar={fighter.avatar} alt="" />;
+  const avatar = <UserAvatar className="battle-plate-avatar" username={fighter.username} avatar={fighter.avatar} alt="" />;
   return (
     <div className={`battle-plate is-${side}`}>
       {quickChat ? <QuickChatMenu onPick={quickChat.onPick} notice={quickChat.notice}>{avatar}</QuickChatMenu> : avatar}

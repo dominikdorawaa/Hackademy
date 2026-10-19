@@ -478,7 +478,7 @@ const UserDashboardPage = () => {
       <div className="ud-shell">
         <div className="ud-main">
           {nextRoom && currentPath ? (
-            <section className="ud-next" aria-labelledby="ud-next-title">
+            <section className="ud-next" aria-labelledby="ud-next-title" data-tour="dashboard">
               <div className="ud-next-copy">
                 <h1 className="ud-greet">
                   Cześć, {stats.username}.{' '}
@@ -497,7 +497,7 @@ const UserDashboardPage = () => {
               </Link>
             </section>
           ) : (
-            <section className="ud-next" aria-labelledby="ud-next-title">
+            <section className="ud-next" aria-labelledby="ud-next-title" data-tour="dashboard">
               <div className="ud-next-copy">
                 <h1 className="ud-greet">Cześć, {stats.username}.</h1>
                 <h2 id="ud-next-title">{currentPath ? 'Ścieżka czeka na Ciebie' : 'Zacznij pierwszą ścieżkę'}</h2>
@@ -666,7 +666,7 @@ const UserDashboardPage = () => {
                   const state = challenges[f.username];
                   return (
                     <li key={f.id} className="ud-friend">
-                      <UserAvatar className="ud-friend-avatar" username={f.username} seed={f.avatarSeed} avatar={f.avatar} alt="" />
+                      <UserAvatar className="ud-friend-avatar" username={f.username} avatar={f.avatar} alt="" />
                       <span className="ud-friend-who">
                         <ProfilePeek className="ud-friend-name" username={f.username} token={token} />
                         <span className="ud-friend-xp">
@@ -707,7 +707,7 @@ const UserDashboardPage = () => {
 
         <aside className="ud-board" id="ud-board" aria-labelledby="ud-board-title">
           <Link className="ud-profile" to="/profile">
-            <UserAvatar className="ud-avatar" username={stats.username} seed={userData?.avatarSeed} avatar={userData?.avatar} alt="" />
+            <UserAvatar className="ud-avatar" username={stats.username} avatar={userData?.avatar} alt="" />
             <span className="ud-profile-who">
               <span className="ud-profile-name">{stats.username}</span>
               <span className="ud-profile-sub">

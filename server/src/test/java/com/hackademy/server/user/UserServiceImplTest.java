@@ -81,9 +81,9 @@ class UserServiceImplTest {
         TransactionSynchronizationManager.initSynchronization();
 
         var result = service.updateProfile(1L, new UpdateProfileRequest(
-                "  Bio  ", " Tagline ", " seed ", List.of("WEB", "SOC"), List.of(3L)));
+                "  Bio  ", " Tagline ", List.of("WEB", "SOC"), List.of(3L)));
 
-        assertEquals(new ProfilePersonalizationDto("Bio", "Tagline", "seed", List.of("WEB", "SOC"), List.of(3L)), result);
+        assertEquals(new ProfilePersonalizationDto("Bio", "Tagline", List.of("WEB", "SOC"), List.of(3L)), result);
         verify(userRepository).saveAndFlush(user);
         verifyNoInteractions(friendshipService);
 
@@ -109,12 +109,12 @@ class UserServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(UserNotFoundException.class, () -> service.updateProfile(1L,
-                new UpdateProfileRequest("", "", "seed", List.of(), List.of())));
+                new UpdateProfileRequest("", "", List.of(), List.of())));
     }
 
     private void assertInvalidProfile(List<String> interests, List<Long> badges) {
         assertThrows(IllegalArgumentException.class, () -> service.updateProfile(1L,
-                new UpdateProfileRequest("", "", "seed", interests, badges)));
+                new UpdateProfileRequest("", "", interests, badges)));
     }
 
     @Test
@@ -124,7 +124,7 @@ class UserServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.findById(2L)).thenReturn(Optional.empty());
 
-        assertEquals(new ProfilePersonalizationDto("", "Hacker", "alice-seed", List.of(), List.of()),
+        assertEquals(new ProfilePersonalizationDto("", "Hacker", List.of(), List.of()),
                 service.getPersonalization(1L));
         assertThrows(UserNotFoundException.class, () -> service.getPersonalization(2L));
     }
@@ -210,7 +210,7 @@ class UserServiceImplTest {
 
         var ranking = service.getTop10Ranking();
 
-        assertEquals(List.of(new RankingEntry(0, 0, "alice", 300, 700, "alice-seed")), ranking);
+        assertEquals(List.of(new RankingEntry(0, 0, "alice", 300, 700)), ranking);
         assertSame(ranking, service.getTop10Ranking());
         verify(userRepository, times(1)).findTopByPointsDesc(any());
 
@@ -230,7 +230,7 @@ class UserServiceImplTest {
 
         var rank = service.getUserRank(1L);
 
-        assertEquals(new RankingEntry(5, 2, "alice", 300, 700, "alice-seed"), rank);
+        assertEquals(new RankingEntry(5, 2, "alice", 300, 700), rank);
         assertSame(rank, service.getUserRank(1L));
         assertSame(rank, service.getUserRankFast(1L, "alice", 0, 0));
         verify(userRepository, times(1)).findById(1L);
@@ -245,12 +245,11 @@ class UserServiceImplTest {
     }
 
     @Test
-    void fastRankUsesDefaultsAndFallsBackToUsernameAvatar() {
+    void fastRankUsesDefaultPointsAndElo() {
         when(userRepository.countByPointsGreaterThan(0)).thenReturn(9L);
         when(userRepository.countByEloGreaterThan(500)).thenReturn(3L);
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertEquals(new RankingEntry(10, 4, "alice", 0, 500, "alice"), service.getUserRankFast(1L, "alice", null, null));
+        assertEquals(new RankingEntry(10, 4, "alice", 0, 500), service.getUserRankFast(1L, "alice", null, null));
     }
 
     // ── search, moderation and tutorials ────────────────────────────────────
@@ -265,7 +264,6 @@ class UserServiceImplTest {
 
         assertEquals("SELF", results.get(0).friendshipStatus());
         assertEquals("FRIENDS", results.get(1).friendshipStatus());
-        assertEquals("adam-seed", results.get(1).avatarSeed());
         verify(friendshipService, never()).getFriendshipStatus(1L, "alice");
     }
 
@@ -411,7 +409,7 @@ class UserServiceImplTest {
     // ── helpers ─────────────────────────────────────────────────────────────
 
     private static User user(long id, String username) {
-        return User.builder().id(id).username(username).avatarSeed(username + "-seed").build();
+        return User.builder().id(id).username(username).build();
     }
 
     private static BadgeDto badge(long id, boolean earned) {

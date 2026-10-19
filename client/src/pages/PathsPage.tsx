@@ -148,7 +148,7 @@ const PathsPage = () => {
   if (loading) {
     return (
       <div className="hackademy-container paths-wrap">
-        <header className="paths-header">
+        <header className="paths-header" data-tour="learn">
           <div>
             <h1 className="paths-title">Ścieżki</h1>
             <p className="paths-count"><Skeleton width={110} /></p>

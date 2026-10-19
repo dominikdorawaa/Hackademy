@@ -8,18 +8,15 @@ import { getCurrentUser, saveAvatar as saveAccountAvatar } from '../services/use
 import { PROFILE_UPDATED } from '../lib/profile';
 import { AvatarSprite } from '../components/arena/avatar/AvatarSprite';
 import { useAvatarAtlas, useAvatarPortrait } from '../components/arena/avatar/useAvatarAtlas';
-import { AVATAR_POSES, CLOTH_RAMPS, fromAvatarConfig, HAIR_RAMPS, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, SKIN_RAMPS, toAvatarConfig } from '../components/arena/avatar/avatarModel';
-import type { Avatar, Ramp } from '../components/arena/avatar/avatarModel';
+import { AVATAR_POSES, fromAvatarConfig, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, toAvatarConfig } from '../components/arena/avatar/avatarModel';
+import type { Avatar } from '../components/arena/avatar/avatarModel';
+import { COLOR_GROUPS, HAIR_NAMES, HAT_NAMES, OUTFITS, POSE_NAMES } from '../components/arena/avatar/avatarOptions';
+import { ColorChoices } from '../components/arena/avatar/ColorChoices';
 import { AVATAR_ATLASES, danceFrames, RUN_FRAME_TIME, runFrames } from '../components/arena/avatar/fighters';
 import type { AvatarAtlasSource } from '../components/arena/avatar/fighters';
 import './ArenaAvatarPage.css';
 import './UserDashboardPage.css';
 
-const OUTFITS: { id: Avatar['outfit']; name: string; description: string }[] = [
-  { id: 'baza', name: 'Klasyczna', description: 'Koszulka i proste spodnie.' },
-  { id: 'bluza', name: 'Bluza', description: 'Bluza z opuszczonym kapturem, jeansy i trampki.' },
-  { id: 'dres', name: 'Dres', description: 'Kurtka dresowa z paskami i spodnie z lampasem.' },
-];
 const row = (index: number, count = 8) => Array.from({ length: count }, (_, column) => index * 9 + column + 1);
 const PREVIEWS: { id: string; label: string; frames: (source: AvatarAtlasSource) => number[]; loop: boolean; frameTime?: number }[] = [
   { id: 'front', label: 'Przód', frames: () => [0], loop: true },
@@ -33,23 +30,6 @@ const PREVIEWS: { id: string; label: string; frames: (source: AvatarAtlasSource)
   { id: 'beam', label: 'Przeciążenie', frames: source => [...danceFrames(source.finishers.beam), 0, 0, 0], loop: true, frameTime: 100 },
   { id: 'combo', label: 'Ctrl+Alt+Del', frames: source => [...danceFrames(source.finishers.combo), 0, 0, 0], loop: true, frameTime: 100 },
 ];
-const COLOR_GROUPS: { key: keyof Avatar['colors']; legend: string; options: Record<string, Ramp> }[] = [
-  { key: 'skin', legend: 'Skóra', options: SKIN_RAMPS },
-  { key: 'hair', legend: 'Włosy', options: HAIR_RAMPS },
-  { key: 'top', legend: 'Góra', options: CLOTH_RAMPS },
-  { key: 'bottom', legend: 'Dół', options: CLOTH_RAMPS },
-  { key: 'shoes', legend: 'Buty', options: CLOTH_RAMPS },
-  { key: 'hat', legend: 'Kolor czapki', options: CLOTH_RAMPS },
-];
-const HAIR_NAMES: Record<Avatar['hair'], string> = { brak: 'Bez włosów', krotkie: 'Krótkie', irokez: 'Irokez', kucyk: 'Kucyk' };
-const HAT_NAMES: Record<Avatar['hat'], string> = { brak: 'Bez czapki', czapka: 'Czapka zimowa', daszek: 'Daszek' };
-const NAMES: Record<string, string> = {
-  porcelanowa: 'Porcelanowa', jasna: 'Jasna', oliwkowa: 'Oliwkowa', brazowa: 'Brązowa', ciemna: 'Ciemna', heban: 'Hebanowa',
-  czarne: 'Czarne', brazowe: 'Brązowe', rude: 'Rude', blond: 'Blond', siwe: 'Siwe', niebieskie: 'Niebieskie',
-  granatowy: 'Granatowy', grafitowy: 'Grafitowy', bordowy: 'Bordowy', turkusowy: 'Turkusowy', piaskowy: 'Piaskowy', oliwkowy: 'Oliwkowy', czerwony: 'Czerwony', bialy: 'Biały',
-};
-const POSE_NAMES: Record<Avatar['pose'], string> = { przod: 'Przód', postawa: 'Postawa', profil: 'Profil' };
-
 function PosePortrait({ avatar }: { avatar: Avatar }) {
   const portrait = useAvatarPortrait(toAvatarConfig(avatar));
   return portrait ? <img className="avatar-pose-image" src={portrait} alt="" /> : <span className="avatar-pose-image" aria-hidden="true" />;
@@ -154,15 +134,11 @@ export default function ArenaAvatarPage() {
           {key === 'hair' && avatar.hat !== 'brak' && avatar.hair !== 'brak' && <p className="avatar-hint">Pod czapką fryzura jest schowana. Zdejmij czapkę, żeby ją zobaczyć.</p>}</fieldset>)}
         </div>
         </div>
-        <div className="avatar-section">
+        <div className="avatar-section color-choices-area">
         <h2>Kolory</h2>
         <div className="avatar-colors">
-        {COLOR_GROUPS.map(group => <fieldset key={group.key}><legend><span>{group.legend}</span><span className="avatar-color-name">{NAMES[avatar.colors[group.key]]}</span></legend><div className="avatar-swatches">
-          {Object.entries(group.options).map(([id, ramp]) => <label key={id} data-selected={avatar.colors[group.key] === id} title={NAMES[id]}>
-            <input type="radio" name={`avatar-${group.key}`} value={id} checked={avatar.colors[group.key] === id} onChange={() => setColor(group.key, id)} aria-label={`${group.legend}: ${NAMES[id]}`} />
-            <span style={{ backgroundColor: ramp[2] }} aria-hidden="true">{avatar.colors[group.key] === id && <Check size={14} style={{ color: ['bialy', 'blond', 'siwe', 'jasna', 'porcelanowa', 'piaskowy'].includes(id) ? '#111827' : '#ffffff' }} />}</span>
-          </label>)}
-        </div></fieldset>)}
+        {COLOR_GROUPS.map(group => <ColorChoices key={group.key} legend={group.legend} value={avatar.colors[group.key]} options={group.options}
+          presets={group.presets} name={`avatar-${group.key}`} onChange={value => setColor(group.key, value)} />)}
         </div>
         </div>
         <div className="avatar-section">
