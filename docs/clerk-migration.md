@@ -1,6 +1,6 @@
 # Przełączenie uwierzytelniania na Clerk
 
-Kod obsługuje Clerk Development lokalnie. Instancję Production dla `hackademy.app` należy utworzyć i skonfigurować osobno przed merge i wdrożeniem. Ten PR nie zmienia konfiguracji produkcyjnej ani kont w Clerk.
+Lokalnie używaj Clerk Development, a na produkcji Clerk Production. Przed merge i wdrożeniem potwierdź konfigurację instancji Production, DNS, certyfikaty i własne poświadczenia OAuth. Utworzenie instancji i ustawienie kluczy nie zastępuje importu istniejących kont ani przełączenia aplikacji.
 
 ## Konfiguracja
 
@@ -21,7 +21,7 @@ Backend wymaga `CLERK_ISSUER`, np. `https://clerk.example.com`. Pobiera publiczn
 
 Lokalnie ustaw klucz publiczny Development jako `VITE_CLERK_PUBLISHABLE_KEY` w `client/.env.local`, a `CLERK_ISSUER` w głównym `.env`. Dla kontenera frontendu klucz przekazuje argument builda o tej samej nazwie z głównego `.env`. Nie wpisuj kluczy do repozytorium. Klucz sekretny nigdy nie trafia do klienta.
 
-Na Heroku ustaw produkcyjny `CLERK_ISSUER` i zachowaj `FRONTEND_URL=https://hackademy.app` lub zgodne `CORS_ALLOWED_ORIGINS`. W GitHub ustaw zmienną repozytorium `VITE_CLERK_PUBLISHABLE_KEY` z kluczem `pk_live_` tej samej instancji. Workflow buduje i wysyła gotowe pliki Pages, dlatego zmienna ustawiona wyłącznie w panelu Pages nie trafi do tego builda. Klucz publiczny musi być gotowy przed wdrożeniem backendu.
+Na Heroku ustaw produkcyjny `CLERK_ISSUER` i zachowaj `FRONTEND_URL=https://hackademy.app` lub zgodne `CORS_ALLOWED_ORIGINS`. W GitHub ustaw zmienną repozytorium `VITE_CLERK_PUBLISHABLE_KEY` z kluczem `pk_live_` tej samej instancji. Workflow buduje i wysyła gotowe pliki Pages, dlatego zmienna ustawiona wyłącznie w panelu Pages nie trafi do tego builda. Klucz publiczny musi być gotowy przed wdrożeniem backendu. Workflow odrzuca pusty klucz i klucz Development również przy wdrożeniu samego frontendu.
 
 ## Import istniejących kont
 
