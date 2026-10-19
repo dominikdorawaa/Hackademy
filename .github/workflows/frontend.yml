@@ -33,6 +33,9 @@ jobs:
         run: npm run build
       - name: Frontend tests with Vitest, React Testing Library and MSW
         run: npm run test:coverage
+      - name: Cloudflare configuration tests
+        working-directory: .
+        run: node --test --experimental-test-coverage --test-coverage-lines=80 --test-coverage-include='tools/cloudflare/*.mjs' --test-coverage-exclude='tools/cloudflare/*.test.mjs' 'tools/cloudflare/*.test.mjs'
       - name: Coverage summary
         if: always()
         run: |
