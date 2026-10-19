@@ -1,6 +1,7 @@
 package com.hackademy.server.realtime;
 
 import lombok.RequiredArgsConstructor;
+import com.hackademy.server.user.AccountAccess;
 import org.springframework.messaging.simp.SimpMessagingTemplate;
 import org.springframework.messaging.simp.user.SimpUserRegistry;
 import org.springframework.stereotype.Component;
@@ -14,6 +15,7 @@ public class RealtimeDelivery {
     private final RealtimeStateService states;
     private final SimpMessagingTemplate messaging;
     private final SimpUserRegistry users;
+    private final AccountAccess accounts;
 
     public record Envelope(String type, RealtimeState state) {}
 
@@ -23,6 +25,7 @@ public class RealtimeDelivery {
         for (Long userId : change.userIds()) {
             String destination = userId.toString();
             if (users.getUser(destination) == null) continue;
+            if (!accounts.isActive(userId)) continue;
             messaging.convertAndSendToUser(destination, "/queue/realtime", new Envelope("STATE", states.forUser(userId)));
         }
     }

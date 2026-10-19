@@ -3,7 +3,9 @@ package com.hackademy.server.clerk;
 import com.hackademy.server.user.Role;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
-import lombok.RequiredArgsConstructor;
+import com.hackademy.server.user.AccountDeletionRepository;
+import org.springframework.transaction.PlatformTransactionManager;
+import org.springframework.transaction.support.TransactionTemplate;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.security.authentication.BadCredentialsException;
@@ -15,24 +17,48 @@ import java.util.Optional;
 
 @Slf4j
 @Service
-@RequiredArgsConstructor
 public class ClerkUserResolver {
 
     private final UserRepository userRepository;
     private final UsernameGenerator usernameGenerator;
 
+    private final AccountDeletionRepository deletions;
+    private final TransactionTemplate transaction;
+
+    public ClerkUserResolver(UserRepository userRepository, UsernameGenerator usernameGenerator,
+                             AccountDeletionRepository deletions, PlatformTransactionManager transactionManager) {
+        this.userRepository = userRepository;
+        this.usernameGenerator = usernameGenerator;
+        this.deletions = deletions;
+        this.transaction = new TransactionTemplate(transactionManager);
+    }
+
     public User resolve(Jwt jwt) {
+        try {
+            return transaction.execute(status -> resolveInTransaction(jwt));
+        } catch (DataIntegrityViolationException exception) {
+            return transaction.execute(status -> {
+                var linked = userRepository.findByClerkUserIdForUpdate(jwt.getSubject());
+                rejectDeleted(jwt.getSubject());
+                return linked.orElseThrow(() -> new BadCredentialsException("Clerk account conflicts with an existing account", exception));
+            });
+        }
+    }
+
+    private void rejectDeleted(String clerkUserId) {
+        if (deletions.existsByClerkUserId(clerkUserId)) {
+            throw new BadCredentialsException("Clerk account has been deleted");
+        }
+    }
+
+    private User resolveInTransaction(Jwt jwt) {
         String clerkUserId = jwt.getSubject();
-        Optional<User> linked = userRepository.findByClerkUserId(clerkUserId);
+        Optional<User> linked = userRepository.findByClerkUserIdForUpdate(clerkUserId);
+        rejectDeleted(clerkUserId);
         if (linked.isPresent()) {
             return syncEmail(linked.get(), jwt);
         }
-        try {
-            return link(jwt, clerkUserId);
-        } catch (DataIntegrityViolationException exception) {
-            return userRepository.findByClerkUserId(clerkUserId)
-                    .orElseThrow(() -> new BadCredentialsException("Clerk account conflicts with an existing account", exception));
-        }
+        return link(jwt, clerkUserId);
     }
 
     private User link(Jwt jwt, String clerkUserId) {
@@ -50,7 +76,9 @@ public class ClerkUserResolver {
                 .clerkUserId(clerkUserId)
                 .build();
         log.info("Created a local account for a new Clerk user");
-        return userRepository.saveAndFlush(user);
+        User saved = userRepository.saveAndFlush(user);
+        rejectDeleted(clerkUserId);
+        return saved;
     }
 
     private User syncEmail(User user, Jwt jwt) {
@@ -61,12 +89,8 @@ public class ClerkUserResolver {
         if (userRepository.findByEmail(email.get()).isPresent()) {
             return user;
         }
-        try {
-            if (userRepository.updateClerkEmail(user.getId(), user.getClerkUserId(), email.get()) == 1) user.setEmail(email.get());
-            return user;
-        } catch (DataIntegrityViolationException exception) {
-            return userRepository.findByClerkUserId(user.getClerkUserId()).orElse(user);
-        }
+        if (userRepository.updateClerkEmail(user.getId(), user.getClerkUserId(), email.get()) == 1) user.setEmail(email.get());
+        return user;
     }
 
     static Optional<String> verifiedEmail(Jwt jwt) {
