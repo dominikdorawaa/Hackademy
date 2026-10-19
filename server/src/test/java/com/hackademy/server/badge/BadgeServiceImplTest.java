@@ -77,11 +77,49 @@ class BadgeServiceImplTest {
     }
 
     @Test
-    void expiredStreakStillEarnsStreakBadge() {
-        // Pins current behaviour (see #106): awarding compares the raw streak, while progress treats it as expired.
+    void expiredStreakDoesNotEarnStreakBadge() {
         when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "STREAK", 7)));
 
-        assertEquals(1, service.checkAndAwardBadges(streakUser(7, LocalDate.of(2026, 10, 1))).size());
+        assertTrue(service.checkAndAwardBadges(streakUser(7, LocalDate.of(2026, 10, 13))).isEmpty());
+        verify(userBadgeRepository, never()).save(any());
+    }
+
+    @Test
+    void streakLastExtendedYesterdayStillEarnsStreakBadge() {
+        when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "STREAK", 7)));
+        when(userRepository.count()).thenReturn(1L);
+
+        assertEquals(1, service.checkAndAwardBadges(streakUser(7, LocalDate.of(2026, 10, 14))).size());
+    }
+
+    @Test
+    void acceptedFriendshipWithExpiredStreakEarnsOnlyTheFriendsBadge() {
+        User alice = streakUser(7, LocalDate.of(2026, 10, 1));
+        when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "STREAK", 7), badge(2L, "FRIENDS_COUNT", 1)));
+        when(userRepository.count()).thenReturn(1L);
+        when(friendshipRepository.findByUserAndStatus(alice, FriendshipStatus.ACCEPTED)).thenReturn(List.of(new Friendship()));
+
+        var earned = service.checkAndAwardBadges(alice);
+
+        assertEquals(List.of("FRIENDS_COUNT 1"), earned.stream().map(BadgeDto::name).toList());
+    }
+
+    @Test
+    void expiredStreakKeepsPreviouslyEarnedStreakBadgeAndStreakValue() {
+        User alice = streakUser(7, LocalDate.of(2026, 10, 1));
+        when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "STREAK", 7)));
+        when(userBadgeRepository.existsByUser_IdAndBadge_Id(7L, 1L)).thenReturn(true);
+        when(userBadgeRepository.findEarnedBadgeRowsByUserId(7L)).thenReturn(List.of(new Row(1L, LocalDateTime.of(2026, 9, 1, 0, 0))));
+        stubUser(alice);
+
+        assertTrue(service.checkAndAwardBadges(alice).isEmpty());
+
+        assertEquals(List.of("STREAK 7"), service.getUserBadges(7L).stream().map(BadgeDto::name).toList());
+        assertEquals(7, alice.getStreak());
+        assertEquals(LocalDate.of(2026, 10, 1), alice.getLastSolvedDate());
+        verify(userBadgeRepository, never()).delete(any());
+        verify(userBadgeRepository, never()).deleteAll(any());
+        verify(userBadgeRepository, never()).deleteByUserId(any());
     }
 
     @Test

@@ -305,7 +305,12 @@ class RealtimeIntegrationTest {
     void authenticatedUsersCannotReadOtherDestinationsOrForgeEvents(String frame) throws Exception {
         try (var socket = RealtimeSocket.open(client, port, jwt.generateToken(user()))) {
             socket.send(frame);
-            assertTrue(socket.receive().text().startsWith("ERROR\n"));
+            // Spring closes the session right after the ERROR frame and may drop that frame when the close
+            // races a send still flushing on another thread, so the close is the guaranteed rejection signal.
+            assertEquals(1002, socket.awaitServerClose());
+            var reply = socket.poll(0);
+            if (reply != null) assertTrue(reply.text().startsWith("ERROR\n"), reply.text());
+            assertNull(socket.poll(0));
         }
     }
 
