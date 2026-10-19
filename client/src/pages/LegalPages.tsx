@@ -96,7 +96,7 @@ export function PrivacyPage() {
       <h2>Zmiany polityki</h2>
       <p>
         O istotnych zmianach poinformujemy w serwisie. Aktualna wersja jest zawsze dostępna na tej stronie. Zobacz też{' '}
-        <Link to="/regulamin">regulamin</Link>.
+        <Link to="/terms">regulamin</Link>.
       </p>
     </LegalDocument>
   );
@@ -157,7 +157,7 @@ export function TermsPage() {
 
       <h2>Dane osobowe</h2>
       <p>
-        Zasady przetwarzania danych opisuje <Link to="/prywatnosc">polityka prywatności</Link>.
+        Zasady przetwarzania danych opisuje <Link to="/privacy">polityka prywatności</Link>.
       </p>
 
       <h2>Zmiany regulaminu</h2>

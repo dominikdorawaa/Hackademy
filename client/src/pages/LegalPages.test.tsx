@@ -10,12 +10,12 @@ it('shows the privacy policy with a working contact address and a link to the te
   for (const link of screen.getAllByRole('link', { name: 'kontakt@hackademy.app' })) {
     expect(link).toHaveAttribute('href', 'mailto:kontakt@hackademy.app');
   }
-  expect(screen.getByRole('link', { name: 'regulamin' })).toHaveAttribute('href', '/regulamin');
+  expect(screen.getByRole('link', { name: 'regulamin' })).toHaveAttribute('href', '/terms');
 });
 
 it('shows the terms with a link to the privacy policy', () => {
   render(<MemoryRouter><TermsPage /></MemoryRouter>);
   expect(screen.getByRole('heading', { level: 1, name: 'Regulamin' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { level: 2, name: 'Etyczne korzystanie z wiedzy' })).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'polityka prywatności' })).toHaveAttribute('href', '/prywatnosc');
+  expect(screen.getByRole('link', { name: 'polityka prywatności' })).toHaveAttribute('href', '/privacy');
 });

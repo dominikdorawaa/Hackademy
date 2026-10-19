@@ -75,8 +75,8 @@ function App() {
             />
             <Route path="/learn/ukos" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Ładowanie Dyżuru Zero" />}><UkosPage /></Suspense></ProtectedRoute>} />
             <Route path="/ranking" element={<RankingPage />} />
-            <Route path="/prywatnosc" element={<PrivacyPage />} />
-            <Route path="/regulamin" element={<TermsPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route
               path="/dashboard"
               element={

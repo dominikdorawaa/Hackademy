@@ -5,6 +5,6 @@ import Footer from './Footer';
 
 it('links to the terms and the privacy policy', () => {
   render(<MemoryRouter><Footer /></MemoryRouter>);
-  expect(screen.getByRole('link', { name: 'Regulamin' })).toHaveAttribute('href', '/regulamin');
-  expect(screen.getByRole('link', { name: 'Prywatność' })).toHaveAttribute('href', '/prywatnosc');
+  expect(screen.getByRole('link', { name: 'Regulamin' })).toHaveAttribute('href', '/terms');
+  expect(screen.getByRole('link', { name: 'Prywatność' })).toHaveAttribute('href', '/privacy');
 });
