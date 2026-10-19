@@ -53,7 +53,8 @@ Migracje bazy uruchamia Flyway przy starcie backendu. Muszą działać ze starym
 | Zmienna | Wartość |
 | --- | --- |
 | `DATABASE_URL` | ustawia i rotuje Heroku; backend wymusza SSL |
-| `JWT_SECRET` | ten sam sekret co wcześniej na Renderze, więc migracja nie wylogowała użytkowników; Base64, co najmniej 256 bitów |
+| `CLERK_ISSUER` | adres Frontend API produkcyjnej instancji Clerka |
+| `CLERK_JWT_KEY` | opcjonalny publiczny klucz PEM; bez niego backend pobiera JWKS wystawcy |
 | `FRONTEND_URL` | `https://hackademy.app`; jedyny origin dopuszczony dla API i WebSocket, dopóki nie ustawiono `CORS_ALLOWED_ORIGINS` |
 
 - Nie ustawiamy na Heroku `DB_URL`, `DB_USERNAME` ani `DB_PASSWORD`. Zmienne `VPN_SERVER_*` nie są ustawione, bo VPN nie działa i nie był migrowany.
@@ -107,10 +108,12 @@ Przełączenie wykonano tak:
 
 Po przełączeniu usunięto usługi Render i `render.yaml`. Projekt Neon pozostaje tymczasowo jako dodatkowa kopia danych sprzed przełączenia, w trybie tylko do odczytu; aplikacja z niego nie korzysta. Kopia Heroku `b001` z 18.10.2026 zawiera te same dane, więc Neon można usunąć w dowolnym momencie.
 
-Przy awarii po wdrożeniu najpierw cofnij zmianę przez revert PR-a na `main`; workflow wdroży poprzednią wersję tą samą drogą. Przy utracie lub uszkodzeniu danych przywróć ostatnią poprawną kopię zgodnie z sekcją „Kopie zapasowe”.
+Przy awarii po wdrożeniu najpierw cofnij zmianę przez revert PR-a na `main`; workflow wdroży poprzednią wersję tą samą drogą. Revert nie cofa migracji Flyway: starsze wydanie nie uruchomi się na bazie z nowszą migracją. Dla przełączenia na Clerk (migracja V21) stosuj procedurę powrotu z [docs/clerk-migration.md](clerk-migration.md). Przy utracie lub uszkodzeniu danych przywróć ostatnią poprawną kopię zgodnie z sekcją „Kopie zapasowe”.
 
 ## Certyfikat i domeny
 
 - `heroku certs:auto -a hackademy` pokazuje stan certyfikatu ACM. Prawidłowy stan to `Cert issued`; odnowienie następuje miesiąc przed wygaśnięciem.
 - Jeśli ACM zgłasza błąd, sprawdź, czy rekord `api` wskazuje adres z `heroku domains -a hackademy`, czy tryb SSL to Full (strict) i czy `http://api.hackademy.app/.well-known/acme-challenge/test` przekierowuje do `va-acm.heroku.com`.
 - CORS dopuszcza tylko `https://hackademy.app`, więc `www.hackademy.app` ani `hackademy.pages.dev` z podglądami nie mogą wywoływać API. Dodatkowy origin wymaga ustawienia `CORS_ALLOWED_ORIGINS` z pełną listą, łącznie z `https://hackademy.app`, bo ta zmienna zastępuje `FRONTEND_URL`. Bezpośredni adres `hackademy-6d39a54d38e4.herokuapp.com` nadal odpowiada; odrzucanie ruchu z pominięciem Cloudflare opisuje #131.
+
+Integracja Clerka wymaga przeprowadzenia [procedury migracji kont](clerk-migration.md) przed wdrożeniem. Build Cloudflare Pages otrzymuje produkcyjny `VITE_CLERK_PUBLISHABLE_KEY` ze zmiennej repozytorium GitHub. Klucz sekretny służy wyłącznie do importu; zwykła obsługa API weryfikuje JWT przez JWKS.

@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, createRoutesFromElements, Outlet, Route, RouterProvider } from 'react-router-dom';
@@ -22,7 +23,7 @@ beforeAll(() => {
   window.matchMedia = ((media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
 });
 beforeEach(() => {
-  localStorage.setItem('token', createToken('ADMIN'));
+  setClerkSession(createToken('ADMIN'));
   server.use(currentUserHandler('ADMIN'), http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])), http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json([])),
     http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(path)), http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] } })));
 });

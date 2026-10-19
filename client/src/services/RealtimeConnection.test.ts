@@ -1,3 +1,4 @@
+import { registerSession } from './http';
 import { describe, expect, it, vi } from 'vitest';
 import type { IFrame, IMessage, StompConfig } from '@stomp/stompjs';
 import { RealtimeConnection } from './RealtimeConnection';
@@ -14,11 +15,17 @@ vi.mock('sockjs-client', () => ({ default: class {} }));
 describe('realtime transport', () => {
   it('authenticates and subscribes again on every connection without publishing client events', async () => {
     const callbacks = { ready: vi.fn(), state: vi.fn(), disconnected: vi.fn() };
-    const connection = new RealtimeConnection('token', callbacks);
+    const getToken = vi.fn().mockResolvedValueOnce('first').mockResolvedValueOnce('second');
+    const cleanup = registerSession({ sessionKey: 'sessionKey', getToken, expired: vi.fn() });
+    const connection = new RealtimeConnection('sessionKey', callbacks);
     const client = clients.at(-1)!;
     connection.start();
     expect(client.activate).toHaveBeenCalledOnce();
-    expect(client.config.connectHeaders).toEqual({ Authorization: 'Bearer token' });
+    await client.config.beforeConnect?.(client as never);
+    expect((client as unknown as { connectHeaders: unknown }).connectHeaders).toEqual({ Authorization: 'Bearer first' });
+    await client.config.beforeConnect?.(client as never);
+    expect((client as unknown as { connectHeaders: unknown }).connectHeaders).toEqual({ Authorization: 'Bearer second' });
+    cleanup();
     expect(client.config.reconnectDelay).toBe(5000);
     client.config.onConnect?.({} as IFrame);
     expect(client.subscribe.mock.calls[0][0]).toBe('/user/queue/realtime');
@@ -41,4 +48,24 @@ describe('realtime transport', () => {
     expect(client.subscribe).toHaveBeenCalledTimes(2);
     expect(callbacks.disconnected).toHaveBeenCalledOnce();
   });
+  it('stops reconnecting when the session cannot provide credentials', async () => {
+    const callbacks = { ready: vi.fn(), state: vi.fn(), disconnected: vi.fn() };
+    new RealtimeConnection('missing-session', callbacks);
+    const client = clients.at(-1)!;
+    await client.config.beforeConnect?.(client as never);
+    expect(callbacks.disconnected).toHaveBeenCalledOnce();
+    expect(client.deactivate).toHaveBeenCalledOnce();
+  });
+
+  it('reports malformed server frames and broker authentication errors', () => {
+    const callbacks = { ready: vi.fn(), state: vi.fn(), disconnected: vi.fn() };
+    new RealtimeConnection('sessionKey', callbacks);
+    const client = clients.at(-1)!;
+    client.config.onConnect?.({} as IFrame);
+    const receive = client.subscribe.mock.calls[0][1] as (message: IMessage) => void;
+    receive({ body: 'broken JSON' } as IMessage);
+    client.config.onStompError?.({} as IFrame);
+    expect(callbacks.disconnected).toHaveBeenCalledTimes(2);
+  });
+
 });

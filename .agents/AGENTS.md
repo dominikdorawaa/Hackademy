@@ -21,3 +21,4 @@
 - Nigdy nie twórz gałęzi z prefiksem `codex/`. Gdy nie ma ticketa, wybierz krótką nazwę opisującą zmianę.
 - Nigdy nie edytuj, nie usuwaj ani nie zmieniaj nazwy migracji, która kiedykolwiek trafiła na `main`. Każdą kolejną zmianę schematu lub danych wprowadzaj w nowej migracji. Przed zmianą istniejącej migracji sprawdź historię `main`.
 - Migracje są w `server/src/main/resources/db/schema` i zaczynają się od V1. Dawny katalog `db/migration` usunięto jednorazowo, za wyraźną zgodą, przy postawieniu bazy od zera (issue #7). Nie traktuj tego jako precedensu.
+- Przed mergem i przed uruchomieniem migracji na produkcji sprawdź najnowszy `main`: numer nowej migracji musi być wyższy od wszystkich migracji na `main`, a dwie migracje nie mogą mieć tego samego numeru. Nie uruchamiaj na bazie produkcyjnej migracji z gałęzi, która nie jest zmergowana, bez uzgodnienia z zespołem wstrzymania mergy do `main`.

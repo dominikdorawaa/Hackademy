@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -19,7 +20,7 @@ vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPre
 const friend = (id: number, username: string, online: boolean) => ({ id, username, points: 0, streak: 0, online });
 
 beforeEach(() => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(
     http.get(`${API_URL}/api/friends/requests`, () => HttpResponse.json<FriendRequestDto[]>([])),
     http.get(`${API_URL}/api/arena/challenges`, () => HttpResponse.json<Challenge[]>([])),

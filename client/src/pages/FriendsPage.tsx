@@ -11,7 +11,7 @@ import { ConfirmAction } from '../components/common/ConfirmAction';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 
 const FriendsPage = () => {
-    const { token } = useAuth();
+    const { sessionKey } = useAuth();
     const { state, error, synchronize } = useRealtime();
     const friends = state?.friends ?? [];
     const requests = state?.friendRequests ?? [];
@@ -36,7 +36,7 @@ const FriendsPage = () => {
 
         setIsSearching(true);
         try {
-            const response = await userApi.searchUsers(searchQuery, { 'Authorization': `Bearer ${token}` });
+            const response = await userApi.searchUsers(searchQuery, { sessionKey });
             if (response.ok) {
                 const data = await response.json();
                 setSearchResults(data);
@@ -50,7 +50,7 @@ const FriendsPage = () => {
 
     const handleSendRequest = async (username: string) => {
         try {
-            const response = await friendApi.sendRequest(username, { 'Authorization': `Bearer ${token}` });
+            const response = await friendApi.sendRequest(username, { sessionKey });
             if (response.ok) {
                 // Update search results to reflect sent request
                 setSearchResults(prev => prev.map(user =>
@@ -64,7 +64,7 @@ const FriendsPage = () => {
 
     const handleAccept = async (requestId: number) => {
         try {
-            const response = await friendApi.acceptRequest(requestId, { 'Authorization': `Bearer ${token}` });
+            const response = await friendApi.acceptRequest(requestId, { sessionKey });
             if (response.ok) {
                 await synchronize();
             }
@@ -75,7 +75,7 @@ const FriendsPage = () => {
 
     const handleReject = async (requestId: number) => {
         try {
-            const response = await friendApi.rejectRequest(requestId, { 'Authorization': `Bearer ${token}` });
+            const response = await friendApi.rejectRequest(requestId, { sessionKey });
             if (response.ok) {
                 await synchronize();
             }
@@ -85,16 +85,14 @@ const FriendsPage = () => {
     };
 
     const handleRemove = async (friend: FriendDto) => {
-        const response = await friendApi.removeFriend(friend.id, { 'Authorization': `Bearer ${token}` });
+        const response = await friendApi.removeFriend(friend.id, { sessionKey });
         if (!response.ok) throw new Error('Nie udało się usunąć znajomego. Spróbuj ponownie.');
         void synchronize();
     };
 
     const handleChallenge = async (username: string) => {
         try {
-            const response = await arenaApi.createChallenge({ targetUsername: username }, {
-                    'Content-Type': 'application/json',
-                    'Authorization': `Bearer ${token}`
+            const response = await arenaApi.createChallenge({ targetUsername: username }, {sessionKey
                 });
 
             if (response.ok) {

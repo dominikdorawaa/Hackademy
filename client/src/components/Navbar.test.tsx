@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
@@ -20,7 +21,7 @@ it.each(['/login', '/register', '/ranking'])('offers a theme selector to visitor
 });
 
 it('opens navigation, closes it with Escape and restores focus, then closes after following a link', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(
     http.get(`${API_URL}/api/friends/requests`, () => HttpResponse.json<FriendRequestDto[]>([])),
     http.get(`${API_URL}/api/arena/challenges`, () => HttpResponse.json<Challenge[]>([])),
@@ -56,7 +57,7 @@ it('opens navigation, closes it with Escape and restores focus, then closes afte
 });
 
 it.each([[0, true], [3, false]])('shows a pixel flame for a %i day streak, lit only while the streak lasts', async (streak, out) => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), streak })),
     http.get(`${API_URL}/api/friends/requests`, () => HttpResponse.json<FriendRequestDto[]>([])),

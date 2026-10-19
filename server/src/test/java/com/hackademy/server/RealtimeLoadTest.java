@@ -1,10 +1,9 @@
 package com.hackademy.server;
 
 import com.hackademy.server.arena.MatchmakingService;
-import com.hackademy.server.auth.JwtService;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.condition.EnabledIfSystemProperty;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -17,12 +16,12 @@ import java.nio.file.Files;
 import java.nio.file.Path;
 import java.util.ArrayList;
 import java.util.Map;
+import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "DB_URL=jdbc:h2:mem:realtime_load", "DB_USERNAME=sa", "DB_PASSWORD=",
-        "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "FRONTEND_URL=https://frontend.example.com", "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop", "logging.level.root=WARN"
 })
@@ -30,7 +29,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 class RealtimeLoadTest {
     @Value("${local.server.port}") private int port;
     @Autowired private UserRepository users;
-    @Autowired private JwtService jwt;
     @Autowired private MatchmakingService matchmaking;
 
     @Test
@@ -39,9 +37,9 @@ class RealtimeLoadTest {
         for (int index = 0; index < 1000; index++) {
             String username = "load" + index;
             var user = users.saveAndFlush(User.builder().username(username).email(username + "@example.com")
-                    .password("unused").points(500).build());
+                    .clerkUserId("user_load_" + UUID.randomUUID()).points(500).build());
             matchmaking.joinQueue(user.getId(), username);
-            fixtures.add(Map.of("username", username, "token", jwt.generateToken(user), "id", user.getId()));
+            fixtures.add(Map.of("username", username, "token", ClerkTestTokens.tokenFor(user, "https://frontend.example.com"), "id", user.getId()));
         }
         Path done = Path.of("target/realtime-load-done.json");
         Files.deleteIfExists(done);

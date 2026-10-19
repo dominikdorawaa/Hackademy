@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route } from 'react-router-dom';
@@ -24,7 +25,7 @@ const routes = <>
 const location = () => screen.getByTestId('location').textContent?.split(':')[0];
 
 beforeEach(() => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(
     http.get(onboardingUrl, () => HttpResponse.json({ avatarConfirmed: false, tourStatus: 'PENDING' })),
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), username: 'nowy', avatar: null })),
@@ -90,7 +91,7 @@ it('does not treat a reply without confirmation as done', async () => {
 
 it('starts from the saved account avatar and offers a retry when the account cannot load', async () => {
   let calls = 0;
-  server.use(http.get(currentUserUrl, () => (++calls === 1
+  server.use(http.get(currentUserUrl, () => (++calls <= 2
     ? HttpResponse.json({}, { status: 500 })
     : HttpResponse.json({ ...createUser(), username: 'nowy', avatar: { outfit: 'bluza', hair: 'kucyk', hat: 'brak', skin: 'jasna', hairColor: 'rude', topColor: 'bialy', bottomColor: 'granatowy', shoesColor: 'czerwony', hatColor: 'bialy', pose: 'postawa' } }))));
   renderWithAuth(routes, '/witaj');
@@ -106,7 +107,7 @@ it('is reachable from the API helper for the tour too', async () => {
   let status: unknown = null;
   server.use(http.post(`${API_URL}/api/user/me/onboarding/tour`, async ({ request }) => { status = await request.json(); return HttpResponse.json({ avatarConfirmed: true, tourStatus: 'SKIPPED' }); }));
   const { finishTour } = await import('../services/onboardingApi');
-  const response = await finishTour('SKIPPED', { Authorization: 'Bearer token' });
+  const response = await finishTour('SKIPPED', { sessionKey: null });
   expect(await response.json()).toEqual({ avatarConfirmed: true, tourStatus: 'SKIPPED' });
   expect(status).toEqual({ status: 'SKIPPED' });
 });

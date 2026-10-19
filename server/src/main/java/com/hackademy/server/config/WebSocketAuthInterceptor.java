@@ -1,8 +1,7 @@
 package com.hackademy.server.config;
 
-import com.hackademy.server.auth.JwtService;
+import com.hackademy.server.clerk.ClerkTokenAuthenticator;
 import com.hackademy.server.user.User;
-import io.jsonwebtoken.JwtException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.messaging.Message;
 import org.springframework.messaging.MessageChannel;
@@ -14,16 +13,13 @@ import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.AuthenticationException;
-import org.springframework.security.core.userdetails.UserDetails;
-import org.springframework.security.core.userdetails.UserDetailsService;
 import org.springframework.stereotype.Component;
 
 @Component
 @RequiredArgsConstructor
 public class WebSocketAuthInterceptor implements ChannelInterceptor {
 
-    private final JwtService jwtService;
-    private final UserDetailsService userDetailsService;
+    private final ClerkTokenAuthenticator authenticator;
 
     @Override
     public Message<?> preSend(Message<?> message, MessageChannel channel) {
@@ -51,23 +47,15 @@ public class WebSocketAuthInterceptor implements ChannelInterceptor {
     private Authentication authenticate(StompHeaderAccessor accessor) {
         try {
             var headers = accessor.getNativeHeader("Authorization");
-            if (headers == null || headers.size() != 1 || !headers.get(0).startsWith("Bearer ")) {
+            if (headers == null || headers.size() != 1) {
                 throw new BadCredentialsException("Invalid WebSocket credentials");
             }
-            String token = headers.get(0).substring(7);
-            String username = jwtService.extractUsername(token);
-            if (username == null || username.isBlank()) {
+            var authentication = authenticator.authenticateHeader(headers.get(0));
+            if (!(authentication.getPrincipal() instanceof User user) || user.getId() == null) {
                 throw new BadCredentialsException("Invalid WebSocket credentials");
             }
-            UserDetails userDetails = userDetailsService.loadUserByUsername(username);
-            if (!jwtService.isTokenValid(token, userDetails)) {
-                throw new BadCredentialsException("Invalid WebSocket credentials");
-            }
-            if (!(userDetails instanceof User user) || user.getId() == null) {
-                throw new BadCredentialsException("Invalid WebSocket credentials");
-            }
-            return new UsernamePasswordAuthenticationToken(user.getId().toString(), null, userDetails.getAuthorities());
-        } catch (JwtException | IllegalArgumentException | AuthenticationException exception) {
+            return new UsernamePasswordAuthenticationToken(user.getId().toString(), null, authentication.getAuthorities());
+        } catch (AuthenticationException exception) {
             throw new BadCredentialsException("Invalid WebSocket credentials");
         }
     }

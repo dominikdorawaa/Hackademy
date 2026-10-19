@@ -13,14 +13,14 @@ interface PeekData {
 }
 
 // Profiles change rarely while a dashboard is open; one fetch per username is enough.
-// The friendship part depends on who is signed in, so the cache belongs to one token and is dropped when it changes.
+// The friendship part depends on who is signed in, so the cache belongs to one sessionKey and is dropped when it changes.
 const peekCache = new Map<string, PeekData>();
 let peekCacheToken: string | null = null;
 
-const cacheFor = (token: string | null) => {
-  if (token !== peekCacheToken) {
+const cacheFor = (sessionKey: string | null) => {
+  if (sessionKey !== peekCacheToken) {
     peekCache.clear();
-    peekCacheToken = token;
+    peekCacheToken = sessionKey;
   }
   return peekCache;
 };
@@ -30,14 +30,14 @@ const CLOSE_DELAY_MS = 150;
 
 interface ProfilePeekProps {
   username: string;
-  token: string | null;
+  sessionKey: string | null;
   isMe?: boolean;
   className?: string;
 }
 
-const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekProps) => {
+const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfilePeekProps) => {
   const [open, setOpen] = useState(false);
-  const [data, setData] = useState<PeekData | null>(() => cacheFor(token).get(username) ?? null);
+  const [data, setData] = useState<PeekData | null>(() => cacheFor(sessionKey).get(username) ?? null);
   const [failed, setFailed] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
@@ -61,13 +61,11 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
     return () => document.removeEventListener('pointerdown', onPointerDown);
   }, [pinned]);
 
-  const headers = {
-    'Content-Type': 'application/json',
-    ...(token && { Authorization: `Bearer ${token}` }),
+  const headers = {sessionKey,
   };
 
   const load = async () => {
-    const cached = cacheFor(token).get(username);
+    const cached = cacheFor(sessionKey).get(username);
     if (cached) {
       setData(cached);
       return;
@@ -81,7 +79,7 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
       const profile = await profileRes.json();
       const stats = statsRes && statsRes.ok ? await statsRes.json() : null;
       const next = { profile, stats };
-      cacheFor(token).set(username, next);
+      cacheFor(sessionKey).set(username, next);
       setData(next);
     } catch {
       setFailed(true);
@@ -111,7 +109,7 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
   const setStatus = (status: FriendshipStatus) => {
     if (!data?.stats) return;
     const next = { ...data, stats: { ...data.stats, friendshipStatus: status } };
-    cacheFor(token).set(username, next);
+    cacheFor(sessionKey).set(username, next);
     setData(next);
   };
 

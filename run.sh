@@ -31,17 +31,16 @@ if [[ ! -e "$ROOT/.env" ]]; then
     volume_name="$("${compose[@]}" config --no-interpolate --format json | node -e 'let input = ""; process.stdin.on("data", chunk => input += chunk); process.stdin.on("end", () => { const name = JSON.parse(input).volumes.postgres_data_v1.name; if (typeof name !== "string" || !name) process.exit(1); process.stdout.write(name); });')"
     existing_volumes="$(docker volume ls --format '{{.Name}}')"
     if [[ $'\n'"$existing_volumes"$'\n' == *$'\n'"$volume_name"$'\n'* ]]; then
-        fail "Brakuje .env, ale istnieje wolumen bazy $volume_name. Przywróć .env z hasłem tej bazy lub ustaw istniejące hasło w DB_PASSWORD i własny JWT_SECRET. Dane bazy nie zostały zmienione."
+        fail "Brakuje .env, ale istnieje wolumen bazy $volume_name. Przywróć .env z hasłem tej bazy lub ustaw istniejące hasło w DB_PASSWORD oraz CLERK_ISSUER. Dane bazy nie zostały zmienione."
     fi
     command -v openssl >/dev/null 2>&1 || fail 'Do utworzenia lokalnego .env potrzebny jest openssl.'
     db_password="$(openssl rand -hex 24)"
-    jwt_secret="$(openssl rand -base64 32)"
-    (umask 077; set -o noclobber; printf 'DB_PASSWORD=%s\nJWT_SECRET=%s\n' "$db_password" "$jwt_secret" > "$ROOT/.env")
-    unset db_password jwt_secret
-    info 'Utworzono lokalny .env z losowym hasłem bazy i sekretem JWT.'
+    (umask 077; set -o noclobber; printf 'DB_PASSWORD=%s\n' "$db_password" > "$ROOT/.env")
+    unset db_password
+    info 'Utworzono lokalny .env z losowym hasłem bazy. Ustaw CLERK_ISSUER oraz klucz publiczny Clerka we frontendzie.'
 fi
 
-"${compose[@]}" config --quiet || fail 'Sprawdź DB_PASSWORD i JWT_SECRET w głównym pliku .env.'
+"${compose[@]}" config --quiet || fail 'Sprawdź DB_PASSWORD i CLERK_ISSUER w głównym pliku .env.'
 
 info 'Instalowanie zależności frontendu (npm ci)...'
 (cd "$ROOT/client"; npm ci --no-audit --no-fund)

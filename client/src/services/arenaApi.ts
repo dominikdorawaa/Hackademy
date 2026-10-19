@@ -1,87 +1,88 @@
 import { request } from './http';
+import type { SessionScope } from './http';
 import type { ApiId, MessageResponse, ChallengeRequest, Challenge, GameSession } from '../types/api';
 
-export function getStatus(headers: HeadersInit) {
+export function getStatus(auth: SessionScope) {
   return request<GameSession>(`/api/arena/status`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function getChallenges(headers: HeadersInit) {
+export function getChallenges(auth: SessionScope) {
   return request<Challenge[]>(`/api/arena/challenges`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function createChallenge(data: ChallengeRequest, headers: HeadersInit) {
+export function createChallenge(data: ChallengeRequest, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/challenge/create`, {
     method: 'POST',
-    headers,
+    auth,
     body: JSON.stringify(data),
   });
 }
 
-export function joinQueue(headers: HeadersInit) {
+export function joinQueue(auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/join`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 
-export function leaveQueue(headers: HeadersInit) {
+export function leaveQueue(auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/leave`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 
-export function acceptChallenge(id: ApiId, headers: HeadersInit) {
+export function acceptChallenge(id: ApiId, auth: SessionScope) {
   return request<GameSession>(`/api/arena/challenge/${id}/accept`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 
-export function rejectChallenge(id: ApiId, headers: HeadersInit) {
+export function rejectChallenge(id: ApiId, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/challenge/${id}/reject`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 
-export function cancelChallenge(id: ApiId, headers: HeadersInit) {
-  return request<MessageResponse>(`/api/arena/challenge/${id}/cancel`, { method: 'POST', headers });
+export function cancelChallenge(id: ApiId, auth: SessionScope) {
+  return request<MessageResponse>(`/api/arena/challenge/${id}/cancel`, { method: 'POST', auth });
 }
 
-export function getGame(id: ApiId, headers: HeadersInit) {
+export function getGame(id: ApiId, auth: SessionScope) {
   return request<GameSession>(`/api/arena/game/${id}`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function answerQuestion(id: ApiId, round: number, answer: number, headers: HeadersInit) {
+export function answerQuestion(id: ApiId, round: number, answer: number, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/game/${id}/answer`, {
     method: 'POST',
-    headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    auth, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ round, answer }),
   });
 }
 
-export function sendReaction(id: ApiId, reaction: string, headers: HeadersInit) {
+export function sendReaction(id: ApiId, reaction: string, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/game/${id}/reaction`, {
     method: 'POST',
-    headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    auth, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ reaction }),
   });
 }
 
-export function surrender(id: ApiId, headers: HeadersInit) {
+export function surrender(id: ApiId, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/game/${id}/surrender`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 

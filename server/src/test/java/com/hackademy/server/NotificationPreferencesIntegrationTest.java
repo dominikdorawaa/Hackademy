@@ -94,9 +94,9 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void requiresAuthentication() throws Exception {
-        mockMvc.perform(get(URL)).andExpect(status().isForbidden());
+        mockMvc.perform(get(URL)).andExpect(status().isUnauthorized());
         mockMvc.perform(patch(URL).contentType("application/json")
-                .content("{\"preference\":\"sound\",\"enabled\":true}")).andExpect(status().isForbidden());
+                .content("{\"preference\":\"sound\",\"enabled\":true}")).andExpect(status().isUnauthorized());
     }
 
     @Test

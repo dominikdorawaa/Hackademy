@@ -1,85 +1,86 @@
 import { request } from './http';
+import type { SessionScope } from './http';
 import type { ApiId, PathMetaRequest, CreatePathRequest, ChatMessage, PathSummaryDto, PathAdminDetailDto, RoomAdminSummaryDto, RoomAdminDto, RoomWriteRequest } from '../types/api';
 
-export function getRooms(headers: HeadersInit) {
+export function getRooms(auth: SessionScope) {
   return request<RoomAdminSummaryDto[]>(`/api/admin/rooms`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function getPaths(headers: HeadersInit) {
+export function getPaths(auth: SessionScope) {
   return request<PathSummaryDto[]>(`/api/admin/paths`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function getPath(id: ApiId, headers: HeadersInit) {
+export function getPath(id: ApiId, auth: SessionScope) {
   return request<PathAdminDetailDto>(`/api/admin/paths/${id}`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function createPath(data: CreatePathRequest, headers: HeadersInit) {
+export function createPath(data: CreatePathRequest, auth: SessionScope) {
   return request<PathSummaryDto>(`/api/admin/paths`, {
     method: 'POST',
-    headers,
+    auth,
     body: JSON.stringify(data),
   });
 }
 
-export function deletePath(id: ApiId, headers: HeadersInit) {
+export function deletePath(id: ApiId, auth: SessionScope) {
   return request<void>(`/api/admin/paths/${id}`, {
     method: 'DELETE',
-    headers,
+    auth,
   });
 }
 
-export function updatePath(id: ApiId, data: PathMetaRequest, headers: HeadersInit) {
+export function updatePath(id: ApiId, data: PathMetaRequest, auth: SessionScope) {
   return request<void>(`/api/admin/paths/${id}`, {
     method: 'PUT',
-    headers,
+    auth,
     body: JSON.stringify(data),
   });
 }
 
-export function uploadBanner(id: ApiId, file: File, headers: HeadersInit) {
+export function uploadBanner(id: ApiId, file: File, auth: SessionScope) {
   const data = new FormData();
   data.append('file', file);
   return request<void>(`/api/admin/paths/${id}/banner`, {
     method: 'PUT',
-    headers,
+    auth,
     body: data,
   });
 }
 
-export function getReports(headers: HeadersInit) {
+export function getReports(auth: SessionScope) {
   return request<ChatMessage[]>(`/api/admin/reports`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function deleteReport(id: ApiId, headers: HeadersInit) {
+export function deleteReport(id: ApiId, auth: SessionScope) {
   return request<void>(`/api/admin/reports/${id}`, {
     method: 'DELETE',
-    headers,
+    auth,
   });
 }
 
-export function dismissReport(id: ApiId, headers: HeadersInit) {
+export function dismissReport(id: ApiId, auth: SessionScope) {
   return request<void>(`/api/admin/reports/${id}/dismiss`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 
-export function muteUser(id: ApiId, data: { duration: number }, headers: HeadersInit) {
+export function muteUser(id: ApiId, data: { duration: number }, auth: SessionScope) {
   return request<void>(`/api/admin/users/${id}/mute`, {
     method: 'POST',
-    headers,
+    auth,
     body: JSON.stringify(data),
   });
 }
@@ -91,18 +92,18 @@ function roomFormData(room: RoomWriteRequest, file: File | null): FormData {
   return data;
 }
 
-export function createRoom(room: RoomWriteRequest, file: File | null, headers: HeadersInit) {
+export function createRoom(room: RoomWriteRequest, file: File | null, auth: SessionScope) {
   return request<RoomAdminDto>(`/api/admin/rooms`, {
     method: 'POST',
-    headers,
+    auth,
     body: roomFormData(room, file),
   });
 }
 
-export function updateRoom(id: ApiId, room: RoomWriteRequest, file: File | null, headers: HeadersInit) {
+export function updateRoom(id: ApiId, room: RoomWriteRequest, file: File | null, auth: SessionScope) {
   return request<RoomAdminDto>(`/api/admin/rooms/${id}`, {
     method: 'PUT',
-    headers,
+    auth,
     body: roomFormData(room, file),
   });
 }

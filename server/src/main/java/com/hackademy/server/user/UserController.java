@@ -1,8 +1,6 @@
 package com.hackademy.server.user;
 
 import com.hackademy.server.dashboard.ActivityDto;
-import com.hackademy.server.auth.AuthResponse;
-import com.hackademy.server.user.dto.ChangePasswordRequest;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
@@ -113,18 +111,10 @@ public class UserController {
         return ResponseEntity.ok(userService.getProfilePortfolio(userService.getUserIdByUsername(username)));
     }
 
-    @PatchMapping("/me/password")
-    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        userService.changePassword(user.getId(), request);
-        return ResponseEntity.ok().build();
-    }
-
     @PatchMapping("/me/username")
-    public ResponseEntity<AuthResponse> updateUsername(@Valid @RequestBody UpdateUsernameRequest request) {
+    public ResponseEntity<Map<String, String>> updateUsername(@Valid @RequestBody UpdateUsernameRequest request) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        AuthResponse response = userService.updateUsername(user.getId(), request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("username", userService.updateUsername(user.getId(), request)));
     }
 
     @PatchMapping("/me/bio")

@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
@@ -35,17 +36,17 @@ const game = (id = 'game', status: GameSession['status'] = 'ACTIVE'): GameSessio
 
 function Consumer({ name }: { name: string }) {
   const { state, connected, synchronize } = useRealtime();
-  const { logout, login } = useAuth();
+  const { logout } = useAuth();
   return <>
     <output data-testid={name}>{state?.revision ?? 'empty'}:{connected ? 'online' : 'offline'}:{state?.friendRequests.length ?? 0}</output>
     <button onClick={logout}>logout {name}</button>
-    <button onClick={() => login(createToken('ADMIN'))}>login {name}</button>
+    <button onClick={() => setClerkSession(createToken('ADMIN'))}>login {name}</button>
     <button onClick={() => void synchronize()}>sync {name}</button>
   </>;
 }
 
 function mount() {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   render(<AuthProvider><RealtimeProvider><Consumer name="navbar" /><Consumer name="arena" /></RealtimeProvider></AuthProvider>);
 }
 
@@ -62,7 +63,7 @@ describe('shared realtime state', () => {
       http.get(`${API_URL}/api/user/me`, () => HttpResponse.json({ ...createUser(), points: 500 })),
       http.get(`${API_URL}/api/realtime/state`, () => HttpResponse.json({ ...snapshot(), gameSession: game() })),
     );
-    localStorage.setItem('token', createToken());
+    setClerkSession(createToken());
     render(<MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider>
       <RealtimeGameNavigation /><GameLocation />
       <Routes>
@@ -96,7 +97,7 @@ describe('shared realtime state', () => {
       }),
       http.post(`${API_URL}/api/arena/leave`, () => { left = true; return HttpResponse.json({ message: 'Left' }); }),
     );
-    localStorage.setItem('token', createToken());
+    setClerkSession(createToken());
     render(<MemoryRouter><AuthProvider><RealtimeProvider><ArenaPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
     act(() => connections[0].callbacks.ready());
     const join = await screen.findByRole('button', { name: 'Znajdź przeciwnika' });
@@ -125,7 +126,7 @@ describe('shared realtime state', () => {
       requests++;
       return successful ? HttpResponse.json(snapshot()) : new HttpResponse(null, { status: 503 });
     }));
-    localStorage.setItem('token', createToken());
+    setClerkSession(createToken());
     render(<MemoryRouter><AuthProvider><RealtimeProvider><FriendsPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
     act(() => connections[0].callbacks.ready());
     expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się pobrać danych');
@@ -144,18 +145,18 @@ describe('shared realtime state', () => {
     try {
       mount();
       await act(async () => connections[0].callbacks.ready());
-      expect(request).toHaveBeenCalledTimes(1);
+      expect(request.mock.calls.filter(([path]) => path === '/api/realtime/state')).toHaveLength(1);
       for (const delay of [2000, 4000, 8000, 16000, 30000]) {
         await act(async () => { await vi.advanceTimersByTimeAsync(delay); });
       }
-      expect(request).toHaveBeenCalledTimes(6);
+      expect(request.mock.calls.filter(([path]) => path === '/api/realtime/state')).toHaveLength(6);
       await act(async () => { await vi.advanceTimersByTimeAsync(60000); });
-      expect(request).toHaveBeenCalledTimes(6);
+      expect(request.mock.calls.filter(([path]) => path === '/api/realtime/state')).toHaveLength(6);
       await act(async () => fireEvent.click(screen.getByText('sync navbar')));
-      expect(request).toHaveBeenCalledTimes(7);
+      expect(request.mock.calls.filter(([path]) => path === '/api/realtime/state')).toHaveLength(7);
       request.mockResolvedValue(new Response(JSON.stringify(snapshot())) as httpService.ApiResponse<unknown>);
       await act(async () => { await vi.advanceTimersByTimeAsync(2000); });
-      expect(request).toHaveBeenCalledTimes(8);
+      expect(request.mock.calls.filter(([path]) => path === '/api/realtime/state')).toHaveLength(8);
       expect(screen.getByTestId('navbar')).toHaveTextContent('1:online');
     } finally {
       vi.useRealTimers();
@@ -173,7 +174,7 @@ describe('shared realtime state', () => {
       http.get(`${API_URL}/api/arena/challenges`, () => { polling++; return HttpResponse.json([]); }),
       http.get(`${API_URL}/api/arena/status`, () => { polling++; return new HttpResponse(null, { status: 204 }); }),
     );
-    localStorage.setItem('token', createToken());
+    setClerkSession(createToken());
     render(<ThemeProvider><MemoryRouter initialEntries={['/arena']}><AuthProvider><RealtimeProvider><RealtimeGameNavigation /><GameLocation /><Navbar /><ArenaPage /></RealtimeProvider></AuthProvider></MemoryRouter></ThemeProvider>);
     expect(connections).toHaveLength(1);
     expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeDisabled();

@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route } from 'react-router-dom';
@@ -11,7 +12,7 @@ import PathsPage from './PathsPage';
 const path = (id: number, enrolled: boolean) => ({ id, title: `Ścieżka ${id}`, description: '', bannerUrl: '/banner.png', hasBanner: true, enrolled, roomsCount: 3 });
 
 beforeEach(() => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   vi.stubGlobal('IntersectionObserver', class {
     constructor(private readonly callback: IntersectionObserverCallback) {}
     observe() { this.callback([{ isIntersecting: true } as IntersectionObserverEntry], this as unknown as IntersectionObserver); }

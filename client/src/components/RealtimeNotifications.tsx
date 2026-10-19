@@ -31,10 +31,10 @@ export function describeFriendsOnline(usernames: string[]) {
 }
 
 export default function RealtimeNotifications() {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const { state } = useRealtime();
   const { preferences, loaded } = useNotificationPreferences();
-  const seen = useRef<{ token: string | null; stream: string; ids: Set<string>; offlineFriends: Set<number>;
+  const seen = useRef<{ sessionKey: string | null; stream: string; ids: Set<string>; offlineFriends: Set<number>;
     pending: Map<string, Alert> } | null>(null);
   const lastOnlineToast = useRef(new Map<number, number>());
   const nextToastId = useRef(0);
@@ -47,7 +47,7 @@ export default function RealtimeNotifications() {
   };
 
   useEffect(() => {
-    if (!preferences.sound || !token) return;
+    if (!preferences.sound || !sessionKey) return;
     const unlock = () => { void unlockAudio(); };
     document.addEventListener('pointerdown', unlock);
     document.addEventListener('keydown', unlock);
@@ -55,10 +55,10 @@ export default function RealtimeNotifications() {
       document.removeEventListener('pointerdown', unlock);
       document.removeEventListener('keydown', unlock);
     };
-  }, [preferences.sound, token]);
+  }, [preferences.sound, sessionKey]);
 
   useEffect(() => {
-    if (!state || !token) {
+    if (!state || !sessionKey) {
       seen.current = null;
       return;
     }
@@ -74,8 +74,8 @@ export default function RealtimeNotifications() {
         friendId: friend.id, username: friend.username })),
     ];
     const offlineFriends = new Set(state.friends.filter(friend => !friend.online).map(friend => friend.id));
-    if (!seen.current || seen.current.token !== token || seen.current.stream !== state.streamId) {
-      seen.current = { token, stream: state.streamId, ids: new Set(events.map(event => event.id)), offlineFriends, pending: new Map() };
+    if (!seen.current || seen.current.sessionKey !== sessionKey || seen.current.stream !== state.streamId) {
+      seen.current = { sessionKey, stream: state.streamId, ids: new Set(events.map(event => event.id)), offlineFriends, pending: new Map() };
       return;
     }
     const history = seen.current;
@@ -115,7 +115,7 @@ export default function RealtimeNotifications() {
         } catch { return; }
       });
     }
-  }, [state, token, preferences, loaded]);
+  }, [state, sessionKey, preferences, loaded]);
 
   useEffect(() => {
     const timers = toastTimers.current;
@@ -124,7 +124,7 @@ export default function RealtimeNotifications() {
       timers.clear();
       setToasts([]);
     };
-  }, [token]);
+  }, [sessionKey]);
 
   return <div className="realtime-toasts" role="status" aria-live="polite">
     {toasts.map(toast => <div key={toast.id} className="realtime-toast">

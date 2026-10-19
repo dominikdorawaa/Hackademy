@@ -33,7 +33,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "DB_URL=jdbc:h2:mem:explicit_cors_test",
         "DB_USERNAME=sa",
         "DB_PASSWORD=",
-        "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "FRONTEND_URL=https://hackademy.app",
         "CORS_ALLOWED_ORIGINS=http://localhost:5173, https://preview.hackademy.pages.dev/",
         "spring.flyway.enabled=false",

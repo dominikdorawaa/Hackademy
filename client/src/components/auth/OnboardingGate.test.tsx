@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route } from 'react-router-dom';
@@ -16,7 +17,7 @@ const routes = <>
 </>;
 const location = () => screen.getByTestId('location').textContent?.split(':')[0];
 
-beforeEach(() => localStorage.setItem('token', createToken()));
+beforeEach(() => setClerkSession(createToken()));
 
 it('sends a new account to the welcome step from any protected address', async () => {
   server.use(http.get(onboardingUrl, () => HttpResponse.json({ avatarConfirmed: false, tourStatus: 'PENDING' })));
@@ -43,7 +44,7 @@ it('does not open the app when the account state cannot be read, and retries', a
 });
 
 it('still sends guests to the login page', async () => {
-  localStorage.removeItem('token');
+  setClerkSession(null);
   renderWithAuth(routes, '/witaj');
   expect(await screen.findByText('Logowanie')).toBeInTheDocument();
 });

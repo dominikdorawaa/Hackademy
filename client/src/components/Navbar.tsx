@@ -1,6 +1,5 @@
 import { PixelSprite, SPRITES } from './PixelSprite';
 import UserAvatar from '../components/UserAvatar';
-import * as userApi from '../services/userApi';
 import * as friendApi from '../services/friendApi';
 import * as arenaApi from '../services/arenaApi';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
@@ -9,14 +8,12 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
-import type { Challenge, DashboardUser, FriendDto, FriendRequestDto } from '../types/api';
+import type { Challenge, FriendDto, FriendRequestDto } from '../types/api';
 import './Navbar.css';
 import { Button } from './ui/button';
 import ThemeSwitcher from './ThemeSwitcher';
 import NavIconButton from './NavIconButton';
 import { Bell } from 'lucide-react';
-import { PROFILE_UPDATED } from '../lib/profile';
-import type { ProfilePersonalization } from '../lib/profile';
 
 type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
@@ -26,7 +23,7 @@ type Notification =
 type ActionableNotification = Exclude<Notification, { type: 'FRIEND_ONLINE' }>;
 
 const Navbar = () => {
-  const { isAuthenticated, logout, token, loading } = useAuth();
+  const { isAuthenticated, logout, sessionKey, loading, user: userData } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
   const [isMenuOpen, setIsMenuOpen] = useState(false);
@@ -35,7 +32,6 @@ const Navbar = () => {
   const navRef = useRef<HTMLElement | null>(null);
   const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
-  const [userData, setUserData] = useState<DashboardUser | null>(null);
   const { state: realtime, synchronize } = useRealtime();
   const { preferences } = useNotificationPreferences();
   const actionable = useMemo<ActionableNotification[]>(() => [
@@ -59,15 +55,6 @@ const Navbar = () => {
   const notifRef = useRef<HTMLDivElement | null>(null);
 
   useEffect(() => {
-    const refresh = (event: Event) => {
-      const changed = (event as CustomEvent<ProfilePersonalization & { username: string }>).detail;
-      setUserData(previous => previous?.username === changed.username ? { ...previous, ...changed } : previous);
-    };
-    window.addEventListener(PROFILE_UPDATED, refresh);
-    return () => window.removeEventListener(PROFILE_UPDATED, refresh);
-  }, []);
-
-  useEffect(() => {
     const closeMenus = (event: KeyboardEvent) => {
       if (event.key !== 'Escape') return;
       setMobileMenuPath(null);
@@ -85,28 +72,6 @@ const Navbar = () => {
       document.removeEventListener('mousedown', closeMobileOutside);
     };
   }, [mobileMenuOpen]);
-
-  useEffect(() => {
-    const fetchUserData = async () => {
-      if (isAuthenticated && token) {
-        try {
-          const response = await userApi.getCurrentUser({
-              'Authorization': `Bearer ${token}`
-            });
-          if (response.ok) {
-            const data = await response.json();
-            setUserData(data);
-          } else {
-            logout();
-          }
-        } catch (error) {
-          console.error("Failed to fetch user data", error);
-          logout();
-        }
-      }
-    };
-    fetchUserData();
-  }, [isAuthenticated, token, logout, location.pathname]);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -134,7 +99,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
     try {
-        const response = await friendApi.acceptRequest(requestId, { 'Authorization': `Bearer ${token}` });
+        const response = await friendApi.acceptRequest(requestId, { sessionKey });
         if (!response.ok) throw new Error("Notification action failed");
         await synchronize();
     } catch (err) {
@@ -149,7 +114,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `FRIEND_REQUEST-${requestId}`]);
 
     try {
-        const response = await friendApi.rejectRequest(requestId, { 'Authorization': `Bearer ${token}` });
+        const response = await friendApi.rejectRequest(requestId, { sessionKey });
         if (!response.ok) throw new Error("Notification action failed");
         await synchronize();
     } catch (err) {
@@ -164,7 +129,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
     try {
-        const res = await arenaApi.acceptChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
+        const res = await arenaApi.acceptChallenge(challengeId, { sessionKey });
         if (res.ok) {
             setIsNotificationsOpen(false);
             await synchronize();
@@ -181,7 +146,7 @@ const Navbar = () => {
     setProcessedNotifications(prev => [...prev, `CHALLENGE-${challengeId}`]);
 
     try {
-        const response = await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
+        const response = await arenaApi.rejectChallenge(challengeId, { sessionKey });
         if (!response.ok) throw new Error("Notification action failed");
         await synchronize();
     } catch (err) {

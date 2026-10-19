@@ -24,7 +24,7 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+@SpringBootTest
 @AutoConfigureMockMvc
 abstract class PostgresIntegrationTest {
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
@@ -51,29 +51,10 @@ abstract class PostgresIntegrationTest {
 
     protected record Account(long id, String username, String token) {}
 
-    protected Account account(Role role) throws Exception {
+    protected Account account(Role role) {
         var username = role.name().toLowerCase() + UUID.randomUUID().toString().substring(0, 8);
-        var email = username + "@example.com";
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content("""
-                                {"username":"%s","email":"%s","password":"password123"}
-                                """.formatted(username, email)))
-                .andExpect(status().isOk());
-
-        var savedUser = userRepository.findByEmail(email).orElseThrow();
-        savedUser.setRole(role);
-        userRepository.saveAndFlush(savedUser);
-
-        var login = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content("""
-                                {"email":"%s","password":"password123"}
-                                """.formatted(email)))
-                .andExpect(status().isOk())
-                .andReturn();
-        String token = JsonPath.read(login.getResponse().getContentAsString(), "$.token");
-        return new Account(savedUser.getId(), username, token);
+        var savedUser = ClerkTestTokens.createUser(userRepository, username, role);
+        return new Account(savedUser.getId(), username, ClerkTestTokens.tokenFor(savedUser));
     }
 
     protected ResultActions getAs(Account account, String url) throws Exception {

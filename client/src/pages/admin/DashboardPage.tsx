@@ -72,17 +72,17 @@ function TilesSkeleton() {
 
 export default function DashboardPage() {
   const sourcesChartId = `sources-${useId().replace(/:/g, '')}`;
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const [range, setRange] = useState<StatsRange>(30);
   const [stats, setStats] = useState<AdminStatsDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
     let active = true;
     setLoading(true);
-    adminApi.getStats(range, token)
+    adminApi.getStats(range, sessionKey)
       .then((data) => {
         if (!active) return;
         setStats(data ?? null);
@@ -97,7 +97,7 @@ export default function DashboardPage() {
     return () => {
       active = false;
     };
-  }, [range, token]);
+  }, [range, sessionKey]);
 
   const periodTotals = useMemo(() => {
     const timeline = stats?.timeline ?? [];

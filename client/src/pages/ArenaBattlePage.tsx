@@ -21,13 +21,13 @@ const NOTICE_MS = 4000;
 
 export default function ArenaBattlePage() {
   const { gameId = '' } = useParams();
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const { state: realtime } = useRealtime();
-  const { session, missing } = useArenaSession(gameId, token, realtime?.gameSession ?? null);
-  const [identity, setIdentity] = useState<{ token: string; id: number; avatar: AvatarConfig | null } | null>(null);
+  const { session, missing } = useArenaSession(gameId, sessionKey, realtime?.gameSession ?? null);
+  const [identity, setIdentity] = useState<{ sessionKey: string; id: number; avatar: AvatarConfig | null } | null>(null);
   const [identityError, setIdentityError] = useState<string | null>(null);
   const [identityAttempt, setIdentityAttempt] = useState(0);
-  const meId = identity?.token === token ? identity?.id ?? null : null;
+  const meId = identity?.sessionKey === sessionKey ? identity?.id ?? null : null;
   const [picked, setPicked] = useState<{ round: number; answer: number } | null>(null);
   const [error, setError] = useState<{ round: number | null; message: string } | null>(null);
   const [confirmSurrender, setConfirmSurrender] = useState(false);
@@ -37,20 +37,20 @@ export default function ArenaBattlePage() {
   const serverTime = session?.serverTime ?? 0;
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
     const controller = new AbortController();
-    userApi.getCurrentUser({ Authorization: `Bearer ${token}` }, controller.signal)
+    userApi.getCurrentUser({ sessionKey }, controller.signal)
       .then(response => {
         if (!response.ok) throw new Error('User request failed');
         return response.json();
       })
       .then(user => {
         if (!Number.isInteger(user?.id) || user.id <= 0) throw new Error('Invalid user');
-        if (!controller.signal.aborted) setIdentity({ token, id: user.id, avatar: user.avatar ?? null });
+        if (!controller.signal.aborted) setIdentity({ sessionKey, id: user.id, avatar: user.avatar ?? null });
       })
-      .catch(() => { if (!controller.signal.aborted) setIdentityError(token); });
+      .catch(() => { if (!controller.signal.aborted) setIdentityError(sessionKey); });
     return () => controller.abort();
-  }, [token, identityAttempt]);
+  }, [sessionKey, identityAttempt]);
 
   useEffect(() => {
     if (!reactionNotice) return;
@@ -68,14 +68,14 @@ export default function ArenaBattlePage() {
   }, [serverTime]);
 
   if (!session || meId === null) {
-    const failed = identityError === token && token !== null;
+    const failed = identityError === sessionKey && sessionKey !== null;
     return (
       <div className="user-dashboard battle-page">
         <div className="battle-shell">
           {missing ? <p role="status" className="ud-empty">Tej walki nie ma już na serwerze. Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło.</p> : failed ? <>
             <p role="alert" className="battle-error">Nie udało się pobrać Twojego konta. Walka trwa dalej. Spróbuj ponownie.</p>
             <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setIdentityError(null); setIdentityAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
-          </> : <ArenaLoader label="Wczytuję walkę" avatar={identity?.token === token ? identity.avatar : null} />}
+          </> : <ArenaLoader label="Wczytuję walkę" avatar={identity?.sessionKey === sessionKey ? identity.avatar : null} />}
           <Link className="ud-link" to="/arena">Wróć do Areny</Link>
         </div>
       </div>
@@ -96,7 +96,7 @@ export default function ArenaBattlePage() {
   const result = outcome(session, me.id);
   const change = eloChange(session, me.id);
   const visibleError = error && (error.round === null || error.round === session.round) ? error.message : null;
-  const headers = { Authorization: `Bearer ${token}` };
+  const headers = { sessionKey };
   const serverNow = clock.serverTime === serverTime ? clock.now + (serverTime - clock.receivedAt) : serverTime;
 
   const answer = async (choice: number) => {

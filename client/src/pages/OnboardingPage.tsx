@@ -23,7 +23,7 @@ const TIPS: Record<StudioTab, string> = {
 };
 
 export default function OnboardingPage() {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const { update } = useOnboarding();
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
@@ -37,9 +37,9 @@ export default function OnboardingPage() {
   const heading = useRef<HTMLHeadingElement>(null);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
     const controller = new AbortController();
-    getCurrentUser({ Authorization: `Bearer ${token}` }, controller.signal)
+    getCurrentUser({ sessionKey }, controller.signal)
       .then(async response => {
         if (!response.ok) throw new Error('account');
         const user = await response.json();
@@ -50,18 +50,18 @@ export default function OnboardingPage() {
       })
       .catch(() => { if (!controller.signal.aborted) setLoadError(true); });
     return () => controller.abort();
-  }, [token, attempt]);
+  }, [sessionKey, attempt]);
 
   useEffect(() => { window.scrollTo(0, 0); heading.current?.focus({ preventScroll: true }); }, [step]);
 
   const current = avatar ?? account?.avatar ?? null;
 
   const confirm = async () => {
-    if (!current || !token || status === 'saving') return;
+    if (!current || !sessionKey || status === 'saving') return;
     setStatus('saving');
     try {
       const config = toAvatarConfig(current);
-      const response = await confirmAvatar(config, { Authorization: `Bearer ${token}` });
+      const response = await confirmAvatar(config, { sessionKey });
       if (!response.ok) throw new Error('save');
       const state = await response.json();
       if (!state.avatarConfirmed) throw new Error('save');

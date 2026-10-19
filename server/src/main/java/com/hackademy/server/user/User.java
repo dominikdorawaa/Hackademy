@@ -41,8 +41,10 @@ public class User implements UserDetails {
     private String email;
 
     @ToString.Exclude
-    @Column(nullable = false)
     private String password;
+
+    @Column(name = "clerk_user_id", unique = true, length = 64)
+    private String clerkUserId;
 
     @Column(columnDefinition = "TEXT")
     private String bio;

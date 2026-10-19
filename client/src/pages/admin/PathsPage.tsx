@@ -13,7 +13,7 @@ import { useAdminAccess } from './adminAccess';
 import PathImportDialog from './PathImportDialog';
 
 export default function PathsPage() {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const { isAdmin } = useAdminAccess();
   const [paths, setPaths] = useState<PathSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -22,23 +22,23 @@ export default function PathsPage() {
 
   const load = useCallback(async () => {
     try {
-      setPaths((await adminApi.getPaths(token)) ?? []);
+      setPaths((await adminApi.getPaths(sessionKey)) ?? []);
       setError(null);
     } catch (err) {
       setError(errorText(err, 'Nie udało się pobrać ścieżek.'));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [sessionKey]);
 
   useEffect(() => {
-    if (token) void load();
-  }, [token, load]);
+    if (sessionKey) void load();
+  }, [sessionKey, load]);
 
   const remove = async (path: PathSummaryDto) => {
     setSuccess(null);
     try {
-      await adminApi.deletePath(path.id, token);
+      await adminApi.deletePath(path.id, sessionKey);
       setPaths((current) => current.filter((entry) => entry.id !== path.id));
       setSuccess(`Ścieżka „${path.title}” została usunięta. Jej pokoje wróciły do puli.`);
       setError(null);

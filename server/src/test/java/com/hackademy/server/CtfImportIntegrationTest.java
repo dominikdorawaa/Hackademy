@@ -1,8 +1,8 @@
 package com.hackademy.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
-import com.fasterxml.jackson.databind.node.ArrayNode;
-import com.fasterxml.jackson.databind.node.ObjectNode;
+import tools.jackson.databind.ObjectMapper;
+import tools.jackson.databind.node.ArrayNode;
+import tools.jackson.databind.node.ObjectNode;
 import com.hackademy.server.content.ContentImportReader;
 import com.hackademy.server.content.CtfImportService;
 import com.hackademy.server.room.RoomService;
@@ -149,7 +149,7 @@ class CtfImportIntegrationTest extends PostgresIntegrationTest {
     void onlyAdminsCanImportCtfRooms() throws Exception {
         var before = counts();
         for (Role role : List.of(Role.EXPERT, Role.USER)) upload(account(role), document().toString(), 403);
-        mockMvc.perform(multipart("/api/admin/content/ctf/import").file(file(document().toString()))).andExpect(status().isForbidden());
+        mockMvc.perform(multipart("/api/admin/content/ctf/import").file(file(document().toString()))).andExpect(status().isUnauthorized());
         assertEquals(before, counts());
     }
 

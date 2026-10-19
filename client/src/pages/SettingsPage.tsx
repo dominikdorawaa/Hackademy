@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useClerk } from '@clerk/react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
@@ -61,7 +62,7 @@ function Switch({ label, checked, disabled, onChange }: { label: string; checked
 }
 
 export default function SettingsPage() {
-  const { user, token, login, logout } = useAuth();
+  const { user, sessionKey, refreshUser, logout } = useAuth();
   const { reducedMotion, setReducedMotion } = useTheme();
   const { preferences, loaded, saving, error: preferenceError, reload, update } = useNotificationPreferences();
   const navigate = useNavigate();
@@ -71,12 +72,12 @@ export default function SettingsPage() {
   const [account, setAccount] = useState<DashboardUser | null>(null);
   const [accountError, setAccountError] = useState('');
   const [accountAttempt, setAccountAttempt] = useState(0);
-  const [username, setUsername] = useState(user?.sub ?? '');
-  const [password, setPassword] = useState({ current: '', next: '', confirm: '' });
+  const [username, setUsername] = useState(user?.username ?? '');
+  const { openUserProfile } = useClerk();
   const [busy, setBusy] = useState<'username' | 'password' | 'permission' | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
-  const activeToken = useRef(token);
-  useLayoutEffect(() => { activeToken.current = token; }, [token]);
+  const activeToken = useRef(sessionKey);
+  useLayoutEffect(() => { activeToken.current = sessionKey; }, [sessionKey]);
   const submitting = useRef(false);
   const notificationsSupported = 'Notification' in window && window.isSecureContext;
   const systemAllowed = notificationsSupported && Notification.permission === 'granted';
@@ -84,13 +85,13 @@ export default function SettingsPage() {
   const [variants, setVariants] = useState(() => Object.fromEntries(soundEvents.map(event => [event, selectedVariant(event).id])) as Record<SoundEvent, string>);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
     const controller = new AbortController();
     setAccount(null);
     setAccountError('');
     void (async () => {
       try {
-        const response = await userApi.getCurrentUser({ Authorization: `Bearer ${token}` }, controller.signal);
+        const response = await userApi.getCurrentUser({ sessionKey }, controller.signal);
         if (!response.ok) throw new Error(await responseError(response, 'Nie udało się pobrać danych konta.'));
         const data = await response.json();
         if (!controller.signal.aborted) { setAccount(data); setUsername(data.username); }
@@ -99,7 +100,7 @@ export default function SettingsPage() {
       }
     })();
     return () => controller.abort();
-  }, [token, accountAttempt]);
+  }, [sessionKey, accountAttempt]);
 
   const selectSection = (next: Section) => {
     const parameters = new URLSearchParams(search);
@@ -110,7 +111,7 @@ export default function SettingsPage() {
 
   const changeName = async (event: FormEvent) => {
     event.preventDefault();
-    if (!token || submitting.current) return;
+    if (!sessionKey || submitting.current) return;
     const newUsername = username.trim();
     if (newUsername.length < 3 || newUsername.length > 20) {
       setFeedback({ message: 'Nazwa użytkownika musi mieć od 3 do 20 znaków.', error: true });
@@ -120,35 +121,14 @@ export default function SettingsPage() {
     setBusy('username');
     setFeedback(null);
     try {
-      const response = await userApi.changeUsername(newUsername, { Authorization: `Bearer ${token}` });
+      const response = await userApi.changeUsername(newUsername, { sessionKey });
       if (!response.ok) throw new Error(await responseError(response, 'Nie udało się zmienić nazwy użytkownika. Spróbuj ponownie.'));
-      const result = await response.json();
-      if (activeToken.current !== token) return;
-      login(result.token);
+      await response.json();
+      if (activeToken.current !== sessionKey) return;
+      await refreshUser();
       setFeedback({ message: 'Nazwa użytkownika została zmieniona.', error: false });
     } catch (error) {
-      if (activeToken.current === token) setFeedback({ message: error instanceof Error ? error.message : 'Nie udało się zmienić nazwy użytkownika.', error: true });
-    } finally { submitting.current = false; setBusy(null); }
-  };
-
-  const changePassword = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!token || submitting.current) return;
-    if (password.next !== password.confirm) {
-      setFeedback({ message: 'Nowe hasła muszą być identyczne.', error: true });
-      return;
-    }
-    submitting.current = true;
-    setBusy('password');
-    setFeedback(null);
-    try {
-      const response = await userApi.changePassword(password.current, password.next, { Authorization: `Bearer ${token}` });
-      if (!response.ok) throw new Error(await responseError(response, 'Nie udało się zmienić hasła. Spróbuj ponownie.'));
-      if (activeToken.current !== token) return;
-      setPassword({ current: '', next: '', confirm: '' });
-      setFeedback({ message: 'Hasło zostało zmienione.', error: false });
-    } catch (error) {
-      if (activeToken.current === token) setFeedback({ message: error instanceof Error ? error.message : 'Nie udało się zmienić hasła.', error: true });
+      if (activeToken.current === sessionKey) setFeedback({ message: error instanceof Error ? error.message : 'Nie udało się zmienić nazwy użytkownika.', error: true });
     } finally { submitting.current = false; setBusy(null); }
   };
 
@@ -158,7 +138,7 @@ export default function SettingsPage() {
       setBusy('permission');
       try {
         const permission = await Notification.requestPermission();
-        if (activeToken.current !== token) return;
+        if (activeToken.current !== sessionKey) return;
         if (permission !== 'granted') {
           setFeedback({ message: 'Przeglądarka nie udzieliła zgody. Możesz ją zmienić w ustawieniach uprawnień tej strony.', error: true });
           return;
@@ -186,7 +166,7 @@ export default function SettingsPage() {
     if (permission === 'default') {
       setBusy('permission');
       try { permission = await Notification.requestPermission(); } catch { permission = 'denied'; } finally { setBusy(null); }
-      if (activeToken.current !== token) return;
+      if (activeToken.current !== sessionKey) return;
     }
     if (permission !== 'granted') {
       setFeedback({ message: 'Przeglądarka blokuje powiadomienia z Hackademy. Zezwól na nie w ustawieniach strony (ikona obok adresu).', error: true });
@@ -280,12 +260,7 @@ export default function SettingsPage() {
         </>}
         {section === 'security' && <>
           <h3 className="settings-group-title">Zmiana hasła</h3>
-          <form className="settings-form" onSubmit={event => void changePassword(event)}>
-            <label htmlFor="settings-current-password">Obecne hasło</label><input id="settings-current-password" type="password" autoComplete="current-password" required disabled={!!busy} value={password.current} onChange={event => setPassword({ ...password, current: event.target.value })} />
-            <label htmlFor="settings-new-password">Nowe hasło</label><input id="settings-new-password" type="password" autoComplete="new-password" required disabled={!!busy} value={password.next} onChange={event => setPassword({ ...password, next: event.target.value })} />
-            <label htmlFor="settings-confirm-password">Powtórz nowe hasło</label><input id="settings-confirm-password" type="password" autoComplete="new-password" required disabled={!!busy} value={password.confirm} onChange={event => setPassword({ ...password, confirm: event.target.value })} />
-            <button className="settings-button settings-button-primary" disabled={!!busy}>{busy === 'password' ? 'Zapisywanie…' : 'Zmień hasło'}</button>
-          </form>
+          <SettingRow title="Hasło i metody logowania" description="Zmień hasło, zarządzaj adresami e-mail i połączonymi kontami."><button className="settings-button" onClick={() => openUserProfile()}>Zarządzaj dostępem</button></SettingRow>
           <h3 className="settings-group-title">Bieżąca sesja</h3>
           <SettingRow title="Wyloguj się z tego urządzenia" description="Zakończ korzystanie z konta w tej przeglądarce."><button className="settings-button" onClick={() => { logout(); navigate('/login'); }}>Wyloguj się</button></SettingRow>
         </>}

@@ -1,18 +1,20 @@
 package com.hackademy.server;
 
-import com.hackademy.server.auth.JwtService;
+import com.hackademy.server.user.Role;
+import com.hackademy.server.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
-import org.springframework.security.core.userdetails.User;
 import org.springframework.test.web.servlet.MockMvc;
+import org.springframework.web.client.RestClient;
 
-import static org.junit.jupiter.api.Assertions.assertEquals;
+
+import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -20,7 +22,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "DB_URL=jdbc:h2:mem:hackademy_test",
         "DB_USERNAME=sa",
         "DB_PASSWORD=",
-        "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "FRONTEND_URL=https://hackademy.app",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop"
@@ -31,13 +32,21 @@ class ServerStartupTest {
     private MockMvc mockMvc;
 
     @Autowired
-    private JwtService jwtService;
+    private UserRepository userRepository;
+
+    @Autowired
+    private RestClient.Builder restClientBuilder;
 
     @Test
     void startsAndServesHealthEndpoint() throws Exception {
         mockMvc.perform(get("/health"))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.status").value("ok"));
+    }
+
+    @Test
+    void providesRestClientBuilderForClerkImport() {
+        assertNotNull(restClientBuilder.build());
     }
 
     @Test
@@ -58,19 +67,13 @@ class ServerStartupTest {
     }
 
     @Test
-    void createsAndReadsJwt() {
-        var user = User.withUsername("tester").password("unused").roles("USER").build();
-        assertEquals("tester", jwtService.extractUsername(jwtService.generateToken(user)));
-    }
-
-    @Test
     void bindsAndValidatesRecordRequestFromJson() throws Exception {
-        mockMvc.perform(post("/api/auth/register")
+        var user = ClerkTestTokens.createUser(userRepository, "startup" + System.nanoTime() % 100000, Role.USER);
+        mockMvc.perform(patch("/api/user/me/username")
+                        .header("Authorization", "Bearer " + ClerkTestTokens.tokenFor(user, "https://hackademy.app"))
                         .contentType("application/json")
-                        .content("{\"username\":\"ab\",\"email\":\"invalid\",\"password\":\"short\"}"))
+                        .content("{\"newUsername\":\"ab\"}"))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.username").exists())
-                .andExpect(jsonPath("$.email").exists())
-                .andExpect(jsonPath("$.password").exists());
+                .andExpect(jsonPath("$.newUsername").exists());
     }
 }

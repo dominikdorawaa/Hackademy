@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { fireEvent, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { delay, http, HttpResponse } from 'msw';
@@ -69,7 +70,7 @@ function mount(path = '/profile') {
 }
 
 beforeEach(() => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(
     http.get<never, never, DashboardUser>(url('/user/me'), () =>
       HttpResponse.json(profileUser),
@@ -482,7 +483,7 @@ describe('user profile integration', () => {
       expect(
         await screen.findByRole('heading', { name: 'Logowanie' }),
       ).toBeInTheDocument();
-      expect(localStorage.getItem('token')).toBeNull();
+      expect(localStorage.getItem('sessionKey')).toBeNull();
     },
   );
 

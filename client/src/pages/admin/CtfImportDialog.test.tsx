@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom';
@@ -19,7 +20,7 @@ import example from '../../data/ctf-import-example.json?raw';
 const room: RoomAdminSummaryDto = { id: 81, title: 'Zaimportowany', category: 'Web', difficulty: 'MEDIUM', points: 100, requiresVpn: false, roomType: 'CTF', pathId: null, pathTitle: null, published: false };
 beforeAll(() => { globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver; });
 beforeEach(() => {
-  localStorage.setItem('token', createToken('ADMIN'));
+  setClerkSession(createToken('ADMIN'));
   server.use(currentUserHandler('ADMIN'), http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])));
 });
 function mount(kind: RoomType = 'CTF') {
@@ -99,7 +100,7 @@ describe('CTF JSON import', () => {
     finish({ count: 4, roomIds: [1, 2, 3, 4] }); await screen.findByText('Zaimportowano 4 pokoje CTF. Materiały zapisano jako szkice.');
   });
   it('hides CTF import from experts and from the PATH room section', async () => {
-    localStorage.setItem('token', createToken('EXPERT')); server.use(currentUserHandler('EXPERT')); mount();
+    setClerkSession(createToken('EXPERT')); server.use(currentUserHandler('EXPERT')); mount();
     await screen.findByRole('link', { name: 'Nowy pokój' }); expect(screen.queryByRole('button', { name: 'Importuj CTF z JSON' })).not.toBeInTheDocument();
   });
   it('shows no CTF import in the PATH room section', async () => {

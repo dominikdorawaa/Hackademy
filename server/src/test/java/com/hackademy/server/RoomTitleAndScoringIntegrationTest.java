@@ -1,6 +1,6 @@
 package com.hackademy.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.hackademy.server.room.DifficultyLevel;
 import com.hackademy.server.room.RoomService;
 import com.hackademy.server.room.RoomType;

@@ -24,7 +24,7 @@ function roomStatus(room: RoomSummaryDto) {
 
 const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
-  const { token, logout } = useAuth();
+  const { sessionKey, logout } = useAuth();
   const navigate = useNavigate();
 
   const [path, setPath] = useState<PathDetailDto | null>(null);
@@ -35,7 +35,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
   const fetchPath = useCallback(async () => {
     try {
       setError(null);
-      const res = await (preview ? request<PathDetailDto>(`/api/admin/content/paths/${id}/preview`, { headers: { Authorization: `Bearer ${token}` } }) : pathApi.getPath(id ?? '', { Authorization: `Bearer ${token}` }));
+      const res = await (preview ? request<PathDetailDto>(`/api/admin/content/paths/${id}/preview`, { auth: { sessionKey } }) : pathApi.getPath(id ?? '', { sessionKey }));
       if (res.status === 401 || res.status === 403) {
         logout();
         navigate('/login');
@@ -49,16 +49,16 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
     } finally {
       setLoading(false);
     }
-  }, [id, token, logout, navigate, preview]);
+  }, [id, sessionKey, logout, navigate, preview]);
 
   useEffect(() => {
-    if (token) fetchPath();
-  }, [token, fetchPath]);
+    if (sessionKey) fetchPath();
+  }, [sessionKey, fetchPath]);
 
   const handleEnroll = async () => {
     setEnrolling(true);
     try {
-      const res = await pathApi.enroll(id ?? '', { Authorization: `Bearer ${token}` });
+      const res = await pathApi.enroll(id ?? '', { sessionKey });
       if (res.ok) await fetchPath();
     } catch (e) {
       console.error(e);
@@ -97,7 +97,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
       {(preview || !path.enrolled) && (
         <section className="pd-hero-enroll">
           <div className="pd-hero-content">
-            <BannerImage source={path.hasBanner && path.bannerUrl ? `${API_URL}${path.bannerUrl}` : null} file={null} url={path.hasBanner ? null : path.bannerUrl} token={token} />
+            <BannerImage source={path.hasBanner && path.bannerUrl ? `${API_URL}${path.bannerUrl}` : null} file={null} url={path.hasBanner ? null : path.bannerUrl} sessionKey={sessionKey} />
             <h1 className="pd-hero-title">{path.title}</h1>
             <p className="pd-hero-desc">{path.description}</p>
             <div className="pd-hero-meta">
