@@ -55,7 +55,8 @@ public class UserController {
                 request.preference().equals("matchFound") ? request.enabled() : null,
                 request.preference().equals("sound") ? request.enabled() : null,
                 request.preference().equals("browserNotifications") ? request.enabled() : null,
-                request.preference().equals("friendOnline") ? request.enabled() : null);
+                request.preference().equals("friendOnline") ? request.enabled() : null,
+                request.preference().equals("friendOnlineBell") ? request.enabled() : null);
         return notificationPreferencesRepository.findById(user.getId()).orElseThrow().toDto();
     }
 

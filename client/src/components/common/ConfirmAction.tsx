@@ -84,7 +84,7 @@ export function ConfirmAction({
         <AlertDialogFooter>
           <AlertDialogCancel disabled={pending}>Anuluj</AlertDialogCancel>
           <AlertDialogAction
-            className="bg-destructive text-white hover:bg-destructive/90"
+            variant="destructive"
             disabled={pending}
             onClick={(event) => {
               event.preventDefault();

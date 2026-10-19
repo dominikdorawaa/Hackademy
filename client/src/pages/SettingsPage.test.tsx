@@ -60,12 +60,12 @@ describe('settings', () => {
       }),
     );
     mount('notifications');
-    const toggle = await screen.findByRole('switch', { name: 'Znajomi online' });
+    const toggle = await screen.findByRole('switch', { name: 'Komunikat o znajomych online' });
     await waitFor(() => expect(toggle).toBeEnabled());
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggle);
     await screen.findByText('Preferencje zostały zapisane.');
-    expect(screen.getByRole('switch', { name: 'Znajomi online' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('switch', { name: 'Komunikat o znajomych online' })).toHaveAttribute('aria-checked', 'false');
   });
 
   it('keeps the previous preference when saving fails', async () => {

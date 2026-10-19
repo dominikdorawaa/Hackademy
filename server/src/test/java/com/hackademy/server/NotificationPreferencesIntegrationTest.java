@@ -79,6 +79,9 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.friendOnline").value(false)).andExpect(jsonPath("$.friendRequests").value(true));
         patchPreference(user, "{\"preference\":\"sound\",\"enabled\":true}").andExpect(status().isOk());
         getAs(user, URL).andExpect(jsonPath("$.friendOnline").value(false)).andExpect(jsonPath("$.sound").value(true));
+        getAs(user, URL).andExpect(jsonPath("$.friendOnlineBell").value(true));
+        patchPreference(user, "{\"preference\":\"friendOnlineBell\",\"enabled\":false}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.friendOnlineBell").value(false)).andExpect(jsonPath("$.friendOnline").value(false));
     }
 
     @Test

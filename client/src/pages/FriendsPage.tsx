@@ -347,7 +347,7 @@ const FriendsPage = () => {
                 open={removeOpen}
                 onOpenChange={setRemoveOpen}
                 title="Usunąć ze znajomych?"
-                description={removing ? `${removing.username} zniknie z Twojej listy znajomych. Możesz wysłać nowe zaproszenie w dowolnym momencie.` : ''}
+                description={removing ? <><strong className="text-base font-bold text-foreground">{removing.username}</strong> zniknie z Twojej listy znajomych. Możesz wysłać nowe zaproszenie w dowolnym momencie.</> : ''}
                 confirmLabel="Usuń"
                 onConfirm={() => removing ? handleRemove(removing) : undefined}
                 returnFocus={confirmed => (!confirmed && removing ? removeButtons.current.get(removing.id) : null) ?? friendsHeading.current}
