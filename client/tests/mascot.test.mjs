@@ -9,7 +9,7 @@ test('the penguin mascot sheets match their provenance and frame layout', () => 
   const provenance = JSON.parse(readFileSync(new URL('provenance.json', ROOT), 'utf8'));
   const source = readFileSync(new URL('../src/components/mascot/Mascot.tsx', import.meta.url), 'utf8');
   assert.equal(provenance.base.endpoint, 'create-image-pixflux');
-  assert.deepEqual(provenance.sprites.map(sprite => sprite.file), ['penguin-idle.png', 'penguin-talk.png', 'penguin-wave.png', 'penguin-walk.png', 'penguin-calm.png']);
+  assert.deepEqual(provenance.sprites.map(sprite => sprite.file), ['penguin-idle.png', 'penguin-talk.png', 'penguin-wave.png', 'penguin-walk-front.png', 'penguin-walk-side.png', 'penguin-walk-back.png', 'penguin-calm.png']);
   for (const sprite of provenance.sprites) {
     const file = readFileSync(new URL(sprite.file, ROOT));
     assert.equal(createHash('sha256').update(file).digest('hex'), sprite.sha256, sprite.file);

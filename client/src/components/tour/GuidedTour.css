@@ -33,7 +33,7 @@
   position: absolute;
   width: min(420px, calc(100vw - 32px));
   pointer-events: auto;
-  transition: top var(--walk, 1100ms) ease-in-out, left var(--walk, 1100ms) ease-in-out;
+  transition: top var(--walk, 900ms) linear, left var(--walk, 900ms) linear;
 }
 
 .tour-bubble .mascot-bubble-box {

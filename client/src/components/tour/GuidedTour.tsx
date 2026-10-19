@@ -13,7 +13,9 @@ import { MascotBubble } from '../mascot/MascotBubble';
 import './GuidedTour.css';
 
 const MISSING_MS = 2500;
-const WALK_MS = 1100;
+const WALK_SPEED = 0.28;
+const MIN_WALK_MS = 600;
+const MAX_WALK_MS = 2600;
 
 const readStep = () => {
   try {
@@ -34,8 +36,8 @@ export default function GuidedTour() {
   const [step, setStep] = useState(readStep);
   const [box, setBox] = useState<(Box & { step: number }) | null>(null);
   const [moving, setMoving] = useState(false);
-  const [facing, setFacing] = useState<'left' | 'right'>('right');
-  const lastLeft = useRef<number | null>(null);
+  const [walk, setWalk] = useState<{ mood: 'walkFront' | 'walkSide' | 'walkBack'; flip: boolean; ms: number }>({ mood: 'walkFront', flip: false, ms: MIN_WALK_MS });
+  const [shown, setShown] = useState<{ step: number; top: number; left: number } | null>(null);
   const [bubbleSize, setBubbleSize] = useState({ width: 380, height: 220 });
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [saving, setSaving] = useState<'COMPLETED' | 'SKIPPED' | null>(null);
@@ -67,12 +69,6 @@ export default function GuidedTour() {
     return () => window.removeEventListener('resize', resize);
   }, [active]);
 
-  useEffect(() => {
-    if (!active || reducedMotion) return;
-    const start = requestAnimationFrame(() => setMoving(true));
-    const stop = setTimeout(() => setMoving(false), WALK_MS + 150);
-    return () => { cancelAnimationFrame(start); clearTimeout(stop); };
-  }, [active, step, reducedMotion]);
 
   useEffect(() => {
     if (!active || !onPage) return;
@@ -122,14 +118,33 @@ export default function GuidedTour() {
 
   const place = placeBubble(box, bubbleSize, viewport);
 
+  const arrived = box?.step === step;
   useEffect(() => {
-    if (place.mode !== 'float') return;
-    const previous = lastLeft.current;
-    lastLeft.current = place.left;
-    if (previous === null || Math.abs(place.left - previous) <= 4) return;
-    const frame = requestAnimationFrame(() => setFacing(place.left < previous ? 'left' : 'right'));
+    if (!active || !arrived || place.mode !== 'float') return;
+    if (shown?.step === step) {
+      if (Math.abs(shown.top - place.top) > 1 || Math.abs(shown.left - place.left) > 1) {
+        const frame = requestAnimationFrame(() => setShown({ step, top: place.top, left: place.left }));
+        return () => cancelAnimationFrame(frame);
+      }
+      return;
+    }
+    const dx = shown ? place.left - shown.left : 0, dy = shown ? place.top - shown.top : 0, distance = Math.hypot(dx, dy);
+    const ms = !shown || reducedMotion || distance <= 4 ? 0 : Math.round(Math.min(MAX_WALK_MS, Math.max(MIN_WALK_MS, distance / WALK_SPEED)));
+    const mood = Math.abs(dx) >= Math.abs(dy) ? 'walkSide' : dy < 0 ? 'walkBack' : 'walkFront';
+    const frame = requestAnimationFrame(() => {
+      setWalk({ mood, flip: mood === 'walkSide' && dx < 0, ms });
+      setShown({ step, top: place.top, left: place.left });
+      setMoving(ms > 0);
+    });
     return () => cancelAnimationFrame(frame);
-  }, [place.mode, place.left]);
+  }, [active, arrived, step, place.mode, place.top, place.left, shown, reducedMotion]);
+
+  useEffect(() => {
+    if (!moving) return;
+    const stop = setTimeout(() => setMoving(false), walk.ms + 60);
+    return () => clearTimeout(stop);
+  }, [moving, walk]);
+
 
   const finish = useCallback(async (result: 'COMPLETED' | 'SKIPPED') => {
     if (!token || saving) return;
@@ -165,14 +180,14 @@ export default function GuidedTour() {
       bubble.current?.querySelector<HTMLButtonElement>('[data-tour-skip]')?.focus();
     }
   };
-  const walking = moving || box?.step !== step;
+  const walking = moving || (place.mode === 'float' && shown?.step !== step);
   const spotlight = onPage && box ? { top: box.top - 8, left: box.left - 8, width: box.width + 16, height: box.height + 16 } : null;
 
   return createPortal(<div className="user-dashboard guided-tour" data-reduced-motion={reducedMotion}>
     <div className={spotlight ? 'tour-dim has-spotlight' : 'tour-dim'} aria-hidden="true" />
     {spotlight && <div className="tour-spotlight" style={spotlight as CSSProperties} aria-hidden="true" data-testid="tour-spotlight" />}
-    <div className={`tour-bubble is-${place.mode}`} data-moving={walking} data-facing={facing} style={place.mode === 'float' ? { top: place.top, left: place.left, '--walk': `${WALK_MS}ms` } as CSSProperties : undefined} onKeyDown={keys}>
-      <MascotBubble ref={bubble} id="tour" role="dialog" title={current.title} mood={walking && !reducedMotion ? 'walk' : 'talk'} still={reducedMotion}
+    <div className={`tour-bubble is-${place.mode}`} data-moving={walking} data-facing={walk.flip ? 'left' : 'right'} style={place.mode === 'float' && shown ? { top: shown.top, left: shown.left, '--walk': `${walk.ms}ms` } as CSSProperties : undefined} onKeyDown={keys}>
+      <MascotBubble ref={bubble} id="tour" role="dialog" title={current.title} mood={walking && !reducedMotion ? walk.mood : 'talk'} still={reducedMotion}
         actions={<>
           <span className="tour-progress">{current.page} · {pageIndex + 1} z {pageSteps.length}</span>
           <button type="button" className="ud-btn ud-btn-small" onClick={() => go(-1)} disabled={step === 0 || !!saving}>Wstecz</button>
