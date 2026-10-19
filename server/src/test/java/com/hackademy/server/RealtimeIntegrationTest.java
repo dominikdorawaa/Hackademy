@@ -44,7 +44,7 @@ import static org.awaitility.Awaitility.await;
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "DB_URL=jdbc:h2:mem:realtime_test", "DB_USERNAME=sa", "DB_PASSWORD=",
         "FRONTEND_URL=https://frontend.example.com", "spring.flyway.enabled=false",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop", "application.realtime.presence-offline-grace=0s"
 })
 class RealtimeIntegrationTest {
     private static final String ORIGIN = "https://frontend.example.com";
@@ -337,5 +337,70 @@ class RealtimeIntegrationTest {
             if (game != null && "ACTIVE".equals(game.get("status"))) return (String) game.get("id");
         }
         throw new AssertionError("Match was not delivered");
+    }
+
+    private void befriend(User a, User b) {
+        friendships.sendFriendRequest(a.getId(), b.getUsername());
+        friendships.acceptFriendRequest(b.getId(), friendships.getPendingRequests(b.getId()).get(0).id());
+    }
+
+    private String friendsOf(User user) throws Exception {
+        var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/friends"))
+                .header("Authorization", "Bearer " + ClerkTestTokens.tokenFor(user, ORIGIN)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        return response.body();
+    }
+
+    @Test
+    void friendsSeePresenceAcrossTabsWhileOthersReceiveNothing() throws Exception {
+        var me = user();
+        var friend = user();
+        var requester = user();
+        var outsider = user();
+        befriend(me, friend);
+        friendships.sendFriendRequest(requester.getId(), me.getUsername());
+        try (var watcher = connected(friend); var pending = connected(requester); var other = connected(outsider)) {
+            var firstTab = connected(me);
+            assertEquals(true, JsonPath.read(RealtimeSocket.body(watcher.receive()), "$.state.friends[0].online"));
+            assertEquals(true, JsonPath.read(friendsOf(friend), "$[0].online"));
+            var secondTab = connected(me);
+            assertNull(watcher.poll(300));
+            secondTab.close();
+            assertNull(watcher.poll(300));
+            assertEquals(true, JsonPath.read(friendsOf(friend), "$[0].online"));
+            firstTab.close();
+            assertEquals(false, JsonPath.read(RealtimeSocket.body(watcher.receive()), "$.state.friends[0].online"));
+            assertEquals(false, JsonPath.read(friendsOf(friend), "$[0].online"));
+            assertNull(pending.poll(100));
+            assertNull(other.poll(100));
+        }
+    }
+
+    @Test
+    void acceptingWhileBothAreOnlineShowsEachOtherOnline() throws Exception {
+        var sender = user();
+        var receiver = user();
+        try (var a = connected(sender); var b = connected(receiver)) {
+            friendships.sendFriendRequest(sender.getId(), receiver.getUsername());
+            a.receive();
+            b.receive();
+            friendships.acceptFriendRequest(receiver.getId(), friendships.getPendingRequests(receiver.getId()).get(0).id());
+            assertEquals(true, JsonPath.read(RealtimeSocket.body(a.receive()), "$.state.friends[0].online"));
+            assertEquals(true, JsonPath.read(RealtimeSocket.body(b.receive()), "$.state.friends[0].online"));
+        }
+    }
+
+    @Test
+    void removedFriendNoLongerReceivesPresence() throws Exception {
+        var me = user();
+        var former = user();
+        befriend(me, former);
+        friendships.removeFriend(me.getId(), former.getId());
+        try (var watcher = connected(former)) {
+            try (var tab = connected(me)) {
+                assertNull(watcher.poll(300));
+            }
+            assertNull(watcher.poll(300));
+        }
     }
 }

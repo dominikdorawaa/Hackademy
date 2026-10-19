@@ -348,7 +348,7 @@ class AuthAndAdminIntegrationTest {
 
     @Test
     void provisionsClerkUsersAgainstMigratedDatabase() throws Exception {
-        assertEquals(19, jdbcTemplate.queryForObject(
+        assertEquals(20, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
 
         var clerkUserId = "user_" + UUID.randomUUID().toString().replace("-", "");

@@ -167,8 +167,10 @@ export default function SettingsPage() {
           <SettingRow title="Zaproszenia do znajomych" description="Pokaż nowe prośby w centrum powiadomień.">{notificationSwitch('friendRequests', 'Zaproszenia do znajomych')}</SettingRow>
           <SettingRow title="Wyzwania w Arenie" description="Pokaż zaproszenia do pojedynku w centrum powiadomień.">{notificationSwitch('challenges', 'Wyzwania w Arenie')}</SettingRow>
           <SettingRow title="Znaleziony mecz" description="Powiadom mnie dźwiękiem lub w przeglądarce, gdy mecz jest gotowy.">{notificationSwitch('matchFound', 'Znaleziony mecz')}</SettingRow>
+          <SettingRow title="Znajomi online: komunikat" description="Krótki komunikat w rogu ekranu, gdy znajomy wejdzie do aplikacji.">{notificationSwitch('friendOnline', 'Komunikat o znajomych online')}</SettingRow>
+          <SettingRow title="Znajomi online: dzwonek" description="Lista znajomych, którzy są teraz online, w dzwonku w górnym pasku.">{notificationSwitch('friendOnlineBell', 'Znajomi online w dzwonku')}</SettingRow>
           <h3 className="settings-group-title">Sposób powiadamiania</h3>
-          <SettingRow title="Dźwięk" description="Krótki sygnał przy nowym zaproszeniu, wyzwaniu lub znalezionym meczu.">{notificationSwitch('sound', 'Dźwięk powiadomień')}</SettingRow>
+          <SettingRow title="Dźwięk" description="Krótki sygnał przy nowym zaproszeniu, wyzwaniu, znalezionym meczu lub wejściu znajomego.">{notificationSwitch('sound', 'Dźwięk powiadomień')}</SettingRow>
           <SettingRow title="Powiadomienia przeglądarkowe" description={notificationsSupported ? 'Dowiedz się o wydarzeniu, gdy korzystasz z innej karty.' : 'Ta przeglądarka nie obsługuje powiadomień na tej stronie.'}>{notificationSwitch('browserNotifications', 'Powiadomienia przeglądarkowe', !notificationsSupported)}</SettingRow>
           {notificationsSupported && preferences.browserNotifications && Notification.permission !== 'granted' && <p className="settings-footnote">Powiadomienia są zapisane na koncie, ale to urządzenie wymaga zgody. Wyłącz i włącz przełącznik, aby ją nadać.</p>}
           <p className="settings-footnote">Wyciszenie nie zatrzymuje wyszukiwania ani przejścia do znalezionego meczu. Zaproszenia nadal znajdziesz na stronie znajomych i w Arenie.</p>

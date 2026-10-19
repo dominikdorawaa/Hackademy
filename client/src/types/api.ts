@@ -174,6 +174,7 @@ export interface FriendDto {
   username: string
   points: number
   streak: number
+  online: boolean
 }
 
 export interface FriendRequestDto {
