@@ -199,7 +199,7 @@ const ArenaPage = () => {
             <div className="ud-shell">
                 <div className="ud-main">
                     <section className="arena-hero" aria-labelledby="arena-title" style={{ '--league': known ? league.color : 'var(--ud-track)' } as React.CSSProperties}>
-                        <div className="arena-card">
+                        <div className="arena-card" data-tour="arena-card">
                             <div className="arena-card-top">
                                 {known && <span className="arena-league"><LeagueIcon league={league} glint />Liga {league.name}</span>}
                                 <span className="arena-card-rank" role={known ? undefined : "status"}>{rankLabel}</span>
@@ -225,7 +225,7 @@ const ArenaPage = () => {
                             <Link className="arena-card-edit" to="/arena/avatar">{userData.avatar ? 'Edytuj awatar' : 'Stwórz awatar'}</Link>
                         </div>
                         <div className="arena-hero-main">
-                        <div className="arena-console-copy" data-tour="arena">
+                        <div className="arena-console-copy" data-tour="arena-play">
                             <p className="arena-kicker">Tryb rankingowy</p>
                             <h1 id="arena-title" className="arena-title">{headline}</h1>
                             {status === 'GAME' && gameSession ? (
@@ -255,7 +255,7 @@ const ArenaPage = () => {
                             {offline && <p role="status" className="arena-note">Łączenie z Areną. Poczekaj na połączenie z serwerem.</p>}
                             {error && <p role="alert" className="arena-error">{error}</p>}
                         </div>
-                        <ol className="arena-ladder" aria-label="Ligi Areny">
+                        <ol className="arena-ladder" aria-label="Ligi Areny" data-tour="arena-ladder">
                             {LEAGUES.map(item => (
                                 <li key={item.name} className={!known ? undefined : item === league ? "is-current" : elo >= item.min ? "is-reached" : undefined} style={{ '--tier': item.color } as React.CSSProperties} aria-current={known && item === league ? "true" : undefined}>
                                     <LeagueIcon league={item} className="arena-ladder-icon" glint={known && item === league} />
@@ -315,7 +315,7 @@ const ArenaPage = () => {
                 </div>
 
                 <aside className="ud-board arena-board" aria-label="Znajomi i zasady">
-                    <section className="arena-board-friends" aria-labelledby="arena-friends-title">
+                    <section className="arena-board-friends" aria-labelledby="arena-friends-title" data-tour="arena-friends">
                         <div className="ud-section-head">
                             <h2 id="arena-friends-title">Wyzwij znajomego</h2>
                             {friends && friends.length > 0 && <Link className="ud-link" to="/friends">Wszyscy znajomi ({friends.length})</Link>}
@@ -361,7 +361,7 @@ const ArenaPage = () => {
                             </ul>
                         )}
                     </section>
-                    <section aria-labelledby="arena-rules-title">
+                    <section aria-labelledby="arena-rules-title" data-tour="arena-rules">
                         <h2 id="arena-rules-title" className="arena-board-title">Zasady pojedynków rankingowych</h2>
                         <ol className="arena-rules">
                             <li>Twój awatar staje do walki z rywalem z kolejki albo z wyzwanym znajomym. Każdy zaczyna ze 100 HP.</li>

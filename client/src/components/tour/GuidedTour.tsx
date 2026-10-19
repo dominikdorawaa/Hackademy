@@ -11,6 +11,9 @@ import type { Box } from '../../lib/tour';
 import { MascotBubble } from '../mascot/MascotBubble';
 import './GuidedTour.css';
 
+const MISSING_MS = 2500;
+const MOVE_MS = 650;
+
 const readStep = () => {
   try {
     const value = Number(sessionStorage.getItem(TOUR_STEP_KEY));
@@ -29,14 +32,18 @@ export default function GuidedTour() {
   const reducedMotion = useReducedMotion();
   const [step, setStep] = useState(readStep);
   const [box, setBox] = useState<Box | null>(null);
+  const [moving, setMoving] = useState(false);
   const [bubbleSize, setBubbleSize] = useState({ width: 380, height: 220 });
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [saving, setSaving] = useState<'COMPLETED' | 'SKIPPED' | null>(null);
   const [error, setError] = useState(false);
   const bubble = useRef<HTMLDivElement>(null);
+  const direction = useRef(1);
   const active = isAuthenticated && status === 'ready' && !!state?.avatarConfirmed && state.tourStatus === 'PENDING' && location.pathname !== ONBOARDING_PATH;
   const current = TOUR_STEPS[step];
   const onPage = location.pathname === current.path;
+  const pageSteps = TOUR_STEPS.filter(item => item.page === current.page);
+  const pageIndex = pageSteps.indexOf(current);
 
   useEffect(() => { if (active) writeStep(step); }, [active, step]);
 
@@ -58,12 +65,20 @@ export default function GuidedTour() {
   }, [active]);
 
   useEffect(() => {
+    if (!active || reducedMotion) return;
+    const start = requestAnimationFrame(() => setMoving(true));
+    const stop = setTimeout(() => setMoving(false), MOVE_MS);
+    return () => { cancelAnimationFrame(start); clearTimeout(stop); };
+  }, [active, step, reducedMotion]);
+
+  useEffect(() => {
     if (!active || !onPage) return;
-    let frame = 0, scrolled = false;
+    let frame = 0, scrolled = false, marked: HTMLElement | null = null;
     const started = performance.now();
     const measure = () => {
       const element = document.querySelector<HTMLElement>(`[data-tour="${current.target}"]`);
       if (element) {
+        if (marked !== element) { marked?.removeAttribute('data-tour-current'); element.setAttribute('data-tour-current', ''); marked = element; }
         if (!scrolled) {
           scrolled = true;
           const header = document.querySelector('.navbar')?.getBoundingClientRect().bottom ?? 0;
@@ -75,14 +90,16 @@ export default function GuidedTour() {
         const rect = element.getBoundingClientRect();
         setBox(previous => previous && previous.top === rect.top && previous.left === rect.left && previous.width === rect.width && previous.height === rect.height
           ? previous : { top: rect.top, left: rect.left, width: rect.width, height: rect.height });
-      } else if (performance.now() - started > 6000) {
+      } else if (performance.now() - started > MISSING_MS) {
+        const next = step + direction.current;
+        if (next >= 0 && next < TOUR_STEPS.length) { setStep(next); return; }
         setBox(null);
       }
       frame = requestAnimationFrame(measure);
     };
     frame = requestAnimationFrame(measure);
-    return () => { cancelAnimationFrame(frame); setBox(null); };
-  }, [active, onPage, current.target, reducedMotion]);
+    return () => { cancelAnimationFrame(frame); marked?.removeAttribute('data-tour-current'); };
+  }, [active, onPage, step, current.target, reducedMotion]);
 
   useEffect(() => {
     const element = bubble.current;
@@ -121,8 +138,8 @@ export default function GuidedTour() {
   if (!active) return null;
 
   const last = step === TOUR_STEPS.length - 1;
-  const next = () => { if (last) void finish('COMPLETED'); else setStep(step + 1); };
-  const back = () => setStep(Math.max(0, step - 1));
+  const go = (delta: number) => { direction.current = delta; setStep(Math.min(TOUR_STEPS.length - 1, Math.max(0, step + delta))); };
+  const next = () => { if (last) void finish('COMPLETED'); else go(1); };
   const keys = (event: KeyboardEvent<HTMLDivElement>) => {
     if (event.key === 'Tab') {
       const items = [...(bubble.current?.querySelectorAll<HTMLButtonElement>('button:not(:disabled)') ?? [])];
@@ -142,15 +159,16 @@ export default function GuidedTour() {
   return <div className="user-dashboard guided-tour" data-reduced-motion={reducedMotion}>
     <div className={spotlight ? 'tour-dim has-spotlight' : 'tour-dim'} aria-hidden="true" />
     {spotlight && <div className="tour-spotlight" style={spotlight as CSSProperties} aria-hidden="true" data-testid="tour-spotlight" />}
-    <div className={`tour-bubble is-${place.mode}`} style={place.mode === 'float' ? { top: place.top, left: place.left } : undefined} onKeyDown={keys}>
-      <MascotBubble ref={bubble} id="tour" role="dialog" title={current.title} mood="talk" still={reducedMotion}
+    <div className={`tour-bubble is-${place.mode}`} data-moving={moving} style={place.mode === 'float' ? { top: place.top, left: place.left } : undefined} onKeyDown={keys}>
+      <MascotBubble ref={bubble} id="tour" role="dialog" title={current.title} mood={moving ? 'walk' : 'talk'} still={reducedMotion}
         actions={<>
-          <span className="tour-progress">{step + 1} z {TOUR_STEPS.length}</span>
-          <button type="button" className="ud-btn ud-btn-small" onClick={back} disabled={step === 0 || !!saving}>Wstecz</button>
+          <span className="tour-progress">{current.page} · {pageIndex + 1} z {pageSteps.length}</span>
+          <button type="button" className="ud-btn ud-btn-small" onClick={() => go(-1)} disabled={step === 0 || !!saving}>Wstecz</button>
           <button type="button" className="ud-btn ud-btn-solid ud-btn-small" onClick={next} disabled={!!saving} data-tour-primary>{saving === 'COMPLETED' ? 'Zapisuję…' : last ? 'Zakończ' : 'Dalej'}</button>
           <button type="button" className="ud-btn ud-btn-small tour-skip" onClick={() => void finish('SKIPPED')} disabled={!!saving} data-tour-skip>{saving === 'SKIPPED' ? 'Zapisuję…' : 'Pomiń przewodnik'}</button>
         </>}>
         <p>{current.text}</p>
+        <p className="tour-overall" aria-hidden="true"><span style={{ width: `${((step + 1) / TOUR_STEPS.length) * 100}%` }} /></p>
         {error && <p className="tour-error" role="alert">Nie udało się zapisać przewodnika. Spróbuj ponownie.</p>}
       </MascotBubble>
     </div>

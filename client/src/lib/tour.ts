@@ -1,10 +1,26 @@
-export const TOUR_STEPS = [
-  { path: '/dashboard', target: 'dashboard', title: 'Dashboard', text: 'To Twoje centrum dowodzenia. Widzisz tu postęp, serię dni i to, czym warto zająć się dalej.' },
-  { path: '/learn', target: 'learn', title: 'Ucz się', text: 'Tu są ścieżki nauki. Przechodzisz pokoje krok po kroku i zdobywasz XP za każde zadanie.' },
-  { path: '/arena', target: 'arena', title: 'Tryb rankingowy', text: 'W Arenie walczysz wiedzą z innymi graczami. Poprawne odpowiedzi to ciosy, a wygrane podnoszą Elo.' },
-  { path: '/ranking', target: 'ranking', title: 'Ranking', text: 'Ranking pokazuje najlepszych graczy według XP i Elo. Sprawdź, ile brakuje Ci do czołówki.' },
-  { path: '/profile', target: 'profile', title: 'Twój profil', text: 'To Twoja wizytówka z awatarem, odznakami i aktywnością. Awatara zmienisz w każdej chwili w Arenie.' },
-] as const;
+export interface TourStep { page: string; path: string; target: string; title: string; text: string }
+
+export const TOUR_STEPS: TourStep[] = [
+  { page: 'Dashboard', path: '/dashboard', target: 'dashboard-next', title: 'Twój następny krok', text: 'Tu zawsze podpowiadam, czym warto zająć się teraz. Jeden przycisk i od razu wracasz do nauki.' },
+  { page: 'Dashboard', path: '/dashboard', target: 'dashboard-path', title: 'Bieżąca ścieżka', text: 'Postęp ścieżki, którą przerabiasz, i kolejne pokoje do rozwiązania.' },
+  { page: 'Dashboard', path: '/dashboard', target: 'dashboard-level', title: 'Poziom i XP', text: 'Za każde zadanie zdobywasz XP. Tu widać Twój poziom, ile brakuje do następnego i ile czasu uczysz się w tym tygodniu.' },
+  { page: 'Dashboard', path: '/dashboard', target: 'dashboard-flags', title: 'Ostatnie flagi', text: 'Lista pokoi, które ostatnio rozwiązałeś, czyli Twoje zdobyte flagi.' },
+  { page: 'Dashboard', path: '/dashboard', target: 'dashboard-friends', title: 'Znajomi', text: 'Twoi znajomi i ich postęp. Stąd dodasz kogoś i wyzwiesz go na pojedynek.' },
+  { page: 'Dashboard', path: '/dashboard', target: 'dashboard-board', title: 'Twoje miejsce w rankingu', text: 'Twoja pozycja w rankingu XP, Elo z Areny i gracze tuż obok Ciebie.' },
+  { page: 'Ucz się', path: '/learn', target: 'learn-paths', title: 'Ścieżki nauki', text: 'Każda ścieżka prowadzi od podstaw krok po kroku. Pokoje odblokowują się po kolei, a za każde zadanie dostajesz XP.' },
+  { page: 'Tryb rankingowy', path: '/arena', target: 'arena-card', title: 'Twoja liga', text: 'Twój awatar, liga i Elo. Tu też zmienisz wygląd awatara.' },
+  { page: 'Tryb rankingowy', path: '/arena', target: 'arena-play', title: 'Walka w Arenie', text: 'Stąd dołączasz do kolejki. Walczysz wiedzą: poprawne odpowiedzi to ciosy w rywala.' },
+  { page: 'Tryb rankingowy', path: '/arena', target: 'arena-ladder', title: 'Ligi', text: 'Wygrane podnoszą Elo, a Elo przesuwa Cię do wyższych lig, od Script Kiddie do Zero-day.' },
+  { page: 'Tryb rankingowy', path: '/arena', target: 'arena-friends', title: 'Wyzwij znajomego', text: 'Możesz też zaprosić konkretnego znajomego na pojedynek.' },
+  { page: 'Tryb rankingowy', path: '/arena', target: 'arena-rules', title: 'Zasady', text: 'Dziesięć rund, sto HP i piętnaście sekund na odpowiedź. Tu zawsze sprawdzisz zasady.' },
+  { page: 'Ranking', path: '/ranking', target: 'ranking-points', title: 'Ranking XP', text: 'Najlepsi gracze według XP zdobytego w nauce.' },
+  { page: 'Ranking', path: '/ranking', target: 'ranking-elo', title: 'Ranking Areny', text: 'Najlepsi gracze według Elo z pojedynków.' },
+  { page: 'Twój profil', path: '/profile', target: 'profile', title: 'Twój profil', text: 'Twoja wizytówka z awatarem. Przyciskiem obok dodasz opis i zainteresowania.' },
+  { page: 'Twój profil', path: '/profile', target: 'profile-badges', title: 'Odznaki', text: 'Zdobyte odznaki. Trzy najlepsze możesz wyróżnić w gablocie.' },
+  { page: 'Twój profil', path: '/profile', target: 'profile-activity', title: 'Aktywność', text: 'Kalendarz Twojej nauki i statystyki. Codzienna nauka buduje serię dni.' },
+];
+
+export const TOUR_PAGES = [...new Set(TOUR_STEPS.map(step => step.page))];
 
 const GAP = 16;
 export const MOBILE_TOUR_WIDTH = 640;

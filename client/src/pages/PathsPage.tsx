@@ -187,7 +187,7 @@ const PathsPage = () => {
         </div>
       </header>
 
-      <div className="paths-grid">
+      <div className="paths-grid" data-tour="learn-paths">
         {paths.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)', backgroundColor: '#1e1e1e', borderRadius: '12px' }}>
             <h3>Brak ścieżek.</h3>

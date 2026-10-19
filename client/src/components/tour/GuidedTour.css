@@ -30,19 +30,46 @@
   position: fixed;
   width: min(420px, calc(100vw - 32px));
   pointer-events: auto;
+  transition: top 600ms var(--ud-ease), left 600ms var(--ud-ease);
+}
+
+.tour-bubble[data-moving='true'] .mascot-bubble-mascot {
+  animation: tour-hop 650ms ease-in-out;
+}
+
+@keyframes tour-hop {
+  0%, 100% { translate: 0 0; }
+  50% { translate: 0 -6px; }
+}
+
+.tour-overall {
+  height: 4px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ud-track);
+}
+
+.tour-overall span {
+  display: block;
+  height: 100%;
+  background: var(--ud-link);
+  transition: width 400ms var(--ud-ease);
 }
 
 .tour-bubble.is-dock {
-  right: 16px;
   bottom: 16px;
-  left: 16px;
-  width: auto;
-  max-width: 520px;
-  margin: 0 auto;
+  left: 50%;
+  translate: -50% 0;
+}
+
+.tour-bubble .mascot-bubble-actions > .ud-btn:not(.tour-skip) {
+  flex: 1;
+  justify-content: center;
 }
 
 .tour-progress {
-  margin-right: auto;
+  flex-basis: 100%;
   color: var(--ud-muted);
   font-size: var(--ud-text-s);
   font-weight: 700;
@@ -58,17 +85,42 @@
   font-weight: 600;
 }
 
-.guided-tour[data-reduced-motion='true'] .tour-spotlight {
+.guided-tour[data-reduced-motion='true'] :is(.tour-spotlight, .tour-bubble, .tour-overall span) {
   transition: none;
 }
 
+.guided-tour[data-reduced-motion='true'] .mascot-bubble-mascot {
+  animation: none;
+}
+
 @media (prefers-reduced-motion: reduce) {
-  .tour-spotlight {
+  .tour-spotlight,
+  .tour-bubble,
+  .tour-overall span {
     transition: none;
+  }
+
+  .mascot-bubble-mascot {
+    animation: none;
   }
 }
 }
 
 html[data-tour-active] main {
   padding-bottom: 300px;
+}
+
+html[data-tour-active] [data-tour] {
+  filter: grayscale(1) brightness(0.65);
+  transition: filter 450ms ease;
+}
+
+html[data-tour-active] [data-tour][data-tour-current] {
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-tour-active] [data-tour] {
+    transition: none;
+  }
 }

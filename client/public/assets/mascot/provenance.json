@@ -11,7 +11,7 @@
     },
     "seed": 99602
   },
-  "processing": "Alpha cut at 128, the generated grey ground shadow under the feet removed, the first eight frames of each animation cropped to their shared bounds and packed side by side as looping sprite sheets.",
+  "processing": "Alpha cut at 128, the generated grey ground shadow under the feet removed, the first eight frames of each animation (or the listed picked frames) cropped to their shared bounds and packed side by side as looping sprite sheets. The calm sheet holds the first idle frame and blinks once.",
   "sprites": [
     {
       "file": "penguin-idle.png",
@@ -54,6 +54,46 @@
         "firstAndLastFrame": "base"
       },
       "sha256": "cc12f1af7f5b46732a3eefc10381836f3843849807c0444dc7fe96a4b8097c1f"
+    },
+    {
+      "file": "penguin-walk.png",
+      "frames": 8,
+      "frameWidth": 56,
+      "frameHeight": 59,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the penguin waddles happily in place, stepping from one foot to the other and swaying gently side to side, the flippers swing a little, the hood and headphones stay the same, same size and position, seamless loop",
+        "frameCount": 8,
+        "seed": 99951,
+        "firstAndLastFrame": "base"
+      },
+      "sha256": "2aaeb3adbb55e3382fbd1ce4122414cfe80d7ac08939767e1757b337daac9a98"
+    },
+    {
+      "file": "penguin-calm.png",
+      "frames": 10,
+      "pickedFrames": [
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        0,
+        3
+      ],
+      "frameWidth": 56,
+      "frameHeight": 59,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the penguin stands in place breathing gently, the body bobs slightly up and down and the eyes blink once, the flippers stay in the same pose, same size and position, seamless loop",
+        "frameCount": 8,
+        "seed": 99701,
+        "firstAndLastFrame": "base"
+      },
+      "sha256": "fdaa64088474c6ac044d158a123f98126c18aed1e7b625fe39612374bba7ea1e"
     }
   ]
 }

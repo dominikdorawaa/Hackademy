@@ -478,7 +478,7 @@ const UserDashboardPage = () => {
       <div className="ud-shell">
         <div className="ud-main">
           {nextRoom && currentPath ? (
-            <section className="ud-next" aria-labelledby="ud-next-title" data-tour="dashboard">
+            <section className="ud-next" aria-labelledby="ud-next-title" data-tour="dashboard-next">
               <div className="ud-next-copy">
                 <h1 className="ud-greet">
                   Cześć, {stats.username}.{' '}
@@ -497,7 +497,7 @@ const UserDashboardPage = () => {
               </Link>
             </section>
           ) : (
-            <section className="ud-next" aria-labelledby="ud-next-title" data-tour="dashboard">
+            <section className="ud-next" aria-labelledby="ud-next-title" data-tour="dashboard-next">
               <div className="ud-next-copy">
                 <h1 className="ud-greet">Cześć, {stats.username}.</h1>
                 <h2 id="ud-next-title">{currentPath ? 'Ścieżka czeka na Ciebie' : 'Zacznij pierwszą ścieżkę'}</h2>
@@ -523,7 +523,7 @@ const UserDashboardPage = () => {
           )}
 
           {currentPath && (
-            <section className="ud-path" aria-labelledby="ud-path-title">
+            <section className="ud-path" aria-labelledby="ud-path-title" data-tour="dashboard-path">
               <div className="ud-section-head">
                 <h2 id="ud-path-title">{currentPath.title}</h2>
                 <Link className="ud-link" to={`/learn/paths/${currentPath.id}`}>
@@ -577,7 +577,7 @@ const UserDashboardPage = () => {
           )}
 
           <div className="ud-pair">
-            <section className="ud-panel ud-level" aria-labelledby="ud-level-title">
+            <section className="ud-panel ud-level" aria-labelledby="ud-level-title" data-tour="dashboard-level">
               <h2 id="ud-level-title">
                 Poziom {stats.level}, {stats.rankTitle}
               </h2>
@@ -611,7 +611,7 @@ const UserDashboardPage = () => {
               </dl>
             </section>
 
-            <section className="ud-panel ud-flags" aria-labelledby="ud-flags-title">
+            <section className="ud-panel ud-flags" aria-labelledby="ud-flags-title" data-tour="dashboard-flags">
               <h2 id="ud-flags-title">Ostatnio zdobyte flagi</h2>
               {recentList.length === 0 ? (
                 <div className="ud-flags-empty">
@@ -640,7 +640,7 @@ const UserDashboardPage = () => {
             </section>
           </div>
 
-          <section className="ud-panel ud-friends" aria-labelledby="ud-friends-title">
+          <section className="ud-panel ud-friends" aria-labelledby="ud-friends-title" data-tour="dashboard-friends">
             <div className="ud-section-head">
               <h2 id="ud-friends-title">Twoi znajomi</h2>
               {(friends?.length ?? friendsCount) > 0 && (
@@ -705,7 +705,7 @@ const UserDashboardPage = () => {
           </section>
         </div>
 
-        <aside className="ud-board" id="ud-board" aria-labelledby="ud-board-title">
+        <aside className="ud-board" id="ud-board" aria-labelledby="ud-board-title" data-tour="dashboard-board">
           <Link className="ud-profile" to="/profile">
             <UserAvatar className="ud-avatar" username={stats.username} avatar={userData?.avatar} alt="" />
             <span className="ud-profile-who">
