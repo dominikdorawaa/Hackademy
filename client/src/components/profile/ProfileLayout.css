@@ -41,6 +41,7 @@
   }
   .profile-page ::selection { color: #ffffff; background: var(--primary-blue); }
   .profile-page h1, .profile-page h2, .profile-page h3 { font-family: inherit; margin: 0; }
+  .profile-page :is(h1, h2):not(.profile-welcome h2) { font-family: var(--font-heading); }
   .profile-page h1 { font-size: clamp(32px, 3.8vw, 52px); font-weight: 800; font-stretch: 85%; letter-spacing: -.025em; line-height: 1.2; overflow-wrap: anywhere; }
   .profile-page h2 { font-size: 22px; font-weight: 750; font-stretch: 90%; line-height: 1.4; letter-spacing: -.015em; }
   .profile-page h3 { font-size: 14px; font-weight: 600; line-height: 1.5; }
@@ -186,6 +187,7 @@
   .profile-editor-field textarea::placeholder { color: var(--text-gray); opacity: 1; }
   .profile-editor-field textarea { caret-color: var(--profile-blue); }
   .profile-editor h2, .profile-editor h3 { font-family: inherit; }
+  .profile-editor h2 { font-family: var(--font-heading); }
   .profile-editor h2 { font-size: 24px; font-weight: 700; }
   .profile-editor h3 { font-size: 16px; font-weight: 650; }
   .profile-editor-label-row .profile-muted { flex-shrink: 0; }
