@@ -64,10 +64,21 @@ test("rate limit fits the Free plan", () => {
   assert.deepEqual(rule.ratelimit.characteristics, ["cf.colo.id", "ip.src"]);
   assert.equal(rule.ratelimit.period, 10);
   assert.equal(rule.ratelimit.mitigation_timeout, 10);
-  assert.deepEqual(rule.ratelimit, { ...RATE_LIMIT, requests_per_period: 60 });
+  assert.deepEqual(rule.ratelimit, { ...RATE_LIMIT, requests_per_period: 150 });
   const fields = rateLimitExpression.match(/[a-z_]+(\.[a-z_]+)+/g);
   assert.deepEqual([...new Set(fields)], ["http.request.uri.path"]);
   assert.doesNotMatch(rateLimitExpression, /\bmatches\b|http\.host|http\.request\.method/);
+});
+
+test("a classroom behind one address stays under the limit including CORS preflights", () => {
+  const students = 30;
+  const submissions = ["/api/rooms/7/solve", "/api/rooms/7/tasks/3/solve"];
+  const requests = [];
+  for (let student = 0; student < students; student += 1)
+    for (const path of submissions) requests.push(["OPTIONS", path], ["POST", path]);
+  const counted = requests.filter(([, path]) => matchesRateLimit(path)).length;
+  assert.equal(counted, 120);
+  assert.ok(counted <= RATE_LIMIT.requests_per_period);
 });
 
 test("rate limit covers sensitive writes but not realtime or reads", () => {

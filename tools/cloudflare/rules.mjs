@@ -19,7 +19,7 @@ export const RATE_LIMITED_PATHS = [
 export const RATE_LIMIT = {
   characteristics: ["cf.colo.id", "ip.src"],
   period: 10,
-  requests_per_period: 60,
+  requests_per_period: 150,
   mitigation_timeout: 10,
 };
 

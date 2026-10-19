@@ -151,7 +151,7 @@ Limit żądań to jedyna reguła `http_ratelimit` dostępna w planie Free:
 | `/api/friends/request/*` | zaproszenie do znajomych |
 | `/api/arena/challenge/create` | wyzwanie na arenie |
 
-- Próg: 60 żądań w 10 s na adres IP w jednym centrum danych Cloudflare, potem blokada na 10 s. Klasa 30 osób za jednym NAT, w której każdy wysyła dwie odpowiedzi w tych samych 10 s, mieści się w limicie. Skrypt z jednego adresu wyśle najwyżej 6 takich żądań na sekundę.
+- Próg: 150 żądań w 10 s na adres IP w jednym centrum danych Cloudflare, potem blokada na 10 s. Reguła liczy każdą metodę, także preflight CORS (`OPTIONS`), który przeglądarka wysyła przed pierwszym POST pod nowy adres. Klasa 30 osób za jednym NAT, w której każdy wysyła w tych samych 10 s dwie odpowiedzi pod różne adresy, daje 120 żądań i mieści się w limicie. Skrypt z jednego adresu wyśle najwyżej 15 takich żądań na sekundę.
 - Plan Free pozwala w wyrażeniu tylko na ścieżkę, bez hosta, metody i wyrażeń regularnych. Reguła używa więc operatora `wildcard`, w którym `*` obejmuje też `/`. Ścieżki `/api/` istnieją tylko w API, a pod tymi adresami backend przyjmuje tylko POST. Reguła nie obejmuje `/ws`, odpowiedzi w pojedynku (`/api/arena/game/{id}/answer`) ani zwykłych zapytań GET.
 
 Plan Free nie zatrzyma każdego ataku. Limit liczy się osobno w każdym centrum danych, nie ma własnych reguł WAF w trybie zarządzanym, ochrony przed botami ani płatnych produktów. Autoryzacja i walidacja zostają w backendzie.
