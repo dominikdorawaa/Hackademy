@@ -135,7 +135,7 @@ it('skips a tile that is missing on the page', async () => {
     renderWithAuth(missing, '/dashboard');
     await act(async () => { await vi.advanceTimersByTimeAsync(100); });
     fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
-    for (let tick = 0; tick < 6 && location() !== '/learn'; tick++) await act(async () => { await vi.advanceTimersByTimeAsync(2600); });
+    for (let tick = 0; tick < 6 && location() !== '/learn'; tick++) await act(async () => { await vi.advanceTimersByTimeAsync(200); });
     expect(location()).toBe('/learn');
     expect(screen.getByRole('heading', { name: 'Ścieżki nauki', level: 2 })).toBeInTheDocument();
   } finally {

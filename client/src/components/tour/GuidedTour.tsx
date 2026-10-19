@@ -13,6 +13,7 @@ import { MascotBubble } from '../mascot/MascotBubble';
 import './GuidedTour.css';
 
 const MISSING_MS = 2500;
+const SETTLE_MS = 150;
 const WALK_SPEED = 0.28;
 const MIN_WALK_MS = 600;
 const MAX_WALK_MS = 2600;
@@ -87,7 +88,7 @@ export default function GuidedTour() {
           window.scrollTo({ top: scrollTargetTop(next, bubbleSize.height, view, floating), behavior: reducedMotion ? 'auto' : 'smooth' });
         }
         setBox(previous => previous && previous.step === step && previous.top === next.top && previous.left === next.left && previous.width === next.width && previous.height === next.height ? previous : { ...next, step });
-      } else if (performance.now() - started > MISSING_MS) {
+      } else if (performance.now() - started > MISSING_MS || (performance.now() - started > SETTLE_MS && TOUR_STEPS.some(item => item.path === current.path && item.target !== current.target && document.querySelector(`[data-tour="${item.target}"]`)))) {
         const next = step + direction.current;
         if (next >= 0 && next < TOUR_STEPS.length) { setStep(next); return; }
         setBox(null);
@@ -96,7 +97,7 @@ export default function GuidedTour() {
     };
     frame = requestAnimationFrame(measure);
     return () => { cancelAnimationFrame(frame); marked?.removeAttribute('data-tour-current'); };
-  }, [active, onPage, step, current.target, reducedMotion, bubbleSize]);
+  }, [active, onPage, step, current.path, current.target, reducedMotion, bubbleSize]);
 
   useEffect(() => {
     const element = bubble.current;
