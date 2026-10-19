@@ -284,7 +284,7 @@ export default function UserProfile({ username }: { username?: string }) {
         <h2>Nadaj profilowi swój charakter</h2><p>Dodaj opis i zainteresowania, a potem wybierz odznaki do gabloty.</p></div>
         <Button variant="outline" onClick={edit}>Uzupełnij profil</Button></section>}
       <BadgeShowcase badges={profileBadges} selectedIds={appearance.featuredBadgeIds} own={own} onEdit={edit} />
-      <section className="profile-section profile-badges" aria-labelledby="profile-badges-title">
+      <section className="profile-section profile-badges" aria-labelledby="profile-badges-title" data-tour={own ? 'profile-badges' : undefined}>
         <div className="profile-section-heading">
           <h2 id="profile-badges-title">Osiągnięcia</h2></div>
         {own ? <ResourceContent {...badges} placeholder={<TextSkeleton label="Ładowanie osiągnięć" />}><ProfileBadges badges={profileBadges} own /></ResourceContent>
@@ -294,7 +294,7 @@ export default function UserProfile({ username }: { username?: string }) {
         <h3>Bilans pojedynków</h3><ResourceContent {...stats} placeholder={<TextSkeleton label="Ładowanie bilansu" />}>{stats.data && <p>Ty <strong>{stats.data.winsAgainst}</strong> : <strong>{stats.data.lossesAgainst}</strong> {person.username}</p>}</ResourceContent>
       </section>}
       <div className="profile-details-grid">
-        <section className="profile-section profile-activity" aria-labelledby="profile-activity-title">
+        <section className="profile-section profile-activity" aria-labelledby="profile-activity-title" data-tour={own ? 'profile-activity' : undefined}>
           <div className="profile-section-heading"><h2 id="profile-activity-title">Regularność nauki</h2></div>
           <ResourceContent {...activity} placeholder={<LoadingSkeleton label="Ładowanie aktywności"><Skeleton height={140} radius={8} /></LoadingSkeleton>}><ActivityCalendar data={activity.data ?? []} /></ResourceContent>
         </section>

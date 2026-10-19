@@ -80,7 +80,7 @@ export default function OnboardingPage() {
         <p className="onboarding-step">Krok 1 z 2</p>
         <h1 ref={heading} tabIndex={-1} className="onboarding-title">Witaj w Hackademy{account ? `, ${account.username}` : ''}!</h1>
         <div className="onboarding-welcome-scene">
-          <Mascot mood="wave" scale={4} still={reducedMotion} className="onboarding-welcome-mascot" />
+          <Mascot mood="calm" scale={4} still={reducedMotion} className="onboarding-welcome-mascot" />
         </div>
         <MascotBubble id="onboarding-welcome" title="Cześć! Jestem Bit." mood="talk" still={reducedMotion} mascot={false}
           actions={<button type="button" className="ud-btn ud-btn-solid" onClick={() => setStep('studio')}>Stwórzmy Twojego awatara</button>}>

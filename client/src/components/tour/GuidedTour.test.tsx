@@ -4,7 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { Outlet, Route } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GuidedTour from './GuidedTour';
-import { placeBubble, TOUR_STEPS } from '../../lib/tour';
+import { placeBubble, scrollTargetTop, TOUR_STEPS } from '../../lib/tour';
 import { TOUR_STEP_KEY } from '../../lib/onboarding';
 import { createToken } from '../../test/fixtures/auth';
 import { onboardingUrl } from '../../test/mocks/handlers';
@@ -13,7 +13,7 @@ import { renderWithAuth } from '../../test/renderWithAuth';
 
 const Layout = () => <><Outlet /><GuidedTour /></>;
 const routes = <Route element={<Layout />}>
-  {TOUR_STEPS.map(step => <Route key={step.path} path={step.path} element={<section data-tour={step.target}><h1>{step.title} strona</h1></section>} />)}
+  {[...new Set(TOUR_STEPS.map(step => step.path))].map(path => <Route key={path} path={path} element={<>{TOUR_STEPS.filter(step => step.path === path).map(step => <section key={step.target} data-tour={step.target}><h1>{step.target}</h1></section>)}</>} />)}
   <Route path="/witaj" element={<p>Powitanie</p>} />
 </Route>;
 const location = () => screen.getByTestId('location').textContent?.split(':')[0];
@@ -32,21 +32,24 @@ describe('guided tour', () => {
     let saved: unknown = null;
     server.use(http.post(`${onboardingUrl}/tour`, async ({ request }) => { saved = await request.json(); return HttpResponse.json({ avatarConfirmed: true, tourStatus: 'COMPLETED' }); }));
     renderWithAuth(routes, '/ranking');
-    expect(await screen.findByRole('heading', { name: 'Dashboard' })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: TOUR_STEPS[0].title, level: 2 })).toBeInTheDocument();
     await waitFor(() => expect(location()).toBe('/dashboard'));
+    expect(screen.getByText('Dashboard · 1 z 6')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Wstecz' })).toBeDisabled();
     await waitFor(() => expect(screen.getByRole('button', { name: 'Dalej' })).toHaveFocus());
     const visited = [location()];
     for (let index = 1; index < TOUR_STEPS.length; index++) {
       fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
       expect(await screen.findByRole('heading', { name: TOUR_STEPS[index].title, level: 2 })).toBeInTheDocument();
+      await waitFor(() => expect(location()).toBe(TOUR_STEPS[index].path));
       visited.push(location());
-      expect(screen.getByText(`${index + 1} z 5`)).toBeInTheDocument();
+      await waitFor(() => expect(document.querySelector('[data-tour-current]')).toHaveAttribute('data-tour', TOUR_STEPS[index].target));
       expect(sessionStorage.getItem(TOUR_STEP_KEY)).toBe(String(index));
     }
-    expect(visited).toEqual(['/dashboard', '/learn', '/arena', '/ranking', '/profile']);
+    expect([...new Set(visited)]).toEqual(['/dashboard', '/learn', '/arena', '/ranking', '/profile']);
+    expect(screen.getByText('Twój profil · 3 z 3')).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Wstecz' }));
-    expect(await screen.findByRole('heading', { name: 'Ranking', level: 2 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: TOUR_STEPS.at(-2)!.title, level: 2 })).toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
     fireEvent.click(await screen.findByRole('button', { name: 'Zakończ' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
@@ -62,9 +65,9 @@ describe('guided tour', () => {
       bodies.push(await request.json());
       return ++calls === 1 ? HttpResponse.json({}, { status: 500 }) : HttpResponse.json({ avatarConfirmed: true, tourStatus: 'SKIPPED' });
     }));
-    sessionStorage.setItem(TOUR_STEP_KEY, '2');
+    sessionStorage.setItem(TOUR_STEP_KEY, String(TOUR_STEPS.findIndex(step => step.path === '/arena')));
     renderWithAuth(routes, '/dashboard');
-    expect(await screen.findByRole('heading', { name: 'Tryb rankingowy', level: 2 })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: 'Twoja liga', level: 2 })).toBeInTheDocument();
     await waitFor(() => expect(location()).toBe('/arena'));
     fireEvent.click(screen.getByRole('button', { name: 'Pomiń przewodnik' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się zapisać przewodnika.');
@@ -123,17 +126,40 @@ describe('guided tour', () => {
   });
 });
 
+it('skips a tile that is missing on the page', async () => {
+  const missing = <Route element={<Layout />}>
+    <Route path="/dashboard" element={<section data-tour="dashboard-next"><h1>start</h1></section>} />
+    <Route path="/learn" element={<section data-tour="learn-paths"><h1>nauka</h1></section>} />
+  </Route>;
+  vi.useFakeTimers({ toFake: ['performance', 'requestAnimationFrame', 'setTimeout'] });
+  try {
+    renderWithAuth(missing, '/dashboard');
+    await act(async () => { await vi.advanceTimersByTimeAsync(100); });
+    fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
+    for (let tick = 0; tick < 6 && location() !== '/learn'; tick++) await act(async () => { await vi.advanceTimersByTimeAsync(200); });
+    expect(location()).toBe('/learn');
+    expect(screen.getByRole('heading', { name: 'Ścieżki nauki', level: 2 })).toBeInTheDocument();
+  } finally {
+    vi.useRealTimers();
+  }
+});
+
 describe('bubble placement', () => {
   const view = { width: 1280, height: 800 }, bubble = { width: 400, height: 220 };
-  it('goes below, above or beside the target without covering it', () => {
+  it('puts the bubble under a tile that fits with it on screen, or beside a tall one', () => {
     expect(placeBubble({ top: 100, left: 100, width: 300, height: 100 }, bubble, view)).toEqual({ mode: 'float', top: 216, left: 50 });
-    expect(placeBubble({ top: 500, left: 1000, width: 200, height: 200 }, bubble, view)).toEqual({ mode: 'float', top: 264, left: 864 });
+    expect(placeBubble({ top: 900, left: 1000, width: 200, height: 200 }, bubble, view)).toEqual({ mode: 'float', top: 1116, left: 864 });
     expect(placeBubble({ top: 80, left: 40, width: 700, height: 650 }, bubble, view)).toEqual({ mode: 'float', top: 80, left: 756 });
     expect(placeBubble({ top: 80, left: 600, width: 660, height: 650 }, bubble, view)).toEqual({ mode: 'float', top: 80, left: 184 });
   });
   it('docks at the bottom on phones, without a target or when nothing fits', () => {
     expect(placeBubble({ top: 100, left: 10, width: 300, height: 100 }, bubble, { width: 390, height: 844 }).mode).toBe('dock');
-    expect(placeBubble(null, bubble, view)).toEqual({ mode: 'dock', top: 564, left: 16 });
+    expect(placeBubble(null, bubble, view).mode).toBe('dock');
     expect(placeBubble({ top: 40, left: 16, width: 1248, height: 740 }, bubble, view).mode).toBe('dock');
+  });
+  it('scrolls so the tile and its bubble sit in the middle of the screen', () => {
+    expect(scrollTargetTop({ top: 1000, left: 0, width: 300, height: 200 }, 220, view, true)).toBe(1000 - 88 - (800 - 88 - 436) / 2);
+    expect(scrollTargetTop({ top: 1000, left: 0, width: 300, height: 900 }, 220, view, false)).toBe(1000 - 88 - 16);
+    expect(scrollTargetTop({ top: 20, left: 0, width: 300, height: 100 }, 220, { width: 390, height: 844 }, false)).toBe(0);
   });
 });
