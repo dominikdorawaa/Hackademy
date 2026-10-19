@@ -44,10 +44,10 @@ it('customizes colors, previews animations and saves the avatar', () => {
   expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled();
   fireEvent.click(screen.getByRole('radio', { name: 'Skóra: Hebanowa' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Włosy: Rude' }));
-  fireEvent.click(screen.getByRole('radio', { name: 'Góra: Turkusowy' }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Góra: Bordowy' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Dół: Biały' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Buty: Czerwony' }));
-  expect(atlas.last!.colors).toMatchObject({ skin: 'heban', hair: 'rude', top: 'turkusowy', bottom: 'bialy', shoes: 'czerwony' });
+  expect(atlas.last!.colors).toMatchObject({ skin: 'heban', hair: 'rude', top: 'bordowy', bottom: 'bialy', shoes: 'czerwony' });
   expect(screen.getByText('Masz niezapisane zmiany.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Bieg' }));
   expect(screen.getByRole('button', { name: 'Bieg' })).toHaveAttribute('aria-pressed', 'true');
@@ -63,7 +63,7 @@ it('customizes colors, previews animations and saves the avatar', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Upadek' }));
   expect(screen.getByRole('img', { name: 'Awatar, animacja: Upadek' })).toHaveAttribute('data-frame', '46');
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
-  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ outfit: 'baza', colors: { skin: 'heban', hair: 'rude', top: 'turkusowy', bottom: 'bialy', shoes: 'czerwony' } });
+  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ outfit: 'baza', colors: { skin: 'heban', hair: 'rude', top: 'bordowy', bottom: 'bialy', shoes: 'czerwony' } });
   expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled();
 });
 
@@ -80,8 +80,8 @@ it('chooses a hairstyle and a hat, and hides the hair under the hat', () => {
   expect(screen.getByRole('radio', { name: /^Krótkie$/ })).toBeChecked();
   fireEvent.click(screen.getByRole('radio', { name: /^Irokez$/ }));
   fireEvent.click(screen.getByRole('radio', { name: /^Daszek$/ }));
-  fireEvent.click(screen.getByRole('radio', { name: 'Kolor czapki: Turkusowy' }));
-  expect(atlas.last).toMatchObject({ outfit: 'baza', hair: 'irokez', hat: 'daszek', colors: { hat: 'turkusowy' } });
+  fireEvent.click(screen.getByRole('radio', { name: 'Kolor czapki: Bordowy' }));
+  expect(atlas.last).toMatchObject({ outfit: 'baza', hair: 'irokez', hat: 'daszek', colors: { hat: 'bordowy' } });
   expect(screen.getByText('Pod czapką fryzura jest schowana. Zdejmij czapkę, żeby ją zobaczyć.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('radio', { name: /^Bez czapki$/ }));
   expect(screen.queryByText(/Pod czapką/)).not.toBeInTheDocument();

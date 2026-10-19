@@ -62,9 +62,9 @@ it('changes the outfit, head, colours and icon pose', () => {
   expect(screen.getByText(/Pod czapką fryzura jest schowana/)).toBeInTheDocument();
   expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ hair: 'irokez', hat: 'daszek' }));
   fireEvent.click(screen.getByRole('tab', { name: 'Kolory' }));
-  fireEvent.click(screen.getByRole('radio', { name: 'Kolor czapki: Turkusowy' }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Kolor czapki: Bordowy' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Skóra: Hebanowa' }));
-  expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ colors: expect.objectContaining({ hat: 'turkusowy', skin: 'heban' }) }));
+  expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ colors: expect.objectContaining({ hat: 'bordowy', skin: 'heban' }) }));
   fireEvent.click(screen.getByRole('tab', { name: 'Ikona profilu' }));
   fireEvent.click(screen.getByRole('radio', { name: /Postawa/ }));
   expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ pose: 'postawa' }));

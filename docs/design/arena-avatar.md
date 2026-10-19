@@ -8,6 +8,8 @@ The player picks an outfit (Klasyczna, Bluza or Dres), a hairstyle (short, mohaw
 
 Signed-in players load the avatar from the account and save it there; when saving fails the creator keeps the unsaved changes and says so, and the navigation bar updates without reloading. Guests keep a browser-only copy.
 
+Every colour group offers six or seven of the most popular colours that fit the sprites (all six skin tones and hair colours; white, graphite, navy, red, burgundy, olive and sand for clothes) and a rainbow square that opens a colour wheel. The wheel picks hue and saturation, a slider sets brightness and a field takes any hex code; arrow keys move on the wheel. A custom colour is stored as `#rrggbb` (lowercase) in the same column as the named ones (migration V18 and `UserAvatarDto` accept both), and `rampFromHex` turns it into the four shade steps used for recolouring. Older named colours outside the presets, such as turquoise, stay valid and show as the custom choice.
+
 ## Assets
 
 `client/public/assets/arena/avatar-v1` holds one 576x832 atlas per outfit (`fighter.png`, `hoodie/fighter.png`, `track/fighter.png`): rows for stance, the palm strike, the Przeciążenie finisher in rows 2 and 3, hurt and fall, then Luz in rows 6 and 7, Six-seven in rows 8 and 9, an eight-frame running loop in row 10 and the Ctrl+Alt+Del finisher in rows 11 and 12. All outfits share one bald head, so the same hair and hat overlays fit every outfit. The front view lives in `avatar-v1/front` with its own overlays and anchors. The calm side profile lives in `avatar-v1/profile`, one image and one head anchor per outfit, and reuses the side hair and hat overlays. Every generated image is listed with its source in `provenance.json` and `front/provenance-hashes.json`.

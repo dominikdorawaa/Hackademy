@@ -6,7 +6,8 @@ import { useAvatarAtlas, useAvatarPortrait } from '../arena/avatar/useAvatarAtla
 import { AVATAR_POSES, HAIR_STYLES, HAT_STYLES, toAvatarConfig } from '../arena/avatar/avatarModel';
 import type { Avatar } from '../arena/avatar/avatarModel';
 import { AVATAR_ATLASES } from '../arena/avatar/fighters';
-import { COLOR_GROUPS, COLOR_NAMES, HAIR_NAMES, HAT_NAMES, LIGHT_COLORS, OUTFITS, POSE_NAMES } from '../arena/avatar/avatarOptions';
+import { COLOR_GROUPS, HAIR_NAMES, HAT_NAMES, OUTFITS, POSE_NAMES } from '../arena/avatar/avatarOptions';
+import { ColorChoices } from '../arena/avatar/ColorChoices';
 import { ArenaLoader } from '../arena/ArenaLoader';
 
 export type StudioTab = 'outfit' | 'head' | 'colors' | 'icon';
@@ -96,17 +97,9 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
         </div>}
 
         {tab === 'colors' && <div className="studio-colors">
-          {COLOR_GROUPS.filter(group => group.key !== 'hat' || avatar.hat !== 'brak').map(group => <div key={group.key} className="studio-group">
-            <h3 id={`${id}-color-${group.key}`}>{group.legend} <span>{COLOR_NAMES[avatar.colors[group.key]]}</span></h3>
-            <div className="studio-swatches" role="radiogroup" aria-labelledby={`${id}-color-${group.key}`}>
-              {Object.entries(group.options).map(([color, ramp]) => <label key={color} className="studio-swatch" data-selected={avatar.colors[group.key] === color} title={COLOR_NAMES[color]}>
-                <input type="radio" name={`${id}-${group.key}`} checked={avatar.colors[group.key] === color} onChange={() => setColor(group.key, color)} aria-label={`${group.legend}: ${COLOR_NAMES[color]}`} />
-                <span style={{ background: `linear-gradient(135deg, ${ramp[3]} 0 45%, ${ramp[1]} 45% 100%)` }} aria-hidden="true">
-                  {avatar.colors[group.key] === color && <Check size={16} style={{ color: LIGHT_COLORS.includes(color) ? '#111827' : '#ffffff' }} />}
-                </span>
-              </label>)}
-            </div>
-          </div>)}
+          {COLOR_GROUPS.filter(group => group.key !== 'hat' || avatar.hat !== 'brak').map(group => <ColorChoices key={group.key} legend={group.legend}
+            value={avatar.colors[group.key]} options={group.options} presets={group.presets} name={`${id}-${group.key}`} onChange={value => setColor(group.key, value)} />)}
+          <p className="studio-hint">Kliknij kolorowy kwadracik, żeby wybrać dowolny kolor z koła.</p>
         </div>}
 
         {tab === 'icon' && <div className="studio-group">

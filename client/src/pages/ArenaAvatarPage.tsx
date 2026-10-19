@@ -10,7 +10,8 @@ import { AvatarSprite } from '../components/arena/avatar/AvatarSprite';
 import { useAvatarAtlas, useAvatarPortrait } from '../components/arena/avatar/useAvatarAtlas';
 import { AVATAR_POSES, fromAvatarConfig, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, toAvatarConfig } from '../components/arena/avatar/avatarModel';
 import type { Avatar } from '../components/arena/avatar/avatarModel';
-import { COLOR_GROUPS, COLOR_NAMES as NAMES, HAIR_NAMES, HAT_NAMES, LIGHT_COLORS, OUTFITS, POSE_NAMES } from '../components/arena/avatar/avatarOptions';
+import { COLOR_GROUPS, HAIR_NAMES, HAT_NAMES, OUTFITS, POSE_NAMES } from '../components/arena/avatar/avatarOptions';
+import { ColorChoices } from '../components/arena/avatar/ColorChoices';
 import { AVATAR_ATLASES, danceFrames, RUN_FRAME_TIME, runFrames } from '../components/arena/avatar/fighters';
 import type { AvatarAtlasSource } from '../components/arena/avatar/fighters';
 import './ArenaAvatarPage.css';
@@ -136,12 +137,8 @@ export default function ArenaAvatarPage() {
         <div className="avatar-section">
         <h2>Kolory</h2>
         <div className="avatar-colors">
-        {COLOR_GROUPS.map(group => <fieldset key={group.key}><legend><span>{group.legend}</span><span className="avatar-color-name">{NAMES[avatar.colors[group.key]]}</span></legend><div className="avatar-swatches">
-          {Object.entries(group.options).map(([id, ramp]) => <label key={id} data-selected={avatar.colors[group.key] === id} title={NAMES[id]}>
-            <input type="radio" name={`avatar-${group.key}`} value={id} checked={avatar.colors[group.key] === id} onChange={() => setColor(group.key, id)} aria-label={`${group.legend}: ${NAMES[id]}`} />
-            <span style={{ backgroundColor: ramp[2] }} aria-hidden="true">{avatar.colors[group.key] === id && <Check size={14} style={{ color: LIGHT_COLORS.includes(id) ? '#111827' : '#ffffff' }} />}</span>
-          </label>)}
-        </div></fieldset>)}
+        {COLOR_GROUPS.map(group => <ColorChoices key={group.key} legend={group.legend} value={avatar.colors[group.key]} options={group.options}
+          presets={group.presets} name={`avatar-${group.key}`} onChange={value => setColor(group.key, value)} />)}
         </div>
         </div>
         <div className="avatar-section">
