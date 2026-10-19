@@ -94,12 +94,12 @@ function formatDate(date: string) {
 }
 
 export default function UserProfile({ username }: { username?: string }) {
-  const { token, logout } = useAuth();
+  const { sessionKey, logout } = useAuth();
   const navigate = useNavigate();
   const own = !username;
   const headers = useMemo(
-    () => ({ Authorization: `Bearer ${token}` }),
-    [token],
+    () => ({ sessionKey }),
+    [sessionKey],
   );
   const unauthorized = useCallback(() => {
     logout();
@@ -133,18 +133,18 @@ export default function UserProfile({ username }: { username?: string }) {
     (signal: AbortSignal) => friendApi.getStats(username!, headers, signal),
     [username, headers],
   );
-  const profile = useApiResource(loadProfile, unauthorized, !!token);
-  const activity = useApiResource(loadActivity, unauthorized, !!token);
-  const badges = useApiResource(loadBadges, unauthorized, own && !!token);
+  const profile = useApiResource(loadProfile, unauthorized, !!sessionKey);
+  const activity = useApiResource(loadActivity, unauthorized, !!sessionKey);
+  const badges = useApiResource(loadBadges, unauthorized, own && !!sessionKey);
   const friendship = useApiResource(
     loadFriendship,
     unauthorized,
-    !own && !!token,
+    !own && !!sessionKey,
   );
   const stats = useApiResource(
     loadStats,
     unauthorized,
-    !own && !!token && friendship.data?.status === 'FRIENDS',
+    !own && !!sessionKey && friendship.data?.status === 'FRIENDS',
   );
   const [personalization, setPersonalization] = useState<ProfilePersonalization | null>(null);
   const [editing, setEditing] = useState(false);

@@ -29,7 +29,7 @@ const writeStep = (step: number | null) => {
 };
 
 export default function GuidedTour() {
-  const { token, isAuthenticated } = useAuth();
+  const { sessionKey, isAuthenticated } = useAuth();
   const { status, state, update } = useOnboarding();
   const location = useLocation();
   const navigate = useNavigate();
@@ -148,11 +148,11 @@ export default function GuidedTour() {
 
 
   const finish = useCallback(async (result: 'COMPLETED' | 'SKIPPED') => {
-    if (!token || saving) return;
+    if (!sessionKey || saving) return;
     setSaving(result);
     setError(false);
     try {
-      const response = await finishTour(result, { Authorization: `Bearer ${token}` });
+      const response = await finishTour(result, { sessionKey });
       if (!response.ok) throw new Error('tour');
       writeStep(null);
       update(await response.json());
@@ -161,7 +161,7 @@ export default function GuidedTour() {
     } finally {
       setSaving(null);
     }
-  }, [token, saving, update]);
+  }, [sessionKey, saving, update]);
 
   if (!active) return null;
 

@@ -1,6 +1,8 @@
 package com.hackademy.server.user;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.jpa.repository.Modifying;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.Lock;
@@ -26,6 +28,15 @@ public interface UserRepository extends JpaRepository<User, Long> {
     Optional<User> findByUsernameIgnoringCase(String username);
 
     Optional<User> findByEmail(String email);
+
+    Optional<User> findByClerkUserId(String clerkUserId);
+
+    List<User> findByClerkUserIdIsNullOrderByIdAsc();
+
+    @Modifying
+    @Transactional
+    @Query("UPDATE User u SET u.email = :email WHERE u.id = :id AND u.clerkUserId = :clerkUserId")
+    int updateClerkEmail(Long id, String clerkUserId, String email);
 
     List<User> findByUsernameContainingIgnoreCase(String username);
 

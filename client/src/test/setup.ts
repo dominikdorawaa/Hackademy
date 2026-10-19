@@ -1,6 +1,7 @@
+import { setClerkSession } from './clerk';
 import '@testing-library/jest-dom/vitest';
 import { cleanup } from '@testing-library/react';
-import { afterAll, afterEach, beforeAll } from 'vitest';
+import { afterAll, afterEach, beforeAll, vi } from 'vitest';
 import { server } from './mocks/server';
 
 Object.defineProperty(HTMLDialogElement.prototype, 'showModal', {
@@ -12,10 +13,16 @@ Object.defineProperty(HTMLDialogElement.prototype, 'close', {
   value() { this.removeAttribute('open'); },
 });
 
+vi.mock('@clerk/react', async () => {
+  const mock = await import('./clerk');
+  return { useAuth: mock.useMockAuth, useClerk: mock.useMockClerk, SignIn: mock.MockSignIn, SignUp: mock.MockSignUp };
+});
+
 beforeAll(() => server.listen({ onUnhandledRequest: 'error' }));
 
 afterEach(() => {
   cleanup();
+  setClerkSession(null);
   localStorage.clear();
   server.resetHandlers();
 });

@@ -26,6 +26,7 @@ import SettingsPage from './pages/SettingsPage';
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import adminRoutes from './pages/admin/adminRoutes';
 import NotFoundPage from './pages/NotFoundPage';
+import { PrivacyPage, TermsPage } from './pages/LegalPages';
 import { ArenaLoader } from './components/arena/ArenaLoader';
 
 const UkosPage = lazy(() => import('./ukos/UkosPage'));
@@ -58,8 +59,8 @@ function App() {
           {adminRoutes}
           <Route element={<SiteLayout />}>
             <Route path="/" element={<HomePage />} />
-            <Route path="/login" element={<LoginPage />} />
-            <Route path="/register" element={<RegisterPage />} />
+            <Route path="/login/*" element={<LoginPage />} />
+            <Route path="/register/*" element={<RegisterPage />} />
             <Route path="/witaj" element={<ProtectedRoute onboarding><Suspense fallback={<ArenaLoader label="Wczytuję powitanie" />}><OnboardingPage /></Suspense></ProtectedRoute>} />
             <Route path="/arena/avatar" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Ładowanie kreatora awatara" />}><ArenaAvatarPage /></Suspense></ProtectedRoute>} />
 
@@ -74,6 +75,8 @@ function App() {
             />
             <Route path="/learn/ukos" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Ładowanie Dyżuru Zero" />}><UkosPage /></Suspense></ProtectedRoute>} />
             <Route path="/ranking" element={<RankingPage />} />
+            <Route path="/privacy" element={<PrivacyPage />} />
+            <Route path="/terms" element={<TermsPage />} />
             <Route
               path="/dashboard"
               element={

@@ -4,7 +4,7 @@ import { useAuth } from '../context/AuthContext';
 import type { VpnStatus } from '../types/api';
 
 const VpnPage = () => {
-    const { token, user } = useAuth();
+    const { sessionKey, user } = useAuth();
     const [loading, setLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [status, setStatus] = useState<VpnStatus | null>(null);
@@ -13,7 +13,7 @@ const VpnPage = () => {
     useEffect(() => {
         const checkStatus = async () => {
             try {
-                const response = await vpnApi.getStatus({ 'Authorization': `Bearer ${token}` });
+                const response = await vpnApi.getStatus({ sessionKey });
                 if (response.ok) {
                     const data = await response.json();
                     setStatus(data);
@@ -25,14 +25,14 @@ const VpnPage = () => {
             }
         };
         checkStatus();
-    }, [token]);
+    }, [sessionKey]);
 
     const handleDownload = async () => {
         setLoading(true);
         setError(null);
         try {
             const response = await vpnApi.downloadConfig({
-                    'Authorization': `Bearer ${token}`
+                    sessionKey
                 });
 
             if (response.ok) {

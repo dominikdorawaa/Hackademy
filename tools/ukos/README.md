@@ -57,7 +57,7 @@ Pomiar localhost nie obejmuje wolnej sieci. Przed produkcją potrzebne są testy
 
 ## Pełne Laboratorium 1
 
-Widok aplikacji to `/learn/ukos`, z dostępem przez kartę na liście ścieżek. Po `npm run ukos:prepare` uruchom `npm run dev`, lokalny backend i Postgresa. `npm run ukos:test:course` sprawdza pełne przejście z rzeczywistym API na porcie 8080 i frontendem na 5173. Test tworzy własne konta lokalne. Nigdy nie wskazuj w nim produkcyjnej bazy ani API.
+Widok aplikacji to `/learn/ukos`, z dostępem przez kartę na liście ścieżek. Po `npm run ukos:prepare` uruchom `npm run dev`, lokalny backend i Postgresa. `npm run ukos:test:course` sprawdza pełne przejście z rzeczywistym API na porcie 8080 i frontendem na 5173. Test tworzy tymczasowe konta w instancji Clerk Development przez `@clerk/testing` i usuwa je po zakończeniu. Wymaga `CLERK_SECRET_KEY` z kluczem `sk_test_` w zmiennej procesu oraz `VITE_CLERK_PUBLISHABLE_KEY` z kluczem `pk_test_` w `client/.env.local`; klucze Production są odrzucane. Nigdy nie wskazuj w nim produkcyjnej bazy ani API.
 
 Standardowy build zawiera teraz osobne, ładowane na żądanie moduły kursu i runtime. Obrazy są kopiowane do `dist/prototypes/runtime/`; nie są pobierane przy zwykłym wejściu na stronę. CI przygotowuje je przed buildem. `docker compose build frontend` buduje obraz Linuksa w osobnym etapie, bez Dockera wewnątrz kontenera. Kontekst budowy frontendu to katalog główny repozytorium.
 

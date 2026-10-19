@@ -125,7 +125,7 @@ const DashboardSkeleton = () => (
 );
 
 const UserDashboardPage = () => {
-  const { token, logout } = useAuth();
+  const { sessionKey, logout } = useAuth();
   const navigate = useNavigate();
 
   const [userData, setUserData] = useState<(DashboardUser & { xp?: number }) | null>(null);
@@ -155,9 +155,7 @@ const UserDashboardPage = () => {
         setLoading(true);
         setError(null);
 
-        const headers = {
-          'Content-Type': 'application/json',
-          ...(token && { Authorization: `Bearer ${token}` }),
+        const headers = {sessionKey,
         };
 
         const res = await dashboardApi.getSummary(headers);
@@ -193,7 +191,7 @@ const UserDashboardPage = () => {
       }
     };
 
-    if (!token) {
+    if (!sessionKey) {
       logout();
       navigate('/login');
       return;
@@ -203,14 +201,12 @@ const UserDashboardPage = () => {
     return () => {
       isCancelled = true;
     };
-  }, [token, logout, navigate, reloadKey]);
+  }, [sessionKey, logout, navigate, reloadKey]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
 
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+    const headers = {sessionKey,
     };
 
     const refreshRecentSolved = async () => {
@@ -244,14 +240,12 @@ const UserDashboardPage = () => {
       window.removeEventListener('focus', onFocus);
       window.clearInterval(interval);
     };
-  }, [token]);
+  }, [sessionKey]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
 
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+    const headers = {sessionKey,
     };
 
     let inFlight = false;
@@ -279,14 +273,12 @@ const UserDashboardPage = () => {
 
     const interval = window.setInterval(tick, 15000);
     return () => window.clearInterval(interval);
-  }, [token]);
+  }, [sessionKey]);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
     let cancelled = false;
-    const headers = {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
+    const headers = {sessionKey,
     };
 
     const loadFriends = async () => {
@@ -324,14 +316,14 @@ const UserDashboardPage = () => {
     return () => {
       cancelled = true;
     };
-  }, [token]);
+  }, [sessionKey]);
 
   const challenge = async (username: string) => {
     setChallenges((c) => ({ ...c, [username]: 'sending' }));
     try {
       const res = await arenaApi.createChallenge(
         { targetUsername: username },
-        { 'Content-Type': 'application/json', Authorization: `Bearer ${token}` },
+        {sessionKey },
       );
       if (res.ok) {
         setChallenges((c) => ({ ...c, [username]: 'sent' }));
@@ -668,7 +660,7 @@ const UserDashboardPage = () => {
                     <li key={f.id} className="ud-friend">
                       <UserAvatar className="ud-friend-avatar" username={f.username} avatar={f.avatar} alt="" />
                       <span className="ud-friend-who">
-                        <ProfilePeek className="ud-friend-name" username={f.username} token={token} />
+                        <ProfilePeek className="ud-friend-name" username={f.username} sessionKey={sessionKey} />
                         <span className="ud-friend-xp">
                           {formatNumberPL(f.points)} XP, poziom {levelFromPoints(f.points)}
                         </span>
@@ -774,7 +766,7 @@ const UserDashboardPage = () => {
                       <li key={`${p.pos}-${p?.username}`} className={isMe ? 'is-me' : undefined} aria-current={isMe ? 'true' : undefined}>
                         <span className="ud-pos">{p.pos}</span>
                         {p?.username ? (
-                          <ProfilePeek className="ud-name" username={p.username} token={token} isMe={Boolean(isMe)} />
+                          <ProfilePeek className="ud-name" username={p.username} sessionKey={sessionKey} isMe={Boolean(isMe)} />
                         ) : (
                           <span className="ud-name">–</span>
                         )}

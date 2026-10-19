@@ -1,4 +1,3 @@
-import type { AuthUser } from '../../context/AuthContext';
 import type { DashboardUser, LoginRequest, Role } from '../../types/api';
 
 export const credentials: LoginRequest = {
@@ -7,7 +6,7 @@ export const credentials: LoginRequest = {
 };
 
 export function createToken(role: Role = 'USER', exp = Math.floor(Date.now() / 1000) + 3600) {
-  const payload: AuthUser = { sub: 'tester', roles: [`ROLE_${role}`], exp };
+  const payload = { sub: 'tester', roles: [`ROLE_${role}`], exp };
   return `${btoa('{}')}.${btoa(JSON.stringify(payload))}.signature`;
 }
 

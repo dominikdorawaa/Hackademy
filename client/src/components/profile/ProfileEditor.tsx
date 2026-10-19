@@ -13,7 +13,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
   username: string; initial: ProfilePersonalization; badges: BadgeDto[];
   onSaved: (profile: ProfilePersonalization) => void; onClose: () => void; onUnauthorized: () => void;
 }) {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const id = useId();
   const dialog = useRef<HTMLDialogElement>(null);
   const discardDialog = useRef<HTMLDialogElement>(null);
@@ -81,7 +81,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     pending.current = controller;
     setSaving(true); setError('');
     try {
-      const response = await updateProfile(draft, { Authorization: `Bearer ${token}` }, controller.signal);
+      const response = await updateProfile(draft, { sessionKey }, controller.signal);
       if (controller.signal.aborted) return;
       if (response.status === 401 || response.status === 403) { onUnauthorized(); return; }
       if (!response.ok) {

@@ -15,7 +15,7 @@ export class CourseError extends Error {
 }
 
 export async function courseRequest(
-  token: string,
+  sessionKey: string,
   completedSteps?: number,
 ): Promise<CourseState> {
   const update = completedSteps !== undefined;
@@ -23,10 +23,7 @@ export async function courseRequest(
     `/api/ukos/lab-1${update ? "/progress" : ""}`,
     {
       method: update ? "PUT" : "GET",
-      headers: {
-        Authorization: `Bearer ${token}`,
-        "Content-Type": "application/json",
-      },
+      auth: { sessionKey },
       ...(update ? { body: JSON.stringify({ completedSteps }) } : {}),
     },
   );

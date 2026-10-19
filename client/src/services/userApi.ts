@@ -1,4 +1,5 @@
 import { request } from './http';
+import type { SessionScope } from './http';
 import type {
   ActivityDto,
   RecentSolvedRoomDto,
@@ -9,7 +10,7 @@ import type {
   ProfilePortfolioDto,
 } from '../types/api';
 import type { ProfilePersonalization } from '../lib/profile';
-import type { AuthResponse, AvatarConfig } from '../types/api';
+import type { AvatarConfig } from '../types/api';
 
 export interface NotificationPreferences {
   friendRequests: boolean;
@@ -17,83 +18,78 @@ export interface NotificationPreferences {
   matchFound: boolean;
   sound: boolean;
   browserNotifications: boolean;
+  friendOnline: boolean;
+  friendOnlineBell: boolean;
 }
 
 export const defaultNotificationPreferences: NotificationPreferences = {
-  friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: false,
+  friendRequests: true, challenges: true, matchFound: true, sound: true, browserNotifications: false, friendOnline: true, friendOnlineBell: true,
 };
 
-export function getNotificationPreferences(headers: HeadersInit, signal?: AbortSignal) {
-  return request<NotificationPreferences>('/api/user/me/notification-preferences', { method: 'GET', headers, signal });
+export function getNotificationPreferences(auth: SessionScope, signal?: AbortSignal) {
+  return request<NotificationPreferences>('/api/user/me/notification-preferences', { method: 'GET', auth, signal });
 }
 
-export function saveNotificationPreference(preference: keyof NotificationPreferences, enabled: boolean, headers: HeadersInit, signal?: AbortSignal) {
+export function saveNotificationPreference(preference: keyof NotificationPreferences, enabled: boolean, auth: SessionScope, signal?: AbortSignal) {
   return request<NotificationPreferences>('/api/user/me/notification-preferences', {
-    method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    method: 'PATCH', auth, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ preference, enabled }), signal,
   });
 }
 
-export function changePassword(currentPassword: string, newPassword: string, headers: HeadersInit) {
-  return request<void>('/api/user/me/password', {
-    method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ currentPassword, newPassword }),
-  });
-}
-
-export function changeUsername(newUsername: string, headers: HeadersInit) {
-  return request<AuthResponse>('/api/user/me/username', {
-    method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+export function changeUsername(newUsername: string, auth: SessionScope) {
+  return request<{ username: string }>('/api/user/me/username', {
+    method: 'PATCH', auth, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ newUsername }),
   });
 }
 
-export function updateProfile(profile: ProfilePersonalization, headers: HeadersInit, signal?: AbortSignal) {
+export function updateProfile(profile: ProfilePersonalization, auth: SessionScope, signal?: AbortSignal) {
   return request<ProfilePersonalization>('/api/user/me/profile', {
-    method: 'PATCH', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    method: 'PATCH', auth, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(profile), signal,
   });
 }
 
-export function saveAvatar(avatar: AvatarConfig, headers: HeadersInit, signal?: AbortSignal) {
+export function saveAvatar(avatar: AvatarConfig, auth: SessionScope, signal?: AbortSignal) {
   return request<AvatarConfig>('/api/user/me/avatar', {
-    method: 'PUT', headers: { ...Object.fromEntries(new Headers(headers)), 'Content-Type': 'application/json' },
+    method: 'PUT', auth, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(avatar), signal,
   });
 }
 
-export function getCurrentUser(headers: HeadersInit, signal?: AbortSignal) {
+export function getCurrentUser(auth: SessionScope, signal?: AbortSignal) {
   return request<DashboardUser>(`/api/user/me`, {
     method: 'GET',
-    headers,
+    auth,
     ...(signal ? { signal } : {}),
   });
 }
 
-export function getPortfolio(username: string | undefined, headers: HeadersInit, signal?: AbortSignal) {
+export function getPortfolio(username: string | undefined, auth: SessionScope, signal?: AbortSignal) {
   return request<ProfilePortfolioDto>(`/api/user/${username ? encodeURIComponent(username) : 'me'}/portfolio`, {
-    method: 'GET', headers, signal,
+    method: 'GET', auth, signal,
   });
 }
 
-export function getMyActivity(headers: HeadersInit, signal?: AbortSignal) {
+export function getMyActivity(auth: SessionScope, signal?: AbortSignal) {
   return request<ActivityDto[]>(`/api/user/me/activity`, {
     method: 'GET',
-    headers,
+    auth,
     signal,
   });
 }
 
 export function getProfileStats(
   username: string | undefined,
-  headers: HeadersInit,
+  auth: SessionScope,
   signal?: AbortSignal,
 ) {
   return request<ProfileStatsDto>(
     `/api/user/${username ? encodeURIComponent(username) : 'me'}/stats`,
     {
       method: 'GET',
-      headers,
+      auth,
       signal,
     },
   );
@@ -101,14 +97,14 @@ export function getProfileStats(
 
 export function getRecentSolved(
   limit: number,
-  headers: HeadersInit,
+  auth: SessionScope,
   signal?: AbortSignal,
 ) {
   return request<RecentSolvedRoomDto[]>(
     `/api/user/me/recent-solved?limit=${limit}`,
     {
       method: 'GET',
-      headers,
+      auth,
       signal,
     },
   );
@@ -116,32 +112,32 @@ export function getRecentSolved(
 
 export function addActiveTime(
   data: { deltaSeconds: number },
-  headers: HeadersInit,
+  auth: SessionScope,
 ) {
   return request<{ secondsThisWeek: number }>(`/api/user/me/active-time`, {
     method: 'POST',
-    headers,
+    auth,
     body: JSON.stringify(data),
   });
 }
 
-export function searchUsers(query: string, headers: HeadersInit) {
+export function searchUsers(query: string, auth: SessionScope) {
   return request<UserSearchDto[]>(`/api/user/search?query=${query}`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
 export function getActivity(
   username: string,
-  headers: HeadersInit,
+  auth: SessionScope,
   signal?: AbortSignal,
 ) {
   return request<ActivityDto[]>(
     `/api/user/${encodeURIComponent(username)}/activity`,
     {
       method: 'GET',
-      headers,
+      auth,
       signal,
     },
   );
@@ -149,12 +145,12 @@ export function getActivity(
 
 export function getProfile(
   username: string,
-  headers: HeadersInit,
+  auth: SessionScope,
   signal?: AbortSignal,
 ) {
   return request<UserProfileDto>(`/api/user/${encodeURIComponent(username)}`, {
     method: 'GET',
-    headers,
+    auth,
     signal,
   });
 }
@@ -162,14 +158,14 @@ export function getProfile(
 export function getUserRecentSolved(
   username: string,
   limit: number,
-  headers: HeadersInit,
+  auth: SessionScope,
   signal?: AbortSignal,
 ) {
   return request<RecentSolvedRoomDto[]>(
     `/api/user/${encodeURIComponent(username)}/recent-solved?limit=${limit}`,
     {
       method: 'GET',
-      headers,
+      auth,
       signal,
     },
   );
@@ -177,15 +173,12 @@ export function getUserRecentSolved(
 
 export function updateBio(
   bio: string,
-  headers: HeadersInit,
+  auth: SessionScope,
   signal?: AbortSignal,
 ) {
   return request<void>('/api/user/me/bio', {
     method: 'PATCH',
-    headers: {
-      ...Object.fromEntries(new Headers(headers)),
-      'Content-Type': 'application/json',
-    },
+    auth, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ bio }),
     signal,
   });

@@ -16,7 +16,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
 
   const [room, setRoom] = useState<RoomDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -48,7 +48,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
   const queryParams = new URLSearchParams(location.search);
-  const roomReturn = useRoomReturn(preview ? undefined : id, location.search, token);
+  const roomReturn = useRoomReturn(preview ? undefined : id, location.search, sessionKey);
 
   const handleUnlockHint = (hintId: number) => {
     if (preview) { setUnlockedHints(current => [...current, hintId]); return; }
@@ -61,7 +61,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (!hintToUnlock) return;
 
     try {
-        const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { 'Authorization': `Bearer ${token}` });
+        const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { sessionKey });
         if (!response.ok) throw new Error('Failed to unlock hint');
         setUnlockedHints([...unlockedHints, hintToUnlock]);
         setPotentialPoints(Math.max(0, (room?.points ?? 0) * (1 - (unlockedHints.length + 1) * 0.25)));
@@ -80,7 +80,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const handleDownloadFile = async () => {
       try {
-          const response = await (preview ? request<Blob>(`/api/admin/content/rooms/${id}/file`, { headers: { Authorization: `Bearer ${token}` } }) : roomApi.downloadFile(id ?? '', { 'Authorization': `Bearer ${token}` }));
+          const response = await (preview ? request<Blob>(`/api/admin/content/rooms/${id}/file`, { auth: { sessionKey } }) : roomApi.downloadFile(id ?? '', { sessionKey }));
           if (response.ok) {
               const blob = await response.blob();
               const url = window.URL.createObjectURL(blob);
@@ -101,9 +101,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     setSubmitMessage('');
 
     try {
-      const response = await roomApi.solveRoom(id ?? '', { flag }, {
-        'Content-Type': 'application/json',
-        'Authorization': `Bearer ${token}`
+      const response = await roomApi.solveRoom(id ?? '', { flag }, {sessionKey
       });
 
       const data = await response.json();
@@ -131,7 +129,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   useEffect(() => {
     const fetchRoom = async () => {
       try {
-        const response = await (preview ? request<RoomDetailDto>(`/api/admin/content/rooms/${id}/preview`, { headers: { Authorization: `Bearer ${token}` } }) : roomApi.getRoom(id ?? '', { 'Authorization': `Bearer ${token}` }));
+        const response = await (preview ? request<RoomDetailDto>(`/api/admin/content/rooms/${id}/preview`, { auth: { sessionKey } }) : roomApi.getRoom(id ?? '', { sessionKey }));
         if (!response.ok) {
           const body = await response.json().catch(() => null);
           throw new Error(body?.message || 'Failed to fetch room details');
@@ -151,8 +149,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
       finally { setLoading(false); }
     };
-    if (token) fetchRoom();
-  }, [id, token, preview]);
+    if (sessionKey) fetchRoom();
+  }, [id, sessionKey, preview]);
 
   const toggleTask = (taskId: number) => {
     setExpandedTasks(prev => ({ ...prev, [taskId]: !prev[taskId] }));
@@ -167,9 +165,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
     setPendingTask(taskId);
     try {
-        const response = await roomApi.solveTask(id ?? '', taskId, { answer }, {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+        const response = await roomApi.solveTask(id ?? '', taskId, { answer }, {sessionKey
             });
         const data = await response.json();
         if (response.ok) {
@@ -196,7 +192,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (finishingRoom) return;
     setFinishingRoom(true);
     try {
-      const response = await roomApi.completeTaskRoom(id ?? '', { 'Authorization': `Bearer ${token}` });
+      const response = await roomApi.completeTaskRoom(id ?? '', { sessionKey });
       const data = await response.json();
       if (!response.ok || !data.success) {
         setToast({ message: data.message || 'Nie udało się ukończyć pokoju', type: 'error' });
@@ -440,6 +436,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
 export default function RoomPage({ preview = false }: { preview?: boolean }) {
   const { id } = useParams();
-  const { token } = useAuth();
-  return <RoomContent preview={preview} key={JSON.stringify([id, token])} />;
+  const { sessionKey } = useAuth();
+  return <RoomContent preview={preview} key={JSON.stringify([id, sessionKey])} />;
 }

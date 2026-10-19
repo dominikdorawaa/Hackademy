@@ -1,4 +1,20 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  API_URL,
+  apiHeaders,
+  createAccount,
+  deleteAccount,
+  finishOnboarding,
+  signIn,
+  type CourseAccount,
+} from "./clerkAccount";
+
+let account: CourseAccount | undefined;
+
+test.afterEach(async ({ request }) => {
+  await deleteAccount(request, account);
+  account = undefined;
+});
 
 async function terminalFits(page: Page) {
   await expect
@@ -48,28 +64,17 @@ test("fits the terminal at different viewport sizes and requires the new directo
   page,
   request,
 }, testInfo) => {
-  const username = `layout${Date.now()}`;
-  const account = {
-    username,
-    email: `${username}@example.com`,
-    password: "LocalTest123!",
-  };
-  const registration = await request.post(
-    "http://localhost:8080/api/auth/register",
-    { data: account },
-  );
-  expect(registration.ok()).toBeTruthy();
-  const { token } = await registration.json();
+  account = await createAccount(request, "layout");
+  await signIn(page, account);
+  await finishOnboarding(page, request);
   expect(
     (
-      await request.put("http://localhost:8080/api/ukos/lab-1/progress", {
-        headers: { Authorization: `Bearer ${token}` },
+      await request.put(`${API_URL}/api/ukos/lab-1/progress`, {
+        headers: await apiHeaders(page),
         data: { completedSteps: 5 },
       })
     ).ok(),
   ).toBeTruthy();
-  await page.goto("/login");
-  await page.evaluate((value) => localStorage.setItem("token", value), token);
   await page.goto("/learn/ukos");
   await expect(page.getByText("5 z 15 ćwiczeń ukończonych")).toBeVisible();
   await page.getByRole("button", { name: "Kontynuuj ćwiczenia" }).click();

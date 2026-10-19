@@ -16,12 +16,12 @@ function pathContainsRoom(path: PathDetailDto, roomId: string): boolean {
   return rooms.some(room => String(room.id) === roomId);
 }
 
-export function useRoomReturn(roomId: string | undefined, search: string, token: string | null): RoomReturn {
+export function useRoomReturn(roomId: string | undefined, search: string, sessionKey: string | null): RoomReturn {
   const params = new URLSearchParams(search);
   const rawPathId = params.get('pathId');
-  const pathId = rawPathId && /^\d+$/.test(rawPathId) && roomId && token ? rawPathId : null;
+  const pathId = rawPathId && /^\d+$/.test(rawPathId) && roomId && sessionKey ? rawPathId : null;
   const fallback = params.get('from') === 'dashboard' ? DASHBOARD_RETURN : LEARN_RETURN;
-  const key = `${pathId}|${roomId}|${token}`;
+  const key = `${pathId}|${roomId}|${sessionKey}`;
   const [resolved, setResolved] = useState<{ key: string; value: RoomReturn | null } | null>(null);
 
   useEffect(() => {
@@ -30,7 +30,7 @@ export function useRoomReturn(roomId: string | undefined, search: string, token:
     const settle = (value: RoomReturn | null) => {
       if (!controller.signal.aborted) setResolved({ key, value });
     };
-    pathApi.getPath(pathId, { Authorization: `Bearer ${token}` }, controller.signal)
+    pathApi.getPath(pathId, { sessionKey }, controller.signal)
       .then(async response => {
         if (!response.ok) return settle(null);
         const path = await response.json();
@@ -40,7 +40,7 @@ export function useRoomReturn(roomId: string | undefined, search: string, token:
       })
       .catch(() => settle(null));
     return () => controller.abort();
-  }, [pathId, roomId, token, key]);
+  }, [pathId, roomId, sessionKey, key]);
 
   if (!pathId) return fallback;
   if (resolved?.key !== key) return { ...fallback, label: 'Powrót', pending: true };

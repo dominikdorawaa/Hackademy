@@ -32,13 +32,13 @@ class UserControllerNotificationPreferencesTest {
     void returnsDefaultsWhenNothingIsStored() {
         when(repository.findById(1L)).thenReturn(Optional.empty());
 
-        assertEquals(new NotificationPreferencesDto(true, true, true, false, false),
+        assertEquals(new NotificationPreferencesDto(true, true, true, true, false, true, true),
                 controller.getNotificationPreferences(authentication));
     }
 
     @Test
     void returnsStoredPreferences() {
-        var stored = new NotificationPreferencesDto(false, true, false, true, true);
+        var stored = new NotificationPreferencesDto(false, true, false, true, true, false, true);
         when(repository.findById(1L)).thenReturn(Optional.of(new NotificationPreferences(1L, stored)));
 
         assertEquals(stored, controller.getNotificationPreferences(authentication));

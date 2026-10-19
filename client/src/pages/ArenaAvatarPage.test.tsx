@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
@@ -105,7 +106,7 @@ it('shows the avatar from the front by default and falls back to the side view',
 const accountAvatar = { outfit: 'dres', hair: 'kucyk', hat: 'brak', skin: 'ciemna', hairColor: 'rude', topColor: 'czerwony', bottomColor: 'bialy', shoesColor: 'granatowy', hatColor: 'turkusowy' };
 
 it('loads the avatar from the account and saves changes there', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   let saved: Record<string, string> | null = null;
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), avatar: accountAvatar })),
@@ -126,7 +127,7 @@ it('loads the avatar from the account and saves changes there', async () => {
 });
 
 it('keeps unsaved changes and explains when the account save fails', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), avatar: null })),
     http.put(`${API_URL}/api/user/me/avatar`, () => HttpResponse.json({ message: 'Błąd' }, { status: 500 })),
@@ -145,7 +146,7 @@ it('tells guests that the avatar is saved only in this browser', () => {
 });
 
 it('blocks editing and saving until the account avatar has loaded', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
   server.use(http.get(currentUserUrl, async () => { await gate; return HttpResponse.json({ ...createUser(), avatar: accountAvatar }); }));
@@ -159,7 +160,7 @@ it('blocks editing and saving until the account avatar has loaded', async () => 
 });
 
 it('does not fall back to a browser-only save when the account cannot be loaded', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   let saves = 0;
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ message: 'Błąd' }, { status: 503 })),
@@ -176,7 +177,7 @@ it('does not fall back to a browser-only save when the account cannot be loaded'
 });
 
 it('lets a player save the shown avatar when the account has none yet', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   let saved: Record<string, string> | null = null;
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), avatar: null })),

@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route } from 'react-router-dom';
@@ -42,7 +43,7 @@ const rooms = [
 ];
 
 function mount(options: { canDelete?: boolean; links?: boolean; onSaved?: (next: PathAdminDetailDto) => void } = {}) {
-  localStorage.setItem('token', createToken('ADMIN'));
+  setClerkSession(createToken('ADMIN'));
   return renderWithAuth(
     <Route
       path="/editor"

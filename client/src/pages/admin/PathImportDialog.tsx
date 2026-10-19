@@ -15,7 +15,7 @@ export interface ExistingImportPath { id: number; title: string; contentRevision
 export default function PathImportDialog({ existing, requestOpen, onImported, disabled = false }: {
   existing?: ExistingImportPath; requestOpen?: (open: () => void) => void; onImported?: (path: PathAdminDetailDto) => void; disabled?: boolean;
 }) {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const navigate = useNavigate();
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
@@ -45,11 +45,11 @@ export default function PathImportDialog({ existing, requestOpen, onImported, di
     setErrors([]);
     try {
       if (existing && selectedChapter?.id != null) {
-        const path = await importPathRooms(existing.id, { chapterId: selectedChapter.id, contentRevision: existing.contentRevision, chaptersRevision: existing.chaptersRevision }, file, token);
+        const path = await importPathRooms(existing.id, { chapterId: selectedChapter.id, contentRevision: existing.contentRevision, chaptersRevision: existing.chaptersRevision }, file, sessionKey);
         onImported?.(path);
         setOpen(false); setFile(null);
       } else {
-        const path = await importPath(file, token);
+        const path = await importPath(file, sessionKey);
         navigate(`/admin/paths/${path.id}`, { state: { flash: 'Zaimportowano ścieżkę jako szkic. Bannery i pliki dodasz w edytorze.' } });
       }
     } catch (error) {

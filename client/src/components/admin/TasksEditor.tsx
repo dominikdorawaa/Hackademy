@@ -51,7 +51,7 @@ function taskProblems(task: DraftTask) {
 }
 
 export default function TasksEditor({ roomId }: { roomId: number }) {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const [revision, setRevision] = useState(0);
   const [saved, setSaved] = useState<DraftTask[]>([]);
   const [tasks, setTasks] = useState<DraftTask[]>([]);
@@ -63,7 +63,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [showProblems, setShowProblems] = useState(false);
-  const loadKey = `${roomId}:${token}`;
+  const loadKey = `${roomId}:${sessionKey}`;
   const ready = loadedFor === loadKey;
   const editingDisabled = !ready || loading || saving;
 
@@ -79,9 +79,9 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     setLoadedFor(null);
     setError(null);
     setSuccess(null);
-    if (!token) return;
+    if (!sessionKey) return;
     let active = true;
-    adminApi.getRoomTasks(roomId, token)
+    adminApi.getRoomTasks(roomId, sessionKey)
       .then((data) => {
         if (!data || !Array.isArray(data.tasks) || !Number.isSafeInteger(data.revision)) throw new Error('Nie udało się pobrać zadań.');
         if (active) {
@@ -98,7 +98,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     return () => {
       active = false;
     };
-  }, [roomId, token, apply, loadKey, loadAttempt]);
+  }, [roomId, sessionKey, apply, loadKey, loadAttempt]);
 
   const dirty = useMemo(
     () => JSON.stringify(tasks.map(toRequest)) !== JSON.stringify(saved.map(toRequest)),
@@ -157,7 +157,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     }
     setSaving(true);
     try {
-      const updated = await adminApi.updateRoomTasks(roomId, revision, tasks.map(toRequest), token);
+      const updated = await adminApi.updateRoomTasks(roomId, revision, tasks.map(toRequest), sessionKey);
       if (!updated || !Array.isArray(updated.tasks) || !Number.isSafeInteger(updated.revision)) throw new Error('Nie udało się zapisać zadań.');
       apply(updated);
       setOpen(new Set());
@@ -175,7 +175,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     if (editingDisabled) return;
     setSaving(true);
     try {
-      const latest = await adminApi.getRoomTasks(roomId, token);
+      const latest = await adminApi.getRoomTasks(roomId, sessionKey);
       if (!latest || !Array.isArray(latest.tasks) || !Number.isSafeInteger(latest.revision)) {
         throw new Error('Nie udało się pobrać zadań.');
       }

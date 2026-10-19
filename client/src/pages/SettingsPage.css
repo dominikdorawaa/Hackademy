@@ -45,7 +45,18 @@
   .settings-row { gap: 16px; }
   .settings-row:has(.settings-email), .settings-row:has(a), .settings-row:has(.settings-button) { flex-direction: column; align-items: flex-start; }
 }
-:root[data-reduced-motion='true'] *, :root[data-reduced-motion='true'] *::before, :root[data-reduced-motion='true'] *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
-@media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after { animation-duration: .01ms !important; animation-iteration-count: 1 !important; transition-duration: .01ms !important; scroll-behavior: auto !important; }
+.settings-sound-list { display: grid; gap: 8px; margin: 14px 0 0; padding: 0; list-style: none; }
+.settings-sound-list li { display: flex; flex-wrap: wrap; align-items: center; gap: 8px 12px; font-size: .875rem; }
+.settings-sound-list li > span { min-width: 190px; color: var(--text-light); }
+.settings-sound-list select { min-height: 32px; padding: 4px 8px; border: 1px solid var(--input-border); border-radius: 6px; background: var(--input-bg); color: var(--text-light); font: inherit; }
+.settings-button-small { gap: 6px; min-height: 32px; padding: 5px 10px; font-size: .8125rem; }
+.settings-preview { margin-top: 12px; }
+.settings-summary { display: grid; gap: 8px; margin: 0; padding: 16px 18px; border: 1px solid var(--border-color); border-radius: 6px; background: var(--bg-dark); }
+.settings-summary div { display: grid; grid-template-columns: minmax(150px, 220px) minmax(0, 1fr); gap: 12px; font-size: .875rem; line-height: 1.5; }
+.settings-summary dt { color: var(--text-light); font-weight: 550; }
+.settings-summary dd { margin: 0; color: var(--text-gray); }
+.settings-page select:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3px; }
+@media (max-width: 700px) {
+  .settings-summary div { grid-template-columns: minmax(0, 1fr); gap: 2px; }
+  .settings-sound-list li > span { min-width: 0; flex-basis: 100%; }
 }

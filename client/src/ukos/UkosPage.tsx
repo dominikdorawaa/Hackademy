@@ -256,8 +256,8 @@ function Workshop({
   );
 }
 
-function CoursePage({ account, token }: { account: string; token: string }) {
-  const course = useCourse(account, token);
+function CoursePage({ account, sessionKey }: { account: string; sessionKey: string }) {
+  const course = useCourse(account, sessionKey);
   const [working, setWorking] = useState(false);
   const [desktop, setDesktop] = useState(
     () => matchMedia("(min-width: 1000px) and (pointer: fine)").matches,
@@ -417,8 +417,8 @@ function CoursePage({ account, token }: { account: string; token: string }) {
 }
 
 export default function UkosPage() {
-  const { user, token } = useAuth();
-  return user && token ? (
-    <CoursePage key={user.sub} account={user.sub} token={token} />
+  const { user, sessionKey } = useAuth();
+  return user && sessionKey ? (
+    <CoursePage key={user.username} account={user.username} sessionKey={sessionKey} />
   ) : null;
 }

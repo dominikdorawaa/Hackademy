@@ -15,9 +15,7 @@ export const difficultyLabels: Record<DifficultyLevel, string> = {
   INSANE: 'Niemożliwy',
 };
 
-export function errorText(error: unknown, fallback: string) {
-  return error instanceof Error && error.message ? error.message : fallback;
-}
+export { errorText } from '../../lib/errorText';
 
 export const dateTimeFormat = new Intl.DateTimeFormat('pl-PL', { dateStyle: 'medium', timeStyle: 'short' });
 

@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { act, fireEvent, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Outlet, Route } from 'react-router-dom';
@@ -19,7 +20,7 @@ const location = () => screen.getByTestId('location').textContent?.split(':')[0]
 const dialog = () => screen.getByRole('dialog');
 
 beforeEach(() => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   sessionStorage.clear();
   window.scrollTo = vi.fn() as unknown as typeof window.scrollTo;
   server.use(http.get(onboardingUrl, () => HttpResponse.json({ avatarConfirmed: true, tourStatus: 'PENDING' })));
@@ -54,7 +55,7 @@ describe('guided tour', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(saved).toEqual({ status: 'COMPLETED' });
     expect(sessionStorage.getItem(TOUR_STEP_KEY)).toBeNull();
-    expect(document.documentElement.hasAttribute('data-tour-active')).toBe(false);
+    await waitFor(() => expect(document.documentElement.hasAttribute('data-tour-active')).toBe(false));
   });
 
   it('can be skipped at any step, and a failed save keeps it open for a retry', async () => {

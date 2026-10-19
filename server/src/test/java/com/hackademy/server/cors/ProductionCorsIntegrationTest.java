@@ -26,7 +26,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
         "DB_URL=jdbc:h2:mem:production_cors_test",
         "DB_USERNAME=sa",
         "DB_PASSWORD=",
-        "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "FRONTEND_URL=https://hackademy.app",
         "spring.flyway.enabled=false",
         "spring.jpa.hibernate.ddl-auto=create-drop"
@@ -39,7 +38,7 @@ class ProductionCorsIntegrationTest {
     private MockMvc mockMvc;
 
     @ParameterizedTest
-    @ValueSource(strings = {"/api/badges", "/api/friends", "/api/arena/status", "/api/user/me", "/api/auth/login",
+    @ValueSource(strings = {"/api/badges", "/api/friends", "/api/arena/status", "/api/user/me", "/api/realtime/state",
             "/api/admin/users"})
     void allowsPreflightFromProductionFrontend(String path) throws Exception {
         mockMvc.perform(options(path)

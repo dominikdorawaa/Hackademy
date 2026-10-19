@@ -1,17 +1,18 @@
 import { request } from './http';
+import type { SessionScope } from './http';
 import type { VpnStatus } from '../types/api';
 
-export function getStatus(headers: HeadersInit) {
+export function getStatus(auth: SessionScope) {
   return request<VpnStatus>(`/api/vpn/status`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function downloadConfig(headers: HeadersInit) {
+export function downloadConfig(auth: SessionScope) {
   return request<never>(`/api/vpn/download`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 

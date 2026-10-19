@@ -19,14 +19,14 @@ const PreferencesContext = createContext<PreferencesContextValue>({
 });
 
 export function NotificationPreferencesProvider({ children }: PropsWithChildren) {
-  const { token } = useAuth();
-  const [session, setSession] = useState<{ token: string | null; preferences: NotificationPreferences; loaded: boolean; error: string | null }>({
-    token: null, preferences: defaultNotificationPreferences, loaded: false, error: null,
+  const { sessionKey } = useAuth();
+  const [session, setSession] = useState<{ sessionKey: string | null; preferences: NotificationPreferences; loaded: boolean; error: string | null }>({
+    sessionKey: null, preferences: defaultNotificationPreferences, loaded: false, error: null,
   });
   const [saving, setSaving] = useState(false);
   const [attempt, setAttempt] = useState(0);
-  const activeToken = useRef(token);
-  useLayoutEffect(() => { activeToken.current = token; }, [token]);
+  const activeToken = useRef(sessionKey);
+  useLayoutEffect(() => { activeToken.current = sessionKey; }, [sessionKey]);
   const pending = useRef(false);
   const controller = useRef<AbortController | null>(null);
 
@@ -36,48 +36,48 @@ export function NotificationPreferencesProvider({ children }: PropsWithChildren)
     controller.current = current;
     pending.current = false;
     setSaving(false);
-    if (token) {
+    if (sessionKey) {
       void (async () => {
         try {
-          const response = await getNotificationPreferences({ Authorization: `Bearer ${token}` }, current.signal);
+          const response = await getNotificationPreferences({ sessionKey }, current.signal);
           if (!response.ok) throw new Error();
           const preferences = await response.json();
-          if (!current.signal.aborted) setSession({ token, preferences, loaded: true, error: null });
+          if (!current.signal.aborted) setSession({ sessionKey, preferences, loaded: true, error: null });
         } catch {
-          if (!current.signal.aborted) setSession({ token, preferences: defaultNotificationPreferences, loaded: false,
+          if (!current.signal.aborted) setSession({ sessionKey, preferences: defaultNotificationPreferences, loaded: false,
             error: 'Nie udało się pobrać preferencji. Spróbuj ponownie.' });
         }
       })();
     }
     return () => current.abort();
-  }, [token, attempt]);
+  }, [sessionKey, attempt]);
 
   const update = useCallback(async (key: keyof NotificationPreferences, value: boolean) => {
-    if (!token || activeToken.current !== token || session.token !== token || !session.loaded || pending.current) return false;
+    if (!sessionKey || activeToken.current !== sessionKey || session.sessionKey !== sessionKey || !session.loaded || pending.current) return false;
     pending.current = true;
     setSaving(true);
     const current = controller.current;
     try {
       const response = await saveNotificationPreference(key, value,
-        { Authorization: `Bearer ${token}` }, current?.signal);
+        { sessionKey }, current?.signal);
       if (!response.ok) throw new Error();
       const preferences = await response.json();
-      if (current?.signal.aborted || activeToken.current !== token) return false;
-      setSession({ token, preferences, loaded: true, error: null });
+      if (current?.signal.aborted || activeToken.current !== sessionKey) return false;
+      setSession({ sessionKey, preferences, loaded: true, error: null });
       return true;
     } catch {
-      if (!current?.signal.aborted && activeToken.current === token) setSession(previous => ({ ...previous,
+      if (!current?.signal.aborted && activeToken.current === sessionKey) setSession(previous => ({ ...previous,
         error: 'Nie udało się zapisać zmiany. Poprzednie ustawienie zostało zachowane.' }));
       return false;
     } finally {
-      if (!current?.signal.aborted && activeToken.current === token) {
+      if (!current?.signal.aborted && activeToken.current === sessionKey) {
         pending.current = false;
         setSaving(false);
       }
     }
-  }, [token, session]);
+  }, [sessionKey, session]);
 
-  const current = token && session.token === token;
+  const current = sessionKey && session.sessionKey === sessionKey;
   return <PreferencesContext.Provider value={{
     preferences: current ? session.preferences : defaultNotificationPreferences,
     loaded: !!current && session.loaded, saving, error: current ? session.error : null,

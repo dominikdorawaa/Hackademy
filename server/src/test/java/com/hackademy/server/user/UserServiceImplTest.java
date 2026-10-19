@@ -1,6 +1,5 @@
 package com.hackademy.server.user;
 
-import com.hackademy.server.auth.JwtService;
 import com.hackademy.server.badge.BadgeDto;
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.badge.UserBadgeRepository;
@@ -18,6 +17,7 @@ import com.hackademy.server.room.RecentSolvedRoomView;
 import com.hackademy.server.room.UserSolvedRoomRepository;
 import com.hackademy.server.room.UserUnlockedHintRepository;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
+import com.hackademy.server.user.dto.UpdateUsernameRequest;
 import com.hackademy.server.user.dto.ProfilePersonalizationDto;
 import com.hackademy.server.user.dto.ProfilePortfolioDto;
 import com.hackademy.server.user.dto.ProfileStatsDto;
@@ -32,7 +32,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -52,8 +51,6 @@ class UserServiceImplTest {
     @Mock UserRepository userRepository;
     @Mock UserSolvedRoomRepository userSolvedRoomRepository;
     @Mock UserBadgeRepository userBadgeRepository;
-    @Mock PasswordEncoder passwordEncoder;
-    @Mock JwtService jwtService;
     @Mock FriendshipService friendshipService;
     @Mock BadgeService badgeService;
     @Mock UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
@@ -404,6 +401,23 @@ class UserServiceImplTest {
 
         assertEquals(1L, service.getUserIdByUsername("alice"));
         assertThrows(UserNotFoundException.class, () -> service.getUserIdByUsername("ghost"));
+    }
+
+    @Test
+    void renamesWithoutIssuingTokensAndRejectsTakenNames() {
+        var alice = user(1L, "alice");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(alice));
+        when(userRepository.findById(9L)).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameIgnoringCase("alice")).thenReturn(Optional.of(alice));
+        when(userRepository.findByUsernameIgnoringCase("bob")).thenReturn(Optional.of(user(2L, "bob")));
+        when(userRepository.findByUsernameIgnoringCase("carol")).thenReturn(Optional.empty());
+        when(userRepository.save(alice)).thenReturn(alice);
+
+        assertEquals("alice", service.updateUsername(1L, new UpdateUsernameRequest("alice")));
+        assertThrows(IllegalArgumentException.class, () -> service.updateUsername(1L, new UpdateUsernameRequest("bob")));
+        assertEquals("carol", service.updateUsername(1L, new UpdateUsernameRequest("carol")));
+        assertEquals("carol", alice.getUsername());
+        assertThrows(UserNotFoundException.class, () -> service.updateUsername(9L, new UpdateUsernameRequest("dave")));
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────

@@ -1,7 +1,7 @@
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import API_URL from '../apiConfig';
 import type { RoomWriteRequest } from '../types/api';
-import * as auth from './authApi';
+import { registerSession, request } from './http';
 import * as user from './userApi';
 import * as path from './pathApi';
 import * as room from './roomApi';
@@ -11,7 +11,7 @@ import * as admin from './adminRequests';
 import * as legacyAdmin from './adminApi';
 
 const fetchMock = vi.fn<typeof fetch>();
-const headers = { Authorization: 'Bearer test-token' };
+const headers = { sessionKey: 'sessionKey' };
 const jsonHeaders = { ...headers, 'Content-Type': 'application/json' };
 const roomData: RoomWriteRequest = {
   title: 'Room', description: 'Description', difficulty: 'EASY', category: 'Web',
@@ -19,6 +19,7 @@ const roomData: RoomWriteRequest = {
 };
 
 beforeEach(() => {
+  registerSession({ sessionKey: 'sessionKey', getToken: async () => 'session-token', expired: vi.fn() });
   fetchMock.mockReset();
   fetchMock.mockResolvedValue(new Response(null, { status: 204 }));
   vi.stubGlobal('fetch', fetchMock);
@@ -27,7 +28,7 @@ beforeEach(() => {
 describe('HTTP compatibility', () => {
   it.each([401, 403, 500])('leaves text HTTP %s available to the caller', async status => {
     fetchMock.mockResolvedValue(new Response('original error', { status }));
-    const response = await auth.login({ email: 'a', password: 'b' }, jsonHeaders);
+    const response = await request('/api/user/me', { method: 'GET' });
     expect(response.ok).toBe(false);
     expect(response.status).toBe(status);
     expect(await response.text()).toBe('original error');
@@ -43,7 +44,7 @@ describe('HTTP compatibility', () => {
 
   it('preserves native JSON parse failures and clone behavior for registration fallback', async () => {
     fetchMock.mockResolvedValue(new Response('not JSON'));
-    const response = await auth.register({ username: 'alice', email: 'a', password: 'b' }, jsonHeaders);
+    const response = await request('/api/user/me', { method: 'GET' });
     const clone = response.clone();
     await expect(response.json()).rejects.toThrow();
     expect(await clone.text()).toBe('not JSON');
@@ -61,25 +62,13 @@ describe('HTTP compatibility', () => {
     expect(response.bodyUsed).toBe(false);
   });
 
-  it('keeps native JSON success responses unread and adds no default headers', async () => {
-    const native = Response.json({ token: 'test-token' });
-    fetchMock.mockResolvedValue(native);
-    const response = await auth.login({ email: 'a', password: 'b' }, { 'Content-Type': 'application/json' });
-    expect(response).toBe(native);
-    expect(response.bodyUsed).toBe(false);
-    expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/auth/login`, {
-      method: 'POST', headers: { 'Content-Type': 'application/json' }, body: '{"email":"a","password":"b"}',
-    });
-    expect(await response.json()).toEqual({ token: 'test-token' });
-  });
-
   it('keeps query strings, path ids and limit=0 without normalization', async () => {
     await user.searchUsers('a+b', headers);
     await path.getRoomsMini('7', 0, headers);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
       `${API_URL}/api/user/search?query=a+b`, `${API_URL}/api/paths/7/rooms-mini?limit=0`,
     ]);
-    expect(fetchMock.mock.calls.every(([, options]) => options?.headers === headers)).toBe(true);
+    expect(fetchMock.mock.calls.every(([, options]) => new Headers(options?.headers).get('Authorization') === 'Bearer session-token')).toBe(true);
   });
 
   it('sends only the rival in challenge requests and no body when joining the queue', async () => {
@@ -122,7 +111,8 @@ describe('multipart contracts', () => {
     const [url, options] = fetchMock.mock.calls[0];
     expect(url).toBe(`${API_URL}/api/admin/rooms${editing ? '/7' : ''}`);
     expect(options?.method).toBe(editing ? 'PUT' : 'POST');
-    expect(options?.headers).toEqual(headers);
+    expect(new Headers(options?.headers).get('Authorization')).toBe('Bearer session-token');
+    expect(new Headers(options?.headers).has('Content-Type')).toBe(false);
     const form = options?.body;
     if (!(form instanceof FormData)) throw new Error('Missing multipart body');
     expect(form.get('file')).toBe(file);
@@ -141,22 +131,23 @@ describe('multipart contracts', () => {
     const [url, options] = fetchMock.mock.calls[1];
     expect(url).toBe(`${API_URL}/api/admin/paths/7/banner`);
     expect(options?.method).toBe('PUT');
-    expect(options?.headers).toEqual(headers);
+    expect(new Headers(options?.headers).get('Authorization')).toBe('Bearer session-token');
+    expect(new Headers(options?.headers).has('Content-Type')).toBe(false);
     expect(options?.body instanceof FormData && options.body.get('file')).toBe(file);
   });
 });
 
 describe('existing adminApi compatibility', () => {
-  it.each([null, 'token'])('keeps conditional authorization (%s) and JSON results', async token => {
+  it.each([null, 'sessionKey'])('keeps conditional authorization (%s) and JSON results', async sessionKey => {
     fetchMock.mockResolvedValue(Response.json([{ id: 7, username: 'alice' }]));
-    expect(await legacyAdmin.getUsers(token)).toEqual([{ id: 7, username: 'alice' }]);
+    expect(await legacyAdmin.getUsers(sessionKey)).toEqual([{ id: 7, username: 'alice' }]);
     expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/admin/users`, {
-      method: 'GET', headers: { 'Content-Type': 'application/json', ...(token ? { Authorization: `Bearer ${token}` } : {}) },
+      method: 'GET', headers: new Headers({ 'Content-Type': 'application/json', ...(sessionKey ? { Authorization: 'Bearer session-token' } : {}) }), credentials: 'omit', redirect: 'error',
     });
   });
 
   it('returns undefined for 204', async () => {
-    await expect(legacyAdmin.deleteUser(7, 'token')).resolves.toBeUndefined();
+    await expect(legacyAdmin.deleteUser(7, 'sessionKey')).resolves.toBeUndefined();
   });
 
   it.each([
@@ -165,34 +156,34 @@ describe('existing adminApi compatibility', () => {
     ['not JSON', 'Forbidden'],
   ])('preserves admin error fallback for %s', async (body, expected) => {
     fetchMock.mockResolvedValue(new Response(body, { status: 403, statusText: 'Forbidden' }));
-    await expect(legacyAdmin.getUsers('token')).rejects.toThrow(expected);
+    await expect(legacyAdmin.getUsers('sessionKey')).rejects.toThrow(expected);
   });
 
   it('joins field messages from a validation error', async () => {
     fetchMock.mockResolvedValue(Response.json({ message: 'Validation failed', title: 'Tytuł jest wymagany', points: 'Za mało punktów' }, { status: 400 }));
-    await expect(legacyAdmin.getUsers('token')).rejects.toThrow('Tytuł jest wymagany Za mało punktów');
+    await expect(legacyAdmin.getUsers('sessionKey')).rejects.toThrow('Tytuł jest wymagany Za mało punktów');
   });
 
   it('accepts an empty successful response', async () => {
     fetchMock.mockResolvedValue(new Response('', { status: 200 }));
-    await expect(legacyAdmin.updatePathChapters(5, 0, [], 'token')).resolves.toBeUndefined();
+    await expect(legacyAdmin.updatePathChapters(5, 0, [], 'sessionKey')).resolves.toBeUndefined();
   });
 
   it('sends the whole chapter structure', async () => {
     fetchMock.mockResolvedValue(Response.json({ id: 5, chapters: [] }));
     const chapters = [{ id: null, title: 'Wstęp', roomIds: [1, 2] }];
-    await expect(legacyAdmin.updatePathChapters(5, 0, chapters, 'token')).resolves.toEqual({ id: 5, chapters: [] });
+    await expect(legacyAdmin.updatePathChapters(5, 0, chapters, 'sessionKey')).resolves.toEqual({ id: 5, chapters: [] });
     expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/admin/paths/5/chapters`, {
       method: 'PUT', body: JSON.stringify({ revision: 0, chapters }),
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token' },
+      headers: new Headers({ 'Content-Type': 'application/json', Authorization: 'Bearer session-token' }), credentials: 'omit', redirect: 'error',
     });
   });
 
   it('keeps the existing JSON room API alongside multipart submission', async () => {
-    await legacyAdmin.createRoom(roomData, 'token');
+    await legacyAdmin.createRoom(roomData, 'sessionKey');
     expect(fetchMock).toHaveBeenCalledWith(`${API_URL}/api/admin/rooms`, {
       method: 'POST', body: JSON.stringify(roomData),
-      headers: { 'Content-Type': 'application/json', Authorization: 'Bearer token' },
+      headers: new Headers({ 'Content-Type': 'application/json', Authorization: 'Bearer session-token' }), credentials: 'omit', redirect: 'error',
     });
   });
 });

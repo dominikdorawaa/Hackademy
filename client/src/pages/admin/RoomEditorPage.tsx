@@ -29,7 +29,7 @@ export default function RoomEditorPage({ kind }: { kind: RoomType }) {
   return <RoomEditor key={`${kind}:${roomId}:${query.toString()}`} kind={kind} roomId={roomId ?? 'new'} />;
 }
 function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
   const [query] = useSearchParams();
@@ -60,7 +60,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
   const contextRevision = query.get('pathRevision');
   useEffect(() => {
     let active = true;
-    Promise.all([idRef.current == null ? Promise.resolve(null) : contentApi.contentRequest<contentApi.RoomEditor>(`/rooms/${idRef.current}`, token), contextPath ? adminApi.getPath(contextPath, token) : Promise.resolve(null)])
+    Promise.all([idRef.current == null ? Promise.resolve(null) : contentApi.contentRequest<contentApi.RoomEditor>(`/rooms/${idRef.current}`, sessionKey), contextPath ? adminApi.getPath(contextPath, sessionKey) : Promise.resolve(null)])
       .then(([detail, path]) => {
         if (!active) return;
         if (detail) {
@@ -74,7 +74,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
         setLoaded(true); setError(null);
       }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [token, kind, contextPath, contextChapter, contextRevision, attempt]);
+  }, [sessionKey, kind, contextPath, contextChapter, contextRevision, attempt]);
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file || (parentDraft != null && JSON.stringify(parentDraft) !== JSON.stringify(creation?.parentDraft));
   const change = (values: Partial<RoomSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
   const save = async (published = formRef.current.published, notify = true) => {
@@ -102,7 +102,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
     savingRef.current = true; setSaving(true);
     try {
       const parent = idRef.current == null && parentDraft ? { parentDraft, chapterIndex: creation?.chapterIndex ?? 0, ...(parentId != null ? { pathId: parentId } : {}) } : idRef.current == null && context ? { pathId: context.id, chapterId: Number(contextChapter), pathRevision: context.contentRevision ?? 0 } : {};
-      const detail = await contentApi.saveRoom(idRef.current, { ...current, published, ...parent }, file, token);
+      const detail = await contentApi.saveRoom(idRef.current, { ...current, published, ...parent }, file, sessionKey);
       const saved = fromDetail(detail);
       idRef.current = detail.room.id; setId(detail.room.id); formRef.current = saved;
       setForm(saved); setBaseline(saved); setFile(null);
@@ -127,7 +127,7 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
   return <>
     {guard.dialog}
     <Button asChild variant="ghost" className="mb-3"><Link to={returnPath}>← {contextPath || parentId ? 'Wróć do edytora ścieżki' : kind === 'PATH' ? 'Pokoje ścieżek' : 'Pokoje CTF'}</Link></Button>
-    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}?kind=${kind}${contextPath ? `&pathId=${contextPath}` : ''}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description="Pokój, zadania i postępy graczy zostaną trwale usunięte." confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, token); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
+    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}?kind=${kind}${contextPath ? `&pathId=${contextPath}` : ''}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description="Pokój, zadania i postępy graczy zostaną trwale usunięte." confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
     {context && <StatusMessage kind="warning">Ścieżka: {context.title} → Rozdział: {context.chapters.find(c => c.id === Number(contextChapter))?.title}. Pokój zostanie przypisany automatycznie.</StatusMessage>}
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
     {loading ? <LoadingRows label="Ładowanie pokoju" /> : !loaded ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :

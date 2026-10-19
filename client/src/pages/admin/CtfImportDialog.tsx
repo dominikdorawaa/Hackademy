@@ -9,7 +9,7 @@ import { ContentError, importCtfRooms } from '../../services/contentApi';
 import example from '../../data/ctf-import-example.json?raw';
 
 export default function CtfImportDialog({ onImported, disabled }: { onImported: (count: number) => void; disabled: boolean }) {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const [open, setOpen] = useState(false);
   const [file, setFile] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
@@ -25,7 +25,7 @@ export default function CtfImportDialog({ onImported, disabled }: { onImported: 
     if (file.size === 0 || file.size > 5 * 1024 * 1024) { setErrors(['Wybierz niepusty plik JSON do 5 MB.']); return; }
     submitting.current = true; setBusy(true); setErrors([]);
     try {
-      const result = await importCtfRooms(file, token);
+      const result = await importCtfRooms(file, sessionKey);
       onImported(result.count); setOpen(false); setFile(null);
     } catch (error) {
       const fields = error instanceof ContentError ? Object.entries(error.fields) : [];

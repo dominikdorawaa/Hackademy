@@ -15,6 +15,8 @@ COPY --from=linux /out/ ./prototypes/runtime/
 RUN UKOS_IMAGE_READY=1 node ../tools/ukos/build.mjs
 ARG VITE_API_URL=http://localhost:8080
 ENV VITE_API_URL=${VITE_API_URL}
+ARG VITE_CLERK_PUBLISHABLE_KEY
+ENV VITE_CLERK_PUBLISHABLE_KEY=${VITE_CLERK_PUBLISHABLE_KEY}
 RUN npm run build
 
 FROM nginx:1.30-alpine

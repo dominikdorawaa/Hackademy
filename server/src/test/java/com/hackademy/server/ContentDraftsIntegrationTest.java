@@ -1,6 +1,6 @@
 package com.hackademy.server;
 
-import com.fasterxml.jackson.databind.ObjectMapper;
+import tools.jackson.databind.ObjectMapper;
 import com.hackademy.server.room.RoomRepository;
 import com.hackademy.server.user.*;
 import com.jayway.jsonpath.JsonPath;
@@ -21,7 +21,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.*;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.*;
 
-@SpringBootTest(properties = "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+@SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
 class ContentDraftsIntegrationTest {
@@ -34,12 +34,8 @@ class ContentDraftsIntegrationTest {
     @Autowired RoomRepository rooms;
     @Autowired JdbcTemplate db;
     final ObjectMapper mapper = new ObjectMapper();
-    String token(Role role) throws Exception {
-        String name = "u" + UUID.randomUUID().toString().substring(0, 10); String email = name + "@example.com";
-        mvc.perform(post("/api/auth/register").contentType("application/json").content(mapper.writeValueAsString(Map.of("username", name, "email", email, "password", "password123")))).andExpect(status().isOk());
-        var u = users.findByEmail(email).orElseThrow(); u.setRole(role); users.saveAndFlush(u);
-        var response = mvc.perform(post("/api/auth/login").contentType("application/json").content(mapper.writeValueAsString(Map.of("email", email, "password", "password123")))).andExpect(status().isOk()).andReturn();
-        return JsonPath.read(response.getResponse().getContentAsString(), "$.token");
+    String token(Role role) {
+        return ClerkTestTokens.tokenFor(ClerkTestTokens.createUser(users, "u" + UUID.randomUUID().toString().substring(0, 10), role));
     }
     Map<String, Object> room(boolean published, String type) {
         var r = new LinkedHashMap<String, Object>();
@@ -126,7 +122,7 @@ class ContentDraftsIntegrationTest {
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_completed_tasks WHERE task_id IN (SELECT id FROM room_tasks WHERE room_id = ?)", Integer.class, id));
         assertEquals(0, rooms.findById(id).orElseThrow().getSolutionsCount());
-        String username = mapper.readTree(Base64.getUrlDecoder().decode(user.split("\\.")[1])).get("sub").asText();
+        String username = users.findByClerkUserId(mapper.readTree(Base64.getUrlDecoder().decode(user.split("\\.")[1])).get("sub").asText()).orElseThrow().getUsername();
         var player = users.findByUsername(username).orElseThrow();
         assertEquals(0, player.getPoints()); assertEquals(0, player.getStreak()); assertNull(player.getLastSolvedDate());
         String taskSolve = "/api/rooms/" + id + "/tasks/" + number(saved, "$.tasks.tasks[0].id") + "/solve";
@@ -170,7 +166,7 @@ class ContentDraftsIntegrationTest {
 
     @Test void completedPathStatsMatchPortfolioWhenRoomsAndParentMoveBetweenDraftAndPublished() throws Exception {
         String admin = token(Role.ADMIN), user = token(Role.USER);
-        String username = mapper.readTree(Base64.getUrlDecoder().decode(user.split("\\.")[1])).get("sub").asText();
+        String username = users.findByClerkUserId(mapper.readTree(Base64.getUrlDecoder().decode(user.split("\\.")[1])).get("sub").asText()).orElseThrow().getUsername();
         var first = room(true, "PATH"); String savedFirst = save("rooms", null, first, admin, 201); long firstId = number(savedFirst, "$.room.id");
         var second = room(true, "PATH"); String savedSecond = save("rooms", null, second, admin, 201); long secondId = number(savedSecond, "$.room.id");
         var p = path(true); p.put("chapters", List.of(Map.of("title", "Chapter", "roomIds", List.of(firstId, secondId))));

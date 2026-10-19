@@ -1,28 +1,29 @@
 import { expect, test, type Page } from "@playwright/test";
+import {
+  API_URL,
+  apiHeaders,
+  createAccount,
+  deleteAccount,
+  finishOnboarding,
+  signIn,
+  type CourseAccount,
+} from "./clerkAccount";
+
+let account: CourseAccount | undefined;
+
+test.afterEach(async ({ request }) => {
+  await deleteAccount(request, account);
+  account = undefined;
+});
 
 test("full account-backed lab, restoration on a new device and room completion", async ({
   page,
   request,
   browser,
 }) => {
-  const username = `ukos${Date.now()}`;
-  const data = {
-    username,
-    email: `${username}@example.com`,
-    password: "LocalTest123!",
-  };
-  expect(
-    (
-      await request.post("http://localhost:8080/api/auth/register", { data })
-    ).ok(),
-  ).toBeTruthy();
-  const login = await request.post("http://localhost:8080/api/auth/login", {
-    data,
-  });
-  const { token } = await login.json();
-  const headers = { Authorization: `Bearer ${token}` };
-  await page.goto("/login");
-  await page.evaluate((value) => localStorage.setItem("token", value), token);
+  account = await createAccount(request, "ukos");
+  await signIn(page, account);
+  await finishOnboarding(page, request);
   await page.goto("/learn");
   await page.getByRole("link", { name: /Dyżur Zero/ }).click();
   await expect(page.getByText("Postęp zapisany na koncie")).toBeVisible();
@@ -89,8 +90,8 @@ test("full account-backed lab, restoration on a new device and room completion",
       async () =>
         (
           await (
-            await request.get("http://localhost:8080/api/ukos/lab-1", {
-              headers,
+            await request.get(`${API_URL}/api/ukos/lab-1`, {
+              headers: await apiHeaders(page),
             })
           ).json()
         ).completedSteps,
@@ -100,11 +101,7 @@ test("full account-backed lab, restoration on a new device and room completion",
     viewport: { width: 1440, height: 1000 },
   });
   const restored = await second.newPage();
-  await restored.goto("http://localhost:5173/login");
-  await restored.evaluate(
-    (value) => localStorage.setItem("token", value),
-    token,
-  );
+  await signIn(restored, account);
   await restored.goto("http://localhost:5173/learn/ukos");
   await expect(restored.getByText("15 z 15 ćwiczeń ukończonych")).toBeVisible();
   await restored.getByRole("button", { name: "Wróć do ćwiczeń" }).click();
@@ -136,20 +133,9 @@ test("starts over a 10 Mbps connection with slower CPU and keeps the page respon
   page,
   request,
 }, testInfo) => {
-  const username = `slow${Date.now()}`;
-  const data = {
-    username,
-    email: `${username}@example.com`,
-    password: "LocalTest123!",
-  };
-  const response = await request.post(
-    "http://localhost:8080/api/auth/register",
-    { data },
-  );
-  expect(response.ok()).toBeTruthy();
-  const { token } = await response.json();
-  await page.goto("/login");
-  await page.evaluate((value) => localStorage.setItem("token", value), token);
+  account = await createAccount(request, "slow");
+  await signIn(page, account);
+  await finishOnboarding(page, request);
   await page.goto("/learn/ukos");
   await page.getByRole("button", { name: "Rozpocznij dyżur" }).click();
   const session = await page.context().newCDPSession(page);
