@@ -30,6 +30,8 @@ server:
 application:
   realtime:
     presence-offline-grace: ${PRESENCE_OFFLINE_GRACE:5s}
+  origin-guard:
+    secrets: ${ORIGIN_GUARD_SECRETS:}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:${FRONTEND_URL:http://localhost:5173}}
   clerk:
