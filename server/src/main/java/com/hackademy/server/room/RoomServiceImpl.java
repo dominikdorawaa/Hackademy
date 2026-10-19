@@ -4,7 +4,6 @@ import com.hackademy.server.room.dto.CreateRoomRequest;
 import com.hackademy.server.room.dto.HintDto;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
-import com.hackademy.server.room.dto.RoomDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.room.dto.RoomTasksAdminDto;
 import com.hackademy.server.room.dto.RoomTaskAdminDto;
@@ -679,22 +678,5 @@ public class RoomServiceImpl implements RoomService {
 
     private com.hackademy.server.room.dto.HintDto mapToDto(com.hackademy.server.room.Hint hint) {
         return new com.hackademy.server.room.dto.HintDto(hint.getId(), hint.getDescription());
-    }
-
-    private RoomDto mapToDto(Room room, boolean solved) {
-        return RoomDto.builder()
-                .id(room.getId())
-                .title(room.getTitle())
-                .description(room.getDescription())
-                .shortDescription(room.getShortDescription())
-                .difficulty(room.getDifficulty())
-                .category(room.getCategory())
-                .points(room.getPoints())
-                .solutionsCount(room.getSolutionsCount())
-                .solved(solved)
-                .requiresVpn(room.isRequiresVpn()) // Set requiresVpn
-                .createdAt(room.getCreatedAt())
-                .updatedAt(room.getUpdatedAt())
-                .build();
     }
 }

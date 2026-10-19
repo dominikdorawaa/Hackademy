@@ -5,6 +5,7 @@ import java.net.http.HttpClient;
 import java.net.http.WebSocket;
 import java.time.Duration;
 import java.util.concurrent.BlockingQueue;
+import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.CompletionStage;
 import java.util.concurrent.LinkedBlockingQueue;
 import java.util.concurrent.TimeUnit;
@@ -15,6 +16,7 @@ final class RealtimeSocket implements WebSocket.Listener, AutoCloseable {
     record Frame(String text, long receivedAt) {}
     private final BlockingQueue<Frame> messages = new LinkedBlockingQueue<>();
     private final StringBuilder fragments = new StringBuilder();
+    private final CompletableFuture<Integer> closedByServer = new CompletableFuture<>();
     private WebSocket socket;
 
     static RealtimeSocket open(HttpClient client, int port, String token) throws Exception {
@@ -43,6 +45,8 @@ final class RealtimeSocket implements WebSocket.Listener, AutoCloseable {
 
     Frame poll(long milliseconds) throws InterruptedException { return messages.poll(milliseconds, TimeUnit.MILLISECONDS); }
 
+    int awaitServerClose() throws Exception { return closedByServer.get(30, TimeUnit.SECONDS); }
+
     static String body(Frame frame) {
         String text = frame.text();
         return text.substring(text.indexOf("\n\n") + 2, text.indexOf('\0'));
@@ -62,6 +66,15 @@ final class RealtimeSocket implements WebSocket.Listener, AutoCloseable {
         webSocket.request(1);
         return null;
     }
+
+    @Override
+    public CompletionStage<?> onClose(WebSocket webSocket, int statusCode, String reason) {
+        closedByServer.complete(statusCode);
+        return null;
+    }
+
+    @Override
+    public void onError(WebSocket webSocket, Throwable error) { closedByServer.completeExceptionally(error); }
 
     @Override
     public void close() { socket.abort(); }
