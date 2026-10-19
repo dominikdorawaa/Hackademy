@@ -7,5 +7,5 @@ export default function RegisterPage() {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <div role="status">Wczytuję…</div>;
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
-  return <AuthLayout title="hackademy-register"><SignUp routing="path" path="/register" signInUrl="/login" forceRedirectUrl="/dashboard" /></AuthLayout>;
+  return <AuthLayout heading={['Zdobywaj flagi.', 'Ucz się.', 'Rywalizuj.']} lead="Ćwicz cyberbezpieczeństwo na praktycznych zadaniach CTF, po polsku."><SignUp routing="path" path="/register" signInUrl="/login" forceRedirectUrl="/dashboard" /></AuthLayout>;
 }

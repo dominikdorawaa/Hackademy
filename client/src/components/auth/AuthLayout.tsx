@@ -1,21 +1,35 @@
-import React from 'react';
 import '../../pages/Auth.css';
+import { Fragment } from 'react';
 import type { PropsWithChildren } from 'react';
 
-const AuthLayout = ({ children, title }: PropsWithChildren<{ title: string }>) => {
+const points = [
+  { title: 'Ścieżki nauki', text: 'Pokoje CTF ułożone krok po kroku, od podstaw.' },
+  { title: 'Arena', text: 'Pojedynki na żywo i ranking Elo.' },
+  { title: 'Postępy', text: 'XP, poziomy i ranking ze znajomymi.' },
+];
+
+type AuthLayoutProps = PropsWithChildren<{ heading: string[]; lead: string }>;
+
+const AuthLayout = ({ children, heading, lead }: AuthLayoutProps) => {
   return (
-    <div className="auth-container">
-      <div className="auth-terminal">
-        <div className="auth-terminal-header">
-          <div className="dot red"></div>
-          <div className="dot yellow"></div>
-          <div className="dot green"></div>
-          <div className="title">{title}</div>
+    <div className="auth-page">
+      <aside className="auth-intro" aria-label="Hackademy">
+        <div>
+          <h2 className="auth-intro-title">{heading.map((line, index) => <Fragment key={line}>{index > 0 && ' '}<span>{line}</span></Fragment>)}</h2>
+          <p className="auth-intro-lead">{lead}</p>
         </div>
-        <div className="auth-terminal-body">
-          {children}
-        </div>
-      </div>
+        <ul className="auth-points">
+          {points.map(point => (
+            <li key={point.title}>
+              <div>
+                <strong>{point.title}</strong>
+                <span>{point.text}</span>
+              </div>
+            </li>
+          ))}
+        </ul>
+      </aside>
+      <div className="auth-form">{children}</div>
     </div>
   );
 };

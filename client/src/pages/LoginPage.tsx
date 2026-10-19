@@ -7,5 +7,5 @@ export default function LoginPage() {
   const { isAuthenticated, loading } = useAuth();
   if (loading) return <div role="status">Wczytuję…</div>;
   if (isAuthenticated) return <Navigate to="/dashboard" replace />;
-  return <AuthLayout title="hackademy-login"><SignIn routing="path" path="/login" signUpUrl="/register" forceRedirectUrl="/dashboard" /></AuthLayout>;
+  return <AuthLayout heading={['Wróć do gry.']} lead="Twoja ścieżka, zdobyte XP i miejsce w rankingu czekają na Ciebie."><SignIn routing="path" path="/login" signUpUrl="/register" forceRedirectUrl="/dashboard" /></AuthLayout>;
 }
