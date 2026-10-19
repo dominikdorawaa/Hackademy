@@ -32,7 +32,7 @@ Na Heroku ustaw produkcyjny `CLERK_ISSUER` i zachowaj `FRONTEND_URL=https://hack
 5. Powtórzenie pomija już powiązane konta. Jeśli poprzedni przebieg utworzył konto zewnętrzne, ale nie zapisał powiązania, importer odzyskuje je przez `external_id`. Nie dołącza kont po samym e-mailu. Konflikt z istniejącym kontem Clerka lub błąd API daje niezerowy kod wyjścia i wymaga ustalenia właściciela. Nie naprawiaj konfliktu przez automatyczne przejęcie konta.
 6. Warunkiem przełączenia jest zero błędów i zero starych kont bez `clerk_user_id`. Zweryfikuj logowanie dotychczasowym hasłem, konto administratora i zwykłego użytkownika, zmianę nazwy, odzyskanie hasła, preferencje i realtime. Import bcrypt zachowuje hasło. Konta OAuth bez lokalnego hasła nie dostają losowego hasła.
 7. Wdróż API, następnie frontend z tą samą instancją Clerka. Włącz rejestrację. Stare tokeny przestają działać, użytkownicy logują się ponownie. Nowe konto jest zakładane lokalnie przy pierwszym żądaniu z podpisanym tokenem i zweryfikowanym e-mailem.
-8. Po sprawdzeniu odłącz sekret importu z procesu i usuń ustawienie `CLERK_IMPORT_USERS`. Zachowane lokalne hashe służą okresowi migracji i wycofania; ich usunięcie wymaga osobnej migracji po zakończeniu okresu stabilizacji.
+8. Po sprawdzeniu wyłącz `CLERK_IMPORT_USERS`. Normalny backend wymaga teraz `CLERK_SECRET_KEY` tej samej instancji do usuwania kont przez administratora. Sekret pozostaje wyłącznie na backendzie. Zachowane lokalne hashe służą okresowi migracji i wycofania; ich usunięcie wymaga osobnej migracji po zakończeniu okresu stabilizacji.
 
 Przy dużej liczbie kont zaplanuj limit zapytań Backend API Clerka. Importer raportuje błąd pojedynczego konta i kontynuuje; po ograniczeniu tempa można ponowić przebieg. Nie uruchamiaj importu do innej instancji na tej samej bazie bez osobnego planu przepięcia identyfikatorów.
 
@@ -45,3 +45,13 @@ Po otwarciu zapisów nie przywracaj ślepo backupu: utraciłby nowy postęp. Kon
 ## Pozostałe zależności
 
 Ochrona Cloudflare i limity aplikacyjnego API są osobnymi zadaniami #131 i #132. Lokalne endpointy `/api/auth/login` i `/api/auth/register` oraz zmiana hasła w API są usunięte. Dostosuj reguły do rzeczywistych endpointów; limity i ochronę logowania ustaw w Clerk. Ten PR nie deklaruje realizacji #131 ani #132.
+
+## Usuwanie kont przez administratora
+
+Przed wdrożeniem ustaw backendowi `CLERK_SECRET_KEY` zgodny z instancją wskazaną przez `CLERK_ISSUER`. Brak klucza zwraca 503 bez rozpoczęcia usuwania powiązanego konta. Flyway V22 dodaje `account_deletions`, niezależne od usuwanych danych użytkownika.
+
+Usuwanie najpierw trwale blokuje lokalny identyfikator oraz dokładny `clerk_user_id`, następnie wywołuje DELETE `/users/{user_id}` w Clerk i usuwa dane lokalne. Stare tokeny, nowe połączenia i operacje istniejących sesji WebSocket oraz dalsze wysyłki realtime są odrzucane po blokadzie. Rejestru blokad nie należy usuwać, ponieważ chroni przed odtworzeniem profilu przez wcześniej wydany token. Nie przechowuje e-maili ani nazw użytkowników.
+
+Błąd Clerk zwraca 502 i pozostawia zablokowany profil widoczny administratorowi do ponowienia. Awaria lokalnego usuwania także zwraca błąd, zachowując blokadę i lokalne dane dzięki transakcji. Administrator ponawia tę samą operację dla tego samego lokalnego ID. Odpowiedź Clerk 404 oznacza, że konto zewnętrzne już nie istnieje. Ponowienie po zakończeniu zwraca 204 i korzysta wyłącznie z utrwalonego identyfikatora, nigdy z e-maila ani wyszukiwania innych kont.
+
+Cztery tożsamości osierocone przed tą poprawką wymagają osobnej operacji: odzyskaj dokładne lokalne i zewnętrzne identyfikatory z wiarygodnych zapisów, sprawdź instancję i właścicieli, uzgodnij listę oraz wykonanie z administratorem. Przed usunięciem w Clerk zapisz uzgodnione pary w rejestrze blokad w osobnej zatwierdzonej operacji administracyjnej. Samo usunięcie w Clerk nie unieważnia lokalnej weryfikacji podpisu wcześniej wydanego tokenu. Ta zmiana nie usuwa automatycznie tych czterech kont ani nie ingeruje w produkcję.

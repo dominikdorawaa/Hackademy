@@ -28,6 +28,12 @@ public class ClerkBackendClient {
         return list("external_id", externalId);
     }
 
+    public void delete(String clerkUserId) {
+        restClient.delete().uri("/users/{id}", clerkUserId).retrieve()
+                .onStatus(status -> status.value() == 404, (request, response) -> {})
+                .toBodilessEntity();
+    }
+
     public ClerkUser create(String externalId, String email, String passwordDigest) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("external_id", externalId);

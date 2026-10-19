@@ -48,6 +48,7 @@ import static org.mockito.Mockito.*;
 @ExtendWith(MockitoExtension.class)
 class UserServiceImplTest {
 
+    @Mock AccountDeletionService accountDeletionService;
     @Mock UserRepository userRepository;
     @Mock UserSolvedRoomRepository userSolvedRoomRepository;
     @Mock UserBadgeRepository userBadgeRepository;
@@ -359,15 +360,10 @@ class UserServiceImplTest {
     }
 
     @Test
-    void deletesUserWithBadges() {
-        when(userRepository.existsById(1L)).thenReturn(true);
-        when(userRepository.existsById(2L)).thenReturn(false);
-
+    void delegatesAccountDeletionAndInvalidatesCaches() {
         service.deleteUser(1L);
-        verify(userBadgeRepository).deleteByUserId(1L);
-        verify(userRepository).deleteById(1L);
-
-        assertThrows(UserNotFoundException.class, () -> service.deleteUser(2L));
+        verify(accountDeletionService).delete(1L);
+        verify(friendshipService).invalidateProfileCaches();
     }
 
     @Test

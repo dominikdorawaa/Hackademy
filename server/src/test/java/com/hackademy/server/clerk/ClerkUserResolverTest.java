@@ -30,6 +30,8 @@ import static org.mockito.Mockito.when;
 @ExtendWith(MockitoExtension.class)
 class ClerkUserResolverTest {
 
+    @Mock com.hackademy.server.user.AccountDeletionRepository deletions;
+    @Mock org.springframework.transaction.PlatformTransactionManager transactionManager;
     @Mock UserRepository userRepository;
     @Mock UsernameGenerator usernameGenerator;
     @InjectMocks ClerkUserResolver resolver;
@@ -37,7 +39,7 @@ class ClerkUserResolverTest {
     @Test
     void returnsTheLinkedAccount() {
         var user = user(1L, "user_1", "a@example.com");
-        when(userRepository.findByClerkUserId("user_1")).thenReturn(Optional.of(user));
+        when(userRepository.findByClerkUserIdForUpdate("user_1")).thenReturn(Optional.of(user));
 
         assertSame(user, resolver.resolve(jwt("user_1", Map.of("email", "a@example.com", "email_verified", true))));
         verify(userRepository, never()).saveAndFlush(any());
@@ -46,7 +48,7 @@ class ClerkUserResolverTest {
     @Test
     void keepsTheEmailWhenTheClaimIsMissingUnverifiedOrTaken() {
         var user = user(1L, "user_1", "a@example.com");
-        when(userRepository.findByClerkUserId("user_1")).thenReturn(Optional.of(user));
+        when(userRepository.findByClerkUserIdForUpdate("user_1")).thenReturn(Optional.of(user));
         when(userRepository.findByEmail("b@example.com")).thenReturn(Optional.of(user(2L, null, "b@example.com")));
 
         resolver.resolve(jwt("user_1", Map.of()));
@@ -60,7 +62,7 @@ class ClerkUserResolverTest {
     @Test
     void syncsAVerifiedEmailChangeFromClerk() {
         var user = user(1L, "user_1", "a@example.com");
-        when(userRepository.findByClerkUserId("user_1")).thenReturn(Optional.of(user));
+        when(userRepository.findByClerkUserIdForUpdate("user_1")).thenReturn(Optional.of(user));
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
         when(userRepository.updateClerkEmail(1L, "user_1", "new@example.com")).thenReturn(1);
 
@@ -72,7 +74,7 @@ class ClerkUserResolverTest {
     @Test
     void keepsTheCurrentAccountWhenEmailSyncRaces() {
         var user = user(1L, "user_1", "a@example.com");
-        when(userRepository.findByClerkUserId("user_1")).thenReturn(Optional.of(user));
+        when(userRepository.findByClerkUserIdForUpdate("user_1")).thenReturn(Optional.of(user));
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
         when(userRepository.updateClerkEmail(1L, "user_1", "new@example.com")).thenThrow(new DataIntegrityViolationException("duplicate"));
 
@@ -83,7 +85,7 @@ class ClerkUserResolverTest {
     void rejectsEmailCollisionsInsteadOfClaimingLegacyAccounts() {
         var legacy = user(3L, null, "legacy@example.com");
         legacy.setRole(Role.ADMIN);
-        when(userRepository.findByClerkUserId("user_attacker")).thenReturn(Optional.empty());
+        when(userRepository.findByClerkUserIdForUpdate("user_attacker")).thenReturn(Optional.empty());
         when(userRepository.findByEmail("legacy@example.com")).thenReturn(Optional.of(legacy));
         assertThrows(BadCredentialsException.class, () -> resolver.resolve(jwt("user_attacker",
                 Map.of("external_id", "3", "email", "legacy@example.com", "email_verified", true))));
@@ -92,7 +94,7 @@ class ClerkUserResolverTest {
 
     @Test
     void createsANewPlayerWithAGeneratedName() {
-        when(userRepository.findByClerkUserId("user_new")).thenReturn(Optional.empty());
+        when(userRepository.findByClerkUserIdForUpdate("user_new")).thenReturn(Optional.empty());
         when(userRepository.findByEmail("new@example.com")).thenReturn(Optional.empty());
         when(usernameGenerator.generate()).thenReturn("gracz123456");
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
@@ -109,7 +111,7 @@ class ClerkUserResolverTest {
 
     @Test
     void rejectsNewAccountsWithoutAVerifiedEmail() {
-        when(userRepository.findByClerkUserId("user_x")).thenReturn(Optional.empty());
+        when(userRepository.findByClerkUserIdForUpdate("user_x")).thenReturn(Optional.empty());
 
         assertThrows(BadCredentialsException.class, () -> resolver.resolve(jwt("user_x", Map.of("email", "x@example.com"))));
         assertThrows(BadCredentialsException.class, () -> resolver.resolve(jwt("user_x", Map.of("email", " ", "email_verified", true))));
@@ -118,7 +120,7 @@ class ClerkUserResolverTest {
     @Test
     void returnsTheWinnerOfAConcurrentFirstSignIn() {
         var winner = user(5L, "user_5", "five@example.com");
-        when(userRepository.findByClerkUserId("user_5")).thenReturn(Optional.empty(), Optional.of(winner));
+        when(userRepository.findByClerkUserIdForUpdate("user_5")).thenReturn(Optional.empty(), Optional.of(winner));
         when(userRepository.findByEmail("five@example.com")).thenReturn(Optional.empty());
         when(usernameGenerator.generate()).thenReturn("gracz555555");
         when(userRepository.saveAndFlush(any(User.class))).thenThrow(new DataIntegrityViolationException("duplicate"));
@@ -128,7 +130,7 @@ class ClerkUserResolverTest {
 
     @Test
     void reportsAConflictWhenNoAccountWonTheRace() {
-        when(userRepository.findByClerkUserId("user_6")).thenReturn(Optional.empty());
+        when(userRepository.findByClerkUserIdForUpdate("user_6")).thenReturn(Optional.empty());
         when(userRepository.findByEmail("six@example.com")).thenReturn(Optional.empty());
         when(usernameGenerator.generate()).thenReturn("gracz666666");
         when(userRepository.saveAndFlush(any(User.class))).thenThrow(new DataIntegrityViolationException("duplicate"));
@@ -136,6 +138,22 @@ class ClerkUserResolverTest {
         var exception = assertThrows(BadCredentialsException.class,
                 () -> resolver.resolve(jwt("user_6", Map.of("email", "six@example.com", "email_verified", true))));
         assertTrue(exception.getMessage().contains("conflicts"));
+    }
+
+    @Test
+    void rejectsDeletedIdentitiesBeforeReturningOrCreatingAProfile() {
+        when(deletions.existsByClerkUserId("user_deleted")).thenReturn(true);
+        assertThrows(BadCredentialsException.class, () -> resolver.resolve(jwt("user_deleted", Map.of("email", "old@example.com", "email_verified", true))));
+        verify(userRepository, never()).saveAndFlush(any());
+    }
+
+    @Test
+    void rollsBackCreationWhenDeletionWonAConcurrentFirstSignIn() {
+        when(deletions.existsByClerkUserId("user_new")).thenReturn(false, true);
+        when(usernameGenerator.generate()).thenReturn("gracz123456");
+        when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
+        assertThrows(BadCredentialsException.class, () -> resolver.resolve(jwt("user_new", Map.of("email", "new@example.com", "email_verified", true))));
+        verify(transactionManager).rollback(any());
     }
 
     private static User user(Long id, String clerkUserId, String email) {
