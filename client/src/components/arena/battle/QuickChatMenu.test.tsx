@@ -17,7 +17,8 @@ it('opens from the portrait with a tap and sends the picked reaction', () => {
   expect(screen.getByRole('menu', { name: 'Szybkie reakcje' })).toBeInTheDocument();
   expect(screen.getAllByRole('menuitem')).toHaveLength(QUICK_REACTIONS.length);
   for (const group of ['Emotki', 'Tańce']) expect(screen.getByRole('group', { name: group })).toBeInTheDocument();
-  expect(screen.getAllByRole('menuitem')).toHaveLength(6);
+  expect(screen.getAllByRole('menuitem')).toHaveLength(7);
+  expect(screen.getByRole('menuitem', { name: 'Scuba' })).toHaveTextContent('Scuba');
   expect(screen.getByRole('menuitem', { name: 'EZ' }).querySelector('.pixel-sprite')).not.toBeNull();
   expect(screen.getByRole('menuitem', { name: 'Six-seven' })).toHaveTextContent('67');
   expect(screen.getByRole('menuitem', { name: 'EZ' })).toHaveFocus();
@@ -36,11 +37,11 @@ it('works with the keyboard', () => {
   expect(screen.getByRole('menuitem', { name: 'GG' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'ArrowUp' });
   fireEvent.keyDown(menu, { key: 'ArrowLeft' });
-  expect(screen.getByRole('menuitem', { name: 'Taniec Luz' })).toHaveFocus();
+  expect(screen.getByRole('menuitem', { name: 'Scuba' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'Home' });
   expect(screen.getByRole('menuitem', { name: 'EZ' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'End' });
-  expect(screen.getByRole('menuitem', { name: 'Taniec Luz' })).toHaveFocus();
+  expect(screen.getByRole('menuitem', { name: 'Scuba' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'ArrowDown' });
   expect(screen.getByRole('menuitem', { name: 'EZ' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'Escape' });

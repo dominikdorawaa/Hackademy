@@ -41,7 +41,7 @@ function decode(file) {
 for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
   test(`${outfit} running and Six-seven frames are whole, anchored and listed in provenance`, () => {
     const file = read(atlasFile), atlas = decode(file), anchors = JSON.parse(read(anchorFile).toString());
-    assert.deepEqual([atlas.width, atlas.height], [576, 832]);
+    assert.deepEqual([atlas.width, atlas.height], [576, 960]);
     for (let column = 1; column <= 8; column++) {
       const cell = RUN_ROW * 9 + column, top = RUN_ROW * 64, left = column * 64;
       assert.equal(anchors.cells[cell]?.angle, 0);
@@ -54,7 +54,7 @@ for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
       assert.ok(opaque > 300, `cell ${cell} is empty`);
       assert.equal(edge, 0, `cell ${cell} touches its border`);
     }
-    for (const cell of [...Array.from({ length: 8 }, (_, i) => 73 + i), ...Array.from({ length: 8 }, (_, i) => 82 + i)]) {
+    for (const cell of [...Array.from({ length: 8 }, (_, i) => 73 + i), ...Array.from({ length: 8 }, (_, i) => 82 + i), ...Array.from({ length: 8 }, (_, i) => 118 + i), ...Array.from({ length: 8 }, (_, i) => 127 + i)]) {
       const anchor = anchors.cells[cell], top = Math.floor(cell / 9) * 64, left = (cell % 9) * 64;
       assert.equal(anchor?.view, 'front', `cell ${cell} has no front head anchor`);
       assert.equal(atlas.pixels[((top + Math.round(anchor.y)) * 576 + left + Math.round(anchor.x)) * 4 + 3], 255, `cell ${cell} anchor is not on the head`);
@@ -65,6 +65,7 @@ for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
       }
     }
     assert.ok(provenance.sixseven.outfits[outfit].animation.frames === 15);
+    assert.ok(provenance.scuba.outfits[outfit].animation.frames === 15);
     for (let column = 1; column <= 8; column++) {
       const cell = 9 + column;
       assert.equal(anchors.cells[cell]?.angle, 0, `attack cell ${cell} has no head anchor`);

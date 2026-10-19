@@ -183,7 +183,7 @@ class ArenaBattleServiceTest {
         assertEquals(ReactionOutcome.Status.UNKNOWN_REACTION, arena.react("game", 1L, "hello").status());
         assertEquals(ReactionOutcome.Status.UNKNOWN_REACTION, arena.react("game", 1L, null).status());
         assertEquals(ReactionOutcome.Status.UNKNOWN_REACTION, arena.react("game", 1L, "fire").status());
-        assertEquals(List.of("ez", "gg", "laugh", "shock", "67", "groove"),
+        assertEquals(List.of("ez", "gg", "laugh", "shock", "67", "groove", "scuba"),
                 Arrays.stream(QuickReaction.values()).map(QuickReaction::id).toList());
         assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "67").status());
         var after = state();
