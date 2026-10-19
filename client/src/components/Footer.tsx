@@ -10,7 +10,7 @@ const Footer = () => {
               Hackademy<span>_</span>
             </span>
             <span style={{ display: 'block', marginTop: '5px' }}>
-              &copy; 2025 Hackademy Polska.
+              &copy; {new Date().getFullYear()} Hackademy Polska.
             </span>
           </div>
           <div className="footer-links">
