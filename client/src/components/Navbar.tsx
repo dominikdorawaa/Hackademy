@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
-import type { Challenge, DashboardUser, FriendRequestDto } from '../types/api';
+import type { Challenge, DashboardUser, FriendDto, FriendRequestDto } from '../types/api';
 import './Navbar.css';
 import { Button } from './ui/button';
 import ThemeSwitcher from './ThemeSwitcher';
@@ -20,7 +20,10 @@ import type { ProfilePersonalization } from '../lib/profile';
 
 type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
+  | { id: number; type: 'FRIEND_ONLINE'; from: string; data: FriendDto }
   | { id: string; type: 'CHALLENGE'; from: string; timestamp: string; data: Challenge };
+
+type ActionableNotification = Exclude<Notification, { type: 'FRIEND_ONLINE' }>;
 
 const Navbar = () => {
   const { isAuthenticated, logout, token, loading } = useAuth();
@@ -35,7 +38,7 @@ const Navbar = () => {
   const [userData, setUserData] = useState<DashboardUser | null>(null);
   const { state: realtime, synchronize } = useRealtime();
   const { preferences } = useNotificationPreferences();
-  const notifications = useMemo<Notification[]>(() => [
+  const actionable = useMemo<ActionableNotification[]>(() => [
     ...(preferences.friendRequests ? realtime?.friendRequests ?? [] : []).map(req => ({
       id: req.id, type: 'FRIEND_REQUEST' as const, from: req.requesterUsername,
       timestamp: req.createdAt, data: req,
@@ -45,7 +48,12 @@ const Navbar = () => {
       timestamp: ch.createdAt, data: ch,
     })),
   ], [realtime, preferences.friendRequests, preferences.challenges]);
-  const unreadCount = notifications.length;
+  const onlineFriends = useMemo<Notification[]>(() => preferences.friendOnlineBell
+    ? (realtime?.friends ?? []).filter(friend => friend.online).map(friend => ({
+      id: friend.id, type: 'FRIEND_ONLINE' as const, from: friend.username, data: friend,
+    })) : [], [realtime, preferences.friendOnlineBell]);
+  const notifications = useMemo<Notification[]>(() => [...actionable, ...onlineFriends], [actionable, onlineFriends]);
+  const unreadCount = actionable.length;
   const [processedNotifications, setProcessedNotifications] = useState<string[]>([]); // Track processed IDs
   const menuRef = useRef<HTMLDivElement | null>(null);
   const notifRef = useRef<HTMLDivElement | null>(null);
@@ -308,7 +316,7 @@ const Navbar = () => {
                                             <li key={`${notif.type}-${notif.id}`} className="notification-item" style={{ borderBottom: '1px solid var(--border-color)' }}>
                                                 <div className="notification-content">
                                                     <div className="notification-avatar">
-                                                        <UserAvatar username={notif.from} avatar={notif.type === 'FRIEND_REQUEST' ? notif.data.avatar : notif.data.challengerAvatar}
+                                                        <UserAvatar username={notif.from} avatar={notif.type === 'CHALLENGE' ? notif.data.challengerAvatar : notif.data.avatar}
                                                             alt="Avatar" 
                                                             style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} 
                                                         />
@@ -316,15 +324,19 @@ const Navbar = () => {
                                                     <div className="notification-text-wrapper">
                                                         <p className="notification-message" style={{ color: 'var(--text-light)' }}>
                                                             <strong>{notif.from}</strong>
-                                                            {notif.type === 'CHALLENGE' ? ' wyzywa Cię na pojedynek!' : ' wysłał zaproszenie.'}
+                                                            {notif.type === 'CHALLENGE' ? ' wyzywa Cię na pojedynek!' : notif.type === 'FRIEND_ONLINE' ? ' jest online.' : ' wysłał zaproszenie.'}
                                                         </p>
                                                         <span className="notification-type" style={{ color: 'var(--text-gray)' }}>
-                                                            {notif.type === 'CHALLENGE' ? 'Tryb Rankingowy' : 'Znajomi'}
+                                                            {notif.type === 'CHALLENGE' ? 'Tryb Rankingowy' : notif.type === 'FRIEND_ONLINE' ? 'Znajomi online' : 'Znajomi'}
                                                         </span>
                                                     </div>
                                                 </div>
                                                 <div className="notification-actions">
-                                                    {isProcessed ? (
+                                                    {notif.type === 'FRIEND_ONLINE' ? (
+                                                        <Link to={`/profile/${notif.from}`} className="btn-notif" onClick={() => setIsNotificationsOpen(false)}>
+                                                            <i className="fas fa-user" aria-hidden="true"></i> Profil
+                                                        </Link>
+                                                    ) : isProcessed ? (
                                                         <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem', fontStyle: 'italic' }}>Przetwarzanie...</span>
                                                     ) : (
                                                         <>

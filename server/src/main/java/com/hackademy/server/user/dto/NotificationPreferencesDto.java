@@ -7,8 +7,10 @@ public record NotificationPreferencesDto(
         @NotNull Boolean challenges,
         @NotNull Boolean matchFound,
         @NotNull Boolean sound,
-        @NotNull Boolean browserNotifications) {
+        @NotNull Boolean browserNotifications,
+        @NotNull Boolean friendOnline,
+        @NotNull Boolean friendOnlineBell) {
     public static NotificationPreferencesDto defaults() {
-        return new NotificationPreferencesDto(true, true, true, true, false);
+        return new NotificationPreferencesDto(true, true, true, true, false, true, true);
     }
 }

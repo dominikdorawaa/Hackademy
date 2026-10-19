@@ -73,6 +73,19 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void friendOnlineIsOnByDefaultAndCanBeTurnedOff() throws Exception {
+        var user = account(Role.USER);
+        getAs(user, URL).andExpect(jsonPath("$.friendOnline").value(true));
+        patchPreference(user, "{\"preference\":\"friendOnline\",\"enabled\":false}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.friendOnline").value(false)).andExpect(jsonPath("$.friendRequests").value(true));
+        patchPreference(user, "{\"preference\":\"sound\",\"enabled\":true}").andExpect(status().isOk());
+        getAs(user, URL).andExpect(jsonPath("$.friendOnline").value(false)).andExpect(jsonPath("$.sound").value(true));
+        getAs(user, URL).andExpect(jsonPath("$.friendOnlineBell").value(true));
+        patchPreference(user, "{\"preference\":\"friendOnlineBell\",\"enabled\":false}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.friendOnlineBell").value(false)).andExpect(jsonPath("$.friendOnline").value(false));
+    }
+
+    @Test
     void rejectsIncompletePreferencesWithoutOverwritingPreviousValues() throws Exception {
         var user = account(Role.USER);
         patchPreference(user, "{\"sound\":false}").andExpect(status().isBadRequest());

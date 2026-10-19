@@ -1,4 +1,4 @@
-export type SoundEvent = 'friendRequests' | 'challenges' | 'matchFound';
+export type SoundEvent = 'friendRequests' | 'challenges' | 'matchFound' | 'friendOnline';
 
 interface Tone {
   at: number;
@@ -51,6 +51,14 @@ export const soundVariants: Record<SoundEvent, SoundVariant[]> = {
       { at: 0, length: 0.15, frequency: C5, wave: 'triangle' }, { at: 0.25, length: 0.15, frequency: C5, wave: 'triangle' },
       { at: 0.5, length: 0.45, frequency: C6, wave: 'triangle' }] },
   ],
+  friendOnline: [
+    { id: 'blip', name: 'Krótki sygnał', tones: [{ at: 0, length: 0.18, frequency: 660, volume: 0.06 }] },
+    { id: 'knock', name: 'Pukanie', tones: [
+      { at: 0, length: 0.08, frequency: 300, wave: 'triangle', volume: 0.1 }, { at: 0.12, length: 0.08, frequency: 300, wave: 'triangle', volume: 0.1 }] },
+    { id: 'hello', name: 'Powitanie', tones: [
+      { at: 0, length: 0.15, frequency: G5, volume: 0.06 }, { at: 0.1, length: 0.25, frequency: C6, volume: 0.06 }] },
+    { id: 'bubble', name: 'Bańka', tones: [{ at: 0, length: 0.16, frequency: 400, to: 900, volume: 0.06 }] },
+  ],
 };
 
 const variantKey = (event: SoundEvent) => `sound-variant:${event}`;
@@ -101,5 +109,5 @@ export function playSound(event: SoundEvent, variant = selectedVariant(event)) {
 }
 
 export function loudestEvent(events: SoundEvent[]): SoundEvent | null {
-  return (['matchFound', 'challenges', 'friendRequests'] as const).find(event => events.includes(event)) ?? null;
+  return (['matchFound', 'challenges', 'friendRequests', 'friendOnline'] as const).find(event => events.includes(event)) ?? null;
 }

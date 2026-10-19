@@ -2,11 +2,12 @@ import UserAvatar from '../components/UserAvatar';
 import * as friendApi from '../services/friendApi';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
-import React, { useState } from 'react';
+import React, { useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
-import type { UserSearchDto } from '../types/api';
+import type { FriendDto, UserSearchDto } from '../types/api';
+import { ConfirmAction } from '../components/common/ConfirmAction';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 
 const FriendsPage = () => {
@@ -20,6 +21,11 @@ const FriendsPage = () => {
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<UserSearchDto[]>([]);
     const [isSearching, setIsSearching] = useState(false);
+
+    const [removing, setRemoving] = useState<FriendDto | null>(null);
+    const [removeOpen, setRemoveOpen] = useState(false);
+    const friendsHeading = useRef<HTMLHeadingElement>(null);
+    const removeButtons = useRef(new Map<number, HTMLButtonElement>());
 
     // Challenge state
     const challengedFriends = state?.outgoingChallenges.map(challenge => challenge.targetUsername) ?? [];
@@ -78,17 +84,10 @@ const FriendsPage = () => {
         }
     };
 
-    const handleRemove = async (friendId: number) => {
-        if (!window.confirm("Czy na pewno chcesz usunąć tego użytkownika ze znajomych?")) return;
-
-        try {
-            const response = await friendApi.removeFriend(friendId, { 'Authorization': `Bearer ${token}` });
-            if (response.ok) {
-                await synchronize();
-            }
-        } catch (err) {
-            console.error("Error removing friend", err);
-        }
+    const handleRemove = async (friend: FriendDto) => {
+        const response = await friendApi.removeFriend(friend.id, { 'Authorization': `Bearer ${token}` });
+        if (!response.ok) throw new Error('Nie udało się usunąć znajomego. Spróbuj ponownie.');
+        void synchronize();
     };
 
     const handleChallenge = async (username: string) => {
@@ -235,10 +234,10 @@ const FriendsPage = () => {
                                     </div>
                                 </div>
                                 <div style={{ display: 'flex', gap: '10px' }}>
-                                    <button onClick={() => handleAccept(req.id)} className="btn" style={{ backgroundColor: '#2ecc71', color: 'white', padding: '8px', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <button onClick={() => handleAccept(req.id)} aria-label={`Przyjmij zaproszenie od ${req.requesterUsername}`} className="btn" style={{ backgroundColor: '#2ecc71', color: 'white', padding: '8px', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <i className="fas fa-check"></i>
                                     </button>
-                                    <button onClick={() => handleReject(req.id)} className="btn" style={{ backgroundColor: '#e74c3c', color: 'white', padding: '8px', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
+                                    <button onClick={() => handleReject(req.id)} aria-label={`Odrzuć zaproszenie od ${req.requesterUsername}`} className="btn" style={{ backgroundColor: '#e74c3c', color: 'white', padding: '8px', borderRadius: '50%', width: '35px', height: '35px', display: 'flex', alignItems: 'center', justifyContent: 'center' }}>
                                         <i className="fas fa-times"></i>
                                     </button>
                                 </div>
@@ -250,7 +249,7 @@ const FriendsPage = () => {
 
             {/* Friends List Section */}
             <div>
-                <h2 style={{ fontSize: '1.5rem', marginBottom: '20px', color: 'var(--text-light)' }}>
+                <h2 ref={friendsHeading} tabIndex={-1} style={{ fontSize: '1.5rem', marginBottom: '20px', color: 'var(--text-light)' }}>
                     <i className="fas fa-users" style={{ marginRight: '10px' }}></i>
                     Twoi Znajomi ({friends.length})
                 </h2>
@@ -284,6 +283,10 @@ const FriendsPage = () => {
                                     <Link to={`/profile/${friend.username}`} style={{ textDecoration: 'none', color: 'var(--text-light)', fontWeight: 'bold', fontSize: '1.2rem', marginBottom: '5px' }}>
                                         {friend.username}
                                     </Link>
+                                    <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--text-gray)', marginBottom: '5px' }}>
+                                        <span aria-hidden="true" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: friend.online ? '#2ecc71' : 'var(--text-gray)', opacity: friend.online ? 1 : 0.5 }} />
+                                        {friend.online ? 'Online' : 'Offline'}
+                                    </div>
                                     <div style={{ fontSize: '0.9rem', color: 'var(--text-gray)', marginBottom: '15px' }}>
                                         {friend.points} XP • {friend.streak} dni 🔥
                                     </div>
@@ -321,12 +324,17 @@ const FriendsPage = () => {
                                             )}
                                         </button>
                                         <button
-                                            onClick={() => handleRemove(friend.id)}
+                                            ref={button => {
+                                                if (button) removeButtons.current.set(friend.id, button);
+                                                else removeButtons.current.delete(friend.id);
+                                            }}
+                                            onClick={() => { setRemoving(friend); setRemoveOpen(true); }}
                                             className="btn btn-outline"
                                             style={{ borderColor: '#e74c3c', color: '#e74c3c', padding: '8px 12px' }}
                                             title="Usuń ze znajomych"
+                                            aria-label={`Usuń ${friend.username} ze znajomych`}
                                         >
-                                            <i className="fas fa-user-minus"></i>
+                                            <i className="fas fa-user-minus" aria-hidden="true"></i>
                                         </button>
                                     </div>
                                 </div>
@@ -335,6 +343,15 @@ const FriendsPage = () => {
                     </div>
                 )}
             </div>
+            <ConfirmAction
+                open={removeOpen}
+                onOpenChange={setRemoveOpen}
+                title="Usunąć ze znajomych?"
+                description={removing ? <><strong className="text-base font-bold text-foreground">{removing.username}</strong> zniknie z Twojej listy znajomych. Możesz wysłać nowe zaproszenie w dowolnym momencie.</> : ''}
+                confirmLabel="Usuń"
+                onConfirm={() => removing ? handleRemove(removing) : undefined}
+                returnFocus={confirmed => (!confirmed && removing ? removeButtons.current.get(removing.id) : null) ?? friendsHeading.current}
+            />
             </>}
         </div>
     );

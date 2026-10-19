@@ -1,23 +1,12 @@
-import { useRef, useState } from 'react';
+import { useRef } from 'react';
 import type { ReactNode } from 'react';
-import { AlertCircle, CheckCircle2, TriangleAlert, Upload, X } from 'lucide-react';
-import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-  AlertDialogTrigger,
-} from '@/components/ui/alert-dialog';
+import { Upload, X } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
 import type { DifficultyLevel } from '../../types/api';
-import { difficultyLabels, errorText } from './adminFormat';
+import { difficultyLabels } from './adminFormat';
 
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
   return (
@@ -53,88 +42,8 @@ export function Section({ title, description, actions, children, className, flus
   );
 }
 
-const statusStyles = {
-  error: { icon: AlertCircle, box: 'border-destructive/40 bg-destructive/10', tint: 'text-destructive' },
-  warning: { icon: TriangleAlert, box: 'border-amber-500/40 bg-amber-500/10', tint: 'text-amber-500' },
-  success: { icon: CheckCircle2, box: 'border-emerald-500/40 bg-emerald-500/10', tint: 'text-emerald-500' },
-};
-
-export function StatusMessage({ kind, children }: { kind: keyof typeof statusStyles; children: ReactNode }) {
-  const { icon: Icon, box, tint } = statusStyles[kind];
-  return (
-    <div
-      role={kind === 'success' ? 'status' : 'alert'}
-      className={cn('flex items-start gap-2 rounded-lg border px-3 py-2.5 text-sm text-foreground', box)}
-    >
-      <Icon aria-hidden="true" className={cn('mt-0.5 size-4 shrink-0', tint)} />
-      <span>{children}</span>
-    </div>
-  );
-}
-
-export function ConfirmAction({
-  trigger,
-  title,
-  description,
-  confirmLabel,
-  onConfirm,
-}: {
-  trigger: ReactNode;
-  title: string;
-  description: ReactNode;
-  confirmLabel: string;
-  onConfirm: () => void | Promise<void>;
-}) {
-  const [open, setOpen] = useState(false);
-  const [pending, setPending] = useState(false);
-  const [error, setError] = useState<string | null>(null);
-  const inFlight = useRef(false);
-  const confirm = async () => {
-    if (inFlight.current) return;
-    inFlight.current = true;
-    setPending(true);
-    setError(null);
-    try {
-      await onConfirm();
-      setOpen(false);
-    } catch (err) {
-      setError(errorText(err, 'Nie udało się wykonać operacji. Spróbuj ponownie.'));
-    } finally {
-      inFlight.current = false;
-      setPending(false);
-    }
-  };
-  return (
-    <AlertDialog open={open} onOpenChange={(next) => {
-      if (!inFlight.current) {
-        setOpen(next);
-        setError(null);
-      }
-    }}>
-      <AlertDialogTrigger asChild disabled={pending}>{trigger}</AlertDialogTrigger>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>{title}</AlertDialogTitle>
-          <AlertDialogDescription>{description}</AlertDialogDescription>
-        </AlertDialogHeader>
-        {error && <StatusMessage kind="error">{error}</StatusMessage>}
-        <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Anuluj</AlertDialogCancel>
-          <AlertDialogAction
-            className="bg-destructive text-white hover:bg-destructive/90"
-            disabled={pending}
-            onClick={(event) => {
-              event.preventDefault();
-              void confirm();
-            }}
-          >
-            {pending ? 'Trwa wykonywanie…' : confirmLabel}
-          </AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
-  );
-}
+export { StatusMessage } from '../common/StatusMessage';
+export { ConfirmAction } from '../common/ConfirmAction';
 
 const difficultyTone: Record<DifficultyLevel, string> = {
   EASY: 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400',

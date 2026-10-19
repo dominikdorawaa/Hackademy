@@ -22,18 +22,19 @@ const sections = {
 };
 type Section = keyof typeof sections;
 
-const soundEvents: SoundEvent[] = ['friendRequests', 'challenges', 'matchFound'];
+const soundEvents: SoundEvent[] = ['friendRequests', 'challenges', 'matchFound', 'friendOnline'];
 const eventNames: Record<SoundEvent, string> = {
-  friendRequests: 'Zaproszenie do znajomych', challenges: 'Wyzwanie w Arenie', matchFound: 'Znaleziony mecz',
+  friendRequests: 'Zaproszenie do znajomych', challenges: 'Wyzwanie w Arenie', matchFound: 'Znaleziony mecz', friendOnline: 'Znajomy online',
 };
 const silentOutcome: Record<SoundEvent, string> = {
   friendRequests: 'tylko na stronie Znajomi', challenges: 'tylko w Arenie', matchFound: 'mecz otworzy się bez sygnału',
+  friendOnline: 'bez komunikatu i sygnału',
 };
 
 function eventOutcome(event: SoundEvent, preferences: NotificationPreferences, systemAllowed: boolean) {
   if (!preferences[event]) return silentOutcome[event];
   const channels = [
-    event !== 'matchFound' && 'dzwonek w górnym pasku',
+    event === 'friendOnline' ? 'komunikat w rogu ekranu' : event !== 'matchFound' && 'dzwonek w górnym pasku',
     preferences.sound && 'dźwięk',
     preferences.browserNotifications && systemAllowed && 'powiadomienie systemowe, gdy karta jest w tle',
   ].filter(Boolean);
@@ -245,6 +246,8 @@ export default function SettingsPage() {
             ? 'Włącz dźwięk albo powiadomienia systemowe poniżej, aby ta opcja miała efekt.'
             : 'Gdy znajdziemy przeciwnika, usłyszysz sygnał lub dostaniesz powiadomienie systemowe. Mecz otworzy się sam także bez tego.'}>
             {notificationSwitch('matchFound', 'Znaleziony mecz', matchFoundSilent)}</SettingRow>
+          <SettingRow title="Znajomi online: komunikat" description="Krótki komunikat w rogu ekranu i sygnał wybrany niżej, gdy znajomy wejdzie do aplikacji.">{notificationSwitch('friendOnline', 'Komunikat o znajomych online')}</SettingRow>
+          <SettingRow title="Znajomi online: dzwonek" description="Lista znajomych, którzy są teraz online, w dzwonku w górnym pasku.">{notificationSwitch('friendOnlineBell', 'Znajomi online w dzwonku')}</SettingRow>
           <h3 className="settings-group-title">Jak chcesz się dowiadywać</h3>
           <SettingRow title="Dźwięk" description="Krótki sygnał, inny dla każdego zdarzenia. Gra, gdy Hackademy jest otwarte, po pierwszym kliknięciu na stronie (wymóg przeglądarki)."
             extra={<ul className="settings-sound-list" aria-label="Sygnały do odsłuchania">{soundEvents.map(event => <li key={event}>
