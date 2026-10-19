@@ -28,6 +28,8 @@ server:
   shutdown: graceful
 
 application:
+  realtime:
+    presence-offline-grace: ${PRESENCE_OFFLINE_GRACE:5s}
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:${FRONTEND_URL:http://localhost:5173}}
   security:

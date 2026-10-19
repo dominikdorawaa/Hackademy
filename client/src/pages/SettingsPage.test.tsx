@@ -48,6 +48,26 @@ describe('settings', () => {
     expect(screen.getByRole('switch', { name: 'Zaproszenia do znajomych' })).toHaveAttribute('aria-checked', 'false');
   });
 
+  it('saves the friend online preference', async () => {
+    let saved = { ...defaultNotificationPreferences };
+    server.use(
+      http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(saved)),
+      http.patch(`${API_URL}/api/user/me/notification-preferences`, async ({ request }) => {
+        const change = await request.json() as { preference: 'friendOnline'; enabled: boolean };
+        expect(change).toEqual({ preference: 'friendOnline', enabled: false });
+        saved = { ...saved, [change.preference]: change.enabled };
+        return HttpResponse.json(saved);
+      }),
+    );
+    mount('notifications');
+    const toggle = await screen.findByRole('switch', { name: 'Komunikat o znajomych online' });
+    await waitFor(() => expect(toggle).toBeEnabled());
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    await screen.findByText('Preferencje zostały zapisane.');
+    expect(screen.getByRole('switch', { name: 'Komunikat o znajomych online' })).toHaveAttribute('aria-checked', 'false');
+  });
+
   it('keeps the previous preference when saving fails', async () => {
     server.use(
       http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(defaultNotificationPreferences)),

@@ -21,6 +21,7 @@ public class RealtimeFriendshipStateService {
     private final UserRepository users;
     private final FriendshipRepository friendships;
     private final UserAvatarRepository avatars;
+    private final FriendPresence presence;
 
     public record State(Long userId, List<FriendRequestDto> requests, List<FriendDto> friends) {}
 
@@ -41,7 +42,7 @@ public class RealtimeFriendshipStateService {
                         avatarsById.get(friendship.getRequester().getId()))).toList();
         var friends = accepted.stream()
                 .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(),
-                        friend.getStreak(), avatarsById.get(friend.getId()))).toList();
+                        friend.getStreak(), avatarsById.get(friend.getId()), presence.isOnline(friend.getId()))).toList();
         return new State(user.getId(), requests, friends);
     }
 }
