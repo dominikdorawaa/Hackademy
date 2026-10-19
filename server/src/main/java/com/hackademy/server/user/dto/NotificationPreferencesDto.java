@@ -11,6 +11,6 @@ public record NotificationPreferencesDto(
         @NotNull Boolean friendOnline,
         @NotNull Boolean friendOnlineBell) {
     public static NotificationPreferencesDto defaults() {
-        return new NotificationPreferencesDto(true, true, true, false, false, true, true);
+        return new NotificationPreferencesDto(true, true, true, true, false, true, true);
     }
 }
