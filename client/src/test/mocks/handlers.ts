@@ -4,7 +4,6 @@ import type { DashboardUser, Role } from '../../types/api';
 import { createUser } from '../fixtures/auth';
 import { defaultNotificationPreferences } from '../../services/userApi';
 
-export const loginUrl = `${API_URL}/api/auth/login`;
 export const currentUserUrl = `${API_URL}/api/user/me`;
 export const onboardingUrl = `${API_URL}/api/user/me/onboarding`;
 

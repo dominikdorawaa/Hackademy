@@ -3,6 +3,7 @@ import { existsSync } from "node:fs";
 
 export default defineConfig({
   testDir: "./course-tests",
+  globalSetup: "./course-tests/global-setup.ts",
   outputDir: "./test-results-course",
   timeout: 180000,
   expect: { timeout: 15000 },
