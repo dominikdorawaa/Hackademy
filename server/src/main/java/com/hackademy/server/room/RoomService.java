@@ -6,7 +6,6 @@ import com.hackademy.server.badge.BadgeDto;
 import com.hackademy.server.room.dto.CreateRoomRequest;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
-import com.hackademy.server.room.dto.RoomDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.room.dto.RoomTasksAdminDto;
 import com.hackademy.server.room.dto.UpdateRoomTasksRequest;

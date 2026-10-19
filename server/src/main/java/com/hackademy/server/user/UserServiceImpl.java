@@ -135,7 +135,8 @@ public class UserServiceImpl implements UserService {
                 .map(row -> new ProfilePortfolioDto.PracticeArea(
                         row.getCategory(), row.getSolvedRooms())).toList();
         var paths = pathRepository.findProgressForUsername(user.getUsername()).stream()
-                .filter(row -> row.getTotalRooms() > 0 && row.getTotalRooms().equals(row.getSolvedRooms()))
+                .filter(row -> row.getTotalRooms() != null && row.getTotalRooms() > 0
+                        && row.getTotalRooms().equals(row.getSolvedRooms()))
                 .map(row -> new ProfilePortfolioDto.CompletedPath(
                         row.getId(), row.getTitle(), row.getTotalRooms())).toList();
         return new ProfilePortfolioDto(areas, paths);

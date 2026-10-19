@@ -87,6 +87,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         if (!friendship.getReceiver().getId().equals(receiverId)) {
             throw new IllegalArgumentException("Not authorized to accept this request");
         }
+        requirePending(friendship);
 
         friendship.setStatus(FriendshipStatus.ACCEPTED);
         friendshipRepository.save(friendship);
@@ -109,11 +110,18 @@ public class FriendshipServiceImpl implements FriendshipService {
         if (!friendship.getReceiver().getId().equals(receiverId)) {
             throw new IllegalArgumentException("Not authorized to reject this request");
         }
+        requirePending(friendship);
 
         friendshipRepository.delete(friendship);
         invalidateCachesFor(friendship.getReceiver().getId());
         invalidateCachesFor(friendship.getRequester().getId());
         realtime.changed(friendship.getRequester().getId(), friendship.getReceiver().getId());
+    }
+
+    private static void requirePending(Friendship friendship) {
+        if (friendship.getStatus() != FriendshipStatus.PENDING) {
+            throw new IllegalArgumentException("Request is no longer pending");
+        }
     }
 
     @Override

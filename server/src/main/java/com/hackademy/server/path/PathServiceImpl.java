@@ -183,6 +183,7 @@ public class PathServiceImpl implements PathService {
     @Override
     @Transactional
     public void unenrollUser(Long pathId, String username) {
+        visibility.requirePath(pathId);
         Long userId = resolveUserId(username);
         if (userId == null) return;
         pathEnrollmentRepository.deleteByUserIdAndPathId(userId, pathId);

@@ -157,16 +157,26 @@ class FriendshipServiceImplTest {
     }
 
     @Test
-    void acceptedFriendshipCanStillBeRejectedAndReaccepted() {
-        // Pins current behaviour (see #104): accept and reject do not require a PENDING request.
+    void acceptingAnAlreadyAcceptedFriendshipFailsWithoutAwardingBadgesAgain() {
         var accepted = friendship(alice, bob, FriendshipStatus.ACCEPTED);
         when(friendshipRepository.findById(10L)).thenReturn(Optional.of(accepted));
 
-        service.acceptFriendRequest(2L, 10L);
-        verify(badgeService).checkAndAwardBadges(alice);
+        assertThrows(IllegalArgumentException.class, () -> service.acceptFriendRequest(2L, 10L));
 
-        service.rejectFriendRequest(2L, 10L);
-        verify(friendshipRepository).delete(accepted);
+        assertEquals(FriendshipStatus.ACCEPTED, accepted.getStatus());
+        verify(friendshipRepository, never()).save(any());
+        verifyNoInteractions(badgeService, realtime);
+    }
+
+    @Test
+    void rejectingAnAcceptedFriendshipFailsWithoutDeletingIt() {
+        var accepted = friendship(alice, bob, FriendshipStatus.ACCEPTED);
+        when(friendshipRepository.findById(10L)).thenReturn(Optional.of(accepted));
+
+        assertThrows(IllegalArgumentException.class, () -> service.rejectFriendRequest(2L, 10L));
+
+        verify(friendshipRepository, never()).delete(any());
+        verifyNoInteractions(realtime);
     }
 
     @Test
