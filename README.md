@@ -114,11 +114,17 @@ Backend łączy się z bazą przez `DB_URL`, `DB_USERNAME` i `DB_PASSWORD`. Jeś
 
 Frontend działa na Cloudflare Pages, a backend i baza na Heroku. Architekturę, wdrażanie, konfigurację, kopie zapasowe i procedurę powrotu opisuje [docs/deployment.md](docs/deployment.md).
 
+## CORS
+
+Jedną listę originów dla REST API, SockJS i handshake WebSocket ustawia `CORS_ALLOWED_ORIGINS`, oddzielając wpisy przecinkami, np. `https://hackademy.app,http://localhost:5173`. Bez tej zmiennej backend używa `FRONTEND_URL`, a bez obu `http://localhost:5173`. Każdy wpis to dokładny origin `scheme://host[:port]` z `http` lub `https`, bez ścieżki i bez `*`; błędny wpis zatrzymuje start aplikacji. Inne originy, w tym `www.hackademy.app` i podglądy Cloudflare Pages, trzeba dopisać jawnie.
+
+Przeglądarka może wysyłać metody `GET`, `POST`, `PUT`, `PATCH` i `DELETE` oraz nagłówki `Authorization` i `Content-Type`. Credentials są włączone, bo transporty XHR klienta SockJS wysyłają żądania z `withCredentials`; API nie korzysta z ciasteczek i token przekazuje w nagłówku. Kontrolery nie mają własnych adnotacji `@CrossOrigin`.
+
 ## Uwierzytelnianie WebSocket
 
 Endpoint `/ws` korzysta z SockJS i STOMP. Transport HTTP jest dostępny bez tokena, ponieważ przeglądarka przesyła JWT w nagłówku `Authorization: Bearer <token>` ramki STOMP `CONNECT`, a nie w handshake HTTP. Brak ważnego tokena kończy próbę połączenia błędem STOMP; nieuwierzytelniony klient nie może wysyłać wiadomości ani subskrybować kanałów. Nie przekazuj tokena w adresie URL.
 
-Dozwolony origin określa `FRONTEND_URL`, tak samo jak dla REST API. Po zalogowaniu Spring wiąże sesję STOMP z użytkownikiem tokena. Klient może subskrybować wyłącznie własny `/user/queue/realtime`; wysyłanie ramek `SEND` i subskrypcje innych kanałów są odrzucane.
+Dozwolone originy są te same co dla REST API (sekcja „CORS”). Po zalogowaniu Spring wiąże sesję STOMP z użytkownikiem tokena. Klient może subskrybować wyłącznie własny `/user/queue/realtime`; wysyłanie ramek `SEND` i subskrypcje innych kanałów są odrzucane.
 
 Navbar, Arena, lista znajomych i status rozgrywki korzystają ze wspólnego `RealtimeProvider`. Backend wysyła `STATE` z aktualnym stanem odbiorcy po zmianie; zmiany znajomości są dostarczane dopiero po commitcie. Osobny executor zwalnia połączenie transakcji przed odczytem stanu. Powiadomienia nie uruchamiają dodatkowych żądań HTTP.
 
