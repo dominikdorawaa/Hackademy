@@ -41,8 +41,10 @@ public class User implements UserDetails {
     private String email;
 
     @ToString.Exclude
-    @Column(nullable = false)
     private String password;
+
+    @Column(name = "clerk_user_id", unique = true, length = 64)
+    private String clerkUserId;
 
     @Column(columnDefinition = "TEXT")
     private String bio;
@@ -51,8 +53,13 @@ public class User implements UserDetails {
     @Column(nullable = false, length = 100)
     private String tagline = "";
 
-    @Column(name = "avatar_seed", nullable = false, length = 100)
-    private String avatarSeed;
+    @Column(name = "avatar_confirmed_at")
+    private LocalDateTime avatarConfirmedAt;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "tour_status", nullable = false, length = 16)
+    private TourStatus tourStatus = TourStatus.PENDING;
 
     @Builder.Default
     @ElementCollection
@@ -67,11 +74,6 @@ public class User implements UserDetails {
     @OrderColumn(name = "position")
     @Column(name = "badge_id", nullable = false)
     private List<Long> featuredBadgeIds = new ArrayList<>();
-
-    @PrePersist
-    void initializeAvatar() {
-        if (avatarSeed == null || avatarSeed.isBlank()) avatarSeed = username;
-    }
 
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)

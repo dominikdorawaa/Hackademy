@@ -21,7 +21,7 @@ class EmptyBadgeShowcaseIntegrationTest extends PostgresIntegrationTest {
         }
         var order = List.of(ids.get(2), ids.get(0), ids.get(1));
         var body = """
-                {"bio":"Existing bio","tagline":"","avatarSeed":"chosen-avatar","interests":[],"featuredBadgeIds":%s}
+                {"bio":"Existing bio","tagline":"","interests":[],"featuredBadgeIds":%s}
                 """.formatted(order);
         mockMvc.perform(MockMvcRequestBuilders.patch("/api/user/me/profile")
                 .header("Authorization", "Bearer " + owner.token()).contentType("application/json").content(body))

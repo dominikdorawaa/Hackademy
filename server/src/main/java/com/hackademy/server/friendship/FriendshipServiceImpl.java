@@ -2,6 +2,7 @@ package com.hackademy.server.friendship;
 
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
+import com.hackademy.server.realtime.FriendPresence;
 import com.hackademy.server.realtime.RealtimeNotifier;
 
 import com.hackademy.server.user.dto.UserSearchDto;
@@ -37,6 +38,7 @@ public class FriendshipServiceImpl implements FriendshipService {
     private final DashboardSummaryCache dashboardSummaryCache;
     private final RealtimeNotifier realtime;
     private final UserAvatarRepository userAvatarRepository;
+    private final FriendPresence presence;
 
     private static final long CACHE_MS = 30_000; // 30 seconds
     private static final class CacheEntry<T> {
@@ -147,7 +149,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         long now = System.currentTimeMillis();
         CacheEntry<List<FriendDto>> cached = friendsCache.get(userId);
         if (cached != null && now - cached.timeMs <= CACHE_MS) {
-            return cached.value;
+            return withPresence(cached.value);
         }
 
         User user = userRepository.findById(userId)
@@ -160,11 +162,15 @@ public class FriendshipServiceImpl implements FriendshipService {
                 .toList();
         Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(friends.stream().map(User::getId).toList());
         List<FriendDto> out = friends.stream()
-                .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), friend.getAvatarSeed(), avatars.get(friend.getId())))
+                .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), avatars.get(friend.getId())))
                 .collect(Collectors.toList());
 
         friendsCache.put(userId, new CacheEntry<>(now, out));
-        return out;
+        return withPresence(out);
+    }
+
+    private List<FriendDto> withPresence(List<FriendDto> friends) {
+        return friends.stream().map(friend -> friend.withOnline(presence.isOnline(friend.id()))).toList();
     }
 
     @Override
@@ -182,7 +188,7 @@ public class FriendshipServiceImpl implements FriendshipService {
         List<Friendship> pending = friendshipRepository.findPendingRequestsForUser(user);
         Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(pending.stream().map(f -> f.getRequester().getId()).toList());
         List<FriendRequestDto> out = pending.stream()
-                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), f.getRequester().getAvatarSeed(), avatars.get(f.getRequester().getId())))
+                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), avatars.get(f.getRequester().getId())))
                 .collect(Collectors.toList());
 
         requestsCache.put(userId, new CacheEntry<>(now, out));
@@ -252,7 +258,6 @@ public class FriendshipServiceImpl implements FriendshipService {
         return UserSearchDto.builder()
                 .id(otherUser.getId())
                 .username(otherUser.getUsername())
-                .avatarSeed(otherUser.getAvatarSeed())
                 .points(otherUser.getPoints())
                 .friendshipStatus(status)
                 .winsAgainst(wins)

@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { useState } from 'react';
 import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -12,12 +13,12 @@ import { server } from '../../test/mocks/server';
 import ProfileEditor from './ProfileEditor';
 
 const endpoint = `${API_URL}/api/user/me/profile`;
-const original: ProfilePersonalization = { bio: 'Original bio', tagline: '', avatarSeed: 'original-avatar', interests: [], featuredBadgeIds: [] };
+const original: ProfilePersonalization = { bio: 'Original bio', tagline: '', interests: [], featuredBadgeIds: [] };
 let writes: ProfilePersonalization[];
 
 beforeEach(() => {
   writes = [];
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(http.patch(endpoint, async ({ request }) => {
     const profile = await request.json() as ProfilePersonalization;
     writes.push(profile);

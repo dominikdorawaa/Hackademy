@@ -1,4 +1,4 @@
-import React from 'react';
+import { Link } from 'react-router-dom';
 
 const Footer = () => {
   return (
@@ -10,13 +10,13 @@ const Footer = () => {
               Hackademy<span>_</span>
             </span>
             <span style={{ display: 'block', marginTop: '5px' }}>
-              &copy; 2025 Hackademy Polska.
+              &copy; {new Date().getFullYear()} Hackademy Polska.
             </span>
           </div>
           <div className="footer-links">
             <a href="#">O nas</a>
-            <a href="#">Regulamin</a>
-            <a href="#">Prywatność</a>
+            <Link to="/terms">Regulamin</Link>
+            <Link to="/privacy">Prywatność</Link>
           </div>
         </div>
       </div>

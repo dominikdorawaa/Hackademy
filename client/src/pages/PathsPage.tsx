@@ -17,7 +17,7 @@ const UkosPathCard = ({ p }: { p: PathSummaryDto }) => (
 );
 
 const PathsPage = () => {
-  const { token, logout } = useAuth();
+  const { sessionKey, logout } = useAuth();
   const navigate = useNavigate();
 
   const [paths, setPaths] = useState<PathSummaryDto[]>([]);
@@ -113,7 +113,7 @@ const PathsPage = () => {
       try {
         setLoading(true);
         setError(null);
-        const res = await pathApi.getPaths({ Authorization: `Bearer ${token}` });
+        const res = await pathApi.getPaths({ sessionKey });
         if (res.status === 401 || res.status === 403) {
           logout();
           navigate('/login');
@@ -130,13 +130,13 @@ const PathsPage = () => {
       }
     };
 
-    if (token) fetchPaths();
-  }, [token, logout, navigate]);
+    if (sessionKey) fetchPaths();
+  }, [sessionKey, logout, navigate]);
 
   const handleEnroll = async (e: React.MouseEvent, pathId: number) => {
     e.stopPropagation(); // Zapobiegaj nawigacji do szczegółów
     try {
-      const res = await pathApi.enroll(pathId, { Authorization: `Bearer ${token}` });
+      const res = await pathApi.enroll(pathId, { sessionKey });
       if (res.ok) {
         setPaths(paths.map(p => p.id === pathId ? { ...p, enrolled: true } : p));
       }
@@ -148,7 +148,7 @@ const PathsPage = () => {
   if (loading) {
     return (
       <div className="hackademy-container paths-wrap">
-        <header className="paths-header">
+        <header className="paths-header" data-tour="learn">
           <div>
             <h1 className="paths-title">Ścieżki</h1>
             <p className="paths-count"><Skeleton width={110} /></p>
@@ -187,7 +187,7 @@ const PathsPage = () => {
         </div>
       </header>
 
-      <div className="paths-grid">
+      <div className="paths-grid" data-tour="learn-paths">
         {paths.length === 0 ? (
           <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)', backgroundColor: '#1e1e1e', borderRadius: '12px' }}>
             <h3>Brak ścieżek.</h3>

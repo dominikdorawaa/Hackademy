@@ -13,7 +13,7 @@ function localStep(key: string) {
   }
 }
 
-export function useCourse(account: string, token: string) {
+export function useCourse(account: string, sessionKey: string) {
   const key = `ukos-progress-v1:${account}`;
   const [completed, setCompleted] = useState(() => localStep(key));
   const [state, setState] = useState<CourseState | null>(null);
@@ -47,9 +47,9 @@ export function useCourse(account: string, token: string) {
     setSyncing(true);
     const operation = (async () => {
       try {
-        let next = await courseRequest(token);
+        let next = await courseRequest(sessionKey);
         if (desired.current > next.completedSteps)
-          next = await courseRequest(token, desired.current);
+          next = await courseRequest(sessionKey, desired.current);
         accept(next);
       } catch (failure) {
         if (active.current)
@@ -65,7 +65,7 @@ export function useCourse(account: string, token: string) {
     })();
     pending.current = operation;
     return operation;
-  }, [token, accept]);
+  }, [sessionKey, accept]);
 
   useEffect(() => {
     active.current = true;

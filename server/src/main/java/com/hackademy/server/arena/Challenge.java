@@ -1,5 +1,6 @@
 package com.hackademy.server.arena;
 
+import com.hackademy.server.user.dto.UserAvatarDto;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -17,12 +18,11 @@ public class Challenge {
     private String targetUsername;
     private LocalDateTime createdAt;
     private String status;
-    private String challengerAvatarSeed;
-    private String targetAvatarSeed;
+    private UserAvatarDto challengerAvatar;
+    private UserAvatarDto targetAvatar;
 
     public Challenge(String id, Long challengerId, String challengerUsername, Long targetId,
                      String targetUsername, LocalDateTime createdAt, String status) {
-        this(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status,
-                challengerUsername, targetUsername);
+        this(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status, null, null);
     }
 }

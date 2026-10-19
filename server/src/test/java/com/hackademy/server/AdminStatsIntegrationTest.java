@@ -23,7 +23,7 @@ class AdminStatsIntegrationTest extends PostgresIntegrationTest {
         getAs(admin, "/api/admin/stats?range=15").andExpect(status().isBadRequest());
         getAs(admin, "/api/admin/stats?range=week").andExpect(status().isBadRequest());
         mockMvc.perform(get("/api/admin/stats"))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
 
     @Test

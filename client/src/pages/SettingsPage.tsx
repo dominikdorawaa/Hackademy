@@ -1,6 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
+import { useClerk } from '@clerk/react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
@@ -10,6 +11,9 @@ import type { DashboardUser } from '../types/api';
 import type { ApiResponse } from '../services/http';
 import './SettingsPage.css';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
+import { Play } from 'lucide-react';
+import { chooseVariant, playSound, selectedVariant, soundVariants, unlockAudio } from '../lib/notificationSounds';
+import type { SoundEvent } from '../lib/notificationSounds';
 
 const sections = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.' },
@@ -18,6 +22,25 @@ const sections = {
   security: { title: 'Bezpieczeństwo', description: 'Zadbaj o dostęp do swojego konta.' },
 };
 type Section = keyof typeof sections;
+
+const soundEvents: SoundEvent[] = ['friendRequests', 'challenges', 'matchFound', 'friendOnline'];
+const eventNames: Record<SoundEvent, string> = {
+  friendRequests: 'Zaproszenie do znajomych', challenges: 'Wyzwanie w Arenie', matchFound: 'Znaleziony mecz', friendOnline: 'Znajomy online',
+};
+const silentOutcome: Record<SoundEvent, string> = {
+  friendRequests: 'tylko na stronie Znajomi', challenges: 'tylko w Arenie', matchFound: 'mecz otworzy się bez sygnału',
+  friendOnline: 'bez komunikatu i sygnału',
+};
+
+function eventOutcome(event: SoundEvent, preferences: NotificationPreferences, systemAllowed: boolean) {
+  if (!preferences[event]) return silentOutcome[event];
+  const channels = [
+    event === 'friendOnline' ? 'komunikat w rogu ekranu' : event !== 'matchFound' && 'dzwonek w górnym pasku',
+    preferences.sound && 'dźwięk',
+    preferences.browserNotifications && systemAllowed && 'powiadomienie systemowe, gdy karta jest w tle',
+  ].filter(Boolean);
+  return channels.length ? channels.join(', ') : silentOutcome[event];
+}
 
 async function responseError(response: ApiResponse<unknown>, fallback: string) {
   if (response.status === 401 || response.status === 403) return 'Sesja wygasła. Zaloguj się ponownie.';
@@ -29,8 +52,8 @@ async function responseError(response: ApiResponse<unknown>, fallback: string) {
   return fallback;
 }
 
-function SettingRow({ title, description, children }: { title: string; description: string; children: ReactNode }) {
-  return <div className="settings-row"><div><h3>{title}</h3><p>{description}</p></div><div className="settings-control">{children}</div></div>;
+function SettingRow({ title, description, extra, children }: { title: string; description: string; extra?: ReactNode; children: ReactNode }) {
+  return <div className="settings-row"><div><h3>{title}</h3><p>{description}</p>{extra}</div><div className="settings-control">{children}</div></div>;
 }
 
 function Switch({ label, checked, disabled, onChange }: { label: string; checked: boolean; disabled?: boolean; onChange: (value: boolean) => void }) {
@@ -39,7 +62,7 @@ function Switch({ label, checked, disabled, onChange }: { label: string; checked
 }
 
 export default function SettingsPage() {
-  const { user, token, login, logout } = useAuth();
+  const { user, sessionKey, refreshUser, logout } = useAuth();
   const { reducedMotion, setReducedMotion } = useTheme();
   const { preferences, loaded, saving, error: preferenceError, reload, update } = useNotificationPreferences();
   const navigate = useNavigate();
@@ -49,23 +72,26 @@ export default function SettingsPage() {
   const [account, setAccount] = useState<DashboardUser | null>(null);
   const [accountError, setAccountError] = useState('');
   const [accountAttempt, setAccountAttempt] = useState(0);
-  const [username, setUsername] = useState(user?.sub ?? '');
-  const [password, setPassword] = useState({ current: '', next: '', confirm: '' });
+  const [username, setUsername] = useState(user?.username ?? '');
+  const { openUserProfile } = useClerk();
   const [busy, setBusy] = useState<'username' | 'password' | 'permission' | null>(null);
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
-  const activeToken = useRef(token);
-  useLayoutEffect(() => { activeToken.current = token; }, [token]);
+  const activeToken = useRef(sessionKey);
+  useLayoutEffect(() => { activeToken.current = sessionKey; }, [sessionKey]);
   const submitting = useRef(false);
   const notificationsSupported = 'Notification' in window && window.isSecureContext;
+  const systemAllowed = notificationsSupported && Notification.permission === 'granted';
+  const matchFoundSilent = !preferences.sound && !(preferences.browserNotifications && systemAllowed);
+  const [variants, setVariants] = useState(() => Object.fromEntries(soundEvents.map(event => [event, selectedVariant(event).id])) as Record<SoundEvent, string>);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
     const controller = new AbortController();
     setAccount(null);
     setAccountError('');
     void (async () => {
       try {
-        const response = await userApi.getCurrentUser({ Authorization: `Bearer ${token}` }, controller.signal);
+        const response = await userApi.getCurrentUser({ sessionKey }, controller.signal);
         if (!response.ok) throw new Error(await responseError(response, 'Nie udało się pobrać danych konta.'));
         const data = await response.json();
         if (!controller.signal.aborted) { setAccount(data); setUsername(data.username); }
@@ -74,7 +100,7 @@ export default function SettingsPage() {
       }
     })();
     return () => controller.abort();
-  }, [token, accountAttempt]);
+  }, [sessionKey, accountAttempt]);
 
   const selectSection = (next: Section) => {
     const parameters = new URLSearchParams(search);
@@ -85,7 +111,7 @@ export default function SettingsPage() {
 
   const changeName = async (event: FormEvent) => {
     event.preventDefault();
-    if (!token || submitting.current) return;
+    if (!sessionKey || submitting.current) return;
     const newUsername = username.trim();
     if (newUsername.length < 3 || newUsername.length > 20) {
       setFeedback({ message: 'Nazwa użytkownika musi mieć od 3 do 20 znaków.', error: true });
@@ -95,35 +121,14 @@ export default function SettingsPage() {
     setBusy('username');
     setFeedback(null);
     try {
-      const response = await userApi.changeUsername(newUsername, { Authorization: `Bearer ${token}` });
+      const response = await userApi.changeUsername(newUsername, { sessionKey });
       if (!response.ok) throw new Error(await responseError(response, 'Nie udało się zmienić nazwy użytkownika. Spróbuj ponownie.'));
-      const result = await response.json();
-      if (activeToken.current !== token) return;
-      login(result.token);
+      await response.json();
+      if (activeToken.current !== sessionKey) return;
+      await refreshUser();
       setFeedback({ message: 'Nazwa użytkownika została zmieniona.', error: false });
     } catch (error) {
-      if (activeToken.current === token) setFeedback({ message: error instanceof Error ? error.message : 'Nie udało się zmienić nazwy użytkownika.', error: true });
-    } finally { submitting.current = false; setBusy(null); }
-  };
-
-  const changePassword = async (event: FormEvent) => {
-    event.preventDefault();
-    if (!token || submitting.current) return;
-    if (password.next !== password.confirm) {
-      setFeedback({ message: 'Nowe hasła muszą być identyczne.', error: true });
-      return;
-    }
-    submitting.current = true;
-    setBusy('password');
-    setFeedback(null);
-    try {
-      const response = await userApi.changePassword(password.current, password.next, { Authorization: `Bearer ${token}` });
-      if (!response.ok) throw new Error(await responseError(response, 'Nie udało się zmienić hasła. Spróbuj ponownie.'));
-      if (activeToken.current !== token) return;
-      setPassword({ current: '', next: '', confirm: '' });
-      setFeedback({ message: 'Hasło zostało zmienione.', error: false });
-    } catch (error) {
-      if (activeToken.current === token) setFeedback({ message: error instanceof Error ? error.message : 'Nie udało się zmienić hasła.', error: true });
+      if (activeToken.current === sessionKey) setFeedback({ message: error instanceof Error ? error.message : 'Nie udało się zmienić nazwy użytkownika.', error: true });
     } finally { submitting.current = false; setBusy(null); }
   };
 
@@ -133,7 +138,7 @@ export default function SettingsPage() {
       setBusy('permission');
       try {
         const permission = await Notification.requestPermission();
-        if (activeToken.current !== token) return;
+        if (activeToken.current !== sessionKey) return;
         if (permission !== 'granted') {
           setFeedback({ message: 'Przeglądarka nie udzieliła zgody. Możesz ją zmienić w ustawieniach uprawnień tej strony.', error: true });
           return;
@@ -147,6 +152,37 @@ export default function SettingsPage() {
     const saved = await update(key, value);
     if (saved) setFeedback({ message: 'Preferencje zostały zapisane.', error: false });
   };
+  const previewSound = async (event: SoundEvent) => {
+    if (!await unlockAudio() || !playSound(event)) {
+      setFeedback({ message: 'Ta przeglądarka nie odtwarza dźwięków na tej stronie.', error: true });
+      return;
+    }
+    setFeedback(preferences.sound ? null : { message: 'Tak brzmi ten sygnał. Włącz „Dźwięk”, aby grał przy prawdziwych zdarzeniach.', error: false });
+  };
+
+  const previewNotification = async () => {
+    if (!notificationsSupported) return;
+    let permission = Notification.permission;
+    if (permission === 'default') {
+      setBusy('permission');
+      try { permission = await Notification.requestPermission(); } catch { permission = 'denied'; } finally { setBusy(null); }
+      if (activeToken.current !== sessionKey) return;
+    }
+    if (permission !== 'granted') {
+      setFeedback({ message: 'Przeglądarka blokuje powiadomienia z Hackademy. Zezwól na nie w ustawieniach strony (ikona obok adresu).', error: true });
+      return;
+    }
+    try {
+      new Notification('Próbne powiadomienie Hackademy', { body: 'Tak zobaczysz zaproszenie, wyzwanie albo znaleziony mecz, gdy Hackademy jest w tle.', tag: 'hackademy-preview' });
+    } catch {
+      setFeedback({ message: 'Nie udało się wyświetlić powiadomienia na tym urządzeniu.', error: true });
+      return;
+    }
+    setFeedback({ message: preferences.browserNotifications
+      ? 'Wysłano próbne powiadomienie. Jeśli go nie widzisz, sprawdź ustawienia powiadomień systemu, np. tryb „Nie przeszkadzać”.'
+      : 'Wysłano próbne powiadomienie. Włącz przełącznik, aby dostawać je przy prawdziwych zdarzeniach.', error: false });
+  };
+
   const notificationSwitch = (key: keyof NotificationPreferences, label: string, unavailable = false) => !loaded && !preferenceError
     ? <Skeleton width={44} height={26} radius={20} />
     : <Switch label={label}
@@ -183,16 +219,39 @@ export default function SettingsPage() {
         {section === 'notifications' && <>
           {preferenceError && <div className="settings-error"><p role="alert">{preferenceError}</p>{!loaded && <button className="settings-button" onClick={reload}>Spróbuj ponownie</button>}</div>}
           {!loaded && !preferenceError && <p role="status" aria-label="Ładowanie preferencji" className="sr-only">Ładowanie preferencji</p>}
-          <h3 className="settings-group-title">Powiadomienia w aplikacji</h3>
-          <SettingRow title="Zaproszenia do znajomych" description="Pokaż nowe prośby w centrum powiadomień.">{notificationSwitch('friendRequests', 'Zaproszenia do znajomych')}</SettingRow>
-          <SettingRow title="Wyzwania w Arenie" description="Pokaż zaproszenia do pojedynku w centrum powiadomień.">{notificationSwitch('challenges', 'Wyzwania w Arenie')}</SettingRow>
-          <SettingRow title="Znaleziony mecz" description="Powiadom mnie dźwiękiem lub w przeglądarce, gdy mecz jest gotowy.">{notificationSwitch('matchFound', 'Znaleziony mecz')}</SettingRow>
-          <h3 className="settings-group-title">Sposób powiadamiania</h3>
-          <SettingRow title="Dźwięk" description="Krótki sygnał przy nowym zaproszeniu, wyzwaniu lub znalezionym meczu.">{notificationSwitch('sound', 'Dźwięk powiadomień')}</SettingRow>
-          <SettingRow title="Powiadomienia przeglądarkowe" description={notificationsSupported ? 'Dowiedz się o wydarzeniu, gdy korzystasz z innej karty.' : 'Ta przeglądarka nie obsługuje powiadomień na tej stronie.'}>{notificationSwitch('browserNotifications', 'Powiadomienia przeglądarkowe', !notificationsSupported)}</SettingRow>
-          {notificationsSupported && preferences.browserNotifications && Notification.permission !== 'granted' && <p className="settings-footnote">Powiadomienia są zapisane na koncie, ale to urządzenie wymaga zgody. Wyłącz i włącz przełącznik, aby ją nadać.</p>}
-          <p className="settings-footnote">Wyciszenie nie zatrzymuje wyszukiwania ani przejścia do znalezionego meczu. Zaproszenia nadal znajdziesz na stronie znajomych i w Arenie.</p>
-          <p className="settings-footnote">Preferencje zapisują się na koncie. Dźwięk wymaga wcześniejszej interakcji ze stroną.</p>
+          <h3 className="settings-group-title">O czym chcesz wiedzieć</h3>
+          <SettingRow title="Zaproszenia do znajomych" description="Nowe zaproszenie pojawi się w dzwonku w górnym pasku i włączy sygnały wybrane niżej. Po wyłączeniu zobaczysz je tylko na stronie Znajomi.">{notificationSwitch('friendRequests', 'Zaproszenia do znajomych')}</SettingRow>
+          <SettingRow title="Wyzwania w Arenie" description="Wyzwanie do pojedynku pojawi się w dzwonku w górnym pasku i włączy sygnały wybrane niżej. Po wyłączeniu zobaczysz je tylko w Arenie.">{notificationSwitch('challenges', 'Wyzwania w Arenie')}</SettingRow>
+          <SettingRow title="Znaleziony mecz" description={matchFoundSilent
+            ? 'Włącz dźwięk albo powiadomienia systemowe poniżej, aby ta opcja miała efekt.'
+            : 'Gdy znajdziemy przeciwnika, usłyszysz sygnał lub dostaniesz powiadomienie systemowe. Mecz otworzy się sam także bez tego.'}>
+            {notificationSwitch('matchFound', 'Znaleziony mecz', matchFoundSilent)}</SettingRow>
+          <SettingRow title="Znajomi online: komunikat" description="Krótki komunikat w rogu ekranu i sygnał wybrany niżej, gdy znajomy wejdzie do aplikacji.">{notificationSwitch('friendOnline', 'Komunikat o znajomych online')}</SettingRow>
+          <SettingRow title="Znajomi online: dzwonek" description="Lista znajomych, którzy są teraz online, w dzwonku w górnym pasku.">{notificationSwitch('friendOnlineBell', 'Znajomi online w dzwonku')}</SettingRow>
+          <h3 className="settings-group-title">Jak chcesz się dowiadywać</h3>
+          <SettingRow title="Dźwięk" description="Krótki sygnał, inny dla każdego zdarzenia. Gra, gdy Hackademy jest otwarte, po pierwszym kliknięciu na stronie (wymóg przeglądarki)."
+            extra={<ul className="settings-sound-list" aria-label="Sygnały do odsłuchania">{soundEvents.map(event => <li key={event}>
+              <span>{eventNames[event]}</span>
+              <select aria-label={`Wariant sygnału: ${eventNames[event]}`} value={variants[event]} onChange={change => {
+                chooseVariant(event, change.target.value);
+                setVariants(previous => ({ ...previous, [event]: change.target.value }));
+                void previewSound(event);
+              }}>{soundVariants[event].map(variant => <option key={variant.id} value={variant.id}>{variant.name}</option>)}</select>
+              <button type="button" className="settings-button settings-button-small" aria-label={`Odtwórz próbnie: ${eventNames[event]}`}
+                onClick={() => void previewSound(event)}><Play size={14} aria-hidden="true" />Odtwórz</button>
+            </li>)}</ul>}>{notificationSwitch('sound', 'Dźwięk powiadomień')}</SettingRow>
+          <SettingRow title="Powiadomienia systemowe" description={notificationsSupported
+            ? 'Dymek systemu, gdy Hackademy jest w innej karcie albo zminimalizowane. Na aktywnej karcie wystarczą dzwonek i dźwięk.'
+            : 'Ta przeglądarka nie obsługuje powiadomień na tej stronie.'}
+            extra={notificationsSupported && <button type="button" className="settings-button settings-button-small settings-preview" disabled={busy === 'permission'}
+              onClick={() => void previewNotification()}>Wyślij próbne</button>}>
+            {notificationSwitch('browserNotifications', 'Powiadomienia systemowe', !notificationsSupported)}</SettingRow>
+          {notificationsSupported && preferences.browserNotifications && !systemAllowed && <p className="settings-footnote">Powiadomienia są włączone na koncie, ale ta przeglądarka nie ma zgody. Kliknij „Wyślij próbne”, aby ją nadać.</p>}
+          <h3 className="settings-group-title">Co się teraz stanie</h3>
+          <dl className="settings-summary">{soundEvents.map(event => <div key={event}>
+            <dt>{eventNames[event]}</dt><dd>{eventOutcome(event, preferences, systemAllowed)}</dd>
+          </div>)}</dl>
+          <p className="settings-footnote">Preferencje zapisują się na koncie i działają na każdym urządzeniu.</p>
         </>}
         {section === 'appearance' && <>
           <h3 className="settings-group-title">Dostępność</h3>
@@ -201,12 +260,7 @@ export default function SettingsPage() {
         </>}
         {section === 'security' && <>
           <h3 className="settings-group-title">Zmiana hasła</h3>
-          <form className="settings-form" onSubmit={event => void changePassword(event)}>
-            <label htmlFor="settings-current-password">Obecne hasło</label><input id="settings-current-password" type="password" autoComplete="current-password" required disabled={!!busy} value={password.current} onChange={event => setPassword({ ...password, current: event.target.value })} />
-            <label htmlFor="settings-new-password">Nowe hasło</label><input id="settings-new-password" type="password" autoComplete="new-password" required disabled={!!busy} value={password.next} onChange={event => setPassword({ ...password, next: event.target.value })} />
-            <label htmlFor="settings-confirm-password">Powtórz nowe hasło</label><input id="settings-confirm-password" type="password" autoComplete="new-password" required disabled={!!busy} value={password.confirm} onChange={event => setPassword({ ...password, confirm: event.target.value })} />
-            <button className="settings-button settings-button-primary" disabled={!!busy}>{busy === 'password' ? 'Zapisywanie…' : 'Zmień hasło'}</button>
-          </form>
+          <SettingRow title="Hasło i metody logowania" description="Zmień hasło, zarządzaj adresami e-mail i połączonymi kontami."><button className="settings-button" onClick={() => openUserProfile()}>Zarządzaj dostępem</button></SettingRow>
           <h3 className="settings-group-title">Bieżąca sesja</h3>
           <SettingRow title="Wyloguj się z tego urządzenia" description="Zakończ korzystanie z konta w tej przeglądarce."><button className="settings-button" onClick={() => { logout(); navigate('/login'); }}>Wyloguj się</button></SettingRow>
         </>}

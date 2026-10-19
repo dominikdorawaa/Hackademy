@@ -59,6 +59,38 @@ export const CLOTH_RAMPS: Record<string, Ramp> = {
   bialy: ['#8f96a0', '#b9c0c8', '#dce1e6', '#f4f6f8'],
 };
 
+export const CUSTOM_COLOR = /^#[0-9a-f]{6}$/;
+
+const toHex = (rgb: number[]) => `#${rgb.map(value => Math.round(Math.min(255, Math.max(0, value))).toString(16).padStart(2, '0')).join('')}`;
+
+export function hslToHex(h: number, s: number, l: number) {
+  const k = (n: number) => (n + h / 30) % 12, a = s * Math.min(l, 1 - l);
+  const f = (n: number) => l - a * Math.max(-1, Math.min(k(n) - 3, 9 - k(n), 1));
+  return toHex([f(0) * 255, f(8) * 255, f(4) * 255]);
+}
+
+export function hexToHsl(hex: string): [number, number, number] {
+  const [r, g, b] = [1, 3, 5].map(index => parseInt(hex.slice(index, index + 2), 16) / 255);
+  const max = Math.max(r, g, b), min = Math.min(r, g, b), l = (max + min) / 2, d = max - min;
+  if (!d) return [0, 0, l];
+  const s = d / (1 - Math.abs(2 * l - 1));
+  const h = max === r ? ((g - b) / d) % 6 : max === g ? (b - r) / d + 2 : (r - g) / d + 4;
+  return [(h * 60 + 360) % 360, s, l];
+}
+
+export function rampFromHex(hex: string): Ramp {
+  const [h, s, l] = hexToHsl(hex);
+  return [hslToHex(h, Math.min(1, s * 1.1), l * 0.42), hslToHex(h, Math.min(1, s * 1.05), l * 0.7), hex, hslToHex(h, s * 0.95, l + (1 - l) * 0.38)];
+}
+
+export function rampFor(options: Record<string, Ramp>, value: string): Ramp {
+  return Object.hasOwn(options, value) ? options[value] : CUSTOM_COLOR.test(value) ? rampFromHex(value) : Object.values(options)[0];
+}
+
+export function isColorChoice(options: Record<string, Ramp>, value: unknown): value is string {
+  return typeof value === 'string' && (Object.hasOwn(options, value) || CUSTOM_COLOR.test(value));
+}
+
 export interface AvatarColors { hair: string; skin: string; top: string; bottom: string; shoes: string }
 
 const parse = (hex: string) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
@@ -99,8 +131,8 @@ export function buildColorMap(pixels: Uint8ClampedArray, spec: OutfitSpec) {
 export function recolorAtlas(pixels: Uint8ClampedArray, width: number, map: ColorMap, spec: OutfitSpec, colors: AvatarColors) {
   const out = new Uint8ClampedArray(pixels);
   const ramps: Record<Customizable, number[][]> = {
-    hair: HAIR_RAMPS[colors.hair].map(parse), skin: SKIN_RAMPS[colors.skin].map(parse), top: CLOTH_RAMPS[colors.top].map(parse),
-    bottom: CLOTH_RAMPS[colors.bottom].map(parse), shoes: CLOTH_RAMPS[colors.shoes].map(parse),
+    hair: rampFor(HAIR_RAMPS, colors.hair).map(parse), skin: rampFor(SKIN_RAMPS, colors.skin).map(parse), top: rampFor(CLOTH_RAMPS, colors.top).map(parse),
+    bottom: rampFor(CLOTH_RAMPS, colors.bottom).map(parse), shoes: rampFor(CLOTH_RAMPS, colors.shoes).map(parse),
   };
   for (let index = 0; index < out.length; index += 4) {
     if (out[index + 3] === 0) continue;
@@ -147,7 +179,7 @@ export function readAvatar(): Avatar {
   try {
     const saved = JSON.parse(localStorage.getItem(AVATAR_KEY) ?? 'null');
     const outfit = AVATAR_OUTFITS.includes(saved?.outfit) ? saved.outfit as AvatarOutfit : DEFAULT_AVATAR.outfit;
-    const pick = (value: unknown, options: Record<string, Ramp>, fallback: string) => typeof value === 'string' && Object.hasOwn(options, value) ? value : fallback;
+    const pick = (value: unknown, options: Record<string, Ramp>, fallback: string) => isColorChoice(options, value) ? value : fallback;
     const choose = <T extends string>(value: unknown, options: readonly T[], fallback: T) => options.includes(value as T) ? value as T : fallback;
     const colors = saved?.colors ?? {};
     return { outfit, hair: choose(saved?.hair, HAIR_STYLES, DEFAULT_AVATAR.hair), hat: choose(saved?.hat, HAT_STYLES, DEFAULT_AVATAR.hat), pose: toPose(saved?.pose), colors: {
@@ -202,6 +234,17 @@ export function compositeOverlay(atlas: Uint8ClampedArray, width: number, overla
   return atlas;
 }
 
+export function avatarFromUsername(username: string): Avatar {
+  let hash = 2166136261;
+  for (const char of username.toLowerCase()) hash = Math.imul(hash ^ char.charCodeAt(0), 16777619) >>> 0;
+  const pick = <T,>(options: readonly T[]) => { const value = options[hash % options.length]; hash = Math.imul(hash ^ (hash >>> 13), 2246822519) >>> 0; return value; };
+  const cloth = Object.keys(CLOTH_RAMPS);
+  return {
+    outfit: pick(AVATAR_OUTFITS), hair: pick(['krotkie', 'krotkie', 'irokez', 'kucyk', 'brak'] as const), hat: pick(['brak', 'brak', 'brak', 'czapka', 'daszek'] as const), pose: 'przod',
+    colors: { skin: pick(Object.keys(SKIN_RAMPS)), hair: pick(Object.keys(HAIR_RAMPS)), top: pick(cloth), bottom: pick(cloth), shoes: pick(cloth), hat: pick(cloth) },
+  };
+}
+
 export function toAvatarConfig(avatar: Avatar): AvatarConfig {
   return { outfit: avatar.outfit, hair: avatar.hair, hat: avatar.hat, skin: avatar.colors.skin, hairColor: avatar.colors.hair,
     topColor: avatar.colors.top, bottomColor: avatar.colors.bottom, shoesColor: avatar.colors.shoes, hatColor: avatar.colors.hat, pose: avatar.pose };
@@ -210,8 +253,8 @@ export function toAvatarConfig(avatar: Avatar): AvatarConfig {
 export function fromAvatarConfig(config: AvatarConfig | null | undefined): Avatar | null {
   if (!config) return null;
   const valid = (AVATAR_OUTFITS as readonly string[]).includes(config.outfit) && (HAIR_STYLES as readonly string[]).includes(config.hair)
-    && (HAT_STYLES as readonly string[]).includes(config.hat) && Object.hasOwn(SKIN_RAMPS, config.skin) && Object.hasOwn(HAIR_RAMPS, config.hairColor)
-    && [config.topColor, config.bottomColor, config.shoesColor, config.hatColor].every(color => Object.hasOwn(CLOTH_RAMPS, color));
+    && (HAT_STYLES as readonly string[]).includes(config.hat) && isColorChoice(SKIN_RAMPS, config.skin) && isColorChoice(HAIR_RAMPS, config.hairColor)
+    && [config.topColor, config.bottomColor, config.shoesColor, config.hatColor].every(color => isColorChoice(CLOTH_RAMPS, color));
   if (!valid) return null;
   return { outfit: config.outfit as AvatarOutfit, hair: config.hair as HairStyle, hat: config.hat as HatStyle, pose: toPose(config.pose),
     colors: { skin: config.skin, hair: config.hairColor, top: config.topColor, bottom: config.bottomColor, shoes: config.shoesColor, hat: config.hatColor } };

@@ -25,8 +25,6 @@ export default mergeConfig(viteConfig, defineConfig({
         'src/pages/HomePage.tsx',
         'src/pages/DashboardPage.tsx',
         'src/pages/UserDashboardPage.tsx',
-        'src/pages/RegisterPage.tsx',
-        'src/context/AuthContext.tsx',
       ],
     },
   },

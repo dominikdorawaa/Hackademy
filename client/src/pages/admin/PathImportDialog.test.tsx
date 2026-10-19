@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, Outlet, RouterProvider } from 'react-router-dom';
@@ -22,7 +23,7 @@ beforeAll(() => {
   globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
 });
 beforeEach(() => {
-  localStorage.setItem('token', createToken('ADMIN'));
+  setClerkSession(createToken('ADMIN'));
   server.use(currentUserHandler('ADMIN'), http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json([])));
 });
 function mount(existing?: ExistingImportPath, onImported?: (path: PathAdminDetailDto) => void) {
@@ -143,7 +144,7 @@ describe('learning path import', () => {
     await screen.findByRole('heading', { name: 'Edytor importu' });
   });
   it('hides import from experts', async () => {
-    localStorage.setItem('token', createToken('EXPERT'));
+    setClerkSession(createToken('EXPERT'));
     server.use(currentUserHandler('EXPERT'));
     mount();
     await waitFor(() => expect(screen.getByRole('link', { name: 'Nowa ścieżka' })).toBeInTheDocument());

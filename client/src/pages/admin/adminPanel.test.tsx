@@ -1,3 +1,4 @@
+import { setClerkSession } from '../../test/clerk';
 import { Route } from 'react-router-dom';
 import { screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
@@ -67,7 +68,7 @@ const stats: AdminStatsDto = {
 };
 
 function signIn(role: Role) {
-  localStorage.setItem('token', createToken(role));
+  setClerkSession(createToken(role));
   server.use(currentUserHandler(role));
 }
 

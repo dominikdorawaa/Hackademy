@@ -94,12 +94,12 @@ function formatDate(date: string) {
 }
 
 export default function UserProfile({ username }: { username?: string }) {
-  const { token, logout } = useAuth();
+  const { sessionKey, logout } = useAuth();
   const navigate = useNavigate();
   const own = !username;
   const headers = useMemo(
-    () => ({ Authorization: `Bearer ${token}` }),
-    [token],
+    () => ({ sessionKey }),
+    [sessionKey],
   );
   const unauthorized = useCallback(() => {
     logout();
@@ -133,18 +133,18 @@ export default function UserProfile({ username }: { username?: string }) {
     (signal: AbortSignal) => friendApi.getStats(username!, headers, signal),
     [username, headers],
   );
-  const profile = useApiResource(loadProfile, unauthorized, !!token);
-  const activity = useApiResource(loadActivity, unauthorized, !!token);
-  const badges = useApiResource(loadBadges, unauthorized, own && !!token);
+  const profile = useApiResource(loadProfile, unauthorized, !!sessionKey);
+  const activity = useApiResource(loadActivity, unauthorized, !!sessionKey);
+  const badges = useApiResource(loadBadges, unauthorized, own && !!sessionKey);
   const friendship = useApiResource(
     loadFriendship,
     unauthorized,
-    !own && !!token,
+    !own && !!sessionKey,
   );
   const stats = useApiResource(
     loadStats,
     unauthorized,
-    !own && !!token && friendship.data?.status === 'FRIENDS',
+    !own && !!sessionKey && friendship.data?.status === 'FRIENDS',
   );
   const [personalization, setPersonalization] = useState<ProfilePersonalization | null>(null);
   const [editing, setEditing] = useState(false);
@@ -205,7 +205,7 @@ export default function UserProfile({ username }: { username?: string }) {
       ? person.badges
       : [];
   const appearance: ProfilePersonalization = personalization ?? {
-    bio: person.bio ?? '', tagline: person.tagline ?? '', avatarSeed: person.avatarSeed || person.username,
+    bio: person.bio ?? '', tagline: person.tagline ?? '',
     interests: person.interests ?? [], featuredBadgeIds: person.featuredBadgeIds ?? [],
   };
   const beginner = own && !appearance.bio && !appearance.interests.length;
@@ -220,10 +220,10 @@ export default function UserProfile({ username }: { username?: string }) {
         <span aria-hidden="true">/</span>
         <span>Profil</span>
       </div>
-      <header className="profile-header">
+      <header className="profile-header" data-tour={own ? 'profile' : undefined}>
         <UserAvatar
           className="profile-avatar"
-          username={person.username} seed={appearance.avatarSeed} avatar={person.avatar}
+          username={person.username} avatar={person.avatar}
           alt={`Avatar ${person.username}`}
         />
         <div className="profile-identity">
@@ -284,7 +284,7 @@ export default function UserProfile({ username }: { username?: string }) {
         <h2>Nadaj profilowi swój charakter</h2><p>Dodaj opis i zainteresowania, a potem wybierz odznaki do gabloty.</p></div>
         <Button variant="outline" onClick={edit}>Uzupełnij profil</Button></section>}
       <BadgeShowcase badges={profileBadges} selectedIds={appearance.featuredBadgeIds} own={own} onEdit={edit} />
-      <section className="profile-section profile-badges" aria-labelledby="profile-badges-title">
+      <section className="profile-section profile-badges" aria-labelledby="profile-badges-title" data-tour={own ? 'profile-badges' : undefined}>
         <div className="profile-section-heading">
           <h2 id="profile-badges-title">Osiągnięcia</h2></div>
         {own ? <ResourceContent {...badges} placeholder={<TextSkeleton label="Ładowanie osiągnięć" />}><ProfileBadges badges={profileBadges} own /></ResourceContent>
@@ -294,7 +294,7 @@ export default function UserProfile({ username }: { username?: string }) {
         <h3>Bilans pojedynków</h3><ResourceContent {...stats} placeholder={<TextSkeleton label="Ładowanie bilansu" />}>{stats.data && <p>Ty <strong>{stats.data.winsAgainst}</strong> : <strong>{stats.data.lossesAgainst}</strong> {person.username}</p>}</ResourceContent>
       </section>}
       <div className="profile-details-grid">
-        <section className="profile-section profile-activity" aria-labelledby="profile-activity-title">
+        <section className="profile-section profile-activity" aria-labelledby="profile-activity-title" data-tour={own ? 'profile-activity' : undefined}>
           <div className="profile-section-heading"><h2 id="profile-activity-title">Regularność nauki</h2></div>
           <ResourceContent {...activity} placeholder={<LoadingSkeleton label="Ładowanie aktywności"><Skeleton height={140} radius={8} /></LoadingSkeleton>}><ActivityCalendar data={activity.data ?? []} /></ResourceContent>
         </section>

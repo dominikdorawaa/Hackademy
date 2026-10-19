@@ -1,0 +1,12 @@
+ALTER TABLE user_avatars DROP CONSTRAINT ck_user_avatars_skin;
+ALTER TABLE user_avatars ADD CONSTRAINT ck_user_avatars_skin CHECK (skin IN ('porcelanowa', 'jasna', 'oliwkowa', 'brazowa', 'ciemna', 'heban') OR skin ~ '^#[0-9a-f]{6}$');
+ALTER TABLE user_avatars DROP CONSTRAINT ck_user_avatars_hair_color;
+ALTER TABLE user_avatars ADD CONSTRAINT ck_user_avatars_hair_color CHECK (hair_color IN ('czarne', 'brazowe', 'rude', 'blond', 'siwe', 'niebieskie') OR hair_color ~ '^#[0-9a-f]{6}$');
+ALTER TABLE user_avatars DROP CONSTRAINT ck_user_avatars_top_color;
+ALTER TABLE user_avatars ADD CONSTRAINT ck_user_avatars_top_color CHECK (top_color IN ('granatowy', 'grafitowy', 'bordowy', 'turkusowy', 'piaskowy', 'oliwkowy', 'czerwony', 'bialy') OR top_color ~ '^#[0-9a-f]{6}$');
+ALTER TABLE user_avatars DROP CONSTRAINT ck_user_avatars_bottom_color;
+ALTER TABLE user_avatars ADD CONSTRAINT ck_user_avatars_bottom_color CHECK (bottom_color IN ('granatowy', 'grafitowy', 'bordowy', 'turkusowy', 'piaskowy', 'oliwkowy', 'czerwony', 'bialy') OR bottom_color ~ '^#[0-9a-f]{6}$');
+ALTER TABLE user_avatars DROP CONSTRAINT ck_user_avatars_shoes_color;
+ALTER TABLE user_avatars ADD CONSTRAINT ck_user_avatars_shoes_color CHECK (shoes_color IN ('granatowy', 'grafitowy', 'bordowy', 'turkusowy', 'piaskowy', 'oliwkowy', 'czerwony', 'bialy') OR shoes_color ~ '^#[0-9a-f]{6}$');
+ALTER TABLE user_avatars DROP CONSTRAINT ck_user_avatars_hat_color;
+ALTER TABLE user_avatars ADD CONSTRAINT ck_user_avatars_hat_color CHECK (hat_color IN ('granatowy', 'grafitowy', 'bordowy', 'turkusowy', 'piaskowy', 'oliwkowy', 'czerwony', 'bialy') OR hat_color ~ '^#[0-9a-f]{6}$');

@@ -90,11 +90,11 @@ Platforma jest dostępna online Możesz ją przetestować pod adresem:
 
 Na Linuksie uruchom `./run.sh` z katalogu projektu. Skrypt uruchamia PostgreSQL i backend przez Docker Compose oraz frontend przez `npm run dev`, z automatycznym odświeżaniem po zmianach w kodzie. Możesz wywołać go również z innego katalogu, podając pełną ścieżkę do pliku.
 
-Wymagane są działający Docker Engine z Docker Compose, Node.js z npm, curl oraz polecenia flock i setsid (pakiet util-linux). Bez istniejącego `.env` potrzebny jest również openssl; skrypt tworzy wtedy lokalny `.env` z losowymi wartościami `DB_PASSWORD` i `JWT_SECRET`, dostępnym tylko dla właściciela. Istniejącego `.env` nie nadpisuje. Przy każdym uruchomieniu wykonuje `npm ci` i buduje backend, więc pierwszy start może potrwać kilka minut.
+Wymagane są działający Docker Engine z Docker Compose, Node.js z npm, curl oraz polecenia flock i setsid (pakiet util-linux). Bez istniejącego `.env` potrzebny jest również openssl; skrypt tworzy wtedy lokalny `.env` z losowymi wartościami `DB_PASSWORD`, dostępnym tylko dla właściciela. Istniejącego `.env` nie nadpisuje. Przy każdym uruchomieniu wykonuje `npm ci` i buduje backend, więc pierwszy start może potrwać kilka minut.
 
 Frontend działa pod `http://localhost:5173`, a backend pod `http://localhost:8080`. Porty 5173, 8080 i 15432 muszą być dostępne. Skrypt korzysta z lokalnej bazy Compose; adres `DB_URL` z istniejącego `.env` nie jest używany. Nie uruchamiaj równocześnie frontendowego kontenera Compose, ponieważ korzysta z tego samego portu co Vite.
 
-Jeśli `.env` zaginie, a wolumen lokalnej bazy nadal istnieje, skrypt zatrzyma się przed wygenerowaniem nowych haseł. Przywróć poprzedni `.env` albo utwórz go z dotychczasowym hasłem bazy w `DB_PASSWORD` i własnym sekretem `JWT_SECRET`. Nowe losowe hasło nie zmienia hasła w istniejącej bazie. Skrypt nie usuwa wolumenu ani jego danych.
+Jeśli `.env` zaginie, a wolumen lokalnej bazy nadal istnieje, skrypt zatrzyma się przed wygenerowaniem nowych haseł. Przywróć poprzedni `.env` albo utwórz go z dotychczasowym hasłem bazy w `DB_PASSWORD` oraz `CLERK_ISSUER`. Nowe losowe hasło nie zmienia hasła w istniejącej bazie. Skrypt nie usuwa wolumenu ani jego danych.
 
 Przed oczekiwaniem na API skrypt sprawdza logowanie do bazy. Jeśli backend zakończy pracę lub zacznie się restartować, od razu wypisze błąd i ostatnie logi, zamiast czekać na pełny limit startu.
 
@@ -102,7 +102,7 @@ Zatrzymaj aplikację przez Ctrl+C. Skrypt kończy frontend i zatrzymuje tylko te
 
 ## Uruchomienie lokalne przez Docker Compose
 
-1. Skopiuj `.env.example` do `.env` w katalogu głównym i ustaw własne `DB_PASSWORD` oraz `JWT_SECRET`. Jeżeli masz już `.env`, nie nadpisuj go; sprawdź tylko te dwie zmienne. Sekret JWT musi być losową wartością Base64 o co najmniej 32 bajtach. W PowerShell można go wygenerować poleceniem `[Convert]::ToBase64String([Security.Cryptography.RandomNumberGenerator]::GetBytes(32))`.
+1. Skopiuj `.env.example` do `.env` w katalogu głównym i ustaw własne `DB_PASSWORD` oraz `CLERK_ISSUER`. Jeżeli masz już `.env`, nie nadpisuj go; sprawdź tylko te dwie zmienne. Ustaw klucz publiczny w `client/.env.local` jako `VITE_CLERK_PUBLISHABLE_KEY` oraz adres Frontend API Clerka w głównym `.env` jako `CLERK_ISSUER`. Szczegóły przełączenia i importu kont opisuje [procedura Clerka](docs/clerk-migration.md).
 2. Uruchom `docker compose up --build -d` z katalogu głównego projektu.
 3. Otwórz `http://localhost:5173`. Backend odpowiada pod `http://localhost:8080/health`.
 
@@ -114,11 +114,17 @@ Backend łączy się z bazą przez `DB_URL`, `DB_USERNAME` i `DB_PASSWORD`. Jeś
 
 Frontend działa na Cloudflare Pages, a backend i baza na Heroku. Architekturę, wdrażanie, konfigurację, kopie zapasowe i procedurę powrotu opisuje [docs/deployment.md](docs/deployment.md).
 
+## CORS
+
+Jedną listę originów dla REST API, SockJS i handshake WebSocket ustawia `CORS_ALLOWED_ORIGINS`, oddzielając wpisy przecinkami, np. `https://hackademy.app,http://localhost:5173`. Bez tej zmiennej backend używa `FRONTEND_URL`, a bez obu `http://localhost:5173`. Każdy wpis to dokładny origin `scheme://host[:port]` z `http` lub `https`, bez ścieżki i bez `*`; błędny wpis zatrzymuje start aplikacji. Inne originy, w tym `www.hackademy.app` i podglądy Cloudflare Pages, trzeba dopisać jawnie.
+
+Przeglądarka może wysyłać metody `GET`, `POST`, `PUT`, `PATCH` i `DELETE` oraz nagłówki `Authorization` i `Content-Type`. Credentials są włączone, bo transporty XHR klienta SockJS wysyłają żądania z `withCredentials`; API nie korzysta z ciasteczek i token przekazuje w nagłówku. Kontrolery nie mają własnych adnotacji `@CrossOrigin`.
+
 ## Uwierzytelnianie WebSocket
 
 Endpoint `/ws` korzysta z SockJS i STOMP. Transport HTTP jest dostępny bez tokena, ponieważ przeglądarka przesyła JWT w nagłówku `Authorization: Bearer <token>` ramki STOMP `CONNECT`, a nie w handshake HTTP. Brak ważnego tokena kończy próbę połączenia błędem STOMP; nieuwierzytelniony klient nie może wysyłać wiadomości ani subskrybować kanałów. Nie przekazuj tokena w adresie URL.
 
-Dozwolony origin określa `FRONTEND_URL`, tak samo jak dla REST API. Po zalogowaniu Spring wiąże sesję STOMP z użytkownikiem tokena. Klient może subskrybować wyłącznie własny `/user/queue/realtime`; wysyłanie ramek `SEND` i subskrypcje innych kanałów są odrzucane.
+Dozwolone originy są te same co dla REST API (sekcja „CORS”). Po zalogowaniu Spring wiąże sesję STOMP z użytkownikiem tokena. Klient może subskrybować wyłącznie własny `/user/queue/realtime`; wysyłanie ramek `SEND` i subskrypcje innych kanałów są odrzucane.
 
 Navbar, Arena, lista znajomych i status rozgrywki korzystają ze wspólnego `RealtimeProvider`. Backend wysyła `STATE` z aktualnym stanem odbiorcy po zmianie; zmiany znajomości są dostarczane dopiero po commitcie. Osobny executor zwalnia połączenie transakcji przed odczytem stanu. Powiadomienia nie uruchamiają dodatkowych żądań HTTP.
 
@@ -150,7 +156,7 @@ Uruchom Docker Engine, a następnie wykonaj `mvn -B -ntp verify` w katalogu `ser
 
 W katalogu `client` wykonaj `npm ci`, a następnie `npm test`. Sam zestaw testów logowania i chronionych tras uruchomisz przez `npm run test:integration`. Workflow `Frontend` wykonuje lint, build z kontrolą typów i pełny zestaw testów na każdym pull requeście.
 
-Testy korzystają z Vitest, React Testing Library, `user-event` i matcherów `jest-dom`. Helper `src/test/renderWithAuth.tsx` renderuje trasy z `MemoryRouter` i prawdziwym `AuthProvider`. Sesję można przygotować przez zapis tokena z `src/test/fixtures/auth.ts` do `localStorage` przed renderowaniem.
+Testy korzystają z Vitest, React Testing Library, `user-event` i matcherów `jest-dom`. Helper `src/test/renderWithAuth.tsx` renderuje trasy z `MemoryRouter` i prawdziwym `AuthProvider`. Sesję Clerka przygotowuje `setClerkSession()` z `src/test/clerk.tsx`. Mock SDK jest ograniczony do testów. Produkcyjny kod nie przechowuje tokenów w localStorage.
 
 MSW przechwytuje API bez uruchamiania backendu. Handlery w `src/test/mocks/handlers.ts` używają typów z `src/types/api.ts` i adresu z `apiConfig.ts`. Nadpisuj odpowiedzi dla danego scenariusza przez `server.use(...)`; konfiguracja automatycznie resetuje handlery, czyści DOM i storage po każdym teście. Żądanie bez handlera jest błędem.
 
@@ -166,7 +172,7 @@ Style zgodności starych formularzy nie obejmują elementów z `data-slot`, uży
 
 ## Profile użytkowników
 
-Profil to wizytówka z bio, zainteresowaniami, wybieranym avatarem DiceBear i gablotą maksymalnie trzech zdobytych odznak. Formularz „Edytuj profil” zapisuje opis do 500 znaków, do pięciu zainteresowań, seed avatara i uporządkowany wybór odznak przez `PATCH /api/user/me/profile`. Bez własnego wyboru gablota prezentuje trzy ostatnie odznaki. Migracja Flyway V6 zachowuje dotychczasowe avatary i uniezależnia je od przyszłych zmian nazw użytkowników.
+Profil to wizytówka z bio, zainteresowaniami, własnym awatarem Hackademy i gablotą maksymalnie trzech zdobytych odznak. Formularz „Edytuj profil” zapisuje opis do 500 znaków, do pięciu zainteresowań i uporządkowany wybór odznak przez `PATCH /api/user/me/profile`. Bez własnego wyboru gablota prezentuje trzy ostatnie odznaki. Nowe konto przechodzi onboarding z pingwinem Bitem: powitanie, obowiązkowe utworzenie i zatwierdzenie awatara, a potem krótki przewodnik, który można pominąć (opis w `docs/design/onboarding.md`).
 
 Kolekcja obejmuje zdobyte i niezdobyte osiągnięcia. Paski postępu są widoczne tylko w pełnym katalogu, który otwiera się w oknie z wyszukiwaniem, filtrami, popularnością globalną i paginacją po sześć wpisów. Obok kalendarza są statystyki nauki: rekord jednego dnia, najdłuższa seria, data najaktywniejszego dnia i średnia liczba rozwiązań w aktywnym dniu. Wszystkie dotyczą ostatnich dwunastu tygodni. Profil nie ma przycisku udostępniania; jego adres nadal wymaga zalogowania. Ostatnio ukończone pokoje, XP, poziom, awans i Elo pozostają w dashboardzie.
 

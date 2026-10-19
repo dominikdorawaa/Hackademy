@@ -26,7 +26,7 @@ const FRIENDS_SHOWN = 6;
 const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
 const ArenaPage = () => {
-    const { token } = useAuth();
+    const { sessionKey } = useAuth();
     const [userData, setUserData] = useState<DashboardUser | null>(null);
     const [userFailed, setUserFailed] = useState(false);
     const [userAttempt, setUserAttempt] = useState(0);
@@ -52,15 +52,15 @@ const ArenaPage = () => {
         let cancelled = false;
         setUserFailed(false);
         setUserData(null);
-        userApi.getCurrentUser({ Authorization: `Bearer ${token}` })
+        userApi.getCurrentUser({ sessionKey })
             .then(response => { if (!response.ok) throw new Error('user'); return response.json(); })
             .then(data => { if (!data) throw new Error('user'); if (!cancelled) setUserData(data); })
             .catch(() => { if (!cancelled) setUserFailed(true); });
         return () => { cancelled = true; };
-    }, [token, userAttempt]);
+    }, [sessionKey, userAttempt]);
 
     useEffect(() => {
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = { sessionKey };
         rankingApi.getSummary(headers)
             .then(response => { if (!response.ok) throw new Error('ranking'); return response.json(); })
             .then(data => setRank(data?.myRank ? { status: 'ready', entry: data.myRank } : { status: 'error', entry: null }))
@@ -80,14 +80,12 @@ const ArenaPage = () => {
                 setStatsLoading(false);
             })
             .catch(() => { setFriendsFailed(true); setStatsLoading(false); });
-    }, [token]);
+    }, [sessionKey]);
 
     const handleChallengeFriend = async (username: string) => {
         setFriendChallenges(previous => ({ ...previous, [username]: 'sending' }));
         try {
-            const response = await arenaApi.createChallenge({ targetUsername: username }, {
-                'Content-Type': 'application/json',
-                'Authorization': `Bearer ${token}`
+            const response = await arenaApi.createChallenge({ targetUsername: username }, {sessionKey
             });
             if (response.ok) {
                 setFriendChallenges(previous => { const next = { ...previous }; delete next[username]; return next; });
@@ -106,7 +104,7 @@ const ArenaPage = () => {
         setJoiningQueue(true);
         setError(null);
         try {
-            const response = await arenaApi.joinQueue({ 'Authorization': `Bearer ${token}` });
+            const response = await arenaApi.joinQueue({ sessionKey });
             if (response.ok) {
                 setJoiningQueue(false);
                 void synchronize();
@@ -123,7 +121,7 @@ const ArenaPage = () => {
 
     const handleLeaveQueue = async () => {
         try {
-            const response = await arenaApi.leaveQueue({ 'Authorization': `Bearer ${token}` });
+            const response = await arenaApi.leaveQueue({ sessionKey });
             if (!response.ok) throw new Error('Cannot leave queue');
             await synchronize();
         } catch (err) {
@@ -134,7 +132,7 @@ const ArenaPage = () => {
     const handleCancelChallenges = async () => {
         try {
             for (const challenge of realtime?.outgoingChallenges ?? []) {
-                const response = await arenaApi.cancelChallenge(challenge.id, { Authorization: `Bearer ${token}` });
+                const response = await arenaApi.cancelChallenge(challenge.id, { sessionKey });
                 if (!response.ok) throw new Error('Cannot cancel challenge');
             }
             await synchronize();
@@ -148,7 +146,7 @@ const ArenaPage = () => {
         setProcessingChallengeId(challengeId);
         setChallengeError(null);
         try {
-            const response = await arenaApi.acceptChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
+            const response = await arenaApi.acceptChallenge(challengeId, { sessionKey });
             if (response.ok) {
                 setAcceptedChallenges(prev => [...prev, challengeId]);
                 await synchronize();
@@ -167,7 +165,7 @@ const ArenaPage = () => {
         if (processingChallengeId === challengeId) return;
         setProcessingChallengeId(challengeId);
         try {
-            const response = await arenaApi.rejectChallenge(challengeId, { 'Authorization': `Bearer ${token}` });
+            const response = await arenaApi.rejectChallenge(challengeId, { sessionKey });
             if (!response.ok) throw new Error('Cannot reject challenge');
             await synchronize();
         } catch (err) {
@@ -199,12 +197,12 @@ const ArenaPage = () => {
             <div className="ud-shell">
                 <div className="ud-main">
                     <section className="arena-hero" aria-labelledby="arena-title" style={{ '--league': known ? league.color : 'var(--ud-track)' } as React.CSSProperties}>
-                        <div className="arena-card">
+                        <div className="arena-card" data-tour="arena-card">
                             <div className="arena-card-top">
                                 {known && <span className="arena-league"><LeagueIcon league={league} glint />Liga {league.name}</span>}
                                 <span className="arena-card-rank" role={known ? undefined : "status"}>{rankLabel}</span>
                             </div>
-                            <UserAvatar className="arena-card-portrait" username={userData.username} seed={userData.avatarSeed} avatar={userData.avatar} alt="" />
+                            <UserAvatar className="arena-card-portrait" username={userData.username} avatar={userData.avatar} alt="" />
                             <p className="arena-card-name">{userData.username}</p>
                             <p className="arena-card-elo">
                                 <span className="arena-card-number">{known ? elo : '–'}</span>
@@ -225,7 +223,7 @@ const ArenaPage = () => {
                             <Link className="arena-card-edit" to="/arena/avatar">{userData.avatar ? 'Edytuj awatar' : 'Stwórz awatar'}</Link>
                         </div>
                         <div className="arena-hero-main">
-                        <div className="arena-console-copy">
+                        <div className="arena-console-copy" data-tour="arena-play">
                             <p className="arena-kicker">Tryb rankingowy</p>
                             <h1 id="arena-title" className="arena-title">{headline}</h1>
                             {status === 'GAME' && gameSession ? (
@@ -255,7 +253,7 @@ const ArenaPage = () => {
                             {offline && <p role="status" className="arena-note">Łączenie z Areną. Poczekaj na połączenie z serwerem.</p>}
                             {error && <p role="alert" className="arena-error">{error}</p>}
                         </div>
-                        <ol className="arena-ladder" aria-label="Ligi Areny">
+                        <ol className="arena-ladder" aria-label="Ligi Areny" data-tour="arena-ladder">
                             {LEAGUES.map(item => (
                                 <li key={item.name} className={!known ? undefined : item === league ? "is-current" : elo >= item.min ? "is-reached" : undefined} style={{ '--tier': item.color } as React.CSSProperties} aria-current={known && item === league ? "true" : undefined}>
                                     <LeagueIcon league={item} className="arena-ladder-icon" glint={known && item === league} />
@@ -292,9 +290,9 @@ const ArenaPage = () => {
                                     const busy = processingChallengeId === challenge.id;
                                     return (
                                         <li key={challenge.id} className="ud-friend arena-challenge">
-                                            <UserAvatar className="ud-friend-avatar" username={challenge.challengerUsername} seed={challenge.challengerAvatarSeed} alt="" />
+                                            <UserAvatar className="ud-friend-avatar" username={challenge.challengerUsername} avatar={challenge.challengerAvatar} alt="" />
                                             <span className="ud-friend-who">
-                                                <ProfilePeek className="ud-friend-name" username={challenge.challengerUsername} token={token} />
+                                                <ProfilePeek className="ud-friend-name" username={challenge.challengerUsername} sessionKey={sessionKey} />
                                                 <span className="ud-friend-xp">Wyzywa Cię na pojedynek</span>
                                             </span>
                                             <span className="ud-friend-act arena-challenge-act">
@@ -315,7 +313,7 @@ const ArenaPage = () => {
                 </div>
 
                 <aside className="ud-board arena-board" aria-label="Znajomi i zasady">
-                    <section className="arena-board-friends" aria-labelledby="arena-friends-title">
+                    <section className="arena-board-friends" aria-labelledby="arena-friends-title" data-tour="arena-friends">
                         <div className="ud-section-head">
                             <h2 id="arena-friends-title">Wyzwij znajomego</h2>
                             {friends && friends.length > 0 && <Link className="ud-link" to="/friends">Wszyscy znajomi ({friends.length})</Link>}
@@ -336,9 +334,9 @@ const ArenaPage = () => {
                                     const sent = challengedFriends.includes(friend.username);
                                     return (
                                         <li key={friend.id} className="ud-friend">
-                                            <UserAvatar className="ud-friend-avatar" username={friend.username} seed={friend.avatarSeed} avatar={friend.avatar} alt="" />
+                                            <UserAvatar className="ud-friend-avatar" username={friend.username} avatar={friend.avatar} alt="" />
                                             <span className="ud-friend-who">
-                                                <ProfilePeek className="ud-friend-name" username={friend.username} token={token} />
+                                                <ProfilePeek className="ud-friend-name" username={friend.username} sessionKey={sessionKey} />
                                                 <span className="ud-friend-xp">{formatNumberPL(friend.points)} XP, poziom {levelFromPoints(friend.points)}</span>
                                             </span>
                                             <span className="ud-friend-h2h">
@@ -361,7 +359,7 @@ const ArenaPage = () => {
                             </ul>
                         )}
                     </section>
-                    <section aria-labelledby="arena-rules-title">
+                    <section aria-labelledby="arena-rules-title" data-tour="arena-rules">
                         <h2 id="arena-rules-title" className="arena-board-title">Zasady pojedynków rankingowych</h2>
                         <ol className="arena-rules">
                             <li>Twój awatar staje do walki z rywalem z kolejki albo z wyzwanym znajomym. Każdy zaczyna ze 100 HP.</li>

@@ -1,0 +1,79 @@
+@layer components {
+.mascot-bubble {
+  --font-pixel: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  --font-text: 'Archivo', system-ui, sans-serif;
+  display: flex;
+  align-items: flex-end;
+  gap: 12px;
+  outline: none;
+}
+
+.mascot-bubble-box {
+  position: relative;
+  flex: 1;
+  min-width: 0;
+  padding: 16px 18px;
+  border: 1px solid var(--ud-track);
+  border-radius: 16px;
+  background: var(--ud-surface);
+  color: var(--ud-ink);
+  box-shadow: var(--ud-float-shadow);
+  font-family: var(--font-pixel);
+}
+
+.mascot-bubble-box::before {
+  content: '';
+  position: absolute;
+  left: -9px;
+  bottom: 22px;
+  width: 16px;
+  height: 16px;
+  border-left: 1px solid var(--ud-track);
+  border-bottom: 1px solid var(--ud-track);
+  background: inherit;
+  rotate: 45deg;
+}
+
+.mascot-bubble-name {
+  margin: 0 0 2px;
+  color: var(--ud-link);
+  font-family: var(--font-pixel);
+  font-size: var(--ud-text-s);
+  font-weight: 600;
+}
+
+.mascot-bubble-title {
+  margin: 0 0 6px;
+  font-family: var(--font-pixel);
+  font-size: 1.25rem;
+  font-weight: 600;
+}
+
+.mascot-bubble-text,
+.mascot-bubble-actions {
+  font-family: var(--font-text);
+}
+
+.mascot-bubble-text p {
+  margin: 0;
+  line-height: 1.5;
+}
+
+.mascot-bubble-text p + p {
+  margin-top: 8px;
+}
+
+.mascot-bubble-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+  margin-top: 14px;
+}
+
+@media (max-width: 560px) {
+  .mascot-bubble .mascot-bubble-mascot .pixel-sprite {
+    zoom: 0.7;
+  }
+}
+}

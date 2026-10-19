@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { screen } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route } from 'react-router-dom';
@@ -17,7 +18,7 @@ function mount(tasks: RoomTaskDto[]) {
     requiresVpn: false, hints: [], unlockedHintIds: [], fileName: null, tasks,
   };
   server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
-  localStorage.setItem('token', createToken('USER'));
+  setClerkSession(createToken('USER'));
   renderWithAuth(<Route path="/rooms/:id" element={<RoomPage />} />, '/rooms/7');
 }
 
@@ -76,7 +77,7 @@ describe('task room completion', () => {
 describe('path unlock modes', () => {
   it('explains why a locked path room cannot be entered', async () => {
     server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json({ message: 'Ten pokój jest jeszcze zablokowany. Ukończ poprzednie pokoje ścieżki.' }, { status: 403 })));
-    localStorage.setItem('token', createToken('USER'));
+    setClerkSession(createToken('USER'));
     renderWithAuth(<Route path="/rooms/:id" element={<RoomPage />} />, '/rooms/7');
     expect(await screen.findByText('Błąd: Ten pokój jest jeszcze zablokowany. Ukończ poprzednie pokoje ścieżki.')).toBeInTheDocument();
   });
@@ -157,7 +158,7 @@ function mountCtf(overrides: Partial<RoomDetailDto> = {}, url = '/rooms/7') {
     unlockedHintIds: [], fileName: null, tasks: [], ...overrides,
   };
   server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
-  localStorage.setItem('token', createToken('USER'));
+  setClerkSession(createToken('USER'));
   return renderWithAuth(<Route path="/rooms/:id" element={<RoomPage />} />, url);
 }
 

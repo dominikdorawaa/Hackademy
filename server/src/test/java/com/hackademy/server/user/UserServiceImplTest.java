@@ -1,6 +1,5 @@
 package com.hackademy.server.user;
 
-import com.hackademy.server.auth.JwtService;
 import com.hackademy.server.badge.BadgeDto;
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.badge.UserBadgeRepository;
@@ -18,6 +17,7 @@ import com.hackademy.server.room.RecentSolvedRoomView;
 import com.hackademy.server.room.UserSolvedRoomRepository;
 import com.hackademy.server.room.UserUnlockedHintRepository;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
+import com.hackademy.server.user.dto.UpdateUsernameRequest;
 import com.hackademy.server.user.dto.ProfilePersonalizationDto;
 import com.hackademy.server.user.dto.ProfilePortfolioDto;
 import com.hackademy.server.user.dto.ProfileStatsDto;
@@ -32,7 +32,6 @@ import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
 
@@ -52,8 +51,6 @@ class UserServiceImplTest {
     @Mock UserRepository userRepository;
     @Mock UserSolvedRoomRepository userSolvedRoomRepository;
     @Mock UserBadgeRepository userBadgeRepository;
-    @Mock PasswordEncoder passwordEncoder;
-    @Mock JwtService jwtService;
     @Mock FriendshipService friendshipService;
     @Mock BadgeService badgeService;
     @Mock UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
@@ -81,9 +78,9 @@ class UserServiceImplTest {
         TransactionSynchronizationManager.initSynchronization();
 
         var result = service.updateProfile(1L, new UpdateProfileRequest(
-                "  Bio  ", " Tagline ", " seed ", List.of("WEB", "SOC"), List.of(3L)));
+                "  Bio  ", " Tagline ", List.of("WEB", "SOC"), List.of(3L)));
 
-        assertEquals(new ProfilePersonalizationDto("Bio", "Tagline", "seed", List.of("WEB", "SOC"), List.of(3L)), result);
+        assertEquals(new ProfilePersonalizationDto("Bio", "Tagline", List.of("WEB", "SOC"), List.of(3L)), result);
         verify(userRepository).saveAndFlush(user);
         verifyNoInteractions(friendshipService);
 
@@ -109,12 +106,12 @@ class UserServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
         assertThrows(UserNotFoundException.class, () -> service.updateProfile(1L,
-                new UpdateProfileRequest("", "", "seed", List.of(), List.of())));
+                new UpdateProfileRequest("", "", List.of(), List.of())));
     }
 
     private void assertInvalidProfile(List<String> interests, List<Long> badges) {
         assertThrows(IllegalArgumentException.class, () -> service.updateProfile(1L,
-                new UpdateProfileRequest("", "", "seed", interests, badges)));
+                new UpdateProfileRequest("", "", interests, badges)));
     }
 
     @Test
@@ -124,7 +121,7 @@ class UserServiceImplTest {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user));
         when(userRepository.findById(2L)).thenReturn(Optional.empty());
 
-        assertEquals(new ProfilePersonalizationDto("", "Hacker", "alice-seed", List.of(), List.of()),
+        assertEquals(new ProfilePersonalizationDto("", "Hacker", List.of(), List.of()),
                 service.getPersonalization(1L));
         assertThrows(UserNotFoundException.class, () -> service.getPersonalization(2L));
     }
@@ -210,7 +207,7 @@ class UserServiceImplTest {
 
         var ranking = service.getTop10Ranking();
 
-        assertEquals(List.of(new RankingEntry(0, 0, "alice", 300, 700, "alice-seed")), ranking);
+        assertEquals(List.of(new RankingEntry(0, 0, "alice", 300, 700)), ranking);
         assertSame(ranking, service.getTop10Ranking());
         verify(userRepository, times(1)).findTopByPointsDesc(any());
 
@@ -230,7 +227,7 @@ class UserServiceImplTest {
 
         var rank = service.getUserRank(1L);
 
-        assertEquals(new RankingEntry(5, 2, "alice", 300, 700, "alice-seed"), rank);
+        assertEquals(new RankingEntry(5, 2, "alice", 300, 700), rank);
         assertSame(rank, service.getUserRank(1L));
         assertSame(rank, service.getUserRankFast(1L, "alice", 0, 0));
         verify(userRepository, times(1)).findById(1L);
@@ -245,12 +242,11 @@ class UserServiceImplTest {
     }
 
     @Test
-    void fastRankUsesDefaultsAndFallsBackToUsernameAvatar() {
+    void fastRankUsesDefaultPointsAndElo() {
         when(userRepository.countByPointsGreaterThan(0)).thenReturn(9L);
         when(userRepository.countByEloGreaterThan(500)).thenReturn(3L);
-        when(userRepository.findById(1L)).thenReturn(Optional.empty());
 
-        assertEquals(new RankingEntry(10, 4, "alice", 0, 500, "alice"), service.getUserRankFast(1L, "alice", null, null));
+        assertEquals(new RankingEntry(10, 4, "alice", 0, 500), service.getUserRankFast(1L, "alice", null, null));
     }
 
     // ── search, moderation and tutorials ────────────────────────────────────
@@ -265,7 +261,6 @@ class UserServiceImplTest {
 
         assertEquals("SELF", results.get(0).friendshipStatus());
         assertEquals("FRIENDS", results.get(1).friendshipStatus());
-        assertEquals("adam-seed", results.get(1).avatarSeed());
         verify(friendshipService, never()).getFriendshipStatus(1L, "alice");
     }
 
@@ -408,10 +403,27 @@ class UserServiceImplTest {
         assertThrows(UserNotFoundException.class, () -> service.getUserIdByUsername("ghost"));
     }
 
+    @Test
+    void renamesWithoutIssuingTokensAndRejectsTakenNames() {
+        var alice = user(1L, "alice");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(alice));
+        when(userRepository.findById(9L)).thenReturn(Optional.empty());
+        when(userRepository.findByUsernameIgnoringCase("alice")).thenReturn(Optional.of(alice));
+        when(userRepository.findByUsernameIgnoringCase("bob")).thenReturn(Optional.of(user(2L, "bob")));
+        when(userRepository.findByUsernameIgnoringCase("carol")).thenReturn(Optional.empty());
+        when(userRepository.save(alice)).thenReturn(alice);
+
+        assertEquals("alice", service.updateUsername(1L, new UpdateUsernameRequest("alice")));
+        assertThrows(IllegalArgumentException.class, () -> service.updateUsername(1L, new UpdateUsernameRequest("bob")));
+        assertEquals("carol", service.updateUsername(1L, new UpdateUsernameRequest("carol")));
+        assertEquals("carol", alice.getUsername());
+        assertThrows(UserNotFoundException.class, () -> service.updateUsername(9L, new UpdateUsernameRequest("dave")));
+    }
+
     // ── helpers ─────────────────────────────────────────────────────────────
 
     private static User user(long id, String username) {
-        return User.builder().id(id).username(username).avatarSeed(username + "-seed").build();
+        return User.builder().id(id).username(username).build();
     }
 
     private static BadgeDto badge(long id, boolean earned) {

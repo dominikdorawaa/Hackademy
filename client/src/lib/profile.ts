@@ -7,7 +7,6 @@ export const PROFILE_INTERESTS: Record<string, string> = {
 export interface ProfilePersonalization {
   bio: string;
   tagline: string;
-  avatarSeed: string;
   interests: string[];
   featuredBadgeIds: number[];
 }

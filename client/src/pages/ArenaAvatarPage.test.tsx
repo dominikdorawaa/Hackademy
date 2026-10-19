@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
@@ -44,10 +45,10 @@ it('customizes colors, previews animations and saves the avatar', () => {
   expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled();
   fireEvent.click(screen.getByRole('radio', { name: 'Skóra: Hebanowa' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Włosy: Rude' }));
-  fireEvent.click(screen.getByRole('radio', { name: 'Góra: Turkusowy' }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Góra: Bordowy' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Dół: Biały' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Buty: Czerwony' }));
-  expect(atlas.last!.colors).toMatchObject({ skin: 'heban', hair: 'rude', top: 'turkusowy', bottom: 'bialy', shoes: 'czerwony' });
+  expect(atlas.last!.colors).toMatchObject({ skin: 'heban', hair: 'rude', top: 'bordowy', bottom: 'bialy', shoes: 'czerwony' });
   expect(screen.getByText('Masz niezapisane zmiany.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('button', { name: 'Bieg' }));
   expect(screen.getByRole('button', { name: 'Bieg' })).toHaveAttribute('aria-pressed', 'true');
@@ -63,7 +64,7 @@ it('customizes colors, previews animations and saves the avatar', () => {
   fireEvent.click(screen.getByRole('button', { name: 'Upadek' }));
   expect(screen.getByRole('img', { name: 'Awatar, animacja: Upadek' })).toHaveAttribute('data-frame', '46');
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
-  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ outfit: 'baza', colors: { skin: 'heban', hair: 'rude', top: 'turkusowy', bottom: 'bialy', shoes: 'czerwony' } });
+  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ outfit: 'baza', colors: { skin: 'heban', hair: 'rude', top: 'bordowy', bottom: 'bialy', shoes: 'czerwony' } });
   expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled();
 });
 
@@ -80,8 +81,8 @@ it('chooses a hairstyle and a hat, and hides the hair under the hat', () => {
   expect(screen.getByRole('radio', { name: /^Krótkie$/ })).toBeChecked();
   fireEvent.click(screen.getByRole('radio', { name: /^Irokez$/ }));
   fireEvent.click(screen.getByRole('radio', { name: /^Daszek$/ }));
-  fireEvent.click(screen.getByRole('radio', { name: 'Kolor czapki: Turkusowy' }));
-  expect(atlas.last).toMatchObject({ outfit: 'baza', hair: 'irokez', hat: 'daszek', colors: { hat: 'turkusowy' } });
+  fireEvent.click(screen.getByRole('radio', { name: 'Kolor czapki: Bordowy' }));
+  expect(atlas.last).toMatchObject({ outfit: 'baza', hair: 'irokez', hat: 'daszek', colors: { hat: 'bordowy' } });
   expect(screen.getByText('Pod czapką fryzura jest schowana. Zdejmij czapkę, żeby ją zobaczyć.')).toBeInTheDocument();
   fireEvent.click(screen.getByRole('radio', { name: /^Bez czapki$/ }));
   expect(screen.queryByText(/Pod czapką/)).not.toBeInTheDocument();
@@ -105,7 +106,7 @@ it('shows the avatar from the front by default and falls back to the side view',
 const accountAvatar = { outfit: 'dres', hair: 'kucyk', hat: 'brak', skin: 'ciemna', hairColor: 'rude', topColor: 'czerwony', bottomColor: 'bialy', shoesColor: 'granatowy', hatColor: 'turkusowy' };
 
 it('loads the avatar from the account and saves changes there', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   let saved: Record<string, string> | null = null;
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), avatar: accountAvatar })),
@@ -126,7 +127,7 @@ it('loads the avatar from the account and saves changes there', async () => {
 });
 
 it('keeps unsaved changes and explains when the account save fails', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), avatar: null })),
     http.put(`${API_URL}/api/user/me/avatar`, () => HttpResponse.json({ message: 'Błąd' }, { status: 500 })),
@@ -145,7 +146,7 @@ it('tells guests that the avatar is saved only in this browser', () => {
 });
 
 it('blocks editing and saving until the account avatar has loaded', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   let release!: () => void;
   const gate = new Promise<void>(resolve => { release = resolve; });
   server.use(http.get(currentUserUrl, async () => { await gate; return HttpResponse.json({ ...createUser(), avatar: accountAvatar }); }));
@@ -159,7 +160,7 @@ it('blocks editing and saving until the account avatar has loaded', async () => 
 });
 
 it('does not fall back to a browser-only save when the account cannot be loaded', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   let saves = 0;
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ message: 'Błąd' }, { status: 503 })),
@@ -176,7 +177,7 @@ it('does not fall back to a browser-only save when the account cannot be loaded'
 });
 
 it('lets a player save the shown avatar when the account has none yet', async () => {
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   let saved: Record<string, string> | null = null;
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), avatar: null })),

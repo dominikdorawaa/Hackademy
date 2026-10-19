@@ -1,4 +1,5 @@
 import { request } from './http';
+import type { SessionScope } from './http';
 import type {
   FriendshipStatus,
   ApiId,
@@ -8,64 +9,64 @@ import type {
   UserSearchDto,
 } from '../types/api';
 
-export function getFriends(headers: HeadersInit) {
+export function getFriends(auth: SessionScope) {
   return request<FriendDto[]>(`/api/friends`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function getRequests(headers: HeadersInit) {
+export function getRequests(auth: SessionScope) {
   return request<FriendRequestDto[]>(`/api/friends/requests`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function sendRequest(username: string, headers: HeadersInit, signal?: AbortSignal) {
+export function sendRequest(username: string, auth: SessionScope, signal?: AbortSignal) {
   return request<MessageResponse>(`/api/friends/request/${encodeURIComponent(username)}`, {
     method: 'POST',
-    headers,
+    auth,
     signal,
   });
 }
 
-export function acceptRequest(id: ApiId, headers: HeadersInit) {
+export function acceptRequest(id: ApiId, auth: SessionScope) {
   return request<MessageResponse>(`/api/friends/accept/${id}`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 
-export function rejectRequest(id: ApiId, headers: HeadersInit) {
+export function rejectRequest(id: ApiId, auth: SessionScope) {
   return request<MessageResponse>(`/api/friends/reject/${id}`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 
-export function removeFriend(id: ApiId, headers: HeadersInit) {
+export function removeFriend(id: ApiId, auth: SessionScope) {
   return request<MessageResponse>(`/api/friends/${id}`, {
     method: 'DELETE',
-    headers,
+    auth,
   });
 }
 
-export function getStatus(username: string, headers: HeadersInit, signal?: AbortSignal) {
+export function getStatus(username: string, auth: SessionScope, signal?: AbortSignal) {
   return request<{ status: FriendshipStatus }>(
     `/api/friends/status/${encodeURIComponent(username)}`,
     {
       method: 'GET',
-      headers,
+      auth,
       signal,
     },
   );
 }
 
-export function getStats(username: string, headers: HeadersInit, signal?: AbortSignal) {
+export function getStats(username: string, auth: SessionScope, signal?: AbortSignal) {
   return request<UserSearchDto>(`/api/friends/stats/${encodeURIComponent(username)}`, {
     method: 'GET',
-    headers,
+    auth,
     signal,
   });
 }

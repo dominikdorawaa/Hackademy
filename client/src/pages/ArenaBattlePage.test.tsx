@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
@@ -28,7 +29,7 @@ const mount = () => render(battle());
 
 beforeEach(() => {
   Element.prototype.scrollIntoView = vi.fn();
-  localStorage.setItem('token', createToken());
+  setClerkSession(createToken());
   realtime.value = { ...realtime.value, state: live(createGameSession()) };
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json(createUser())),

@@ -1,6 +1,6 @@
 package com.hackademy.server.config;
 
-import org.springframework.beans.factory.annotation.Value;
+import com.hackademy.server.cors.CorsProperties;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.context.annotation.Bean;
 import org.springframework.messaging.simp.config.ChannelRegistration;
@@ -17,10 +17,13 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     private final WebSocketAuthInterceptor authInterceptor;
     private final RealtimeSubscriptionInterceptor subscriptionInterceptor;
+    private final CorsProperties corsProperties;
 
-    public WebSocketConfig(WebSocketAuthInterceptor authInterceptor, RealtimeSubscriptionInterceptor subscriptionInterceptor) {
+    public WebSocketConfig(WebSocketAuthInterceptor authInterceptor, RealtimeSubscriptionInterceptor subscriptionInterceptor,
+            CorsProperties corsProperties) {
         this.authInterceptor = authInterceptor;
         this.subscriptionInterceptor = subscriptionInterceptor;
+        this.corsProperties = corsProperties;
     }
 
     @Override
@@ -33,9 +36,6 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     public void configureClientOutboundChannel(ChannelRegistration registration) {
         registration.taskExecutor().corePoolSize(4).maxPoolSize(16).queueCapacity(10000);
     }
-
-    @Value("${application.frontend.url}")
-    private String frontendUrl;
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
@@ -65,7 +65,7 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
     @Override
     public void registerStompEndpoints(StompEndpointRegistry registry) {
         registry.addEndpoint("/ws")
-                .setAllowedOrigins(frontendUrl)
+                .setAllowedOrigins(corsProperties.allowedOrigins().toArray(String[]::new))
                 .withSockJS();
     }
 }

@@ -25,18 +25,17 @@ import java.sql.Timestamp;
 import java.time.LocalDateTime;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
-import static org.junit.jupiter.api.Assertions.assertFalse;
-import static org.junit.jupiter.api.Assertions.assertNotEquals;
-import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.patch;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.hamcrest.Matchers.hasSize;
 import static org.hamcrest.Matchers.contains;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-@SpringBootTest(properties = "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=")
+@SpringBootTest
 @AutoConfigureMockMvc
 @Testcontainers
 class AuthAndAdminIntegrationTest {
@@ -51,10 +50,10 @@ class AuthAndAdminIntegrationTest {
         for (var badgeId : badgeIds) {
             jdbcTemplate.update("INSERT INTO user_badges (user_id, badge_id, earned_at) VALUES (?, ?, CURRENT_TIMESTAMP)", user.getId(), badgeId);
         }
-        var body = "{\"bio\":\"  Uczę się Linuxa  \",\"tagline\":\"Cyber explorer\",\"avatarSeed\":\"chosen-seed\",\"interests\":[\"LINUX\",\"WEB\"],\"featuredBadgeIds\":" + badgeIds + "}";
+        var body = "{\"bio\":\"  Uczę się Linuxa  \",\"tagline\":\"Cyber explorer\",\"interests\":[\"LINUX\",\"WEB\"],\"featuredBadgeIds\":" + badgeIds + "}";
         mockMvc.perform(patch("/api/user/me/profile").header("Authorization", "Bearer " + token).contentType("application/json").content(body))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.bio").value("Uczę się Linuxa"))
-                .andExpect(jsonPath("$.avatarSeed").value("chosen-seed"));
+                .andExpect(jsonPath("$.avatarSeed").doesNotExist());
         mockMvc.perform(get("/api/user/" + username).header("Authorization", "Bearer " + tokenFor(Role.EXPERT)))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.tagline").value("Cyber explorer"))
                 .andExpect(jsonPath("$.interests[0]").value("LINUX"))
@@ -65,12 +64,12 @@ class AuthAndAdminIntegrationTest {
         mockMvc.perform(patch("/api/user/me/profile").header("Authorization", "Bearer " + token).contentType("application/json").content(reordered))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.featuredBadgeIds[0]").value(badgeIds.get(1).intValue()));
         mockMvc.perform(get("/api/dashboard/summary").header("Authorization", "Bearer " + token))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.user.avatarSeed").value("chosen-seed"));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.user.avatarSeed").doesNotExist());
         var renamed = username + "x";
         mockMvc.perform(patch("/api/user/me/username").header("Authorization", "Bearer " + token).contentType("application/json")
                 .content("{\"newUsername\":\"" + renamed + "\"}"))
                 .andExpect(status().isOk());
-        assertEquals("chosen-seed", userRepository.findByUsername(renamed).orElseThrow().getAvatarSeed());
+        assertEquals("Cyber explorer", userRepository.findByUsername(renamed).orElseThrow().getTagline());
     }
 
     @Test
@@ -85,14 +84,16 @@ class AuthAndAdminIntegrationTest {
         jdbcTemplate.update("INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (?, ?, 'ACCEPTED', 0, 0, CURRENT_TIMESTAMP)", owner.getId(), friend.getId());
         jdbcTemplate.update("INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (?, ?, 'PENDING', 0, 0, CURRENT_TIMESTAMP)", owner.getId(), receiver.getId());
         userService.invalidateGlobalRankingCache();
-        assertCachedAvatars(ownerToken, friendToken, requestToken, owner.getUsername(), owner.getAvatarSeed());
-        var updatedSeed = "changed-" + UUID.randomUUID();
-        mockMvc.perform(patch("/api/user/me/profile").header("Authorization", "Bearer " + ownerToken)
-                        .contentType("application/json").content("""
-                                {"bio":"Learning Linux","tagline":"","avatarSeed":"%s","interests":[],"featuredBadgeIds":[]}
-                                """.formatted(updatedSeed)))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.avatarSeed").value(updatedSeed));
-        assertCachedAvatars(ownerToken, friendToken, requestToken, owner.getUsername(), updatedSeed);
+        saveAvatar(ownerToken, "{\"outfit\":\"baza\",\"hair\":\"krotkie\",\"hat\":\"brak\",\"skin\":\"jasna\",\"hairColor\":\"brazowe\",\"topColor\":\"granatowy\",\"bottomColor\":\"piaskowy\",\"shoesColor\":\"grafitowy\",\"hatColor\":\"czerwony\"}");
+        assertCachedAvatars(ownerToken, friendToken, requestToken, owner.getUsername(), "baza");
+        saveAvatar(ownerToken, "{\"outfit\":\"dres\",\"hair\":\"kucyk\",\"hat\":\"brak\",\"skin\":\"jasna\",\"hairColor\":\"rude\",\"topColor\":\"bialy\",\"bottomColor\":\"granatowy\",\"shoesColor\":\"czerwony\",\"hatColor\":\"bialy\"}");
+        assertCachedAvatars(ownerToken, friendToken, requestToken, owner.getUsername(), "dres");
+    }
+
+    private void saveAvatar(String token, String avatar) throws Exception {
+        mockMvc.perform(put("/api/user/me/avatar").header("Authorization", "Bearer " + token)
+                        .contentType("application/json").content(avatar))
+                .andExpect(status().isOk());
     }
 
     private User userForToken(String token) throws Exception {
@@ -103,16 +104,16 @@ class AuthAndAdminIntegrationTest {
     }
 
     private void assertCachedAvatars(String ownerToken, String friendToken, String requestToken,
-                                    String username, String seed) throws Exception {
+                                    String username, String outfit) throws Exception {
         mockMvc.perform(get("/api/dashboard/summary").header("Authorization", "Bearer " + ownerToken))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.user.avatarSeed").value(seed));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.user.avatar.outfit").value(outfit));
         mockMvc.perform(get("/api/ranking/summary").header("Authorization", "Bearer " + ownerToken))
-                .andExpect(status().isOk()).andExpect(jsonPath("$.myRank.avatarSeed").value(seed))
-                .andExpect(jsonPath("$.ranking[?(@.username == '" + username + "')].avatarSeed", contains(seed)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$.myRank.avatar.outfit").value(outfit))
+                .andExpect(jsonPath("$.ranking[?(@.username == '" + username + "')].avatar.outfit", contains(outfit)));
         mockMvc.perform(get("/api/friends").header("Authorization", "Bearer " + friendToken))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[?(@.username == '" + username + "')].avatarSeed", contains(seed)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$[?(@.username == '" + username + "')].avatar.outfit", contains(outfit)));
         mockMvc.perform(get("/api/friends/requests").header("Authorization", "Bearer " + requestToken))
-                .andExpect(status().isOk()).andExpect(jsonPath("$[?(@.requesterUsername == '" + username + "')].avatarSeed", contains(seed)));
+                .andExpect(status().isOk()).andExpect(jsonPath("$[?(@.requesterUsername == '" + username + "')].avatar.outfit", contains(outfit)));
     }
 
     @Test
@@ -122,22 +123,22 @@ class AuthAndAdminIntegrationTest {
                 .andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         String username = JsonPath.read(current, "$.username");
         var user = userRepository.findByUsername(username).orElseThrow();
-        String originalSeed = user.getAvatarSeed();
-        var valid = "{\"bio\":\"New bio\",\"tagline\":\"Hello\",\"avatarSeed\":\"new-seed\",\"interests\":[\"WEB\"],\"featuredBadgeIds\":[]}";
+        String originalTagline = user.getTagline();
+        var valid = "{\"bio\":\"New bio\",\"tagline\":\"Hello\",\"interests\":[\"WEB\"],\"featuredBadgeIds\":[]}";
         var unearned = jdbcTemplate.queryForObject("SELECT id FROM badges ORDER BY id LIMIT 1", Long.class);
         for (var invalid : java.util.List.of(
                 valid.replace("New bio", "x".repeat(501)), valid.replace("Hello", "x".repeat(101)),
-                valid.replace("new-seed", " "), valid.replace("[\"WEB\"]", "[\"UNKNOWN\"]"),
+                valid.replace("[\"WEB\"]", "[\"UNKNOWN\"]"),
                 valid.replace("[\"WEB\"]", "[\"WEB\",\"WEB\"]"),
                 valid.replace("[\"WEB\"]", "[\"WEB\",\"LINUX\",\"WINDOWS\",\"SOC\",\"NETWORKS\",\"PENTESTING\"]"),
                 valid.replace("\"featuredBadgeIds\":[]", "\"featuredBadgeIds\":[" + unearned + "]"),
                 valid.replace("\"featuredBadgeIds\":[]", "\"featuredBadgeIds\":[1,2,3,4]"))) {
             mockMvc.perform(patch("/api/user/me/profile").header("Authorization", "Bearer " + token)
                     .contentType("application/json").content(invalid)).andExpect(status().isBadRequest());
-            assertEquals(originalSeed, userRepository.findByUsername(username).orElseThrow().getAvatarSeed());
+            assertEquals(originalTagline, userRepository.findByUsername(username).orElseThrow().getTagline());
         }
         mockMvc.perform(patch("/api/user/me/profile").contentType("application/json").content(valid))
-                .andExpect(status().isForbidden());
+                .andExpect(status().isUnauthorized());
     }
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
@@ -167,9 +168,7 @@ class AuthAndAdminIntegrationTest {
     @Test
     void exposesRecentSolvedRoomsToEveryAuthenticatedRoleWithBoundedLimits() throws Exception {
         var username = "history" + UUID.randomUUID().toString().substring(0, 8);
-        mockMvc.perform(post("/api/auth/register").contentType("application/json")
-                .content(registerBody(username, username + "@example.com"))).andExpect(status().isOk());
-        var owner = userRepository.findByUsername(username).orElseThrow();
+        var owner = ClerkTestTokens.createUser(userRepository, username, Role.USER);
         for (int index = 0; index < 25; index++) {
             var room = roomRepository.saveAndFlush(Room.builder()
                     .title(username + " room " + index).description("Example room")
@@ -200,8 +199,8 @@ class AuthAndAdminIntegrationTest {
                     .andExpect(jsonPath("$.completedPaths", hasSize(0)))
                     .andExpect(jsonPath("$.email").doesNotExist()).andExpect(jsonPath("$.flag").doesNotExist());
         }
-        mockMvc.perform(get(url)).andExpect(status().isForbidden());
-        mockMvc.perform(get("/api/user/" + username + "/portfolio")).andExpect(status().isForbidden());
+        mockMvc.perform(get(url)).andExpect(status().isUnauthorized());
+        mockMvc.perform(get("/api/user/" + username + "/portfolio")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/user/missing" + UUID.randomUUID() + "/portfolio")
                 .header("Authorization", "Bearer " + tokenFor(Role.USER))).andExpect(status().isNotFound());
         mockMvc.perform(get("/api/user/missing" + UUID.randomUUID() + "/recent-solved")
@@ -300,7 +299,7 @@ class AuthAndAdminIntegrationTest {
                     .andExpect(jsonPath("$.unlockedHints").value(0)).andExpect(jsonPath("$.earnedBadges").value(0))
                     .andExpect(jsonPath("$.completedPaths").value(0));
         }
-        mockMvc.perform(get("/api/user/" + username + "/stats")).andExpect(status().isForbidden());
+        mockMvc.perform(get("/api/user/" + username + "/stats")).andExpect(status().isUnauthorized());
         mockMvc.perform(get("/api/user/" + username + "/portfolio").header("Authorization", "Bearer " + token))
                 .andExpect(status().isOk()).andExpect(jsonPath("$.completedPaths", hasSize(1)))
                 .andExpect(jsonPath("$.completedPaths[0].title").value(username + " complete"))
@@ -348,38 +347,30 @@ class AuthAndAdminIntegrationTest {
     }
 
     @Test
-    void registersAndLogsInAgainstMigratedDatabase() throws Exception {
-        assertEquals(16, jdbcTemplate.queryForObject(
+    void provisionsClerkUsersAgainstMigratedDatabase() throws Exception {
+        assertEquals(21, jdbcTemplate.queryForObject(
                 "SELECT count(*) FROM flyway_schema_history WHERE success", Integer.class));
 
-        var username = "user" + UUID.randomUUID().toString().substring(0, 8);
-        var email = username + "@example.com";
-        var registration = mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(registerBody(username, email)))
-                .andExpect(status().isOk())
-                .andReturn();
-        assertNotNull(JsonPath.read(registration.getResponse().getContentAsString(), "$.token"));
+        var clerkUserId = "user_" + UUID.randomUUID().toString().replace("-", "");
+        var email = "new" + UUID.randomUUID().toString().substring(0, 8) + "@example.com";
+        var token = ClerkTestTokens.token(clerkUserId, ClerkTestTokens.DEFAULT_ORIGIN,
+                java.util.Map.of("email", email.toUpperCase(), "email_verified", true));
+        var first = mockMvc.perform(get("/api/user/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.role").value("USER"))
+                .andExpect(jsonPath("$.email").value(email)).andReturn().getResponse().getContentAsString();
+        mockMvc.perform(get("/api/user/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.id").value((Integer) JsonPath.read(first, "$.id")));
 
-        var savedUser = userRepository.findByEmail(email).orElseThrow();
+        var savedUser = userRepository.findByClerkUserId(clerkUserId).orElseThrow();
         assertEquals(Role.USER, savedUser.getRole());
-        assertNotEquals("password123", savedUser.getPassword());
-
-        var login = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(loginBody(email.toUpperCase(), "password123")))
-                .andExpect(status().isOk())
-                .andReturn();
-        assertFalse(((String) JsonPath.read(login.getResponse().getContentAsString(), "$.token")).isBlank());
-
-        mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(loginBody(email, "wrong-password")))
+        assertEquals(email, savedUser.getEmail());
+        assertNull(savedUser.getPassword());
+        mockMvc.perform(post("/api/auth/login").contentType("application/json")
+                        .content("{\"email\":\"" + email + "\",\"password\":\"password123\"}"))
                 .andExpect(status().isUnauthorized());
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(registerBody(username, email)))
-                .andExpect(status().isBadRequest());
+        mockMvc.perform(post("/api/auth/register").contentType("application/json")
+                        .content("{\"username\":\"someone\",\"email\":\"" + email + "\",\"password\":\"password123\"}"))
+                .andExpect(status().isUnauthorized());
     }
 
     @Test
@@ -403,35 +394,8 @@ class AuthAndAdminIntegrationTest {
                 .andExpect(status().isOk());
     }
 
-    private String tokenFor(Role role) throws Exception {
+    private String tokenFor(Role role) {
         var username = role.name().toLowerCase() + UUID.randomUUID().toString().substring(0, 8);
-        var email = username + "@example.com";
-        mockMvc.perform(post("/api/auth/register")
-                        .contentType("application/json")
-                        .content(registerBody(username, email)))
-                .andExpect(status().isOk());
-
-        var savedUser = userRepository.findByEmail(email).orElseThrow();
-        savedUser.setRole(role);
-        userRepository.saveAndFlush(savedUser);
-
-        var login = mockMvc.perform(post("/api/auth/login")
-                        .contentType("application/json")
-                        .content(loginBody(email, "password123")))
-                .andExpect(status().isOk())
-                .andReturn();
-        return JsonPath.read(login.getResponse().getContentAsString(), "$.token");
-    }
-
-    private String registerBody(String username, String email) {
-        return """
-                {"username":"%s","email":"%s","password":"password123"}
-                """.formatted(username, email);
-    }
-
-    private String loginBody(String email, String password) {
-        return """
-                {"email":"%s","password":"%s"}
-                """.formatted(email, password);
+        return ClerkTestTokens.tokenFor(ClerkTestTokens.createUser(userRepository, username, role));
     }
 }

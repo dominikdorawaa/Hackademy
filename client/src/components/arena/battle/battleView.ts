@@ -32,7 +32,6 @@ function fighter(session: GameSession, slot: 1 | 2): Fighter {
     username: slot === 1 ? session.player1Username : session.player2Username,
     elo: (slot === 1 ? session.player1Elo : session.player2Elo) ?? 500,
     hp: session.hp?.[id] ?? MAX_HP,
-    seed: slot === 1 ? session.player1AvatarSeed : session.player2AvatarSeed,
     look: fromAvatarConfig(avatar) ?? DEFAULT_AVATAR,
     avatar,
   };

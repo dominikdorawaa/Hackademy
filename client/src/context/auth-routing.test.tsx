@@ -1,3 +1,4 @@
+import { setClerkSession } from '../test/clerk';
 import type { ComponentType, PropsWithChildren } from 'react';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import { Route } from 'react-router-dom';
@@ -21,66 +22,25 @@ function jwt(roles: string[] = ['ROLE_USER'], exp = validExpiration) {
 
 function Session() {
   const auth = useAuth();
-  return <>
-    <output data-testid="session">{JSON.stringify(auth)}</output>
-    <button onClick={() => auth.login(jwt())}>login</button>
-    <button onClick={() => auth.login('broken')}>invalid login</button>
-    <button onClick={auth.logout}>logout</button>
-  </>;
+  return <><output data-testid="session">{JSON.stringify(auth)}</output><button onClick={() => void auth.logout()}>logout</button></>;
 }
 
 afterEach(() => vi.useRealTimers());
 
-describe('auth persistence', () => {
-  it('logs in, restores the token after remount, and logs out', async () => {
-    const mounted = render(<AuthProvider><Session /></AuthProvider>);
-    expect(screen.getByTestId('session').textContent).toContain('"isAuthenticated":false');
-    fireEvent.click(screen.getByText('login'));
-    expect(localStorage.getItem('token')).toBe(jwt());
-    expect(screen.getByTestId('session').textContent).toContain('"sub":"tester"');
-    mounted.unmount();
-    render(<AuthProvider><Session /></AuthProvider>);
-    await waitFor(() => expect(screen.getByTestId('session').textContent).toContain('"isAuthenticated":true'));
-    fireEvent.click(screen.getByText('logout'));
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(screen.getByTestId('session').textContent).toContain('"user":null');
-    expect(screen.getByTestId('session').textContent).toContain('"token":null');
-  });
-
-  it('restores an expired token because the client only decodes it', () => {
-    const expiredToken = jwt(['ROLE_USER'], 1);
-    localStorage.setItem('token', expiredToken);
-    render(<AuthProvider><Session /></AuthProvider>);
-    expect(localStorage.getItem('token')).toBe(expiredToken);
-    expect(screen.getByTestId('session').textContent).toContain('"isAuthenticated":true');
-    expect(screen.getByTestId('session').textContent).toContain('"exp":1');
-  });
-
-  it('clears an undecodable stored token and completes loading', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    localStorage.setItem('token', 'broken');
-    render(<AuthProvider><Session /></AuthProvider>);
-    expect(localStorage.getItem('token')).toBeNull();
-    expect(screen.getByTestId('session').textContent).toContain('"loading":false');
-    expect(screen.getByTestId('session').textContent).toContain('"isAuthenticated":false');
-  });
-
-  it('keeps the current session when a subsequent login cannot decode its token', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
+describe('Clerk session lifecycle', () => {
+  it('ignores and removes legacy tokens from local storage', () => {
     localStorage.setItem('token', jwt());
     render(<AuthProvider><Session /></AuthProvider>);
-    fireEvent.click(screen.getByText('invalid login'));
-    expect(localStorage.getItem('token')).toBe(jwt());
-    expect(screen.getByTestId('session').textContent).toContain('"isAuthenticated":true');
+    expect(localStorage.getItem('token')).toBeNull();
+    expect(screen.getByTestId('session')).toHaveTextContent('"isAuthenticated":false');
   });
-
-  it('preserves the session if removing its token from storage throws', () => {
-    vi.spyOn(console, 'error').mockImplementation(() => {});
-    localStorage.setItem('token', jwt());
+  it('uses Clerk state and clears protected access on logout', async () => {
+    setClerkSession(jwt());
     render(<AuthProvider><Session /></AuthProvider>);
-    vi.spyOn(Storage.prototype, 'removeItem').mockImplementation(() => { throw new Error('storage unavailable'); });
+    expect(screen.getByTestId('session')).toHaveTextContent('"isAuthenticated":true');
     fireEvent.click(screen.getByText('logout'));
-    expect(screen.getByTestId('session').textContent).toContain('"isAuthenticated":true');
+    await waitFor(() => expect(screen.getByTestId('session')).toHaveTextContent('"isAuthenticated":false'));
+    expect(localStorage.getItem('token')).toBeNull();
   });
 });
 
@@ -105,10 +65,10 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
 
   it.each(['ROLE_USER', 'ROLE_EXPERT', 'ROLE_ADMIN'])('checks %s permissions after restoring the session', async role => {
     server.use(currentUserHandler(role.replace('ROLE_', '') as Role));
-    localStorage.setItem('token', jwt([role]));
+    setClerkSession(jwt([role]));
     mount();
     const allowed = Guard === ProtectedRoute || role !== 'ROLE_USER';
-    await waitFor(() => expect(screen.queryByText(/Loading\.\.\.|Sprawdzanie uprawnień/)).toBeNull());
+    await waitFor(() => expect(screen.queryByText(/Wczytuję…|Sprawdzanie uprawnień/)).toBeNull());
     expect(screen.queryByText('private content') !== null).toBe(allowed);
     if (!allowed) {
       await waitFor(() => {
@@ -117,15 +77,11 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
     }
   });
 
-  it('renders the existing loading indicator before storage restoration', () => {
-    let initialMarkup = '';
-    vi.spyOn(Storage.prototype, 'getItem').mockImplementation(() => {
-      initialMarkup = document.body.textContent || '';
-      return null;
-    });
+  it('waits until Clerk has loaded before allowing protected content', () => {
+    setClerkSession(null, false);
     mount();
-    expect(initialMarkup).toMatch(Guard === AdminRoute ? /Sprawdzanie uprawnień/ : /Loading\.\.\./);
-    expect(initialMarkup).not.toContain('private content');
+    expect(screen.queryByText('private content')).toBeNull();
+    expect(screen.getAllByRole('status').length).toBeGreaterThan(0);
   });
 
   if (Guard === AdminRoute) {
@@ -133,7 +89,7 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
       ['ROLE_ADMIN', 'USER', false],
       ['ROLE_USER', 'ADMIN', true],
     ])('uses the server role %s -> %s', async (jwtRole, serverRole, allowed) => {
-      localStorage.setItem('token', jwt([jwtRole]));
+      setClerkSession(jwt([jwtRole]));
       server.use(currentUserHandler(serverRole as Role));
       mount();
       await waitFor(() => expect(screen.queryByText(/Sprawdzanie uprawnień/)).toBeNull());
@@ -141,7 +97,7 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
     });
 
     it('shows the existing error when the permission request fails', async () => {
-      localStorage.setItem('token', jwt(['ROLE_ADMIN']));
+      setClerkSession(jwt(['ROLE_ADMIN']));
       server.use(http.get(currentUserUrl, () => new HttpResponse(null, { status: 403 })));
       mount();
       expect(await screen.findByText('Nie udało się sprawdzić uprawnień. Odśwież stronę i spróbuj ponownie.')).toBeTruthy();
@@ -149,9 +105,9 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
       expect(screen.getByTestId('location').textContent).toBe('/private:POP');
     });
 
-    it('sends the restored token when checking permissions', async () => {
-      const token = jwt(['ROLE_ADMIN']);
-      localStorage.setItem('token', token);
+    it('sends the restored sessionKey when checking permissions', async () => {
+      const sessionKey = jwt(['ROLE_ADMIN']);
+      setClerkSession(sessionKey);
       let authorization: string | null = null;
       server.use(http.get(currentUserUrl, ({ request }) => {
         authorization = request.headers.get('Authorization');
@@ -159,11 +115,11 @@ describe.each(guards)('%s route', (_, Guard, guestDestination, guestNavigation) 
       }));
       mount();
       expect(await screen.findByText('private content')).toBeInTheDocument();
-      expect(authorization).toBe('Bearer ' + token);
+      expect(authorization).toBe('Bearer ' + sessionKey);
     });
 
     it('aborts the permission request when unmounted', async () => {
-      localStorage.setItem('token', jwt(['ROLE_ADMIN']));
+      setClerkSession(jwt(['ROLE_ADMIN']));
       let signal: AbortSignal | undefined;
       server.use(http.get(currentUserUrl, ({ request }) => {
         signal = request.signal;

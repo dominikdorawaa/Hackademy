@@ -1,6 +1,5 @@
 package com.hackademy.server.user;
 
-import com.hackademy.server.auth.JwtService;
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.UserWeeklyActiveTime;
 import com.hackademy.server.dashboard.UserWeeklyActiveTimeId;
@@ -10,9 +9,7 @@ import com.hackademy.server.room.UserUnlockedHintRepository;
 import com.hackademy.server.path.PathRepository;
 
 import com.hackademy.server.dashboard.ActivityDto;
-import com.hackademy.server.auth.AuthResponse;
 import com.hackademy.server.badge.BadgeDto;
-import com.hackademy.server.user.dto.ChangePasswordRequest;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
@@ -32,7 +29,6 @@ import com.hackademy.server.room.RecentSolvedRoomView;
 import com.hackademy.server.dashboard.UserWeeklyActiveTimeRepository;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
-import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
@@ -58,7 +54,7 @@ public class UserServiceImpl implements UserService {
 
     private ProfilePersonalizationDto personalization(User user) {
         return new ProfilePersonalizationDto(
-                user.getBio() == null ? "" : user.getBio(), user.getTagline(), user.getAvatarSeed(),
+                user.getBio() == null ? "" : user.getBio(), user.getTagline(),
                 List.copyOf(user.getInterests()), List.copyOf(user.getFeaturedBadgeIds()));
     }
 
@@ -86,7 +82,6 @@ public class UserServiceImpl implements UserService {
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         user.setBio(request.bio().strip());
         user.setTagline(request.tagline().strip());
-        user.setAvatarSeed(request.avatarSeed().strip());
         user.getInterests().clear();
         user.getInterests().addAll(request.interests());
         user.getFeaturedBadgeIds().clear();
@@ -107,8 +102,6 @@ public class UserServiceImpl implements UserService {
     private final UserRepository userRepository;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
     private final UserBadgeRepository userBadgeRepository; // Inject UserBadgeRepository
-    private final PasswordEncoder passwordEncoder;
-    private final JwtService jwtService;
     private final FriendshipService friendshipService;
     private final BadgeService badgeService;
     private final UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
@@ -200,20 +193,7 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void changePassword(Long userId, ChangePasswordRequest request) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        if (!passwordEncoder.matches(request.currentPassword(), user.getPassword())) {
-            throw new IllegalArgumentException("Incorrect current password");
-        }
-
-        user.setPassword(passwordEncoder.encode(request.newPassword()));
-        userRepository.save(user);
-    }
-
-    @Override
-    public AuthResponse updateUsername(Long userId, UpdateUsernameRequest request) {
+    public String updateUsername(Long userId, UpdateUsernameRequest request) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
@@ -224,15 +204,11 @@ public class UserServiceImpl implements UserService {
         });
 
         if (user.getUsername().equals(request.newUsername())) {
-             String newToken = jwtService.generateToken(user);
-             return new AuthResponse(newToken);
+            return user.getUsername();
         }
 
         user.setUsername(request.newUsername());
-        User updatedUser = userRepository.save(user);
-
-        String newToken = jwtService.generateToken(updatedUser);
-        return new AuthResponse(newToken);
+        return userRepository.save(user).getUsername();
     }
 
     @Override
@@ -295,7 +271,7 @@ public class UserServiceImpl implements UserService {
                         0, // Rank Elo placeholder
                         user.getUsername(),
                         user.getPoints(),
-                        user.getElo(), user.getAvatarSeed(), avatars.get(user.getId())
+                        user.getElo(), avatars.get(user.getId())
                 ))
                 .collect(Collectors.toList());
         rankingCache = out;
@@ -328,7 +304,6 @@ public class UserServiceImpl implements UserService {
                 .streak(effectiveStreak)
                 .bio(user.getBio())
                 .tagline(user.getTagline())
-                .avatarSeed(user.getAvatarSeed())
                 .interests(List.copyOf(user.getInterests()))
                 .featuredBadgeIds(List.copyOf(user.getFeaturedBadgeIds()))
                 .avatar(userAvatarRepository.findDtoByUserId(user.getId()))
@@ -360,7 +335,6 @@ public class UserServiceImpl implements UserService {
                     return UserSearchDto.builder()
                             .id(user.getId())
                             .username(user.getUsername())
-                            .avatarSeed(user.getAvatarSeed())
                             .avatar(avatars.get(user.getId()))
                             .points(user.getPoints())
                             .friendshipStatus(status)
@@ -408,7 +382,7 @@ public class UserServiceImpl implements UserService {
         // Calculate rank based on ELO
         long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
         
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), user.getAvatarSeed(), userAvatarRepository.findDtoByUserId(userId));
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), userAvatarRepository.findDtoByUserId(userId));
         rankCache.put(userId, new CacheEntry<>(now, out));
         return out;
     }
@@ -424,8 +398,7 @@ public class UserServiceImpl implements UserService {
         int e = elo == null ? 500 : elo;
         long rankPoints = userRepository.countByPointsGreaterThan(p) + 1;
         long rankElo = userRepository.countByEloGreaterThan(e) + 1;
-        String avatarSeed = userRepository.findById(userId).map(User::getAvatarSeed).orElse(username);
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, avatarSeed, userAvatarRepository.findDtoByUserId(userId));
+        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, userAvatarRepository.findDtoByUserId(userId));
         rankCache.put(userId, new CacheEntry<>(now, out));
         return out;
     }

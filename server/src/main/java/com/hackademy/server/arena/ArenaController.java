@@ -19,7 +19,6 @@ import java.util.Map;
 @RequestMapping("/api/arena")
 @RequiredArgsConstructor
 @Slf4j
-@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = {RequestMethod.GET, RequestMethod.POST, RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS})
 public class ArenaController {
 
     private static final Map<BattleEngine.AnswerResult, String> ANSWER_ERRORS = Map.of(

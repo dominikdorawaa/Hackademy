@@ -4,5 +4,5 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Pattern;
 
 public record UpdateNotificationPreferenceRequest(
-        @NotNull @Pattern(regexp = "friendRequests|challenges|matchFound|sound|browserNotifications") String preference,
+        @NotNull @Pattern(regexp = "friendRequests|challenges|matchFound|sound|browserNotifications|friendOnline|friendOnlineBell") String preference,
         @NotNull Boolean enabled) {}

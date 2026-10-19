@@ -28,7 +28,7 @@ const copy: Record<RoomType, { title: string; description: string; empty: string
 };
 
 export default function RoomsPage({ kind }: { kind: RoomType }) {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const { isAdmin } = useAdminAccess();
   const [rooms, setRooms] = useState<RoomAdminSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
@@ -40,7 +40,7 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      const data = (await adminApi.getAllRoomsAdmin(token)) ?? [];
+      const data = (await adminApi.getAllRoomsAdmin(sessionKey)) ?? [];
       setRooms(data.filter((room) => room.roomType === kind));
       setError(null);
     } catch (err) {
@@ -48,11 +48,11 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
     } finally {
       setLoading(false);
     }
-  }, [token, kind]);
+  }, [sessionKey, kind]);
 
   useEffect(() => {
-    if (token) void load();
-  }, [token, load]);
+    if (sessionKey) void load();
+  }, [sessionKey, load]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -63,7 +63,7 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
   const remove = async (room: RoomAdminSummaryDto) => {
     setSuccess(null);
     try {
-      await adminApi.deleteRoom(room.id, token);
+      await adminApi.deleteRoom(room.id, sessionKey);
       setRooms((current) => current.filter((entry) => entry.id !== room.id));
       setSuccess(`Pokój „${room.title}” został usunięty.`);
       setError(null);

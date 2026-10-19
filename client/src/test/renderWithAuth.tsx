@@ -2,6 +2,7 @@ import type { ReactNode } from 'react';
 import { render } from '@testing-library/react';
 import { MemoryRouter, Routes, useLocation, useNavigationType } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
+import { OnboardingProvider } from '../context/OnboardingContext';
 import { ThemeProvider } from '../context/ThemeContext';
 
 function Location() {
@@ -15,8 +16,10 @@ export function renderWithAuth(routes: ReactNode, initialEntry = '/login') {
     <ThemeProvider>
       <MemoryRouter initialEntries={[initialEntry]}>
         <AuthProvider>
-          <Location />
-          <Routes>{routes}</Routes>
+          <OnboardingProvider>
+            <Location />
+            <Routes>{routes}</Routes>
+          </OnboardingProvider>
         </AuthProvider>
       </MemoryRouter>
     </ThemeProvider>,

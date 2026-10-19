@@ -5,7 +5,6 @@ import type { RankingEntry } from '../types/api';
 
 type LeaderboardPlayer = Partial<RankingEntry> & {
   name?: string;
-  avatarSeed?: string;
   title?: string;
   score?: number;
 };
@@ -81,7 +80,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                       style={{ display: 'flex', alignItems: 'center' }}
                     >
                       <div className="player-avatar">
-                          <UserAvatar username={playerName || 'Użytkownik'} seed={player.avatarSeed} avatar={player.avatar}
+                          <UserAvatar username={playerName || 'Użytkownik'} avatar={player.avatar}
                           alt="Avatar"
                         />
                       </div>
@@ -119,7 +118,7 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                   </div>
                   <div className="player-info" style={{ display: 'flex', alignItems: 'center' }}>
                     <div className="player-avatar">
-                        <UserAvatar username={currentUsername || myRank.username} seed={myRank.avatarSeed} avatar={myRank.avatar}
+                        <UserAvatar username={currentUsername || myRank.username} avatar={myRank.avatar}
                         alt="Avatar"
                       />
                     </div>

@@ -8,7 +8,7 @@ import {
   type WorkshopOptions,
 } from "../prototypes/ukos/useWorkshop";
 vi.mock("../context/AuthContext", () => ({
-  useAuth: () => ({ user: { sub: "alice" }, token: "token" }),
+  useAuth: () => ({ user: { username: "alice" }, sessionKey: "sessionKey" }),
 }));
 vi.mock("./useCourse", () => ({ useCourse: vi.fn() }));
 vi.mock("../prototypes/ukos/useWorkshop", () => ({ useWorkshop: vi.fn() }));

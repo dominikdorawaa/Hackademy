@@ -4,6 +4,7 @@ import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.dashboard.DashboardSummaryDto;
 import com.hackademy.server.exception.UserNotFoundException;
+import com.hackademy.server.realtime.FriendPresence;
 import com.hackademy.server.realtime.RealtimeNotifier;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
@@ -31,6 +32,7 @@ class FriendshipServiceImplTest {
     @Mock BadgeService badgeService;
     @Mock RealtimeNotifier realtime;
     @Mock UserAvatarRepository userAvatarRepository;
+    @Mock FriendPresence presence;
     final DashboardSummaryCache dashboards = new DashboardSummaryCache();
     FriendshipServiceImpl service;
 
@@ -39,7 +41,7 @@ class FriendshipServiceImplTest {
 
     @BeforeEach
     void setUp() {
-        service = new FriendshipServiceImpl(friendshipRepository, userRepository, badgeService, dashboards, realtime, userAvatarRepository);
+        service = new FriendshipServiceImpl(friendshipRepository, userRepository, badgeService, dashboards, realtime, userAvatarRepository, presence);
         alice = user(1L, "alice");
         bob = user(2L, "bob");
         dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());
@@ -219,15 +221,28 @@ class FriendshipServiceImplTest {
         var friends = service.getFriends(1L);
 
         assertEquals(List.of(
-                new FriendDto(2L, "bob", 20, 2, "bob-seed"),
-                new FriendDto(3L, "carol", 30, 3, "carol-seed")), friends);
-        assertSame(friends, service.getFriends(1L));
+                new FriendDto(2L, "bob", 20, 2),
+                new FriendDto(3L, "carol", 30, 3)), friends);
+        assertEquals(friends, service.getFriends(1L));
         verify(friendshipRepository, times(1)).findByUserAndStatus(alice, FriendshipStatus.ACCEPTED);
 
         service.invalidateProfileCaches();
         service.getFriends(1L);
         verify(friendshipRepository, times(2)).findByUserAndStatus(alice, FriendshipStatus.ACCEPTED);
         assertDashboardsRefreshedFor(1L, 2L);
+    }
+
+    @Test
+    void cachedFriendListStillReportsCurrentPresence() {
+        when(userRepository.findById(1L)).thenReturn(Optional.of(alice));
+        when(friendshipRepository.findByUserAndStatus(alice, FriendshipStatus.ACCEPTED))
+                .thenReturn(List.of(friendship(alice, bob, FriendshipStatus.ACCEPTED)));
+
+        assertFalse(service.getFriends(1L).get(0).online());
+        when(presence.isOnline(2L)).thenReturn(true);
+
+        assertTrue(service.getFriends(1L).get(0).online());
+        verify(friendshipRepository, times(1)).findByUserAndStatus(alice, FriendshipStatus.ACCEPTED);
     }
 
     @Test
@@ -247,7 +262,7 @@ class FriendshipServiceImplTest {
 
         var requests = service.getPendingRequests(1L);
 
-        assertEquals(List.of(new FriendRequestDto(10L, "bob", request.getCreatedAt(), "bob-seed")), requests);
+        assertEquals(List.of(new FriendRequestDto(10L, "bob", request.getCreatedAt())), requests);
         assertSame(requests, service.getPendingRequests(1L));
         verify(friendshipRepository, times(1)).findPendingRequestsForUser(alice);
 
@@ -304,7 +319,6 @@ class FriendshipServiceImplTest {
         var asRequester = service.getFriendshipStats(1L, "bob");
         assertEquals(2L, asRequester.id());
         assertEquals("bob", asRequester.username());
-        assertEquals("bob-seed", asRequester.avatarSeed());
         assertEquals(20, asRequester.points());
         assertEquals("FRIENDS", asRequester.friendshipStatus());
         assertEquals(5, asRequester.winsAgainst());
@@ -339,7 +353,6 @@ class FriendshipServiceImplTest {
         return User.builder()
                 .id(id)
                 .username(username)
-                .avatarSeed(username + "-seed")
                 .points((int) id * 10)
                 .streak((int) id)
                 .build();

@@ -13,7 +13,7 @@ import { dateFormat, errorText } from '../../components/admin/adminFormat';
 const roleLabels: Record<Role, string> = { USER: 'Użytkownik', EXPERT: 'Ekspert', ADMIN: 'Administrator' };
 
 export default function UsersPage() {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const [users, setUsers] = useState<UserAdminView[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -22,18 +22,18 @@ export default function UsersPage() {
   const load = useCallback(async () => {
     try {
       setLoading(true);
-      setUsers((await adminApi.getUsers(token)) ?? []);
+      setUsers((await adminApi.getUsers(sessionKey)) ?? []);
       setError(null);
     } catch (err) {
       setError(errorText(err, 'Nie udało się pobrać użytkowników.'));
     } finally {
       setLoading(false);
     }
-  }, [token]);
+  }, [sessionKey]);
 
   useEffect(() => {
-    if (token) void load();
-  }, [token, load]);
+    if (sessionKey) void load();
+  }, [sessionKey, load]);
 
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
@@ -42,7 +42,7 @@ export default function UsersPage() {
 
   const changeRole = async (userId: number, role: Role) => {
     try {
-      await adminApi.updateUserRole(userId, role, token);
+      await adminApi.updateUserRole(userId, role, sessionKey);
       await load();
     } catch (err) {
       setError(errorText(err, 'Nie udało się zmienić roli.'));
@@ -51,7 +51,7 @@ export default function UsersPage() {
 
   const remove = async (userId: number) => {
     try {
-      await adminApi.deleteUser(userId, token);
+      await adminApi.deleteUser(userId, sessionKey);
       setUsers((current) => current.filter((user) => user.id !== userId));
     } catch (err) {
       setError(errorText(err, 'Nie udało się usunąć użytkownika.'));

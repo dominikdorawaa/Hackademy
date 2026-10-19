@@ -1,4 +1,4 @@
-import API_URL from '../apiConfig';
+import { request } from './http';
 import type { ChapterRequest, PathAdminDetailDto, PathUnlockMode, RoomAdminDto, RoomTasksAdminDto, RoomTaskRequest, RoomWriteRequest } from '../types/api';
 import type { FieldErrors } from '../components/admin/ContentFields';
 
@@ -17,11 +17,10 @@ export class ContentError extends Error {
   fields: FieldErrors;
   constructor(message: string, fields: FieldErrors = {}) { super(message); this.fields = fields; }
 }
-export async function contentRequest<T>(path: string, token: string | null, options: RequestInit = {}): Promise<T> {
-  const response = await fetch(`${API_URL}/api/admin/content${path}`, { ...options, headers: { Authorization: `Bearer ${token}`, ...options.headers } });
-  const body = await response.json();
-  if (!response.ok) throw new ContentError(body.message || body.detail || 'Nie udało się zapisać materiału.', body.fields ?? {});
-  return body as T;
+export async function contentRequest<T>(path: string, sessionKey: string | null, options: RequestInit = {}): Promise<T> {
+  const response = await request<T, { message?: string; detail?: string; fields?: FieldErrors }>(`/api/admin/content${path}`, { ...options, auth: { sessionKey } });
+  if (!response.ok) { const body = await response.json(); throw new ContentError(body.message || body.detail || 'Nie udało się zapisać materiału.', body.fields ?? {}); }
+  return response.json();
 }
 function multipart(data: unknown, file: File | null) {
   const body = new FormData();
@@ -29,24 +28,24 @@ function multipart(data: unknown, file: File | null) {
   if (file) body.append('file', file);
   return body;
 }
-export function savePath(id: number | null, data: PathSave, file: File | null, token: string | null) {
-  return contentRequest<PathAdminDetailDto>(id === null ? '/paths' : `/paths/${id}`, token, { method: id === null ? 'POST' : 'PUT', body: multipart(data, file) });
+export function savePath(id: number | null, data: PathSave, file: File | null, sessionKey: string | null) {
+  return contentRequest<PathAdminDetailDto>(id === null ? '/paths' : `/paths/${id}`, sessionKey, { method: id === null ? 'POST' : 'PUT', body: multipart(data, file) });
 }
-export function importPath(file: File, token: string | null) {
+export function importPath(file: File, sessionKey: string | null) {
   const body = new FormData();
   body.append('file', file);
-  return contentRequest<PathAdminDetailDto>('/paths/import', token, { method: 'POST', body });
+  return contentRequest<PathAdminDetailDto>('/paths/import', sessionKey, { method: 'POST', body });
 }
-export function importCtfRooms(file: File, token: string | null) {
+export function importCtfRooms(file: File, sessionKey: string | null) {
   const body = new FormData(); body.append('file', file);
-  return contentRequest<CtfImportResult>('/ctf/import', token, { method: 'POST', body });
+  return contentRequest<CtfImportResult>('/ctf/import', sessionKey, { method: 'POST', body });
 }
-export function importPathRooms(id: number, target: RoomImportTarget, file: File, token: string | null) {
+export function importPathRooms(id: number, target: RoomImportTarget, file: File, sessionKey: string | null) {
   const body = new FormData();
   body.append('target', new Blob([JSON.stringify(target)], { type: 'application/json' }));
   body.append('file', file);
-  return contentRequest<PathAdminDetailDto>(`/paths/${id}/rooms/import`, token, { method: 'POST', body });
+  return contentRequest<PathAdminDetailDto>(`/paths/${id}/rooms/import`, sessionKey, { method: 'POST', body });
 }
-export function saveRoom(id: number | null, data: RoomSave, file: File | null, token: string | null) {
-  return contentRequest<RoomEditor>(id === null ? '/rooms' : `/rooms/${id}`, token, { method: id === null ? 'POST' : 'PUT', body: multipart(data, file) });
+export function saveRoom(id: number | null, data: RoomSave, file: File | null, sessionKey: string | null) {
+  return contentRequest<RoomEditor>(id === null ? '/rooms' : `/rooms/${id}`, sessionKey, { method: id === null ? 'POST' : 'PUT', body: multipart(data, file) });
 }

@@ -63,11 +63,9 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         session.setId(UUID.randomUUID().toString());
         session.setPlayer1Id(first.id());
         session.setPlayer1Username(first.username());
-        session.setPlayer1AvatarSeed(firstUser.getAvatarSeed());
         session.setPlayer1Elo(firstUser.getElo());
         session.setPlayer2Id(second.id());
         session.setPlayer2Username(second.username());
-        session.setPlayer2AvatarSeed(secondUser.getAvatarSeed());
         session.setPlayer2Elo(secondUser.getElo());
         return session;
     }

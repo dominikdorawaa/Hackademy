@@ -17,15 +17,15 @@ const RealtimeContext = createContext<RealtimeContextValue>({
 });
 
 export function RealtimeProvider({ children }: PropsWithChildren) {
-  const { token } = useAuth();
-  const [session, setSession] = useState<{ token: string | null; state: RealtimeState | null; connected: boolean; error: string | null }>({
-    token: null, state: null, connected: false, error: null,
+  const { sessionKey } = useAuth();
+  const [session, setSession] = useState<{ sessionKey: string | null; state: RealtimeState | null; connected: boolean; error: string | null }>({
+    sessionKey: null, state: null, connected: false, error: null,
   });
   const synchronizeRef = useRef<() => Promise<void>>(async () => {});
   const synchronize = useCallback(() => synchronizeRef.current(), []);
 
   useEffect(() => {
-    if (!token) return;
+    if (!sessionKey) return;
     let disposed = false;
     let ready = false;
     let latest: RealtimeState | null = null;
@@ -37,7 +37,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       if (disposed) return;
       if (latest?.streamId === state.streamId && latest.revision >= state.revision) return;
       latest = state;
-      setSession({ token, state, connected: ready, error: null });
+      setSession({ sessionKey, state, connected: ready, error: null });
     };
     const sync = (): Promise<void> => {
       if (disposed || !ready) return Promise.resolve();
@@ -47,7 +47,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       pending = (async () => {
         try {
           const response = await request<RealtimeState>('/api/realtime/state', {
-            method: 'GET', headers: { Authorization: `Bearer ${token}` }, signal: currentController.signal,
+            method: 'GET', auth: { sessionKey }, signal: currentController.signal,
           });
           if (!response.ok) throw new Error('Realtime synchronization failed');
           const state = await response.json();
@@ -55,7 +55,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
           failures = 0;
         } catch {
           if (!disposed && !currentController.signal.aborted && ready) {
-            setSession(previous => ({ token, state: previous.token === token ? previous.state : null,
+            setSession(previous => ({ sessionKey, state: previous.sessionKey === sessionKey ? previous.state : null,
               connected: ready, error: 'Nie udało się pobrać danych. Spróbuj ponownie.' }));
             if (failures < 5) {
               failures += 1;
@@ -69,7 +69,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       return pending;
     };
     synchronizeRef.current = () => { failures = 0; return sync(); };
-    const connection = new RealtimeConnection(token, {
+    const connection = new RealtimeConnection(sessionKey, {
       ready: () => {
         if (disposed) return;
         controller.abort();
@@ -77,7 +77,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         pending = null;
         ready = true;
         failures = 0;
-        setSession(previous => ({ token, state: previous.token === token ? previous.state : null, connected: true, error: null }));
+        setSession(previous => ({ sessionKey, state: previous.sessionKey === sessionKey ? previous.state : null, connected: true, error: null }));
         void sync();
       },
       state: apply,
@@ -101,12 +101,12 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
       document.removeEventListener('visibilitychange', resume);
       void connection.stop();
     };
-  }, [token]);
+  }, [sessionKey]);
 
   const value: RealtimeContextValue = {
-    state: session.token === token && token ? session.state : null,
-    connected: session.token === token && !!token && session.connected,
-    error: session.token === token && token ? session.error : null,
+    state: session.sessionKey === sessionKey && sessionKey ? session.state : null,
+    connected: session.sessionKey === sessionKey && !!sessionKey && session.connected,
+    error: session.sessionKey === sessionKey && sessionKey ? session.error : null,
     synchronize,
   };
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;

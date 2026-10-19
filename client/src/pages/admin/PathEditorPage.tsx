@@ -1,3 +1,4 @@
+import { request } from '../../services/http';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
 import { Lock } from 'lucide-react';
@@ -30,7 +31,7 @@ export default function PathEditorPage() {
   return <PathEditor key={pathId} pathId={pathId ?? 'new'} />;
 }
 function PathEditor({ pathId }: { pathId: string }) {
-  const { token } = useAuth();
+  const { sessionKey } = useAuth();
   const { isAdmin } = useAdminAccess();
   const navigate = useNavigate();
   const location = useLocation();
@@ -53,7 +54,7 @@ function PathEditor({ pathId }: { pathId: string }) {
   const [systemKey, setSystemKey] = useState<string | null>(null);
   useEffect(() => {
     let active = true;
-    Promise.all([idRef.current == null ? Promise.resolve(null) : adminApi.getPath(idRef.current, token), adminApi.getAllRoomsAdmin(token)])
+    Promise.all([idRef.current == null ? Promise.resolve(null) : adminApi.getPath(idRef.current, sessionKey), adminApi.getAllRoomsAdmin(sessionKey)])
       .then(([detail, pool]) => {
         if (!active) return;
         if (idRef.current != null && !detail) throw new Error('Nie znaleziono ścieżki.');
@@ -61,7 +62,7 @@ function PathEditor({ pathId }: { pathId: string }) {
         setRooms(pool ?? []); setError(null);
       }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
-  }, [token, attempt]);
+  }, [sessionKey, attempt]);
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file;
   const change = (values: Partial<PathSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
   const save = async (published = formRef.current.published, notify = true) => {
@@ -83,7 +84,7 @@ function PathEditor({ pathId }: { pathId: string }) {
     if (Object.keys(nextErrors).length) { focusError(nextErrors); return false; }
     savingRef.current = true; setSaving(true);
     try {
-      const detail = await contentApi.savePath(idRef.current, { ...current, published }, file, token);
+      const detail = await contentApi.savePath(idRef.current, { ...current, published }, file, sessionKey);
       const saved = fromDetail(detail);
       idRef.current = detail.id; setId(detail.id); formRef.current = saved;
       setForm(saved); setBaseline(saved); setFile(null);
@@ -127,7 +128,7 @@ function PathEditor({ pathId }: { pathId: string }) {
         const next = fromDetail(detail); formRef.current = next; setForm(next); setBaseline(next); setFile(null);
         setSuccess('Dodano pokoje jako szkice. Istniejąca ścieżka zachowała swój status publikacji.');
         setErrors({}); setError(null); setLoading(true); setAttempt(value => value + 1);
-      }} />}<Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, token); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
+      }} />}<Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, sessionKey); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
     {loading ? <LoadingRows label="Ładowanie ścieżki" /> : error && id != null && !form.title ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor ścieżki">
@@ -140,7 +141,7 @@ function PathEditor({ pathId }: { pathId: string }) {
               <label htmlFor="content-bannerFile">Banner z pliku</label><FilePicker key={form.revision} id="content-bannerFile" accept="image/png,image/jpeg,image/webp,image/gif" file={file} onChange={setFile} />
               {errors.bannerFile && <p role="alert" className="text-destructive">{errors.bannerFile}</p>}
               <p className="text-xs text-muted-foreground">Do 5 MB. Wgrany plik ma pierwszeństwo przed URL.</p>
-              <BannerImage source={banner} file={file} url={form.bannerUrl} token={token} />
+              <BannerImage source={banner} file={file} url={form.bannerUrl} sessionKey={sessionKey} />
             </div>
           </Section>
           <Section title="Odblokowywanie" description="Ukończone pokoje pozostają dostępne. Blokady samouczków VM i VPN obowiązują dodatkowo.">
@@ -176,14 +177,14 @@ function SystemPath({ title, description, systemKey }: { title: string; descript
     </Section>
   </>;
 }
-export function BannerImage({ source, file, url, token }: { source: string | null; file: File | null; url: string | null; token: string | null }) {
+export function BannerImage({ source, file, url, sessionKey }: { source: string | null; file: File | null; url: string | null; sessionKey: string | null }) {
   const [src, setSrc] = useState<string | null>(null);
   useEffect(() => {
     let active = true; let objectUrl: string | null = null;
     if (file) { objectUrl = URL.createObjectURL(file); setSrc(objectUrl); }
-    else if (source) { fetch(source, { headers: { Authorization: `Bearer ${token}` } }).then(r => { if (!r.ok) throw new Error(); return r.blob(); }).then(blob => { if (active) { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); } }).catch(() => { if (active) setSrc(null); }); }
+    else if (source) { request(source, { auth: { sessionKey } }).then(r => { if (!r.ok) throw new Error(); return r.blob(); }).then(blob => { if (active) { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); } }).catch(() => { if (active) setSrc(null); }); }
     else setSrc(url);
     return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
-  }, [source, file, url, token]);
+  }, [source, file, url, sessionKey]);
   return src ? <img src={src} alt="Banner ścieżki" className="aspect-video max-w-lg rounded-lg border object-cover" /> : null;
 }

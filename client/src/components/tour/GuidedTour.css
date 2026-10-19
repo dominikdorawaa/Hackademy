@@ -1,0 +1,140 @@
+@layer components {
+.guided-tour {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
+  z-index: 1000;
+  pointer-events: none;
+}
+
+.tour-dim {
+  position: fixed;
+  inset: 0;
+  background: rgb(5 10 20 / 0.62);
+  pointer-events: auto;
+}
+
+.tour-dim.has-spotlight {
+  background: transparent;
+}
+
+.tour-spotlight {
+  position: absolute;
+  border: 3px solid var(--ud-link);
+  border-radius: 12px;
+  box-shadow: 0 0 0 200vmax rgb(5 10 20 / 0.62), 0 0 0 6px rgb(110 162 255 / 0.25);
+  transition: top 280ms var(--ud-ease), left 280ms var(--ud-ease), width 280ms var(--ud-ease), height 280ms var(--ud-ease);
+  pointer-events: none;
+}
+
+.tour-bubble {
+  position: absolute;
+  width: min(420px, calc(100vw - 32px));
+  pointer-events: auto;
+  transition: top var(--walk, 900ms) linear, left var(--walk, 900ms) linear;
+}
+
+.tour-bubble .mascot-bubble-box {
+  transition: opacity 220ms ease, scale 220ms ease;
+}
+
+.tour-bubble[data-moving='true'] .mascot-bubble-box {
+  opacity: 0;
+  scale: 0.92;
+  pointer-events: none;
+}
+
+.tour-bubble .mascot-bubble-mascot {
+  transition: scale 200ms ease;
+}
+
+.tour-bubble[data-facing='left'] .mascot-bubble-mascot {
+  scale: -1 1;
+}
+
+.tour-overall {
+  height: 4px;
+  margin-top: 12px;
+  overflow: hidden;
+  border-radius: 2px;
+  background: var(--ud-track);
+}
+
+.tour-overall span {
+  display: block;
+  height: 100%;
+  background: var(--ud-link);
+  transition: width 400ms var(--ud-ease);
+}
+
+.tour-bubble.is-dock {
+  position: fixed;
+  bottom: 16px;
+  left: 50%;
+  translate: -50% 0;
+}
+
+.tour-bubble .mascot-bubble-actions > .ud-btn:not(.tour-skip) {
+  flex: 1;
+  justify-content: center;
+}
+
+.tour-progress {
+  flex-basis: 100%;
+  color: var(--ud-muted);
+  font-size: var(--ud-text-s);
+  font-weight: 700;
+}
+
+.tour-skip {
+  flex-basis: 100%;
+  justify-content: center;
+}
+
+.tour-error {
+  color: var(--ud-peek-error);
+  font-weight: 600;
+}
+
+.guided-tour[data-reduced-motion='true'] :is(.tour-spotlight, .tour-bubble, .tour-overall span) {
+  transition: none;
+}
+
+.guided-tour[data-reduced-motion='true'] :is(.mascot-bubble-box, .mascot-bubble-mascot) {
+  transition: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .tour-spotlight,
+  .tour-bubble,
+  .tour-overall span {
+    transition: none;
+  }
+
+  .tour-bubble .mascot-bubble-box,
+  .tour-bubble .mascot-bubble-mascot {
+    transition: none;
+  }
+}
+}
+
+html[data-tour-active] main {
+  padding-bottom: 300px;
+}
+
+html[data-tour-active] [data-tour] {
+  filter: grayscale(1) brightness(0.65);
+  transition: filter 450ms ease;
+}
+
+html[data-tour-active] [data-tour][data-tour-current] {
+  filter: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-tour-active] [data-tour] {
+    transition: none;
+  }
+}

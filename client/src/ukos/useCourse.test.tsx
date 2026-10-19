@@ -15,7 +15,7 @@ it("restores the furthest account progress and synchronizes offline completions"
   vi.mocked(courseRequest).mockImplementation(async (_token, completedSteps) =>
     state(completedSteps ?? 3),
   );
-  const { result } = renderHook(() => useCourse("alice", "token"));
+  const { result } = renderHook(() => useCourse("alice", "sessionKey"));
   await waitFor(() => expect(result.current.synchronized).toBe(true));
   expect(result.current.completed).toBe(8);
   act(() => {
@@ -33,7 +33,7 @@ it("restores the furthest account progress and synchronizes offline completions"
 it("retains local progress across network errors and retries on online and visibility", async () => {
   localStorage.setItem("ukos-progress-v1:alice", "5");
   vi.mocked(courseRequest).mockRejectedValue(new Error("Offline"));
-  const { result, unmount } = renderHook(() => useCourse("alice", "token"));
+  const { result, unmount } = renderHook(() => useCourse("alice", "sessionKey"));
   await waitFor(() => expect(result.current.error).toBe("Offline"));
   expect(result.current.completed).toBe(5);
   expect(result.current.synchronized).toBe(false);
@@ -46,7 +46,7 @@ it("retains local progress across network errors and retries on online and visib
 });
 it("reports unavailable local storage", async () => {
   vi.mocked(courseRequest).mockResolvedValue(state(15));
-  const { result } = renderHook(() => useCourse("bob", "token"));
+  const { result } = renderHook(() => useCourse("bob", "sessionKey"));
   await waitFor(() => expect(result.current.synchronized).toBe(true));
   vi.spyOn(Storage.prototype, "setItem").mockImplementation(() => {
     throw new Error("quota");
@@ -65,7 +65,7 @@ it("ignores malformed saved progress and stale responses after unmount", async (
       resolve = done;
     }),
   );
-  const { result, unmount } = renderHook(() => useCourse("alice", "token"));
+  const { result, unmount } = renderHook(() => useCourse("alice", "sessionKey"));
   expect(result.current.completed).toBe(0);
   unmount();
   await act(async () => resolve(state(15)));

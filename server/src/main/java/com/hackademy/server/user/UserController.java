@@ -1,8 +1,6 @@
 package com.hackademy.server.user;
 
 import com.hackademy.server.dashboard.ActivityDto;
-import com.hackademy.server.auth.AuthResponse;
-import com.hackademy.server.user.dto.ChangePasswordRequest;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
@@ -31,11 +29,10 @@ import java.util.Map;
 @RestController
 @RequestMapping("/api/user")
 @RequiredArgsConstructor
-@CrossOrigin(origins = "http://localhost:5173", allowedHeaders = "*", methods = { RequestMethod.GET, RequestMethod.POST,
-        RequestMethod.PUT, RequestMethod.PATCH, RequestMethod.DELETE, RequestMethod.OPTIONS })
 public class UserController {
 
     private final UserService userService;
+    private final OnboardingService onboardingService;
     private final NotificationPreferencesRepository notificationPreferencesRepository;
 
     @GetMapping("/me/notification-preferences")
@@ -55,7 +52,9 @@ public class UserController {
                 request.preference().equals("challenges") ? request.enabled() : null,
                 request.preference().equals("matchFound") ? request.enabled() : null,
                 request.preference().equals("sound") ? request.enabled() : null,
-                request.preference().equals("browserNotifications") ? request.enabled() : null);
+                request.preference().equals("browserNotifications") ? request.enabled() : null,
+                request.preference().equals("friendOnline") ? request.enabled() : null,
+                request.preference().equals("friendOnlineBell") ? request.enabled() : null);
         return notificationPreferencesRepository.findById(user.getId()).orElseThrow().toDto();
     }
 
@@ -93,10 +92,10 @@ public class UserController {
         ProfilePersonalizationDto appearance = userService.getPersonalization(userDetails.getId());
         userInfo.put("bio", appearance.bio());
         userInfo.put("tagline", appearance.tagline());
-        userInfo.put("avatarSeed", appearance.avatarSeed());
         userInfo.put("interests", appearance.interests());
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
         userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
+        userInfo.put("onboarding", onboardingService.get(userDetails.getId()));
 
         return ResponseEntity.ok(userInfo);
     }
@@ -112,18 +111,10 @@ public class UserController {
         return ResponseEntity.ok(userService.getProfilePortfolio(userService.getUserIdByUsername(username)));
     }
 
-    @PatchMapping("/me/password")
-    public ResponseEntity<?> changePassword(@Valid @RequestBody ChangePasswordRequest request) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        userService.changePassword(user.getId(), request);
-        return ResponseEntity.ok().build();
-    }
-
     @PatchMapping("/me/username")
-    public ResponseEntity<AuthResponse> updateUsername(@Valid @RequestBody UpdateUsernameRequest request) {
+    public ResponseEntity<Map<String, String>> updateUsername(@Valid @RequestBody UpdateUsernameRequest request) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        AuthResponse response = userService.updateUsername(user.getId(), request);
-        return ResponseEntity.ok(response);
+        return ResponseEntity.ok(Map.of("username", userService.updateUsername(user.getId(), request)));
     }
 
     @PatchMapping("/me/bio")

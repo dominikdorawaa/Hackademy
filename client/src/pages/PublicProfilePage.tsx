@@ -5,6 +5,6 @@ import UserProfile from '../components/profile/UserProfile';
 export default function PublicProfilePage() {
   const { username } = useParams();
   const { user } = useAuth();
-  if (username === user?.sub) return <Navigate to="/profile" replace />;
+  if (username === user?.username) return <Navigate to="/profile" replace />;
   return <UserProfile key={username} username={username} />;
 }

@@ -10,14 +10,14 @@ import type { DashboardUser, PathProgressDto, PathRoomMiniDto, PathSummaryDto, R
 import './DashboardPage.css';
 
 // ─── Active Path Widget ────────────────────────────────────────────────────────
-export const ActivePathWidget = ({ token, navigate }: { token: string | null; navigate: NavigateFunction }) => {
+export const ActivePathWidget = ({ sessionKey, navigate }: { sessionKey: string | null; navigate: NavigateFunction }) => {
   const [pathData, setPathData] = useState<{ id: number; title: string; rooms: PathRoomMiniDto[]; solvedCount: number; totalCount: number } | null>(null);
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
     const load = async () => {
       try {
-        const headers = { Authorization: `Bearer ${token}` };
+        const headers = { sessionKey };
 
         // Zamiast odpytania każdej ścieżki po kolei (/api/paths/{id}),
         // bierzemy zagregowany progres i dociągamy tylko mini-listę pokoi.
@@ -58,8 +58,8 @@ export const ActivePathWidget = ({ token, navigate }: { token: string | null; na
         setLoading(false);
       }
     };
-    if (token) load();
-  }, [token]);
+    if (sessionKey) load();
+  }, [sessionKey]);
 
   if (loading) return (
     <div className="active-path-widget">
@@ -135,7 +135,7 @@ export const ActivePathWidget = ({ token, navigate }: { token: string | null; na
 const ITEMS_PER_PAGE = 12;
 
 const DashboardPage = () => {
-  const { token, logout } = useAuth();
+  const { sessionKey, logout } = useAuth();
   const navigate = useNavigate();
   const [userData, setUserData] = useState<DashboardUser | null>(null);
   const [rooms, setRooms] = useState<RoomSummaryDto[]>([]);
@@ -160,9 +160,7 @@ const DashboardPage = () => {
         setLoading(true);
         setError(null);
 
-        const response = await userApi.getCurrentUser({
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+        const response = await userApi.getCurrentUser({sessionKey
           });
 
         if (response.ok) {
@@ -188,9 +186,7 @@ const DashboardPage = () => {
         setRoomsLoading(true);
         setRoomsError(null);
 
-        const response = await roomApi.getRooms({
-            'Content-Type': 'application/json',
-            'Authorization': `Bearer ${token}`
+        const response = await roomApi.getRooms({sessionKey
           });
 
         if (response.ok) {
@@ -208,14 +204,14 @@ const DashboardPage = () => {
       }
     };
 
-    if (token) {
+    if (sessionKey) {
       fetchUserData();
       fetchRooms();
     } else {
       logout();
       navigate('/login');
     }
-  }, [token, logout, navigate]);
+  }, [sessionKey, logout, navigate]);
 
   const handleDifficultyChange = (difficulty: string) => {
     setSelectedDifficulties(prev => {

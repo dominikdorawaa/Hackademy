@@ -19,6 +19,7 @@ env:
   BACKEND_HEALTH_URL: https://api.hackademy.app/health
   PAGES_PROJECT: hackademy
   VITE_API_URL: https://api.hackademy.app
+  VITE_CLERK_PUBLISHABLE_KEY: ${{ vars.VITE_CLERK_PUBLISHABLE_KEY }}
   WRANGLER_VERSION: 4.151.1
 
 jobs:
@@ -73,6 +74,13 @@ jobs:
         if: env.BACKEND_DEPLOY_ENABLED == 'true'
         with:
           fetch-depth: 0
+      - name: Require the production sign-in configuration
+        if: env.BACKEND_DEPLOY_ENABLED == 'true'
+        run: |
+          case "$VITE_CLERK_PUBLISHABLE_KEY" in
+            pk_live_*) ;;
+            *) echo "::error::Set the production VITE_CLERK_PUBLISHABLE_KEY repository variable before deployment"; exit 1 ;;
+          esac
       - name: Push to Heroku
         if: env.BACKEND_DEPLOY_ENABLED == 'true'
         env:
@@ -102,6 +110,12 @@ jobs:
         working-directory: client
     steps:
       - uses: actions/checkout@v7
+      - name: Require the production sign-in configuration
+        run: |
+          case "$VITE_CLERK_PUBLISHABLE_KEY" in
+            pk_live_*) ;;
+            *) echo "::error::Set the production VITE_CLERK_PUBLISHABLE_KEY repository variable before deployment"; exit 1 ;;
+          esac
       - uses: actions/setup-node@v4
         with:
           node-version: '24'

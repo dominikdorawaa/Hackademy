@@ -6,7 +6,6 @@ import com.hackademy.server.arena.ArenaService;
 import com.hackademy.server.arena.BattleEngine;
 import com.hackademy.server.arena.GameSession;
 import com.hackademy.server.arena.MatchmakingService;
-import com.hackademy.server.auth.JwtService;
 import com.hackademy.server.friendship.FriendshipService;
 import com.hackademy.server.realtime.RealtimeStateService;
 import com.hackademy.server.room.Room;
@@ -44,14 +43,13 @@ import static org.awaitility.Awaitility.await;
 
 @SpringBootTest(webEnvironment = SpringBootTest.WebEnvironment.RANDOM_PORT, properties = {
         "DB_URL=jdbc:h2:mem:realtime_test", "DB_USERNAME=sa", "DB_PASSWORD=",
-        "JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY=",
         "FRONTEND_URL=https://frontend.example.com", "spring.flyway.enabled=false",
-        "spring.jpa.hibernate.ddl-auto=create-drop"
+        "spring.jpa.hibernate.ddl-auto=create-drop", "application.realtime.presence-offline-grace=0s"
 })
 class RealtimeIntegrationTest {
+    private static final String ORIGIN = "https://frontend.example.com";
     @Value("${local.server.port}") private int port;
     @Autowired private UserRepository users;
-    @Autowired private JwtService jwt;
     @Autowired private FriendshipService friendships;
     @Autowired private ArenaService arena;
     @Autowired private MatchmakingService matchmaking;
@@ -72,23 +70,24 @@ class RealtimeIntegrationTest {
 
     private User user() {
         String name = "live" + UUID.randomUUID().toString().substring(0, 8);
-        return users.saveAndFlush(User.builder().username(name).email(name + "@example.com").password("unused").build());
+        return users.saveAndFlush(User.builder().username(name).email(name + "@example.com").clerkUserId("user_rt_" + UUID.randomUUID()).build());
     }
 
     private RealtimeSocket connected(User user) throws Exception {
-        var socket = RealtimeSocket.open(client, port, jwt.generateToken(user));
+        var socket = RealtimeSocket.open(client, port, ClerkTestTokens.tokenFor(user, ORIGIN));
         socket.subscribe();
         return socket;
     }
 
     private String rename(User user, String username) throws Exception {
         var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/user/me/username"))
-                .header("Authorization", "Bearer " + jwt.generateToken(user))
+                .header("Authorization", "Bearer " + ClerkTestTokens.tokenFor(user, ORIGIN))
                 .header("Content-Type", "application/json")
                 .method("PATCH", HttpRequest.BodyPublishers.ofString("{\"newUsername\":\"" + username + "\"}"))
                 .build(), HttpResponse.BodyHandlers.ofString());
         assertEquals(200, response.statusCode());
-        return JsonPath.read(response.body(), "$.token");
+        assertEquals(username, JsonPath.read(response.body(), "$.username"));
+        return ClerkTestTokens.tokenFor(user, ORIGIN);
     }
 
     private String state(String token) throws Exception {
@@ -196,7 +195,7 @@ class RealtimeIntegrationTest {
             synchronized (game) {
                 for (int i = 0; i < 5; i++) {
                     Long userId = i % 2 == 0 ? a.getId() : b.getId();
-                    String token = jwt.generateToken(i % 2 == 0 ? a : b);
+                    String token = ClerkTestTokens.tokenFor(i % 2 == 0 ? a : b, ORIGIN);
                     snapshots.add(executor.submit(() -> {
                         if ("http".equals(entryPoint)) {
                             var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/realtime/state"))
@@ -303,7 +302,7 @@ class RealtimeIntegrationTest {
             "SUBSCRIBE\nid:bad\ndestination:/user/other/queue/realtime\n\n\0",
             "SEND\ndestination:/user/queue/realtime\n\nforged\0"})
     void authenticatedUsersCannotReadOtherDestinationsOrForgeEvents(String frame) throws Exception {
-        try (var socket = RealtimeSocket.open(client, port, jwt.generateToken(user()))) {
+        try (var socket = RealtimeSocket.open(client, port, ClerkTestTokens.tokenFor(user(), ORIGIN))) {
             socket.send(frame);
             // Spring closes the session right after the ERROR frame and may drop that frame when the close
             // races a send still flushing on another thread, so the close is the guaranteed rejection signal.
@@ -338,5 +337,70 @@ class RealtimeIntegrationTest {
             if (game != null && "ACTIVE".equals(game.get("status"))) return (String) game.get("id");
         }
         throw new AssertionError("Match was not delivered");
+    }
+
+    private void befriend(User a, User b) {
+        friendships.sendFriendRequest(a.getId(), b.getUsername());
+        friendships.acceptFriendRequest(b.getId(), friendships.getPendingRequests(b.getId()).get(0).id());
+    }
+
+    private String friendsOf(User user) throws Exception {
+        var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/friends"))
+                .header("Authorization", "Bearer " + ClerkTestTokens.tokenFor(user, ORIGIN)).GET().build(), HttpResponse.BodyHandlers.ofString());
+        assertEquals(200, response.statusCode());
+        return response.body();
+    }
+
+    @Test
+    void friendsSeePresenceAcrossTabsWhileOthersReceiveNothing() throws Exception {
+        var me = user();
+        var friend = user();
+        var requester = user();
+        var outsider = user();
+        befriend(me, friend);
+        friendships.sendFriendRequest(requester.getId(), me.getUsername());
+        try (var watcher = connected(friend); var pending = connected(requester); var other = connected(outsider)) {
+            var firstTab = connected(me);
+            assertEquals(true, JsonPath.read(RealtimeSocket.body(watcher.receive()), "$.state.friends[0].online"));
+            assertEquals(true, JsonPath.read(friendsOf(friend), "$[0].online"));
+            var secondTab = connected(me);
+            assertNull(watcher.poll(300));
+            secondTab.close();
+            assertNull(watcher.poll(300));
+            assertEquals(true, JsonPath.read(friendsOf(friend), "$[0].online"));
+            firstTab.close();
+            assertEquals(false, JsonPath.read(RealtimeSocket.body(watcher.receive()), "$.state.friends[0].online"));
+            assertEquals(false, JsonPath.read(friendsOf(friend), "$[0].online"));
+            assertNull(pending.poll(100));
+            assertNull(other.poll(100));
+        }
+    }
+
+    @Test
+    void acceptingWhileBothAreOnlineShowsEachOtherOnline() throws Exception {
+        var sender = user();
+        var receiver = user();
+        try (var a = connected(sender); var b = connected(receiver)) {
+            friendships.sendFriendRequest(sender.getId(), receiver.getUsername());
+            a.receive();
+            b.receive();
+            friendships.acceptFriendRequest(receiver.getId(), friendships.getPendingRequests(receiver.getId()).get(0).id());
+            assertEquals(true, JsonPath.read(RealtimeSocket.body(a.receive()), "$.state.friends[0].online"));
+            assertEquals(true, JsonPath.read(RealtimeSocket.body(b.receive()), "$.state.friends[0].online"));
+        }
+    }
+
+    @Test
+    void removedFriendNoLongerReceivesPresence() throws Exception {
+        var me = user();
+        var former = user();
+        befriend(me, former);
+        friendships.removeFriend(me.getId(), former.getId());
+        try (var watcher = connected(former)) {
+            try (var tab = connected(me)) {
+                assertNull(watcher.poll(300));
+            }
+            assertNull(watcher.poll(300));
+        }
     }
 }

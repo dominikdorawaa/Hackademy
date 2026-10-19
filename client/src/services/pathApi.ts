@@ -1,39 +1,40 @@
 import { request } from './http';
+import type { SessionScope } from './http';
 import type { ApiId, PathDetailDto, PathRoomsMiniResponse, PathSummaryDto, PathProgressDto } from '../types/api';
 
-export function getProgress(headers: HeadersInit) {
+export function getProgress(auth: SessionScope) {
   return request<PathProgressDto[]>(`/api/paths/me/progress`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function getPaths(headers: HeadersInit) {
+export function getPaths(auth: SessionScope) {
   return request<PathSummaryDto[]>(`/api/paths`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function getRoomsMini(id: ApiId, limit: number, headers: HeadersInit) {
+export function getRoomsMini(id: ApiId, limit: number, auth: SessionScope) {
   return request<PathRoomsMiniResponse>(`/api/paths/${id}/rooms-mini?limit=${limit}`, {
     method: 'GET',
-    headers,
+    auth,
   });
 }
 
-export function enroll(id: ApiId, headers: HeadersInit) {
+export function enroll(id: ApiId, auth: SessionScope) {
   return request<void>(`/api/paths/${id}/enroll`, {
     method: 'POST',
-    headers,
+    auth,
   });
 }
 
 
-export function getPath(id: ApiId, headers: HeadersInit, signal?: AbortSignal) {
+export function getPath(id: ApiId, auth: SessionScope, signal?: AbortSignal) {
   return request<PathDetailDto>(`/api/paths/${id}`, {
     method: 'GET',
-    headers,
+    auth,
     signal,
   });
 }
