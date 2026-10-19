@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 import type { CSSProperties, KeyboardEvent } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import { useAuth } from '../../context/AuthContext';
@@ -6,13 +7,13 @@ import { useOnboarding } from '../../context/OnboardingContext';
 import { useReducedMotion } from '../../hooks/useReducedMotion';
 import { finishTour } from '../../services/onboardingApi';
 import { ONBOARDING_PATH, TOUR_STEP_KEY } from '../../lib/onboarding';
-import { MOBILE_TOUR_WIDTH, placeBubble, TOUR_STEPS } from '../../lib/tour';
+import { placeBubble, scrollTargetTop, TOUR_STEPS } from '../../lib/tour';
 import type { Box } from '../../lib/tour';
 import { MascotBubble } from '../mascot/MascotBubble';
 import './GuidedTour.css';
 
 const MISSING_MS = 2500;
-const MOVE_MS = 650;
+const WALK_MS = 1100;
 
 const readStep = () => {
   try {
@@ -31,8 +32,10 @@ export default function GuidedTour() {
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
   const [step, setStep] = useState(readStep);
-  const [box, setBox] = useState<Box | null>(null);
+  const [box, setBox] = useState<(Box & { step: number }) | null>(null);
   const [moving, setMoving] = useState(false);
+  const [facing, setFacing] = useState<'left' | 'right'>('right');
+  const lastLeft = useRef<number | null>(null);
   const [bubbleSize, setBubbleSize] = useState({ width: 380, height: 220 });
   const [viewport, setViewport] = useState({ width: window.innerWidth, height: window.innerHeight });
   const [saving, setSaving] = useState<'COMPLETED' | 'SKIPPED' | null>(null);
@@ -67,7 +70,7 @@ export default function GuidedTour() {
   useEffect(() => {
     if (!active || reducedMotion) return;
     const start = requestAnimationFrame(() => setMoving(true));
-    const stop = setTimeout(() => setMoving(false), MOVE_MS);
+    const stop = setTimeout(() => setMoving(false), WALK_MS + 150);
     return () => { cancelAnimationFrame(start); clearTimeout(stop); };
   }, [active, step, reducedMotion]);
 
@@ -79,17 +82,15 @@ export default function GuidedTour() {
       const element = document.querySelector<HTMLElement>(`[data-tour="${current.target}"]`);
       if (element) {
         if (marked !== element) { marked?.removeAttribute('data-tour-current'); element.setAttribute('data-tour-current', ''); marked = element; }
+        const rect = element.getBoundingClientRect();
+        const next = { top: Math.round(rect.top + window.scrollY), left: Math.round(rect.left + window.scrollX), width: Math.round(rect.width), height: Math.round(rect.height) };
         if (!scrolled) {
           scrolled = true;
-          const header = document.querySelector('.navbar')?.getBoundingClientRect().bottom ?? 0;
-          const rect = element.getBoundingClientRect();
-          const room = window.innerHeight - header - (window.innerWidth < MOBILE_TOUR_WIDTH ? 300 : 0);
-          const offset = rect.height < room ? Math.max(0, (room - rect.height) / 2) : 16;
-          window.scrollTo({ top: Math.max(0, window.scrollY + rect.top - header - offset), behavior: reducedMotion ? 'auto' : 'smooth' });
+          const view = { width: window.innerWidth, height: window.innerHeight };
+          const floating = placeBubble(next, bubbleSize, view).mode === 'float';
+          window.scrollTo({ top: scrollTargetTop(next, bubbleSize.height, view, floating), behavior: reducedMotion ? 'auto' : 'smooth' });
         }
-        const rect = element.getBoundingClientRect();
-        setBox(previous => previous && previous.top === rect.top && previous.left === rect.left && previous.width === rect.width && previous.height === rect.height
-          ? previous : { top: rect.top, left: rect.left, width: rect.width, height: rect.height });
+        setBox(previous => previous && previous.step === step && previous.top === next.top && previous.left === next.left && previous.width === next.width && previous.height === next.height ? previous : { ...next, step });
       } else if (performance.now() - started > MISSING_MS) {
         const next = step + direction.current;
         if (next >= 0 && next < TOUR_STEPS.length) { setStep(next); return; }
@@ -99,7 +100,7 @@ export default function GuidedTour() {
     };
     frame = requestAnimationFrame(measure);
     return () => { cancelAnimationFrame(frame); marked?.removeAttribute('data-tour-current'); };
-  }, [active, onPage, step, current.target, reducedMotion]);
+  }, [active, onPage, step, current.target, reducedMotion, bubbleSize]);
 
   useEffect(() => {
     const element = bubble.current;
@@ -118,6 +119,17 @@ export default function GuidedTour() {
   useEffect(() => {
     if (active && onPage) bubble.current?.querySelector<HTMLButtonElement>('[data-tour-primary]')?.focus({ preventScroll: true });
   }, [active, onPage, step]);
+
+  const place = placeBubble(box, bubbleSize, viewport);
+
+  useEffect(() => {
+    if (place.mode !== 'float') return;
+    const previous = lastLeft.current;
+    lastLeft.current = place.left;
+    if (previous === null || Math.abs(place.left - previous) <= 4) return;
+    const frame = requestAnimationFrame(() => setFacing(place.left < previous ? 'left' : 'right'));
+    return () => cancelAnimationFrame(frame);
+  }, [place.mode, place.left]);
 
   const finish = useCallback(async (result: 'COMPLETED' | 'SKIPPED') => {
     if (!token || saving) return;
@@ -153,14 +165,14 @@ export default function GuidedTour() {
       bubble.current?.querySelector<HTMLButtonElement>('[data-tour-skip]')?.focus();
     }
   };
-  const place = placeBubble(onPage ? box : null, bubbleSize, viewport);
+  const walking = moving || box?.step !== step;
   const spotlight = onPage && box ? { top: box.top - 8, left: box.left - 8, width: box.width + 16, height: box.height + 16 } : null;
 
-  return <div className="user-dashboard guided-tour" data-reduced-motion={reducedMotion}>
+  return createPortal(<div className="user-dashboard guided-tour" data-reduced-motion={reducedMotion}>
     <div className={spotlight ? 'tour-dim has-spotlight' : 'tour-dim'} aria-hidden="true" />
     {spotlight && <div className="tour-spotlight" style={spotlight as CSSProperties} aria-hidden="true" data-testid="tour-spotlight" />}
-    <div className={`tour-bubble is-${place.mode}`} data-moving={moving} style={place.mode === 'float' ? { top: place.top, left: place.left } : undefined} onKeyDown={keys}>
-      <MascotBubble ref={bubble} id="tour" role="dialog" title={current.title} mood={moving ? 'walk' : 'talk'} still={reducedMotion}
+    <div className={`tour-bubble is-${place.mode}`} data-moving={walking} data-facing={facing} style={place.mode === 'float' ? { top: place.top, left: place.left, '--walk': `${WALK_MS}ms` } as CSSProperties : undefined} onKeyDown={keys}>
+      <MascotBubble ref={bubble} id="tour" role="dialog" title={current.title} mood={walking && !reducedMotion ? 'walk' : 'talk'} still={reducedMotion}
         actions={<>
           <span className="tour-progress">{current.page} · {pageIndex + 1} z {pageSteps.length}</span>
           <button type="button" className="ud-btn ud-btn-small" onClick={() => go(-1)} disabled={step === 0 || !!saving}>Wstecz</button>
@@ -172,5 +184,5 @@ export default function GuidedTour() {
         {error && <p className="tour-error" role="alert">Nie udało się zapisać przewodnika. Spróbuj ponownie.</p>}
       </MascotBubble>
     </div>
-  </div>;
+  </div>, document.body);
 }

@@ -27,16 +27,23 @@ export const MOBILE_TOUR_WIDTH = 640;
 
 export interface Box { top: number; left: number; width: number; height: number }
 
+export const HEADER_ROOM = 88;
+
 export function placeBubble(target: Box | null, bubble: { width: number; height: number }, viewport: { width: number; height: number }): { mode: 'dock' | 'float'; top: number; left: number } {
-  if (viewport.width < MOBILE_TOUR_WIDTH || !target) return { mode: 'dock', top: viewport.height - bubble.height - GAP, left: GAP };
-  const left = Math.min(Math.max(GAP, target.left + target.width / 2 - bubble.width / 2), viewport.width - bubble.width - GAP);
-  const below = target.top + target.height + GAP;
-  if (below + bubble.height <= viewport.height - GAP) return { mode: 'float', top: below, left };
-  const above = target.top - GAP - bubble.height;
-  if (above >= GAP) return { mode: 'float', top: above, left };
-  const top = Math.min(Math.max(GAP, target.top), viewport.height - bubble.height - GAP);
-  if (target.left + target.width + GAP + bubble.width <= viewport.width - GAP) return { mode: 'float', top, left: target.left + target.width + GAP };
-  if (target.left - GAP - bubble.width >= GAP) return { mode: 'float', top, left: target.left - GAP - bubble.width };
-  return { mode: 'dock', top: viewport.height - bubble.height - GAP, left: GAP };
+  if (viewport.width < MOBILE_TOUR_WIDTH || !target) return { mode: 'dock', top: 0, left: 0 };
+  const room = viewport.height - HEADER_ROOM - GAP;
+  if (target.height + GAP + bubble.height <= room) {
+    const left = Math.min(Math.max(GAP, target.left + target.width / 2 - bubble.width / 2), viewport.width - bubble.width - GAP);
+    return { mode: 'float', top: target.top + target.height + GAP, left };
+  }
+  if (target.left + target.width + GAP + bubble.width <= viewport.width - GAP) return { mode: 'float', top: target.top, left: target.left + target.width + GAP };
+  if (target.left - GAP - bubble.width >= GAP) return { mode: 'float', top: target.top, left: target.left - GAP - bubble.width };
+  return { mode: 'dock', top: 0, left: 0 };
 }
 
+export function scrollTargetTop(target: Box, bubbleHeight: number, viewport: { width: number; height: number }, floating: boolean) {
+  const room = viewport.height - HEADER_ROOM - (viewport.width < MOBILE_TOUR_WIDTH ? 300 : 0);
+  const height = target.height + (floating ? GAP + bubbleHeight : 0);
+  const offset = height < room ? (room - height) / 2 : GAP;
+  return Math.max(0, target.top - HEADER_ROOM - offset);
+}

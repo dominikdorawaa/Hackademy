@@ -1,13 +1,16 @@
 @layer components {
 .guided-tour {
-  position: fixed;
-  inset: 0;
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 0;
   z-index: 1000;
   pointer-events: none;
 }
 
 .tour-dim {
-  position: absolute;
+  position: fixed;
   inset: 0;
   background: rgb(5 10 20 / 0.62);
   pointer-events: auto;
@@ -18,28 +21,37 @@
 }
 
 .tour-spotlight {
-  position: fixed;
+  position: absolute;
   border: 3px solid var(--ud-link);
   border-radius: 12px;
-  box-shadow: 0 0 0 9999px rgb(5 10 20 / 0.62), 0 0 0 6px rgb(110 162 255 / 0.25);
+  box-shadow: 0 0 0 200vmax rgb(5 10 20 / 0.62), 0 0 0 6px rgb(110 162 255 / 0.25);
   transition: top 280ms var(--ud-ease), left 280ms var(--ud-ease), width 280ms var(--ud-ease), height 280ms var(--ud-ease);
   pointer-events: none;
 }
 
 .tour-bubble {
-  position: fixed;
+  position: absolute;
   width: min(420px, calc(100vw - 32px));
   pointer-events: auto;
-  transition: top 600ms var(--ud-ease), left 600ms var(--ud-ease);
+  transition: top var(--walk, 1100ms) ease-in-out, left var(--walk, 1100ms) ease-in-out;
 }
 
-.tour-bubble[data-moving='true'] .mascot-bubble-mascot {
-  animation: tour-hop 650ms ease-in-out;
+.tour-bubble .mascot-bubble-box {
+  transition: opacity 220ms ease, scale 220ms ease;
 }
 
-@keyframes tour-hop {
-  0%, 100% { translate: 0 0; }
-  50% { translate: 0 -6px; }
+.tour-bubble[data-moving='true'] .mascot-bubble-box {
+  opacity: 0;
+  scale: 0.92;
+  pointer-events: none;
+}
+
+.tour-bubble .mascot-bubble-mascot {
+  transition: scale 200ms ease;
+}
+
+.tour-bubble[data-facing='left'] .mascot-bubble-mascot {
+  scale: -1 1;
 }
 
 .tour-overall {
@@ -58,6 +70,7 @@
 }
 
 .tour-bubble.is-dock {
+  position: fixed;
   bottom: 16px;
   left: 50%;
   translate: -50% 0;
@@ -89,8 +102,8 @@
   transition: none;
 }
 
-.guided-tour[data-reduced-motion='true'] .mascot-bubble-mascot {
-  animation: none;
+.guided-tour[data-reduced-motion='true'] :is(.mascot-bubble-box, .mascot-bubble-mascot) {
+  transition: none;
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -100,8 +113,9 @@
     transition: none;
   }
 
-  .mascot-bubble-mascot {
-    animation: none;
+  .tour-bubble .mascot-bubble-box,
+  .tour-bubble .mascot-bubble-mascot {
+    transition: none;
   }
 }
 }

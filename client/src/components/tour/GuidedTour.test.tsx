@@ -3,7 +3,7 @@ import { http, HttpResponse } from 'msw';
 import { Outlet, Route } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GuidedTour from './GuidedTour';
-import { placeBubble, TOUR_STEPS } from '../../lib/tour';
+import { placeBubble, scrollTargetTop, TOUR_STEPS } from '../../lib/tour';
 import { TOUR_STEP_KEY } from '../../lib/onboarding';
 import { createToken } from '../../test/fixtures/auth';
 import { onboardingUrl } from '../../test/mocks/handlers';
@@ -145,15 +145,20 @@ it('skips a tile that is missing on the page', async () => {
 
 describe('bubble placement', () => {
   const view = { width: 1280, height: 800 }, bubble = { width: 400, height: 220 };
-  it('goes below, above or beside the target without covering it', () => {
+  it('puts the bubble under a tile that fits with it on screen, or beside a tall one', () => {
     expect(placeBubble({ top: 100, left: 100, width: 300, height: 100 }, bubble, view)).toEqual({ mode: 'float', top: 216, left: 50 });
-    expect(placeBubble({ top: 500, left: 1000, width: 200, height: 200 }, bubble, view)).toEqual({ mode: 'float', top: 264, left: 864 });
+    expect(placeBubble({ top: 900, left: 1000, width: 200, height: 200 }, bubble, view)).toEqual({ mode: 'float', top: 1116, left: 864 });
     expect(placeBubble({ top: 80, left: 40, width: 700, height: 650 }, bubble, view)).toEqual({ mode: 'float', top: 80, left: 756 });
     expect(placeBubble({ top: 80, left: 600, width: 660, height: 650 }, bubble, view)).toEqual({ mode: 'float', top: 80, left: 184 });
   });
   it('docks at the bottom on phones, without a target or when nothing fits', () => {
     expect(placeBubble({ top: 100, left: 10, width: 300, height: 100 }, bubble, { width: 390, height: 844 }).mode).toBe('dock');
-    expect(placeBubble(null, bubble, view)).toEqual({ mode: 'dock', top: 564, left: 16 });
+    expect(placeBubble(null, bubble, view).mode).toBe('dock');
     expect(placeBubble({ top: 40, left: 16, width: 1248, height: 740 }, bubble, view).mode).toBe('dock');
+  });
+  it('scrolls so the tile and its bubble sit in the middle of the screen', () => {
+    expect(scrollTargetTop({ top: 1000, left: 0, width: 300, height: 200 }, 220, view, true)).toBe(1000 - 88 - (800 - 88 - 436) / 2);
+    expect(scrollTargetTop({ top: 1000, left: 0, width: 300, height: 900 }, 220, view, false)).toBe(1000 - 88 - 16);
+    expect(scrollTargetTop({ top: 20, left: 0, width: 300, height: 100 }, 220, { width: 390, height: 844 }, false)).toBe(0);
   });
 });
