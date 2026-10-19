@@ -166,12 +166,11 @@ class UserServiceImplTest {
     }
 
     @Test
-    void portfolioFailsWhenPathTotalIsMissing() {
-        // Pins current behaviour (see #104): getMyPathsProgress treats a null total as 0, the portfolio throws instead.
+    void portfolioTreatsMissingPathTotalAsZero() {
         when(userRepository.findById(1L)).thenReturn(Optional.of(user(1L, "alice")));
         when(pathRepository.findProgressForUsername("alice")).thenReturn(List.of(new Progress(1L, "Pusta", null, null)));
 
-        assertThrows(NullPointerException.class, () -> service.getProfilePortfolio(1L));
+        assertEquals(List.of(), service.getProfilePortfolio(1L).completedPaths());
     }
 
     @Test
