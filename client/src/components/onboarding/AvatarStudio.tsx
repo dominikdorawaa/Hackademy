@@ -72,7 +72,7 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
           aria-selected={tab === item.id} aria-controls={`${id}-panel`} tabIndex={tab === item.id ? 0 : -1}
           onClick={() => onTab(item.id)} onKeyDown={event => moveTab(event, index)}>{item.label}</button>)}
       </div>
-      <fieldset className="studio-options" id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${tab}`} disabled={disabled}>
+      <fieldset className="studio-options color-choices-area" id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${tab}`} disabled={disabled}>
         {tab === 'outfit' && <div className="studio-cards" role="radiogroup" aria-label="Strój">
           {OUTFITS.map(outfit => <label key={outfit.id} className="studio-card" data-selected={avatar.outfit === outfit.id}>
             <input type="radio" name={`${id}-outfit`} checked={avatar.outfit === outfit.id} onChange={() => set({ outfit: outfit.id })} />

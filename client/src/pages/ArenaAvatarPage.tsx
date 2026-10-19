@@ -134,7 +134,7 @@ export default function ArenaAvatarPage() {
           {key === 'hair' && avatar.hat !== 'brak' && avatar.hair !== 'brak' && <p className="avatar-hint">Pod czapką fryzura jest schowana. Zdejmij czapkę, żeby ją zobaczyć.</p>}</fieldset>)}
         </div>
         </div>
-        <div className="avatar-section">
+        <div className="avatar-section color-choices-area">
         <h2>Kolory</h2>
         <div className="avatar-colors">
         {COLOR_GROUPS.map(group => <ColorChoices key={group.key} legend={group.legend} value={avatar.colors[group.key]} options={group.options}

@@ -1,6 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, PointerEvent } from 'react';
-import { Check } from 'lucide-react';
+import { Check, X } from 'lucide-react';
 import { CUSTOM_COLOR, rampFor } from './avatarModel';
 import type { Ramp } from './avatarModel';
 import { colorName, LIGHT_COLORS } from './avatarOptions';
@@ -14,11 +14,15 @@ function ColorWheel({ label, initial, onPick, onClose }: { label: string; initia
   const [hsv, setHsv] = useState(() => hexToHsv(initial));
   const [draft, setDraft] = useState(initial);
   const wheel = useRef<HTMLDivElement>(null);
+  const popover = useRef<HTMLDivElement>(null);
   const dragging = useRef(false);
   const hex = hsvToHex(hsv);
   const id = useId();
 
-  useEffect(() => { wheel.current?.focus(); }, []);
+  useEffect(() => {
+    wheel.current?.focus({ preventScroll: true });
+    popover.current?.scrollIntoView?.({ block: 'start' });
+  }, []);
 
   const commit = (next: Hsv) => { setHsv(next); setDraft(hsvToHex(next)); onPick(hsvToHex(next)); };
   const fromPointer = (event: PointerEvent<HTMLDivElement>) => {
@@ -41,8 +45,12 @@ function ColorWheel({ label, initial, onPick, onClose }: { label: string; initia
   };
   const marker = { left: `${50 + Math.sin(hsv.h * Math.PI / 180) * hsv.s * 50}%`, top: `${50 - Math.cos(hsv.h * Math.PI / 180) * hsv.s * 50}%`, background: hex } as CSSProperties;
 
-  return <div className="color-wheel-popover" role="dialog" aria-label={`${label}: wybierz dowolny kolor`}
+  return <div ref={popover} className="color-wheel-popover" role="dialog" aria-label={`${label}: wybierz dowolny kolor`}
     onKeyDown={event => { if (event.key === 'Escape') { event.preventDefault(); onClose(); } }}>
+    <div className="color-wheel-head">
+      <p>{label}: dowolny kolor</p>
+      <button type="button" className="color-wheel-close" aria-label="Zamknij" onClick={onClose}><X size={18} aria-hidden="true" /></button>
+    </div>
     <div ref={wheel} className="color-wheel" tabIndex={0} role="slider" aria-label="Koło kolorów" aria-valuemin={0} aria-valuemax={359} aria-valuenow={Math.round(hsv.h)}
       aria-valuetext={`Odcień ${Math.round(hsv.h)} stopni, nasycenie ${Math.round(hsv.s * 100)} procent`}
       onKeyDown={keys}

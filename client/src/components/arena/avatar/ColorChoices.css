@@ -1,5 +1,5 @@
 @layer components {
-.color-choices {
+.color-choices-area {
   position: relative;
 }
 
@@ -82,22 +82,53 @@
 
 .color-wheel-popover {
   position: absolute;
+  inset: 0;
   z-index: 20;
-  top: calc(100% + 8px);
-  left: 0;
-  display: grid;
-  gap: 12px;
-  width: min(248px, calc(100vw - 48px));
-  padding: 16px;
-  border: 1px solid var(--ud-track);
-  border-radius: 14px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 16px;
+  padding: 18px;
+  border-radius: inherit;
   background: var(--ud-surface);
-  box-shadow: var(--ud-float-shadow);
+  scroll-margin-top: 200px;
+}
+
+.color-wheel-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  width: 100%;
+}
+
+.color-wheel-head p {
+  margin: 0;
+  font-size: 1rem;
+  font-weight: 800;
+}
+
+.color-wheel-close {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--ud-track);
+  border-radius: 8px;
+  background: var(--ud-surface-2);
+  color: var(--ud-ink);
+  cursor: pointer;
+}
+
+.color-wheel-close:focus-visible {
+  outline: 3px solid var(--ud-link);
+  outline-offset: 2px;
 }
 
 .color-wheel {
   position: relative;
-  width: 100%;
+  width: min(300px, 100%);
+  flex: none;
   aspect-ratio: 1;
   border-radius: 50%;
   background:
@@ -125,6 +156,7 @@
 }
 
 .color-wheel-row {
+  width: min(360px, 100%);
   display: flex;
   align-items: center;
   gap: 10px;
