@@ -14,11 +14,11 @@ permissions:
   contents: read
 
 env:
-  BACKEND_DEPLOY_ENABLED: 'false'
+  BACKEND_DEPLOY_ENABLED: 'true'
   HEROKU_APP: hackademy
-  BACKEND_HEALTH_URL: https://hackademy-6d39a54d38e4.herokuapp.com/health
+  BACKEND_HEALTH_URL: https://api.hackademy.app/health
   PAGES_PROJECT: hackademy
-  VITE_API_URL: https://hackademy-twth.onrender.com
+  VITE_API_URL: https://api.hackademy.app
   WRANGLER_VERSION: 4.151.1
 
 jobs:
@@ -45,7 +45,7 @@ jobs:
           else
             files=$(git diff --name-only "$BEFORE" "$AFTER")
             if grep -qE '^(server/|Dockerfile$|\.dockerignore$|heroku\.yml$)' <<< "$files"; then backend=true; else backend=false; fi
-            if grep -qE '^client/' <<< "$files"; then frontend=true; else frontend=false; fi
+            if grep -qE '^(client/|tools/ukos/)' <<< "$files"; then frontend=true; else frontend=false; fi
           fi
           echo "backend=$backend" >> "$GITHUB_OUTPUT"
           echo "frontend=$frontend" >> "$GITHUB_OUTPUT"
@@ -104,11 +104,13 @@ jobs:
       - uses: actions/checkout@v7
       - uses: actions/setup-node@v4
         with:
-          node-version: '22'
+          node-version: '24'
           cache: npm
           cache-dependency-path: client/package-lock.json
       - name: Install dependencies
         run: npm ci
+      - name: Prepare Linux workshop
+        run: npm run ukos:prepare
       - name: Build
         run: npm run build
       - name: Deploy to Cloudflare Pages

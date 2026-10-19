@@ -62,6 +62,9 @@ public class Path {
     @Column(name = "unlock_mode", nullable = false, length = 16)
     private PathUnlockMode unlockMode = PathUnlockMode.OPEN;
 
+    @Column(name = "system_key", length = 32, updatable = false)
+    private String systemKey;
+
     @CreationTimestamp
     @Column(name = "created_at", nullable = false, updatable = false)
     private LocalDateTime createdAt;

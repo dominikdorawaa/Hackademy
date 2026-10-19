@@ -768,7 +768,7 @@ class RoomServiceImplTest {
         var detail = service.getRoomDetail(1L, "alice");
 
         assertTrue(detail.solved());
-        assertEquals(List.of(11L, 12L), detail.hints().stream().map(HintDto::id).toList());
+        assertEquals(List.of(new HintDto(11L, "Podpowiedź 11"), new HintDto(12L, "Podpowiedź 12")), detail.hints());
         assertEquals(List.of(11L), detail.unlockedHintIds());
         assertEquals(List.of(true, false), detail.tasks().stream().map(RoomTaskDto::completed).toList());
         assertEquals("dump.pcap", detail.fileName());

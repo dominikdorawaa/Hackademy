@@ -2,7 +2,13 @@ target/
 .idea/
 .git/
 *.iml
-client/
+client/node_modules/
+client/dist/
+client/dist-ukos/
+client/prototypes/runtime/
+client/coverage/
+client/test-results/
+client/playwright-report/
 .env
 server/target/
 .env*

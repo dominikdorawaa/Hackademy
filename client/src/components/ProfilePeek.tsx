@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import UserAvatar from './UserAvatar';
+import { LoadingSkeleton, Skeleton } from './common/Skeleton';
 import * as userApi from '../services/userApi';
 import * as friendApi from '../services/friendApi';
 import { levelFromPoints, rankTitleFromPoints } from '../lib/level';
@@ -190,7 +191,10 @@ const ProfilePeek = ({ username, token, isMe = false, className }: ProfilePeekPr
       </Link>
       {open && (
         <span className="ud-peek-card" id={cardId} role="group" aria-label={`Podgląd profilu ${username}`}>
-          {!profile && !failed && <span className="ud-peek-loading">Wczytuję profil…</span>}
+          {!profile && !failed && <LoadingSkeleton as="span" label="Wczytuję profil" className="ud-peek-head">
+            <Skeleton className="ud-peek-avatar" radius="50%" />
+            <span className="ud-peek-who hk-skeleton-pair"><Skeleton width={120} height={16} /><Skeleton width={160} height={12} /></span>
+          </LoadingSkeleton>}
           {failed && <span className="ud-peek-loading">Nie udało się wczytać profilu.</span>}
           {profile && (
             <>

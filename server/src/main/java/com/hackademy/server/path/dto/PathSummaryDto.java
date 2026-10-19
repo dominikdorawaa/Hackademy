@@ -11,5 +11,6 @@ public record PathSummaryDto(
     String bannerUrl,
     boolean hasBanner,
     int roomsCount,
-    boolean enrolled
+    boolean enrolled,
+    String systemKey
 ) {}

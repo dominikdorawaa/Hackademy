@@ -298,3 +298,32 @@ describe('administrative preview', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/5'));
   });
 });
+
+describe('system paths', () => {
+  const system = { ...path, id: 7, title: 'Dyżur Zero', description: 'Prawdziwy terminal.', published: true, chapters: [], systemKey: 'ukos' };
+  it('lists the system path without deletion and opens it read-only', async () => {
+    server.use(
+      http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json([
+        { id: 5, title: 'Web', description: '', bannerUrl: null, hasBanner: false, roomsCount: 1, enrolled: false, published: true, systemKey: null },
+        { id: 7, title: 'Dyżur Zero', description: 'Prawdziwy terminal.', bannerUrl: null, hasBanner: false, roomsCount: 0, enrolled: false, published: true, systemKey: 'ukos' },
+      ])),
+      http.get(`${API_URL}/api/admin/paths/7`, () => HttpResponse.json(system)),
+    );
+    const user = userEvent.setup(); mount('/admin/paths');
+    expect(await screen.findByText('Systemowa')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Usuń Web' })).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Usuń Dyżur Zero' })).not.toBeInTheDocument();
+    await user.click(screen.getByRole('link', { name: 'Zobacz Dyżur Zero' }));
+    expect(await screen.findByText(/Nie można jej edytować ani usunąć w panelu/)).toBeInTheDocument();
+    expect(screen.getByText('Prawdziwy terminal.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Otwórz ścieżkę' })).toHaveAttribute('href', '/learn/ukos');
+    expect(screen.queryByRole('form', { name: 'Edytor ścieżki' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Usuń ścieżkę' })).not.toBeInTheDocument();
+  });
+  it('omits the open action for unknown system paths', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/7`, () => HttpResponse.json({ ...system, description: '', systemKey: 'inna' })));
+    mount('/admin/paths/7');
+    expect(await screen.findByText('Bez opisu')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Otwórz ścieżkę' })).not.toBeInTheDocument();
+  });
+});

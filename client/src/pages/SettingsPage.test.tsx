@@ -54,7 +54,9 @@ describe('settings', () => {
       http.patch(`${API_URL}/api/user/me/notification-preferences`, () => new HttpResponse(null, { status: 500 })),
     );
     mount('notifications');
-    const toggle = screen.getByRole('switch', { name: 'Zaproszenia do znajomych' });
+    expect(screen.getByRole('status', { name: 'Ładowanie preferencji' })).toBeInTheDocument();
+    const toggle = await screen.findByRole('switch', { name: 'Zaproszenia do znajomych' });
+    expect(screen.queryByRole('status', { name: 'Ładowanie preferencji' })).not.toBeInTheDocument();
     await waitFor(() => expect(toggle).toBeEnabled());
     fireEvent.click(toggle);
     await screen.findByText(/Poprzednie ustawienie zostało zachowane/);
@@ -72,7 +74,7 @@ describe('settings', () => {
     }));
     try {
       mount('notifications');
-      const toggle = screen.getByRole('switch', { name: 'Powiadomienia przeglądarkowe' });
+      const toggle = await screen.findByRole('switch', { name: 'Powiadomienia przeglądarkowe' });
       await waitFor(() => expect(toggle).toBeEnabled());
       fireEvent.click(toggle);
       await screen.findByText(/Przeglądarka nie udzieliła zgody/);

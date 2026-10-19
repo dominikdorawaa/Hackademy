@@ -1,7 +1,8 @@
-import { useEffect, useState, useSyncExternalStore } from 'react';
+import { useEffect, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
-import { useTheme } from '../context/ThemeContext';
+import { useReducedMotion } from '../hooks/useReducedMotion';
+import { ArenaLoader } from '../components/arena/ArenaLoader';
 import { useAuth } from '../context/AuthContext';
 import { getCurrentUser, saveAvatar as saveAccountAvatar } from '../services/userApi';
 import { PROFILE_UPDATED } from '../lib/profile';
@@ -54,19 +55,8 @@ function PosePortrait({ avatar }: { avatar: Avatar }) {
   return portrait ? <img className="avatar-pose-image" src={portrait} alt="" /> : <span className="avatar-pose-image" aria-hidden="true" />;
 }
 
-const REDUCED_MOTION_QUERY = '(prefers-reduced-motion: reduce)';
-const subscribeReducedMotion = (onChange: () => void) => {
-  if (typeof window.matchMedia !== 'function') return () => undefined;
-  const query = window.matchMedia(REDUCED_MOTION_QUERY);
-  query.addEventListener('change', onChange);
-  return () => query.removeEventListener('change', onChange);
-};
-const systemReducedMotion = () => typeof window.matchMedia === 'function' && window.matchMedia(REDUCED_MOTION_QUERY).matches;
-
 export default function ArenaAvatarPage() {
-  const { reducedMotion: appReducedMotion } = useTheme();
-  const systemReduced = useSyncExternalStore(subscribeReducedMotion, systemReducedMotion, () => false);
-  const reducedMotion = appReducedMotion || systemReduced;
+  const reducedMotion = useReducedMotion();
   const [avatar, setAvatar] = useState<Avatar>(readAvatar);
   const [saved, setSaved] = useState(() => JSON.stringify(readAvatar()));
   const [preview, setPreview] = useState('front');
@@ -134,7 +124,7 @@ export default function ArenaAvatarPage() {
         <div className="avatar-stage">
           {atlas && active.id === 'front' && atlas.front ? <img className="avatar-front" src={atlas.front} alt="Awatar, widok z przodu" data-reduced-motion={reducedMotion} />
             : atlas ? <AvatarSprite key={active.id} atlas={atlas.atlas} atlasHeight={fighter.atlasHeight} frames={active.frames(fighter)} loop={active.loop} frameTime={active.frameTime} reducedMotion={reducedMotion} label={`Awatar, animacja: ${active.label}`} />
-            : <p role="status">Przygotowuję postać…</p>}
+            : <ArenaLoader label="Przygotowuję postać" avatar={toAvatarConfig(avatar)} className="avatar-stage-loader" />}
         </div>
         <div className="avatar-animations" role="group" aria-label="Animacja podglądu">
           {PREVIEWS.map(item => <button key={item.id} type="button" aria-pressed={item.id === active.id} onClick={() => setPreview(item.id)}>{item.label}</button>)}

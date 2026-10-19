@@ -17,6 +17,8 @@ public interface PathRepository extends JpaRepository<Path, Long> {
     @Query("SELECT p FROM Path p WHERE p.id = :id")
     Optional<Path> findByIdForUpdate(@Param("id") Long id);
 
+    boolean existsByIdAndSystemKeyIsNotNull(Long id);
+
     @Query("SELECT p.unlockMode FROM Path p WHERE p.id = :id")
     Optional<PathUnlockMode> findUnlockModeById(@Param("id") Long id);
 
@@ -28,6 +30,7 @@ public interface PathRepository extends JpaRepository<Path, Long> {
         Boolean getHasBanner();
         Boolean getPublished();
         Integer getRoomsCount();
+        String getSystemKey();
     }
 
     @Query(value = """
@@ -38,6 +41,7 @@ public interface PathRepository extends JpaRepository<Path, Long> {
               p.description AS description,
               p.banner_url AS bannerUrl,
               (p.banner_data IS NOT NULL) AS hasBanner,
+              p.system_key AS systemKey,
               COUNT(r.id) AS roomsCount
             FROM paths p
             LEFT JOIN path_chapters pc ON pc.path_id = p.id
@@ -49,7 +53,7 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             """, nativeQuery = true)
     List<PathListView> findAllListViews();
 
-    @Query(value = "SELECT p.id AS id, p.title AS title, p.description AS description, p.banner_url AS bannerUrl, (p.banner_data IS NOT NULL) AS hasBanner, p.published AS published, COUNT(cr.room_id) AS roomsCount FROM paths p LEFT JOIN path_chapters c ON c.path_id = p.id LEFT JOIN chapter_rooms cr ON cr.chapter_id = c.id GROUP BY p.id ORDER BY p.id", nativeQuery = true)
+    @Query(value = "SELECT p.id AS id, p.title AS title, p.description AS description, p.banner_url AS bannerUrl, (p.banner_data IS NOT NULL) AS hasBanner, p.published AS published, p.system_key AS systemKey, COUNT(cr.room_id) AS roomsCount FROM paths p LEFT JOIN path_chapters c ON c.path_id = p.id LEFT JOIN chapter_rooms cr ON cr.chapter_id = c.id GROUP BY p.id ORDER BY p.id", nativeQuery = true)
     List<PathListView> findAdminListViews();
 
     interface PathProgressView {
@@ -79,7 +83,7 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             LEFT JOIN rooms r ON r.id = pr.room_id AND r.published = true
             LEFT JOIN users u ON u.username = :username
             LEFT JOIN user_solved_rooms usr ON usr.user_id = u.id AND usr.room_id = pr.room_id
-            WHERE p.published = true
+            WHERE p.published = true AND p.system_key IS NULL
             GROUP BY p.id
             ORDER BY p.id
             """, nativeQuery = true)

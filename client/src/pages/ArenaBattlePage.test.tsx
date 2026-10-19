@@ -123,9 +123,9 @@ it('asks before surrendering and reports a failed surrender', async () => {
 
 it('waits for the battle before showing it', async () => {
   realtime.value = { ...realtime.value, state: null };
-  server.use(http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json({ message: 'brak' }, { status: 404 })));
+  server.use(http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json({ message: 'awaria' }, { status: 503 })));
   mount();
-  expect(await screen.findByText('Wczytuję walkę…')).toBeInTheDocument();
+  expect(await screen.findByRole('status', { name: 'Wczytuję walkę' })).not.toHaveAttribute('aria-busy');
   expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
 });
 
@@ -155,7 +155,7 @@ it.each(['server', 'network', 'invalid'] as const)('lets the player retry a fail
   }));
   const view = mount();
   expect(await screen.findByRole('alert')).toHaveTextContent('Walka trwa dalej');
-  expect(screen.queryByText('Wczytuję walkę…')).not.toBeInTheDocument();
+  expect(screen.queryByRole('status', { name: 'Wczytuję walkę' })).not.toBeInTheDocument();
   realtime.value = { ...realtime.value, state: live(createGameSession({ round: 2 })) };
   view.rerender(battle());
   fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
@@ -240,4 +240,23 @@ it('words every refused reaction', () => {
   expect(reactionRefusal(429, {}, now)).toBe('Za szybko. Kolejna reakcja za 1 s.');
   expect(reactionRefusal(404, null, now)).toBe('Ta walka nie jest już dostępna.');
   expect(reactionRefusal(500, null, now)).toBe('Nie udało się wysłać reakcji.');
+});
+
+it('explains that a battle missing after a server restart was cancelled', async () => {
+  realtime.value = { ...realtime.value, state: null };
+  server.use(http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json({ message: 'brak' }, { status: 404 })));
+  mount();
+  expect(await screen.findByText(/Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło\./)).toHaveAttribute('role', 'status');
+  expect(screen.queryByRole('status', { name: 'Wczytuję walkę' })).not.toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
+});
+
+it('shows a battle cancelled by a server restart without a winner', async () => {
+  realtime.value = { ...realtime.value, state: live(createGameSession({
+    status: 'FINISHED', question: null, winnerId: null, finishReason: 'CANCELLED', player1EloChange: 0, player2EloChange: 0,
+  })) };
+  mount();
+  expect(await screen.findByRole('heading', { name: 'Mecz anulowany' })).toBeInTheDocument();
+  expect(screen.getByText('Serwer został zrestartowany w trakcie walki, więc mecz anulowano. Elo się nie zmienia.')).toBeInTheDocument();
+  expect(screen.getByText('0 Elo')).toBeInTheDocument();
 });

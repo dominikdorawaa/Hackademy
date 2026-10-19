@@ -1,6 +1,8 @@
 spring:
   application:
     name: server
+  lifecycle:
+    timeout-per-shutdown-phase: 20s
   datasource:
     url: ${DB_URL}
     username: ${DB_USERNAME}
@@ -23,6 +25,7 @@ spring:
 
 server:
   port: ${PORT:8080}
+  shutdown: graceful
 
 application:
   frontend:

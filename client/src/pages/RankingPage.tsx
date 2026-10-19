@@ -1,6 +1,7 @@
 import * as rankingApi from '../services/rankingApi';
 import React, { useState, useEffect } from 'react';
 import Leaderboard from '../components/Leaderboard';
+import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import { useAuth } from '../context/AuthContext';
 import type { RankingEntry, RankingUser } from '../types/api';
 
@@ -46,7 +47,14 @@ const RankingPage = () => {
     return (
       <div style={{ paddingTop: '40px', paddingBottom: '40px' }} className="hackademy-container">
         <h1 style={{ fontSize: '2.5rem', textAlign: 'center', marginBottom: '40px' }}>Rankingi Graczy</h1>
-        <p style={{ textAlign: 'center' }}>Ładowanie rankingów...</p>
+        <LoadingSkeleton label="Ładowanie rankingów">
+          <div style={{ display: 'flex', flexWrap: 'wrap', gap: '40px', justifyContent: 'center' }}>
+            {[0, 1].map(board => <div key={board} className="hk-skeleton-stack" style={{ flex: '1 1 400px', minWidth: '300px' }}>
+              <Skeleton width="50%" height={26} />
+              {Array.from({ length: 10 }, (_, row) => <Skeleton key={row} height={48} radius={8} />)}
+            </div>)}
+          </div>
+        </LoadingSkeleton>
       </div>
     );
   }

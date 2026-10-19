@@ -32,6 +32,7 @@ public class ContentService {
 
     @Transactional
     public PathAdminDetailDto savePath(Long id, ContentRequests.PathSave request, MultipartFile banner, boolean admin) {
+        if (id != null) pathService.requireEditable(id);
         var validation = new ContentValidation();
         validation.text("title", request.title(), 120, true);
         validation.text("description", request.description(), 20000, request.published());
@@ -201,6 +202,6 @@ public class ContentService {
 
     @Transactional(readOnly = true)
     public List<PathSummaryDto> adminPaths() {
-        return paths.findAdminListViews().stream().map(p -> PathSummaryDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerUrl()).hasBanner(Boolean.TRUE.equals(p.getHasBanner())).published(Boolean.TRUE.equals(p.getPublished())).roomsCount(p.getRoomsCount()).enrolled(false).build()).toList();
+        return paths.findAdminListViews().stream().map(p -> PathSummaryDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerUrl()).hasBanner(Boolean.TRUE.equals(p.getHasBanner())).published(Boolean.TRUE.equals(p.getPublished())).roomsCount(p.getRoomsCount()).enrolled(false).systemKey(p.getSystemKey()).build()).toList();
     }
 }

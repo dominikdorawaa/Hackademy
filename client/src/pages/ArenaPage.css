@@ -1,4 +1,21 @@
 @layer components {
+.arena-pending {
+  display: block;
+}
+
+.arena-pending-error {
+  display: grid;
+  justify-items: start;
+  gap: 16px;
+  min-height: 320px;
+  align-content: center;
+}
+
+.arena-pending-error .arena-error {
+  color: var(--ud-hard);
+  font-weight: 600;
+}
+
 .arena-page .arena-title {
   font-size: var(--ud-display);
   font-weight: 800;
@@ -277,6 +294,22 @@
   display: flex;
   align-items: center;
   gap: 10px;
+}
+
+.arena-search {
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  margin-top: 12px;
+}
+
+.arena-console-copy .arena-search p {
+  margin-top: 0;
+}
+
+.arena-search .arena-search-runner {
+  width: 96px;
+  flex: none;
 }
 
 .arena-pulse {

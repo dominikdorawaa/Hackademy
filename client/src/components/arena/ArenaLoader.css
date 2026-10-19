@@ -1,0 +1,46 @@
+@layer components {
+.arena-loader {
+  display: grid;
+  place-items: center;
+  min-height: 320px;
+  padding: 32px 16px;
+}
+
+.arena-runner {
+  position: relative;
+  display: block;
+  width: 160px;
+}
+
+.arena-runner .avatar-sprite {
+  display: block;
+  width: 100%;
+  aspect-ratio: 1;
+  image-rendering: pixelated;
+}
+
+.arena-runner-ground {
+  display: block;
+  height: 4px;
+  margin-top: -8.75%;
+  border-radius: 2px;
+  background: repeating-linear-gradient(90deg, var(--border-color) 0 16px, transparent 16px 28px);
+  background-size: 28px 100%;
+  animation: arena-runner-ground 0.5s linear infinite;
+}
+
+@keyframes arena-runner-ground {
+  from { background-position: 0 0; }
+  to { background-position: -28px 0; }
+}
+
+.arena-runner[data-still='true'] .arena-runner-ground {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-runner-ground {
+    animation: none;
+  }
+}
+}

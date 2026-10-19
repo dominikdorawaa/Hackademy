@@ -7,6 +7,7 @@ import Arena from '../components/Arena';
 import Rooms from '../components/Rooms';
 import Leaderboard from '../components/Leaderboard';
 import Newsletter from '../components/Newsletter';
+import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 
 /** Przykładowy ranking na landing — bez wywołań do API. */
 const STATIC_LANDING_LEADERBOARD = [
@@ -25,40 +26,18 @@ const HomePage = () => {
     }
   }, [isAuthenticated, loading, navigate]);
 
-  if (loading) {
+  if (loading || isAuthenticated) {
     return (
-      <div style={{
-        paddingTop: '40px',
-        paddingBottom: '40px',
-        minHeight: '50vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#0a0e1a',
-        color: 'white'
-      }}>
-        <div className="hackademy-container">
-          <p style={{ textAlign: 'center', fontSize: '1.2rem' }}>Ładowanie...</p>
-        </div>
-      </div>
-    );
-  }
-
-  if (isAuthenticated) {
-    return (
-      <div style={{
-        paddingTop: '40px',
-        paddingBottom: '40px',
-        minHeight: '50vh',
-        display: 'flex',
-        alignItems: 'center',
-        justifyContent: 'center',
-        backgroundColor: '#0a0e1a',
-        color: 'white'
-      }}>
-        <div className="hackademy-container">
-          <p style={{ textAlign: 'center', fontSize: '1.2rem' }}>Przekierowywanie do dashboardu...</p>
-        </div>
+      <div className="hackademy-container" style={{ paddingTop: '64px', paddingBottom: '64px', minHeight: '50vh' }}>
+        <LoadingSkeleton label={loading ? 'Ładowanie strony' : 'Przekierowuję do dashboardu'} className="hk-skeleton-stack is-centered">
+          <Skeleton width="min(560px, 90%)" height={48} />
+          <Skeleton width="min(420px, 70%)" height={18} />
+          <Skeleton width="min(360px, 60%)" height={18} />
+          <div className="hk-skeleton-row">
+            <Skeleton width={160} height={44} radius={8} />
+            <Skeleton width={160} height={44} radius={8} />
+          </div>
+        </LoadingSkeleton>
       </div>
     );
   }

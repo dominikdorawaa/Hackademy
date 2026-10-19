@@ -10,10 +10,12 @@ import com.hackademy.server.user.UserServiceImpl;
 import com.hackademy.server.user.dto.UserAvatarDto;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
+import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.Arrays;
+import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
@@ -34,6 +36,7 @@ class ArenaBattleServiceTest {
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
             mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
     private final AtomicLong now = new AtomicLong(10_000);
+    private final Map<Long, User> players = new HashMap<>();
     private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod");
 
     @BeforeEach
@@ -44,6 +47,7 @@ class ArenaBattleServiceTest {
             user.setId(id);
             user.setUsername("player" + id);
             user.setElo(500);
+            players.put(id, user);
             when(users.findById(id)).thenReturn(Optional.of(user));
         }
         when(questions.findRandom(anyInt())).thenReturn(BattleEngineTest.questions(10));
@@ -110,7 +114,7 @@ class ArenaBattleServiceTest {
         assertEquals("KNOCKOUT", finished.getFinishReason());
         assertEquals(16, finished.getPlayer2EloChange());
         assertEquals(-16, finished.getPlayer1EloChange());
-        verify(users, times(2)).save(any(User.class));
+        verify(users).saveAll(List.of(players.get(2L), players.get(1L)));
         assertNull(arena.findActiveGameForUser(1L));
     }
 
@@ -127,7 +131,7 @@ class ArenaBattleServiceTest {
         assertNull(finished.getWinnerId());
         assertEquals("ROUNDS", finished.getFinishReason());
         assertEquals(0, finished.getPlayer1EloChange());
-        verify(users, never()).save(any(User.class));
+        verify(users, never()).saveAll(any());
     }
 
     @Test
@@ -161,7 +165,7 @@ class ArenaBattleServiceTest {
     void surrenderGivesTheWinToTheRivalOnlyForParticipants() {
         assertEquals(SurrenderResult.NOT_PLAYER, arena.surrenderGame("game", 3L));
         assertEquals("ACTIVE", state().getStatus());
-        verify(users, never()).save(any());
+        verify(users, never()).saveAll(any());
         assertEquals(SurrenderResult.SURRENDERED, arena.surrenderGame("game", 1L));
         assertEquals("SURRENDER", state().getFinishReason());
         assertEquals(2L, state().getWinnerId());
@@ -242,5 +246,73 @@ class ArenaBattleServiceTest {
         arena.surrenderGame("game", 1L);
         assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 2L, "gg").status());
         assertEquals("FINISHED", state().getStatus());
+    }
+
+    @Test
+    void shuttingDownCancelsActiveBattlesWithoutChangingElo() {
+        clearInvocations(realtime);
+        arena.cancelActiveGames();
+        var cancelled = state();
+        assertEquals("FINISHED", cancelled.getStatus());
+        assertEquals("CANCELLED", cancelled.getFinishReason());
+        assertNull(cancelled.getWinnerId());
+        assertEquals(0, cancelled.getPlayer1EloChange());
+        assertEquals(0, cancelled.getPlayer2EloChange());
+        verify(users, never()).saveAll(any());
+        verify(realtime).changed(1L, 2L);
+        assertNull(arena.findActiveGameForUser(1L));
+    }
+
+    @Test
+    void shuttingDownLeavesSettledBattlesUntouched() {
+        assertEquals(SurrenderResult.SURRENDERED, arena.surrenderGame("game", 1L));
+        arena.cancelActiveGames();
+        assertEquals("SURRENDER", state().getFinishReason());
+        assertEquals(2L, state().getWinnerId());
+        verify(users, times(1)).saveAll(any());
+    }
+
+    @Test
+    void noBattleStartsWhileShuttingDown() {
+        arena.cancelActiveGames();
+        var late = new GameSession();
+        late.setId("late");
+        late.setPlayer1Id(1L);
+        late.setPlayer2Id(2L);
+        var error = assertThrows(IllegalStateException.class, () -> arena.addGame(late));
+        assertEquals(ArenaServiceImpl.SHUTTING_DOWN, error.getMessage());
+        assertNull(arena.getGameSession("late"));
+    }
+
+    @Test
+    void acceptingAChallengeWhileShuttingDownIsRefused() {
+        var challenge = arena.createChallenge(1L, "player1", 2L, "player2");
+        arena.cancelActiveGames();
+        var error = assertThrows(IllegalStateException.class, () -> arena.acceptChallenge(challenge.getId(), 2L));
+        assertEquals(ArenaServiceImpl.SHUTTING_DOWN, error.getMessage());
+        assertEquals("PENDING", challenge.getStatus());
+    }
+
+    @Test
+    void closingTheApplicationCancelsActiveBattles() {
+        var context = new AnnotationConfigApplicationContext();
+        context.registerBean(ArenaQuestionRepository.class, () -> questions);
+        context.registerBean(FriendshipRepository.class, () -> mock(FriendshipRepository.class));
+        context.registerBean(UserRepository.class, () -> users);
+        context.registerBean(UserAvatarRepository.class, () -> avatars);
+        context.registerBean(UserServiceImpl.class, () -> mock(UserServiceImpl.class));
+        context.registerBean(DashboardSummaryCache.class, () -> mock(DashboardSummaryCache.class));
+        context.registerBean(RealtimeNotifier.class, () -> realtime);
+        context.registerBean(ArenaPresence.class, () -> presence);
+        context.registerBean(ArenaServiceImpl.class);
+        context.refresh();
+        var service = context.getBean(ArenaServiceImpl.class);
+        var game = new GameSession();
+        game.setId("live");
+        game.setPlayer1Id(1L);
+        game.setPlayer2Id(2L);
+        service.addGame(game);
+        context.close();
+        assertEquals("CANCELLED", service.getGameSession("live").getFinishReason());
     }
 }

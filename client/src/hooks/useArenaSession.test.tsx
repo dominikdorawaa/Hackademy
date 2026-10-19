@@ -17,9 +17,9 @@ describe('displayed arena game', () => {
     const finished = { ...game('a', 'FINISHED'), winnerId: 1, finishReason: 'KNOCKOUT' as const, hp: { 1: 60, 2: 0 } };
     rerender({ live: finished });
     rerender({ live: game('b') });
-    await waitFor(() => expect(result.current).toEqual(finished));
+    await waitFor(() => expect(result.current.session).toEqual(finished));
     rerender({ live: game('c') });
-    expect(result.current).toEqual(finished);
+    expect(result.current.session).toEqual(finished);
   });
 
   it('never overwrites live state with a delayed initial HTTP snapshot', async () => {
@@ -35,18 +35,61 @@ describe('displayed arena game', () => {
     rerender({ live: finished });
     rerender({ live: game('b') });
     await act(async () => release?.());
-    expect(result.current).toEqual(finished);
+    expect(result.current.session).toEqual(finished);
   });
 
   it('loads historical games and hides data from the previous account', async () => {
     server.use(http.get(`${API_URL}/api/arena/game/a`, () => HttpResponse.json(game('a', 'FINISHED'))));
     const { result, rerender } = renderHook(({ token }) => useArenaSession('a', token, null),
       { initialProps: { token: 'first' as string | null } });
-    await waitFor(() => expect(result.current?.status).toBe('FINISHED'));
+    await waitFor(() => expect(result.current.session?.status).toBe('FINISHED'));
     rerender({ token: null });
-    expect(result.current).toBeNull();
+    expect(result.current.session).toBeNull();
     rerender({ token: 'second' });
-    expect(result.current).toBeNull();
-    await waitFor(() => expect(result.current?.status).toBe('FINISHED'));
+    expect(result.current.session).toBeNull();
+    await waitFor(() => expect(result.current.session?.status).toBe('FINISHED'));
+  });
+
+  it('reports a missing game instead of waiting forever', async () => {
+    server.use(http.get(`${API_URL}/api/arena/game/a`, () => HttpResponse.json({ message: 'brak' }, { status: 404 })));
+    const { result } = renderHook(() => useArenaSession('a', 'token', null));
+    await waitFor(() => expect(result.current).toEqual({ session: null, missing: true }));
+  });
+
+  it('notices a game that disappeared while the player was reconnecting', async () => {
+    let status = 200;
+    server.use(http.get(`${API_URL}/api/arena/game/a`, () => status === 200
+      ? HttpResponse.json(game()) : HttpResponse.json({ message: 'brak' }, { status })));
+    const { result, rerender } = renderHook(({ live }) => useArenaSession('a', 'token', live),
+      { initialProps: { live: game() as GameSession | null } });
+    expect(result.current).toEqual({ session: game(), missing: false });
+    status = 404;
+    rerender({ live: null });
+    await waitFor(() => expect(result.current.missing).toBe(true));
+    expect(result.current.session).toBeNull();
+    rerender({ live: game() });
+    expect(result.current).toEqual({ session: game(), missing: false });
+  });
+
+  it('shows the game again when the server finds it after a miss', async () => {
+    let status = 404;
+    server.use(http.get(`${API_URL}/api/arena/game/a`, () => status === 200
+      ? HttpResponse.json(game('a', 'FINISHED')) : HttpResponse.json({ message: 'brak' }, { status })));
+    const { result, rerender } = renderHook(({ token }) => useArenaSession('a', token, null),
+      { initialProps: { token: 'first' } });
+    await waitFor(() => expect(result.current.missing).toBe(true));
+    status = 200;
+    rerender({ token: 'second' });
+    await waitFor(() => expect(result.current.session?.status).toBe('FINISHED'));
+    expect(result.current.missing).toBe(false);
+  });
+
+  it('keeps the last state when the server is temporarily unavailable', async () => {
+    server.use(http.get(`${API_URL}/api/arena/game/a`, () => HttpResponse.json({ message: 'awaria' }, { status: 503 })));
+    const { result, rerender } = renderHook(({ live }) => useArenaSession('a', 'token', live),
+      { initialProps: { live: game() as GameSession | null } });
+    rerender({ live: null });
+    await new Promise(resolve => setTimeout(resolve, 20));
+    expect(result.current).toEqual({ session: game(), missing: false });
   });
 });

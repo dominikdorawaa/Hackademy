@@ -12,6 +12,7 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.Clock;
+import java.time.LocalDate;
 import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.List;
@@ -83,13 +84,9 @@ public class BadgeServiceImpl implements BadgeService {
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new com.hackademy.server.exception.UserNotFoundException("User not found"));
-        long streak = user.getStreak();
-        if (user.getLastSolvedDate() != null && user.getLastSolvedDate().isBefore(java.time.LocalDate.now(clock).minusDays(1))) {
-            streak = 0;
-        }
         Map<String, Long> currentValues = Map.of(
                 "POINTS", (long) user.getPoints(),
-                "STREAK", streak,
+                "STREAK", effectiveStreak(user),
                 "SOLVED_COUNT", userSolvedRoomRepository.countByUser_Id(userId),
                 "FRIENDS_COUNT", friendshipRepository.countByUserIdAndStatus(userId, FriendshipStatus.ACCEPTED));
 
@@ -139,7 +136,7 @@ public class BadgeServiceImpl implements BadgeService {
                     }
                     break;
                 case "STREAK":
-                    if (user.getStreak() >= badge.getConditionValue()) {
+                    if (effectiveStreak(user) >= badge.getConditionValue()) {
                         earned = true;
                     }
                     break;
@@ -182,6 +179,15 @@ public class BadgeServiceImpl implements BadgeService {
             dashboardSummaryCache.invalidateUser(user.getId());
         }
         return newBadges;
+    }
+
+    // A streak not extended since the day before yesterday has expired, even though the stored value is kept.
+    private long effectiveStreak(User user) {
+        LocalDate lastSolved = user.getLastSolvedDate();
+        if (lastSolved != null && lastSolved.isBefore(LocalDate.now(clock).minusDays(1))) {
+            return 0;
+        }
+        return user.getStreak();
     }
 
     private BadgeProgressDto progressFor(Badge badge, boolean earned, Map<String, Long> currentValues) {

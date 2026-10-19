@@ -1,0 +1,382 @@
+:root {
+  font-family: Archivo, Inter, system-ui, sans-serif;
+  color: #e7edf6;
+  background: #101824;
+  font-synthesis: none;
+}
+* {
+  box-sizing: border-box;
+}
+body {
+  margin: 0;
+}
+button,
+a {
+  -webkit-tap-highlight-color: transparent;
+}
+button {
+  font: inherit;
+  cursor: pointer;
+  border: 0;
+  border-radius: 6px;
+  padding: 10px 14px;
+  background: #253246;
+  color: #e7edf6;
+}
+button:hover {
+  background: #31425c;
+}
+button:disabled {
+  opacity: 0.4;
+  cursor: default;
+}
+button:focus-visible,
+a:focus-visible,
+summary:focus-visible {
+  outline: 2px solid #75aeff;
+  outline-offset: 4px;
+}
+.ukos-prototype {
+  max-width: 1520px;
+  margin: auto;
+  padding: 0 36px 32px;
+  font-variant-numeric: tabular-nums;
+}
+.ukos-header {
+  height: 80px;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+}
+.ukos-brand {
+  text-decoration: none;
+  color: #fff;
+  font-weight: 800;
+  font-size: 20px;
+  letter-spacing: -0.6px;
+}
+.ukos-brand span {
+  font-weight: 400;
+  color: #91a1b8;
+  margin-left: 8px;
+  font-size: 15px;
+  letter-spacing: 0;
+}
+.ukos-tag {
+  background: #233148;
+  color: #b5cff5;
+  padding: 6px 10px;
+  border-radius: 4px;
+  font-size: 12px;
+}
+.ukos-intro {
+  padding: 32px 0;
+  max-width: 930px;
+}
+.ukos-eyebrow {
+  color: #91a1b8;
+  font-size: 12px;
+  font-weight: 600;
+}
+h1 {
+  font-size: clamp(30px, 4vw, 48px);
+  line-height: 1.1;
+  letter-spacing: -1.5px;
+  margin: 16px 0;
+}
+h1 span {
+  display: block;
+  color: #91a1b8;
+  font-weight: 500;
+  font-size: 0.7em;
+  margin-top: 10px;
+  letter-spacing: -1px;
+}
+h2 {
+  font-size: 25px;
+  line-height: 1.2;
+  margin: 16px 0;
+  letter-spacing: -0.5px;
+}
+p {
+  line-height: 1.6;
+  color: #b5c2d4;
+}
+.ukos-prototype-note {
+  font-size: 13px;
+  color: #91a1b8;
+  max-width: 720px;
+}
+.ukos-workspace {
+  display: grid;
+  grid-template-columns: minmax(280px, 340px) minmax(0, 1fr);
+  gap: 24px;
+  align-items: start;
+}
+.ukos-lesson {
+  background: #172438;
+  border-radius: 6px;
+  padding: 26px;
+  min-height: 550px;
+}
+.ukos-progress {
+  display: flex;
+  justify-content: space-between;
+  gap: 12px;
+  font-size: 13px;
+  color: #b5c2d4;
+}
+progress {
+  display: block;
+  width: 100%;
+  height: 5px;
+  margin: 14px 0 32px;
+  border: 0;
+  background: #293c57;
+  border-radius: 4px;
+}
+progress::-webkit-progress-bar {
+  background: #293c57;
+  border-radius: 4px;
+}
+progress::-webkit-progress-value {
+  background: #61a2ff;
+  border-radius: 4px;
+}
+progress::-moz-progress-bar {
+  background: #61a2ff;
+}
+.ukos-help {
+  font-size: 12px;
+  color: #91a1b8;
+}
+.ukos-text-button {
+  padding: 8px 0;
+  background: transparent;
+  color: #8fbcff;
+  font-size: 13px;
+}
+.ukos-text-button:hover {
+  background: transparent;
+  text-decoration: underline;
+}
+.ukos-hint {
+  background: #223752;
+  color: #d9e6f8;
+  border-radius: 4px;
+  padding: 12px;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ukos-step-list {
+  padding: 24px 0 0;
+  margin: 24px 0 0;
+  list-style: none;
+  display: grid;
+  gap: 16px;
+}
+.ukos-step-list li {
+  display: flex;
+  gap: 12px;
+  color: #91a1b8;
+  font-size: 12px;
+}
+.ukos-step-list li span {
+  width: 18px;
+  flex-shrink: 0;
+  color: #90abc9;
+}
+.ukos-step-list li[aria-current] {
+  color: #fff;
+  font-weight: 600;
+}
+.ukos-terminal-panel {
+  position: relative;
+  background: #0b1220;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.ukos-terminal-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #1c293c;
+  font-size: 12px;
+  color: #9cafc8;
+}
+.ukos-terminal-bar i {
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: #6e7c91;
+  margin-right: 8px;
+}
+.ukos-terminal-bar i[data-status="ready"] {
+  background: #61d6b3;
+}
+.ukos-terminal-bar i[data-status="error"] {
+  background: #ff8989;
+}
+.ukos-terminal {
+  height: 480px;
+  overflow: hidden;
+}
+.ukos-terminal .xterm {
+  height: 100%;
+  box-sizing: border-box;
+  padding: 16px 8px 8px 16px;
+}
+.ukos-controls {
+  display: flex;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 12px;
+  padding: 14px 18px;
+  background: #152033;
+  font-size: 11px;
+  color: #91a1b8;
+  min-height: 62px;
+}
+.ukos-controls div {
+  display: flex;
+  gap: 6px;
+}
+.ukos-controls button {
+  padding: 8px 10px;
+  font-size: 12px;
+}
+.ukos-start {
+  position: absolute;
+  top: 46px;
+  left: 0;
+  right: 0;
+  height: 480px;
+  display: grid;
+  place-items: center;
+  padding: 36px;
+}
+.ukos-start > div {
+  max-width: 400px;
+}
+.ukos-start h2 {
+  font-size: 32px;
+}
+.ukos-primary {
+  background: #0b63ff;
+  color: #fff;
+  min-height: 48px;
+  padding: 12px 20px;
+  margin-top: 12px;
+  font-weight: 600;
+}
+.ukos-primary:hover {
+  background: #2678ff;
+}
+.ukos-primary span {
+  margin-left: 24px;
+}
+.ukos-loading,
+.ukos-error,
+.ukos-warning {
+  padding: 12px 18px;
+  color: #bfd3f0;
+  background: #233754;
+  font-size: 13px;
+  line-height: 1.5;
+}
+.ukos-error,
+.ukos-warning {
+  background: #40252d;
+  color: #ffb1b1;
+}
+.ukos-diagnostics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 24px;
+  margin: 32px 0;
+  padding: 24px;
+  background: #172234;
+  border-radius: 6px;
+}
+.ukos-diagnostics span {
+  display: block;
+  font-size: 12px;
+  color: #91a1b8;
+  margin-bottom: 8px;
+}
+.ukos-diagnostics strong {
+  font-size: 20px;
+  font-weight: 600;
+}
+.ukos-test-controls {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  align-items: start;
+  gap: 16px;
+  font-size: 13px;
+}
+.ukos-test-controls p {
+  font-size: 12px;
+}
+.ukos-test-controls button + button {
+  margin-left: 8px;
+}
+.ukos-debug {
+  margin: 20px 0;
+  padding: 16px 0;
+  font-size: 12px;
+  color: #91a1b8;
+}
+.ukos-debug summary {
+  cursor: pointer;
+}
+.ukos-debug pre {
+  color: #b5c2d4;
+  overflow: auto;
+}
+.ukos-footer {
+  font-size: 12px;
+  color: #7f91aa;
+  line-height: 1.5;
+  padding-top: 20px;
+}
+@media (max-width: 1000px) {
+  .ukos-workspace {
+    grid-template-columns: 1fr;
+  }
+  .ukos-lesson {
+    min-height: auto;
+  }
+  .ukos-step-list {
+    display: none;
+  }
+}
+@media (max-width: 600px) {
+  .ukos-prototype {
+    padding: 0 16px 24px;
+  }
+  .ukos-diagnostics {
+    grid-template-columns: 1fr 1fr;
+    padding: 16px;
+    gap: 20px;
+  }
+  .ukos-brand span {
+    display: none;
+  }
+  .ukos-terminal-bar > span:last-child {
+    display: none;
+  }
+  .ukos-terminal {
+    height: 360px;
+  }
+  .ukos-start {
+    height: 360px;
+    padding: 24px;
+  }
+}

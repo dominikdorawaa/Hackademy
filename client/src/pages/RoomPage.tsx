@@ -8,7 +8,9 @@ import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
 import './RoomPage.css';
+import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import type { RoomDetailDto } from '../types/api';
+import { useRoomReturn } from '../hooks/useRoomReturn';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
@@ -46,6 +48,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
   const queryParams = new URLSearchParams(location.search);
+  const roomReturn = useRoomReturn(preview ? undefined : id, location.search, token);
 
   const handleUnlockHint = (hintId: number) => {
     if (preview) { setUnlockedHints(current => [...current, hintId]); return; }
@@ -210,7 +213,21 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     }
   };
 
-  if (loading) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Ładowanie pokoju...</div>;
+  if (loading) return <div className="room-page-container hackademy-container">
+    <LoadingSkeleton label="Ładowanie pokoju" className="hk-skeleton-stack is-loose">
+      <Skeleton height={8} radius={4} />
+      <div className="hk-skeleton-stack">
+        <Skeleton width={110} height={20} />
+        <div className="hk-skeleton-row"><Skeleton width={70} height={24} radius={999} /><Skeleton width={70} height={24} radius={999} /></div>
+        <Skeleton width="min(520px, 80%)" height={36} />
+        <Skeleton width="min(360px, 60%)" height={16} />
+      </div>
+      <div className="hk-skeleton-stack">
+        <Skeleton height={180} radius={12} />
+        {[0, 1, 2].map(row => <Skeleton key={row} height={64} radius={12} />)}
+      </div>
+    </LoadingSkeleton>
+  </div>;
   if (error) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
   if (!room) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
 
@@ -235,8 +252,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       )}
 
       <div className="room-header">
-        <button onClick={() => navigate(preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : '/learn')} className="back-btn">
-            &larr; Powrót
+        <button type="button" disabled={!preview && roomReturn.pending} aria-busy={!preview && roomReturn.pending} onClick={() => navigate(preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : roomReturn.to)} className="back-btn">
+            <span aria-hidden="true">&larr;</span> {preview ? 'Powrót' : roomReturn.label}
         </button>
         <div className="room-meta-top">
              <span className={`difficulty-badge ${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>

@@ -114,7 +114,7 @@ export interface GameSession {
   startTime: ApiDateTime
   status: 'ACTIVE' | 'FINISHED'
   winnerId: number | null
-  finishReason: 'KNOCKOUT' | 'ROUNDS' | 'SURRENDER' | 'DISCONNECT' | null
+  finishReason: 'KNOCKOUT' | 'ROUNDS' | 'SURRENDER' | 'DISCONNECT' | 'CANCELLED' | null
   player1EloChange: number | null
   player2EloChange: number | null
   round: number
@@ -219,6 +219,7 @@ export interface PathSummaryDto {
   hasBanner: boolean
   roomsCount: number
   enrolled: boolean
+  systemKey?: string | null
 }
 
 export interface PathProgressDto {
@@ -271,6 +272,7 @@ export interface PathAdminDetailDto {
   revision: number
   unlockMode?: PathUnlockMode
   chapters: PathChapterAdminDto[]
+  systemKey?: string | null
 }
 
 export interface ChapterRequest {

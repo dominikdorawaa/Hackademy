@@ -19,6 +19,7 @@ import com.hackademy.server.room.RoomType;
 import com.hackademy.server.room.UserSolvedRoomRepository;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.user.UserRepository;
+import org.junit.jupiter.api.function.Executable;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
@@ -74,18 +75,18 @@ class PathServiceImplTest {
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
         when(pathEnrollmentRepository.findPathIdsByUserId(1L)).thenReturn(Set.of(2L));
         when(pathRepository.findAllListViews()).thenReturn(List.of(
-                new ListView(1L, "Web", "Opis", "https://img", false, true, 3),
-                new ListView(2L, "Linux", null, "https://unused", true, null, null)));
+                new ListView(1L, "Web", "Opis", "https://img", false, true, 3, null),
+                new ListView(2L, "Linux", null, "https://unused", true, null, null, "ukos")));
 
         var paths = service.listPaths("alice");
 
-        assertEquals(new PathSummaryDto(1L, true, "Web", "Opis", "https://img", false, 3, false), paths.get(0));
-        assertEquals(new PathSummaryDto(2L, false, "Linux", null, "/api/paths/2/banner", true, 0, true), paths.get(1));
+        assertEquals(new PathSummaryDto(1L, true, "Web", "Opis", "https://img", false, 3, false, null), paths.get(0));
+        assertEquals(new PathSummaryDto(2L, false, "Linux", null, "/api/paths/2/banner", true, 0, true, "ukos"), paths.get(1));
     }
 
     @Test
     void anonymousUserIsNotEnrolledAnywhere() {
-        when(pathRepository.findAllListViews()).thenReturn(List.of(new ListView(1L, "Web", null, null, null, true, 1)));
+        when(pathRepository.findAllListViews()).thenReturn(List.of(new ListView(1L, "Web", null, null, null, true, 1, null)));
 
         assertFalse(service.listPaths(null).get(0).enrolled());
         verifyNoInteractions(userRepository, pathEnrollmentRepository);
@@ -237,9 +238,8 @@ class PathServiceImplTest {
 
         service.unenrollUser(5L, "alice");
 
+        verify(visibility).requirePath(5L);
         verify(pathEnrollmentRepository).deleteByUserIdAndPathId(1L, 5L);
-        // Unlike enrollUser and isEnrolled, unenrolling does not check path visibility (see #104).
-        verifyNoInteractions(visibility);
     }
 
     @Test
@@ -348,7 +348,7 @@ class PathServiceImplTest {
 
         var created = service.createPath(new CreatePathRequest("Web", "Opis", "https://img", List.of(17L, 3L)));
 
-        assertEquals(new PathSummaryDto(5L, false, "Web", "Opis", "https://img", false, 2, false), created);
+        assertEquals(new PathSummaryDto(5L, false, "Web", "Opis", "https://img", false, 2, false, null), created);
         var path = ArgumentCaptor.forClass(Path.class);
         verify(pathRepository).save(path.capture());
         assertFalse(path.getValue().isPublished());
@@ -423,13 +423,43 @@ class PathServiceImplTest {
 
     @Test
     void deletesExistingPath() {
-        when(pathRepository.existsById(5L)).thenReturn(true, false);
+        var path = path(5L, "Web");
+        when(pathRepository.findById(5L)).thenReturn(Optional.of(path), Optional.empty());
 
         service.deletePath(5L);
-        verify(pathRepository).deleteById(5L);
+        verify(pathRepository).delete(path);
         assertNull(dashboards.getIfFresh(1L), "dashboards show the removed path until refreshed");
 
         assertThrows(IllegalArgumentException.class, () -> service.deletePath(5L));
+    }
+
+    @Test
+    void systemPathCannotBeChangedOrDeleted() {
+        var path = path(9L, "Dyżur Zero");
+        path.setSystemKey("ukos");
+        when(pathRepository.findById(9L)).thenReturn(Optional.of(path));
+        when(pathRepository.findByIdForUpdate(9L)).thenReturn(Optional.of(path));
+        when(pathRepository.existsByIdAndSystemKeyIsNotNull(9L)).thenReturn(true);
+        var banner = new MockMultipartFile("file", "a.png", "image/png", new byte[] { 1 });
+
+        for (Executable change : List.<Executable>of(
+                () -> service.deletePath(9L),
+                () -> service.requireEditable(9L),
+                () -> service.updatePathMeta(9L, new UpdatePathMetaRequest("Nowa", null, null)),
+                () -> service.updatePathChapters(9L, new UpdatePathChaptersRequest(0L, List.of()), true),
+                () -> service.uploadBanner(9L, banner))) {
+            var error = assertThrows(ResponseStatusException.class, change);
+            assertEquals(HttpStatus.FORBIDDEN, error.getStatusCode());
+        }
+        verify(pathRepository, never()).delete(any(Path.class));
+        verify(pathRepository, never()).save(any());
+        assertEquals("ukos", service.getAdminDetail(9L).systemKey());
+    }
+
+    @Test
+    void requireEditableIgnoresRegularAndMissingPaths() {
+        service.requireEditable(5L);
+        verify(pathRepository).existsByIdAndSystemKeyIsNotNull(5L);
     }
 
     @Test
@@ -642,7 +672,7 @@ class PathServiceImplTest {
     }
 
     private record ListView(Long getId, String getTitle, String getDescription, String getBannerUrl,
-                            Boolean getHasBanner, Boolean getPublished, Integer getRoomsCount)
+                            Boolean getHasBanner, Boolean getPublished, Integer getRoomsCount, String getSystemKey)
             implements PathRepository.PathListView {}
 
     private record ProgressView(Long getId, String getTitle, String getDescription, String getBannerUrl,

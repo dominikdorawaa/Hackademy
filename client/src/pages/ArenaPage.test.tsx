@@ -3,12 +3,14 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
 import API_URL from '../apiConfig';
-import { AuthProvider } from '../context/AuthContext';
+import { AuthProvider, useAuth } from '../context/AuthContext';
 import { createToken, createUser } from '../test/fixtures/auth';
 import { currentUserUrl } from '../test/mocks/handlers';
 import { server } from '../test/mocks/server';
 import type { RealtimeState } from '../types/realtime';
 import { createGameSession } from '../test/fixtures/arena';
+import { DEFAULT_AVATAR, toAvatarConfig } from '../components/arena/avatar/avatarModel';
+import { AVATAR_ATLASES } from '../components/arena/avatar/fighters';
 import ArenaPage from './ArenaPage';
 
 const realtime = vi.hoisted(() => ({ value: { state: null as RealtimeState | null, connected: true, error: null, synchronize: vi.fn(async () => {}) } }));
@@ -157,6 +159,66 @@ it('keeps players at 400 XP locked because the server requires 500', async () =>
   expect(screen.getByRole('heading', { name: 'Arena od 500 XP' })).toBeInTheDocument();
 });
 
+it('runs the player avatar while the account loads and offers a retry when it fails', async () => {
+  let failing = true;
+  let releaseFailure!: () => void;
+  let releaseRetry!: () => void;
+  const failure = new Promise<void>(resolve => { releaseFailure = resolve; });
+  const retry = new Promise<void>(resolve => { releaseRetry = resolve; });
+  server.use(http.get(currentUserUrl, async () => {
+    if (failing) { await failure; return HttpResponse.json({ message: 'awaria' }, { status: 503 }); }
+    await retry;
+    return HttpResponse.json({ ...createUser(), points: 900 });
+  }));
+  mount();
+  const loader = screen.getByRole('status', { name: 'Ładowanie Areny' });
+  expect(loader.querySelector('.avatar-sprite')).not.toBeNull();
+  releaseFailure();
+  expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się wczytać Twojego konta.');
+  expect(screen.queryByRole('status', { name: 'Ładowanie Areny' })).not.toBeInTheDocument();
+  failing = false;
+  fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+  expect(await screen.findByRole('status', { name: 'Ładowanie Areny' })).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Spróbuj ponownie' })).not.toBeInTheDocument();
+  releaseRetry();
+  expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
+});
+
+it('drops the old account error while a new session loads the Arena', async () => {
+  const second = createToken('USER', Math.floor(Date.now() / 1000) + 7200);
+  let releaseSecond!: () => void;
+  const pending = new Promise<void>(resolve => { releaseSecond = resolve; });
+  server.use(http.get(currentUserUrl, async ({ request }) => {
+    if (request.headers.get('Authorization') !== `Bearer ${second}`) return HttpResponse.json({ message: 'awaria' }, { status: 503 });
+    await pending;
+    return HttpResponse.json({ ...createUser(), points: 900 });
+  }));
+  const SwitchAccount = () => { const { login } = useAuth(); return <button type="button" onClick={() => login(second)}>Przełącz konto</button>; };
+  render(<MemoryRouter><AuthProvider><SwitchAccount /><ArenaPage /></AuthProvider></MemoryRouter>);
+  expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się wczytać Twojego konta.');
+  fireEvent.click(screen.getByRole('button', { name: 'Przełącz konto' }));
+  expect(await screen.findByRole('status', { name: 'Ładowanie Areny' })).toBeInTheDocument();
+  expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  releaseSecond();
+  expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
+});
+
+it('shows placeholder rows while friends load', async () => {
+  let release!: () => void;
+  const gate = new Promise<void>(resolve => { release = resolve; });
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+    http.get(`${API_URL}/api/friends`, async () => { await gate; return HttpResponse.json([]); }),
+  );
+  mount();
+  const rows = await screen.findByRole('status', { name: 'Wczytuję znajomych' });
+  expect(rows.querySelectorAll('.ud-friend')).toHaveLength(3);
+  release();
+  expect(await screen.findByText(/Nie masz jeszcze znajomych/)).toBeInTheDocument();
+  expect(screen.queryByRole('status', { name: 'Wczytuję znajomych' })).not.toBeInTheDocument();
+});
+
 it('shows loading states, then a confirmed empty record separately from an unavailable one', async () => {
   let releaseRank!: () => void;
   let releaseStats!: () => void;
@@ -175,4 +237,38 @@ it('shows loading states, then a confirmed empty record separately from an unava
   expect(await screen.findByText('Jeszcze bez pojedynku')).toBeInTheDocument();
   releaseRank();
   expect(await screen.findByText('Nie udało się wczytać Elo')).toBeInTheDocument();
+});
+
+it('runs the player avatar while searching for an opponent and keeps the status announced', async () => {
+  realtime.value = { ...realtime.value, state: state({ queued: true }) };
+  server.use(http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900, avatar: toAvatarConfig({ ...DEFAULT_AVATAR, outfit: 'dres' }) })));
+  mount();
+  const waiting = await screen.findByText('Szukanie przeciwnika...');
+  expect(waiting).toHaveAttribute('role', 'status');
+  const runner = document.querySelector('.arena-search .arena-runner')!;
+  expect(runner).toHaveAttribute('aria-hidden', 'true');
+  expect(runner.querySelector('image')).toHaveAttribute('href', AVATAR_ATLASES.dres.atlas);
+  expect(screen.getByRole('button', { name: 'Anuluj' })).toBeEnabled();
+});
+
+it('does not show the runner when the player is not searching', async () => {
+  server.use(http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })));
+  mount();
+  expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
+  expect(document.querySelector('.arena-runner')).toBeNull();
+});
+
+it('starts running as soon as the player asks to join the queue', async () => {
+  let releaseJoin: () => void = () => {};
+  const joined = new Promise<void>(resolve => { releaseJoin = resolve; });
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+    http.post(`${API_URL}/api/arena/join`, async () => { await joined; return HttpResponse.json({ message: 'ok' }); }),
+  );
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: 'Znajdź przeciwnika' }));
+  expect(await screen.findByText('Dołączanie do kolejki...')).toHaveAttribute('role', 'status');
+  expect(document.querySelector('.arena-search .arena-runner')).toHaveAttribute('aria-hidden', 'true');
+  expect(screen.getByRole('button', { name: 'Anuluj' })).toBeDisabled();
+  releaseJoin();
 });

@@ -8,6 +8,8 @@ import com.hackademy.server.user.UserAvatarRepository;
 import com.hackademy.server.user.UserRepository;
 import com.hackademy.server.user.UserServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.event.ContextClosedEvent;
+import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
@@ -32,6 +34,7 @@ public class ArenaServiceImpl implements ArenaService {
     static final long REACTION_WINDOW_MILLIS = 10_000;
     static final int REACTION_WINDOW_LIMIT = 5;
     static final int REACTIONS_KEPT = 8;
+    static final String SHUTTING_DOWN = "Arena jest chwilowo niedostępna. Spróbuj ponownie za chwilę.";
 
     private final ArenaQuestionRepository questionRepository;
     private final FriendshipRepository friendshipRepository;
@@ -47,6 +50,7 @@ public class ArenaServiceImpl implements ArenaService {
     private final Map<Long, Deque<Long>> recentReactions = new ConcurrentHashMap<>();
     private final AtomicLong reactionIds = new AtomicLong();
     private LongSupplier clock = System::currentTimeMillis;
+    private volatile boolean closing;
 
     void useClock(LongSupplier clock) {
         this.clock = clock;
@@ -54,6 +58,7 @@ public class ArenaServiceImpl implements ArenaService {
 
     @Override
     public void addGame(GameSession session) {
+        if (closing) throw new IllegalStateException(SHUTTING_DOWN);
         prepareBattle(session);
         activeGames.put(session.getId(), session);
         realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
@@ -136,6 +141,16 @@ public class ArenaServiceImpl implements ArenaService {
         }
     }
 
+    @EventListener(ContextClosedEvent.class)
+    public void cancelActiveGames() {
+        closing = true;
+        for (GameSession session : activeGames.values()) {
+            synchronized (session) {
+                if ("ACTIVE".equals(session.getStatus())) finish(session, null, "CANCELLED");
+            }
+        }
+    }
+
     private void finish(GameSession session, Long winnerId, String reason) {
         if ("FINISHED".equals(session.getStatus())) return;
         session.setStatus("FINISHED");
@@ -155,8 +170,7 @@ public class ArenaServiceImpl implements ArenaService {
         User winner = winnerOpt.get();
         User loser = loserOpt.get();
         updateElo(winner, loser, session);
-        userRepository.save(winner);
-        userRepository.save(loser);
+        userRepository.saveAll(List.of(winner, loser));
         userServiceImpl.invalidateUserComputedCaches(winnerId);
         userServiceImpl.invalidateUserComputedCaches(loserId);
         userServiceImpl.invalidateGlobalRankingCache();
@@ -274,6 +288,7 @@ public class ArenaServiceImpl implements ArenaService {
             if (challenges.get(challengeId) != challenge || !challenge.getTargetId().equals(userId) || !"PENDING".equals(challenge.getStatus())) {
                 throw new IllegalArgumentException("Invalid challenge");
             }
+            if (closing) throw new IllegalStateException(SHUTTING_DOWN);
             User challenger = userRepository.findById(challenge.getChallengerId()).orElse(null);
             User target = userRepository.findById(challenge.getTargetId()).orElse(null);
             if (challenger == null || target == null) {

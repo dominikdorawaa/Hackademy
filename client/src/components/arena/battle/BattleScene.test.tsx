@@ -57,12 +57,17 @@ it('waits for both atlases before starting the exchange and HP loss', () => {
   const session = exchange({ 1: 0, 2: 20 });
   const view = render(scene(session));
   expect(screen.getByRole('region', { name: 'Arena walki' })).toHaveAttribute('aria-busy', 'true');
+  const loader = screen.getByRole('status', { name: 'Przygotowuję postacie' });
+  expect(loader).toHaveClass('arena-loader', 'battle-stage-loading');
+  expect(loader.querySelector('.avatar-sprite image')).toHaveAttribute('href', '/assets/arena/avatar-v1/fighter.png');
+  expect(screen.queryByRole('img', { name: 'Twój awatar, tester' })).not.toBeInTheDocument();
   expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
   advance(2000);
   expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
   assets.ready = true;
   view.rerender(scene(session));
   expect(screen.getByRole('region', { name: 'Arena walki' })).toHaveAttribute('aria-busy', 'false');
+  expect(screen.queryByRole('status', { name: 'Przygotowuję postacie' })).not.toBeInTheDocument();
   expect(fighter()).toHaveAttribute('data-frames', '10,11,12,13,14,15,16,17');
   advance(900);
   expect(fighter('rival')).toHaveAttribute('data-frames', '37,38,39,40');

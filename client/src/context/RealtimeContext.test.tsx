@@ -129,7 +129,7 @@ describe('shared realtime state', () => {
     render(<MemoryRouter><AuthProvider><RealtimeProvider><FriendsPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
     act(() => connections[0].callbacks.ready());
     expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się pobrać danych');
-    expect(screen.queryByText('Ładowanie...')).not.toBeInTheDocument();
+    expect(screen.queryByRole('status', { name: 'Wczytuję znajomych' })).not.toBeInTheDocument();
     successful = true;
     fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
     await waitFor(() => expect(screen.queryByRole('alert')).not.toBeInTheDocument());
