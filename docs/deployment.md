@@ -132,9 +132,8 @@ Dla usuniętego `/api/auth` nie ma i nie dodajemy żadnej reguły. Logowanie obs
 | HTML, głębokie linki SPA, favikony, logotypy, `/assets/*`, `robots.txt`, `sitemap.xml`, `/prototypes/runtime/*` | `public, max-age=0, must-revalidate`; przeglądarka sprawdza ETag przy każdym wejściu, więc po wdrożeniu dostaje nowe pliki |
 | `api.hackademy.app` | reguła cache `cache: false`; odpowiedzi nigdy nie trafiają do cache Cloudflare |
 
-- Pages łączy nagłówki wszystkich pasujących reguł `_headers`, a powtórzony nagłówek skleja przecinkiem. Reguła `/static/*` najpierw odłącza wartość z `/*` (`! Cache-Control`), więc pliki z `/static/` mają jedną politykę. Pilnuje tego test `client/src/lib/pagesHeaders.test.ts`.
-- `/*` dodaje też `X-Content-Type-Options: nosniff`. CSP nie dodajemy, bo wymaga osobnego sprawdzenia z Clerkiem.
-- Strefa ma Browser Cache TTL 4 h, które może podnieść `max-age=0` plików statycznych. Reguła cache dla `hackademy.app` ustawia `browser_ttl: respect_origin`, żeby obowiązywał `_headers`.
+- `_headers` ustawia tylko politykę `/static/*`. Pozostałe pliki dostają domyślny nagłówek Pages `public, max-age=0, must-revalidate` razem z ETag i `X-Content-Type-Options: nosniff`. Treść `_headers` sprawdza test `client/tests/pages-config.test.mjs`.
+- Strefa ma Browser Cache TTL 4 h, które może podnieść `max-age=0` plików statycznych. Reguła cache dla `hackademy.app` ustawia `browser_ttl: respect_origin`, żeby obowiązywały nagłówki z Pages.
 - Strefa ma poziom cache aggressive, więc bez reguły Cloudflare mógłby zapisać odpowiedź API, której adres kończy się rozszerzeniem z domyślnej listy, np. plik VPN albo chroniony plik pokoju, i podać ją innemu użytkownikowi. `cache: false` wyłącza cache całej domeny API niezależnie od nagłówków backendu (`Cache-Control: no-store`). WebSocket i SockJS (`/ws`) zawsze trafiają do backendu.
 
 ### Ustawienia ochrony

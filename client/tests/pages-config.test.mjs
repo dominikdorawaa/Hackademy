@@ -10,10 +10,7 @@ test('Cloudflare Pages serves the SPA for every route', async () => {
 
 test('only hashed build files get a long immutable cache', async () => {
   const headers = await readFile('public/_headers', 'utf8')
-  assert.equal(
-    headers,
-    '/*\n  Cache-Control: public, max-age=0, must-revalidate\n  X-Content-Type-Options: nosniff\n\n/static/*\n  ! Cache-Control\n  Cache-Control: public, max-age=31536000, immutable\n',
-  )
+  assert.equal(headers, '/static/*\n  Cache-Control: public, max-age=31536000, immutable\n')
   assert.equal(viteConfig.build.assetsDir, 'static')
 })
 
