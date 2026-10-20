@@ -34,9 +34,15 @@ export default function NavbarFriends() {
 
   return (
     <div ref={rootRef} className="nav-friends">
-      <NavIconButton data-slot="nav-friends" aria-label={label} aria-expanded={open} onClick={() => setOpen(!open)}>
+      <NavIconButton data-slot="nav-friends" className="nav-friends-toggle" aria-label={label} aria-expanded={open}
+        onClick={() => setOpen(!open)}>
         <Users aria-hidden="true" />
-        {online.length > 0 && <span className="nav-friends-count" aria-hidden="true">{online.length}</span>}
+        {online.length > 0 && (
+          <span className="nav-friends-count" aria-hidden="true">
+            <span className="presence-dot" />
+            {online.length}
+          </span>
+        )}
       </NavIconButton>
       {open && (
         <div className="nav-friends-dropdown" role="group" aria-label="Znajomi online">
