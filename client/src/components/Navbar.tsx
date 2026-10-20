@@ -9,6 +9,7 @@ import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import { useFriendOnlineFeed } from '../context/FriendOnlineFeedContext';
+import { formatRelativeTimePL } from '../lib/relativeTime';
 import type { Challenge, FriendRequestDto } from '../types/api';
 import './Navbar.css';
 import '../styles/presence.css';
@@ -22,7 +23,6 @@ type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
   | { id: string; type: 'CHALLENGE'; from: string; timestamp: string; data: Challenge };
 
-const formatOnlineTime = (at: number) => new Date(at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
 const Navbar = () => {
   const { isAuthenticated, logout, sessionKey, loading, user: userData } = useAuth();
@@ -89,6 +89,14 @@ const Navbar = () => {
 
   // Online entries count as read once the visitor has seen the open bell.
   const wasNotificationsOpen = useRef(false);
+  // "5 min temu" has to keep counting while the bell stays open.
+  const [now, setNow] = useState(() => Date.now());
+  useEffect(() => {
+    if (!isNotificationsOpen) return;
+    setNow(Date.now());
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000);
+    return () => window.clearInterval(timer);
+  }, [isNotificationsOpen]);
   useEffect(() => {
     if (wasNotificationsOpen.current && !isNotificationsOpen) markAllRead();
     wasNotificationsOpen.current = isNotificationsOpen;
@@ -333,7 +341,7 @@ const Navbar = () => {
                                             <span className="notification-online-text">
                                                 <strong>{entry.username}</strong> jest online
                                             </span>
-                                            <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{formatOnlineTime(entry.at)}</time>
+                                            <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{formatRelativeTimePL(entry.at, now)}</time>
                                             <button type="button" className="notification-online-close"
                                                 aria-label={`Zamknij powiadomienie: ${entry.username} jest online`}
                                                 onClick={() => onlineFeed.dismiss(entry.id)}>

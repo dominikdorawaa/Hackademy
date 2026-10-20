@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ChevronDown, Search, Swords, UserPlus, Users, X } from 'lucide-react';
+import { Check, ChevronDown, Search, UserPlus, Users, X } from 'lucide-react';
+import { SwordIcon } from '@phosphor-icons/react/dist/csr/Sword';
 import UserAvatar from './UserAvatar';
 import NavIconButton from './NavIconButton';
 import { useAuth } from '../context/AuthContext';
@@ -190,9 +191,9 @@ export default function NavbarFriends() {
                     const pending = busy.includes(`request:${request.id}`);
                     return (
                       <PersonRow key={request.id} username={request.requesterUsername} avatar={request.avatar} onNavigate={close}>
-                        <button type="button" className="nav-friends-icon is-accept" disabled={pending}
-                          aria-label={`Przyjmij zaproszenie od ${request.requesterUsername}`} title="Przyjmij"
-                          onClick={() => accept(request.id)}><Check aria-hidden="true" /></button>
+                        <button type="button" className="nav-friends-action is-accept" disabled={pending}
+                          aria-label={`Przyjmij zaproszenie od ${request.requesterUsername}`}
+                          onClick={() => accept(request.id)}><Check aria-hidden="true" />Przyjmij</button>
                         <button type="button" className="nav-friends-icon" disabled={pending}
                           aria-label={`Odrzuć zaproszenie od ${request.requesterUsername}`} title="Odrzuć"
                           onClick={() => reject(request.id)}><X aria-hidden="true" /></button>
@@ -217,10 +218,10 @@ export default function NavbarFriends() {
                       {challenged.has(friend.username) ? (
                         <span className="nav-friends-state">Wysłano</span>
                       ) : (
-                        <button type="button" className="nav-friends-icon is-challenge"
+                        <button type="button" className="nav-friends-action is-challenge"
                           disabled={busy.includes(`challenge:${friend.username}`)}
-                          aria-label={`Wyzwij ${friend.username} na pojedynek`} title="Wyzwij na pojedynek"
-                          onClick={() => challenge(friend.username)}><Swords aria-hidden="true" /></button>
+                          aria-label={`Wyzwij ${friend.username} na pojedynek`}
+                          onClick={() => challenge(friend.username)}><SwordIcon weight="bold" aria-hidden="true" />Wyzwij</button>
                       )}
                     </PersonRow>
                   ))}
@@ -266,16 +267,16 @@ export default function NavbarFriends() {
                           <span className="nav-friends-state">Wysłano</span>
                         ) : player.friendshipStatus === 'REQUEST_RECEIVED' ? (
                           receivedFrom.get(player.username) !== undefined ? (
-                            <button type="button" className="nav-friends-icon is-accept"
+                            <button type="button" className="nav-friends-action is-accept"
                               disabled={busy.includes(`request:${receivedFrom.get(player.username)}`)}
-                              aria-label={`Przyjmij zaproszenie od ${player.username}`} title="Przyjmij"
-                              onClick={() => accept(receivedFrom.get(player.username)!)}><Check aria-hidden="true" /></button>
+                              aria-label={`Przyjmij zaproszenie od ${player.username}`}
+                              onClick={() => accept(receivedFrom.get(player.username)!)}><Check aria-hidden="true" />Przyjmij</button>
                           ) : <span className="nav-friends-state">Zaprasza Cię</span>
                         ) : (
-                          <button type="button" className="nav-friends-icon"
+                          <button type="button" className="nav-friends-action"
                             disabled={busy.includes(`invite:${player.username}`)}
-                            aria-label={`Dodaj ${player.username} do znajomych`} title="Dodaj do znajomych"
-                            onClick={() => invite(player.username)}><UserPlus aria-hidden="true" /></button>
+                            aria-label={`Dodaj ${player.username} do znajomych`}
+                            onClick={() => invite(player.username)}><UserPlus aria-hidden="true" />Dodaj</button>
                         )}
                       </PersonRow>
                     ))}

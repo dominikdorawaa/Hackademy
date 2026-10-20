@@ -156,9 +156,12 @@
 
 .nav-friends-row-actions { display: flex; flex: none; align-items: center; gap: 4px; }
 
-.nav-friends-icon {
-  display: grid;
-  place-items: center;
+.nav-friends-icon,
+.nav-friends-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5px;
   width: 30px;
   height: 30px;
   padding: 0;
@@ -170,12 +173,25 @@
   transition: color 120ms ease-out, border-color 120ms ease-out, background-color 120ms ease-out;
 }
 
-.nav-friends-icon svg { width: 16px; height: 16px; }
-.nav-friends-icon:hover:not(:disabled) { border-color: var(--text-gray); color: var(--text-light); }
-.nav-friends-icon.is-challenge:hover:not(:disabled) { border-color: var(--primary-blue); background: var(--primary-blue); color: #fff; }
-.nav-friends-icon.is-accept:hover:not(:disabled) { border-color: var(--presence-online); color: var(--presence-online); }
-.nav-friends-icon:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 1px; }
-.nav-friends-icon:disabled { opacity: 0.5; cursor: progress; }
+.nav-friends-action {
+  width: auto;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.nav-friends-icon svg,
+.nav-friends-action svg { flex: none; width: 15px; height: 15px; }
+.nav-friends-icon:hover:not(:disabled),
+.nav-friends-action:hover:not(:disabled) { border-color: var(--text-gray); color: var(--text-light); }
+.nav-friends-action.is-challenge:hover:not(:disabled) { border-color: var(--primary-blue); background: var(--primary-blue); color: #fff; }
+.nav-friends-action.is-accept:hover:not(:disabled) { border-color: var(--presence-online); color: var(--presence-online); }
+.nav-friends-icon:focus-visible,
+.nav-friends-action:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 1px; }
+.nav-friends-icon:disabled,
+.nav-friends-action:disabled { opacity: 0.5; cursor: progress; }
 
 .nav-friends-state { color: var(--text-gray); font-size: 0.8rem; white-space: nowrap; }
 
@@ -195,10 +211,12 @@
 @media (prefers-reduced-motion: reduce) {
   .nav-friends-dropdown { animation: none; }
   .nav-friends-icon,
+  .nav-friends-action,
   .nav-friends-section svg { transition: none; }
 }
 
 @media (max-width: 767px) {
   .nav-friends-icon { width: 40px; height: 40px; }
+  .nav-friends-action { height: 40px; }
   .navbar .nav-friends-dropdown { position: fixed; top: 72px; right: 8px; bottom: 8px; left: 8px; width: auto; max-height: none; }
 }
