@@ -16,8 +16,15 @@
   margin: 0;
 }
 
-.user-dashboard :where(h1, h2, button) {
+.user-dashboard :where(h1, h2) {
+  font-family: var(--font-heading);
+}
+
+.user-dashboard :where(button) {
   font-family: inherit;
+}
+
+.user-dashboard :where(h1, h2, button) {
   color: inherit;
   letter-spacing: normal;
 }
@@ -100,6 +107,7 @@
 }
 
 .ud-greet {
+  font-family: inherit;
   color: var(--ud-hero-muted);
   font-size: 1.0625rem;
   font-weight: 600;
