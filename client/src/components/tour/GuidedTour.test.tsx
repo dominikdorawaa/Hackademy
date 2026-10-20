@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { Outlet, Route } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GuidedTour from './GuidedTour';
+import { DANCE_MS } from '../mascot/Mascot';
 import { placeBubble, scrollTargetTop, TOUR_STEPS } from '../../lib/tour';
 import { TOUR_STEP_KEY } from '../../lib/onboarding';
 import { createToken } from '../../test/fixtures/auth';
@@ -95,29 +96,17 @@ describe('guided tour', () => {
     expect(dialog()).toBeInTheDocument();
   });
 
-  it('lets Bit dance when clicked and on the last step', async () => {
-    renderWithAuth(routes, '/dashboard');
-    const bit = await screen.findByRole('button', { name: 'Pingwin Bit, zatańcz' });
-    const mood = () => bit.querySelector('.mascot')?.getAttribute('data-mood');
-    await waitFor(() => expect(mood()).toBe('talk'));
-    fireEvent.click(bit);
-    expect(mood()).toBe('groove');
-    fireEvent.click(bit);
-    expect(mood()).toBe('sixseven');
-  });
-
-  it('dances through every move at the end of the tour', async () => {
+  it('lets Bit dance the Scuba when clicked', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
-      sessionStorage.setItem(TOUR_STEP_KEY, String(TOUR_STEPS.length - 1));
-      renderWithAuth(routes, '/profile');
+      renderWithAuth(routes, '/dashboard');
       const bit = await screen.findByRole('button', { name: 'Pingwin Bit, zatańcz' });
       const mood = () => bit.querySelector('.mascot')?.getAttribute('data-mood');
-      await waitFor(() => expect(mood()).toBe('groove'));
-      await act(async () => { await vi.advanceTimersByTimeAsync(3300); });
-      expect(mood()).toBe('sixseven');
-      await act(async () => { await vi.advanceTimersByTimeAsync(3300); });
+      await waitFor(() => expect(mood()).toBe('talk'));
+      fireEvent.click(bit);
       expect(mood()).toBe('scuba');
+      await act(async () => { await vi.advanceTimersByTimeAsync(DANCE_MS + 100); });
+      expect(mood()).toBe('talk');
     } finally {
       vi.useRealTimers();
     }

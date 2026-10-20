@@ -10,8 +10,7 @@ import type { Avatar } from '../components/arena/avatar/avatarModel';
 import { PROFILE_UPDATED } from '../lib/profile';
 import { AvatarStudio } from '../components/onboarding/AvatarStudio';
 import type { StudioTab } from '../components/onboarding/AvatarStudio';
-import { Mascot, MASCOT_DANCE_NAMES } from '../components/mascot/Mascot';
-import { useMascotDance } from '../components/mascot/useMascotDance';
+import { Mascot } from '../components/mascot/Mascot';
 import { MascotBubble } from '../components/mascot/MascotBubble';
 import './UserDashboardPage.css';
 import './OnboardingPage.css';
@@ -28,7 +27,6 @@ export default function OnboardingPage() {
   const { update } = useOnboarding();
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
-  const dancing = useMascotDance(reducedMotion);
   const [step, setStep] = useState<'welcome' | 'studio'>('welcome');
   const [tab, setTab] = useState<StudioTab>('outfit');
   const [account, setAccount] = useState<{ username: string; avatar: Avatar } | null>(null);
@@ -82,11 +80,8 @@ export default function OnboardingPage() {
         <p className="onboarding-step">Krok 1 z 2</p>
         <h1 ref={heading} tabIndex={-1} className="onboarding-title">Witaj w Hackademy{account ? `, ${account.username}` : ''}!</h1>
         <div className="onboarding-welcome-scene">
-          <button type="button" className="mascot-dance-button" aria-label="Pingwin Bit, zatańcz" onClick={dancing.start}>
-            <Mascot mood={dancing.dance ?? 'calm'} scale={4} still={reducedMotion} className="onboarding-welcome-mascot" />
-          </button>
+          <Mascot mood="calm" scale={4} still={reducedMotion} className="onboarding-welcome-mascot" />
         </div>
-        {!reducedMotion && <p className="onboarding-dance-hint">Kliknij Bita, a zatańczy{dancing.dance ? `: ${MASCOT_DANCE_NAMES[dancing.dance]}` : ''}.</p>}
         <MascotBubble id="onboarding-welcome" title="Cześć! Jestem Bit." mood="talk" still={reducedMotion} mascot={false}
           actions={<button type="button" className="ud-btn ud-btn-solid" onClick={() => setStep('studio')}>Stwórzmy Twojego awatara</button>}>
           <p>Będę Twoim przewodnikiem po Hackademy. Uczysz się tu cyberbezpieczeństwa w ścieżkach, rozwiązujesz zadania i walczysz w Arenie.</p>

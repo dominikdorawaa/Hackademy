@@ -10,8 +10,6 @@ import { ONBOARDING_PATH, TOUR_STEP_KEY } from '../../lib/onboarding';
 import { placeBubble, scrollTargetTop, TOUR_STEPS } from '../../lib/tour';
 import type { Box } from '../../lib/tour';
 import { MascotBubble } from '../mascot/MascotBubble';
-import { MASCOT_DANCES } from '../mascot/Mascot';
-import { useMascotDance } from '../mascot/useMascotDance';
 import './GuidedTour.css';
 
 const MISSING_MS = 2500;
@@ -36,8 +34,6 @@ export default function GuidedTour() {
   const location = useLocation();
   const navigate = useNavigate();
   const reducedMotion = useReducedMotion();
-  const dancing = useMascotDance(reducedMotion);
-  const [finale, setFinale] = useState(0);
   const [step, setStep] = useState(readStep);
   const [box, setBox] = useState<(Box & { step: number }) | null>(null);
   const [moving, setMoving] = useState(false);
@@ -151,13 +147,6 @@ export default function GuidedTour() {
   }, [moving, walk]);
 
 
-  const lastStep = step === TOUR_STEPS.length - 1;
-  useEffect(() => {
-    if (!active || !lastStep || reducedMotion) return;
-    const tick = setInterval(() => setFinale(index => index + 1), 3200);
-    return () => clearInterval(tick);
-  }, [active, lastStep, reducedMotion]);
-
   const finish = useCallback(async (result: 'COMPLETED' | 'SKIPPED') => {
     if (!sessionKey || saving) return;
     setSaving(result);
@@ -199,7 +188,7 @@ export default function GuidedTour() {
     <div className={spotlight ? 'tour-dim has-spotlight' : 'tour-dim'} aria-hidden="true" />
     {spotlight && <div className="tour-spotlight" style={spotlight as CSSProperties} aria-hidden="true" data-testid="tour-spotlight" />}
     <div className={`tour-bubble is-${place.mode}`} data-moving={walking} data-facing={walk.flip ? 'left' : 'right'} style={place.mode === 'float' && shown ? { top: shown.top, left: shown.left, '--walk': `${walk.ms}ms` } as CSSProperties : undefined} onKeyDown={keys}>
-      <MascotBubble ref={bubble} id="tour" role="dialog" title={current.title} mood={walking && !reducedMotion ? walk.mood : dancing.dance ?? (lastStep && !reducedMotion ? MASCOT_DANCES[finale % MASCOT_DANCES.length] : 'talk')} onMascotClick={reducedMotion ? undefined : dancing.start} still={reducedMotion}
+      <MascotBubble ref={bubble} id="tour" role="dialog" title={current.title} mood={walking && !reducedMotion ? walk.mood : 'talk'} still={reducedMotion}
         actions={<>
           <span className="tour-progress">{current.page} · {pageIndex + 1} z {pageSteps.length}</span>
           <button type="button" className="ud-btn ud-btn-small" onClick={() => go(-1)} disabled={step === 0 || !!saving}>Wstecz</button>

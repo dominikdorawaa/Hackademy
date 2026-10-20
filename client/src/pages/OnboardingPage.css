@@ -32,12 +32,6 @@
   text-align: center;
 }
 
-.onboarding-dance-hint {
-  margin: -8px 0 0;
-  color: var(--ud-muted);
-  font-size: var(--ud-text-s);
-}
-
 .onboarding-welcome-scene {
   display: grid;
   place-items: center;

@@ -1,25 +1,33 @@
+import { useEffect, useState } from 'react';
 import { PixelSprite } from '../PixelSprite';
 import type { SpriteSheet } from '../PixelSprite';
 import './Mascot.css';
 
-export type MascotDance = 'groove' | 'sixseven' | 'scuba';
-export type MascotMood = 'idle' | 'talk' | 'wave' | 'calm' | 'walkFront' | 'walkSide' | 'walkBack' | MascotDance;
+export type MascotMood = 'idle' | 'talk' | 'wave' | 'calm' | 'walkFront' | 'walkSide' | 'walkBack' | 'scuba';
 
-export const MASCOT_DANCES: MascotDance[] = ['groove', 'sixseven', 'scuba'];
-export const MASCOT_DANCE_NAMES: Record<MascotDance, string> = { groove: 'Luz', sixseven: 'Six-seven', scuba: 'Scuba' };
-
-const sheet = (file: string, frames = 8): SpriteSheet => ({ src: `/assets/mascot/penguin-${file}.png`, frames, width: 58, height: 60 });
+const sheet = (file: string, frames = 8): SpriteSheet => ({ src: `/assets/mascot/penguin-${file}.png`, frames, width: 58, height: 59 });
 export const MASCOT_SPRITES: Record<MascotMood, SpriteSheet> = {
   idle: sheet('idle'), talk: sheet('talk'), wave: sheet('wave'), calm: sheet('calm', 10),
   walkFront: sheet('walk-front', 16), walkSide: sheet('walk-side', 16), walkBack: sheet('walk-back', 16),
-  groove: sheet('dance-groove', 16), sixseven: sheet('dance-sixseven', 16), scuba: sheet('dance-scuba', 16),
+  scuba: sheet('dance-scuba', 16),
 };
-const DURATION: Record<MascotMood, number> = { idle: 1400, talk: 900, wave: 1000, calm: 4000, walkFront: 960, walkSide: 960, walkBack: 960, groove: 1600, sixseven: 1600, scuba: 1600 };
-
-export const mascotDuration = (mood: MascotMood) => DURATION[mood];
+const DURATION: Record<MascotMood, number> = { idle: 1400, talk: 900, wave: 1000, calm: 4000, walkFront: 960, walkSide: 960, walkBack: 960, scuba: 1760 };
+export const DANCE_LOOPS = 2;
+export const DANCE_MS = DURATION.scuba * DANCE_LOOPS;
 
 export function Mascot({ mood = 'idle', scale = 2, still = false, className }: { mood?: MascotMood; scale?: number; still?: boolean; className?: string }) {
-  return <span className={className ? `mascot ${className}` : 'mascot'} data-mood={mood}>
-    <PixelSprite key={mood} sprite={MASCOT_SPRITES[mood]} scale={scale} duration={DURATION[mood]} still={still} />
+  const [dancing, setDancing] = useState(false);
+
+  useEffect(() => {
+    if (!dancing) return;
+    const stop = setTimeout(() => setDancing(false), DANCE_MS);
+    return () => clearTimeout(stop);
+  }, [dancing]);
+
+  const shown = dancing && !still ? 'scuba' : mood;
+  const sprite = <span className={className ? `mascot ${className}` : 'mascot'} data-mood={shown}>
+    <PixelSprite key={shown} sprite={MASCOT_SPRITES[shown]} scale={scale} duration={DURATION[shown]} still={still} />
   </span>;
+  if (still) return sprite;
+  return <button type="button" className="mascot-dance-button" aria-label="Pingwin Bit, zatańcz" onClick={() => setDancing(true)}>{sprite}</button>;
 }

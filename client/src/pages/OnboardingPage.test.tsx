@@ -12,6 +12,7 @@ import { server } from '../test/mocks/server';
 import { renderWithAuth } from '../test/renderWithAuth';
 import OnboardingPage from './OnboardingPage';
 import { PROFILE_UPDATED } from '../lib/profile';
+import { DANCE_MS } from '../components/mascot/Mascot';
 
 vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
   useAvatarAtlas: () => ({ atlas: 'blob:atlas', front: 'blob:front' }),
@@ -112,21 +113,18 @@ it('is reachable from the API helper for the tour too', async () => {
   expect(status).toEqual({ status: 'SKIPPED' });
 });
 
-it('lets Bit dance on the welcome screen and then calm down again', async () => {
+it('lets Bit dance the Scuba on the welcome screen and then calm down again', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   try {
     renderWithAuth(routes, '/witaj');
     const bit = await screen.findByRole('button', { name: 'Pingwin Bit, zatańcz' });
     const mood = () => bit.querySelector('.mascot')?.getAttribute('data-mood');
     expect(mood()).toBe('calm');
-    expect(screen.getByText('Kliknij Bita, a zatańczy.')).toBeInTheDocument();
+    expect(screen.queryByText(/Kliknij Bita/)).toBeNull();
     fireEvent.click(bit);
-    expect(mood()).toBe('groove');
-    expect(screen.getByText('Kliknij Bita, a zatańczy: Luz.')).toBeInTheDocument();
-    await act(async () => { await vi.advanceTimersByTimeAsync(3300); });
+    expect(mood()).toBe('scuba');
+    await act(async () => { await vi.advanceTimersByTimeAsync(DANCE_MS + 100); });
     expect(mood()).toBe('calm');
-    fireEvent.click(bit);
-    expect(mood()).toBe('sixseven');
   } finally {
     vi.useRealTimers();
   }
