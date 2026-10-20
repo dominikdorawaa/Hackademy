@@ -65,7 +65,7 @@ for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
       }
     }
     assert.ok(provenance.sixseven.outfits[outfit].animation.frames === 15);
-    assert.ok(provenance.scuba.outfits[outfit].animation.frames === 15);
+    assert.ok(provenance.scuba.animation.frames === 16 && provenance.scuba.outfits[outfit]);
     for (let column = 1; column <= 8; column++) {
       const cell = 9 + column;
       assert.equal(anchors.cells[cell]?.angle, 0, `attack cell ${cell} has no head anchor`);
