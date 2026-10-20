@@ -88,6 +88,17 @@ export default function NavbarFriends() {
         : player.friendshipStatus === 'REQUEST_RECEIVED' ? { ...player, friendshipStatus: 'NONE' as const } : player)
     : null;
 
+  // A friend may go offline while the challenge waits; it can be taken back from either list.
+  const sentChallenge = (username: string) => (
+    <>
+      <span className="nav-friends-state">Wysłano</span>
+      <button type="button" className="nav-friends-action" disabled={busy.includes(`cancel:${username}`)}
+        aria-label={`Cofnij wyzwanie dla ${username}`} onClick={() => cancelChallenge(username, challenged.get(username)!)}>
+        <Undo2 aria-hidden="true" />Cofnij
+      </button>
+    </>
+  );
+
   const close = () => {
     setOpen(false);
     setQuery('');
@@ -226,15 +237,7 @@ export default function NavbarFriends() {
                   {online.map(friend => (
                     <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online onNavigate={close}>
                       {challenged.has(friend.username) ? (
-                        <>
-                          <span className="nav-friends-state">Wysłano</span>
-                          <button type="button" className="nav-friends-action"
-                            disabled={busy.includes(`cancel:${friend.username}`)}
-                            aria-label={`Cofnij wyzwanie dla ${friend.username}`}
-                            onClick={() => cancelChallenge(friend.username, challenged.get(friend.username)!)}>
-                            <Undo2 aria-hidden="true" />Cofnij
-                          </button>
-                        </>
+                        sentChallenge(friend.username)
                       ) : challengeBlocked ? null : (
                         <button type="button" className="nav-friends-action is-challenge"
                           disabled={busy.includes(`challenge:${friend.username}`)}
@@ -263,7 +266,9 @@ export default function NavbarFriends() {
                 {showOffline && (
                   <ul className="nav-friends-list">
                     {offline.map(friend => (
-                      <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online={false} onNavigate={close} />
+                      <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online={false} onNavigate={close}>
+                        {challenged.has(friend.username) && sentChallenge(friend.username)}
+                      </PersonRow>
                     ))}
                   </ul>
                 )}
