@@ -16,10 +16,12 @@ import org.springframework.stereotype.Service;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayDeque;
+import java.util.HashSet;
 import java.util.Deque;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Set;
 import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
@@ -35,6 +37,8 @@ public class ArenaServiceImpl implements ArenaService {
     static final int REACTION_WINDOW_LIMIT = 5;
     static final int REACTIONS_KEPT = 8;
     static final String SHUTTING_DOWN = "Arena jest chwilowo niedostępna. Spróbuj ponownie za chwilę.";
+    static final String YOU_ARE_PLAYING = "Jesteś w trakcie pojedynku.";
+    static final long CHALLENGER_GONE_MILLIS = 30_000;
 
     private final ArenaQuestionRepository questionRepository;
     private final FriendshipRepository friendshipRepository;
@@ -49,6 +53,10 @@ public class ArenaServiceImpl implements ArenaService {
     private final Map<String, Challenge> challenges = new ConcurrentHashMap<>();
     private final Map<Long, Deque<Long>> recentReactions = new ConcurrentHashMap<>();
     private final AtomicLong reactionIds = new AtomicLong();
+    // A player can be in one game at a time. Queue matches and accepted challenges both reserve
+    // their players here first, so whichever start comes first wins and the other one is refused.
+    private final Set<Long> startingPlayers = new HashSet<>();
+    private final Map<String, Long> challengerGoneSince = new ConcurrentHashMap<>();
     private LongSupplier clock = System::currentTimeMillis;
     private volatile boolean closing;
 
@@ -59,9 +67,71 @@ public class ArenaServiceImpl implements ArenaService {
     @Override
     public void addGame(GameSession session) {
         if (closing) throw new IllegalStateException(SHUTTING_DOWN);
-        prepareBattle(session);
+        reserve(session.getPlayer1Id(), busyMessage(session.getPlayer1Username()),
+                session.getPlayer2Id(), busyMessage(session.getPlayer2Username()));
+        try {
+            prepareBattle(session);
+            start(session);
+        } finally {
+            release(session.getPlayer1Id(), session.getPlayer2Id());
+        }
+    }
+
+    private void reserve(Long first, String firstBusy, Long second, String secondBusy) {
+        synchronized (startingPlayers) {
+            if (isPlaying(first)) throw new IllegalStateException(firstBusy);
+            if (isPlaying(second)) throw new IllegalStateException(secondBusy);
+            startingPlayers.add(first);
+            startingPlayers.add(second);
+        }
+    }
+
+    private void release(Long first, Long second) {
+        synchronized (startingPlayers) {
+            startingPlayers.remove(first);
+            startingPlayers.remove(second);
+        }
+    }
+
+    boolean isPlaying(Long userId) {
+        synchronized (startingPlayers) {
+            return startingPlayers.contains(userId) || findActiveGameForUser(userId) != null;
+        }
+    }
+
+    private static String busyMessage(String username) {
+        return username + " jest już w pojedynku.";
+    }
+
+    private void start(GameSession session) {
         activeGames.put(session.getId(), session);
+        dropChallengesOf(session.getPlayer1Id(), session.getPlayer2Id());
         realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+    }
+
+    // Once a game starts, nobody may pull its players into a second one, so their other challenges go away.
+    private void dropChallengesOf(Long first, Long second) {
+        var involved = Set.of(first, second);
+        var notify = new HashSet<Long>();
+        challenges.values().forEach(challenge -> {
+            if (!involved.contains(challenge.getChallengerId()) && !involved.contains(challenge.getTargetId())) return;
+            if (challenges.remove(challenge.getId(), challenge)) {
+                challenge.setStatus("CANCELLED");
+                challengerGoneSince.remove(challenge.getId());
+                notify.add(challenge.getChallengerId());
+                notify.add(challenge.getTargetId());
+            }
+        });
+        notify.removeAll(involved);
+        if (!notify.isEmpty()) realtime.changed(notify.toArray(Long[]::new));
+    }
+
+    private void withdraw(Challenge challenge) {
+        if (challenges.remove(challenge.getId(), challenge)) {
+            challenge.setStatus("CANCELLED");
+            challengerGoneSince.remove(challenge.getId());
+            realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
+        }
     }
 
     private void prepareBattle(GameSession session) {
@@ -271,6 +341,12 @@ public class ArenaServiceImpl implements ArenaService {
 
     @Override
     public Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername) {
+        if (challengerId.equals(targetId)) throw new IllegalArgumentException("Nie możesz wyzwać samego siebie.");
+        if (isPlaying(challengerId)) throw new IllegalStateException(YOU_ARE_PLAYING);
+        if (isPlaying(targetId)) throw new IllegalStateException(busyMessage(targetUsername));
+        boolean alreadySent = challenges.values().stream().anyMatch(existing -> "PENDING".equals(existing.getStatus())
+                && existing.getChallengerId().equals(challengerId) && existing.getTargetId().equals(targetId));
+        if (alreadySent) throw new IllegalStateException("Już wyzwałeś " + targetUsername + ".");
         Challenge challenge = new Challenge(UUID.randomUUID().toString(), challengerId, challengerUsername,
                 targetId, targetUsername, LocalDateTime.now(), "PENDING");
         var avatars = avatarRepository.findDtosByUserIds(List.of(challengerId, targetId));
@@ -290,26 +366,41 @@ public class ArenaServiceImpl implements ArenaService {
                 throw new IllegalArgumentException("Invalid challenge");
             }
             if (closing) throw new IllegalStateException(SHUTTING_DOWN);
-            User challenger = userRepository.findById(challenge.getChallengerId()).orElse(null);
-            User target = userRepository.findById(challenge.getTargetId()).orElse(null);
-            if (challenger == null || target == null) {
-                throw new IllegalStateException("Users not found");
+            try {
+                reserve(userId, YOU_ARE_PLAYING, challenge.getChallengerId(), busyMessage(challenge.getChallengerUsername()));
+            } catch (IllegalStateException busy) {
+                // Whoever is already playing, this challenge can never be played now.
+                withdraw(challenge);
+                throw busy;
             }
-            GameSession session = new GameSession();
-            session.setId(UUID.randomUUID().toString());
-            session.setPlayer1Id(challenger.getId());
-            session.setPlayer1Username(challenge.getChallengerUsername());
-            session.setPlayer1Elo(challenger.getElo());
-            session.setPlayer2Id(target.getId());
-            session.setPlayer2Username(challenge.getTargetUsername());
-            session.setPlayer2Elo(target.getElo());
-            prepareBattle(session);
-            activeGames.put(session.getId(), session);
-            challenge.setStatus("ACCEPTED");
-            challenges.remove(challengeId);
-            realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
-            return session.snapshot();
+            try {
+                return startChallenge(challenge);
+            } finally {
+                release(userId, challenge.getChallengerId());
+            }
         }
+    }
+
+    private GameSession startChallenge(Challenge challenge) {
+        User challenger = userRepository.findById(challenge.getChallengerId()).orElse(null);
+        User target = userRepository.findById(challenge.getTargetId()).orElse(null);
+        if (challenger == null || target == null) {
+            throw new IllegalStateException("Users not found");
+        }
+        GameSession session = new GameSession();
+        session.setId(UUID.randomUUID().toString());
+        session.setPlayer1Id(challenger.getId());
+        session.setPlayer1Username(challenge.getChallengerUsername());
+        session.setPlayer1Elo(challenger.getElo());
+        session.setPlayer2Id(target.getId());
+        session.setPlayer2Username(challenge.getTargetUsername());
+        session.setPlayer2Elo(target.getElo());
+        prepareBattle(session);
+        challenge.setStatus("ACCEPTED");
+        challenges.remove(challenge.getId());
+        challengerGoneSince.remove(challenge.getId());
+        start(session);
+        return session.snapshot();
     }
 
     @Override
@@ -347,7 +438,25 @@ public class ArenaServiceImpl implements ArenaService {
                 throw new IllegalArgumentException("Invalid challenge");
             }
             challenges.remove(challengeId);
+            challengerGoneSince.remove(challengeId);
             realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
+        }
+    }
+
+    // A challenge from someone who closed Hackademy would wait forever; drop it once they are gone for a while.
+    @Scheduled(fixedRate = 5_000)
+    public void sweepAbandonedChallenges() {
+        long now = clock.getAsLong();
+        for (Challenge challenge : challenges.values()) {
+            if (presence.isConnected(challenge.getChallengerId())) {
+                challengerGoneSince.remove(challenge.getId());
+                continue;
+            }
+            long since = challengerGoneSince.computeIfAbsent(challenge.getId(), ignored -> now);
+            if (now - since < CHALLENGER_GONE_MILLIS) continue;
+            synchronized (challenge) {
+                if ("PENDING".equals(challenge.getStatus())) withdraw(challenge);
+            }
         }
     }
 }

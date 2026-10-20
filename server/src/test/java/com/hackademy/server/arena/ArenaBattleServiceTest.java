@@ -286,6 +286,7 @@ class ArenaBattleServiceTest {
 
     @Test
     void challengesCarryThePlayersAvatars() {
+        arena.finishGame("game", null);
         var challenge = arena.createChallenge(1L, "player1", 2L, "player2");
         assertEquals(avatar, challenge.getChallengerAvatar());
         assertNull(challenge.getTargetAvatar());
@@ -293,6 +294,7 @@ class ArenaBattleServiceTest {
 
     @Test
     void acceptingAChallengeWhileShuttingDownIsRefused() {
+        arena.finishGame("game", null);
         var challenge = arena.createChallenge(1L, "player1", 2L, "player2");
         arena.cancelActiveGames();
         var error = assertThrows(IllegalStateException.class, () -> arena.acceptChallenge(challenge.getId(), 2L));

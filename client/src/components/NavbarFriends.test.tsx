@@ -9,6 +9,7 @@ import API_URL from '../apiConfig';
 import { createToken } from '../test/fixtures/auth';
 import { server } from '../test/mocks/server';
 import { renderWithAuth } from '../test/renderWithAuth';
+import { createGameSession } from '../test/fixtures/arena';
 import type { Challenge, UserSearchDto } from '../types/api';
 import type { RealtimeState } from '../types/realtime';
 
@@ -61,12 +62,18 @@ describe('friends panel in the top bar', () => {
     expect(environment.synchronize).toHaveBeenCalled();
   });
 
-  it('blocks new challenges while one is pending, as the Arena does', async () => {
-    environment.state = { ...environment.state!, outgoingChallenges: [challengeTo('kuba')] };
+  it('lets the player challenge others and queue while a challenge waits', async () => {
+    environment.state = { ...environment.state!, queued: true, outgoingChallenges: [challengeTo('kuba')] };
     const { panel } = await openPanel();
     expect(within(panel).getByText('Wysłano')).toBeInTheDocument();
+    expect(within(panel).getByRole('button', { name: 'Wyzwij ola na pojedynek' })).toBeInTheDocument();
+  });
+
+  it('blocks challenges during a game', async () => {
+    environment.state = { ...environment.state!, gameSession: createGameSession({ id: 'g', player1Username: 'me', player2Username: 'x' }) };
+    const { panel } = await openPanel();
     expect(within(panel).queryByRole('button', { name: /Wyzwij/ })).not.toBeInTheDocument();
-    expect(within(panel).getByText('Masz wysłane wyzwanie. Poczekaj na odpowiedź albo je cofnij.')).toBeInTheDocument();
+    expect(within(panel).getByText('Trwa Twój pojedynek. Wyzwania wrócą po nim.')).toBeInTheDocument();
   });
 
   it('takes back a sent challenge', async () => {
@@ -77,13 +84,6 @@ describe('friends panel in the top bar', () => {
     await user.click(within(panel).getByRole('button', { name: 'Cofnij wyzwanie dla kuba' }));
     await waitFor(() => expect(cancelled).toHaveBeenCalled());
     expect(environment.synchronize).toHaveBeenCalled();
-  });
-
-  it('blocks challenges during a game or in the queue', async () => {
-    environment.state = { ...environment.state!, queued: true };
-    const { panel } = await openPanel();
-    expect(within(panel).queryByRole('button', { name: /Wyzwij/ })).not.toBeInTheDocument();
-    expect(within(panel).getByText(/Czekasz w kolejce Areny/)).toBeInTheDocument();
   });
 
   it('lets a searched player who just sent a request be accepted instead of invited', async () => {

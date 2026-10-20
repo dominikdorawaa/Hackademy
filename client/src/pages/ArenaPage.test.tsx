@@ -86,7 +86,7 @@ it('challenges a friend and explains a refused challenge next to the friend', as
   expect(bodies).toEqual([{ targetUsername: 'ola' }, { targetUsername: 'kuba' }]);
 });
 
-it('marks friends who already got a challenge and lets the player cancel waiting', async () => {
+it('keeps the queue open while a challenge waits and lets the player take it back', async () => {
   realtime.value.state = state({ outgoingChallenges: [{ ...incoming, challengerUsername: 'tester', targetUsername: 'ola' }] });
   let cancelled = false;
   server.use(
@@ -96,9 +96,11 @@ it('marks friends who already got a challenge and lets the player cancel waiting
     http.post(`${API_URL}/api/arena/challenge/:id/cancel`, () => { cancelled = true; return HttpResponse.json({ message: 'ok' }); }),
   );
   mount();
-  expect(await screen.findByText('Oczekiwanie na akceptację wyzwania...')).toBeInTheDocument();
+  const sent = await screen.findByRole('list', { name: 'Wysłane wyzwania' });
+  expect(sent).toHaveTextContent('Czekasz na odpowiedź od ola');
   expect(await screen.findByText('Wyzwanie wysłane')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Anuluj' }));
+  expect(screen.getByRole('button', { name: 'Znajdź przeciwnika' })).toBeEnabled();
+  fireEvent.click(within(sent).getByRole('button', { name: 'Cofnij' }));
   await waitFor(() => expect(cancelled).toBe(true));
 });
 
