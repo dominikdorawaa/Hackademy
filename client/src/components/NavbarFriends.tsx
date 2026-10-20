@@ -69,6 +69,10 @@ export default function NavbarFriends() {
   const friends = state?.friends ?? [];
   const requests = state?.friendRequests ?? [];
   const challenged = new Set((state?.outgoingChallenges ?? []).map(challenge => challenge.targetUsername));
+  // Same guard as the Arena: one duel at a time, so no new challenge while playing, queued or already challenging.
+  const challengeBlocked = state?.gameSession && state.gameSession.status !== 'FINISHED' ? 'Trwa Twój pojedynek. Wyzwania wrócą po nim.'
+    : state?.queued ? 'Czekasz w kolejce Areny. Wyjdź z niej, żeby kogoś wyzwać.'
+    : challenged.size ? 'Masz wysłane wyzwanie. Poczekaj na odpowiedź.' : null;
   const needle = query.trim().toLocaleLowerCase('pl');
   const matching = friends.filter(friend => friend.username.toLocaleLowerCase('pl').includes(needle));
   const online = matching.filter(friend => friend.online).sort(byName);
@@ -78,7 +82,11 @@ export default function NavbarFriends() {
   const receivedFrom = new Map(requests.map(request => [request.requesterUsername, request.id]));
   const friendNames = new Set(friends.map(friend => friend.username));
   const otherPlayers = players && players.query === needle
-    ? players.results.filter(player => !friendNames.has(player.username) && player.username !== user?.username)
+    ? players.results
+      .filter(player => !friendNames.has(player.username) && player.username !== user?.username)
+      // Requests arrive live while the results stay put, so the live list wins over the searched status.
+      .map(player => receivedFrom.has(player.username) ? { ...player, friendshipStatus: 'REQUEST_RECEIVED' as const }
+        : player.friendshipStatus === 'REQUEST_RECEIVED' ? { ...player, friendshipStatus: 'NONE' as const } : player)
     : null;
 
   const close = () => {
@@ -206,6 +214,7 @@ export default function NavbarFriends() {
 
             <section aria-label="Znajomi online">
               <h3 className="nav-friends-section">Online ({online.length})</h3>
+              {challengeBlocked && online.length > 0 && <p className="nav-friends-note">{challengeBlocked}</p>}
               {online.length === 0 ? (
                 <p className="nav-friends-empty">
                   {needle ? 'Nikt z pasujących znajomych nie jest online.'
@@ -217,7 +226,7 @@ export default function NavbarFriends() {
                     <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online onNavigate={close}>
                       {challenged.has(friend.username) ? (
                         <span className="nav-friends-state">Wysłano</span>
-                      ) : (
+                      ) : challengeBlocked ? null : (
                         <button type="button" className="nav-friends-action is-challenge"
                           disabled={busy.includes(`challenge:${friend.username}`)}
                           aria-label={`Wyzwij ${friend.username} na pojedynek`}

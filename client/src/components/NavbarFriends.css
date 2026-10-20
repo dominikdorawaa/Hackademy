@@ -105,6 +105,8 @@
 
 .nav-friends-empty { margin: 0; padding: 2px 16px 8px; color: var(--text-gray); font-size: 0.85rem; line-height: 1.45; }
 
+.nav-friends-note { margin: 0; padding: 0 16px 6px; color: var(--text-gray); font-size: 0.8rem; line-height: 1.4; }
+
 .nav-friends-list {
   margin: 0;
   padding: 0 6px;

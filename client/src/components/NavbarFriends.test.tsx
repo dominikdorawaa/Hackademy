@@ -26,7 +26,7 @@ beforeEach(() => {
   environment.synchronize.mockClear();
   environment.state = { streamId: 'stream', revision: 1, challenges: [], gameSession: null, queued: false,
     friendRequests: [{ id: 5, requesterUsername: 'nowy', createdAt: '2026-10-20T09:00:00' }],
-    outgoingChallenges: [challengeTo('kuba')],
+    outgoingChallenges: [],
     friends: [friend(2, 'ola', true), friend(3, 'kuba', true), friend(4, 'zenek', false)] };
 });
 
@@ -56,11 +56,33 @@ describe('friends panel in the top bar', () => {
       return HttpResponse.json({ message: 'ok' });
     }));
     const { user, panel } = await openPanel();
-    expect(within(panel).queryByRole('button', { name: 'Wyzwij kuba na pojedynek' })).not.toBeInTheDocument();
-    expect(within(panel).getByText('Wysłano')).toBeInTheDocument();
     await user.click(within(panel).getByRole('button', { name: 'Wyzwij ola na pojedynek' }));
     await waitFor(() => expect(created).toHaveBeenCalledWith({ targetUsername: 'ola' }));
     expect(environment.synchronize).toHaveBeenCalled();
+  });
+
+  it('blocks new challenges while one is pending, as the Arena does', async () => {
+    environment.state = { ...environment.state!, outgoingChallenges: [challengeTo('kuba')] };
+    const { panel } = await openPanel();
+    expect(within(panel).getByText('Wysłano')).toBeInTheDocument();
+    expect(within(panel).queryByRole('button', { name: /Wyzwij/ })).not.toBeInTheDocument();
+    expect(within(panel).getByText('Masz wysłane wyzwanie. Poczekaj na odpowiedź.')).toBeInTheDocument();
+  });
+
+  it('blocks challenges during a game or in the queue', async () => {
+    environment.state = { ...environment.state!, queued: true };
+    const { panel } = await openPanel();
+    expect(within(panel).queryByRole('button', { name: /Wyzwij/ })).not.toBeInTheDocument();
+    expect(within(panel).getByText(/Czekasz w kolejce Areny/)).toBeInTheDocument();
+  });
+
+  it('lets a searched player who just sent a request be accepted instead of invited', async () => {
+    server.use(http.get(`${API_URL}/api/user/search`, () => HttpResponse.json([player(6, 'nowy', 'NONE')])));
+    const { user, panel } = await openPanel();
+    await user.type(within(panel).getByRole('searchbox'), 'no');
+    const others = within(panel).getByRole('region', { name: 'Inni gracze' });
+    expect(await within(others).findByRole('button', { name: 'Przyjmij zaproszenie od nowy' })).toBeInTheDocument();
+    expect(within(others).queryByRole('button', { name: /Dodaj/ })).not.toBeInTheDocument();
   });
 
   it('shows the server message when a challenge fails', async () => {
