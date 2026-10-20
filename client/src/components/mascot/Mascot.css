@@ -1,4 +1,19 @@
 @layer components {
+.mascot-dance-button {
+  display: inline-flex;
+  flex: none;
+  padding: 0;
+  border: 0;
+  border-radius: 12px;
+  background: none;
+  cursor: pointer;
+}
+
+.mascot-dance-button:focus-visible {
+  outline: 3px solid var(--ud-link);
+  outline-offset: 4px;
+}
+
 .mascot {
   display: inline-flex;
   flex: none;

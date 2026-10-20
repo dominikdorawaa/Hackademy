@@ -1,6 +1,6 @@
 {
   "provider": "PixelLab",
-  "generatedAt": "2026-10-19",
+  "generatedAt": "2026-10-20",
   "sources": "local-prototype-backups/onboarding-mascot-v1",
   "base": {
     "endpoint": "create-image-pixflux",
@@ -27,7 +27,7 @@
       "file": "walk-back base"
     }
   ],
-  "processing": "Alpha cut at 128, the generated grey ground shadow under the feet removed, the first eight frames of each animation (or the listed picked frames) cropped to their shared bounds and packed side by side as looping sprite sheets. The calm sheet holds the first idle frame and blinks once.",
+  "processing": "Alpha cut at 128, the generated grey ground shadow under the feet removed, the first eight frames of each animation, the first sixteen for the walk cycles and dances (or the listed picked frames), cropped to their shared bounds and packed side by side as looping sprite sheets. The calm sheet holds the first idle frame and blinks once. The Six-seven and Scuba dances start and end on their own pose, edited from the base with the hood and neck headphones kept.",
   "sprites": [
     {
       "file": "penguin-idle.png",
@@ -41,7 +41,7 @@
         "seed": 99701,
         "firstAndLastFrame": "base"
       },
-      "sha256": "8132ab4ed8c1f9b79d2e75e346fc8b58e51103927f123aecfcc471d17af5552f"
+      "sha256": "b974e747bb2b966cbee2d5cf3bf4c2dbb73e9f7c88fd197d9cb62b2b381a9d7e"
     },
     {
       "file": "penguin-talk.png",
@@ -55,7 +55,7 @@
         "seed": 99701,
         "firstAndLastFrame": "base"
       },
-      "sha256": "502d42648b7a39214207ae3390346cd8a7a79f14c4bb976514a5af4bc93f17cb"
+      "sha256": "3043118fcf1eff109191d7899e85d52b300ddffeb67a55a0f250b32e0591a211"
     },
     {
       "file": "penguin-wave.png",
@@ -69,49 +69,49 @@
         "seed": 99702,
         "firstAndLastFrame": "base"
       },
-      "sha256": "2f5ce713aa844637a25d503536c17ec891ff767447030baf984e92c21f11066f"
+      "sha256": "50bfc924306abf9eab25bfa9a438457849a5b904153f48f52b088ffd568e3344"
     },
     {
       "file": "penguin-walk-front.png",
-      "frames": 8,
+      "frames": 16,
       "frameWidth": 58,
       "frameHeight": 60,
       "animation": {
         "endpoint": "animate-with-text-v3",
-        "action": "the penguin walks toward the viewer in place with a waddle walk cycle: the orange feet step one after the other, the body rocks side to side and bobs, the flippers swing, seamless walk loop, stays in the same position",
-        "frameCount": 8,
-        "seed": 99962,
+        "action": "the penguin walks toward the viewer in place with a smooth waddle walk cycle: the orange feet step one after the other, two full steps with each foot, the body rocks side to side and bobs, the flippers swing gently, very smooth and fluid, seamless walk loop, stays in the same position",
+        "frameCount": 16,
+        "seed": 99971,
         "firstAndLastFrame": "base"
       },
-      "sha256": "33239d288528e80947da84f8112dce4b2e85aa6400cbfc00cef658ba13730b18"
+      "sha256": "f10e7c2a1c024e864fe337dc925c53c055f4a2dc58624c33d2d3389180f934be"
     },
     {
       "file": "penguin-walk-side.png",
-      "frames": 8,
+      "frames": 16,
       "frameWidth": 58,
       "frameHeight": 60,
       "animation": {
         "endpoint": "animate-with-text-v3",
-        "action": "the penguin walks to the right in place with a cute waddle walk cycle: the orange feet step forward one after the other, the body rocks slightly and bobs up and down, the flippers swing, seamless walk loop, stays in the same position",
-        "frameCount": 8,
-        "seed": 99961,
+        "action": "the penguin walks to the right in place with a cute smooth waddle walk cycle: the orange feet step forward one after the other, two full steps with each foot, the body rocks slightly and bobs up and down, the flippers swing gently, very smooth and fluid, seamless walk loop, stays in the same position",
+        "frameCount": 16,
+        "seed": 99971,
         "firstAndLastFrame": "base"
       },
-      "sha256": "ea59295d333a215039a99c2920500cc36c2b1be6241e5379df1dbc4740b66321"
+      "sha256": "b15d10e78686bfc8593868587f73bc0c1f326188c10406abcad13114f2c36b13"
     },
     {
       "file": "penguin-walk-back.png",
-      "frames": 8,
+      "frames": 16,
       "frameWidth": 58,
       "frameHeight": 60,
       "animation": {
         "endpoint": "animate-with-text-v3",
-        "action": "the penguin walks away from the viewer in place with a waddle walk cycle seen from behind: the orange feet step one after the other, the body rocks side to side and bobs, the flippers swing, seamless walk loop, stays in the same position",
-        "frameCount": 8,
-        "seed": 99962,
+        "action": "the penguin walks away from the viewer in place with a smooth waddle walk cycle seen from behind: the orange feet step one after the other, two full steps with each foot, the body rocks side to side and bobs, the flippers swing gently, very smooth and fluid, seamless walk loop, stays in the same position",
+        "frameCount": 16,
+        "seed": 99971,
         "firstAndLastFrame": "base"
       },
-      "sha256": "a724b261ee38d62873e2ed86bec7d484ba6e8c5ada01dc6533eb875765d485a2"
+      "sha256": "12d6ea28bc4b8884466b735dc352ca214c75b1d87bf4441d735cb1cbbac78396"
     },
     {
       "file": "penguin-calm.png",
@@ -137,7 +137,61 @@
         "seed": 99701,
         "firstAndLastFrame": "base"
       },
-      "sha256": "35cb96475761126a6f54debda8cda34697e40a942fdec4a66db91d205237b506"
+      "sha256": "d2529c78b0abdef98e146c36044f0c315f16bb669c9edadd5444c1840b232bb0"
+    },
+    {
+      "file": "penguin-dance-groove.png",
+      "frames": 16,
+      "frameWidth": 58,
+      "frameHeight": 60,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the penguin does a happy groovy dance in place facing the viewer: it sways its body smoothly left and right, both flippers swing out to the sides and back in to the rhythm, and it bounces down into a small squat on the beat, twice, very smooth and fluid motion, then returns to the exact starting pose, same size and position, seamless loop",
+        "frameCount": 16,
+        "seed": 99803,
+        "firstAndLastFrame": "base"
+      },
+      "sha256": "43b27e51b5784859359b3b6e17efd9a86ee1ae73f72a81ea2805df39b789899a"
+    },
+    {
+      "file": "penguin-dance-sixseven.png",
+      "frames": 16,
+      "frameWidth": 58,
+      "frameHeight": 60,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "six seven meme gesture in place: both flippers stay in front of the belly with the tips up like open palms and move up and down alternately like a balance scale, the left flipper rises to chest height while the right one drops, then they swap, three full times with big clear motion, the body bobs gently with each swap, cheerful face, hood and neck headphones unchanged, same size and position, very smooth seamless loop",
+        "frameCount": 16,
+        "seed": 99842,
+        "firstAndLastFrame": "pose"
+      },
+      "pose": {
+        "endpoint": "edit-image-pixen",
+        "from": "base",
+        "description": "Same cute penguin mascot. Keep everything identical: the teal hood stays pulled up over the head, the small grey headphones stay hanging around the neck under the beak, nothing on the ears, same face, eyes, colours, size and orange feet. Change only the flippers: both flippers are held out in front of the belly, bent forward with the flat tips facing up like open palms weighing something, the flipper on the left side of the image a little higher than the other. Full body visible.",
+        "seed": 99833
+      },
+      "sha256": "b7c89a9804469a0c14ba6c14a5ad4f8d96bebaea6b968389998473c2dcd6ed3b"
+    },
+    {
+      "file": "penguin-dance-scuba.png",
+      "frames": 16,
+      "frameWidth": 58,
+      "frameHeight": 60,
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "scuba dance in place: the flipper on the beak stays on the beak the whole time, the other flipper stays in front of the chest and only its flat tip wiggles left and right like a swimming fish fin, four times, while the penguin bends its knees slightly and bobs, hood and neck headphones unchanged, same size and position, very smooth seamless loop",
+        "frameCount": 16,
+        "seed": 99841,
+        "firstAndLastFrame": "pose"
+      },
+      "pose": {
+        "endpoint": "edit-image-pixen",
+        "from": "base",
+        "description": "Same cute penguin, identical look: teal hood up over the head, small grey headphones around the neck, same face, colours, size and feet. Change only the flippers: the flipper on the left side of the image covers the beak like holding breath before a dive. The other flipper points straight forward in front of the chest, flat like a fish fin. Exactly two flippers. Full body visible.",
+        "seed": 99833
+      },
+      "sha256": "fbc874de5b2ff94d4a4bc430eef0cf6b801f49e1755bd06ff49aeb7146924956"
     }
   ]
 }

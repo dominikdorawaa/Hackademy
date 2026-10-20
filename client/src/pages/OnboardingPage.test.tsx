@@ -1,5 +1,5 @@
 import { setClerkSession } from '../test/clerk';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -110,4 +110,24 @@ it('is reachable from the API helper for the tour too', async () => {
   const response = await finishTour('SKIPPED', { sessionKey: null });
   expect(await response.json()).toEqual({ avatarConfirmed: true, tourStatus: 'SKIPPED' });
   expect(status).toEqual({ status: 'SKIPPED' });
+});
+
+it('lets Bit dance on the welcome screen and then calm down again', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  try {
+    renderWithAuth(routes, '/witaj');
+    const bit = await screen.findByRole('button', { name: 'Pingwin Bit, zatańcz' });
+    const mood = () => bit.querySelector('.mascot')?.getAttribute('data-mood');
+    expect(mood()).toBe('calm');
+    expect(screen.getByText('Kliknij Bita, a zatańczy.')).toBeInTheDocument();
+    fireEvent.click(bit);
+    expect(mood()).toBe('groove');
+    expect(screen.getByText('Kliknij Bita, a zatańczy: Luz.')).toBeInTheDocument();
+    await act(async () => { await vi.advanceTimersByTimeAsync(3300); });
+    expect(mood()).toBe('calm');
+    fireEvent.click(bit);
+    expect(mood()).toBe('sixseven');
+  } finally {
+    vi.useRealTimers();
+  }
 });
