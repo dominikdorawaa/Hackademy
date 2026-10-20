@@ -7,7 +7,6 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
 import type { FriendDto, UserSearchDto } from '../types/api';
-import { SwordIcon } from '@phosphor-icons/react/dist/csr/Sword';
 import { ConfirmAction } from '../components/common/ConfirmAction';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 
@@ -316,11 +315,7 @@ const FriendsPage = () => {
                                             title="Wyzwij na pojedynek"
                                             disabled={challengedFriends.includes(friend.username)}
                                         >
-                                            {challengedFriends.includes(friend.username) ? 'Wyzwano' : (
-                                                <>
-                                                    <SwordIcon weight="bold" aria-hidden="true" style={{ verticalAlign: '-2px' }} /> Wyzwij
-                                                </>
-                                            )}
+                                            {challengedFriends.includes(friend.username) ? 'Wyzwano' : 'Wyzwij'}
                                         </button>
                                         <button
                                             ref={button => {

@@ -1,8 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
-import { Check, ChevronDown, Search, UserPlus, Users, X } from 'lucide-react';
-import { SwordIcon } from '@phosphor-icons/react/dist/csr/Sword';
+import { Check, ChevronDown, Search, Undo2, UserPlus, Users, X } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 import NavIconButton from './NavIconButton';
 import { useAuth } from '../context/AuthContext';
@@ -68,11 +67,11 @@ export default function NavbarFriends() {
 
   const friends = state?.friends ?? [];
   const requests = state?.friendRequests ?? [];
-  const challenged = new Set((state?.outgoingChallenges ?? []).map(challenge => challenge.targetUsername));
+  const challenged = new Map((state?.outgoingChallenges ?? []).map(challenge => [challenge.targetUsername, challenge.id]));
   // Same guard as the Arena: one duel at a time, so no new challenge while playing, queued or already challenging.
   const challengeBlocked = state?.gameSession && state.gameSession.status !== 'FINISHED' ? 'Trwa Twój pojedynek. Wyzwania wrócą po nim.'
     : state?.queued ? 'Czekasz w kolejce Areny. Wyjdź z niej, żeby kogoś wyzwać.'
-    : challenged.size ? 'Masz wysłane wyzwanie. Poczekaj na odpowiedź.' : null;
+    : challenged.size ? 'Masz wysłane wyzwanie. Poczekaj na odpowiedź albo je cofnij.' : null;
   const needle = query.trim().toLocaleLowerCase('pl');
   const matching = friends.filter(friend => friend.username.toLocaleLowerCase('pl').includes(needle));
   const online = matching.filter(friend => friend.online).sort(byName);
@@ -88,6 +87,17 @@ export default function NavbarFriends() {
       .map(player => receivedFrom.has(player.username) ? { ...player, friendshipStatus: 'REQUEST_RECEIVED' as const }
         : player.friendshipStatus === 'REQUEST_RECEIVED' ? { ...player, friendshipStatus: 'NONE' as const } : player)
     : null;
+
+  // A friend may go offline while the challenge waits; it can be taken back from either list.
+  const sentChallenge = (username: string) => (
+    <>
+      <span className="nav-friends-state">Wysłano</span>
+      <button type="button" className="nav-friends-action" disabled={busy.includes(`cancel:${username}`)}
+        aria-label={`Cofnij wyzwanie dla ${username}`} onClick={() => cancelChallenge(username, challenged.get(username)!)}>
+        <Undo2 aria-hidden="true" />Cofnij
+      </button>
+    </>
+  );
 
   const close = () => {
     setOpen(false);
@@ -156,6 +166,8 @@ export default function NavbarFriends() {
 
   const challenge = (username: string) => run(`challenge:${username}`,
     () => arenaApi.createChallenge({ targetUsername: username }, { sessionKey }), 'Nie udało się wysłać wyzwania.');
+  const cancelChallenge = (username: string, id: string) => run(`cancel:${username}`,
+    () => arenaApi.cancelChallenge(id, { sessionKey }), 'Nie udało się cofnąć wyzwania.');
   const accept = (id: number) => run(`request:${id}`, () => friendApi.acceptRequest(id, { sessionKey }),
     'Nie udało się przyjąć zaproszenia.');
   const reject = (id: number) => run(`request:${id}`, () => friendApi.rejectRequest(id, { sessionKey }),
@@ -225,12 +237,12 @@ export default function NavbarFriends() {
                   {online.map(friend => (
                     <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online onNavigate={close}>
                       {challenged.has(friend.username) ? (
-                        <span className="nav-friends-state">Wysłano</span>
+                        sentChallenge(friend.username)
                       ) : challengeBlocked ? null : (
                         <button type="button" className="nav-friends-action is-challenge"
                           disabled={busy.includes(`challenge:${friend.username}`)}
                           aria-label={`Wyzwij ${friend.username} na pojedynek`}
-                          onClick={() => challenge(friend.username)}><SwordIcon weight="bold" aria-hidden="true" />Wyzwij</button>
+                          onClick={() => challenge(friend.username)}>Wyzwij</button>
                       )}
                     </PersonRow>
                   ))}
@@ -254,7 +266,9 @@ export default function NavbarFriends() {
                 {showOffline && (
                   <ul className="nav-friends-list">
                     {offline.map(friend => (
-                      <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online={false} onNavigate={close} />
+                      <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online={false} onNavigate={close}>
+                        {challenged.has(friend.username) && sentChallenge(friend.username)}
+                      </PersonRow>
                     ))}
                   </ul>
                 )}
