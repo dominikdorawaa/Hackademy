@@ -297,7 +297,7 @@ The learner's own profile row, then the rank at rank size, an Elo line with a do
 A dotted-underlined term with a small link-blue info icon. On hover, focus or tap it reveals a floating card (tip ground, 12px 14px padding, label size, line-height 1.5, max 320px) that fades and settles 4px over 140ms.
 
 ### Profile Preview
-Hovering or focusing a username in the standings or friends opens a floating card (tip ground, 16px padding, max 300px, 12px internal gap): avatar and name with level, facts (XP, streak with an orange flame), up to a row of 4px-radius badge chips, a secondary "profile" chip and a primary add-friend action. Enters with a 140ms fade and 4px settle.
+Hovering or focusing a username in the standings or friends opens a floating card (tip ground, 16px padding, max 300px, 12px internal gap): avatar and name with level, a small ↗ "open profile" icon beside the name (name and avatar link there too), facts (XP, streak with an orange flame), a row of up to three 4px-radius badge icon tiles (featured first, then rarest; name in the tooltip) with an earned/total count, and the friendship action. For friends, a green presence dot sits on the avatar and before the name in the standings. Enters with a 140ms fade and 4px settle.
 
 ### Loading and error states
 - Skeleton blocks use the matching surfaces (blue wash for the next-room block, raised surface for the rank) and pulse opacity over 1.4s.

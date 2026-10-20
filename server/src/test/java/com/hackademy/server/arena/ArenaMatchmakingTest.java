@@ -33,7 +33,7 @@ class ArenaMatchmakingTest {
     private final UserService userService = mock(UserService.class);
     private final MatchmakingServiceImpl matchmaking = new MatchmakingServiceImpl(users, realtime);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, mock(ArenaPresence.class));
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, mock(ArenaPresence.class), matchmaking);
     private final ArenaController controller = new ArenaController(matchmaking, arena, userService);
 
     @BeforeEach

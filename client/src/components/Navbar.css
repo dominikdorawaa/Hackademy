@@ -313,3 +313,39 @@
   opacity: 0.55;
   filter: grayscale(1);
 }
+
+/* One-off "friend came online" entries: a single quiet line, closable. */
+.notification-online {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 10px 12px 10px 20px;
+  border-bottom: 1px solid var(--border-color);
+  color: var(--text-gray);
+  font-size: 0.85rem;
+}
+
+.notification-online:last-child { border-bottom: none; }
+.notification-online strong { color: var(--text-light); font-weight: 600; }
+.notification-online[data-unread='true'] { background: rgba(46, 204, 113, 0.06); }
+
+.notification-online[data-unread='false'] .presence-dot { opacity: 0.4; }
+.notification-online-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notification-online-time { flex: none; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
+
+.notification-online-close {
+  flex: none;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text-gray);
+  cursor: pointer;
+}
+
+.notification-online-close:hover { background: var(--bg-panel-lighter); color: var(--text-light); }
+.notification-online-close:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 1px; }

@@ -227,7 +227,7 @@ export default function SettingsPage() {
             : 'Gdy znajdziemy przeciwnika, usłyszysz sygnał lub dostaniesz powiadomienie systemowe. Mecz otworzy się sam także bez tego.'}>
             {notificationSwitch('matchFound', 'Znaleziony mecz', matchFoundSilent)}</SettingRow>
           <SettingRow title="Znajomi online: komunikat" description="Krótki komunikat w rogu ekranu i sygnał wybrany niżej, gdy znajomy wejdzie do aplikacji.">{notificationSwitch('friendOnline', 'Komunikat o znajomych online')}</SettingRow>
-          <SettingRow title="Znajomi online: dzwonek" description="Lista znajomych, którzy są teraz online, w dzwonku w górnym pasku.">{notificationSwitch('friendOnlineBell', 'Znajomi online w dzwonku')}</SettingRow>
+          <SettingRow title="Znajomi online: dzwonek" description="Jednorazowe powiadomienie w dzwonku w górnym pasku, gdy znajomy wejdzie online.">{notificationSwitch('friendOnlineBell', 'Znajomi online w dzwonku')}</SettingRow>
           <h3 className="settings-group-title">Jak chcesz się dowiadywać</h3>
           <SettingRow title="Dźwięk" description="Krótki sygnał, inny dla każdego zdarzenia. Gra, gdy Hackademy jest otwarte, po pierwszym kliknięciu na stronie (wymóg przeglądarki)."
             extra={<ul className="settings-sound-list" aria-label="Sygnały do odsłuchania">{soundEvents.map(event => <li key={event}>
