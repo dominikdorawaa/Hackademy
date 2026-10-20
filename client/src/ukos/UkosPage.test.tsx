@@ -192,6 +192,15 @@ it("shows how much of Linux is downloaded and then waits for the system to boot"
   expect(
     screen.getByRole("progressbar", { name: "Przygotowanie terminala" }),
   ).not.toHaveAttribute("aria-valuenow");
+  workshop = { ...workshop, download: { loaded: 0, total: 0 } };
+  view.rerender(
+    <MemoryRouter>
+      <UkosPage />
+    </MemoryRouter>,
+  );
+  expect(
+    screen.getByRole("progressbar", { name: "Przygotowanie terminala" }),
+  ).toBeInTheDocument();
   workshop = {
     ...workshop,
     download: { loaded: 12_600_000, total: 25_200_000 },

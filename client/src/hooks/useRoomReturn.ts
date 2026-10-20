@@ -28,11 +28,11 @@ function pathReturn(path: PathDetailDto, roomId: string): RoomReturn | null {
     label: `Wróć do ścieżki: ${path.title}`,
     title: path.title,
     pending: false,
-    next: next ? { to: `/rooms/${next.id}?pathId=${path.id}`, title: next.title } : null,
+    next: next && !next.locked ? { to: `/rooms/${next.id}?pathId=${path.id}`, title: next.title } : null,
   };
 }
 
-export function useRoomReturn(roomId: string | undefined, search: string, sessionKey: string | null): RoomReturn {
+export function useRoomReturn(roomId: string | undefined, search: string, sessionKey: string | null, solved = false): RoomReturn {
   const params = new URLSearchParams(search);
   const rawPathId = params.get('pathId');
   const pathId = rawPathId && /^\d+$/.test(rawPathId) && roomId && sessionKey ? rawPathId : null;
@@ -44,7 +44,8 @@ export function useRoomReturn(roomId: string | undefined, search: string, sessio
     if (!pathId || !roomId) return;
     const controller = new AbortController();
     const settle = (value: RoomReturn | null) => {
-      if (!controller.signal.aborted) setResolved({ key, value });
+      if (controller.signal.aborted) return;
+      setResolved(previous => value === null && previous?.key === key && previous.value ? previous : { key, value });
     };
     pathApi.getPath(pathId, { sessionKey }, controller.signal)
       .then(async response => {
@@ -53,7 +54,7 @@ export function useRoomReturn(roomId: string | undefined, search: string, sessio
       })
       .catch(() => settle(null));
     return () => controller.abort();
-  }, [pathId, roomId, sessionKey, key]);
+  }, [pathId, roomId, sessionKey, key, solved]);
 
   if (!pathId) return fallback;
   if (resolved?.key !== key) return { ...fallback, label: 'Powrót', title: 'Powrót', pending: true };

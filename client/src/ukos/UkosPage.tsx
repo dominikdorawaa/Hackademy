@@ -24,12 +24,12 @@ function BootProgress({
 }: {
   download: { loaded: number; total: number } | null;
 }) {
-  const downloading = download !== null && download.loaded < download.total;
-  const percent =
-    download && download.total > 0
-      ? Math.min(100, Math.floor((download.loaded / download.total) * 100))
-      : 0;
-  const title = !download
+  const known = download !== null && download.total > 0;
+  const downloading = known && download.loaded < download.total;
+  const percent = known
+    ? Math.min(100, Math.floor((download.loaded / download.total) * 100))
+    : 0;
+  const title = !known
     ? "Przygotowanie terminala"
     : downloading
       ? "Pobieranie Linuksa"
@@ -42,7 +42,7 @@ function BootProgress({
         <p aria-live="polite">
           {downloading
             ? `Pobrano ${megabytes(download.loaded)} z ${megabytes(download.total)} MB`
-            : download
+            : known
               ? "Pliki są gotowe. System startuje, to potrwa kilka sekund."
               : "Łączymy się z obrazem systemu."}
         </p>

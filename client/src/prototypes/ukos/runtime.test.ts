@@ -430,6 +430,34 @@ describe("account course workshops", () => {
       expect.objectContaining({ step: 14 }),
     );
   });
+  it("restores course files saved on an older image instead of starting over", async () => {
+    const context = setup();
+    const migrate = vi.fn(async () => ({
+      version: "v1",
+      archive: "b2xk",
+      step: 7,
+      savedAt: 5,
+    }));
+    Object.assign(context.storage, { migrate });
+    await context.runtime.handle({
+      type: "start",
+      baseUrl: "http://local/runtime",
+      account: "alice",
+      cols: 80,
+      rows: 24,
+      variant: "lab",
+      initialStep: 5,
+    });
+    expect(migrate).toHaveBeenCalledWith(
+      "ukos-course:alice:lab:lab-1:",
+      "ukos-course:alice:lab:lab-1:v1",
+      "v1",
+    );
+    const emulator = context.emulators[0];
+    emulator.control("CONTROL_READY");
+    expect(emulator.controlMessages).toContain("RESTORE\t0\tb2xk");
+    expect(context.events).toContainEqual({ type: "progress", step: 7 });
+  });
   it("credits result steps already completed out of order as soon as they become active", async () => {
     const context = setup();
     await context.runtime.handle({

@@ -23,6 +23,11 @@ export type RuntimeEnvironment = {
     load: (key: string, version: string) => Promise<SavedWorkshop | null>;
     save: (key: string, data: SavedWorkshop) => Promise<void>;
     clear: (key: string) => Promise<void>;
+    migrate?: (
+      prefix: string,
+      key: string,
+      version: string,
+    ) => Promise<SavedWorkshop | null>;
   };
 };
 
@@ -151,14 +156,22 @@ export class UkosRuntime {
     );
     if (generation !== this.generation) return;
     this.version = version;
+    const coursePrefix = `ukos-course:${encodeURIComponent(this.start.account)}:lab:lab-1:`;
     this.key = this.start.variant
-      ? `ukos-course:${encodeURIComponent(this.start.account)}:lab:lab-1:${version}`
+      ? `${coursePrefix}${version}`
       : storageKey(this.start.account, version);
     this.saved = null;
     this.restored = false;
     if (this.checkpoint === null) {
       try {
         this.saved = await this.environment.storage.load(this.key, version);
+        if (!this.saved && this.start.variant)
+          this.saved =
+            (await this.environment.storage.migrate?.(
+              coursePrefix,
+              this.key,
+              version,
+            )) ?? null;
       } catch (error) {
         this.emit({
           type: "warning",

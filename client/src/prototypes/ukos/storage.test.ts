@@ -1,9 +1,17 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
-import { IDBFactory, IDBObjectStore, IDBDatabase } from "fake-indexeddb";
+import {
+  IDBFactory,
+  IDBKeyRange,
+  IDBObjectStore,
+  IDBDatabase,
+} from "fake-indexeddb";
 import { workshopStorage } from "./storage";
 
 describe("local workshop persistence", () => {
-  beforeEach(() => vi.stubGlobal("indexedDB", new IDBFactory()));
+  beforeEach(() => {
+    vi.stubGlobal("indexedDB", new IDBFactory());
+    vi.stubGlobal("IDBKeyRange", IDBKeyRange);
+  });
   afterEach(() => vi.restoreAllMocks());
   const record = { version: "v1", archive: "YWJj", step: 2, savedAt: 100 };
 
@@ -26,6 +34,20 @@ describe("local workshop persistence", () => {
     await expect(workshopStorage.load("bad", "v1")).rejects.toThrow(
       "uszkodzony",
     );
+  });
+  it("moves the newest valid course save from an older image to the current one", async () => {
+    const prefix = "ukos-course:alice:lab:lab-1:";
+    expect(await workshopStorage.migrate(prefix, `${prefix}v3`, "v3")).toBeNull();
+    await workshopStorage.save(`${prefix}v1`, { ...record, savedAt: 100 });
+    await workshopStorage.save(`${prefix}v2`, { ...record, version: "v2", step: 6, savedAt: 200 });
+    await workshopStorage.save(`${prefix}broken`, { ...record, version: "broken", archive: "%%%", savedAt: 900 });
+    await workshopStorage.save("ukos-course:bob:lab:lab-1:v2", { ...record, version: "v2", savedAt: 999 });
+    const migrated = await workshopStorage.migrate(prefix, `${prefix}v3`, "v3");
+    expect(migrated).toEqual({ ...record, version: "v3", step: 6, savedAt: 200 });
+    expect(await workshopStorage.load(`${prefix}v3`, "v3")).toEqual(migrated);
+    expect(await workshopStorage.load(`${prefix}v2`, "v2")).toBeNull();
+    expect(await workshopStorage.load(`${prefix}v1`, "v1")).toBeNull();
+    expect(await workshopStorage.load("ukos-course:bob:lab:lab-1:v2", "v2")).not.toBeNull();
   });
   it("surfaces quota and storage permission failures", async () => {
     vi.spyOn(IDBObjectStore.prototype, "put").mockImplementation(() => {

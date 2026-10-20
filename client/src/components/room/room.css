@@ -813,6 +813,8 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .room-nav-back,
+  .room-input,
   .room-meter span,
   .room-btn,
   .room-steps button,

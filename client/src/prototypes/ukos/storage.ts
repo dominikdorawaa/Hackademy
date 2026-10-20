@@ -57,4 +57,29 @@ export const workshopStorage = {
   async clear(key: string) {
     await transaction("readwrite", (store) => store.delete(key));
   },
+  async migrate(prefix: string, key: string, version: string) {
+    const keys = await transaction("readonly", (store) =>
+      store.getAllKeys(IDBKeyRange.bound(prefix, `${prefix}\uffff`)),
+    );
+    const older = keys.map(String).filter((name) => name !== key);
+    let latest: SavedWorkshop | null = null;
+    for (const name of older) {
+      const value: unknown = await transaction("readonly", (store) =>
+        store.get(name),
+      );
+      const entry = value as Partial<SavedWorkshop> | undefined;
+      if (
+        typeof entry?.version === "string" &&
+        validWorkshop(entry, entry.version, 15) &&
+        (!latest || entry.savedAt > latest.savedAt)
+      )
+        latest = entry;
+    }
+    if (!latest) return null;
+    const migrated = { ...latest, version };
+    await transaction("readwrite", (store) => store.put(migrated, key));
+    for (const name of older)
+      await transaction("readwrite", (store) => store.delete(name));
+    return migrated;
+  },
 };

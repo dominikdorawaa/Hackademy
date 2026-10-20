@@ -15,14 +15,13 @@ function attachWebgl(
   term: Terminal,
   webgl: typeof import("@xterm/addon-webgl") | null,
 ) {
-  if (!webgl) return false;
+  if (!webgl) return;
   try {
     const renderer = new webgl.WebglAddon();
     renderer.onContextLoss(() => renderer.dispose());
     term.loadAddon(renderer);
-    return true;
   } catch {
-    return false;
+    return;
   }
 }
 

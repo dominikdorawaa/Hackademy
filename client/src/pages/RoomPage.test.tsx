@@ -254,6 +254,9 @@ describe('task room reader', () => {
     expect(screen.getByText('Opis')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Wstecz' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Lista zadań' }));
+    expect(screen.getByRole('button', { name: /Drugie/ })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Lista zadań' }));
     await user.type(screen.getByLabelText('Ile?'), '42');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
     expect(answer).toEqual({ answer: '42' });

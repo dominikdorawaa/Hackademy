@@ -34,6 +34,25 @@ describe('useRoomReturn', () => {
     expect(result.current.next).toBeNull();
   });
 
+  it('offers a locked next room only after the path unlocks it for the solved room', async () => {
+    let locked = true;
+    let fail = false;
+    server.use(http.get(`${API_URL}/api/paths/4`, () => fail
+      ? HttpResponse.error()
+      : HttpResponse.json({ id: 4, title: 'Sieci', rooms: [], chapters: [{ id: 1, rooms: [{ id: 7, title: 'A' }, { id: 8, title: 'B', locked }] }] })));
+    const { result, rerender } = renderHook(({ solved }) => useRoomReturn('7', '?pathId=4', 'sessionKey', solved), { initialProps: { solved: false } });
+    await waitFor(() => expect(result.current.pending).toBe(false));
+    expect(result.current.next).toBeNull();
+    locked = false;
+    rerender({ solved: true });
+    expect(result.current).toMatchObject({ to: '/learn/paths/4', pending: false });
+    await waitFor(() => expect(result.current.next).toEqual({ to: '/rooms/8?pathId=4', title: 'B' }));
+    fail = true;
+    rerender({ solved: false });
+    await new Promise(resolve => setTimeout(resolve, 50));
+    expect(result.current).toMatchObject({ to: '/learn/paths/4', next: { to: '/rooms/8?pathId=4', title: 'B' } });
+  });
+
   it('checks the path again for a different session', async () => {
     let calls = 0;
     server.use(http.get(`${API_URL}/api/paths/3`, () => { calls++; return HttpResponse.json({ message: 'brak' }, { status: 404 }); }));

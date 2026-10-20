@@ -56,7 +56,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const readerRef = useRef<HTMLDivElement>(null);
 
   const queryParams = new URLSearchParams(location.search);
-  const roomReturn = useRoomReturn(preview ? undefined : id, location.search, sessionKey);
+  const roomReturn = useRoomReturn(preview ? undefined : id, location.search, sessionKey, room?.solved ?? false);
 
   const handleUnlockHint = (hintId: number) => {
     if (preview) { setUnlockedHints(current => [...current, hintId]); return; }
@@ -245,7 +245,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const nav = {
     back: {
-      title: preview ? 'Edycja pokoju' : roomReturn.title,
+      title: preview ? (queryParams.get('pathId') ? 'Podgląd ścieżki' : 'Edycja pokoju') : roomReturn.title,
       label: preview ? 'Powrót' : roomReturn.label,
       disabled: !preview && roomReturn.pending,
       onClick: () => navigate(backTo),
@@ -409,6 +409,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const task = tasks[taskIndex];
   const lastTask = taskIndex === tasks.length - 1;
   const allTasksDone = completedTasksCount === tasks.length;
+  const firstOpenTask = tasks.findIndex(t => !t.completed);
   const answerId = `${titleId}-answer`;
 
   const next = !lastTask
@@ -432,7 +433,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     <RoomFrame nav={nav} label="Pokój z zadaniami"
       footer={
         <RoomFooterBar
-          steps={tasks.map(t => ({ key: t.id, title: t.title, done: t.completed }))}
+          steps={tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask }))}
           current={taskIndex}
           unit="Zadanie"
           listLabel="Lista zadań"
