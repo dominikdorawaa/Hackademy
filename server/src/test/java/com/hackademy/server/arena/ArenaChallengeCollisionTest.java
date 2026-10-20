@@ -203,6 +203,23 @@ class ArenaChallengeCollisionTest {
     }
 
     @Test
+    void oneSideLeavingAfterTheOtherReturnsStartsItsOwnClock() {
+        challenge(1, 2);
+        when(presence.isConnected(1L)).thenReturn(false);
+        arena.sweepAbandonedChallenges();
+        now.addAndGet(25_000);
+        when(presence.isConnected(1L)).thenReturn(true);
+        when(presence.isConnected(2L)).thenReturn(false);
+        arena.sweepAbandonedChallenges();
+        now.addAndGet(5_000);
+        arena.sweepAbandonedChallenges();
+        assertEquals(1, arena.getPendingChallenges(2L).size());
+        now.addAndGet(ArenaServiceImpl.PLAYER_GONE_MILLIS - 5_000);
+        arena.sweepAbandonedChallenges();
+        assertTrue(arena.getPendingChallenges(2L).isEmpty());
+    }
+
+    @Test
     void aFinishedGameFreesItsPlayersForNewChallenges() {
         var game = arena.acceptChallenge(challenge(1, 2).getId(), 2L);
         arena.finishGame(game.getId(), null);

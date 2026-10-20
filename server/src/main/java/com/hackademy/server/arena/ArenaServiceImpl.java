@@ -62,7 +62,7 @@ public class ArenaServiceImpl implements ArenaService {
     private final Object players = new Object();
     private final Set<Long> startingPlayers = new HashSet<>();
     private final Map<Long, String> playingIn = new HashMap<>();
-    private final Map<String, Long> playerGoneSince = new ConcurrentHashMap<>();
+    private final Map<Long, Long> playerGoneSince = new ConcurrentHashMap<>();
     private LongSupplier clock = System::currentTimeMillis;
     private volatile boolean closing;
 
@@ -166,7 +166,6 @@ public class ArenaServiceImpl implements ArenaService {
     private boolean removeChallenge(Challenge challenge, String status) {
         if (!challenges.remove(challenge.getId(), challenge)) return false;
         challenge.setStatus(status);
-        playerGoneSince.remove(challenge.getId());
         return true;
     }
 
@@ -484,23 +483,33 @@ public class ArenaServiceImpl implements ArenaService {
         }
     }
 
-    // A challenge between players who closed Hackademy or logged out would wait forever; drop it once either side
-    // has been gone for a while.
+    // A challenge between players who closed Hackademy or logged out would wait forever; drop it once either
+    // side has been gone for a while. Each player has their own clock, so one leaving never inherits another's time.
     @Scheduled(fixedRate = 5_000)
     public void sweepAbandonedChallenges() {
         long now = clock.getAsLong();
+        var involved = new HashSet<Long>();
+        challenges.values().forEach(challenge -> {
+            involved.add(challenge.getChallengerId());
+            involved.add(challenge.getTargetId());
+        });
+        playerGoneSince.keySet().retainAll(involved);
+        for (Long player : involved) {
+            if (presence.isConnected(player)) playerGoneSince.remove(player);
+            else playerGoneSince.putIfAbsent(player, now);
+        }
         for (Challenge challenge : challenges.values()) {
+            if (!goneLongEnough(challenge.getChallengerId(), now) && !goneLongEnough(challenge.getTargetId(), now)) continue;
             synchronized (challenge) {
-                if (challenges.get(challenge.getId()) != challenge) continue;
-                if (presence.isConnected(challenge.getChallengerId()) && presence.isConnected(challenge.getTargetId())) {
-                    playerGoneSince.remove(challenge.getId());
-                    continue;
-                }
-                long since = playerGoneSince.computeIfAbsent(challenge.getId(), ignored -> now);
-                if (now - since >= PLAYER_GONE_MILLIS && removeChallenge(challenge, "CANCELLED")) {
+                if (challenges.get(challenge.getId()) == challenge && removeChallenge(challenge, "CANCELLED")) {
                     realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
                 }
             }
         }
+    }
+
+    private boolean goneLongEnough(Long player, long now) {
+        Long since = playerGoneSince.get(player);
+        return since != null && now - since >= PLAYER_GONE_MILLIS;
     }
 }
