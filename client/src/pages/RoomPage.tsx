@@ -1,7 +1,8 @@
 import { sanitizeTaskContent } from '../lib/taskContent';
 import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useId, useRef } from 'react';
+import { BookOpen, Check, ChevronRight, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/common/ConfirmationModal';
@@ -11,6 +12,10 @@ import './RoomPage.css';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import type { RoomDetailDto } from '../types/api';
 import { useRoomReturn } from '../hooks/useRoomReturn';
+import RoomFrame from '../components/room/RoomFrame';
+import RoomFooterBar from '../components/room/RoomFooterBar';
+import RoomSplit from '../components/room/RoomSplit';
+import { PixelSprite, SPRITES } from '../components/PixelSprite';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
@@ -40,15 +45,18 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   // Tasks State
   const [taskAnswers, setTaskAnswers] = useState<Record<number, string>>({});
-  const [expandedTasks, setExpandedTasks] = useState<Record<number, boolean>>({});
+  const [activeTask, setActiveTask] = useState(0);
   const [pendingTask, setPendingTask] = useState<number | null>(null);
   const [finishingRoom, setFinishingRoom] = useState(false);
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
+  const titleId = useId();
+  const readerRef = useRef<HTMLDivElement>(null);
+
   const queryParams = new URLSearchParams(location.search);
-  const roomReturn = useRoomReturn(preview ? undefined : id, location.search, sessionKey);
+  const roomReturn = useRoomReturn(preview ? undefined : id, location.search, sessionKey, room?.solved ?? false);
 
   const handleUnlockHint = (hintId: number) => {
     if (preview) { setUnlockedHints(current => [...current, hintId]); return; }
@@ -137,8 +145,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         const data = await response.json();
         setRoom(data);
         if (data.tasks && data.tasks.length > 0) {
-            const firstIncomplete = data.tasks.find(t => !t.completed);
-            setExpandedTasks({ [firstIncomplete ? firstIncomplete.id : data.tasks[0].id]: true });
+            setActiveTask(Math.max(0, data.tasks.findIndex(t => !t.completed)));
         }
         if (data.unlockedHintIds) {
           setUnlockedHints(data.unlockedHintIds);
@@ -152,9 +159,9 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (sessionKey) fetchRoom();
   }, [id, sessionKey, preview]);
 
-  const toggleTask = (taskId: number) => {
-    setExpandedTasks(prev => ({ ...prev, [taskId]: !prev[taskId] }));
-  };
+  useEffect(() => {
+    readerRef.current?.closest('.room-frame-body')?.scrollTo?.({ top: 0 });
+  }, [activeTask]);
 
   const handleTaskSubmit = async (e: React.FormEvent, taskId: number) => {
     e.preventDefault();
@@ -233,184 +240,76 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const tasks = room.tasks || [];
   const completedTasksCount = tasks.filter(t => t.completed).length;
-  const progressPercent = tasks.length > 0 ? Math.round((completedTasksCount / tasks.length) * 100) : (isSolved ? 100 : 0);
+  const backTo = preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : roomReturn.to;
+  const nextRoom = preview ? null : roomReturn.next;
 
-  return (
-    <div className="room-page-container hackademy-container">
-      {preview && <div role="status" className="mb-4 flex flex-wrap items-center justify-between gap-3 rounded-lg border border-primary/40 bg-primary/5 p-4 text-sm"><span>Podgląd administracyjny: postęp i punkty nie są zapisywane.</span><button type="button" className="btn btn-outline" onClick={() => navigate(`/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`)}>Wróć do edycji pokoju</button></div>}
-      {tasks.length > 0 && (
-          <div className="room-progress-container">
-            <div className="room-progress-bar">
-                <div className="room-progress-fill" style={{ width: `${progressPercent}%` }}></div>
-            </div>
-            <div className="room-progress-text">Postęp pokoju: {progressPercent}%</div>
-          </div>
-      )}
+  const nav = {
+    back: {
+      title: preview ? (queryParams.get('pathId') ? 'Podgląd ścieżki' : 'Edycja pokoju') : roomReturn.title,
+      label: preview ? 'Powrót' : roomReturn.label,
+      disabled: !preview && roomReturn.pending,
+      onClick: () => navigate(backTo),
+    },
+    title: room.title,
+    progress: tasks.length > 0
+      ? { value: completedTasksCount, max: tasks.length, label: 'Postęp pokoju' }
+      : { value: isSolved ? 1 : 0, max: 1, label: 'Postęp pokoju' },
+  };
 
-      <div className="room-header">
-        <button type="button" disabled={!preview && roomReturn.pending} aria-busy={!preview && roomReturn.pending} onClick={() => navigate(preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : roomReturn.to)} className="back-btn">
-            <span aria-hidden="true">&larr;</span> {preview ? 'Powrót' : roomReturn.label}
-        </button>
-        <div className="room-meta-top">
-             <span className={`difficulty-badge ${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>
-             <span className="points-badge">{room.points} pkt</span>
-        </div>
-        <h1>{room.title}</h1>
-        {room.shortDescription && <p className="room-category">{room.shortDescription}</p>}
-      </div>
+  const previewBanner = preview && (
+    <div role="status" className="room-preview">
+      <span>Podgląd administracyjny: postęp i punkty nie są zapisywane.</span>
+      <button type="button" className="room-btn room-btn--small" onClick={() => navigate(`/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`)}>Wróć do edycji pokoju</button>
+    </div>
+  );
 
-      <div className="room-content">
-        <div className="room-description">
-            <h3>Opis Wyzwania</h3>
-            <p style={{ whiteSpace: 'pre-line' }}>{room.description}</p>
+  const fileBlock = room.fileName && (
+    <div className="room-file">
+      <p><strong>Materiały do misji</strong>Pobierz plik: {room.fileName}</p>
+      <button type="button" onClick={handleDownloadFile} className="room-btn room-btn--small">
+        <Download aria-hidden="true" />
+        Pobierz plik
+      </button>
+    </div>
+  );
 
-            {room.fileName && (
-                <div style={{ marginTop: '20px', padding: '15px', backgroundColor: '#1e1e1e', borderRadius: '8px', border: '1px solid #333' }}>
-                    <h4 style={{ marginTop: 0 }}>Materiały do misji</h4>
-                    <p style={{ fontSize: '0.9rem', color: '#aaa' }}>Pobierz plik: {room.fileName}</p>
-                    <button onClick={handleDownloadFile} className="btn btn-outline" style={{ fontSize: '0.9rem' }}>
-                        <i className="fas fa-download" style={{ marginRight: '8px' }}></i>
-                        Pobierz Plik
-                    </button>
-                </div>
-            )}
-
-            {tasks.length > 0 && (
-                <div className="tasks-list">
-                    {tasks.map((task, idx) => (
-                        <div key={task.id} className={`task-card ${task.completed ? 'completed' : ''}`}>
-                            <div className="task-header" onClick={() => toggleTask(task.id)}>
-                                <div className="task-title-wrap">
-                                    <span className="task-number">TASK {idx + 1}</span>
-                                    {task.completed && <i className="fas fa-check-circle task-check" />}
-                                    <span className="task-title">{task.title}</span>
-                                </div>
-                                <i className={`fas fa-chevron-${expandedTasks[task.id] ? 'up' : 'down'}`} style={{ color: '#aaa' }} />
-                            </div>
-                            {expandedTasks[task.id] && (
-                                <div className="task-body">
-                                    <div className="task-content" dangerouslySetInnerHTML={{ __html: sanitizeTaskContent(task.content) }} />
-                                    {task.question && (
-                                        <div className="task-question-box">
-                                            <div className="task-question-text">{task.question}</div>
-                                            <form className="task-input-group" onSubmit={(e) => handleTaskSubmit(e, task.id)}>
-                                                <input
-                                                    type="text"
-                                                    className={`task-input ${task.completed ? 'success' : ''}`}
-                                                    placeholder={task.completed ? 'Ukończono' : 'Twoja odpowiedź...'}
-                                                    value={task.completed ? '' : (taskAnswers[task.id] || '')}
-                                                    onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
-                                                    disabled={task.completed || pendingTask !== null}
-                                                />
-                                                <button
-                                                    type="submit"
-                                                    className={`btn-task-submit ${task.completed ? 'completed' : ''}`}
-                                                    disabled={task.completed || pendingTask !== null}
-                                                >
-                                                    {task.completed ? 'Poprawne' : 'Wyślij'}
-                                                    {!task.completed && <i className="fas fa-paper-plane" />}
-                                                </button>
-                                            </form>
-                                        </div>
-                                    )}
-                                    {!task.question && (
-                                        <form onSubmit={(event) => void handleTaskSubmit(event, task.id)}>
-                                            <button type="submit" className="btn-task-submit"
-                                                disabled={task.completed || pendingTask !== null}>
-                                                {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
-                                            </button>
-                                        </form>
-                                    )}
-                                </div>
-                            )}
-                        </div>
-                    ))}
-                </div>
-            )}
-        </div>
-
-        <div className="room-actions">
-            <div className={`status-card ${isSolved ? 'solved' : ''}`}>
-                <p>Rozwiązania: <strong>{room.solutionsCount}</strong></p>
-                {isSolved ? (
-                    <div className="solved-badge">
-                        <i className="fas fa-check-circle"></i> Rozwiązane
-                    </div>
-                ) : (
-                    <div className="unsolved-badge">
-                        <i className="fas fa-lock-open"></i> Do zrobienia
-                    </div>
-                )}
-            </div>
-
-            {!isSolved && tasks.length > 0 && completedTasksCount === tasks.length && (
-                <button type="button" className="btn btn-primary" disabled={finishingRoom}
-                    onClick={() => void handleCompleteRoom()}>
-                    {finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój'}
+  const hintsBlock = showContent && room.hints && room.hints.length > 0 && (
+    <section className="room-hints" aria-labelledby={`${titleId}-hints`}>
+      <h2 className="room-section-title" id={`${titleId}-hints`}>Podpowiedzi</h2>
+      {!isTrainingMode && <p className="room-hints-points">Punkty do zdobycia: <strong>{Math.round(potentialPoints)}</strong></p>}
+      <ol>
+        {room.hints.map((hint, index) => {
+          const isUnlocked = unlockedHints.includes(hint.id);
+          const isPreviousUnlocked = index === 0 || unlockedHints.includes(room.hints[index - 1].id);
+          const canUnlock = !isUnlocked && isPreviousUnlocked;
+          return (
+            <li key={hint.id} className="room-hint">
+              <span className="room-hint-mark" aria-hidden="true">{isUnlocked ? <Lightbulb size={18} /> : <Lock size={16} />}</span>
+              <h4>Podpowiedź {index + 1}</h4>
+              {isUnlocked ? (
+                <p>{hint.description}</p>
+              ) : (
+                <button type="button" onClick={() => handleUnlockHint(hint.id)} className="room-btn room-btn--small" disabled={!canUnlock}>
+                  {canUnlock ? (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${pointsToDeduct} pkt)`) : 'Zablokowane (odblokuj poprzednią)'}
                 </button>
-            )}
+              )}
+            </li>
+          );
+        })}
+      </ol>
+    </section>
+  );
 
-            {/* HINTS SECTION */}
-            {showContent && room.hints && room.hints.length > 0 && (
-                <div className="hints-section">
-                    <h3>Podpowiedzi</h3>
-                    {!isTrainingMode && <div className="potential-points">Punkty do zdobycia: <strong>{Math.round(potentialPoints)}</strong></div>}
-                    {room.hints.map((hint, index) => {
-                        const isUnlocked = unlockedHints.includes(hint.id);
-                        const isPreviousUnlocked = index === 0 || unlockedHints.includes(room.hints[index - 1].id);
-                        const canUnlock = !isUnlocked && isPreviousUnlocked;
+  const chips = (
+    <div className="room-chips">
+      <span className={`room-chip room-chip--${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>
+      <span className="room-chip room-chip--points">{room.points} pkt</span>
+      {isSolved && <span className="room-chip room-chip--done"><Check aria-hidden="true" />Rozwiązany</span>}
+    </div>
+  );
 
-                        return (
-                            <div key={hint.id} className="hint-container">
-                                <h4>Podpowiedź {index + 1}</h4>
-                                {isUnlocked ? (
-                                    <div className="unlocked-hint">
-                                        <p>{hint.description}</p>
-                                    </div>
-                                ) : (
-                                    <button
-                                        onClick={() => handleUnlockHint(hint.id)}
-                                        className="btn-unlock-hint"
-                                        disabled={!canUnlock}
-                                        style={{ opacity: canUnlock ? 1 : 0.5, cursor: canUnlock ? 'pointer' : 'not-allowed' }}
-                                    >
-                                        {canUnlock ? (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${pointsToDeduct} pkt)`) : 'Zablokowane (odblokuj poprzednią)'}
-                                    </button>
-                                )}
-                            </div>
-                        );
-                    })}
-                </div>
-            )}
-
-            {tasks.length === 0 && (
-                showContent ? (
-                    <form onSubmit={handleSubmit} className="flag-form">
-                        <h3>Zgłoś Flagę</h3>
-                        <input
-                            type="text"
-                            placeholder="Wklej flagę tutaj..."
-                            value={flag}
-                            onChange={(e) => setFlag(e.target.value)}
-                            className={submitStatus === 'error' ? 'input-error' : ''}
-                        />
-                        <button type="submit" className="btn btn-primary" style={{ width: '100%', marginTop: '10px' }}>Zatwierdź</button>
-                        {submitMessage && <p className={`submit-message ${submitStatus}`}>{submitMessage}</p>}
-                    </form>
-                ) : (
-                    <div className="solved-message">
-                        <h3>Gratulacje!</h3>
-                        <p>Ukończyłeś to wyzwanie i zdobyłeś {room.points} punktów.</p>
-                        <button onClick={() => setIsTrainingMode(true)} className="btn btn-outline" style={{marginTop: '15px'}}>
-                            <i className="fas fa-redo" style={{marginRight: '8px'}}></i>
-                            Rozwiąż ponownie (Trening)
-                        </button>
-                    </div>
-                )
-            )}
-        </div>
-      </div>
-
+  const modals = (
+    <>
       <ConfirmationModal
         isOpen={isModalOpen}
         message={isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - brak kosztu punktowego)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${pointsToDeduct} punktów.`}
@@ -430,7 +329,176 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             onClose={() => setToast(null)}
         />
       )}
-    </div>
+    </>
+  );
+
+  if (tasks.length === 0) {
+    const descriptionPane = (
+      <section className="room-pane" aria-labelledby={titleId}>
+        <div className="room-pane-scroll">
+          {chips}
+          <h1 className="room-title" id={titleId}>{room.title}</h1>
+          {room.shortDescription && <p className="room-lead">{room.shortDescription}</p>}
+          <div className="room-prose"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
+          {fileBlock}
+        </div>
+      </section>
+    );
+
+    const solvePane = (
+      <section className="room-pane" aria-label="Rozwiązanie">
+        <div className="room-pane-scroll room-solve">
+          <div className="room-solve-status">
+            <PixelSprite sprite={SPRITES.flag} scale={2} still={!isSolved} className="room-solve-flag" />
+            <div>
+              <p className="room-kicker">{isSolved ? 'Flaga zdobyta' : 'Zdobądź flagę'}</p>
+              <p className="room-solve-count">Rozwiązania: <strong>{room.solutionsCount}</strong></p>
+            </div>
+          </div>
+          {showContent ? (
+            <form onSubmit={handleSubmit} className="room-flag">
+              <h2 className="room-section-title"><label htmlFor={`${titleId}-flag`}>Zgłoś flagę</label></h2>
+              <p className="room-note">Wklej znalezioną flagę dokładnie tak, jak ją widzisz.</p>
+              <div className="room-field">
+                <input
+                  id={`${titleId}-flag`}
+                  type="text"
+                  autoComplete="off"
+                  spellCheck={false}
+                  placeholder="Wklej flagę tutaj..."
+                  value={flag}
+                  onChange={(e) => setFlag(e.target.value)}
+                  className={`room-input${submitStatus === 'error' ? ' is-error' : ''}`}
+                />
+                <button type="submit" className="room-btn room-btn--primary">Zatwierdź</button>
+              </div>
+              {submitMessage && <p className={`room-message is-${submitStatus}`} role="status">{submitMessage}</p>}
+            </form>
+          ) : (
+            <div className="room-solved">
+              <h2 className="room-section-title">Gratulacje!</h2>
+              <p>Ukończyłeś to wyzwanie i zdobyłeś {room.points} punktów.</p>
+              <div className="room-solved-actions">
+                {nextRoom && (
+                  <button type="button" className="room-btn room-btn--primary" onClick={() => navigate(nextRoom.to)}>
+                    Następny pokój<ChevronRight aria-hidden="true" />
+                  </button>
+                )}
+                <button type="button" onClick={() => setIsTrainingMode(true)} className="room-btn">
+                  <RotateCcw aria-hidden="true" />
+                  Rozwiąż ponownie (Trening)
+                </button>
+              </div>
+            </div>
+          )}
+          {hintsBlock}
+        </div>
+      </section>
+    );
+
+    return (
+      <RoomFrame nav={nav} label="Pokój z flagą" className="room-frame--split">
+        {previewBanner}
+        <RoomSplit variant="flat" start={descriptionPane} end={solvePane} initial={0.56} />
+        {modals}
+      </RoomFrame>
+    );
+  }
+
+  const taskIndex = Math.min(activeTask, tasks.length - 1);
+  const task = tasks[taskIndex];
+  const lastTask = taskIndex === tasks.length - 1;
+  const allTasksDone = completedTasksCount === tasks.length;
+  const firstOpenTask = tasks.findIndex(t => !t.completed);
+  const answerId = `${titleId}-answer`;
+
+  const next = !lastTask
+    ? { label: 'Dalej', disabled: !task.completed && !preview, primary: task.completed, onClick: () => setActiveTask(taskIndex + 1) }
+    : isSolved && nextRoom
+      ? { label: 'Następny pokój', primary: true, onClick: () => navigate(nextRoom.to) }
+      : { label: 'Zakończ', disabled: !isSolved && !preview, primary: isSolved, onClick: () => navigate(backTo) };
+
+  const center = !isSolved && allTasksDone ? (
+    <button type="button" className="room-btn room-btn--primary" disabled={finishingRoom}
+      onClick={() => void handleCompleteRoom()}>
+      {finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój'}
+    </button>
+  ) : isSolved ? (
+    <span className="room-state room-state--done"><Check aria-hidden="true" />Pokój ukończony</span>
+  ) : task.completed ? (
+    <span className="room-state room-state--done"><Check aria-hidden="true" />Zadanie zaliczone</span>
+  ) : null;
+
+  return (
+    <RoomFrame nav={nav} label="Pokój z zadaniami"
+      footer={
+        <RoomFooterBar
+          steps={tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask }))}
+          current={taskIndex}
+          unit="Zadanie"
+          listLabel="Lista zadań"
+          title={task.title}
+          badge={<span className="room-chip room-chip--points">{room.points} pkt</span>}
+          center={center}
+          onSelect={setActiveTask}
+          back={{ label: 'Wstecz', disabled: taskIndex === 0, onClick: () => setActiveTask(taskIndex - 1) }}
+          next={next}
+        />
+      }>
+      {previewBanner}
+      <div className="room-reader" ref={readerRef}>
+        <div className="room-reader-bar">
+          <div className="room-reader-where"><h1>{room.title}</h1><span>Zadanie {taskIndex + 1} z {tasks.length}</span></div>
+          <span><Users aria-hidden="true" />Ukończyło: {room.solutionsCount}</span>
+        </div>
+        <article key={task.id} className="room-reader-article" aria-labelledby={titleId}>
+          {taskIndex === 0 && chips}
+          <h2 className="room-title" id={titleId}>{String(taskIndex + 1).padStart(2, '0')}. {task.title}</h2>
+          {taskIndex === 0 && room.description && (
+            <div className="room-prose room-intro"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
+          )}
+          {taskIndex === 0 && fileBlock}
+          <div className="room-prose task-content" dangerouslySetInnerHTML={{ __html: sanitizeTaskContent(task.content) }} />
+          {task.question ? (
+            <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(e) => handleTaskSubmit(e, task.id)}>
+              <p className="room-question-label">
+                {task.completed ? <Check aria-hidden="true" /> : <HelpCircle aria-hidden="true" />}
+                {task.completed ? 'Zaliczone' : 'Pytanie'}
+              </p>
+              <label className="room-question-text" htmlFor={answerId}>{task.question}</label>
+              <div className="room-field">
+                <input
+                  id={answerId}
+                  type="text"
+                  autoComplete="off"
+                  className={`room-input${task.completed ? ' is-done' : ''}`}
+                  placeholder={task.completed ? 'Ukończono' : 'Twoja odpowiedź...'}
+                  value={task.completed ? '' : (taskAnswers[task.id] || '')}
+                  onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
+                  disabled={task.completed || pendingTask !== null}
+                />
+                <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
+                  {task.completed ? 'Poprawne' : 'Sprawdź'}
+                </button>
+              </div>
+            </form>
+          ) : (
+            <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(event) => void handleTaskSubmit(event, task.id)}>
+              <p className="room-question-label">
+                {task.completed ? <Check aria-hidden="true" /> : <BookOpen aria-hidden="true" />}
+                {task.completed ? 'Zaliczone' : 'Do przeczytania'}
+              </p>
+              <p className="room-note">Gdy skończysz czytać, oznacz zadanie jako przeczytane.</p>
+              <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
+                {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
+              </button>
+            </form>
+          )}
+        </article>
+        {hintsBlock}
+      </div>
+      {modals}
+    </RoomFrame>
   );
 };
 

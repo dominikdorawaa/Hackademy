@@ -46,6 +46,7 @@ beforeEach(() => {
     warning: "",
     lastCommand: null,
     metrics: null,
+    download: null,
     saved: null,
     start: vi.fn(),
     stop: vi.fn(),
@@ -84,7 +85,25 @@ it("guides one active step, reveals hints only on request and allows review", ()
   expect(
     screen.queryByText("Wpisz pwd i zatwierdź Enterem."),
   ).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole("button", { name: /✓.*Pierwszy dyżur/ }));
+  expect(screen.getByRole("button", { name: "Dalej" })).toBeDisabled();
+  fireEvent.click(screen.getByRole("button", { name: "Wstecz" }));
+  expect(
+    screen.getByRole("heading", { name: "Pierwszy dyżur" }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Dalej" }));
+  expect(
+    screen.getByRole("heading", { name: "Co zastaliśmy na stanowisku?" }),
+  ).toBeInTheDocument();
+  fireEvent.click(screen.getByRole("button", { name: "Kroki laboratorium" }));
+  expect(
+    screen.getByRole("button", { name: /Zajrzyj do archiwum/ }),
+  ).toBeDisabled();
+  const done = screen.getByRole("button", { name: /Pierwszy dyżur/ });
+  expect(done).toHaveAccessibleName("Pierwszy dyżur, ukończone");
+  fireEvent.click(done);
+  expect(
+    screen.queryByRole("navigation", { name: "Kroki laboratorium" }),
+  ).not.toBeInTheDocument();
   fireEvent.click(
     screen.getByRole("button", { name: "Wróć do bieżącego zadania" }),
   );
@@ -165,4 +184,54 @@ it("makes mobile read-only and exposes sync failures", () => {
   expect(
     screen.getByRole("heading", { name: "Twój ślad pracy" }),
   ).toBeInTheDocument();
+});
+it("shows how much of Linux is downloaded and then waits for the system to boot", () => {
+  workshop = { ...workshop, status: "booting" };
+  const view = draw();
+  fireEvent.click(screen.getByRole("button", { name: "Rozpocznij dyżur" }));
+  expect(
+    screen.getByRole("progressbar", { name: "Przygotowanie terminala" }),
+  ).not.toHaveAttribute("aria-valuenow");
+  workshop = { ...workshop, download: { loaded: 0, total: 0 } };
+  view.rerender(
+    <MemoryRouter>
+      <UkosPage />
+    </MemoryRouter>,
+  );
+  expect(
+    screen.getByRole("progressbar", { name: "Przygotowanie terminala" }),
+  ).toBeInTheDocument();
+  workshop = {
+    ...workshop,
+    download: { loaded: 12_600_000, total: 25_200_000 },
+  };
+  view.rerender(
+    <MemoryRouter>
+      <UkosPage />
+    </MemoryRouter>,
+  );
+  expect(
+    screen.getByRole("progressbar", { name: "Pobieranie Linuksa" }),
+  ).toHaveAttribute("aria-valuenow", "50");
+  expect(screen.getByText("Pobrano 12,6 z 25,2 MB")).toBeInTheDocument();
+  expect(screen.getByText("50%")).toBeInTheDocument();
+  workshop = {
+    ...workshop,
+    download: { loaded: 25_200_000, total: 25_200_000 },
+  };
+  view.rerender(
+    <MemoryRouter>
+      <UkosPage />
+    </MemoryRouter>,
+  );
+  expect(
+    screen.getByRole("progressbar", { name: "Uruchamianie systemu" }),
+  ).not.toHaveAttribute("aria-valuenow");
+  workshop = { ...workshop, status: "ready" };
+  view.rerender(
+    <MemoryRouter>
+      <UkosPage />
+    </MemoryRouter>,
+  );
+  expect(screen.queryByRole("progressbar", { name: /Uruchamianie/ })).not.toBeInTheDocument();
 });

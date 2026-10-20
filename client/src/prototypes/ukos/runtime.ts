@@ -23,6 +23,11 @@ export type RuntimeEnvironment = {
     load: (key: string, version: string) => Promise<SavedWorkshop | null>;
     save: (key: string, data: SavedWorkshop) => Promise<void>;
     clear: (key: string) => Promise<void>;
+    migrate?: (
+      prefix: string,
+      key: string,
+      version: string,
+    ) => Promise<SavedWorkshop | null>;
   };
 };
 
@@ -54,6 +59,8 @@ export class UkosRuntime {
   private checkpoint: number | null = null;
   private generation = 0;
   private saving: Promise<void> | null = null;
+  private downloads = new Map<string, { loaded: number; size: number }>();
+  private downloadReportedAt = 0;
 
   constructor(private readonly environment: RuntimeEnvironment) {}
 
@@ -149,14 +156,22 @@ export class UkosRuntime {
     );
     if (generation !== this.generation) return;
     this.version = version;
+    const coursePrefix = `ukos-course:${encodeURIComponent(this.start.account)}:lab:lab-1:`;
     this.key = this.start.variant
-      ? `ukos-course:${encodeURIComponent(this.start.account)}:lab:lab-1:${version}`
+      ? `${coursePrefix}${version}`
       : storageKey(this.start.account, version);
     this.saved = null;
     this.restored = false;
     if (this.checkpoint === null) {
       try {
         this.saved = await this.environment.storage.load(this.key, version);
+        if (!this.saved && this.start.variant)
+          this.saved =
+            (await this.environment.storage.migrate?.(
+              coursePrefix,
+              this.key,
+              version,
+            )) ?? null;
       } catch (error) {
         this.emit({
           type: "warning",
@@ -209,6 +224,27 @@ export class UkosRuntime {
       uart3: true,
     });
     this.emulator = emulator;
+    this.downloads = new Map(
+      [
+        "v86.wasm",
+        "seabios.bin",
+        "vgabios.bin",
+        ...(useBootState
+          ? ["boot-state.bin.zst"]
+          : ["kernel.bin", "initrd.gz"]),
+      ].map((name) => [name, { loaded: 0, size: files?.[name]?.bytes ?? 0 }]),
+    );
+    this.reportDownload(true);
+    emulator.add_listener("download-progress", (event) => {
+      const name = event.file_name.split(/[?#]/)[0].split("/").pop() ?? "";
+      const file = this.downloads.get(name) ?? { loaded: 0, size: 0 };
+      const size = file.size || event.total || 0;
+      this.downloads.set(name, {
+        size,
+        loaded: size ? Math.min(event.loaded, size) : event.loaded,
+      });
+      this.reportDownload(false);
+    });
     this.bootTimer = setTimeout(() => {
       void this.fail(
         new Error(
@@ -232,9 +268,25 @@ export class UkosRuntime {
     emulator.add_listener("serial2-output-byte", guarded(prompts));
     emulator.add_listener("serial3-output-byte", guarded(dirty));
     emulator.add_listener("emulator-loaded", () => {
+      for (const file of this.downloads.values())
+        file.loaded = Math.max(file.loaded, file.size);
+      this.reportDownload(true);
       void emulator.run();
       if (useBootState) this.prepareGuest();
     });
+  }
+
+  private reportDownload(force: boolean) {
+    const now = performance.now();
+    if (!force && now - this.downloadReportedAt < 100) return;
+    this.downloadReportedAt = now;
+    let loaded = 0;
+    let total = 0;
+    for (const file of this.downloads.values()) {
+      loaded += file.loaded;
+      total += Math.max(file.size, file.loaded);
+    }
+    this.emit({ type: "download", loaded, total });
   }
 
   private async fail(error: unknown) {
