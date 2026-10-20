@@ -6,7 +6,6 @@ import * as user from './userApi';
 import * as path from './pathApi';
 import * as room from './roomApi';
 import * as arena from './arenaApi';
-import * as vpn from './vpnApi';
 import * as admin from './adminRequests';
 import * as legacyAdmin from './adminApi';
 
@@ -84,13 +83,6 @@ describe('HTTP compatibility', () => {
       `${API_URL}/api/arena/game/game-id/answer`, `${API_URL}/api/rooms/7/solve`,
     ]);
     expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual(['{"round":3,"answer":2}', '{"flag":"flag"}']);
-  });
-
-  it('keeps file bytes and download headers', async () => {
-    fetchMock.mockResolvedValue(new Response('vpn-config', { headers: { 'Content-Disposition': 'attachment; filename="test.ovpn"' } }));
-    const response = await vpn.downloadConfig(headers);
-    expect(response.headers.get('Content-Disposition')).toBe('attachment; filename="test.ovpn"');
-    expect(await (await response.blob()).text()).toBe('vpn-config');
   });
 });
 

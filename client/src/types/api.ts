@@ -141,13 +141,6 @@ export interface ChatMessage {
   timestamp: ApiDateTime
 }
 
-export interface VpnStatus {
-  canDownload: boolean
-  levelRequirementMet: boolean
-  tutorialRequirementMet: boolean
-  currentLevel: number
-}
-
 export interface ActivityDto {
   date: ApiDate
   count: number

@@ -48,37 +48,6 @@ const CTFCard = ({ challenge }: { challenge: RoomSummaryDto & { description?: st
       </div>
       <div className="room-image-placeholder">
         <span className={`difficulty-badge ${difficultyClass}`}>{difficultyTranslations[challenge.difficulty]}</span>
-
-        {/* VPN Badge */}
-        <div
-            className="vpn-badge"
-            style={{
-                position: 'absolute',
-                top: '10px',
-                left: '10px',
-                backgroundColor: 'rgba(0,0,0,0.6)',
-                padding: '4px 8px',
-                borderRadius: '4px',
-                color: challenge.requiresVpn ? '#2ecc71' : '#e74c3c',
-                fontSize: '0.8rem',
-                display: 'flex',
-                alignItems: 'center',
-                gap: '5px',
-                border: `1px solid ${challenge.requiresVpn ? '#2ecc71' : '#e74c3c'}`,
-                zIndex: 2
-            }}
-            title={challenge.requiresVpn ? "Wymaga połączenia VPN" : "Nie wymaga VPN"}
-        >
-            {challenge.requiresVpn ? (
-                <>
-                    <i className="fas fa-network-wired"></i> VPN
-                </>
-            ) : (
-                <>
-                    <i className="fas fa-ban"></i> VPN
-                </>
-            )}
-        </div>
       </div>
       <div className="room-body">
         <h3 className="room-title">{challenge.title}</h3>

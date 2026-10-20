@@ -216,7 +216,6 @@ const Navbar = () => {
                   <Link to="/learn" className={isActivePrefix('/learn') ? 'active' : ''}>Ucz się</Link>
                   <Link to="/arena" className={isActivePrefix('/arena') ? 'active' : ''}>Tryb Rankingowy</Link>
                   <Link to="/ranking" className={isActivePrefix('/ranking') ? 'active' : ''}>Ranking</Link>
-                  <Link to="/vpn" className={isActivePrefix('/vpn') ? 'active' : ''} style={{ color: '#3498db' }}>VPN</Link>
                 </>
               ) : (
                 <>
