@@ -5,6 +5,7 @@ import * as dashboardApi from '../services/dashboardApi';
 import * as friendApi from '../services/friendApi';
 import * as userApi from '../services/userApi';
 import { levelFromPoints, rankTitleFromPoints } from '../lib/level';
+import { formatRelativeTimePL } from '../lib/relativeTime';
 import React, { useEffect, useMemo, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
@@ -27,22 +28,8 @@ const formatDuration = (totalSeconds: number) => {
   return `${h}h ${pad2(m)}m`;
 };
 
-const formatRelativeTimePL = (isoDateTime: string) => {
-  if (!isoDateTime) return '';
-  const t = new Date(isoDateTime).getTime();
-  if (Number.isNaN(t)) return '';
-
-  const now = Date.now();
-  const diffSec = Math.floor((now - t) / 1000);
-  if (diffSec < 60) return 'przed chwilą';
-  const diffMin = Math.floor(diffSec / 60);
-  if (diffMin < 60) return `${diffMin} min temu`;
-  const diffHr = Math.floor(diffMin / 60);
-  if (diffHr < 24) return `${diffHr}h temu`;
-  const diffDay = Math.floor(diffHr / 24);
-  if (diffDay === 1) return 'wczoraj';
-  return `${diffDay} dni temu`;
-};
+const formatRelativeTimeFromIso = (isoDateTime: string) =>
+  isoDateTime ? formatRelativeTimePL(new Date(isoDateTime).getTime()) : '';
 
 const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
@@ -622,7 +609,7 @@ const UserDashboardPage = () => {
                           <span className="ud-flag-title">{x?.title}</span>
                           <span className={`ud-diff is-${diff.cls}`}>{diff.label}</span>
                           <span className="ud-flag-xp">+{x?.points ?? 0} XP</span>
-                          <span className="ud-flag-time">{formatRelativeTimePL(x?.solvedAt)}</span>
+                          <span className="ud-flag-time">{formatRelativeTimeFromIso(x?.solvedAt)}</span>
                         </Link>
                       </li>
                     );
