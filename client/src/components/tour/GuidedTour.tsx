@@ -14,9 +14,9 @@ import './GuidedTour.css';
 
 const MISSING_MS = 2500;
 const SETTLE_MS = 150;
-const WALK_SPEED = 0.28;
-const MIN_WALK_MS = 600;
-const MAX_WALK_MS = 2600;
+const WALK_SPEED = 0.5;
+const MIN_WALK_MS = 450;
+const MAX_WALK_MS = 1400;
 
 const readStep = () => {
   try {

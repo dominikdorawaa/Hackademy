@@ -4,6 +4,7 @@ import { http, HttpResponse } from 'msw';
 import { Outlet, Route } from 'react-router-dom';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import GuidedTour from './GuidedTour';
+import { DANCE_MS } from '../mascot/Mascot';
 import { placeBubble, scrollTargetTop, TOUR_STEPS } from '../../lib/tour';
 import { TOUR_STEP_KEY } from '../../lib/onboarding';
 import { createToken } from '../../test/fixtures/auth';
@@ -82,16 +83,33 @@ describe('guided tour', () => {
     const next = await screen.findByRole('button', { name: 'Dalej' });
     await waitFor(() => expect(next).toHaveFocus());
     const skip = screen.getByRole('button', { name: 'Pomiń przewodnik' });
+    const bit = screen.getByRole('button', { name: 'Pingwin Bit, zatańcz' });
     fireEvent.keyDown(next, { key: 'Tab' });
     expect(skip).toHaveFocus();
     fireEvent.keyDown(skip, { key: 'Tab' });
-    expect(next).toHaveFocus();
-    fireEvent.keyDown(next, { key: 'Tab', shiftKey: true });
+    expect(bit).toHaveFocus();
+    fireEvent.keyDown(bit, { key: 'Tab', shiftKey: true });
     expect(skip).toHaveFocus();
     next.focus();
     fireEvent.keyDown(next, { key: 'Escape' });
     expect(skip).toHaveFocus();
     expect(dialog()).toBeInTheDocument();
+  });
+
+  it('lets Bit dance the Scuba when clicked', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      renderWithAuth(routes, '/dashboard');
+      const bit = await screen.findByRole('button', { name: 'Pingwin Bit, zatańcz' });
+      const mood = () => bit.querySelector('.mascot')?.getAttribute('data-mood');
+      await waitFor(() => expect(mood()).toBe('talk'));
+      fireEvent.click(bit);
+      expect(mood()).toBe('scuba');
+      await act(async () => { await vi.advanceTimersByTimeAsync(DANCE_MS + 100); });
+      expect(mood()).toBe('talk');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('highlights the section and respects reduced motion', async () => {
@@ -104,6 +122,7 @@ describe('guided tour', () => {
       expect(await screen.findByTestId('tour-spotlight')).toHaveStyle({ top: '92px', left: '32px', width: '316px', height: '136px' });
       expect(document.querySelector('.guided-tour')).toHaveAttribute('data-reduced-motion', 'true');
       expect(document.querySelector('.guided-tour .pixel-sprite')).toHaveAttribute('data-still', 'true');
+      expect(screen.queryByRole('button', { name: 'Pingwin Bit, zatańcz' })).toBeNull();
       expect(document.documentElement.hasAttribute('data-tour-active')).toBe(true);
     } finally {
       Element.prototype.getBoundingClientRect = original;

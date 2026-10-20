@@ -1,5 +1,5 @@
 import { setClerkSession } from '../test/clerk';
-import { fireEvent, screen, waitFor, within } from '@testing-library/react';
+import { act, fireEvent, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { Route } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -12,6 +12,7 @@ import { server } from '../test/mocks/server';
 import { renderWithAuth } from '../test/renderWithAuth';
 import OnboardingPage from './OnboardingPage';
 import { PROFILE_UPDATED } from '../lib/profile';
+import { DANCE_MS } from '../components/mascot/Mascot';
 
 vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
   useAvatarAtlas: () => ({ atlas: 'blob:atlas', front: 'blob:front' }),
@@ -110,4 +111,21 @@ it('is reachable from the API helper for the tour too', async () => {
   const response = await finishTour('SKIPPED', { sessionKey: null });
   expect(await response.json()).toEqual({ avatarConfirmed: true, tourStatus: 'SKIPPED' });
   expect(status).toEqual({ status: 'SKIPPED' });
+});
+
+it('lets Bit dance the Scuba on the welcome screen and then calm down again', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  try {
+    renderWithAuth(routes, '/witaj');
+    const bit = await screen.findByRole('button', { name: 'Pingwin Bit, zatańcz' });
+    const mood = () => bit.querySelector('.mascot')?.getAttribute('data-mood');
+    expect(mood()).toBe('calm');
+    expect(screen.queryByText(/Kliknij Bita/)).toBeNull();
+    fireEvent.click(bit);
+    expect(mood()).toBe('scuba');
+    await act(async () => { await vi.advanceTimersByTimeAsync(DANCE_MS + 100); });
+    expect(mood()).toBe('calm');
+  } finally {
+    vi.useRealTimers();
+  }
 });
