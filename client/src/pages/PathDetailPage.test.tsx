@@ -91,7 +91,7 @@ describe('path page', () => {
     mount();
 
     expect(await screen.findByRole('heading', { level: 1, name: 'Bezpieczeństwo aplikacji' })).toBeInTheDocument();
-    expect(screen.getByText('3 rozdz.', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText('3 rozdziały')).toBeInTheDocument();
     await userEvent.click(screen.getByRole('button', { name: /Zacznij tę ścieżkę/ }));
     expect(await screen.findByText('Przechodź rozdziały krok po kroku.')).toBeInTheDocument();
   });

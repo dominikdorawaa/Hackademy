@@ -1,9 +1,13 @@
 import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
-import { BookOpen, Check, Lightbulb, TerminalSquare } from "lucide-react";
+import { BookOpen, Check, ChevronLeft, ChevronRight, Lightbulb, Lock, TerminalSquare } from "lucide-react";
 import RoomFrame from "../components/room/RoomFrame";
 import RoomFooterBar from "../components/room/RoomFooterBar";
 import RoomSplit from "../components/room/RoomSplit";
+import "../components/room/room.css";
+import "../components/learn/learn.css";
+import DyzurZeroBanner from "../components/learn/DyzurZeroBanner";
+import PathRail, { type RailStep } from "../components/learn/PathRail";
 import { useAuth } from "../context/AuthContext";
 import { useWorkshop } from "../prototypes/ukos/useWorkshop";
 import { lessons, upcomingLabs } from "./content";
@@ -454,59 +458,70 @@ function CoursePage({ account, sessionKey }: { account: string; sessionKey: stri
         onExit={() => setWorking(false)}
       />
     );
+  const steps: RailStep[] = lessons.map((_, index) =>
+    index < course.completed ? "done" : index === course.completed ? "current" : "todo",
+  );
+  const nextLesson = finished ? null : lessons[course.completed];
   return (
-    <div className="zero-course hackademy-container">
-      <Link className="zero-back" to="/learn">
-        ← Wszystkie ścieżki
+    <div className="room-tokens learn-page zero-course">
+      <Link className="learn-back" to="/learn">
+        <ChevronLeft aria-hidden="true" />
+        Wszystkie ścieżki
       </Link>
       <header className="zero-hero">
-        <div>
-          <span className="zero-kicker">UKOS · INTERAKTYWNY KURS LINUXA</span>
-          <h1>
-            Dyżur Zero<span>Twój pierwszy dzień po stronie terminala.</span>
-          </h1>
+        <DyzurZeroBanner className="zero-hero-art px-frame">
+          <div className="zero-hero-copy">
+            <p className="zero-kicker">
+              <TerminalSquare aria-hidden="true" />
+              Interaktywny kurs Linuksa
+            </p>
+            <h1 className="learn-title">Dyżur Zero</h1>
+          </div>
+        </DyzurZeroBanner>
+        <div className="zero-hero-text">
+          <p className="zero-hero-lead">Twój pierwszy dzień po stronie terminala.</p>
           <p>
             Przejmij stanowisko zespołu Hackademy. Poznaj Linuksa i uporządkuj
             dokumenty po poprzedniej zmianie.
           </p>
         </div>
-        <div className="zero-hero-mark" aria-hidden="true">
-          ~/ <span>01</span>
-        </div>
       </header>
       <div className="zero-status" role="status">
-        <span>
+        <span className={course.synchronized && !course.syncing ? "is-synced" : undefined}>
           {course.syncing
             ? "Synchronizacja postępu…"
             : course.synchronized
               ? "Postęp zapisany na koncie"
               : "Postęp czeka na synchronizację"}
         </span>
-        <span>
-          Pliki pozostają w tej przeglądarce · bez punktów do rankingu
-        </span>
+        <span>Pliki zostają w tej przeglądarce. Kurs nie daje punktów do rankingu.</span>
       </div>
       {(course.error || course.storageError) && (
-        <div className="zero-alert" role="alert">
+        <div className="room-alert zero-alert" role="alert">
           <p>{course.error || course.storageError}</p>
           <p>
             Ćwiczenia działają bez połączenia. Postęp trafi na konto, gdy serwer
             będzie znów dostępny.
           </p>
-          <button disabled={course.syncing} onClick={() => void course.sync()}>
+          <button
+            type="button"
+            className="room-btn room-btn--small"
+            disabled={course.syncing}
+            onClick={() => void course.sync()}
+          >
             Ponów synchronizację
           </button>
         </div>
       )}
       {!desktop && (
-        <p className="zero-alert">
-          Na tym ekranie możesz czytać materiały i przeglądać postęp. Do pracy w
+        <p className="room-alert zero-alert">
+          Na tym ekranie możesz przeglądać postęp. Do pracy w
           terminalu użyj komputera z klawiaturą i większym ekranem.
         </p>
       )}
       {finished && (
-        <section className="zero-success">
-          <span className="zero-kicker">LABORATORIUM 1 UKOŃCZONE</span>
+        <section className="zero-success px-frame">
+          <p className="zero-kicker">Laboratorium 1 ukończone</p>
           <h2>Dyżur przekazany. Dobra robota.</h2>
           <p>
             Wszystkie ćwiczenia Laboratorium 1 są ukończone i zapisane na
@@ -514,33 +529,44 @@ function CoursePage({ account, sessionKey }: { account: string; sessionKey: stri
           </p>
         </section>
       )}
-      <section className="zero-lab-card">
-        <div>
-          <span className="zero-kicker">
-            LABORATORIUM 01 · {finished ? "UKOŃCZONE" : "DOSTĘPNE"}
-          </span>
-          <h2>Odnajdź się w terminalu</h2>
-          <p>
+      <section className="zero-lab px-frame" aria-labelledby="zero-lab-title">
+        <div className="zero-lab-main">
+          <div className="zero-lab-head">
+            <span className="zero-lab-num" aria-hidden="true">01</span>
+            <div>
+              <p className="zero-lab-state">
+                Laboratorium 1
+                {finished && (
+                  <span className="room-chip room-chip--done">
+                    <Check aria-hidden="true" />
+                    Ukończone
+                  </span>
+                )}
+              </p>
+              <h2 id="zero-lab-title">Odnajdź się w terminalu</h2>
+            </div>
+          </div>
+          <p className="zero-lab-desc">
             Pliki po poprzedniej zmianie czekają na uporządkowanie.
             Ćwiczenia przeprowadzą Cię od pierwszego pwd do uporządkowanego
             archiwum.
           </p>
           <div className="zero-tags">
-            <span>15 kroków</span>
-            <span>Bash i nano</span>
+            <span className="room-chip">{lessons.length} kroków</span>
+            <span className="room-chip">Bash i nano</span>
           </div>
-          <progress
-            max={lessons.length}
-            value={course.completed}
-            aria-label="Ukończone kroki Lab 1"
-          />
-          <p>
-            {course.completed} z {lessons.length} ćwiczeń ukończonych
+          <PathRail steps={steps} label="Ukończone kroki Lab 1" className="zero-lab-rail" />
+          <p className="zero-lab-count">
+            <span>
+              <strong>{course.completed} z {lessons.length}</strong> ćwiczeń ukończonych
+            </span>
+            {nextLesson && <span>Następny krok: {nextLesson.title}</span>}
           </p>
         </div>
         <div className="zero-lab-actions">
           <button
-            className="zero-primary"
+            type="button"
+            className="room-btn room-btn--primary"
             disabled={!desktop}
             onClick={() => setWorking(true)}
           >
@@ -549,42 +575,30 @@ function CoursePage({ account, sessionKey }: { account: string; sessionKey: stri
               : course.completed
                 ? "Kontynuuj ćwiczenia"
                 : "Rozpocznij dyżur"}
+            <ChevronRight aria-hidden="true" />
           </button>
         </div>
       </section>
-      <section className="zero-roadmap">
-        <span className="zero-kicker">
-          KOLEJNE DYŻURY · W PRZYGOTOWANIU
-        </span>
-        {upcomingLabs.map((title, index) => (
-          <div key={title}>
-            <span>{String(index + 2).padStart(2, "0")}</span>
-            <h3>{title}</h3>
-            <span>Zapowiedź</span>
-          </div>
-        ))}
+      <section className="zero-roadmap" aria-labelledby="zero-roadmap-title">
+        <div className="zero-roadmap-head">
+          <h2 id="zero-roadmap-title">Kolejne dyżury</h2>
+          <p>W przygotowaniu. Otworzą się tutaj, gdy będą gotowe.</p>
+        </div>
+        <ol>
+          {upcomingLabs.map((title, index) => (
+            <li key={title} className="px-frame">
+              <span className="zero-roadmap-num" aria-hidden="true">
+                {String(index + 2).padStart(2, "0")}
+              </span>
+              <h3>{title}</h3>
+              <span className="zero-roadmap-lock">
+                <Lock aria-hidden="true" />
+                Wkrótce
+              </span>
+            </li>
+          ))}
+        </ol>
       </section>
-      <details className="zero-reading">
-        <summary>Przeczytaj materiały Laboratorium 1</summary>
-        {lessons.map((lesson) => (
-          <article key={lesson.id}>
-            <h3>{lesson.title}</h3>
-            <p>{lesson.intro}</p>
-            <p>{lesson.task}</p>
-          </article>
-        ))}
-      </details>
-      <footer className="zero-source">
-        Kurs rozwijany. Zakres na podstawie{" "}
-        <a
-          href="https://mhyla.com/courses/UKOS/stacjonarne/"
-          target="_blank"
-          rel="noreferrer"
-        >
-          materiałów UKOS Michała Hyli
-        </a>
-        . Historia i ćwiczenia: Hackademy.
-      </footer>
     </div>
   );
 }

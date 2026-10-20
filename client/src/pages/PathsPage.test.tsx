@@ -34,7 +34,7 @@ it('lists paths, loads banners in view and enrolls without opening the path', as
   mount();
   expect(await screen.findByText('Dostępne: 3')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: /Dyżur Zero/ })).toHaveAttribute('href', '/learn/ukos');
-  await waitFor(() => expect(document.querySelector('.path-card-media img')).toHaveAttribute('src', `${API_URL}/banner.png`));
+  await waitFor(() => expect(document.querySelector('.path-card:not(.path-card--zero) .path-card-media img')).toHaveAttribute('src', `${API_URL}/banner.png`));
   fireEvent.click(screen.getByRole('button', { name: 'Dołącz' }));
   await waitFor(() => expect(screen.getAllByText('Zapisany')).toHaveLength(2));
   expect(enrolled).toBe(1);
