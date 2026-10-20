@@ -34,7 +34,7 @@ class ArenaBattleServiceTest {
     private final RealtimeNotifier realtime = mock(RealtimeNotifier.class);
     private final ArenaPresence presence = mock(ArenaPresence.class);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence, mock(MatchmakingService.class));
     private final AtomicLong now = new AtomicLong(10_000);
     private final Map<Long, User> players = new HashMap<>();
     private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod");
@@ -313,6 +313,7 @@ class ArenaBattleServiceTest {
         context.registerBean(DashboardSummaryCache.class, () -> mock(DashboardSummaryCache.class));
         context.registerBean(RealtimeNotifier.class, () -> realtime);
         context.registerBean(ArenaPresence.class, () -> presence);
+        context.registerBean(MatchmakingService.class, () -> mock(MatchmakingService.class));
         context.registerBean(ArenaServiceImpl.class);
         context.refresh();
         var service = context.getBean(ArenaServiceImpl.class);

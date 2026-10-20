@@ -42,10 +42,11 @@ public class ArenaController {
         if (user.getPoints() < 500) {
             return ResponseEntity.badRequest().body(Map.of("message", "Do Areny dołączysz od 500 XP."));
         }
-        if (arenaService.findActiveGameForUser(user.getId()) != null) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Jesteś w trakcie pojedynku."));
+        try {
+            arenaService.joinQueue(user.getId(), user.getUsername());
+        } catch (IllegalStateException playing) {
+            return ResponseEntity.badRequest().body(Map.of("message", playing.getMessage()));
         }
-        matchmakingService.joinQueue(user.getId(), user.getUsername());
         processMatchmaking();
         return ResponseEntity.ok(Map.of("message", "Dołączono do kolejki"));
     }
@@ -69,10 +70,7 @@ public class ArenaController {
                 arenaService.addGame(session);
             } catch (RuntimeException error) {
                 log.warn("Could not prepare arena match {}", session.getId(), error);
-                continue;
             }
-            matchmakingService.leaveQueue(session.getPlayer1Id());
-            matchmakingService.leaveQueue(session.getPlayer2Id());
         }
     }
 
@@ -155,11 +153,7 @@ public class ArenaController {
     @PostMapping("/challenge/{challengeId}/accept")
     public ResponseEntity<?> acceptChallenge(@PathVariable String challengeId) {
         try {
-            GameSession session = arenaService.acceptChallenge(challengeId, currentUser().getId());
-            // A duel from a challenge wins over the queue: both players stop searching.
-            matchmakingService.leaveQueue(session.getPlayer1Id());
-            matchmakingService.leaveQueue(session.getPlayer2Id());
-            return ResponseEntity.ok(session);
+            return ResponseEntity.ok(arenaService.acceptChallenge(challengeId, currentUser().getId()));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }

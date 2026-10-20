@@ -38,7 +38,7 @@ class ArenaChallengeCollisionTest {
     private final ArenaPresence presence = mock(ArenaPresence.class);
     private final MatchmakingServiceImpl matchmaking = new MatchmakingServiceImpl(users, realtime);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence, matchmaking);
     private final ArenaController controller = new ArenaController(matchmaking, arena, mock(UserService.class));
     private final AtomicLong now = new AtomicLong(1_000_000);
 
@@ -95,20 +95,37 @@ class ArenaChallengeCollisionTest {
     }
 
     @Test
-    void acceptingAChallengeTakesBothPlayersOutOfTheQueue() {
+    void acceptingAChallengeTakesBothPlayersOutOfTheQueueAndDropsTheirOtherChallenges() {
         var sent = challenge(1, 2);
+        var other = challenge(1, 3);
         matchmaking.joinQueue(1L, "player1");
         signIn(2);
         assertEquals(200, controller.acceptChallenge(sent.getId()).getStatusCode().value());
         assertFalse(matchmaking.isQueued(1L));
         assertNotNull(arena.findActiveGameForUser(2L));
+        assertEquals("CANCELLED", other.getStatus());
+        assertTrue(arena.getPendingChallenges(3L).isEmpty());
+    }
+
+    @Test
+    void aPlayerAlreadyInADuelIsDroppedFromTheQueueSoTheirPartnerStillGetsAMatch() {
+        arena.acceptChallenge(challenge(1, 4).getId(), 4L);
+        matchmaking.joinQueue(1L, "player1");
+        matchmaking.joinQueue(2L, "player2");
+        controller.processMatchmaking();
+        assertFalse(matchmaking.isQueued(1L));
+        assertTrue(matchmaking.isQueued(2L));
+        matchmaking.joinQueue(3L, "player3");
+        controller.processMatchmaking();
+        assertEquals(arena.findActiveGameForUser(2L).getId(), arena.findActiveGameForUser(3L).getId());
     }
 
     @Test
     void aChallengeFromSomeoneWhoStartedAnotherGameCanNoLongerBeAccepted() {
         var late = challenge(1, 3);
         arena.acceptChallenge(challenge(4, 1).getId(), 1L);
-        assertThrows(IllegalArgumentException.class, () -> arena.acceptChallenge(late.getId(), 3L));
+        assertEquals(ArenaServiceImpl.STALE_CHALLENGE,
+                assertThrows(IllegalArgumentException.class, () -> arena.acceptChallenge(late.getId(), 3L)).getMessage());
         assertTrue(arena.getPendingChallenges(3L).isEmpty());
         assertEquals("CANCELLED", late.getStatus());
         assertNull(arena.findActiveGameForUser(3L));
@@ -167,7 +184,7 @@ class ArenaChallengeCollisionTest {
         challenge(1, 2);
         when(presence.isConnected(1L)).thenReturn(false);
         arena.sweepAbandonedChallenges();
-        now.addAndGet(ArenaServiceImpl.CHALLENGER_GONE_MILLIS - 1);
+        now.addAndGet(ArenaServiceImpl.PLAYER_GONE_MILLIS - 1);
         arena.sweepAbandonedChallenges();
         assertEquals(1, arena.getPendingChallenges(2L).size());
         now.addAndGet(1);
@@ -176,12 +193,29 @@ class ArenaChallengeCollisionTest {
     }
 
     @Test
+    void aChallengeToSomeoneWhoLeftIsDroppedToo() {
+        challenge(1, 2);
+        when(presence.isConnected(2L)).thenReturn(false);
+        arena.sweepAbandonedChallenges();
+        now.addAndGet(ArenaServiceImpl.PLAYER_GONE_MILLIS);
+        arena.sweepAbandonedChallenges();
+        assertTrue(arena.getOutgoingChallenges(1L).isEmpty());
+    }
+
+    @Test
+    void aFinishedGameFreesItsPlayersForNewChallenges() {
+        var game = arena.acceptChallenge(challenge(1, 2).getId(), 2L);
+        arena.finishGame(game.getId(), null);
+        assertDoesNotThrow(() -> challenge(1, 2));
+    }
+
+    @Test
     void aChallengerWhoComesBackInTimeKeepsTheChallenge() {
         challenge(1, 2);
         when(presence.isConnected(1L)).thenReturn(false);
         arena.sweepAbandonedChallenges();
         when(presence.isConnected(1L)).thenReturn(true);
-        now.addAndGet(ArenaServiceImpl.CHALLENGER_GONE_MILLIS);
+        now.addAndGet(ArenaServiceImpl.PLAYER_GONE_MILLIS);
         arena.sweepAbandonedChallenges();
         when(presence.isConnected(1L)).thenReturn(false);
         arena.sweepAbandonedChallenges();
