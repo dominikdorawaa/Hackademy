@@ -1,13 +1,13 @@
 import type { BadgeDto } from '../../types/api';
 import ProfileIcon from './ProfileIcon';
 
-type SymbolKind = 'terminal' | 'code' | 'shield' | 'elite' | 'flame' | 'streak' | 'network' | 'award';
+export type SymbolKind = 'terminal' | 'code' | 'shield' | 'elite' | 'flame' | 'streak' | 'network' | 'award';
 
 export function AchievementGlyph({ kind = 'award' }: { kind?: SymbolKind }) {
   return <ProfileIcon kind={kind} className="profile-achievement-glyph" />;
 }
 
-function symbolFor(badge: BadgeDto): SymbolKind {
+export function symbolFor(badge: BadgeDto): SymbolKind {
   const named: Record<string, SymbolKind> = {
     'hello world': 'terminal', 'script kiddie': 'code', hacker: 'shield', elite: 'elite',
     'streak novice': 'flame', 'streak master': 'streak', 'social butterfly': 'network',

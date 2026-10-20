@@ -6,6 +6,7 @@ import Navbar from './components/Navbar';
 import RealtimeGameNavigation from './components/RealtimeGameNavigation';
 import { RealtimeProvider } from './context/RealtimeContext';
 import { NotificationPreferencesProvider } from './context/NotificationPreferencesContext';
+import { FriendOnlineFeedProvider } from './context/FriendOnlineFeedContext';
 import RealtimeNotifications from './components/RealtimeNotifications';
 import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
@@ -55,6 +56,7 @@ function App() {
       <OnboardingProvider>
       <RealtimeProvider>
         <NotificationPreferencesProvider>
+        <FriendOnlineFeedProvider>
         <Routes>
           {adminRoutes}
           <Route element={<SiteLayout />}>
@@ -152,6 +154,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes>
+        </FriendOnlineFeedProvider>
         </NotificationPreferencesProvider>
       </RealtimeProvider>
       </OnboardingProvider>
