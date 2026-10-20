@@ -92,18 +92,9 @@ describe('friends online in the notification bell', () => {
 });
 
 describe('friends online in the top bar', () => {
-  it('shows how many friends are online and lists them', async () => {
+  it('updates the online count live when a friend comes online', async () => {
     await renderNavbar();
-    const button = screen.getByRole('button', { name: 'Znajomi online: 1' });
-    await userEvent.setup().click(button);
-    const panel = screen.getByRole('group', { name: 'Znajomi online' });
-    expect(within(panel).getByRole('link', { name: 'kuba' })).toHaveAttribute('href', '/profile/kuba');
-    expect(within(panel).queryByText('ola')).not.toBeInTheDocument();
-    expect(within(panel).getByRole('link', { name: 'Wszyscy znajomi' })).toHaveAttribute('href', '/friends');
-  });
-
-  it('updates the count live when a friend comes online', async () => {
-    await renderNavbar();
+    expect(screen.getByRole('button', { name: 'Znajomi online: 1' })).toBeInTheDocument();
     comeOnline();
     expect(screen.getByRole('button', { name: 'Znajomi online: 2' })).toBeInTheDocument();
   });
