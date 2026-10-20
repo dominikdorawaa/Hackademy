@@ -76,6 +76,13 @@ describe('friends panel in the top bar', () => {
     expect(within(panel).getByText('Trwa Twój pojedynek. Wyzwania wrócą po nim.')).toBeInTheDocument();
   });
 
+  it('takes back a challenge to a friend who went offline', async () => {
+    environment.state = { ...environment.state!, outgoingChallenges: [challengeTo('zenek')] };
+    const { user, panel } = await openPanel();
+    await user.click(within(panel).getByRole('button', { name: 'Offline (1)' }));
+    expect(within(panel).getByRole('button', { name: 'Cofnij wyzwanie dla zenek' })).toBeInTheDocument();
+  });
+
   it('takes back a sent challenge', async () => {
     const cancelled = vi.fn();
     server.use(http.post(`${API_URL}/api/arena/challenge/c-kuba/cancel`, () => { cancelled(); return HttpResponse.json({ message: 'ok' }); }));
