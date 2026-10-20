@@ -1,17 +1,17 @@
 import type { AvatarOutfit } from './avatarModel';
 
 export type FinisherMove = 'beam' | 'combo';
-export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: { groove: number; sixseven: number }; run: number; finishers: Record<FinisherMove, number> }
+export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: { groove: number; sixseven: number; scuba: number }; run: number; finishers: Record<FinisherMove, number> }
 
 const BASE = '/assets/arena/avatar-v1/';
-const DANCES = { groove: 6, sixseven: 8 };
+const DANCES = { groove: 6, sixseven: 8, scuba: 13 };
 const RUN = 10;
 const FINISHERS: Record<FinisherMove, number> = { beam: 2, combo: 11 };
 
 export const AVATAR_ATLASES: Record<AvatarOutfit, AvatarAtlasSource> = {
-  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 832, dances: DANCES, run: RUN, finishers: FINISHERS },
-  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 832, dances: DANCES, run: RUN, finishers: FINISHERS },
-  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 832, dances: DANCES, run: RUN, finishers: FINISHERS },
+  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 960, dances: DANCES, run: RUN, finishers: FINISHERS },
+  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 960, dances: DANCES, run: RUN, finishers: FINISHERS },
+  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 960, dances: DANCES, run: RUN, finishers: FINISHERS },
 };
 
 export function atlasViewBox(index: number) {

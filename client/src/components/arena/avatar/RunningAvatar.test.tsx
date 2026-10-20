@@ -33,7 +33,7 @@ it('uses the saved outfit and shows a still runner with reduced motion', () => {
   const runner = screen.getByRole('img', { name: 'Ładowanie' });
   expect(atlas.last).toMatchObject({ outfit: 'dres', hat: 'daszek' });
   expect(runner.querySelector('image')).toHaveAttribute('href', AVATAR_ATLASES.dres.atlas);
-  expect(runner.querySelector('image')).toHaveAttribute('height', '832');
+  expect(runner.querySelector('image')).toHaveAttribute('height', '960');
   act(() => vi.advanceTimersByTime(RUN_FRAME_TIME * 4));
   expect(runner).toHaveAttribute('data-frame', String(runFrames(AVATAR_ATLASES.dres.run)[0]));
   expect(vi.getTimerCount()).toBe(0);

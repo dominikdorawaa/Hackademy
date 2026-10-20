@@ -9,7 +9,8 @@ public enum QuickReaction {
     LAUGH("laugh"),
     SHOCK("shock"),
     SIX_SEVEN("67"),
-    GROOVE("groove");
+    GROOVE("groove"),
+    SCUBA("scuba");
 
     private final String id;
 

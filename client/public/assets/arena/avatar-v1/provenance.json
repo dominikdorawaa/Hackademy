@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "e33b9be06a4e247ee3f121869c887943273ad7de4353b93f162a4c3e7d39455a",
-    "hoodie/fighter.png": "b14e6aeb6e64ca215c79cde1fe84175774dccd66b4ef59cd412365b87457f1a0",
-    "track/fighter.png": "9c6f7b98a2aea77bff46092705c535199253c1caff9e062f81e0e87703b1f618"
+    "fighter.png": "9c06999ca8c1b04995958cbf2b6a9276e0029ef1f739d652986258cbeac5d1c7",
+    "hoodie/fighter.png": "e072baf0c3b04e2242492bb415e48e44a27ec33a4212e63fa3ebd9a2febae1f8",
+    "track/fighter.png": "265dc07ec7e5c1afb79a66f128f24da1580433503535be5b8ed4dd76cdad0556"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -341,5 +341,53 @@
       }
     },
     "processing": "Alpha cut at 128, colours snapped to the outfit palette, small holes filled, the bottom set on the y=54 ground line, the idle head restamped at the best fitting angle and stray colours around the head cleaned."
+  },
+  "scuba": {
+    "generatedAt": "2026-10-20",
+    "sources": "local-prototype-backups/arena-scuba-v2",
+    "rows": "rows 13 and 14",
+    "pose": {
+      "steps": [
+        {
+          "endpoint": "edit-image-pixen",
+          "from": "front/baza.png",
+          "seed": 87103,
+          "description": "one hand covers the mouth and pinches the nose, the other arm hangs down"
+        },
+        {
+          "endpoint": "animate-with-skeleton-v3",
+          "seed": 89102,
+          "use": "frame 5, the free arm raised forward with the hand in front of the chest"
+        },
+        {
+          "endpoint": "edit-image-pixen",
+          "seed": 87203,
+          "description": "Same character, exact same pose, face, clothes, colours, legs, feet and size. The hand covering the mouth stays exactly the same. Only change the other hand in front of the chest: it is no longer a fist, it is a flat open hand with straight fingers held together, palm facing down, like a fish fin. Exactly two arms. Full body visible."
+        }
+      ]
+    },
+    "outfits": {
+      "baza": {
+        "pose": "the flat hand pose above"
+      },
+      "bluza": {
+        "endpoint": "edit-image-pixen",
+        "from": "baza flat hand pose",
+        "seed": 87302,
+        "description": "Exact same bald character, same pose, same hands, face, head, size and position. Only change the clothes to a green hoodie with a front pocket, dark blue jeans and white sneakers. Nothing else changes. Full body visible."
+      },
+      "dres": {
+        "endpoint": "edit-image-pixen",
+        "from": "baza flat hand pose",
+        "seed": 87301,
+        "description": "Exact same bald character, same pose, same hands, face, head, size and position. Only change the clothes to an orange tracksuit jacket with white stripes on the sleeves, black track pants with white side stripes and grey sneakers. Nothing else changes. Full body visible."
+      }
+    },
+    "animation": {
+      "method": "procedural",
+      "frames": 16,
+      "description": "Only the flat hand moves: its pixels are cut out with their outline, the uncovered shirt is filled from the same column, and the hand is rotated around the wrist by up to 10 degrees, three times per loop. The forearm, the wrist and the rest of the body stay still."
+    },
+    "processing": "Alpha cut at 128, colours snapped to the outfit palette, small holes filled and stray clothing colours cleaned. The face is kept as generated because the hand covers the mouth; the front head anchor is found from the top of the head only."
   }
 }

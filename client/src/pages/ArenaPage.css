@@ -358,11 +358,6 @@
   font-size: var(--ud-text-s);
 }
 
-.arena-unlock {
-  margin-top: 16px;
-  max-width: 360px;
-}
-
 .arena-page .arena-error {
   margin-top: 14px;
   color: var(--ud-hard);

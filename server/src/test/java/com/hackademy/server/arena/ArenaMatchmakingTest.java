@@ -115,10 +115,7 @@ class ArenaMatchmakingTest {
         assertEquals(204, controller.checkStatus().getStatusCode().value());
         assertEquals(200, controller.leaveQueue().getStatusCode().value());
         assertFalse(matchmaking.isQueued(1L));
-        user.setPoints(499);
-        assertEquals(400, controller.joinQueue().getStatusCode().value());
-        assertFalse(matchmaking.isQueued(1L));
-        user.setPoints(500);
+        user.setPoints(0);
         assertEquals(200, controller.joinQueue().getStatusCode().value());
         assertTrue(matchmaking.isQueued(1L));
         assertEquals(204, controller.checkStatus().getStatusCode().value());

@@ -26,6 +26,7 @@ export const QUICK_REACTIONS: QuickReaction[] = [
   { id: 'shock', kind: 'emote', text: 'Szok', name: 'Szok', sprite: EMOTE_SPRITES.shock },
   { id: '67', kind: 'animation', text: '67', name: 'Six-seven', frames: danceFrames(8) },
   { id: 'groove', kind: 'animation', text: 'Luz', name: 'Taniec Luz', frames: danceFrames(6) },
+  { id: 'scuba', kind: 'animation', text: 'Scuba', name: 'Scuba', frames: danceFrames(13) },
 ];
 
 export const REACTION_MS = 3000;
