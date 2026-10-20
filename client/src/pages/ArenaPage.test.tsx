@@ -28,13 +28,14 @@ beforeEach(() => {
   realtime.value = { state: state(), connected: true, error: null, synchronize: vi.fn(async () => {}) };
 });
 
-it('locks duels below the server threshold of 500 XP and shows how much XP is missing', async () => {
-  server.use(http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 150 })));
+it('lets a player with no XP look for an opponent', async () => {
+  server.use(http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 0 })));
   mount();
-  expect(await screen.findByText('Pojedynki odblokujesz od 500 XP. Brakuje Ci 350 XP.')).toBeInTheDocument();
-  expect(screen.getByRole('progressbar', { name: 'Postęp do odblokowania Areny' })).toHaveAttribute('aria-valuenow', '150');
-  expect(screen.getByRole('link', { name: 'Rozwiązuj pokoje' })).toHaveAttribute('href', '/learn');
-  expect(screen.queryByRole('button', { name: 'Znajdź przeciwnika' })).not.toBeInTheDocument();
+  expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeEnabled();
+  expect(screen.getByRole('heading', { name: 'Wejdź na arenę' })).toBeInTheDocument();
+  expect(screen.getByText(/Twój awatar staje do walki na pytania/)).toBeInTheDocument();
+  expect(screen.queryByText(/XP\. Brakuje Ci/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('link', { name: 'Rozwiązuj pokoje' })).not.toBeInTheDocument();
 });
 
 it('shows Elo, its position and friends with their duel record', async () => {
@@ -155,11 +156,20 @@ it('explains when friends cannot be loaded', async () => {
   expect(screen.getByText('Odśwież stronę, żeby spróbować ponownie.')).toBeInTheDocument();
 });
 
-it('keeps players at 400 XP locked because the server requires 500', async () => {
-  server.use(http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 400 })));
+it('lets a player with no XP challenge a friend', async () => {
+  const bodies: unknown[] = [];
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 0 })),
+    http.get(`${API_URL}/api/friends`, () => HttpResponse.json([{ id: 2, username: 'ola', points: 860, streak: 0 }])),
+    http.get(`${API_URL}/api/friends/stats/:name`, () => HttpResponse.error()),
+    http.post(`${API_URL}/api/arena/challenge/create`, async ({ request }) => { bodies.push(await request.json()); return HttpResponse.json({ message: 'ok' }); }),
+  );
   mount();
-  expect(await screen.findByText('Pojedynki odblokujesz od 500 XP. Brakuje Ci 100 XP.')).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'Arena od 500 XP' })).toBeInTheDocument();
+  const friendsPanel = (await screen.findByRole('heading', { name: 'Wyzwij znajomego' })).closest('section')!;
+  const challenge = await within(friendsPanel).findByRole('button', { name: 'Wyzwij' });
+  expect(challenge).toBeEnabled();
+  fireEvent.click(challenge);
+  await waitFor(() => expect(bodies).toEqual([{ targetUsername: 'ola' }]));
 });
 
 it('runs the player avatar while the account loads and offers a retry when it fails', async () => {

@@ -68,9 +68,11 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void joiningTheQueueNeedsFiveHundredXp() throws Exception {
+    void aPlayerWithNoXpJoinsTheQueue() throws Exception {
         var beginner = account(Role.USER);
-        postJson(beginner, "/api/arena/join", "{}").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Do Areny dołączysz od 500 XP."));
+        assertEquals(0, jdbcTemplate.queryForObject("SELECT points FROM users WHERE id = ?", Integer.class, beginner.id()));
+        postJson(beginner, "/api/arena/join", "{}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Dołączono do kolejki"));
+        postJson(beginner, "/api/arena/leave", "{}").andExpect(status().isOk());
     }
 }
