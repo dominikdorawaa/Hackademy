@@ -67,7 +67,7 @@
 
 .nav-friends-error {
   margin: 6px 16px 0;
-  color: #ff6b81;
+  color: var(--destructive);
   font-size: 0.8rem;
 }
 
@@ -96,12 +96,12 @@
   text-transform: uppercase;
 }
 
+.nav-friends-heading { margin: 0; }
 .nav-friends-section.is-toggle { cursor: pointer; }
-.nav-friends-section.is-toggle:hover:not(:disabled) { color: var(--text-light); }
-.nav-friends-section.is-toggle:disabled { cursor: default; }
+.nav-friends-section.is-toggle:hover { color: var(--text-light); }
+.nav-friends-section.is-toggle:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: -2px; }
 .nav-friends-section svg { width: 14px; height: 14px; transition: transform 160ms ease-out; }
 .nav-friends-section[aria-expanded='true'] svg { transform: rotate(180deg); }
-.nav-friends-section:disabled svg { display: none; }
 
 .nav-friends-empty { margin: 0; padding: 2px 16px 8px; color: var(--text-gray); font-size: 0.85rem; line-height: 1.45; }
 
@@ -116,7 +116,7 @@
   align-items: center;
   gap: 6px;
   padding-right: 6px;
-  border-radius: 8px;
+  border-radius: 6px;
 }
 
 .nav-friends-row:hover { background: var(--bg-panel-lighter); }
@@ -128,7 +128,7 @@
   gap: 10px;
   min-width: 0;
   padding: 6px 10px;
-  border-radius: 8px;
+  border-radius: 6px;
   color: var(--text-light);
   font-size: 0.9rem;
   text-decoration: none;
@@ -172,7 +172,7 @@
 
 .nav-friends-icon svg { width: 16px; height: 16px; }
 .nav-friends-icon:hover:not(:disabled) { border-color: var(--text-gray); color: var(--text-light); }
-.nav-friends-icon.is-challenge:hover:not(:disabled) { border-color: #ff9800; color: #ff9800; }
+.nav-friends-icon.is-challenge:hover:not(:disabled) { border-color: var(--primary-blue); background: var(--primary-blue); color: #fff; }
 .nav-friends-icon.is-accept:hover:not(:disabled) { border-color: var(--presence-online); color: var(--presence-online); }
 .nav-friends-icon:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 1px; }
 .nav-friends-icon:disabled { opacity: 0.5; cursor: progress; }
@@ -199,5 +199,6 @@
 }
 
 @media (max-width: 767px) {
+  .nav-friends-icon { width: 40px; height: 40px; }
   .navbar .nav-friends-dropdown { position: fixed; top: 72px; right: 8px; bottom: 8px; left: 8px; width: auto; max-height: none; }
 }

@@ -101,4 +101,15 @@ describe('friends panel in the top bar', () => {
     await waitFor(() => expect(invited).toHaveBeenCalled());
     expect(await within(others).findAllByText('Wysłano')).toHaveLength(2);
   });
+
+  it('closes on Escape, returns focus to the toggle and forgets the search', async () => {
+    const { user, panel } = await openPanel();
+    await user.type(within(panel).getByRole('searchbox'), 'z');
+    await user.keyboard('{Escape}');
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    const toggle = screen.getByRole('button', { name: 'Znajomi online: 2' });
+    expect(toggle).toHaveFocus();
+    await user.click(toggle);
+    expect(screen.getByRole('searchbox')).toHaveValue('');
+  });
 });

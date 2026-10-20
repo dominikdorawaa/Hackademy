@@ -13,7 +13,7 @@ import type { AvatarConfig, UserSearchDto } from '../types/api';
 import '../styles/presence.css';
 import './NavbarFriends.css';
 
-export const PLAYER_SEARCH_DELAY_MS = 300;
+const PLAYER_SEARCH_DELAY_MS = 300;
 const PLAYER_SEARCH_MIN_LENGTH = 2;
 
 const byName = (a: { username: string }, b: { username: string }) => a.username.localeCompare(b.username, 'pl');
@@ -61,6 +61,9 @@ export default function NavbarFriends() {
   const [busy, setBusy] = useState<string[]>([]);
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
+  const toggleRef = useRef<HTMLButtonElement | null>(null);
+  // On touch screens focusing the field would throw the keyboard over the list on every open.
+  const focusSearch = typeof window.matchMedia !== 'function' || !window.matchMedia('(pointer: coarse)').matches;
 
   const friends = state?.friends ?? [];
   const requests = state?.friendRequests ?? [];
@@ -71,18 +74,27 @@ export default function NavbarFriends() {
   const offline = matching.filter(friend => !friend.online).sort(byName);
   const onlineTotal = friends.filter(friend => friend.online).length;
   const searching = needle.length >= PLAYER_SEARCH_MIN_LENGTH;
+  const receivedFrom = new Map(requests.map(request => [request.requesterUsername, request.id]));
   const friendNames = new Set(friends.map(friend => friend.username));
   const otherPlayers = players && players.query === needle
     ? players.results.filter(player => !friendNames.has(player.username) && player.username !== user?.username)
     : null;
 
+  const close = () => {
+    setOpen(false);
+    setQuery('');
+    setError(null);
+  };
+
   useEffect(() => {
     if (!open) return;
     const onPointerDown = (event: MouseEvent) => {
-      if (!rootRef.current?.contains(event.target as Node)) setOpen(false);
+      if (!rootRef.current?.contains(event.target as Node)) close();
     };
     const onKeyDown = (event: KeyboardEvent) => {
-      if (event.key === 'Escape') setOpen(false);
+      if (event.key !== 'Escape') return;
+      close();
+      toggleRef.current?.focus();
     };
     document.addEventListener('mousedown', onPointerDown);
     document.addEventListener('keydown', onKeyDown);
@@ -101,7 +113,7 @@ export default function NavbarFriends() {
         const results: UserSearchDto[] = response.ok ? await response.json() : [];
         if (cancelled) return;
         setPlayers({ query: needle, results });
-        if (!response.ok) setError('Nie udało się wyszukać graczy.');
+        setError(response.ok ? null : 'Nie udało się wyszukać graczy.');
       } catch {
         if (cancelled) return;
         setPlayers({ query: needle, results: [] });
@@ -145,14 +157,13 @@ export default function NavbarFriends() {
       results: current.results.map(player => player.username === username ? { ...player, friendshipStatus: 'REQUEST_SENT' } : player),
     }));
 
-  const close = () => setOpen(false);
   const label = onlineTotal ? `Znajomi online: ${onlineTotal}` : 'Znajomi, nikt nie jest online';
   const showOffline = offlineOpen || needle.length > 0;
 
   return (
     <div ref={rootRef} className="nav-friends">
-      <NavIconButton data-slot="nav-friends" className="nav-friends-toggle" aria-label={label} aria-expanded={open}
-        onClick={() => setOpen(!open)}>
+      <NavIconButton data-slot="nav-friends" className="nav-friends-toggle" ref={toggleRef} aria-label={label}
+        aria-expanded={open} onClick={() => (open ? close() : setOpen(true))}>
         <Users aria-hidden="true" />
         {onlineTotal > 0 && (
           <span className="nav-friends-count" aria-hidden="true">
@@ -166,7 +177,7 @@ export default function NavbarFriends() {
           <label className="nav-friends-search">
             <Search aria-hidden="true" />
             <input type="search" value={query} onChange={event => setQuery(event.target.value)}
-              placeholder="Szukaj znajomych lub graczy" aria-label="Szukaj znajomych lub graczy" autoFocus />
+              placeholder="Szukaj znajomych lub graczy" aria-label="Szukaj znajomych lub graczy" autoFocus={focusSearch} />
           </label>
           {error && <p className="nav-friends-error" role="alert">{error}</p>}
 
@@ -219,11 +230,17 @@ export default function NavbarFriends() {
 
             {offline.length > 0 && (
               <section aria-label="Znajomi offline">
-                <button type="button" className="nav-friends-section is-toggle" aria-expanded={showOffline}
-                  disabled={needle.length > 0} onClick={() => setOfflineOpen(!offlineOpen)}>
-                  Offline ({offline.length})
-                  <ChevronDown aria-hidden="true" />
-                </button>
+                {needle ? (
+                  <h3 className="nav-friends-section">Offline ({offline.length})</h3>
+                ) : (
+                  <h3 className="nav-friends-heading">
+                    <button type="button" className="nav-friends-section is-toggle" aria-expanded={offlineOpen}
+                      onClick={() => setOfflineOpen(!offlineOpen)}>
+                      Offline ({offline.length})
+                      <ChevronDown aria-hidden="true" />
+                    </button>
+                  </h3>
+                )}
                 {showOffline && (
                   <ul className="nav-friends-list">
                     {offline.map(friend => (
@@ -248,7 +265,12 @@ export default function NavbarFriends() {
                         {player.friendshipStatus === 'REQUEST_SENT' ? (
                           <span className="nav-friends-state">Wysłano</span>
                         ) : player.friendshipStatus === 'REQUEST_RECEIVED' ? (
-                          <span className="nav-friends-state">Zaprasza Cię</span>
+                          receivedFrom.get(player.username) !== undefined ? (
+                            <button type="button" className="nav-friends-icon is-accept"
+                              disabled={busy.includes(`request:${receivedFrom.get(player.username)}`)}
+                              aria-label={`Przyjmij zaproszenie od ${player.username}`} title="Przyjmij"
+                              onClick={() => accept(receivedFrom.get(player.username)!)}><Check aria-hidden="true" /></button>
+                          ) : <span className="nav-friends-state">Zaprasza Cię</span>
                         ) : (
                           <button type="button" className="nav-friends-icon"
                             disabled={busy.includes(`invite:${player.username}`)}
