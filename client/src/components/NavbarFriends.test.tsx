@@ -66,7 +66,7 @@ describe('friends panel in the top bar', () => {
     const { panel } = await openPanel();
     expect(within(panel).getByText('Wysłano')).toBeInTheDocument();
     expect(within(panel).queryByRole('button', { name: /Wyzwij/ })).not.toBeInTheDocument();
-    expect(within(panel).getByText('Masz wysłane wyzwanie. Poczekaj na odpowiedź albo je cofnij.')).toBeInTheDocument();
+    expect(within(panel).queryByText(/Masz wysłane wyzwanie/)).not.toBeInTheDocument();
   });
 
   it('takes back a challenge to a friend who went offline', async () => {

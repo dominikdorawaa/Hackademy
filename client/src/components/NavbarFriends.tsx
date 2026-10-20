@@ -69,9 +69,9 @@ export default function NavbarFriends() {
   const requests = state?.friendRequests ?? [];
   const challenged = new Map((state?.outgoingChallenges ?? []).map(challenge => [challenge.targetUsername, challenge.id]));
   // Same guard as the Arena: one duel at a time, so no new challenge while playing, queued or already challenging.
-  const challengeBlocked = state?.gameSession && state.gameSession.status !== 'FINISHED' ? 'Trwa Twój pojedynek. Wyzwania wrócą po nim.'
-    : state?.queued ? 'Czekasz w kolejce Areny. Wyjdź z niej, żeby kogoś wyzwać.'
-    : challenged.size ? 'Masz wysłane wyzwanie. Poczekaj na odpowiedź albo je cofnij.' : null;
+  const blockedNote = state?.gameSession && state.gameSession.status !== 'FINISHED' ? 'Trwa Twój pojedynek. Wyzwania wrócą po nim.'
+    : state?.queued ? 'Czekasz w kolejce Areny. Wyjdź z niej, żeby kogoś wyzwać.' : null;
+  const challengeBlocked = blockedNote !== null || challenged.size > 0;
   const needle = query.trim().toLocaleLowerCase('pl');
   const matching = friends.filter(friend => friend.username.toLocaleLowerCase('pl').includes(needle));
   const online = matching.filter(friend => friend.online).sort(byName);
@@ -226,7 +226,7 @@ export default function NavbarFriends() {
 
             <section aria-label="Znajomi online">
               <h3 className="nav-friends-section">Online ({online.length})</h3>
-              {challengeBlocked && online.length > 0 && <p className="nav-friends-note">{challengeBlocked}</p>}
+              {blockedNote && online.length > 0 && <p className="nav-friends-note">{blockedNote}</p>}
               {online.length === 0 ? (
                 <p className="nav-friends-empty">
                   {needle ? 'Nikt z pasujących znajomych nie jest online.'
