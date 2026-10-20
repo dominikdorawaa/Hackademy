@@ -198,9 +198,8 @@ const Navbar = () => {
             }}
           >
             <img
-              src="/biale_hackademy_logo.png"
+              src="/brand-pixel/hackademy-logo-white.png"
               alt="Hackademy Logo"
-              style={{ height: '40px', width: 'auto' }}
             />
           </Link>
           {!isAuthPage && (
@@ -217,7 +216,6 @@ const Navbar = () => {
                   <Link to="/learn" className={isActivePrefix('/learn') ? 'active' : ''}>Ucz się</Link>
                   <Link to="/arena" className={isActivePrefix('/arena') ? 'active' : ''}>Tryb Rankingowy</Link>
                   <Link to="/ranking" className={isActivePrefix('/ranking') ? 'active' : ''}>Ranking</Link>
-                  <Link to="/vpn" className={isActivePrefix('/vpn') ? 'active' : ''} style={{ color: '#3498db' }}>VPN</Link>
                 </>
               ) : (
                 <>

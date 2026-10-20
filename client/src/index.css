@@ -17,7 +17,7 @@
 @layer base {
 /* --- ZMIENNE I RESET --- */
 :root {
-  --font-heading: 'Pixelify Sans', 'Poppins', sans-serif;
+  --font-heading: 'Jersey 10', 'Poppins', sans-serif;
   /* Default Dark Mode */
   --bg-dark: #0f1724;
   --bg-panel: #111827;
@@ -283,7 +283,7 @@ a {
 }
 .nav-links a {
   color: var(--text-gray);
-  font-size: 0.95rem;
+  font-size: 1.125rem;
   font-weight: 500;
 }
 .nav-links a:hover {

@@ -468,7 +468,6 @@ const UserDashboardPage = () => {
                 <h2 id="ud-next-title">{nextRoom.title}</h2>
                 <p>
                   Pokój {nextRoomIdx + 1} z {Math.max(totalRooms, currentPathRoomsMini.length)}
-                  {nextRoom.requiresVpn ? '. Wymaga połączenia VPN.' : ''}
                 </p>
               </div>
               <Link className="ud-btn ud-btn-inverse" to={roomHref(nextRoom.id, { kind: 'path', pathId: currentPath.id })}>

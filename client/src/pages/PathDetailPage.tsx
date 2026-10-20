@@ -167,9 +167,6 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
                         <div className="pd-step-card">
                           <div className="pd-step-top">
                             <div className="pd-step-title">{r.title}</div>
-                            <div className="pd-step-tags">
-                              {r.requiresVpn && <span className="pd-tag">VPN</span>}
-                            </div>
                           </div>
 
                           <div className="pd-step-bottom">
