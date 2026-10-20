@@ -339,3 +339,26 @@
 
 .notification-online-close:hover { background: var(--bg-panel-lighter); color: var(--text-light); }
 .notification-online-close:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 1px; }
+
+.navbar.navbar--room { padding: 8px 0; }
+.navbar--room .hackademy-container { max-width: none; padding: 0 20px; }
+.navbar--room .nav-content { gap: 20px; }
+.navbar--room .logo { flex: none; }
+.navbar--room .logo img { height: 40px; margin: 0; }
+.navbar-room-slot { flex: 1; min-width: 0; display: flex; }
+.navbar .logo .logo-mark { display: none; }
+
+.site-shell--room { height: 100vh; height: 100dvh; }
+.site-shell--room > main { display: flex; flex-direction: column; min-height: 0; }
+
+@media (max-width: 899px) {
+  .site-shell--room { height: auto; min-height: 100dvh; }
+}
+
+@media (max-width: 767px) {
+  .navbar--room .hackademy-container { padding: 0 12px; }
+  .navbar--room .nav-content { flex-wrap: nowrap; gap: 12px; }
+  .navbar--room .logo { margin-right: 0; }
+  .navbar--room .logo img { display: none; }
+  .navbar--room .logo .logo-mark { display: block; height: 32px; margin: 0; }
+}

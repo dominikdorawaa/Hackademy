@@ -69,7 +69,7 @@ describe('task room completion', () => {
 
   it('does not offer completion when there is still an unfinished task', async () => {
     mount([{ id: 1, title: 'Zadanie A', content: 'Treść', question: 'Pytanie?', completed: false }]);
-    await screen.findByRole('heading', { name: 'HTTP' });
+    await screen.findByRole('heading', { name: '01. Zadanie A' });
     expect(screen.queryByRole('button', { name: 'Ukończ pokój' })).not.toBeInTheDocument();
   });
 });
@@ -235,5 +235,101 @@ describe('CTF room', () => {
     expect(screen.getByText('Zajrzyj do źródła strony')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Odblokuj (Trening)' })).toBeEnabled();
     expect(screen.queryByText('Punkty do zdobycia:')).not.toBeInTheDocument();
+  });
+});
+
+describe('task room reader', () => {
+  it('shows one task per page and opens the next page after a correct answer', async () => {
+    const user = userEvent.setup();
+    let answer: unknown;
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/1/solve`, async ({ request }) => {
+      answer = await request.json();
+      return HttpResponse.json({ success: true, message: 'Poprawna odpowiedź!' });
+    }));
+    mount([
+      { id: 1, title: 'Pierwsze', content: '<p>Treść A</p>', question: 'Ile?', completed: false },
+      { id: 2, title: 'Drugie', content: 'Treść B', question: null, completed: false },
+    ]);
+    expect(await screen.findByRole('heading', { name: '01. Pierwsze' })).toBeInTheDocument();
+    expect(screen.getByText('Opis')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Wstecz' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
+    await user.type(screen.getByLabelText('Ile?'), '42');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+    expect(answer).toEqual({ answer: '42' });
+    expect(await screen.findByText('Zadanie zaliczone')).toBeInTheDocument();
+    expect(screen.getByRole('progressbar', { name: 'Postęp pokoju' })).toHaveAttribute('aria-valuenow', '1');
+    await user.click(screen.getByRole('button', { name: 'Dalej' }));
+    expect(screen.getByRole('heading', { name: '02. Drugie' })).toBeInTheDocument();
+    expect(screen.queryByText('Opis')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zakończ' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Lista zadań' }));
+    await user.click(screen.getByRole('button', { name: 'Pierwsze, ukończone' }));
+    expect(screen.getByRole('heading', { name: '01. Pierwsze' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Poprawne' })).toBeDisabled();
+  });
+
+  it('reports a wrong answer and keeps the next page closed', async () => {
+    const user = userEvent.setup();
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/1/solve`, () => HttpResponse.json({ success: false, message: 'Niepoprawna odpowiedź' }, { status: 400 })));
+    mount([
+      { id: 1, title: 'Pierwsze', content: 'A', question: 'Ile?', completed: false },
+      { id: 2, title: 'Drugie', content: 'B', question: 'Co?', completed: false },
+    ]);
+    await user.type(await screen.findByLabelText('Ile?'), 'zle');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+    expect(await screen.findByText('Niepoprawna odpowiedź')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
+  });
+
+  it('opens the first unfinished task and leaves a finished room for the path list', async () => {
+    mount([
+      { id: 1, title: 'Pierwsze', content: 'A', question: 'Ile?', completed: true },
+      { id: 2, title: 'Drugie', content: 'B', question: 'Co?', completed: true },
+    ]);
+    expect(await screen.findByRole('heading', { name: '01. Pierwsze' })).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Dalej' }));
+    expect(screen.getByRole('button', { name: 'Zakończ' })).toBeDisabled();
+    expect(screen.getByRole('button', { name: 'Ukończ pokój' })).toBeEnabled();
+  });
+});
+
+describe('next room in a path', () => {
+  const path = {
+    id: 1, title: 'Linux', description: '', bannerUrl: null, hasBanner: false, enrolled: true, rooms: [],
+    chapters: [{ id: 10, title: 'Start', totalRooms: 2, solvedRooms: 1, rooms: [{ id: 7, title: 'HTTP' }, { id: 8, title: 'DNS' }] }],
+  };
+
+  function mountSolved(tasks: RoomTaskDto[], url: string) {
+    const room: RoomDetailDto = {
+      id: 7, title: 'HTTP', description: 'Opis', shortDescription: '', difficulty: 'EASY',
+      points: 50, solutionsCount: 2, createdAt: '2026-10-01T00:00:00', solved: true,
+      requiresVpn: false, hints: [], unlockedHintIds: [], fileName: null, tasks,
+    };
+    server.use(
+      http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)),
+      http.get(`${API_URL}/api/paths/1`, () => HttpResponse.json(path)),
+    );
+    setClerkSession(createToken('USER'));
+    renderWithAuth(<Route path="/rooms/:id" element={<RoomPage />} />, url);
+  }
+
+  it('sends a solved flag room to the next room of the path', async () => {
+    mountSolved([], '/rooms/7?pathId=1');
+    await userEvent.click(await screen.findByRole('button', { name: 'Następny pokój' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/rooms/8:PUSH');
+  });
+
+  it('sends a solved task room from its last task to the next room of the path', async () => {
+    mountSolved([{ id: 1, title: 'Jedyne', content: 'A', question: null, completed: true }], '/rooms/7?pathId=1');
+    expect(await screen.findByText('Pokój ukończony')).toBeInTheDocument();
+    await userEvent.click(await screen.findByRole('button', { name: 'Następny pokój' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/rooms/8:PUSH');
+  });
+
+  it('returns a solved task room without a path to learning', async () => {
+    mountSolved([{ id: 1, title: 'Jedyne', content: 'A', question: null, completed: true }], '/rooms/7');
+    await userEvent.click(await screen.findByRole('button', { name: 'Zakończ' }));
+    expect(screen.getByTestId('location')).toHaveTextContent('/learn:PUSH');
   });
 });

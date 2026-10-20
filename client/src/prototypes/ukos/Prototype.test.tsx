@@ -15,6 +15,8 @@ const fakes = vi.hoisted(() => ({
   terminals: [] as unknown[],
   workers: [] as unknown[],
   failTerminal: false,
+  failWebgl: false,
+  renderers: [] as { dispose: ReturnType<typeof vi.fn>; loseContext: () => void }[],
 }));
 vi.mock("@xterm/xterm", () => ({
   Terminal: class {
@@ -36,6 +38,19 @@ vi.mock("@xterm/xterm", () => ({
     }
     onResize(callback: (size: { cols: number; rows: number }) => void) {
       this.resize = callback;
+    }
+  },
+}));
+vi.mock("@xterm/addon-webgl", () => ({
+  WebglAddon: class {
+    dispose = vi.fn();
+    loseContext: () => void = () => {};
+    constructor() {
+      if (fakes.failWebgl) throw new Error("no webgl");
+      fakes.renderers.push(this);
+    }
+    onContextLoss(callback: () => void) {
+      this.loseContext = callback;
     }
   },
 }));
@@ -75,6 +90,8 @@ describe("prototype interface", () => {
     fakes.workers.length = 0;
     fakes.terminals.length = 0;
     fakes.failTerminal = false;
+    fakes.failWebgl = false;
+    fakes.renderers.length = 0;
     vi.stubGlobal("Worker", WorkerMock);
     vi.stubGlobal(
       "ResizeObserver",
@@ -245,6 +262,20 @@ describe("prototype interface", () => {
     await waitFor(() =>
       expect(screen.getByRole("alert")).toHaveTextContent("terminal failed"),
     );
+    view.unmount();
+  });
+  it("draws the terminal with WebGL and falls back to the DOM renderer without it", async () => {
+    const view = render(<Prototype />);
+    await start();
+    expect(fakes.renderers).toHaveLength(1);
+    fakes.renderers[0].loseContext();
+    expect(fakes.renderers[0].dispose).toHaveBeenCalledOnce();
+    fireEvent.click(screen.getByRole("button", { name: "Zatrzymaj" }));
+    fakes.workers.length = 0;
+    fakes.failWebgl = true;
+    await start();
+    expect(fakes.renderers).toHaveLength(1);
+    expect(fakes.terminals).toHaveLength(2);
     view.unmount();
   });
   it("finishes saving course files before terminating a worker on route navigation", async () => {

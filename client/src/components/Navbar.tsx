@@ -18,6 +18,7 @@ import ThemeSwitcher from './ThemeSwitcher';
 import NavIconButton from './NavIconButton';
 import NavbarFriends from './NavbarFriends';
 import { Bell } from 'lucide-react';
+import { useRoomChrome } from './room/roomChrome';
 
 type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
@@ -28,6 +29,8 @@ const Navbar = () => {
   const { isAuthenticated, logout, sessionKey, loading, user: userData } = useAuth();
   const navigate = useNavigate();
   const location = useLocation();
+  const roomChrome = useRoomChrome();
+  const roomMode = Boolean(roomChrome?.active);
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mobileMenuPath, setMobileMenuPath] = useState<string | null>(null);
   const mobileMenuOpen = mobileMenuPath === location.pathname;
@@ -183,7 +186,7 @@ const Navbar = () => {
   );
 
   return (
-    <nav className="navbar" ref={navRef} aria-label="Nawigacja główna">
+    <nav className={roomMode ? 'navbar navbar--room' : 'navbar'} ref={navRef} aria-label="Nawigacja główna">
       <div className="hackademy-container">
         <div className="nav-content">
           <Link
@@ -201,13 +204,15 @@ const Navbar = () => {
               src="/brand-pixel/hackademy-logo-white.png"
               alt="Hackademy Logo"
             />
+            {roomMode && <img className="logo-mark" src="/brand-pixel/hackademy-mark-white-web.png" alt="" aria-hidden="true" />}
           </Link>
-          {!isAuthPage && (
+          {roomMode && <div className="navbar-room-slot" ref={roomChrome?.setSlot} />}
+          {!isAuthPage && !roomMode && (
             <Button type="button" variant="outline" size="sm" className="mobile-nav-toggle md:hidden" ref={mobileToggleRef}
               aria-expanded={mobileMenuOpen} aria-controls="main-nav-links"
               onClick={() => setMobileMenuPath(mobileMenuOpen ? null : location.pathname)}>Menu</Button>
           )}
-          {!isAuthPage && (
+          {!isAuthPage && !roomMode && (
             <div id="main-nav-links" className={`nav-links ${mobileMenuOpen ? 'mobile-nav-open' : ''}`}
               onClick={event => { if ((event.target as HTMLElement).closest('a')) setMobileMenuPath(null); }}>
               {isAuthenticated ? (

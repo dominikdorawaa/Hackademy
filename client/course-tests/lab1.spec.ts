@@ -38,12 +38,12 @@ test("full account-backed lab, restoration on a new device and room completion",
     await command(page, text);
     await expect(
       page.getByRole("progressbar", { name: "Postęp ćwiczeń" }),
-    ).toHaveAttribute("value", String(next));
+    ).toHaveAttribute("aria-valuenow", String(next));
   };
   await command(page, "echo pwd");
   await expect(
     page.getByRole("progressbar", { name: "Postęp ćwiczeń" }),
-  ).toHaveAttribute("value", "0");
+  ).toHaveAttribute("aria-valuenow", "0");
   await step("pwd", 1);
   await step("ls", 2);
   await step("ls -l", 2);
@@ -75,7 +75,7 @@ test("full account-backed lab, restoration on a new device and room completion",
   await page.locator(".xterm-helper-textarea").press("Control+x");
   await expect(
     page.getByRole("progressbar", { name: "Postęp ćwiczeń" }),
-  ).toHaveAttribute("value", "14");
+  ).toHaveAttribute("aria-valuenow", "14");
   await step("history", 15);
   await expect(
     page.getByRole("heading", { name: "Stanowisko gotowe." }),

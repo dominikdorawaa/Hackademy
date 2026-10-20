@@ -175,6 +175,46 @@ describe("isolated emulator lifecycle and grading", () => {
     await runtime.handle({ type: "stop" });
   });
 
+  it("reports download progress of the files the boot needs, at most every 100 ms", async () => {
+    const { runtime, manifest, emulators, events } = setup();
+    const now = vi.spyOn(performance, "now").mockReturnValue(1000);
+    manifest.mockResolvedValue({
+      version: "v1",
+      files: {
+        "boot-state.bin.zst": { bytes: 600 },
+        "kernel.bin": { bytes: 5000 },
+        "v86.wasm": { bytes: 300 },
+        "seabios.bin": { bytes: 60 },
+        "vgabios.bin": { bytes: 40 },
+      },
+    });
+    await runtime.handle({
+      type: "start",
+      baseUrl: "local",
+      account: "alice",
+      cols: 80,
+      rows: 24,
+    });
+    const downloads = () => events.filter((event) => event.type === "download");
+    expect(downloads()).toEqual([{ type: "download", loaded: 0, total: 1000 }]);
+    const progress = emulators[0].listeners.get(
+      "download-progress",
+    ) as unknown as (event: { file_name: string; loaded: number; total: number }) => void;
+    now.mockReturnValue(1050);
+    progress({ file_name: "local/v86.wasm", loaded: 300, total: 300 });
+    expect(downloads()).toHaveLength(1);
+    now.mockReturnValue(1200);
+    progress({ file_name: "local/boot-state.bin.zst?v=1", loaded: 900, total: 900 });
+    expect(downloads().at(-1)).toEqual({ type: "download", loaded: 900, total: 1000 });
+    now.mockReturnValue(1400);
+    progress({ file_name: "local/extra.bin", loaded: 50, total: 0 });
+    expect(downloads().at(-1)).toEqual({ type: "download", loaded: 950, total: 1050 });
+    emulators[0].listeners.get("emulator-loaded")?.(0);
+    expect(downloads().at(-1)).toEqual({ type: "download", loaded: 1050, total: 1050 });
+    now.mockRestore();
+    await runtime.handle({ type: "stop" });
+  });
+
   it("restores the compatible image and resets files to the current checkpoint", async () => {
     const { runtime, boot, emulators, events, storage } = setup({
       version: "v1",

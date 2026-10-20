@@ -11,6 +11,21 @@ export type WorkshopOptions = {
   onProgress?: (step: number) => void;
 };
 
+function attachWebgl(
+  term: Terminal,
+  webgl: typeof import("@xterm/addon-webgl") | null,
+) {
+  if (!webgl) return false;
+  try {
+    const renderer = new webgl.WebglAddon();
+    renderer.onContextLoss(() => renderer.dispose());
+    term.loadAddon(renderer);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
 export function useWorkshop(
   container: React.RefObject<HTMLDivElement | null>,
   options?: WorkshopOptions,
@@ -29,6 +44,10 @@ export function useWorkshop(
     RuntimeEvent,
     { type: "metrics" }
   > | null>(null);
+  const [download, setDownload] = useState<{
+    loaded: number;
+    total: number;
+  } | null>(null);
   const [saved, setSaved] = useState<Extract<
     RuntimeEvent,
     { type: "saved" }
@@ -42,6 +61,7 @@ export function useWorkshop(
   const send = useCallback((command: RuntimeCommand) => {
     if (command.type === "reset") {
       setStatus("booting");
+      setDownload(null);
       setSaved(null);
       setMetrics(null);
     }
@@ -65,19 +85,21 @@ export function useWorkshop(
     setWarning("");
     setMetrics(null);
     setSaved(null);
+    setDownload(null);
     setStatus("booting");
     try {
-      const [{ Terminal }, { FitAddon }] = await Promise.all([
+      const [{ Terminal }, { FitAddon }, webgl] = await Promise.all([
         import("@xterm/xterm"),
         import("@xterm/addon-fit"),
+        import("@xterm/addon-webgl").catch(() => null),
       ]);
       if (!container.current || generation.current !== currentGeneration)
         return;
       const term = new Terminal({
         cursorBlink: false,
         fontFamily: '"DejaVu Sans Mono", "Cascadia Code", monospace',
-        fontSize: 14,
-        lineHeight: 1.4,
+        fontSize: optionsRef.current?.variant === "lab" ? 17 : 14,
+        lineHeight: optionsRef.current?.variant === "lab" ? 1.35 : 1.4,
         scrollback: 1000,
         allowProposedApi: false,
         theme: {
@@ -90,6 +112,7 @@ export function useWorkshop(
       const addon = new FitAddon();
       term.loadAddon(addon);
       term.open(container.current);
+      attachWebgl(term, webgl);
       addon.fit();
       terminal.current = term;
       fit.current = addon;
@@ -128,6 +151,9 @@ export function useWorkshop(
             break;
           case "metrics":
             setMetrics(event);
+            break;
+          case "download":
+            setDownload({ loaded: event.loaded, total: event.total });
             break;
           case "saved":
             setSaved(event);
@@ -236,6 +262,7 @@ export function useWorkshop(
     warning,
     lastCommand,
     metrics,
+    download,
     saved,
     start,
     stop,

@@ -1,14 +1,10 @@
-import { Routes, Route, Outlet } from 'react-router-dom';
+import { Routes, Route } from 'react-router-dom';
+import SiteLayout from './components/SiteLayout';
 import { AuthProvider } from './context/AuthContext';
 import { OnboardingProvider } from './context/OnboardingContext';
-import GuidedTour from './components/tour/GuidedTour';
-import Navbar from './components/Navbar';
-import RealtimeGameNavigation from './components/RealtimeGameNavigation';
 import { RealtimeProvider } from './context/RealtimeContext';
 import { NotificationPreferencesProvider } from './context/NotificationPreferencesContext';
 import { FriendOnlineFeedProvider } from './context/FriendOnlineFeedContext';
-import RealtimeNotifications from './components/RealtimeNotifications';
-import Footer from './components/Footer';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
@@ -33,21 +29,6 @@ const UkosPage = lazy(() => import('./ukos/UkosPage'));
 const ArenaAvatarPage = lazy(() => import('./pages/ArenaAvatarPage'));
 const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const ArenaBattlePage = lazy(() => import('./pages/ArenaBattlePage'));
-
-function SiteLayout() {
-  return (
-    <div className="flex flex-col min-h-screen">
-      <RealtimeGameNavigation />
-      <RealtimeNotifications />
-      <Navbar />
-      <main className="flex-grow">
-        <Outlet />
-      </main>
-      <GuidedTour />
-      <Footer />
-    </div>
-  );
-}
 
 function App() {
   return (

@@ -19,4 +19,10 @@ __ukos_prompt() {
 }
 PROMPT_COMMAND='__ukos_prompt "$?"'
 printf '\e[2J\e[H'
-printf 'DYŻUR ZERO · warsztat techniczny\r\nBash i pliki działają wewnątrz tej przeglądarki.\r\n\r\n'
+printf '\r\n'
+printf '  \e[38;5;117m%s\e[0m\r\n' '█  █ ▄▀▀▄ ▄▀▀▀ █ ▄▀ ▄▀▀▄ █▀▀▄ █▀▀▀ █▄ ▄█ ▀▄ ▄▀'
+printf '  \e[38;5;75m%s\e[0m\r\n' '█▀▀█ █▀▀█ █    █▀▄  █▀▀█ █  █ █▀▀  █ ▀ █   █'
+printf '  \e[38;5;33m%s\e[0m\r\n' '▀  ▀ ▀  ▀  ▀▀▀ ▀  ▀ ▀  ▀ ▀▀▀  ▀▀▀▀ ▀   ▀   ▀'
+printf '\r\n'
+printf '  \e[38;5;240m──\e[0m \e[1;38;5;79mDYŻUR ZERO\e[0m \e[38;5;240m·\e[0m \e[38;5;250mlaboratorium 1\e[0m \e[38;5;240m%s\e[0m\r\n' '─────────────────'
+printf '  \e[38;5;245mLinux działa w tej przeglądarce. Powodzenia!\e[0m\r\n\r\n'

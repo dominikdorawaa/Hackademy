@@ -14,7 +14,7 @@ export default defineConfig({
       executablePath:
         process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE ||
         (existsSync('/usr/bin/chromium') ? '/usr/bin/chromium' : undefined),
-      args: ['--no-sandbox'],
+      args: ['--no-sandbox', '--disable-3d-apis'],
     },
     screenshot: 'only-on-failure',
     trace: 'retain-on-failure',

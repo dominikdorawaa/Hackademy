@@ -27,13 +27,13 @@ async function terminalFits(page: Page) {
           .querySelector(".xterm-screen")!
           .getBoundingClientRect();
         const footer = document
-          .querySelector(".zero-terminal-footer")!
+          .querySelector(".zero-terminal-toolbar")!
           .getBoundingClientRect();
         const lesson = document
-          .querySelector(".zero-lesson")!
+          .querySelector(".zero-lesson-pane")!
           .getBoundingClientRect();
         const panel = document
-          .querySelector(".zero-terminal-panel")!
+          .querySelector(".zero-terminal-pane")!
           .getBoundingClientRect();
         const terminal = document.querySelector(".xterm")!;
         const viewport = terminal.querySelector(".xterm-viewport")!;
@@ -101,11 +101,11 @@ test("fits the terminal at different viewport sizes and requires the new directo
   await expect(page.locator(".xterm-rows")).toContainText("raport.txt");
   await expect(
     page.getByRole("progressbar", { name: "Postęp ćwiczeń" }),
-  ).toHaveAttribute("value", "5");
+  ).toHaveAttribute("aria-valuenow", "5");
   await command("mkdir ~/biezace");
   await expect(
     page.getByRole("progressbar", { name: "Postęp ćwiczeń" }),
-  ).toHaveAttribute("value", "6");
+  ).toHaveAttribute("aria-valuenow", "6");
   await terminalFits(page);
   await command("seq 1 120");
   await expect(page.locator(".xterm-rows")).toContainText("120");
@@ -123,7 +123,7 @@ test("fits the terminal at different viewport sizes and requires the new directo
     .toContain("120");
   await terminalFits(page);
   await page
-    .locator(".zero-terminal-panel")
+    .locator(".zero-terminal-pane")
     .screenshot({ path: testInfo.outputPath("terminal-panel.png") });
   await page.screenshot({
     path: testInfo.outputPath("aligned-terminal.png"),
