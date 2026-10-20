@@ -68,10 +68,9 @@ export default function NavbarFriends() {
   const friends = state?.friends ?? [];
   const requests = state?.friendRequests ?? [];
   const challenged = new Map((state?.outgoingChallenges ?? []).map(challenge => [challenge.targetUsername, challenge.id]));
-  // Same guard as the Arena: one duel at a time, so no new challenge while playing, queued or already challenging.
-  const challengeBlocked = state?.gameSession && state.gameSession.status !== 'FINISHED' ? 'Trwa Twój pojedynek. Wyzwania wrócą po nim.'
-    : state?.queued ? 'Czekasz w kolejce Areny. Wyjdź z niej, żeby kogoś wyzwać.'
-    : challenged.size ? 'Masz wysłane wyzwanie. Poczekaj na odpowiedź albo je cofnij.' : null;
+  // Pending challenges and the queue run side by side; the server lets the first game to start win.
+  const challengeBlocked = state?.gameSession && state.gameSession.status !== 'FINISHED'
+    ? 'Trwa Twój pojedynek. Wyzwania wrócą po nim.' : null;
   const needle = query.trim().toLocaleLowerCase('pl');
   const matching = friends.filter(friend => friend.username.toLocaleLowerCase('pl').includes(needle));
   const online = matching.filter(friend => friend.online).sort(byName);

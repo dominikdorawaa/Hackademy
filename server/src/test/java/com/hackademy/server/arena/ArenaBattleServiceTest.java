@@ -34,7 +34,7 @@ class ArenaBattleServiceTest {
     private final RealtimeNotifier realtime = mock(RealtimeNotifier.class);
     private final ArenaPresence presence = mock(ArenaPresence.class);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence, mock(MatchmakingService.class));
     private final AtomicLong now = new AtomicLong(10_000);
     private final Map<Long, User> players = new HashMap<>();
     private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod");
@@ -286,6 +286,7 @@ class ArenaBattleServiceTest {
 
     @Test
     void challengesCarryThePlayersAvatars() {
+        arena.finishGame("game", null);
         var challenge = arena.createChallenge(1L, "player1", 2L, "player2");
         assertEquals(avatar, challenge.getChallengerAvatar());
         assertNull(challenge.getTargetAvatar());
@@ -293,6 +294,7 @@ class ArenaBattleServiceTest {
 
     @Test
     void acceptingAChallengeWhileShuttingDownIsRefused() {
+        arena.finishGame("game", null);
         var challenge = arena.createChallenge(1L, "player1", 2L, "player2");
         arena.cancelActiveGames();
         var error = assertThrows(IllegalStateException.class, () -> arena.acceptChallenge(challenge.getId(), 2L));
@@ -311,6 +313,7 @@ class ArenaBattleServiceTest {
         context.registerBean(DashboardSummaryCache.class, () -> mock(DashboardSummaryCache.class));
         context.registerBean(RealtimeNotifier.class, () -> realtime);
         context.registerBean(ArenaPresence.class, () -> presence);
+        context.registerBean(MatchmakingService.class, () -> mock(MatchmakingService.class));
         context.registerBean(ArenaServiceImpl.class);
         context.refresh();
         var service = context.getBean(ArenaServiceImpl.class);
