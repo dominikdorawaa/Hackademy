@@ -1,7 +1,7 @@
 import type { BadgeDto } from '../../types/api';
 import ProfileIcon from './ProfileIcon';
 
-export type SymbolKind = 'terminal' | 'code' | 'shield' | 'elite' | 'flame' | 'streak' | 'network' | 'award';
+type SymbolKind = 'terminal' | 'code' | 'shield' | 'elite' | 'flame' | 'streak' | 'network' | 'award';
 
 export function AchievementGlyph({ kind = 'award' }: { kind?: SymbolKind }) {
   return <ProfileIcon kind={kind} className="profile-achievement-glyph" />;

@@ -253,7 +253,7 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
                   </span>
                 )}
               </span>
-              {shownBadges.length > 0 && (
+              {profile.badges.length > 0 && (
                 <span className="ud-peek-badges">
                   {shownBadges.map((b) => (
                     <span key={b.id} className="ud-peek-badge" data-symbol={symbolFor(b)} role="img" aria-label={b.name} title={b.name}>

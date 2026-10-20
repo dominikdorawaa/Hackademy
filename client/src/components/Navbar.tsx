@@ -11,6 +11,7 @@ import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
 import { useFriendOnlineFeed } from '../context/FriendOnlineFeedContext';
 import type { Challenge, FriendRequestDto } from '../types/api';
 import './Navbar.css';
+import '../styles/presence.css';
 import { Button } from './ui/button';
 import ThemeSwitcher from './ThemeSwitcher';
 import NavIconButton from './NavIconButton';
@@ -21,7 +22,7 @@ type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
   | { id: string; type: 'CHALLENGE'; from: string; timestamp: string; data: Challenge };
 
-const onlineAt = (at: number) => new Date(at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
+const formatOnlineTime = (at: number) => new Date(at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
 const Navbar = () => {
   const { isAuthenticated, logout, sessionKey, loading, user: userData } = useAuth();
@@ -328,11 +329,11 @@ const Navbar = () => {
                                     })}
                                     {onlineFeed.entries.map(entry => (
                                         <li key={entry.id} className="notification-online" data-unread={!entry.read}>
-                                            <span className="notification-online-dot" aria-hidden="true" />
+                                            <span className="presence-dot" aria-hidden="true" />
                                             <span className="notification-online-text">
                                                 <strong>{entry.username}</strong> jest online
                                             </span>
-                                            <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{onlineAt(entry.at)}</time>
+                                            <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{formatOnlineTime(entry.at)}</time>
                                             <button type="button" className="notification-online-close"
                                                 aria-label={`Zamknij powiadomienie: ${entry.username} jest online`}
                                                 onClick={() => onlineFeed.dismiss(entry.id)}>

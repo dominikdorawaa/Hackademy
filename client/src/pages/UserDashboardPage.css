@@ -918,7 +918,7 @@ a.ud-room-row:hover {
 }
 
 .ud-peek-avatar-dot[data-online='false'] {
-  background: var(--ud-peek-chip);
+  background: var(--presence-offline);
 }
 
 .ud-peek-link-dot {
@@ -959,7 +959,7 @@ a.ud-room-row:hover {
   width: 30px;
   height: 30px;
   border: 1px solid color-mix(in srgb, var(--badge-color) 55%, transparent);
-  border-radius: 7px;
+  border-radius: 4px;
   background: color-mix(in srgb, var(--badge-color) 14%, var(--ud-tip-bg));
   color: var(--badge-color);
 }
@@ -972,6 +972,9 @@ a.ud-room-row:hover {
 [data-theme='light'] .ud-peek-badge { --badge-color: #426b91; }
 [data-theme='light'] .ud-peek-badge[data-symbol='shield'] { --badge-color: #766093; }
 [data-theme='light'] .ud-peek-badge[data-symbol='elite'] { --badge-color: #896827; }
+[data-theme='light'] .ud-peek-badge[data-symbol='flame'],
+[data-theme='light'] .ud-peek-badge[data-symbol='streak'] { --badge-color: #9a5a1c; }
+[data-theme='light'] .ud-peek-badge[data-symbol='network'] { --badge-color: #1f7a5f; }
 
 .ud-peek-badge-count {
   margin-left: 4px;
@@ -1235,7 +1238,8 @@ a.ud-room-row:hover {
   .ud-room-row,
   .ud-flag,
   .ud-profile,
-  .ud-reco {
+  .ud-reco,
+  .ud-peek-open {
     transition: none;
   }
 }

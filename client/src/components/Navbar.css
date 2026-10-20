@@ -329,8 +329,7 @@
 .notification-online strong { color: var(--text-light); font-weight: 600; }
 .notification-online[data-unread='true'] { background: rgba(46, 204, 113, 0.06); }
 
-.notification-online-dot { flex: none; width: 8px; height: 8px; border-radius: 50%; background: #2ecc71; }
-.notification-online[data-unread='false'] .notification-online-dot { opacity: 0.4; }
+.notification-online[data-unread='false'] .presence-dot { opacity: 0.4; }
 .notification-online-text { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .notification-online-time { flex: none; font-size: 0.75rem; font-variant-numeric: tabular-nums; }
 

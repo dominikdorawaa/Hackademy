@@ -15,16 +15,15 @@ export interface FriendOnlineEntry {
 interface FriendOnlineFeedValue {
   entries: FriendOnlineEntry[];
   dismiss: (id: string) => void;
-  clear: () => void;
   markAllRead: () => void;
 }
 
-export const ONLINE_ENTRY_COOLDOWN_MS = 10 * 60 * 1000;
+const ONLINE_ENTRY_COOLDOWN_MS = 10 * 60 * 1000;
 const MAX_ENTRIES = 20;
 const NO_ENTRIES: FriendOnlineEntry[] = [];
 
 const FriendOnlineFeedContext = createContext<FriendOnlineFeedValue>({
-  entries: [], dismiss: () => {}, clear: () => {}, markAllRead: () => {},
+  entries: [], dismiss: () => {}, markAllRead: () => {},
 });
 
 // One bell entry per offline→online transition. The first snapshot of a stream is only a baseline,
@@ -67,12 +66,11 @@ export function FriendOnlineFeedProvider({ children }: PropsWithChildren) {
   const update = useCallback((change: (entries: FriendOnlineEntry[]) => FriendOnlineEntry[]) =>
     setFeed(current => ({ ...current, entries: change(current.entries) })), []);
   const dismiss = useCallback((id: string) => update(entries => entries.filter(entry => entry.id !== id)), [update]);
-  const clear = useCallback(() => update(() => []), [update]);
   const markAllRead = useCallback(() => update(entries => entries.some(entry => !entry.read)
     ? entries.map(entry => ({ ...entry, read: true })) : entries), [update]);
 
   const entries = feed.sessionKey === sessionKey && preferences.friendOnlineBell ? feed.entries : NO_ENTRIES;
-  const value = useMemo(() => ({ entries, dismiss, clear, markAllRead }), [entries, dismiss, clear, markAllRead]);
+  const value = useMemo(() => ({ entries, dismiss, markAllRead }), [entries, dismiss, markAllRead]);
   return <FriendOnlineFeedContext.Provider value={value}>{children}</FriendOnlineFeedContext.Provider>;
 }
 

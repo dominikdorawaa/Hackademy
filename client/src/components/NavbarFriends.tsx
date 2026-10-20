@@ -4,6 +4,7 @@ import { Users } from 'lucide-react';
 import UserAvatar from './UserAvatar';
 import NavIconButton from './NavIconButton';
 import { useRealtime } from '../context/RealtimeContext';
+import '../styles/presence.css';
 import './NavbarFriends.css';
 
 export default function NavbarFriends() {
