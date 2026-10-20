@@ -1,6 +1,6 @@
 @layer components {
   .navbar .hackademy-container { max-width: 1440px; padding: 0 32px; }
-  .navbar .logo img { display: block; height: 60px; width: auto; margin: -5px 0; }
+  .navbar .logo img { display: block; height: 60px; width: auto; margin: -5px 0; object-fit: contain; object-position: left center; }
   .nav-streak { display: flex; }
   .nav-user-controls { display: flex; align-items: center; gap: 15px; }
   .nav-account-toggle { display: block; padding: 0; border: 0; background: transparent; border-radius: 50%; cursor: pointer; }
