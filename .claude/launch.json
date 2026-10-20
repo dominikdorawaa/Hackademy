@@ -1,0 +1,33 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    {
+      "name": "server",
+      "runtimeExecutable": "mvn",
+      "runtimeArgs": [
+        "-f",
+        "server/pom.xml",
+        "-q",
+        "spring-boot:run",
+        "-Dspring-boot.run.useTestClasspath=true",
+        "-Dspring-boot.run.arguments=--DB_URL=jdbc:h2:mem:demo --DB_USERNAME=sa --DB_PASSWORD= --JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= --FRONTEND_URL=http://localhost:5173 --spring.flyway.enabled=false --spring.jpa.hibernate.ddl-auto=create-drop"
+      ],
+      "port": 8080
+    },
+    {
+      "name": "client",
+      "runtimeExecutable": "npm",
+      "runtimeArgs": [
+        "--prefix",
+        "client",
+        "run",
+        "dev",
+        "--",
+        "--port",
+        "5173",
+        "--strictPort"
+      ],
+      "port": 5173
+    }
+  ]
+}

@@ -39,10 +39,11 @@ public class ArenaController {
     @PostMapping("/join")
     public ResponseEntity<?> joinQueue() {
         User user = currentUser();
-        if (user.getPoints() < 500) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Do Areny dołączysz od 500 XP."));
+        try {
+            arenaService.joinQueue(user.getId(), user.getUsername());
+        } catch (IllegalStateException playing) {
+            return ResponseEntity.badRequest().body(Map.of("message", playing.getMessage()));
         }
-        matchmakingService.joinQueue(user.getId(), user.getUsername());
         processMatchmaking();
         return ResponseEntity.ok(Map.of("message", "Dołączono do kolejki"));
     }
@@ -66,10 +67,7 @@ public class ArenaController {
                 arenaService.addGame(session);
             } catch (RuntimeException error) {
                 log.warn("Could not prepare arena match {}", session.getId(), error);
-                continue;
             }
-            matchmakingService.leaveQueue(session.getPlayer1Id());
-            matchmakingService.leaveQueue(session.getPlayer2Id());
         }
     }
 

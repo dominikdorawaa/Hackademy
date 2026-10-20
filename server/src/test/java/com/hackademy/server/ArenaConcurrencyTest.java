@@ -43,7 +43,7 @@ class ArenaConcurrencyTest {
     private final RealtimeNotifier realtime = mock(RealtimeNotifier.class);
     private final ArenaPresence presence = mock(ArenaPresence.class);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence);
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence, mock(com.hackademy.server.arena.MatchmakingService.class));
 
     static List<ArenaQuestion> questionSet() {
         return LongStream.rangeClosed(1, 10).mapToObj(id -> new ArenaQuestion(id, "Pytanie " + id,

@@ -18,10 +18,9 @@ import type { DashboardUser, FriendDto, RankingEntry, UserSearchDto } from '../t
 import './UserDashboardPage.css';
 import './ArenaPage.css';
 
-type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED' | 'CHALLENGING';
+type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED';
 type FriendChallenge = 'sending' | { error: string };
 
-const UNLOCK_POINTS = 500;
 const FRIENDS_SHOWN = 6;
 const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
@@ -36,14 +35,15 @@ const ArenaPage = () => {
     const gameSession = realtime?.gameSession ?? null;
     const challenges = realtime?.challenges ?? [];
     const status: ArenaStatus = gameSession && gameSession.status !== 'FINISHED' ? 'GAME'
-        : realtime?.queued ? 'QUEUE' : realtime?.outgoingChallenges.length ? 'CHALLENGING' : 'IDLE';
+        : realtime?.queued ? 'QUEUE' : 'IDLE';
     const [error, setError] = useState<string | null>(null);
     const [friends, setFriends] = useState<FriendDto[] | null>(null);
     const [friendsFailed, setFriendsFailed] = useState(false);
     const [headToHead, setHeadToHead] = useState<Record<string, UserSearchDto | 'error'>>({});
     const [statsLoading, setStatsLoading] = useState(true);
     const [friendChallenges, setFriendChallenges] = useState<Record<string, FriendChallenge>>({});
-    const challengedFriends = (realtime?.outgoingChallenges ?? []).map(challenge => challenge.targetUsername);
+    const outgoing = realtime?.outgoingChallenges ?? [];
+    const challengedFriends = outgoing.map(challenge => challenge.targetUsername);
     const [processingChallengeId, setProcessingChallengeId] = useState<string | null>(null);
     const [acceptedChallenges, setAcceptedChallenges] = useState<string[]>([]);
     const [challengeError, setChallengeError] = useState<string | null>(null);
@@ -129,15 +129,13 @@ const ArenaPage = () => {
         }
     };
 
-    const handleCancelChallenges = async () => {
+    const handleCancelChallenge = async (challengeId: string) => {
         try {
-            for (const challenge of realtime?.outgoingChallenges ?? []) {
-                const response = await arenaApi.cancelChallenge(challenge.id, { sessionKey });
-                if (!response.ok) throw new Error('Cannot cancel challenge');
-            }
+            const response = await arenaApi.cancelChallenge(challengeId, { sessionKey });
+            if (!response.ok) throw new Error('Cannot cancel challenge');
             await synchronize();
         } catch {
-            setError('Nie udało się anulować wyzwania.');
+            setError('Nie udało się cofnąć wyzwania.');
         }
     };
 
@@ -180,8 +178,6 @@ const ArenaPage = () => {
         <button type="button" className="ud-btn ud-btn-solid" onClick={() => setUserAttempt(attempt => attempt + 1)}>Spróbuj ponownie</button>
     </div> : <ArenaLoader label="Ładowanie Areny" />}</div></div>;
 
-    const canPlay = userData.points >= UNLOCK_POINTS;
-    const missing = Math.max(0, UNLOCK_POINTS - userData.points);
     const offline = !connected || !realtime;
     const myRank = rank.entry;
     const known = rank.status === 'ready' && myRank !== null;
@@ -190,7 +186,7 @@ const ArenaPage = () => {
     const searching = status === 'QUEUE' || joiningQueue;
     const { league, next } = leagueFor(elo);
     const rankLabel = !known ? (rank.status === 'loading' ? 'Wczytuję Elo…' : 'Nie udało się wczytać Elo') : myRank.rankElo ? `#${myRank.rankElo} w rankingu Elo` : 'Poza rankingiem Elo';
-    const headline = status === 'GAME' ? 'Walka trwa' : searching ? 'Szukamy rywala' : status === 'CHALLENGING' ? 'Czekamy na odpowiedź' : canPlay ? 'Wejdź na arenę' : 'Arena od 500 XP';
+    const headline = status === 'GAME' ? 'Walka trwa' : searching ? 'Szukamy rywala' : 'Wejdź na arenę';
 
     return (
         <div className="user-dashboard arena-page" id="arena">
@@ -235,20 +231,19 @@ const ArenaPage = () => {
                                         {joiningQueue && status !== 'QUEUE' ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}
                                     </p>
                                 </div>
-                            ) : status === 'CHALLENGING' ? (
-                                <p role="status" aria-live="polite" className="arena-waiting">
-                                    <span className="arena-pulse" aria-hidden="true" />
-                                    Oczekiwanie na akceptację wyzwania...
-                                </p>
-                            ) : canPlay ? (
-                                <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
                             ) : (
-                                <>
-                                    <p>Pojedynki odblokujesz od {formatNumberPL(UNLOCK_POINTS)} XP. Brakuje Ci {formatNumberPL(missing)} XP.</p>
-                                    <div className="ud-meter arena-unlock" role="progressbar" aria-label="Postęp do odblokowania Areny" aria-valuemin={0} aria-valuemax={UNLOCK_POINTS} aria-valuenow={Math.min(userData.points, UNLOCK_POINTS)}>
-                                        <span style={{ '--ud-fill': Math.min(1, userData.points / UNLOCK_POINTS) } as React.CSSProperties} />
-                                    </div>
-                                </>
+                                <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
+                            )}
+                            {status !== 'GAME' && outgoing.length > 0 && (
+                                <ul className="arena-sent" aria-label="Wysłane wyzwania">
+                                    {outgoing.map(challenge => (
+                                        <li key={challenge.id}>
+                                            <span className="arena-pulse" aria-hidden="true" />
+                                            Czekasz na odpowiedź od <strong>{challenge.targetUsername}</strong>
+                                            <button type="button" className="ud-link" onClick={() => handleCancelChallenge(challenge.id)}>Cofnij</button>
+                                        </li>
+                                    ))}
+                                </ul>
                             )}
                             {offline && <p role="status" className="arena-note">Łączenie z Areną. Poczekaj na połączenie z serwerem.</p>}
                             {error && <p role="alert" className="arena-error">{error}</p>}
@@ -268,12 +263,8 @@ const ArenaPage = () => {
                                 <Link className="ud-btn arena-go" to={`/arena/battle/${gameSession.id}`}>Wróć do walki</Link>
                             ) : status === 'QUEUE' || joiningQueue ? (
                                 <button type="button" className="ud-btn ud-btn-quiet" onClick={handleLeaveQueue} disabled={joiningQueue && status !== 'QUEUE'}>Anuluj</button>
-                            ) : status === 'CHALLENGING' ? (
-                                <button type="button" className="ud-btn ud-btn-quiet" onClick={handleCancelChallenges}>Anuluj</button>
-                            ) : canPlay ? (
-                                <button type="button" className="ud-btn arena-go" onClick={handleJoinQueue} disabled={offline}>Znajdź przeciwnika</button>
                             ) : (
-                                <Link className="ud-btn arena-go" to="/learn">Rozwiązuj pokoje</Link>
+                                <button type="button" className="ud-btn arena-go" onClick={handleJoinQueue} disabled={offline}>Znajdź przeciwnika</button>
                             )}
                         </div>
                         </div>
@@ -347,7 +338,7 @@ const ArenaPage = () => {
                                                     <span className="ud-friend-sent">Wyzwanie wysłane</span>
                                                 ) : (
                                                     <button type="button" className="ud-btn ud-btn-small" onClick={() => handleChallengeFriend(friend.username)}
-                                                        disabled={!canPlay || offline || status !== 'IDLE' || state === 'sending'}>
+                                                        disabled={offline || status === 'GAME' || state === 'sending'}>
                                                         {state === 'sending' ? 'Wysyłam…' : 'Wyzwij'}
                                                     </button>
                                                 )}

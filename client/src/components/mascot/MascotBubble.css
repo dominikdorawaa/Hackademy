@@ -1,6 +1,6 @@
 @layer components {
 .mascot-bubble {
-  --font-pixel: 'Pixelify Sans', 'JetBrains Mono', monospace;
+  --font-pixel: var(--font-heading);
   --font-text: 'Archivo', system-ui, sans-serif;
   display: flex;
   align-items: flex-end;
