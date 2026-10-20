@@ -39,9 +39,6 @@ public class ArenaController {
     @PostMapping("/join")
     public ResponseEntity<?> joinQueue() {
         User user = currentUser();
-        if (user.getPoints() < 500) {
-            return ResponseEntity.badRequest().body(Map.of("message", "Do Areny dołączysz od 500 XP."));
-        }
         try {
             arenaService.joinQueue(user.getId(), user.getUsername());
         } catch (IllegalStateException playing) {

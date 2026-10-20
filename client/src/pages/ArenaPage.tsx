@@ -21,7 +21,6 @@ import './ArenaPage.css';
 type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED';
 type FriendChallenge = 'sending' | { error: string };
 
-const UNLOCK_POINTS = 500;
 const FRIENDS_SHOWN = 6;
 const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
@@ -179,8 +178,6 @@ const ArenaPage = () => {
         <button type="button" className="ud-btn ud-btn-solid" onClick={() => setUserAttempt(attempt => attempt + 1)}>Spróbuj ponownie</button>
     </div> : <ArenaLoader label="Ładowanie Areny" />}</div></div>;
 
-    const canPlay = userData.points >= UNLOCK_POINTS;
-    const missing = Math.max(0, UNLOCK_POINTS - userData.points);
     const offline = !connected || !realtime;
     const myRank = rank.entry;
     const known = rank.status === 'ready' && myRank !== null;
@@ -189,7 +186,7 @@ const ArenaPage = () => {
     const searching = status === 'QUEUE' || joiningQueue;
     const { league, next } = leagueFor(elo);
     const rankLabel = !known ? (rank.status === 'loading' ? 'Wczytuję Elo…' : 'Nie udało się wczytać Elo') : myRank.rankElo ? `#${myRank.rankElo} w rankingu Elo` : 'Poza rankingiem Elo';
-    const headline = status === 'GAME' ? 'Walka trwa' : searching ? 'Szukamy rywala' : canPlay ? 'Wejdź na arenę' : 'Arena od 500 XP';
+    const headline = status === 'GAME' ? 'Walka trwa' : searching ? 'Szukamy rywala' : 'Wejdź na arenę';
 
     return (
         <div className="user-dashboard arena-page" id="arena">
@@ -234,15 +231,8 @@ const ArenaPage = () => {
                                         {joiningQueue && status !== 'QUEUE' ? 'Dołączanie do kolejki...' : 'Szukanie przeciwnika...'}
                                     </p>
                                 </div>
-                            ) : canPlay ? (
-                                <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
                             ) : (
-                                <>
-                                    <p>Pojedynki odblokujesz od {formatNumberPL(UNLOCK_POINTS)} XP. Brakuje Ci {formatNumberPL(missing)} XP.</p>
-                                    <div className="ud-meter arena-unlock" role="progressbar" aria-label="Postęp do odblokowania Areny" aria-valuemin={0} aria-valuemax={UNLOCK_POINTS} aria-valuenow={Math.min(userData.points, UNLOCK_POINTS)}>
-                                        <span style={{ '--ud-fill': Math.min(1, userData.points / UNLOCK_POINTS) } as React.CSSProperties} />
-                                    </div>
-                                </>
+                                <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
                             )}
                             {status !== 'GAME' && outgoing.length > 0 && (
                                 <ul className="arena-sent" aria-label="Wysłane wyzwania">
@@ -273,10 +263,8 @@ const ArenaPage = () => {
                                 <Link className="ud-btn arena-go" to={`/arena/battle/${gameSession.id}`}>Wróć do walki</Link>
                             ) : status === 'QUEUE' || joiningQueue ? (
                                 <button type="button" className="ud-btn ud-btn-quiet" onClick={handleLeaveQueue} disabled={joiningQueue && status !== 'QUEUE'}>Anuluj</button>
-                            ) : canPlay ? (
-                                <button type="button" className="ud-btn arena-go" onClick={handleJoinQueue} disabled={offline}>Znajdź przeciwnika</button>
                             ) : (
-                                <Link className="ud-btn arena-go" to="/learn">Rozwiązuj pokoje</Link>
+                                <button type="button" className="ud-btn arena-go" onClick={handleJoinQueue} disabled={offline}>Znajdź przeciwnika</button>
                             )}
                         </div>
                         </div>
@@ -350,7 +338,7 @@ const ArenaPage = () => {
                                                     <span className="ud-friend-sent">Wyzwanie wysłane</span>
                                                 ) : (
                                                     <button type="button" className="ud-btn ud-btn-small" onClick={() => handleChallengeFriend(friend.username)}
-                                                        disabled={!canPlay || offline || status === 'GAME' || state === 'sending'}>
+                                                        disabled={offline || status === 'GAME' || state === 'sending'}>
                                                         {state === 'sending' ? 'Wysyłam…' : 'Wyzwij'}
                                                     </button>
                                                 )}
