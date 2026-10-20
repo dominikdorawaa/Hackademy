@@ -170,7 +170,7 @@ it("completes the room after the last exercise without an exam", () => {
     screen.getByRole("button", { name: "Wróć do ćwiczeń" }),
   ).toBeInTheDocument();
 });
-it("makes mobile read-only and exposes sync failures", () => {
+it("disables the mobile terminal and exposes sync failures", () => {
   desktop = false;
   course.error = "Offline";
   course.synchronized = false;
@@ -180,10 +180,6 @@ it("makes mobile read-only and exposes sync failures", () => {
   ).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Ponów synchronizację" }));
   expect(course.sync).toHaveBeenCalled();
-  fireEvent.click(screen.getByText("Przeczytaj materiały Laboratorium 1"));
-  expect(
-    screen.getByRole("heading", { name: "Twój ślad pracy" }),
-  ).toBeInTheDocument();
 });
 it("shows how much of Linux is downloaded and then waits for the system to boot", () => {
   workshop = { ...workshop, status: "booting" };

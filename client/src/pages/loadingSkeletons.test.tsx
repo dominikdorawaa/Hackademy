@@ -59,7 +59,7 @@ describe('player pages show skeletons while loading', () => {
     expect(screen.getByRole('heading', { name: 'Ścieżki' })).toBeInTheDocument();
     expect(expectSkeleton('Ładowanie ścieżek').querySelectorAll('.path-card')).toHaveLength(3);
     await pending.release();
-    expect(await screen.findByText('Brak ścieżek.')).toBeInTheDocument();
+    expect(await screen.findByText('Nie ma jeszcze żadnej ścieżki. Zajrzyj tu wkrótce.')).toBeInTheDocument();
     expect(screen.queryByRole('status', { name: 'Ładowanie ścieżek' })).not.toBeInTheDocument();
   });
 

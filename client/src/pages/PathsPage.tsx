@@ -2,19 +2,100 @@ import * as pathApi from '../services/pathApi';
 import API_URL from '../apiConfig';
 import React, { useEffect, useState } from 'react';
 import { Link, useNavigate } from 'react-router-dom';
+import { Check, ChevronRight, Layers, TerminalSquare } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
+import '../components/room/room.css';
+import '../components/learn/learn.css';
 import './PathsPage.css';
-import '../ukos/ukos.css';
 import { LoadingSkeleton, Skeleton, SkeletonText } from '../components/common/Skeleton';
+import PathArt from '../components/learn/PathArt';
+import DyzurZeroBanner from '../components/learn/DyzurZeroBanner';
+import { plural, ROOMS } from '../lib/plural';
 import type { PathSummaryDto } from '../types/api';
 
 const UkosPathCard = ({ p }: { p: PathSummaryDto }) => (
-  <Link to="/learn/ukos" className="path-card zero-path-card">
-    <div className="zero-path-art" aria-hidden="true">~/$ <span>{p.title.toUpperCase()}</span></div>
-    <div className="path-card-body"><div className="path-card-kicker">UKOS · INTERAKTYWNY LINUX</div><div className="path-card-title">{p.title}</div><p className="path-card-desc">{p.description}</p></div>
-    <div className="path-card-footer"><span className="path-pill">Bash · nano · pliki</span><span>Otwórz ścieżkę →</span></div>
+  <Link to="/learn/ukos" className="path-card path-card--zero px-frame">
+    <DyzurZeroBanner className="path-card-media" />
+    <div className="path-card-main">
+      <div className="path-card-body">
+        <p className="path-card-kicker"><TerminalSquare aria-hidden="true" />Prawdziwy terminal w przeglądarce</p>
+        <h2 className="path-card-title"><span className="path-card-cursor" aria-hidden="true" />{p.title}</h2>
+        <p className="path-card-desc">{p.description}</p>
+      </div>
+      <div className="path-card-footer">
+        <span className="room-chip">Bash, nano i pliki</span>
+        <span className="path-card-go">Otwórz ścieżkę<ChevronRight aria-hidden="true" /></span>
+      </div>
+    </div>
   </Link>
 );
+
+const resolveBannerSrc = (p: PathSummaryDto) => {
+  const bannerUrl = p.bannerUrl;
+  if (bannerUrl) {
+    const s = String(bannerUrl);
+    if (s.startsWith('http://') || s.startsWith('https://')) return s;
+    if (s.startsWith('/')) return `${API_URL}${s}`;
+    return `${API_URL}/${s}`;
+  }
+  if (p.hasBanner) return `${API_URL}/api/paths/${p.id}/banner`;
+  return null;
+};
+
+const PathCard = ({ p, onOpen, onEnroll }: { p: PathSummaryDto; onOpen: () => void; onEnroll: (e: React.MouseEvent) => void }) => {
+  const [inView, setInView] = useState(false);
+  const ref = React.useRef<HTMLDivElement>(null);
+
+  useEffect(() => {
+    const el = ref.current;
+    if (!el) return;
+    const io = new IntersectionObserver(
+      (entries) => {
+        if (entries[0]?.isIntersecting) {
+          setInView(true);
+          io.disconnect();
+        }
+      },
+      { rootMargin: '200px' }
+    );
+    io.observe(el);
+    return () => io.disconnect();
+  }, []);
+
+  return (
+    <div
+      ref={ref}
+      className="path-card px-frame"
+      role="button"
+      tabIndex={0}
+      onClick={onOpen}
+      onKeyDown={(e) => {
+        if (e.target === e.currentTarget && (e.key === 'Enter' || e.key === ' ')) {
+          e.preventDefault();
+          onOpen();
+        }
+      }}
+    >
+      <PathArt seed={p.id} src={inView ? resolveBannerSrc(p) : null} className="path-card-media">
+        {p.enrolled && <span className="path-card-flag"><Check aria-hidden="true" />Zapisany</span>}
+      </PathArt>
+      <div className="path-card-main">
+        <div className="path-card-body">
+          <h2 className="path-card-title"><span className="path-card-cursor" aria-hidden="true" />{p.title}</h2>
+          <p className="path-card-desc">{p.description || 'Opis tej ścieżki pojawi się wkrótce.'}</p>
+        </div>
+        <div className="path-card-footer">
+          <span className="room-chip"><Layers aria-hidden="true" />{plural(p.roomsCount ?? 0, ROOMS)}</span>
+          {p.enrolled ? (
+            <span className="path-card-go">Otwórz<ChevronRight aria-hidden="true" /></span>
+          ) : (
+            <button type="button" className="room-btn room-btn--primary room-btn--small" onClick={onEnroll}>Dołącz</button>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
 
 const PathsPage = () => {
   const { sessionKey, logout } = useAuth();
@@ -23,90 +104,6 @@ const PathsPage = () => {
   const [paths, setPaths] = useState<PathSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-
-  const resolveBannerSrc = (p: PathSummaryDto | null) => {
-    if (!p) return null;
-    // Prefer external URL if provided; otherwise use DB banner endpoint lazily.
-    const bannerUrl = p.bannerUrl;
-    if (bannerUrl) {
-      const s = String(bannerUrl);
-      if (s.startsWith('http://') || s.startsWith('https://')) return s;
-      if (s.startsWith('/')) return `${API_URL}${s}`;
-      return `${API_URL}/${s}`;
-    }
-    if (p.hasBanner) return `${API_URL}/api/paths/${p.id}/banner`;
-    return null;
-  };
-
-  const PathCard = ({ p }: { p: PathSummaryDto }) => {
-    const [inView, setInView] = useState(false);
-    const ref = React.useRef<HTMLDivElement>(null);
-
-    useEffect(() => {
-      const el = ref.current;
-      if (!el) return;
-      const io = new IntersectionObserver(
-        (entries) => {
-          const e = entries[0];
-          if (e?.isIntersecting) {
-            setInView(true);
-            io.disconnect();
-          }
-        },
-        { rootMargin: '200px' }
-      );
-      io.observe(el);
-      return () => io.disconnect();
-    }, []);
-
-    const src = inView ? resolveBannerSrc(p) : null;
-
-    return (
-      <div
-        ref={ref}
-        key={p.id}
-        className="path-card"
-        role="button"
-        tabIndex={0}
-        onClick={() => navigate(`/learn/paths/${p.id}`)}
-        onKeyDown={(e) => {
-          if (e.key === 'Enter' || e.key === ' ') {
-            e.preventDefault();
-            navigate(`/learn/paths/${p.id}`);
-          }
-        }}
-      >
-        <div className="path-card-media">
-          {src ? <img src={src} alt="" loading="lazy" /> : null}
-          {p.enrolled && (
-            <div className="path-badge-enrolled">
-              <i className="fas fa-check-circle" /> Zapisany
-            </div>
-          )}
-        </div>
-        <div className="path-card-body">
-          <div className="path-card-kicker">COURSE</div>
-          <div className="path-card-title">{p.title}</div>
-          <p className="path-card-desc">{p.description || '—'}</p>
-        </div>
-        <div className="path-card-footer">
-          <div className="path-pill">
-            <span className="path-pill-dot">
-              <i className="fas fa-layer-group" />
-            </span>
-            {p.roomsCount ?? 0} pokoi
-          </div>
-          {!p.enrolled ? (
-            <button className="btn btn-primary btn-sm" onClick={(e) => handleEnroll(e, p.id)}>
-              Dołącz
-            </button>
-          ) : (
-            <div className="path-pill-sub">BEGINNER</div>
-          )}
-        </div>
-      </div>
-    );
-  };
 
   useEffect(() => {
     const fetchPaths = async () => {
@@ -134,35 +131,41 @@ const PathsPage = () => {
   }, [sessionKey, logout, navigate]);
 
   const handleEnroll = async (e: React.MouseEvent, pathId: number) => {
-    e.stopPropagation(); // Zapobiegaj nawigacji do szczegółów
+    e.stopPropagation();
     try {
       const res = await pathApi.enroll(pathId, { sessionKey });
       if (res.ok) {
-        setPaths(paths.map(p => p.id === pathId ? { ...p, enrolled: true } : p));
+        setPaths(current => current.map(p => p.id === pathId ? { ...p, enrolled: true } : p));
       }
     } catch (e) {
       console.error(e);
     }
   };
 
+  const header = (count: React.ReactNode, tour?: string) => (
+    <header className="paths-head" data-tour={tour}>
+      <div>
+        <h1 className="learn-title">Ścieżki</h1>
+        <p className="paths-lead">Każda ścieżka to seria pokoi do przejścia po kolei. Wybierz jedną i zacznij od pierwszego.</p>
+      </div>
+      <p className="paths-count">{count}</p>
+    </header>
+  );
+
   if (loading) {
     return (
-      <div className="hackademy-container paths-wrap">
-        <header className="paths-header" data-tour="learn">
-          <div>
-            <h1 className="paths-title">Ścieżki</h1>
-            <p className="paths-count"><Skeleton width={110} /></p>
-          </div>
-        </header>
+      <div className="room-tokens learn-page paths-page">
+        {header(<Skeleton width={110} />, 'learn')}
         <LoadingSkeleton label="Ładowanie ścieżek" className="paths-grid">
-          {[0, 1, 2].map(index => <div key={index} className="path-card" aria-hidden="true">
-            <Skeleton height={130} radius={0} />
-            <div className="path-card-body hk-skeleton-stack">
-              <Skeleton width={70} height={12} />
-              <Skeleton width="80%" height={22} />
-              <SkeletonText lines={2} />
+          {[0, 1, 2].map(index => <div key={index} className="path-card px-frame" aria-hidden="true">
+            <div className="path-art path-card-media" />
+            <div className="path-card-main">
+              <div className="path-card-body hk-skeleton-stack">
+                <Skeleton width="70%" height={26} />
+                <SkeletonText lines={2} />
+              </div>
+              <div className="path-card-footer"><Skeleton width={90} height={26} radius={4} /><Skeleton width={72} height={34} radius={4} /></div>
             </div>
-            <div className="path-card-footer"><Skeleton width={90} height={28} radius={999} /><Skeleton width={72} height={32} /></div>
           </div>)}
         </LoadingSkeleton>
       </div>
@@ -171,29 +174,31 @@ const PathsPage = () => {
 
   if (error) {
     return (
-      <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-        <h1>Ścieżki</h1>
-        <p style={{ color: 'var(--text-gray)' }}>{error}</p>
+      <div className="room-tokens learn-page paths-page">
+        {header(null)}
+        <div className="paths-empty px-frame" role="alert">
+          <p>{error}</p>
+          <button type="button" className="room-btn room-btn--small" onClick={() => window.location.reload()}>Odśwież stronę</button>
+        </div>
       </div>
     );
   }
 
+  const ordered = [...paths].sort((a, b) => Number(b.systemKey === 'ukos') - Number(a.systemKey === 'ukos'));
+
   return (
-    <div className="hackademy-container paths-wrap">
-      <header className="paths-header">
-        <div>
-          <h1 className="paths-title">Ścieżki</h1>
-          <p className="paths-count">Dostępne: {paths.length}</p>
-        </div>
-      </header>
+    <div className="room-tokens learn-page paths-page">
+      {header(`Dostępne: ${paths.length}`)}
 
       <div className="paths-grid" data-tour="learn-paths">
         {paths.length === 0 ? (
-          <div style={{ textAlign: 'center', padding: '40px', color: 'var(--text-gray)', backgroundColor: '#1e1e1e', borderRadius: '12px' }}>
-            <h3>Brak ścieżek.</h3>
+          <div className="paths-empty px-frame">
+            <p>Nie ma jeszcze żadnej ścieżki. Zajrzyj tu wkrótce.</p>
           </div>
         ) : (
-          paths.map((p) => (p.systemKey === 'ukos' ? <UkosPathCard key={p.id} p={p} /> : <PathCard key={p.id} p={p} />))
+          ordered.map((p) => (p.systemKey === 'ukos'
+            ? <UkosPathCard key={p.id} p={p} />
+            : <PathCard key={p.id} p={p} onOpen={() => navigate(`/learn/paths/${p.id}`)} onEnroll={(e) => void handleEnroll(e, p.id)} />))
         )}
       </div>
     </div>

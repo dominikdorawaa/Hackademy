@@ -1,12 +1,18 @@
 import * as pathApi from '../services/pathApi';
 import { request } from '../services/http';
 import API_URL from '../apiConfig';
-import { BannerImage } from './admin/PathEditorPage';
 import { useCallback, useEffect, useState } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
+import { BookOpen, Check, ChevronLeft, ChevronRight, Layers, Lock, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { roomHref } from '../lib/roomReturn';
+import { cn } from '../lib/utils';
+import { CHAPTERS, plural, ROOMS } from '../lib/plural';
+import '../components/room/room.css';
+import '../components/learn/learn.css';
 import './PathDetailPage.css';
+import PathArt from '../components/learn/PathArt';
+import PathRail, { type RailStep } from '../components/learn/PathRail';
 import { LoadingSkeleton, Skeleton, SkeletonText } from '../components/common/Skeleton';
 import type { PathDetailDto, PathUnlockMode, RoomSummaryDto } from '../types/api';
 
@@ -22,6 +28,24 @@ function roomStatus(room: RoomSummaryDto) {
   return { key: 'todo', label: 'Do zrobienia' };
 }
 
+function useBanner(path: PathDetailDto | null, sessionKey: string | null) {
+  const [src, setSrc] = useState<string | null>(null);
+  const source = path?.hasBanner && path.bannerUrl ? `${API_URL}${path.bannerUrl}` : null;
+  const external = path && !path.hasBanner ? path.bannerUrl : null;
+  useEffect(() => {
+    let active = true;
+    let objectUrl: string | null = null;
+    if (source) {
+      request(source, { auth: { sessionKey } })
+        .then(r => { if (!r.ok) throw new Error(); return r.blob(); })
+        .then(blob => { if (active) { objectUrl = URL.createObjectURL(blob); setSrc(objectUrl); } })
+        .catch(() => { if (active) setSrc(null); });
+    } else setSrc(external);
+    return () => { active = false; if (objectUrl) URL.revokeObjectURL(objectUrl); };
+  }, [source, external, sessionKey]);
+  return src;
+}
+
 const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
   const { sessionKey, logout } = useAuth();
@@ -31,6 +55,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [enrolling, setEnrolling] = useState(false);
+  const banner = useBanner(path, sessionKey);
 
   const fetchPath = useCallback(async () => {
     try {
@@ -67,126 +92,167 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
     }
   };
 
-  if (loading) return <div className="hackademy-container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
+  const back = (
+    <button type="button" onClick={() => navigate(preview ? `/admin/paths/${id}` : '/learn')} className="learn-back">
+      <ChevronLeft aria-hidden="true" />{preview ? 'Wróć do edycji' : 'Wszystkie ścieżki'}
+    </button>
+  );
+
+  if (loading) return <div className="room-tokens learn-page pd-page">
     <LoadingSkeleton label="Ładowanie ścieżki" className="hk-skeleton-stack is-loose">
-      <Skeleton width={160} height={20} />
-      <div className="hk-skeleton-stack">
-        <Skeleton width="min(480px, 80%)" height={36} />
-        <SkeletonText lines={2} />
+      <Skeleton width={140} height={20} />
+      <div className="pd-hero">
+        <div className="hk-skeleton-stack">
+          <Skeleton width="min(480px, 80%)" height={56} />
+          <SkeletonText lines={2} />
+        </div>
+        <div className="path-art pd-hero-art px-frame" />
       </div>
       {[0, 1].map(index => <div key={index} className="hk-skeleton-stack">
         <div className="hk-skeleton-pair"><Skeleton width={90} height={12} /><Skeleton width="40%" height={22} /></div>
-        {[0, 1, 2].map(row => <Skeleton key={row} height={56} radius={10} />)}
+        {[0, 1, 2].map(row => <Skeleton key={row} height={64} radius={4} />)}
       </div>)}
     </LoadingSkeleton>
   </div>;
-  if (error) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Błąd: {error}</div>;
-  if (!path) return <div className="hackademy-container" style={{ paddingTop: '40px' }}>Nie znaleziono ścieżki</div>;
+  if (error) return <div className="room-tokens learn-page pd-page">{back}<p className="pd-problem" role="alert">Błąd: {error}</p></div>;
+  if (!path) return <div className="room-tokens learn-page pd-page">{back}<p className="pd-problem">Nie znaleziono ścieżki</p></div>;
 
   const chapters = path.chapters ?? [];
+  const rooms = chapters.flatMap(chapter => chapter.rooms);
   const totalRooms = chapters.reduce((sum, chapter) => sum + chapter.totalRooms, 0);
+  const solvedRooms = rooms.filter(room => room.solved).length;
+  const nextRoom = path.enrolled && !preview ? rooms.find(room => !room.solved && !room.locked) : undefined;
+  const nextChapter = nextRoom && chapters.find(chapter => chapter.rooms.includes(nextRoom));
+  const finished = path.enrolled && rooms.length > 0 && solvedRooms === rooms.length;
+  const rail: RailStep[] = rooms.map(room => room.solved ? 'done' : room === nextRoom ? 'current' : 'todo');
+  const openRoom = (room: RoomSummaryDto) => navigate(preview ? `/admin/preview/rooms/${room.id}?kind=PATH&pathId=${id}` : roomHref(room.id, id ? { kind: 'path', pathId: id } : undefined));
   let roomNumber = 0;
 
   return (
-    <div className="hackademy-container path-detail" style={{ paddingTop: '32px', paddingBottom: '40px' }}>
-      {preview && <div role="status" className="mb-4 rounded-lg border border-primary p-4">Podgląd administracyjny: materiał nie jest publikowany, postęp i punkty nie są zapisywane.</div>}
-      <button onClick={() => navigate(preview ? `/admin/paths/${id}` : '/learn')} className="back-btn">
-        &larr; {preview ? 'Wróć do edycji' : 'Wróć do ścieżek'}
-      </button>
+    <div className="room-tokens learn-page pd-page">
+      {preview && <div role="status" className="room-preview pd-preview">Podgląd administracyjny: materiał nie jest publikowany, postęp i punkty nie są zapisywane.</div>}
+      {back}
 
-      {(preview || !path.enrolled) && (
-        <section className="pd-hero-enroll">
-          <div className="pd-hero-content">
-            <BannerImage source={path.hasBanner && path.bannerUrl ? `${API_URL}${path.bannerUrl}` : null} file={null} url={path.hasBanner ? null : path.bannerUrl} sessionKey={sessionKey} />
-            <h1 className="pd-hero-title">{path.title}</h1>
-            <p className="pd-hero-desc">{path.description}</p>
-            <div className="pd-hero-meta">
-              <span><i className="fas fa-book-open" /> {chapters.length} rozdz.</span>
-              <span><i className="fas fa-layer-group" /> {totalRooms} pokoi</span>
+      <header className="pd-hero">
+        <div className="pd-hero-copy">
+          <h1 className="learn-title pd-title">{path.title}</h1>
+          {path.description && <p className="pd-desc">{path.description}</p>}
+          <ul className="pd-facts">
+            <li><BookOpen aria-hidden="true" />{plural(chapters.length, CHAPTERS)}</li>
+            <li><Layers aria-hidden="true" />{plural(totalRooms, ROOMS)}</li>
+          </ul>
+          {path.enrolled && rooms.length > 0 && (
+            <div className="pd-progress">
+              <div className="pd-progress-label">
+                <span>Twój postęp</span>
+                <strong>{solvedRooms}/{rooms.length}</strong>
+              </div>
+              <PathRail steps={rail} label="Postęp ścieżki" />
             </div>
-            {!preview && <button className="btn btn-primary btn-lg pd-enroll-btn" onClick={handleEnroll} disabled={enrolling}>
-              Zacznij tę ścieżkę <i className="fas fa-bolt" style={{ marginLeft: '10px' }} />
-            </button>}
+          )}
+        </div>
+        <PathArt seed={path.id} src={banner} className="pd-hero-art px-frame" />
+      </header>
+
+      {!preview && !path.enrolled && (
+        <section className="pd-call" aria-label="Dołącz do ścieżki">
+          <div>
+            <p className="pd-call-kicker">Zanim wejdziesz do pierwszego pokoju</p>
+            <p className="pd-call-text">Dołącz do ścieżki, a pokoje otworzą się po kolei, a postęp zapisze się na Twoim koncie.</p>
           </div>
+          <button type="button" className="room-btn room-btn--primary" onClick={handleEnroll} disabled={enrolling}>
+            {enrolling ? 'Dołączanie…' : 'Zacznij tę ścieżkę'}<ChevronRight aria-hidden="true" />
+          </button>
         </section>
       )}
 
-      <section id="pd-rooms" className={`pd-list ${!path.enrolled ? 'pd-list-locked' : ''}`}>
-        <div className="pd-list-header">
-          <h2>{path.enrolled ? path.title : 'Program ścieżki'}</h2>
-          <span className="pd-muted">
-            {path.enrolled ? unlockModeHints[path.unlockMode ?? 'OPEN'] : 'Musisz dołączyć do ścieżki, aby odblokować zadania.'}
-          </span>
+      {nextRoom && (
+        <section className="pd-call" aria-label="Następny pokój">
+          <div>
+            <p className="pd-call-kicker">{solvedRooms === 0 ? 'Zacznij tutaj' : 'Następny pokój'}{nextChapter && <span>{nextChapter.title}</span>}</p>
+            <h2 className="pd-call-title">{nextRoom.title}</h2>
+          </div>
+          <button type="button" className="room-btn room-btn--primary" onClick={() => openRoom(nextRoom)}>
+            {solvedRooms === 0 ? 'Start' : 'Kontynuuj'}<ChevronRight aria-hidden="true" />
+          </button>
+        </section>
+      )}
+
+      {finished && (
+        <section className="pd-call pd-call--done" aria-label="Ścieżka ukończona">
+          <div>
+            <p className="pd-call-kicker">Ścieżka ukończona</p>
+            <p className="pd-call-text">Wszystkie pokoje są zaliczone. Możesz wrócić do dowolnego z nich w trybie treningu.</p>
+          </div>
+          <button type="button" className="room-btn" onClick={() => navigate('/learn')}>Wybierz kolejną ścieżkę</button>
+        </section>
+      )}
+
+      <section id="pd-rooms" className={cn('pd-map', !path.enrolled && !preview && 'is-preview')} aria-labelledby="pd-map-title">
+        <div className="pd-map-head">
+          <h2 id="pd-map-title">{path.enrolled ? 'Mapa ścieżki' : 'Program ścieżki'}</h2>
+          <p>{path.enrolled ? unlockModeHints[path.unlockMode ?? 'OPEN'] : 'Dołącz do ścieżki, aby otworzyć pokoje.'}</p>
         </div>
 
         {chapters.map((chapter, chapterIndex) => {
           const percent = chapter.totalRooms > 0 ? Math.round((chapter.solvedRooms / chapter.totalRooms) * 100) : 0;
+          const complete = chapter.totalRooms > 0 && chapter.solvedRooms === chapter.totalRooms;
           return (
-            <section key={chapter.id} className="pd-chapter" aria-labelledby={`pd-chapter-${chapter.id}`}>
-              <header className="pd-chapter-header">
-                <div>
+            <section key={chapter.id} className={cn('pd-chapter', chapter.locked && 'is-locked', complete && 'is-complete')} aria-labelledby={`pd-chapter-${chapter.id}`}>
+              <header className="pd-chapter-head">
+                <span className="pd-chapter-num" aria-hidden="true">{String(chapterIndex + 1).padStart(2, '0')}</span>
+                <div className="pd-chapter-name">
                   <span className="pd-chapter-index">
                     Rozdział {chapterIndex + 1}
-                    {chapter.locked && <span className="pd-chapter-lock"><i className="fas fa-lock" aria-hidden="true" /> Zablokowany</span>}
+                    {chapter.locked && <span className="pd-chapter-lock"><Lock aria-hidden="true" />Zablokowany</span>}
                   </span>
                   <h3 id={`pd-chapter-${chapter.id}`} className="pd-chapter-title">{chapter.title}</h3>
                 </div>
                 <div className="pd-chapter-progress">
-                  <span className="pd-muted">
-                    {chapter.solvedRooms}/{chapter.totalRooms} ukończone
-                  </span>
-                  <div
-                    className="pd-chapter-bar"
-                    role="progressbar"
-                    aria-label={`Postęp rozdziału ${chapter.title}`}
-                    aria-valuemin={0}
-                    aria-valuemax={100}
-                    aria-valuenow={percent}
-                  >
-                    <span style={{ width: `${percent}%` }} />
+                  <span>{chapter.solvedRooms}/{chapter.totalRooms} ukończone</span>
+                  <div className="room-meter" role="progressbar" aria-label={`Postęp rozdziału ${chapter.title}`}
+                    aria-valuemin={0} aria-valuemax={100} aria-valuenow={percent}>
+                    <span style={{ transform: `scaleX(${percent / 100})` }} />
                   </div>
                 </div>
               </header>
 
               {chapter.rooms.length === 0 ? (
-                <p className="pd-muted pd-chapter-empty">Ten rozdział nie ma jeszcze pokoi.</p>
+                <p className="pd-chapter-empty">Ten rozdział nie ma jeszcze pokoi.</p>
               ) : (
-                <div className="pd-steps">
+                <ol className="pd-track">
                   {chapter.rooms.map((r) => {
                     roomNumber += 1;
                     const status = roomStatus(r);
+                    const isNext = r === nextRoom;
                     return (
-                      <div key={r.id} className={`pd-step ${status.key}`}>
-                        <div className="pd-step-left">
-                          <div className={`pd-step-dot ${status.key}`}>
-                            {status.key === 'done' ? <i className="fas fa-check" /> : status.key === 'locked' ? <i className="fas fa-lock" /> : roomNumber}
-                          </div>
-                          <div className="pd-step-line" />
-                        </div>
-
-                        <div className="pd-step-card">
-                          <div className="pd-step-top">
-                            <div className="pd-step-title">{r.title}</div>
-                          </div>
-
-                          <div className="pd-step-bottom">
-                            <div className="pd-step-meta">
-                              <span className={`pd-status ${status.key}`}>{status.label}</span>
+                      <li key={r.id} className={cn('pd-room', `is-${status.key}`, isNext && 'is-next')}>
+                        <span className="pd-node" aria-hidden="true">
+                          {status.key === 'done' ? <Check /> : status.key === 'locked' ? <Lock /> : isNext ? <Play /> : roomNumber}
+                        </span>
+                        <div className="pd-room-card">
+                          <div className="pd-room-copy">
+                            <h4 className="pd-room-title">{r.title}</h4>
+                            {r.shortDescription && <p className="pd-room-desc">{r.shortDescription}</p>}
+                            <div className="pd-room-meta">
+                              <span className={`pd-status is-${status.key}`}>{status.label}</span>
+                              <span className={`room-chip room-chip--${r.difficulty.toLowerCase()}`}>{r.difficulty}</span>
+                              {r.points > 0 && <span className="room-chip room-chip--points">{r.points} pkt</span>}
                             </div>
-                            <button
-                              className={`btn ${r.locked ? 'btn-outline' : 'btn-primary'}`}
-                              disabled={r.locked}
-                              onClick={() => navigate(preview ? `/admin/preview/rooms/${r.id}?kind=PATH&pathId=${id}` : roomHref(r.id, id ? { kind: 'path', pathId: id } : undefined))}
-                              style={{ padding: '8px 16px', fontSize: '0.9rem' }}
-                            >
-                              {r.solved ? 'Powtórz' : 'Start'} <i className="fas fa-arrow-right" style={{ marginLeft: '8px' }} />
-                            </button>
                           </div>
+                          <button
+                            type="button"
+                            className={cn('room-btn room-btn--small', isNext && 'room-btn--primary')}
+                            disabled={r.locked}
+                            onClick={() => openRoom(r)}
+                          >
+                            {r.solved ? 'Powtórz' : 'Start'}<ChevronRight aria-hidden="true" />
+                          </button>
                         </div>
-                      </div>
+                      </li>
                     );
                   })}
-                </div>
+                </ol>
               )}
             </section>
           );
