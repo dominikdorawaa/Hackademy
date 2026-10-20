@@ -2,64 +2,20 @@
   "version": "0.0.1",
   "configurations": [
     {
-      "name": "client-103",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "--prefix",
-        ".claude/worktrees/agent-a8dedeee187842c9c/client",
-        "run",
-        "dev",
-        "--",
-        "--port",
-        "5173",
-        "--strictPort"
-      ],
-      "port": 5173
-    },
-    {
-      "name": "server-101",
-      "runtimeExecutable": "mvn.cmd",
+      "name": "server",
+      "runtimeExecutable": "mvn",
       "runtimeArgs": [
         "-f",
-        "C:/Users/domin/hackademy-101/server/pom.xml",
+        "server/pom.xml",
         "-q",
         "spring-boot:run",
         "-Dspring-boot.run.useTestClasspath=true",
-        "-Dspring-boot.run.arguments=--DB_URL=jdbc:h2:mem:demo101 --DB_USERNAME=sa --DB_PASSWORD= --JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= --FRONTEND_URL=http://localhost:5173 --spring.flyway.enabled=false --spring.jpa.hibernate.ddl-auto=create-drop"
+        "-Dspring-boot.run.arguments=--DB_URL=jdbc:h2:mem:demo --DB_USERNAME=sa --DB_PASSWORD= --JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= --FRONTEND_URL=http://localhost:5173 --spring.flyway.enabled=false --spring.jpa.hibernate.ddl-auto=create-drop"
       ],
       "port": 8080
     },
     {
-      "name": "client-101",
-      "runtimeExecutable": "npm",
-      "runtimeArgs": [
-        "--prefix",
-        "C:/Users/domin/hackademy-101/client",
-        "run",
-        "dev",
-        "--",
-        "--port",
-        "5173",
-        "--strictPort"
-      ],
-      "port": 5173
-    },
-    {
-      "name": "server-191",
-      "runtimeExecutable": "mvn.cmd",
-      "runtimeArgs": [
-        "-f",
-        "C:/Users/domin/hackademy/server/pom.xml",
-        "-q",
-        "spring-boot:run",
-        "-Dspring-boot.run.useTestClasspath=true",
-        "-Dspring-boot.run.arguments=--DB_URL=jdbc:h2:mem:demo191 --DB_USERNAME=sa --DB_PASSWORD= --JWT_SECRET=MDEyMzQ1Njc4OWFiY2RlZjAxMjM0NTY3ODlhYmNkZWY= --FRONTEND_URL=http://localhost:5191 --server.port=8091 --spring.flyway.enabled=false --spring.jpa.hibernate.ddl-auto=create-drop"
-      ],
-      "port": 8091,
-      "autoPort": false
-    },
-    {
-      "name": "client-191",
+      "name": "client",
       "runtimeExecutable": "npm",
       "runtimeArgs": [
         "--prefix",
@@ -68,14 +24,10 @@
         "dev",
         "--",
         "--port",
-        "5191",
+        "5173",
         "--strictPort"
       ],
-      "port": 5191,
-      "autoPort": false,
-      "env": {
-        "VITE_API_URL": "http://localhost:8091"
-      }
+      "port": 5173
     }
   ]
 }
