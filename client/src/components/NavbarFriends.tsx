@@ -2,7 +2,6 @@ import { useEffect, useRef, useState } from 'react';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronDown, Search, Undo2, UserPlus, Users, X } from 'lucide-react';
-import { SwordIcon } from '@phosphor-icons/react/dist/csr/Sword';
 import UserAvatar from './UserAvatar';
 import NavIconButton from './NavIconButton';
 import { useAuth } from '../context/AuthContext';
@@ -240,7 +239,7 @@ export default function NavbarFriends() {
                         <button type="button" className="nav-friends-action is-challenge"
                           disabled={busy.includes(`challenge:${friend.username}`)}
                           aria-label={`Wyzwij ${friend.username} na pojedynek`}
-                          onClick={() => challenge(friend.username)}><SwordIcon weight="bold" aria-hidden="true" />Wyzwij</button>
+                          onClick={() => challenge(friend.username)}>Wyzwij</button>
                       )}
                     </PersonRow>
                   ))}
