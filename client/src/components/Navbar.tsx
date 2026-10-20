@@ -8,19 +8,21 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
-import type { Challenge, FriendDto, FriendRequestDto } from '../types/api';
+import { useFriendOnlineFeed } from '../context/FriendOnlineFeedContext';
+import type { Challenge, FriendRequestDto } from '../types/api';
 import './Navbar.css';
+import '../styles/presence.css';
 import { Button } from './ui/button';
 import ThemeSwitcher from './ThemeSwitcher';
 import NavIconButton from './NavIconButton';
+import NavbarFriends from './NavbarFriends';
 import { Bell } from 'lucide-react';
 
 type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
-  | { id: number; type: 'FRIEND_ONLINE'; from: string; data: FriendDto }
   | { id: string; type: 'CHALLENGE'; from: string; timestamp: string; data: Challenge };
 
-type ActionableNotification = Exclude<Notification, { type: 'FRIEND_ONLINE' }>;
+const formatOnlineTime = (at: number) => new Date(at).toLocaleTimeString('pl-PL', { hour: '2-digit', minute: '2-digit' });
 
 const Navbar = () => {
   const { isAuthenticated, logout, sessionKey, loading, user: userData } = useAuth();
@@ -34,7 +36,7 @@ const Navbar = () => {
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { state: realtime, synchronize } = useRealtime();
   const { preferences } = useNotificationPreferences();
-  const actionable = useMemo<ActionableNotification[]>(() => [
+  const notifications = useMemo<Notification[]>(() => [
     ...(preferences.friendRequests ? realtime?.friendRequests ?? [] : []).map(req => ({
       id: req.id, type: 'FRIEND_REQUEST' as const, from: req.requesterUsername,
       timestamp: req.createdAt, data: req,
@@ -44,12 +46,9 @@ const Navbar = () => {
       timestamp: ch.createdAt, data: ch,
     })),
   ], [realtime, preferences.friendRequests, preferences.challenges]);
-  const onlineFriends = useMemo<Notification[]>(() => preferences.friendOnlineBell
-    ? (realtime?.friends ?? []).filter(friend => friend.online).map(friend => ({
-      id: friend.id, type: 'FRIEND_ONLINE' as const, from: friend.username, data: friend,
-    })) : [], [realtime, preferences.friendOnlineBell]);
-  const notifications = useMemo<Notification[]>(() => [...actionable, ...onlineFriends], [actionable, onlineFriends]);
-  const unreadCount = actionable.length;
+  const onlineFeed = useFriendOnlineFeed();
+  const { markAllRead } = onlineFeed;
+  const unreadCount = notifications.length + onlineFeed.entries.filter(entry => !entry.read).length;
   const [processedNotifications, setProcessedNotifications] = useState<string[]>([]); // Track processed IDs
   const menuRef = useRef<HTMLDivElement | null>(null);
   const notifRef = useRef<HTMLDivElement | null>(null);
@@ -87,6 +86,13 @@ const Navbar = () => {
       document.removeEventListener('mousedown', handleClickOutside);
     };
   }, []);
+
+  // Online entries count as read once the visitor has seen the open bell.
+  const wasNotificationsOpen = useRef(false);
+  useEffect(() => {
+    if (wasNotificationsOpen.current && !isNotificationsOpen) markAllRead();
+    wasNotificationsOpen.current = isNotificationsOpen;
+  }, [isNotificationsOpen, markAllRead]);
 
   const handleLogout = () => {
     setIsMenuOpen(false);
@@ -247,6 +253,8 @@ const Navbar = () => {
             {isAuthenticated && userData ? (
               <div className="nav-user-controls">
                 
+                <NavbarFriends />
+
                 {/* Notifications Bell */}
                 <div ref={notifRef} style={{ position: 'relative' }}>
                     <NavIconButton
@@ -268,7 +276,7 @@ const Navbar = () => {
                                 )}
                             </div>
                             
-                            {notifications.length === 0 ? (
+                            {notifications.length === 0 && onlineFeed.entries.length === 0 ? (
                                 <div className="notifications-empty" style={{ color: 'var(--text-gray)' }}>
                                     <i className="far fa-bell-slash"></i>
                                     <span>Brak nowych powiadomień</span>
@@ -289,19 +297,15 @@ const Navbar = () => {
                                                     <div className="notification-text-wrapper">
                                                         <p className="notification-message" style={{ color: 'var(--text-light)' }}>
                                                             <strong>{notif.from}</strong>
-                                                            {notif.type === 'CHALLENGE' ? ' wyzywa Cię na pojedynek!' : notif.type === 'FRIEND_ONLINE' ? ' jest online.' : ' wysłał zaproszenie.'}
+                                                            {notif.type === 'CHALLENGE' ? ' wyzywa Cię na pojedynek!' : ' wysłał zaproszenie.'}
                                                         </p>
                                                         <span className="notification-type" style={{ color: 'var(--text-gray)' }}>
-                                                            {notif.type === 'CHALLENGE' ? 'Tryb Rankingowy' : notif.type === 'FRIEND_ONLINE' ? 'Znajomi online' : 'Znajomi'}
+                                                            {notif.type === 'CHALLENGE' ? 'Tryb Rankingowy' : 'Znajomi'}
                                                         </span>
                                                     </div>
                                                 </div>
                                                 <div className="notification-actions">
-                                                    {notif.type === 'FRIEND_ONLINE' ? (
-                                                        <Link to={`/profile/${notif.from}`} className="btn-notif" onClick={() => setIsNotificationsOpen(false)}>
-                                                            <i className="fas fa-user" aria-hidden="true"></i> Profil
-                                                        </Link>
-                                                    ) : isProcessed ? (
+                                                    {isProcessed ? (
                                                         <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem', fontStyle: 'italic' }}>Przetwarzanie...</span>
                                                     ) : (
                                                         <>
@@ -323,6 +327,20 @@ const Navbar = () => {
                                             </li>
                                         );
                                     })}
+                                    {onlineFeed.entries.map(entry => (
+                                        <li key={entry.id} className="notification-online" data-unread={!entry.read}>
+                                            <span className="presence-dot" aria-hidden="true" />
+                                            <span className="notification-online-text">
+                                                <strong>{entry.username}</strong> jest online
+                                            </span>
+                                            <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{formatOnlineTime(entry.at)}</time>
+                                            <button type="button" className="notification-online-close"
+                                                aria-label={`Zamknij powiadomienie: ${entry.username} jest online`}
+                                                onClick={() => onlineFeed.dismiss(entry.id)}>
+                                                <i className="fas fa-times" aria-hidden="true"></i>
+                                            </button>
+                                        </li>
+                                    ))}
                                 </ul>
                             )}
                         </div>
