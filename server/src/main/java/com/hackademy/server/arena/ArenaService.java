@@ -6,6 +6,7 @@ public interface ArenaService {
     void cancelChallenge(String challengeId, Long userId);
     GameSession getGameSession(String gameId);
     void addGame(GameSession session);
+    void joinQueue(Long userId, String username);
     void finishGame(String gameId, Long winnerId);
     GameSession findActiveGameForUser(Long userId);
     GameSession findCurrentGameForUser(Long userId);

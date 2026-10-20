@@ -1,0 +1,13 @@
+:root {
+  --presence-online: #2ecc71;
+  --presence-offline: #7d8799;
+}
+
+.presence-dot {
+  display: inline-block;
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--presence-online);
+}

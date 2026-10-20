@@ -296,6 +296,35 @@
   gap: 10px;
 }
 
+.arena-sent {
+  display: grid;
+  gap: 6px;
+  margin: 12px 0 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--ud-text-s);
+}
+
+.arena-sent li {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px;
+}
+
+.arena-sent .arena-pulse {
+  width: 8px;
+  height: 8px;
+}
+
+.arena-sent .ud-link {
+  padding: 0;
+  border: 0;
+  background: none;
+  font: inherit;
+  cursor: pointer;
+}
+
 .arena-search {
   display: flex;
   align-items: center;
@@ -327,11 +356,6 @@
 
 .arena-page .ud-next .arena-note {
   font-size: var(--ud-text-s);
-}
-
-.arena-unlock {
-  margin-top: 16px;
-  max-width: 360px;
 }
 
 .arena-page .arena-error {

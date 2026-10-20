@@ -1,11 +1,15 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import UserAvatar from './UserAvatar';
+import ProfileIcon from './profile/ProfileIcon';
+import { symbolFor } from './profile/BadgeIcon';
+import { useRealtime } from '../context/RealtimeContext';
 import { LoadingSkeleton, Skeleton } from './common/Skeleton';
 import * as userApi from '../services/userApi';
 import * as friendApi from '../services/friendApi';
 import { levelFromPoints, rankTitleFromPoints } from '../lib/level';
-import type { FriendshipStatus, UserProfileDto, UserSearchDto } from '../types/api';
+import type { BadgeDto, FriendshipStatus, UserProfileDto, UserSearchDto } from '../types/api';
+import '../styles/presence.css';
 
 interface PeekData {
   profile: UserProfileDto;
@@ -24,6 +28,20 @@ const cacheFor = (sessionKey: string | null) => {
   }
   return peekCache;
 };
+
+const PEEK_BADGE_LIMIT = 3;
+
+// The visitor picked featured badges for their profile, so those come first; the rarest earned ones fill the rest.
+export function peekBadges(profile: UserProfileDto): BadgeDto[] {
+  const earned = profile.badges.filter((b) => b.earned);
+  const featured = (profile.featuredBadgeIds ?? [])
+    .map((id) => earned.find((b) => b.id === id))
+    .filter((b): b is BadgeDto => Boolean(b));
+  const rest = earned
+    .filter((b) => !featured.includes(b))
+    .sort((a, b) => a.rarityPercentage - b.rarityPercentage);
+  return [...featured, ...rest].slice(0, PEEK_BADGE_LIMIT);
+}
 
 const OPEN_DELAY_MS = 250;
 const CLOSE_DELAY_MS = 150;
@@ -46,6 +64,9 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
   const timer = useRef<number | undefined>(undefined);
   const rootRef = useRef<HTMLSpanElement>(null);
   const cardId = useId();
+  const { state: realtime } = useRealtime();
+  // Presence is only known for friends; for everyone else the card stays silent about it.
+  const presence = isMe ? undefined : realtime?.friends.find((f) => f.username === username)?.online;
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -134,7 +155,8 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
 
   const profile = data?.profile;
   const stats = data?.stats;
-  const earnedBadges = (profile?.badges ?? []).filter((b) => b.earned).slice(0, 3);
+  const shownBadges = profile ? peekBadges(profile) : [];
+  const earnedCount = profile?.badges.filter((b) => b.earned).length ?? 0;
 
   const action = () => {
     if (isMe || !stats) return null;
@@ -164,6 +186,7 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
     }
   };
 
+  const actionNode = action();
   const profilePath = isMe ? '/profile' : `/profile/${encodeURIComponent(username)}`;
 
   return (
@@ -185,6 +208,7 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
         to={profilePath}
         aria-describedby={open ? cardId : undefined}
       >
+        {presence && <span className="presence-dot ud-peek-link-dot" role="img" aria-label="Online" />}
         {username}
       </Link>
       {open && (
@@ -197,11 +221,20 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
           {profile && (
             <>
               <span className="ud-peek-head">
-                <UserAvatar className="ud-peek-avatar" username={profile.username} avatar={profile.avatar} alt="" />
+                <Link className="ud-peek-avatar-link" to={profilePath} tabIndex={-1} aria-hidden="true">
+                  <UserAvatar className="ud-peek-avatar" username={profile.username} avatar={profile.avatar} alt="" />
+                  {presence !== undefined && <span className="presence-dot ud-peek-avatar-dot" data-online={presence} />}
+                </Link>
                 <span className="ud-peek-who">
-                  <span className="ud-peek-name">{profile.username}</span>
+                  <span className="ud-peek-name-row">
+                    <Link className="ud-peek-name" to={profilePath}>{profile.username}</Link>
+                    <Link className="ud-peek-open" to={profilePath} aria-label={`Zobacz profil ${profile.username}`} title="Zobacz profil">
+                      <i className="fas fa-arrow-up-right-from-square" aria-hidden="true" />
+                    </Link>
+                  </span>
                   <span className="ud-peek-level">
                     Poziom {levelFromPoints(profile.points)}, {rankTitleFromPoints(profile.points)}
+                    {presence !== undefined && <> · {presence ? 'online' : 'offline'}</>}
                   </span>
                 </span>
               </span>
@@ -220,22 +253,19 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
                   </span>
                 )}
               </span>
-              {earnedBadges.length > 0 && (
+              {profile.badges.length > 0 && (
                 <span className="ud-peek-badges">
-                  {earnedBadges.map((b) => (
-                    <span key={b.id} className="ud-peek-badge">
-                      {b.name}
+                  {shownBadges.map((b) => (
+                    <span key={b.id} className="ud-peek-badge" data-symbol={symbolFor(b)} role="img" aria-label={b.name} title={b.name}>
+                      <ProfileIcon kind={symbolFor(b)} size={18} className="ud-peek-badge-glyph" />
                     </span>
                   ))}
+                  <span className="ud-peek-badge-count">
+                    <strong>{earnedCount}</strong>/{profile.badges.length} odznak
+                  </span>
                 </span>
               )}
-              <span className="ud-peek-actions">
-                {action()}
-                <Link className="ud-peek-secondary" to={profilePath}>
-                  <i className="fas fa-user" aria-hidden="true" />
-                  Zobacz profil
-                </Link>
-              </span>
+              {actionNode && <span className="ud-peek-actions">{actionNode}</span>}
               {sendError && <span className="ud-peek-error">{sendError}</span>}
             </>
           )}

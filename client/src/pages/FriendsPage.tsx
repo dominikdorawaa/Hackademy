@@ -315,11 +315,7 @@ const FriendsPage = () => {
                                             title="Wyzwij na pojedynek"
                                             disabled={challengedFriends.includes(friend.username)}
                                         >
-                                            {challengedFriends.includes(friend.username) ? 'Wyzwano' : (
-                                                <>
-                                                    <i className="fas fa-swords"></i> Wyzwij
-                                                </>
-                                            )}
+                                            {challengedFriends.includes(friend.username) ? 'Wyzwano' : 'Wyzwij'}
                                         </button>
                                         <button
                                             ref={button => {

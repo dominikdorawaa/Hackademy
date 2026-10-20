@@ -33,7 +33,7 @@ class ArenaMatchmakingTest {
     private final UserService userService = mock(UserService.class);
     private final MatchmakingServiceImpl matchmaking = new MatchmakingServiceImpl(users, realtime);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
-            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, mock(ArenaPresence.class));
+            mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, mock(ArenaPresence.class), matchmaking);
     private final ArenaController controller = new ArenaController(matchmaking, arena, userService);
 
     @BeforeEach
@@ -115,10 +115,7 @@ class ArenaMatchmakingTest {
         assertEquals(204, controller.checkStatus().getStatusCode().value());
         assertEquals(200, controller.leaveQueue().getStatusCode().value());
         assertFalse(matchmaking.isQueued(1L));
-        user.setPoints(499);
-        assertEquals(400, controller.joinQueue().getStatusCode().value());
-        assertFalse(matchmaking.isQueued(1L));
-        user.setPoints(500);
+        user.setPoints(0);
         assertEquals(200, controller.joinQueue().getStatusCode().value());
         assertTrue(matchmaking.isQueued(1L));
         assertEquals(204, controller.checkStatus().getStatusCode().value());
