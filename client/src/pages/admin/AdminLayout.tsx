@@ -119,14 +119,14 @@ export default function AdminLayout() {
                 >
                   <Link to={isAdmin ? '/admin' : '/admin/paths'} aria-label={`Hackademy, ${roleLabel.toLowerCase()}`}>
                     <img
-                      src="/hackademy-wordmark.png"
+                      src="/brand-pixel/hackademy-logo-white-web.png"
                       alt=""
                       width={417}
                       height={120}
                       className="h-10 w-auto invert group-data-[collapsible=icon]:hidden dark:invert-0"
                     />
                     <img
-                      src="/hackademy-mark.png"
+                      src="/brand-pixel/hackademy-mark-color-web.png"
                       alt=""
                       width={72}
                       height={120}

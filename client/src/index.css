@@ -283,7 +283,7 @@ a {
 }
 .nav-links a {
   color: var(--text-gray);
-  font-size: 0.95rem;
+  font-size: 1.125rem;
   font-weight: 500;
 }
 .nav-links a:hover {

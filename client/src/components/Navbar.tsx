@@ -198,9 +198,8 @@ const Navbar = () => {
             }}
           >
             <img
-              src="/biale_hackademy_logo.png"
+              src="/brand-pixel/hackademy-logo-white.png"
               alt="Hackademy Logo"
-              style={{ height: '40px', width: 'auto' }}
             />
           </Link>
           {!isAuthPage && (
