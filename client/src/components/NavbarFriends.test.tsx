@@ -66,7 +66,17 @@ describe('friends panel in the top bar', () => {
     const { panel } = await openPanel();
     expect(within(panel).getByText('Wysłano')).toBeInTheDocument();
     expect(within(panel).queryByRole('button', { name: /Wyzwij/ })).not.toBeInTheDocument();
-    expect(within(panel).getByText('Masz wysłane wyzwanie. Poczekaj na odpowiedź.')).toBeInTheDocument();
+    expect(within(panel).getByText('Masz wysłane wyzwanie. Poczekaj na odpowiedź albo je cofnij.')).toBeInTheDocument();
+  });
+
+  it('takes back a sent challenge', async () => {
+    const cancelled = vi.fn();
+    server.use(http.post(`${API_URL}/api/arena/challenge/c-kuba/cancel`, () => { cancelled(); return HttpResponse.json({ message: 'ok' }); }));
+    environment.state = { ...environment.state!, outgoingChallenges: [challengeTo('kuba')] };
+    const { user, panel } = await openPanel();
+    await user.click(within(panel).getByRole('button', { name: 'Cofnij wyzwanie dla kuba' }));
+    await waitFor(() => expect(cancelled).toHaveBeenCalled());
+    expect(environment.synchronize).toHaveBeenCalled();
   });
 
   it('blocks challenges during a game or in the queue', async () => {
