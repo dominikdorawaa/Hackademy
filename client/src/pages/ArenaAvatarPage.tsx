@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useSearchParams } from 'react-router-dom';
 import { ArrowLeft, Check } from 'lucide-react';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
@@ -37,6 +37,8 @@ function PosePortrait({ avatar }: { avatar: Avatar }) {
 }
 
 export default function ArenaAvatarPage() {
+  const [params] = useSearchParams();
+  const fromProfile = params.get('from') === 'profile';
   const reducedMotion = useReducedMotion();
   const [avatar, setAvatar] = useState<Avatar>(readAvatar);
   const [saved, setSaved] = useState(() => JSON.stringify(readAvatar()));
@@ -94,7 +96,7 @@ export default function ArenaAvatarPage() {
     : 'Awatar jest zapisany w tej przeglądarce. Zaloguj się, żeby zapisać go na koncie.';
   return <div className="user-dashboard avatar-page">
     <header className="avatar-heading">
-      <div><Link to="/arena"><ArrowLeft size={16} aria-hidden="true" /> Wróć do Areny</Link><h1>Twój awatar</h1></div>
+      <div><Link to={fromProfile ? '/profile' : '/arena'}><ArrowLeft size={16} aria-hidden="true" />{fromProfile ? 'Wróć do profilu' : 'Wróć do Areny'}</Link><h1>Twój awatar</h1></div>
       <div className="avatar-actions">
         <button type="button" className="ud-btn ud-btn-solid" onClick={save} disabled={!dirty || blocked || status === 'saving'}>{status === 'saving' ? 'Zapisuję…' : dirty ? 'Zapisz awatar' : 'Zapisano'}</button>
       </div>

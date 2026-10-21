@@ -101,7 +101,7 @@ describe('shared realtime state', () => {
     render(<MemoryRouter><AuthProvider><RealtimeProvider><ArenaPage /></RealtimeProvider></AuthProvider></MemoryRouter>);
     act(() => connections[0].callbacks.ready());
     const join = await screen.findByRole('button', { name: 'Znajdź przeciwnika' });
-    expect(screen.getByRole('link', { name: 'Stwórz awatar' })).toHaveAttribute('href', '/arena/avatar');
+    expect(screen.getByRole('link', { name: 'Zmień swój awatar' })).toHaveAttribute('href', '/arena/avatar');
     await waitFor(() => expect(join).toBeEnabled());
     fireEvent.click(join);
     try {

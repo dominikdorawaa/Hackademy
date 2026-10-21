@@ -221,11 +221,13 @@ export default function UserProfile({ username }: { username?: string }) {
         <span>Profil</span>
       </div>
       <header className="profile-header" data-tour={own ? 'profile' : undefined}>
-        <UserAvatar
+        {own ? <Link className="profile-avatar-edit" to="/arena/avatar?from=profile" aria-label="Zmień swój awatar">
+          <UserAvatar className="profile-avatar" username={person.username} avatar={person.avatar} alt={`Avatar ${person.username}`} />
+        </Link> : <UserAvatar
           className="profile-avatar"
           username={person.username} avatar={person.avatar}
           alt={`Avatar ${person.username}`}
-        />
+        />}
         <div className="profile-identity">
           <h1>{person.username}</h1>
           {appearance.bio && <PublicBio bio={appearance.bio} />}

@@ -8,6 +8,12 @@ The player picks an outfit (Klasyczna, Bluza or Dres), a hairstyle (short, mohaw
 
 Signed-in players load the avatar from the account and save it there; when saving fails the creator keeps the unsaved changes and says so, and the navigation bar updates without reloading. Guests keep a browser-only copy.
 
+On their own profile, the portrait is a link with the accessible label “Zmień swój awatar”, without a permanent visible caption. Hover highlights the portrait with a brighter image and an outline; keyboard focus has its own visible outline. Reduced motion disables the transition. Mouse, touch and keyboard activation open `/arena/avatar?from=profile`; the creator loads the signed-in account configuration and offers “Wróć do profilu”. Other entry points keep the Arena return link. Another player's portrait remains an image. Neither the profile name nor query parameters select the account to save: the existing `/api/user/me/avatar` endpoint always uses the authenticated account.
+
+The own portrait on the ranked Arena has the same highlight and accessible link, without the permanent edit/create caption. It opens the creator with the Arena return link and reloads the saved portrait when returning.
+
+Issue #137 verification: 70 tests passed, including profile and Arena navigation, touch and keyboard activation, account configuration loading, live navbar refresh, returning to updated portraits, retrying the same configuration after a failed save and noninteractive foreign portraits. UserProfile line coverage is 93.24%; ArenaAvatarPage is 95.71%; ArenaPage is 91.85%. Build, typecheck, lint and diff checks passed. Rendered browser verification was unavailable.
+
 Every colour group offers six or seven of the most popular colours that fit the sprites (all six skin tones and hair colours; white, graphite, navy, red, burgundy, olive and sand for clothes) and a rainbow square that opens a colour wheel. The wheel picks hue and saturation, a slider sets brightness and a field takes any hex code; arrow keys move on the wheel. A custom colour is stored as `#rrggbb` (lowercase) in the same column as the named ones (migration V18 and `UserAvatarDto` accept both), and `rampFromHex` turns it into the four shade steps used for recolouring. Older named colours outside the presets, such as turquoise, stay valid and show as the custom choice.
 
 ## Assets
