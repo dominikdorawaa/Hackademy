@@ -2,7 +2,9 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ThemeProvider, useTheme } from '../../context/ThemeContext';
-import RoomMascot, { RoomMascotContext } from './RoomMascot';
+import RoomMascot, { RoomMascotContext, mascotViewport } from './RoomMascot';
+import { mockRoomViewport } from '../../test/roomViewport';
+import { DANCE_MS } from '../mascot/Mascot';
 
 let width = 400;
 let resize: ResizeObserverCallback;
@@ -16,13 +18,16 @@ const next = () => act(() => vi.advanceTimersToNextTimer());
 const content = (successCount = 0, paused = false) => <RoomMascotContext.Provider value={{ successCount, paused }}><input aria-label="Odpowiedź" /><RoomMascot /></RoomMascotContext.Provider>;
 
 beforeEach(() => {
+  mockRoomViewport();
   vi.useFakeTimers();
   width = 400;
   systemReduced = false;
+  localStorage.removeItem('app-reduced-motion');
   document.documentElement.removeAttribute('data-reduced-motion');
   vi.spyOn(Math, 'random').mockImplementation(random);
   random.mockReturnValue(0);
   vi.spyOn(HTMLElement.prototype, 'clientWidth', 'get').mockImplementation(function (this: HTMLElement) { return this.classList.contains('room-mascot-track') ? width : 0; });
+  vi.spyOn(HTMLElement.prototype, 'clientHeight', 'get').mockImplementation(function (this: HTMLElement) { return this.classList.contains('room-mascot-track') ? 400 : 0; });
   vi.stubGlobal('ResizeObserver', class {
     constructor(callback: ResizeObserverCallback) { resize = callback; }
     observe() {}
@@ -37,24 +42,24 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('reserves a decorative noninteractive zone and never changes input focus', () => {
+it('reserves a larger zone with a single mascot control and preserves input focus while walking', () => {
   render(content());
   const input = screen.getByRole('textbox', { name: 'Odpowiedź' });
   input.focus();
   expect(zone()).toHaveAttribute('data-state', 'idle');
-  expect(zone()).toHaveAttribute('aria-hidden', 'true');
-  expect(zone().querySelector('button, input, a, [tabindex]')).toBeNull();
-  act(() => vi.advanceTimersByTime(14_000));
+  expect(screen.getByRole('button', { name: 'Bit, wróć do siebie i zatańcz' })).toBeInTheDocument();
+  expect(zone().querySelector('.pixel-sprite')).toHaveStyle({ '--sprite-width': '116px', '--sprite-height': '118px' });
+  act(() => vi.advanceTimersByTime(2_200));
   expect(zone()).toHaveAttribute('data-state', 'right');
   expect(input).toHaveFocus();
   fireEvent.change(input, { target: { value: 'pwd' } });
   expect(input).toHaveValue('pwd');
 });
 
-it.each([[0, 'right'], [.3, 'left'], [.6, 'wave'], [.9, 'look']] as const)('performs short varied animations (%s) with quiet gaps', (choice, action) => {
+it.each([[0, 'right'], [.3, 'left'], [.75, 'wave'], [.9, 'look']] as const)('performs short varied animations (%s) with quiet gaps', (choice, action) => {
   random.mockReturnValue(choice);
   render(content());
-  act(() => vi.advanceTimersByTime(13_999));
+  act(() => vi.advanceTimersByTime(2_199));
   expect(zone()).toHaveAttribute('data-state', 'idle');
   next();
   expect(zone()).toHaveAttribute('data-state', action);
@@ -65,7 +70,7 @@ it.each([[0, 'right'], [.3, 'left'], [.6, 'wave'], [.9, 'look']] as const)('perf
   }
   next();
   expect(zone()).toHaveAttribute('data-state', 'idle');
-  act(() => vi.advanceTimersByTime(13_999));
+  act(() => vi.advanceTimersByTime(3_999));
   expect(zone()).toHaveAttribute('data-state', 'idle');
 });
 
@@ -80,17 +85,14 @@ it('stays in place in a narrow zone and stops a walk when its track shrinks', ()
   expect(zone()).toHaveAttribute('data-state', 'wave');
 });
 
-it('ends walks at the boundary and switches to waving when there is no walking distance left', () => {
+it('walks farther and reverses at the boundary instead of staying there', () => {
   render(content());
   next();
   next();
   next();
-  next();
-  next();
-  next();
-  next();
-  expect(zone()).toHaveAttribute('data-state', 'wave');
-  expect(actor().style.getPropertyValue('--bit-to')).toBe('100%');
+  expect(zone()).toHaveAttribute('data-state', 'left');
+  expect(parseFloat(actor().style.getPropertyValue('--bit-from'))).toBe(100);
+  expect(parseFloat(actor().style.getPropertyValue('--bit-to'))).toBeCloseTo(30);
 });
 
 it('takes success over a walk, freezes its current position and drops the old random timer', () => {
@@ -192,5 +194,127 @@ it('pauses in a background tab and safely handles missing resize observers and z
   view.rerender(content(1));
   expect(vi.getTimerCount()).toBe(0);
   view.unmount();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('returns from the terminal side, dances at home and ignores repeated clicks without moving input focus', () => {
+  render(<><input aria-label="Terminal" /><RoomMascot roaming /></>);
+  const input = screen.getByRole('textbox', { name: 'Terminal' });
+  input.focus();
+  act(() => vi.advanceTimersByTime(2_200));
+  expect(zone()).toHaveAttribute('data-state', 'right');
+  expect(parseFloat(actor().style.getPropertyValue('--bit-to'))).toBeGreaterThan(70);
+  actor().style.left = '320px';
+  fireEvent.pointerDown(actor());
+  fireEvent.click(actor());
+  expect(input).toHaveFocus();
+  expect(zone()).toHaveAttribute('data-state', 'return');
+  expect(actor().style.getPropertyValue('--bit-from')).toBe('80%');
+  expect(actor().style.getPropertyValue('--bit-to')).toBe('12%');
+  actor().style.left = '';
+  const reaction = zone().getAttribute('data-reaction');
+  fireEvent.click(actor());
+  expect(zone()).toHaveAttribute('data-reaction', reaction);
+  act(() => vi.advanceTimersByTime(650));
+  expect(zone()).toHaveAttribute('data-state', 'dance');
+  expect(zone().querySelector('.mascot')).toHaveAttribute('data-mood', 'scuba');
+  const dance = zone().getAttribute('data-reaction');
+  fireEvent.click(actor());
+  expect(zone()).toHaveAttribute('data-reaction', dance);
+  act(() => vi.advanceTimersByTime(DANCE_MS));
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  expect(input).toHaveFocus();
+});
+
+it('supports keyboard activation at home and keeps the mascot button focused through the dance', () => {
+  render(content());
+  const button = screen.getByRole('button', { name: 'Bit, wróć do siebie i zatańcz' });
+  button.focus();
+  fireEvent.click(button);
+  expect(zone()).toHaveAttribute('data-state', 'dance');
+  expect(button).toHaveFocus();
+  act(() => vi.advanceTimersByTime(DANCE_MS));
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  expect(button).toHaveFocus();
+});
+
+it('lets a new success interrupt the dance and drops its old timer', () => {
+  const view = render(content());
+  fireEvent.click(actor());
+  expect(zone()).toHaveAttribute('data-state', 'dance');
+  view.rerender(content(1));
+  expect(zone()).toHaveAttribute('data-state', 'jump');
+  act(() => vi.advanceTimersByTime(640));
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  act(() => vi.advanceTimersByTime(DANCE_MS - 640));
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+});
+
+it('cancels a return for dialogs and reduced motion, with no dance replay on resume', () => {
+  const view = render(content());
+  next();
+  fireEvent.click(actor());
+  expect(zone()).toHaveAttribute('data-state', 'return');
+  view.rerender(content(0, true));
+  expect(actor()).toBeDisabled();
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  expect(actor().style.getPropertyValue('--bit-to')).toBe('50%');
+  view.rerender(content());
+  systemReduced = true;
+  act(() => mediaChange());
+  fireEvent.click(actor());
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  expect(zone().querySelector('.pixel-sprite')).toHaveAttribute('data-still', 'true');
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('cleans up a dance timer when leaving the room', () => {
+  const view = render(content());
+  fireEvent.click(actor());
+  expect(zone()).toHaveAttribute('data-state', 'dance');
+  view.unmount();
+  expect(vi.getTimerCount()).toBe(0);
+});
+
+it('bounds the whole sprite, its jump and shadow to the visible room, excluding navigation and footer', () => {
+  const bounds = mascotViewport({ left: 20, top: 60, right: 1020, bottom: 700 }, 900, 640);
+  expect(bounds).toEqual({ left: 36, top: 92, width: 732, height: 412, visible: true });
+  for (const x of [0, .12, .5, 1]) {
+    for (const y of [0, .5, .85, 1]) {
+      expect(bounds.left + x * bounds.width).toBeGreaterThanOrEqual(20 + 16);
+      expect(bounds.left + x * bounds.width + 116).toBeLessThanOrEqual(900 - 16);
+      expect(bounds.top + y * bounds.height - 18).toBeGreaterThanOrEqual(60);
+      expect(bounds.top + y * bounds.height + 118 + 6).toBeLessThanOrEqual(640);
+    }
+  }
+  expect(mascotViewport({ left: -200, top: -400, right: 320, bottom: 700 }, 320, 600)).toEqual({ left: 16, top: 32, width: 172, height: 432, visible: true });
+  expect(mascotViewport({ left: 0, top: 800, right: 320, bottom: 1000 }, 320, 600).visible).toBe(false);
+});
+
+it('walks vertically across the room and returns from the current two-dimensional position', () => {
+  render(content());
+  next();
+  expect(actor().style.getPropertyValue('--bit-from-y')).toBe('85%');
+  expect(actor().style.getPropertyValue('--bit-to-y')).toBe('0%');
+  actor().style.top = '100px';
+  fireEvent.click(actor());
+  expect(zone()).toHaveAttribute('data-state', 'return');
+  expect(actor().style.getPropertyValue('--bit-from-y')).toBe('25%');
+  expect(actor().style.getPropertyValue('--bit-to-y')).toBe('85%');
+});
+
+it('updates its viewport on scrolling and resizing, and stops outside the visible room', () => {
+  render(content());
+  const track = document.querySelector('.room-mascot-track') as HTMLElement;
+  expect(track.style.top).toBe('96px');
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: -100, right: 320, bottom: 500, width: 320, height: 600, x: 0, y: -100, toJSON: () => ({}) });
+  fireEvent.scroll(window);
+  expect(track.style.left).toBe('16px');
+  expect(track.style.top).toBe('32px');
+  expect(track.style.width).toBe('172px');
+  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 900, right: 320, bottom: 1100, width: 320, height: 200, x: 0, y: 900, toJSON: () => ({}) });
+  fireEvent.resize(window);
+  expect(zone()).toHaveStyle({ visibility: 'hidden' });
+  expect(zone()).toHaveAttribute('data-state', 'idle');
   expect(vi.getTimerCount()).toBe(0);
 });

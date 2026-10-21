@@ -2,6 +2,7 @@ import { act, fireEvent, render, screen } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import UkosPage from "./UkosPage";
+import { mockRoomViewport } from '../test/roomViewport';
 import { useCourse } from "./useCourse";
 import {
   useWorkshop,
@@ -23,6 +24,7 @@ const draw = () =>
     </MemoryRouter>,
   );
 beforeEach(() => {
+  mockRoomViewport();
   desktop = true;
   vi.stubGlobal("matchMedia", (query: string) => ({
     matches: query.includes("prefers-reduced-motion") ? false : desktop,
@@ -181,10 +183,10 @@ it("disables the mobile terminal and exposes sync failures", () => {
   ).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Ponów synchronizację" }));
   expect(course.sync).toHaveBeenCalled();
-  expect(document.querySelector('.room-mascot-zone')).toHaveAttribute('data-state', 'idle');
+  expect(document.querySelector('.room-mascot-zone')).toBeNull();
 });
 
-it("keeps Bit under lesson six outside the terminal, celebrates only confirmed progress and ignores review", () => {
+it("lets Bit roam above both panels without a lane, celebrates only confirmed progress and ignores review", () => {
   vi.useFakeTimers();
   course = { ...course, completed: 5, state: { completedSteps: 5 } };
   workshop = { ...workshop, step: 5 };
@@ -192,7 +194,9 @@ it("keeps Bit under lesson six outside the terminal, celebrates only confirmed p
   fireEvent.click(screen.getByRole("button", { name: "Kontynuuj ćwiczenia" }));
   const zone = () => document.querySelector('.room-mascot-zone');
   expect(screen.getByRole('heading', { name: 'Miejsce na sprawy w toku' })).toBeInTheDocument();
-  expect(zone()?.closest('.zero-lesson-pane')).not.toBeNull();
+  expect(zone()?.parentElement).toHaveClass('room-body-shell');
+  expect(document.querySelector('.room-split-companion')).toBeNull();
+  expect(zone()).toHaveAttribute('data-roaming', 'true');
   expect(zone()?.closest('.zero-terminal-pane, .zero-start, .room-pane-scroll')).toBeNull();
   expect(zone()).toHaveAttribute('data-state', 'idle');
   fireEvent.click(screen.getByRole('button', { name: 'Podpowiedź' }));
@@ -209,7 +213,7 @@ it("keeps Bit under lesson six outside the terminal, celebrates only confirmed p
   expect(zone()).toHaveAttribute('data-state', 'idle');
   fireEvent.click(screen.getByRole('button', { name: 'Wstecz' }));
   expect(zone()).toHaveAttribute('data-state', 'idle');
-  expect(zone()?.closest('.zero-lesson-pane')).not.toBeNull();
+  expect(zone()?.parentElement).toHaveClass('room-body-shell');
 });
 it("shows how much of Linux is downloaded and then waits for the system to boot", () => {
   workshop = { ...workshop, status: "booting" };

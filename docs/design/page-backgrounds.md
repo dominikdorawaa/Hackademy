@@ -29,7 +29,7 @@
 
 `PageBackdrop` jest dekoracyjnym, nieinteraktywnym tłem. Treść pozostaje w normalnym układzie; obraz nie zmienia wymiarów paneli i nie zajmuje fokusu. Ciemne i jasne maski oddzielają grafikę od tekstu. Karty zachowują swoje powierzchnie, a grafika pojawia się również w wybranych nagłówkach dashboardu, Areny, profilu, logowania i rankingu.
 
-W pokojach obraz występuje w wydzielonej strefie Bita. Nie zastępuje powierzchni tekstu, pytań, odpowiedzi, terminala ani przycisków. Pokój PATH wybiera górską scenę niezależnie od wspólnego adresu `/rooms/:id`. Granice ruchu maskotki i jej zarezerwowana wysokość pozostają zachowane.
+Pokoje zachowują istniejące powierzchnie tekstu, pytań, odpowiedzi, terminala i przycisków. Bit nie ma osobnego tła ani wydzielonego pasa: porusza się jako nakładka wewnątrz widocznego obszaru ćwiczenia, zgodnie z aktualną prośbą. Nie zmniejsza paneli ani terminala.
 
 Obrazy są statyczne i nie dodają pętli animacji. WebP jest bezstratny, bez zmiany rozdzielczości ani kolorów wygenerowanych PNG. Eksport porównuje zdekodowane piksele obu formatów. Test zasobów sprawdza komplet zakładek, oba motywy, sumy kontrolne, format, rozmiar całej serii i limit 150 generacji.
 

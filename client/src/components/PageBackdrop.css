@@ -45,12 +45,6 @@
   --page-scene: var(--scene-dark);
 }
 [data-theme='light'] .site-canvas .room-frame--reader { --page-scene: var(--scene-light); }
-.site-canvas .room-mascot-zone {
-  background-image: linear-gradient(0deg, var(--rm-ground), color-mix(in srgb, var(--rm-ground) 35%, transparent)), var(--page-scene);
-  background-size: cover;
-  background-position: center 72%;
-  image-rendering: pixelated;
-}
 .site-canvas[data-scene='legal'] .page-backdrop { opacity: .45; }
 .site-canvas[data-scene='battle'] .page-backdrop { opacity: .65; }
 .site-canvas[data-scene='home'] .hero { background-color: transparent; }
