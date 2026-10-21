@@ -65,6 +65,24 @@ class ArenaBattleServiceTest {
     }
 
     @Test
+    void usesTheServerClockAndFirstAcceptedAnswerIndependentlyForBothPlayers() {
+        now.addAndGet(999);
+        assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer("game", 1L, 1, 2));
+        now.incrementAndGet();
+        assertEquals(BattleEngine.AnswerResult.ALREADY_ANSWERED, arena.answer("game", 1L, 1, 0));
+        assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer("game", 2L, 1, 2));
+        assertEquals(Map.of(1L, 19, 2L, 20), state().getLastRound().damage());
+        assertEquals(Map.of(1L, 81, 2L, 80), state().getHp());
+        now.addAndGet(BattleEngine.REVEAL_MILLIS);
+        arena.tickBattles();
+        assertEquals(BattleEngine.AnswerResult.WRONG_ROUND, arena.answer("game", 1L, 1, 2));
+        now.addAndGet(2_000);
+        arena.answer("game", 1L, 2, 2);
+        arena.answer("game", 2L, 2, 0);
+        assertEquals(Map.of(1L, 0, 2L, 18), state().getLastRound().damage());
+    }
+
+    @Test
     void anAnswerDelayedPastTheRevealCannotAnswerTheNextQuestion() {
         now.addAndGet(BattleEngine.ROUND_MILLIS);
         arena.tickBattles();

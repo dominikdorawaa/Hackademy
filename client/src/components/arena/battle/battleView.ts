@@ -75,9 +75,9 @@ export function eloChange(session: GameSession, meId: number) {
 export function roundSummary(result: RoundResult, meId: number, rivalId: number) {
   const iHit = (result.damage[rivalId] ?? 0) > 0;
   const rivalHit = (result.damage[meId] ?? 0) > 0;
-  if (iHit && rivalHit) return 'Oboje trafiliście. Każdy traci 20 HP.';
-  if (iHit) return 'Trafiasz! Rywal traci 20 HP.';
-  if (rivalHit) return 'Rywal trafia. Tracisz 20 HP.';
+  if (iHit && rivalHit) return `Oboje trafiliście. Tracisz ${result.damage[meId]} HP, rywal traci ${result.damage[rivalId]} HP.`;
+  if (iHit) return `Trafiasz! Rywal traci ${result.damage[rivalId]} HP.`;
+  if (rivalHit) return `Rywal trafia. Tracisz ${result.damage[meId]} HP.`;
   return 'Nikt nie trafił w tej rundzie.';
 }
 

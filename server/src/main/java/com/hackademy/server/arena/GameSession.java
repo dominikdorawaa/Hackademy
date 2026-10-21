@@ -49,6 +49,8 @@ public class GameSession {
     @JsonIgnore
     private Map<Long, Integer> choices = new HashMap<>();
     @JsonIgnore
+    private Map<Long, Long> answerElapsedMillis = new HashMap<>();
+    @JsonIgnore
     private Map<Long, Long> disconnectedSince = new HashMap<>();
 
     public boolean includes(Long userId) {
