@@ -20,6 +20,8 @@ export function useCourse(account: string, sessionKey: string) {
   const [error, setError] = useState("");
   const [storageError, setStorageError] = useState("");
   const [syncing, setSyncing] = useState(false);
+  const [successCount, setSuccessCount] = useState(0);
+  const liveCompletions = useRef(new Set<number>());
   const desired = useRef(completed);
   const active = useRef(true);
   const pending = useRef<Promise<void> | null>(null);
@@ -33,10 +35,13 @@ export function useCourse(account: string, sessionKey: string) {
       setError("");
       try {
         localStorage.setItem(key, String(desired.current));
+        setStorageError("");
+        return true;
       } catch {
         setStorageError(
           "Przeglądarka nie pozwala zapisać postępu lokalnie. Nie zamykaj strony przed synchronizacją.",
         );
+        return false;
       }
     },
     [key],
@@ -48,10 +53,19 @@ export function useCourse(account: string, sessionKey: string) {
     const operation = (async () => {
       try {
         let next = await courseRequest(sessionKey);
-        if (desired.current > next.completedSteps)
-          next = await courseRequest(sessionKey, desired.current);
-        accept(next);
+        let confirmed: number[] = [];
+        if (desired.current > next.completedSteps) {
+          const target = desired.current;
+          const fresh = [...liveCompletions.current].filter(step => step > next.completedSteps && step <= target);
+          next = await courseRequest(sessionKey, target);
+          confirmed = fresh.filter(step => step <= next.completedSteps);
+        }
+        if (accept(next) && confirmed.length > 0) setSuccessCount(count => count + confirmed.length);
+        for (const step of liveCompletions.current) {
+          if (step <= next.completedSteps) liveCompletions.current.delete(step);
+        }
       } catch (failure) {
+        liveCompletions.current.clear();
         if (active.current)
           setError(
             failure instanceof Error
@@ -94,7 +108,7 @@ export function useCourse(account: string, sessionKey: string) {
   }, [completed, state?.completedSteps, sync]);
 
   const progress = useCallback(
-    (step: number) => {
+    (step: number, restored = false) => {
       if (
         !Number.isInteger(step) ||
         step < 0 ||
@@ -106,6 +120,8 @@ export function useCourse(account: string, sessionKey: string) {
       setCompleted(step);
       try {
         localStorage.setItem(key, String(step));
+        setStorageError("");
+        if (!restored) liveCompletions.current.add(step);
       } catch {
         setStorageError(
           "Nie udało się zachować lokalnego postępu. Pozostaw stronę otwartą do synchronizacji.",
@@ -121,6 +137,7 @@ export function useCourse(account: string, sessionKey: string) {
     error,
     storageError,
     syncing,
+    successCount,
     progress,
     sync,
     synchronized: state !== null && completed <= state.completedSteps && !error,

@@ -4,6 +4,7 @@ import { BookOpen, Check, ChevronLeft, ChevronRight, Lightbulb, Lock, TerminalSq
 import RoomFrame from "../components/room/RoomFrame";
 import RoomFooterBar from "../components/room/RoomFooterBar";
 import RoomSplit from "../components/room/RoomSplit";
+import RoomMascot from "../components/room/RoomMascot";
 import "../components/room/room.css";
 import "../components/learn/learn.css";
 import DyzurZeroBanner from "../components/learn/DyzurZeroBanner";
@@ -236,6 +237,7 @@ function Workshop({
           </article>
         )}
       </div>
+      <RoomMascot />
     </section>
   );
 
@@ -367,6 +369,7 @@ function Workshop({
     <RoomFrame
       label="Warsztat ćwiczeń"
       className="room-frame--split room-frame--panels zero-room"
+      mascot={{ successCount: course.successCount, paused: reset }}
       nav={{
         back: {
           title: "Dyżur Zero",
@@ -579,6 +582,7 @@ function CoursePage({ account, sessionKey }: { account: string; sessionKey: stri
           </button>
         </div>
       </section>
+      <RoomMascot />
       <section className="zero-roadmap" aria-labelledby="zero-roadmap-title">
         <div className="zero-roadmap-head">
           <h2 id="zero-roadmap-title">Kolejne dyżury</h2>

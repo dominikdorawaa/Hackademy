@@ -1,0 +1,69 @@
+.site-canvas {
+  --scenery-ground: var(--bg-dark, #0f1724);
+  --page-scene: var(--scene-dark);
+  position: relative;
+  min-width: 0;
+  background-color: var(--scenery-ground);
+}
+[data-theme='light'] .site-canvas { --page-scene: var(--scene-light); }
+.page-backdrop {
+  position: absolute;
+  z-index: 0;
+  inset: 0 0 auto;
+  height: min(760px, 100%);
+  background-image:
+    linear-gradient(90deg, var(--scenery-ground) 4%, color-mix(in srgb, var(--scenery-ground) 84%, transparent) 35%, color-mix(in srgb, var(--scenery-ground) 70%, transparent) 80%),
+    linear-gradient(0deg, var(--scenery-ground), transparent 65%),
+    var(--page-scene);
+  background-size: cover;
+  background-position: center top;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+  pointer-events: none;
+  user-select: none;
+  overflow: clip;
+}
+.site-page-content { position: relative; min-width: 0; }
+.site-shell--room .site-page-content { display: flex; flex: 1 1 auto; flex-direction: column; min-height: 0; }
+.site-page-content > :is(.user-dashboard, .profile-page, .ranking-page) { background-color: transparent; }
+.site-canvas :is(.ud-next, .profile-header, .auth-intro, .arena-card, .ranking-board-head) {
+  background-image:
+    linear-gradient(90deg, var(--scenery-panel, var(--ud-hero-bg, var(--scenery-ground))) 6%, color-mix(in srgb, var(--scenery-panel, var(--ud-hero-bg, var(--scenery-ground))) 94%, transparent) 55%, color-mix(in srgb, var(--scenery-panel, var(--ud-hero-bg, var(--scenery-ground))) 72%, transparent)),
+    var(--page-scene);
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+  image-rendering: pixelated;
+}
+.site-canvas .profile-header { --scenery-panel: var(--profile-hero); }
+.site-canvas .auth-intro { --scenery-panel: var(--auth-field); }
+.site-canvas .arena-card { --scenery-panel: var(--ud-surface); }
+.site-canvas .ranking-board-head { --scenery-panel: var(--rm-board); }
+.site-canvas .room-frame--reader {
+  --scene-dark: url('/assets/scenery/path-dark.webp');
+  --scene-light: url('/assets/scenery/path-light.webp');
+  --page-scene: var(--scene-dark);
+}
+[data-theme='light'] .site-canvas .room-frame--reader { --page-scene: var(--scene-light); }
+.site-canvas .room-mascot-zone {
+  background-image: linear-gradient(0deg, var(--rm-ground), color-mix(in srgb, var(--rm-ground) 35%, transparent)), var(--page-scene);
+  background-size: cover;
+  background-position: center 72%;
+  image-rendering: pixelated;
+}
+.site-canvas[data-scene='legal'] .page-backdrop { opacity: .45; }
+.site-canvas[data-scene='battle'] .page-backdrop { opacity: .65; }
+.site-canvas[data-scene='home'] .hero { background-color: transparent; }
+.site-canvas[data-scene='admin'] .page-backdrop { height: 560px; opacity: .55; }
+@media (max-width: 899px) {
+  .page-backdrop { height: min(480px, 100%); background-position: 65% top; }
+  .site-shell--room .site-page-content { flex: 0 0 auto; }
+}
+@media (max-width: 600px) {
+  .page-backdrop { opacity: .6; }
+  .site-canvas :is(.ud-next, .profile-header, .auth-intro, .arena-card, .ranking-board-head) { background-position: 65% center; }
+}
+@media print {
+  .page-backdrop { display: none; }
+  .site-canvas, .site-canvas :is(.ud-next, .profile-header, .auth-intro, .arena-card, .ranking-board-head, .room-mascot-zone) { background-image: none; }
+}

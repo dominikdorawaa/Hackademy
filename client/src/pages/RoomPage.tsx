@@ -15,6 +15,7 @@ import { useRoomReturn } from '../hooks/useRoomReturn';
 import RoomFrame from '../components/room/RoomFrame';
 import RoomFooterBar from '../components/room/RoomFooterBar';
 import RoomSplit from '../components/room/RoomSplit';
+import RoomMascot from '../components/room/RoomMascot';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
@@ -48,6 +49,14 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [activeTask, setActiveTask] = useState(0);
   const [pendingTask, setPendingTask] = useState<number | null>(null);
   const [finishingRoom, setFinishingRoom] = useState(false);
+  const [mascotSuccessCount, setMascotSuccessCount] = useState(0);
+  const celebrated = useRef(new Set<string>());
+  const pendingFlag = useRef(false);
+  const celebrate = (key: string) => {
+    if (celebrated.current.has(key)) return;
+    celebrated.current.add(key);
+    setMascotSuccessCount(count => count + 1);
+  };
 
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
@@ -105,6 +114,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (preview) { setSubmitStatus('success'); setSubmitMessage('Tryb podglądu: wynik nie jest zapisywany.'); return; }
+    if (pendingFlag.current) return;
+    pendingFlag.current = true;
     setSubmitStatus(null);
     setSubmitMessage('');
 
@@ -113,7 +124,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       });
 
       const data = await response.json();
-      if (response.ok) {
+      if (response.ok && data.success) {
+        if (!room?.solved) celebrate('room');
         setSubmitStatus('success');
         setSubmitMessage(data.message ?? '');
         setRoom(prev => prev ? { ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 } : null);
@@ -127,6 +139,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     } catch {
       setSubmitStatus('error');
       setSubmitMessage('Błąd sieci');
+    } finally {
+      pendingFlag.current = false;
     }
   };
 
@@ -160,7 +174,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   }, [id, sessionKey, preview]);
 
   useEffect(() => {
-    readerRef.current?.closest('.room-frame-body')?.scrollTo?.({ top: 0 });
+    readerRef.current?.scrollTo?.({ top: 0 });
   }, [activeTask]);
 
   const handleTaskSubmit = async (e: React.FormEvent, taskId: number) => {
@@ -175,7 +189,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         const response = await roomApi.solveTask(id ?? '', taskId, { answer }, {sessionKey
             });
         const data = await response.json();
-        if (response.ok) {
+        if (response.ok && data.success) {
+            celebrate(`task:${taskId}`);
             setToast({ message: data.message ?? '', type: 'success' });
             setRoom(prev => prev ? ({
                 ...prev,
@@ -205,6 +220,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         setToast({ message: data.message || 'Nie udało się ukończyć pokoju', type: 'error' });
         return;
       }
+      if (!room?.solved) celebrate('room');
       setRoom((previous) => previous ? { ...previous, solved: true } : null);
       setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
       setSuccessMessage('Wszystkie zadania wykonane! Pokój ukończony.');
@@ -342,6 +358,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
           <div className="room-prose"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
           {fileBlock}
         </div>
+        <RoomMascot />
       </section>
     );
 
@@ -397,7 +414,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     );
 
     return (
-      <RoomFrame nav={nav} label="Pokój z flagą" className="room-frame--split">
+      <RoomFrame nav={nav} label="Pokój z flagą" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}>
         {previewBanner}
         <RoomSplit variant="flat" start={descriptionPane} end={solvePane} initial={0.56} />
         {modals}
@@ -430,7 +447,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   ) : null;
 
   return (
-    <RoomFrame nav={nav} label="Pokój z zadaniami"
+    <RoomFrame nav={nav} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
       footer={
         <RoomFooterBar
           steps={tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask }))}
@@ -497,6 +514,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         </article>
         {hintsBlock}
       </div>
+      <RoomMascot />
       {modals}
     </RoomFrame>
   );

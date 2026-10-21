@@ -253,18 +253,12 @@ public class UserServiceImpl implements UserService {
             return cached;
         }
 
-        // Return top 100 users sorted by points, but include ELO so frontend can re-sort.
-        // Query-side ordering avoids loading the entire users table.
-        List<User> top = userRepository.findTopByPointsDesc(PageRequest.of(0, 100));
-        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(top.stream().map(User::getId).toList());
+        List<RankingRow> top = userRepository.findRankingLeaders();
+        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(top.stream().map(RankingRow::getId).toList());
         List<RankingEntry> out = top.stream()
-                .map(user -> new RankingEntry(
-                        0, // Rank Points placeholder
-                        0, // Rank Elo placeholder
-                        user.getUsername(),
-                        user.getPoints(),
-                        user.getElo(), avatars.get(user.getId())
-                ))
+                .map(row -> new RankingEntry(
+                        row.getRankPoints(), row.getRankElo(), row.getUsername(),
+                        row.getPoints(), row.getElo(), avatars.get(row.getId())))
                 .collect(Collectors.toList());
         rankingCache = out;
         rankingCacheTimeMs = now;

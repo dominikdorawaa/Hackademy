@@ -51,6 +51,21 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("SELECT u FROM User u ORDER BY u.points DESC")
     List<User> findTopByPointsDesc(Pageable pageable);
 
+    @Query(value = """
+            SELECT id, username, points, elo, rank_points AS "rankPoints", rank_elo AS "rankElo"
+            FROM (
+                SELECT id, username, COALESCE(points, 0) AS points, COALESCE(elo, 500) AS elo,
+                    RANK() OVER (ORDER BY COALESCE(points, 0) DESC) AS rank_points,
+                    RANK() OVER (ORDER BY COALESCE(elo, 500) DESC) AS rank_elo,
+                    ROW_NUMBER() OVER (ORDER BY COALESCE(points, 0) DESC, username) AS points_order,
+                    ROW_NUMBER() OVER (ORDER BY COALESCE(elo, 500) DESC, username) AS elo_order
+                FROM users
+            ) ranked
+            WHERE points_order <= 100 OR elo_order <= 100
+            ORDER BY rank_points, username
+            """, nativeQuery = true)
+    List<RankingRow> findRankingLeaders();
+
     long countByPointsGreaterThan(Integer points);
     
     long countByEloGreaterThan(Integer elo);

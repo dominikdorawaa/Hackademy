@@ -3,6 +3,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import RoomNavInfo, { type RoomNavProps } from './RoomNavInfo';
 import { useRoomChrome } from './roomChrome';
+import { RoomMascotContext, type RoomMascotState } from './RoomMascot';
 import './room.css';
 
 interface RoomFrameProps {
@@ -11,9 +12,10 @@ interface RoomFrameProps {
   children: ReactNode;
   className?: string;
   label: string;
+  mascot?: RoomMascotState;
 }
 
-export default function RoomFrame({ nav, footer, children, className, label }: RoomFrameProps) {
+export default function RoomFrame({ nav, footer, children, className, label, mascot = { successCount: 0 } }: RoomFrameProps) {
   const chrome = useRoomChrome();
   const setActive = chrome?.setActive;
 
@@ -25,10 +27,12 @@ export default function RoomFrame({ nav, footer, children, className, label }: R
 
   const info = <RoomNavInfo {...nav} />;
   return (
-    <div className={cn('room-frame room-tokens', className)} aria-label={label} role="region">
-      {chrome ? chrome.slot && createPortal(info, chrome.slot) : <div className="room-inline-bar">{info}</div>}
-      <div className="room-frame-body">{children}</div>
-      {footer}
-    </div>
+    <RoomMascotContext.Provider value={mascot}>
+      <div className={cn('room-frame room-tokens', className)} aria-label={label} role="region">
+        {chrome ? chrome.slot && createPortal(info, chrome.slot) : <div className="room-inline-bar">{info}</div>}
+        <div className="room-frame-body">{children}</div>
+        {footer}
+      </div>
+    </RoomMascotContext.Provider>
   );
 }

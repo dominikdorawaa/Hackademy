@@ -201,20 +201,24 @@ class UserServiceImplTest {
 
     @Test
     void topRankingIsCachedUntilInvalidated() {
-        var alice = user(1L, "alice");
-        alice.setPoints(300);
-        alice.setElo(700);
-        when(userRepository.findTopByPointsDesc(PageRequest.of(0, 100))).thenReturn(List.of(alice));
+        RankingRow alice = mock(RankingRow.class);
+        when(alice.getId()).thenReturn(1L);
+        when(alice.getUsername()).thenReturn("alice");
+        when(alice.getPoints()).thenReturn(300);
+        when(alice.getElo()).thenReturn(0);
+        when(alice.getRankPoints()).thenReturn(1);
+        when(alice.getRankElo()).thenReturn(12);
+        when(userRepository.findRankingLeaders()).thenReturn(List.of(alice));
 
         var ranking = service.getTop10Ranking();
 
-        assertEquals(List.of(new RankingEntry(0, 0, "alice", 300, 700)), ranking);
+        assertEquals(List.of(new RankingEntry(1, 12, "alice", 300, 0)), ranking);
         assertSame(ranking, service.getTop10Ranking());
-        verify(userRepository, times(1)).findTopByPointsDesc(any());
+        verify(userRepository, times(1)).findRankingLeaders();
 
         service.invalidateGlobalRankingCache();
         service.getTop10Ranking();
-        verify(userRepository, times(2)).findTopByPointsDesc(any());
+        verify(userRepository, times(2)).findRankingLeaders();
     }
 
     @Test

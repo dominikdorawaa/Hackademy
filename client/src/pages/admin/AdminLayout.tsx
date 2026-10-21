@@ -31,6 +31,8 @@ import { Separator } from '@/components/ui/separator';
 import ThemeSwitcher from '../../components/ThemeSwitcher';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAdminAccess } from './adminAccess';
+import PageBackdrop from '../../components/PageBackdrop';
+import { pageScene, sceneStyle } from '../../lib/pageScenery';
 
 interface NavItem {
   title: string;
@@ -196,7 +198,8 @@ export default function AdminLayout() {
           <SidebarRail />
         </Sidebar>
 
-        <SidebarInset className="min-w-0">
+        <SidebarInset className="site-canvas min-w-0" data-scene={pageScene(pathname)} style={sceneStyle(pageScene(pathname))}>
+          <PageBackdrop />
           <header className="sticky top-0 z-10 flex h-14 shrink-0 items-center gap-2 border-b bg-background/95 px-4 backdrop-blur supports-[backdrop-filter]:bg-background/80">
             <SidebarTrigger aria-label="Przełącz nawigację" />
             <Separator orientation="vertical" className="mr-1 data-[orientation=vertical]:h-4" />
@@ -205,7 +208,7 @@ export default function AdminLayout() {
               <ThemeSwitcher />
             </div>
           </header>
-          <div className="mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8">
+          <div className="site-page-content mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8">
             <Outlet />
           </div>
         </SidebarInset>
