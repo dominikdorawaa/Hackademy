@@ -102,11 +102,20 @@
 .arena-page .arena-card-portrait {
   width: 168px;
   height: 168px;
-  margin: 22px 0 14px;
+  margin: 0;
   border-radius: var(--ud-radius);
   background: color-mix(in srgb, var(--league) 40%, var(--ud-board));
   image-rendering: pixelated;
+  display: block;
+  transition: filter 160ms ease-out;
 }
+
+.arena-card-portrait-edit { display: inline-flex; margin: 22px 0 14px; border-radius: var(--ud-radius); }
+.arena-card-portrait-edit:is(:hover, :focus-visible) .arena-card-portrait { filter: brightness(1.18); }
+.arena-card-portrait-edit:hover { outline: 2px solid var(--ud-link); outline-offset: 2px; }
+.arena-card-portrait-edit:focus-visible { outline: 2px solid var(--ud-link); outline-offset: 4px; }
+@media (prefers-reduced-motion: reduce) { .arena-page .arena-card-portrait { transition: none; } }
+html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
 
 .arena-card-name {
   max-width: 100%;
@@ -175,18 +184,6 @@
 
 .arena-card-next p {
   margin-top: 8px;
-}
-
-.arena-card-edit {
-  margin-top: 16px;
-  color: var(--ud-link);
-  font-size: var(--ud-text-s);
-  font-weight: 650;
-}
-
-.arena-card-edit:hover {
-  text-decoration: underline;
-  text-underline-offset: 4px;
 }
 
 .arena-ladder {

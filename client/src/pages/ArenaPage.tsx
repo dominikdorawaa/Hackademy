@@ -198,7 +198,9 @@ const ArenaPage = () => {
                                 {known && <span className="arena-league"><LeagueIcon league={league} glint />Liga {league.name}</span>}
                                 <span className="arena-card-rank" role={known ? undefined : "status"}>{rankLabel}</span>
                             </div>
-                            <UserAvatar className="arena-card-portrait" username={userData.username} avatar={userData.avatar} alt="" />
+                            <Link className="arena-card-portrait-edit" to="/arena/avatar" aria-label="Zmień swój awatar">
+                                <UserAvatar className="arena-card-portrait" username={userData.username} avatar={userData.avatar} alt="" />
+                            </Link>
                             <p className="arena-card-name">{userData.username}</p>
                             <p className="arena-card-elo">
                                 <span className="arena-card-number">{known ? elo : '–'}</span>
@@ -216,7 +218,6 @@ const ArenaPage = () => {
                             ) : (
                                 <p className="arena-card-next">Najwyższa liga. Broń swojego miejsca.</p>
                             )}
-                            <Link className="arena-card-edit" to="/arena/avatar">{userData.avatar ? 'Edytuj awatar' : 'Stwórz awatar'}</Link>
                         </div>
                         <div className="arena-hero-main">
                         <div className="arena-console-copy" data-tour="arena-play">
