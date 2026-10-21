@@ -15,7 +15,6 @@ import { useRoomReturn } from '../hooks/useRoomReturn';
 import RoomFrame from '../components/room/RoomFrame';
 import RoomFooterBar from '../components/room/RoomFooterBar';
 import RoomSplit from '../components/room/RoomSplit';
-import RoomMascot from '../components/room/RoomMascot';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
@@ -358,7 +357,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
           <div className="room-prose"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
           {fileBlock}
         </div>
-        <RoomMascot />
       </section>
     );
 
@@ -514,7 +512,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         </article>
         {hintsBlock}
       </div>
-      <RoomMascot />
       {modals}
     </RoomFrame>
   );

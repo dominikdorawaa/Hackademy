@@ -3,13 +3,16 @@ import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
-import { describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
+import { mockRoomViewport } from '../test/roomViewport';
 import API_URL from '../apiConfig';
 import { server } from '../test/mocks/server';
 import { createToken } from '../test/fixtures/auth';
 import { renderWithAuth } from '../test/renderWithAuth';
 import type { RoomDetailDto, RoomTaskDto } from '../types/api';
 import RoomPage from './RoomPage';
+
+beforeEach(() => { mockRoomViewport(); });
 
 function mount(tasks: RoomTaskDto[]) {
   const room: RoomDetailDto = {
@@ -244,13 +247,15 @@ describe('CTF room', () => {
 });
 
 describe('Bit room integration', () => {
-  it('keeps the reserved zone outside long content, questions and expanded hints', async () => {
+  it('keeps the overlay separate from long content, questions and expanded hints without reserving a lane', async () => {
     mountCtf({ description: 'Długa treść '.repeat(1000), unlockedHintIds: [1, 2], requiresVpn: true, title: 'Tutorial VPN' });
     await screen.findByRole('heading', { name: 'Tutorial VPN' });
     expect(bit()).toHaveAttribute('data-state', 'idle');
-    expect(bit()?.closest('.room-pane')?.querySelector('.room-pane-scroll')).toHaveTextContent('Długa treść');
+    expect(bit()?.closest('.room-body-shell')?.querySelector('.room-pane-scroll')).toHaveTextContent('Długa treść');
+    expect(bit()?.parentElement).toHaveClass('room-body-shell');
     expect(bit()?.closest('.room-pane-scroll')).toBeNull();
-    expect(bit()?.querySelector('button, input, .room-prose, .room-hints')).toBeNull();
+    expect(bit()?.querySelector('input, .room-prose, .room-hints')).toBeNull();
+    expect(bit()?.querySelectorAll('button')).toHaveLength(1);
     expect(screen.getByText('Szukaj komentarza')).toBeInTheDocument();
   });
 
@@ -263,7 +268,8 @@ describe('Bit room integration', () => {
     mount(tasks);
     const user = userEvent.setup();
     const input = await screen.findByRole('textbox', { name: 'Co wpiszesz?' });
-    expect(bit()?.previousElementSibling).toHaveClass('room-reader');
+    expect(bit()?.previousElementSibling).toHaveClass('room-frame-body');
+    expect(bit()?.previousElementSibling?.querySelector('.room-reader')).not.toBeNull();
     expect(bit()).toHaveAttribute('data-state', 'idle');
     await user.type(input, 'pwd');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
