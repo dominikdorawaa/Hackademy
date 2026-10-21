@@ -9,7 +9,7 @@ import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { Link } from 'react-router-dom';
 import { levelFromPoints } from '../lib/level';
-import { LEAGUES, leagueFor } from '../components/arena/leagues';
+import { LEAGUES, leagueFor, leagueProgress } from '../components/arena/leagues';
 import { LeagueIcon } from '../components/arena/LeagueIcon';
 import { EloHelp } from '../components/arena/EloHelp';
 import { ArenaLoader, ArenaRunner } from '../components/arena/ArenaLoader';
@@ -209,7 +209,7 @@ const ArenaPage = () => {
                             ) : next ? (
                                 <div className="arena-card-next">
                                     <div className="ud-meter" role="progressbar" aria-label={`Postęp do ligi ${next.name}`} aria-valuemin={league.min} aria-valuemax={next.min} aria-valuenow={elo}>
-                                        <span style={{ '--ud-fill': Math.min(1, Math.max(0, (elo - league.min) / (next.min - league.min))) } as React.CSSProperties} />
+                                        <span style={{ '--ud-fill': leagueProgress(elo) } as React.CSSProperties} />
                                     </div>
                                     <p>Do ligi {next.name} brakuje Ci {formatNumberPL(next.min - elo)} Elo.</p>
                                 </div>

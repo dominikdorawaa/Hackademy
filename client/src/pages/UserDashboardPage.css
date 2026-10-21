@@ -555,6 +555,70 @@ a.ud-room-row:hover {
   font-stretch: 85%;
 }
 
+/* --- Arena: league, Elo and the place in the Elo ranking --- */
+.ud-arena {
+  padding: 20px;
+}
+
+.ud-arena-hero {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin: 14px 0 16px;
+}
+
+.ud-arena-badge.league-icon {
+  width: 56px;
+  height: 56px;
+}
+
+.ud-arena-who {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.ud-arena-who > span {
+  color: var(--ud-muted);
+  font-size: var(--ud-text-s);
+}
+
+.ud-arena .ud-level-xp {
+  position: relative;
+  margin: 0;
+}
+
+.ud-arena-span {
+  display: grid;
+  grid-template-columns: 24px minmax(0, 1fr) 24px;
+  align-items: center;
+  gap: 10px;
+}
+
+.ud-arena-span .league-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.ud-arena-ends {
+  display: flex;
+  justify-content: space-between;
+  gap: 8px;
+  margin-top: 6px;
+  color: var(--ud-muted);
+  font-size: var(--ud-text-s);
+}
+
+.ud-arena-ends b {
+  color: var(--ud-ink);
+  font-weight: 750;
+  font-stretch: 85%;
+}
+
+.ud-arena .ud-facts {
+  margin-top: 18px;
+}
+
 /* --- Inline term with an explanation on hover, focus or tap --- */
 .ud-term {
   display: inline-block;
@@ -606,12 +670,6 @@ a.ud-room-row:hover {
   display: block;
   margin-bottom: 4px;
   font-weight: 700;
-}
-
-.ud-tip-note {
-  display: block;
-  margin-top: 8px;
-  opacity: 0.8;
 }
 
 .ud-term:hover .ud-tip,

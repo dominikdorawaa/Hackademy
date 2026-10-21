@@ -14,6 +14,7 @@ import './UserDashboardPage.css';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
+import { ArenaRankPanel } from '../components/dashboard/ArenaRankPanel';
 import type { DashboardUser, FriendDto, UserSearchDto, RankingEntry, RecentSolvedRoomDto, PathSummaryDto, PathProgressDto, PathRoomMiniDto } from '../types/api';
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
@@ -334,9 +335,6 @@ const UserDashboardPage = () => {
     const levelProgress = points <= 0 ? 0 : (points % 100) / 100;
     const rankTitle = rankTitleFromPoints(points);
 
-    const myRankingEntry = userData?.username ? ranking.find((x) => x?.username === userData.username) : null;
-    const elo = myRankingEntry?.elo ?? myRank?.elo ?? 500;
-
     return {
       username,
       totalPaths,
@@ -346,9 +344,8 @@ const UserDashboardPage = () => {
       nextLevelPoints,
       levelProgress: clamp01(levelProgress),
       rankTitle,
-      elo,
     };
-  }, [pathsProgress, userData, ranking, myRank]);
+  }, [pathsProgress, userData]);
 
   const board = useMemo(() => {
     const sorted = [...ranking].sort((a, b) => (b?.points || 0) - (a?.points || 0));
@@ -701,20 +698,7 @@ const UserDashboardPage = () => {
                 Twoje miejsce w rankingu
               </h2>
               <p className="ud-rank">{board.position ? `#${board.position}` : '–'}</p>
-              <p className="ud-elo">
-                {board.position ? 'w rankingu XP, ' : 'Poza rankingiem XP, '}
-                <span className="ud-term">
-                  <button type="button" className="ud-term-btn" aria-describedby="ud-elo-tip">
-                    Elo {formatNumberPL(stats.elo)}
-                    <i className="fas fa-circle-info" aria-hidden="true" />
-                  </button>
-                  <span role="tooltip" id="ud-elo-tip" className="ud-tip">
-                    <strong>Elo to Twoja siła w pojedynkach.</strong> Grasz w Trybie rankingowym: wygrywasz, to rośnie,
-                    przegrywasz, to spada. Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.
-                    <span className="ud-tip-note">Miejsce #{board.position ?? '–'} liczymy z XP za pokoje, nie z Elo.</span>
-                  </span>
-                </span>
-              </p>
+              <p className="ud-elo">{board.position ? 'w rankingu XP' : 'Poza rankingiem XP'}</p>
               {todayStats}
 
               <p className="ud-gap">
@@ -767,6 +751,8 @@ const UserDashboardPage = () => {
               </Link>
             </div>
           </section>
+
+          <ArenaRankPanel rank={myRank} />
 
           {recommendedPath && (
             <Link className="ud-reco" to={`/learn/paths/${recommendedPath.id}`}>
