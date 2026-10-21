@@ -29,3 +29,26 @@ it('fills the screen with a room and brings the site footer back on other pages'
   await userEvent.click(screen.getByRole('link', { name: 'Do pokoju' }));
   expect(await screen.findByRole('link', { name: 'Wróć do nauki' })).toBeInTheDocument();
 });
+
+it('changes scenery with navigation while keeping it decorative and page controls accessible', async () => {
+  const { container } = renderWithAuth(
+    <Route element={<SiteLayout />}>
+      <Route path="/dashboard" element={<><h1>Panel</h1><Link to="/ranking">Sprawdź wyniki</Link></>} />
+      <Route path="/ranking" element={<><h1>Wyniki</h1><input aria-label="Szukaj gracza" /></>} />
+    </Route>,
+    '/dashboard',
+  );
+  const main = screen.getByRole('main');
+  expect(main).toHaveAttribute('data-scene', 'dashboard');
+  expect(main.style.getPropertyValue('--scene-light')).toContain('dashboard-light.webp');
+  const backdrop = container.querySelector('.page-backdrop');
+  expect(backdrop).toHaveAttribute('aria-hidden', 'true');
+  expect(backdrop?.querySelector('button, a, input, [tabindex]')).toBeNull();
+  await userEvent.click(screen.getByRole('link', { name: 'Sprawdź wyniki' }));
+  expect(main).toHaveAttribute('data-scene', 'ranking');
+  expect(main.style.getPropertyValue('--scene-dark')).toContain('ranking-dark.webp');
+  const input = screen.getByRole('textbox', { name: 'Szukaj gracza' });
+  await userEvent.type(input, 'Bit');
+  expect(input).toHaveValue('Bit');
+  expect(input).toHaveFocus();
+});

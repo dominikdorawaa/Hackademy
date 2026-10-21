@@ -231,7 +231,7 @@ describe("isolated emulator lifecycle and grading", () => {
     replacement.control("CONTROL_READY");
     expect(replacement.controlMessages).toContain("CHECKPOINT\t0\t4");
     replacement.prompt();
-    expect(events).toContainEqual({ type: "progress", step: 4 });
+    expect(events).toContainEqual({ type: "progress", step: 4, restored: true });
     expect(emulator.destroy).toHaveBeenCalledOnce();
     await runtime.handle({ type: "stop" });
   });
@@ -456,7 +456,7 @@ describe("account course workshops", () => {
     const emulator = context.emulators[0];
     emulator.control("CONTROL_READY");
     expect(emulator.controlMessages).toContain("RESTORE\t0\tb2xk");
-    expect(context.events).toContainEqual({ type: "progress", step: 7 });
+    expect(context.events).toContainEqual({ type: "progress", step: 7, restored: true });
   });
   it("credits result steps already completed out of order as soon as they become active", async () => {
     const context = setup();

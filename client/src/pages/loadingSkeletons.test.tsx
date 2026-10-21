@@ -89,7 +89,7 @@ describe('player pages show skeletons while loading', () => {
     mount('/ranking', '/ranking', <RankingPage />);
     expect(expectSkeleton('Ładowanie rankingów').querySelectorAll('[data-skeleton]')).toHaveLength(22);
     await pending.release();
-    expect(await screen.findByText('Ranking Punktowy')).toBeInTheDocument();
+    expect(await screen.findByText('Ranking nauki')).toBeInTheDocument();
     expect(screen.queryByRole('status', { name: 'Ładowanie rankingów' })).not.toBeInTheDocument();
   });
 

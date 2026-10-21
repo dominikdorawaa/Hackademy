@@ -279,9 +279,10 @@ describe("prototype interface", () => {
     view.unmount();
   });
   it("finishes saving course files before terminating a worker on route navigation", async () => {
+    const progress = vi.fn();
     function CourseWorkshop() {
       const ref = useRef<HTMLDivElement>(null);
-      const workshop = useWorkshop(ref, { account: "alice", variant: "lab" });
+      const workshop = useWorkshop(ref, { account: "alice", variant: "lab", onProgress: progress });
       return (
         <>
           <div ref={ref} />
@@ -294,6 +295,10 @@ describe("prototype interface", () => {
     const view = render(<CourseWorkshop />);
     const worker = await start();
     worker.emit({ type: "status", status: "ready" });
+    worker.emit({ type: "progress", step: 5, restored: true });
+    expect(progress).toHaveBeenLastCalledWith(5, true);
+    worker.emit({ type: "progress", step: 6 });
+    expect(progress).toHaveBeenLastCalledWith(6, false);
     worker.emit({ type: "dirty" });
     view.unmount();
     expect(worker.postMessage).toHaveBeenLastCalledWith({ type: "stop" });

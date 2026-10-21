@@ -193,7 +193,7 @@ export class UkosRuntime {
       this.checkpoint = this.step;
     const useBootState =
       Boolean(files?.["boot-state.bin.zst"]) && !this.start.coldBoot;
-    this.emit({ type: "progress", step: this.step });
+    this.emit({ type: "progress", step: this.step, restored: true });
     const control = new LineDecoder((line) => {
       void this.control(line);
     });

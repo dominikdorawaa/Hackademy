@@ -1,5 +1,5 @@
 import { setClerkSession } from '../test/clerk';
-import { screen } from '@testing-library/react';
+import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
@@ -23,6 +23,7 @@ function mount(tasks: RoomTaskDto[]) {
 }
 
 const completedRoom = { success: true, message: 'Poprawna odpowiedź! Pokój ukończony!', pointsEarned: 50, newBadges: [] };
+const bit = () => document.querySelector('.room-mascot-zone');
 
 describe('task room completion', () => {
   it('strips active HTML from legacy task content while retaining formatting and newlines', async () => {
@@ -176,13 +177,16 @@ describe('CTF room', () => {
     await user.type(input, 'zla');
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     expect(await screen.findByText('Niepoprawna flaga')).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-state', 'idle');
     await user.clear(input);
     await user.type(input, 'HA-ok');
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     expect(await screen.findByText('Misja zakończona sukcesem!')).toBeInTheDocument();
     expect(document.querySelector('.success-flag .pixel-sprite')).toBeInTheDocument();
     expect(screen.getByText('+50')).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-state', 'idle');
     await user.click(screen.getByRole('button', { name: 'Kontynuuj' }));
+    expect(bit()).toHaveAttribute('data-state', 'jump');
     expect(screen.queryByText('Misja zakończona sukcesem!')).not.toBeInTheDocument();
     expect(screen.getByText('Rozwiązania:')).toHaveTextContent('Rozwiązania: 4');
   });
@@ -194,6 +198,7 @@ describe('CTF room', () => {
     await user.type(await screen.findByPlaceholderText('Wklej flagę tutaj...'), 'x');
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     expect(await screen.findByText('Błąd sieci')).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-state', 'idle');
   });
 
   it('unlocks hints in order after confirming the point cost', async () => {
@@ -235,6 +240,75 @@ describe('CTF room', () => {
     expect(screen.getByText('Zajrzyj do źródła strony')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Odblokuj (Trening)' })).toBeEnabled();
     expect(screen.queryByText('Punkty do zdobycia:')).not.toBeInTheDocument();
+  });
+});
+
+describe('Bit room integration', () => {
+  it('keeps the reserved zone outside long content, questions and expanded hints', async () => {
+    mountCtf({ description: 'Długa treść '.repeat(1000), unlockedHintIds: [1, 2], requiresVpn: true, title: 'Tutorial VPN' });
+    await screen.findByRole('heading', { name: 'Tutorial VPN' });
+    expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(bit()?.closest('.room-pane')?.querySelector('.room-pane-scroll')).toHaveTextContent('Długa treść');
+    expect(bit()?.closest('.room-pane-scroll')).toBeNull();
+    expect(bit()?.querySelector('button, input, .room-prose, .room-hints')).toBeNull();
+    expect(screen.getByText('Szukaj komentarza')).toBeInTheDocument();
+  });
+
+  it('reacts to a new task once, preserves its state when changing tasks and ignores restored completion', async () => {
+    const tasks = [
+      { id: 1, title: 'Pytanie', content: 'Treść '.repeat(1000), question: 'Co wpiszesz?', completed: false },
+      { id: 2, title: 'Lektura', content: 'Druga treść', question: null, completed: false },
+    ];
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/1/solve`, () => HttpResponse.json({ success: true, message: 'Poprawna odpowiedź!' })));
+    mount(tasks);
+    const user = userEvent.setup();
+    const input = await screen.findByRole('textbox', { name: 'Co wpiszesz?' });
+    expect(bit()?.previousElementSibling).toHaveClass('room-reader');
+    expect(bit()).toHaveAttribute('data-state', 'idle');
+    await user.type(input, 'pwd');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+    await waitFor(() => expect(bit()).toHaveAttribute('data-state', 'jump'));
+    const reaction = bit()?.getAttribute('data-reaction');
+    await user.click(screen.getByRole('button', { name: 'Dalej' }));
+    expect(await screen.findByRole('heading', { name: '02. Lektura' })).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-reaction', reaction);
+  });
+
+  it('does not celebrate previously completed tasks or unsuccessful task writes', async () => {
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/2/solve`, () => HttpResponse.json({ success: false, message: 'Zapis nieudany' })));
+    mount([
+      { id: 1, title: 'Zrobione', content: 'Treść', question: null, completed: true },
+      { id: 2, title: 'Nowe', content: 'Treść', question: null, completed: false },
+    ]);
+    expect(await screen.findByRole('heading', { name: '02. Nowe' })).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-state', 'idle');
+    await userEvent.click(screen.getByRole('button', { name: 'Oznacz jako przeczytane' }));
+    expect(await screen.findByText('Zapis nieudany')).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(screen.getByRole('button', { name: 'Oznacz jako przeczytane' })).toBeEnabled();
+  });
+
+  it('does not celebrate training repeats of an already solved CTF', async () => {
+    server.use(http.post(`${API_URL}/api/rooms/7/solve`, () => HttpResponse.json({ success: true, message: 'Trening', pointsEarned: 0 })));
+    mountCtf({ solved: true, requiresVpn: true, title: 'Tutorial VM' });
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Rozwiąż ponownie (Trening)' }));
+    expect(bit()).toHaveAttribute('data-state', 'idle');
+    await user.type(screen.getByPlaceholderText('Wklej flagę tutaj...'), 'HA-ok');
+    await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
+    await user.click(await screen.findByRole('button', { name: 'Kontynuuj' }));
+    expect(bit()).toHaveAttribute('data-state', 'idle');
+  });
+
+  it('does not treat an unsuccessful flag response as a completion even with HTTP 200', async () => {
+    server.use(http.post(`${API_URL}/api/rooms/7/solve`, () => HttpResponse.json({ success: false, message: 'Nie zapisano' })));
+    mountCtf();
+    const user = userEvent.setup();
+    await user.type(await screen.findByPlaceholderText('Wklej flagę tutaj...'), 'HA-ok');
+    await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
+    expect(await screen.findByText('Nie zapisano')).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(screen.queryByText('Misja zakończona sukcesem!')).not.toBeInTheDocument();
   });
 });
 

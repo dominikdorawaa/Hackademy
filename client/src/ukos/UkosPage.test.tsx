@@ -24,8 +24,8 @@ const draw = () =>
   );
 beforeEach(() => {
   desktop = true;
-  vi.stubGlobal("matchMedia", () => ({
-    matches: desktop,
+  vi.stubGlobal("matchMedia", (query: string) => ({
+    matches: query.includes("prefers-reduced-motion") ? false : desktop,
     addEventListener: vi.fn(),
     removeEventListener: vi.fn(),
   }));
@@ -35,6 +35,7 @@ beforeEach(() => {
     error: "",
     storageError: "",
     syncing: false,
+    successCount: 0,
     synchronized: true,
     progress: vi.fn(),
     sync: vi.fn(),
@@ -180,6 +181,35 @@ it("disables the mobile terminal and exposes sync failures", () => {
   ).toBeDisabled();
   fireEvent.click(screen.getByRole("button", { name: "Ponów synchronizację" }));
   expect(course.sync).toHaveBeenCalled();
+  expect(document.querySelector('.room-mascot-zone')).toHaveAttribute('data-state', 'idle');
+});
+
+it("keeps Bit under lesson six outside the terminal, celebrates only confirmed progress and ignores review", () => {
+  vi.useFakeTimers();
+  course = { ...course, completed: 5, state: { completedSteps: 5 } };
+  workshop = { ...workshop, step: 5 };
+  const view = draw();
+  fireEvent.click(screen.getByRole("button", { name: "Kontynuuj ćwiczenia" }));
+  const zone = () => document.querySelector('.room-mascot-zone');
+  expect(screen.getByRole('heading', { name: 'Miejsce na sprawy w toku' })).toBeInTheDocument();
+  expect(zone()?.closest('.zero-lesson-pane')).not.toBeNull();
+  expect(zone()?.closest('.zero-terminal-pane, .zero-start, .room-pane-scroll')).toBeNull();
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  fireEvent.click(screen.getByRole('button', { name: 'Podpowiedź' }));
+  act(() => options?.onProgress?.(6, true));
+  expect(course.progress).toHaveBeenCalledWith(6, true);
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  workshop = { ...workshop, status: 'ready', step: 6 };
+  view.rerender(<MemoryRouter><UkosPage /></MemoryRouter>);
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  course = { ...course, completed: 6, state: { completedSteps: 6 }, successCount: 1 };
+  view.rerender(<MemoryRouter><UkosPage /></MemoryRouter>);
+  expect(zone()).toHaveAttribute('data-state', 'jump');
+  act(() => vi.advanceTimersByTime(640));
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  fireEvent.click(screen.getByRole('button', { name: 'Wstecz' }));
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  expect(zone()?.closest('.zero-lesson-pane')).not.toBeNull();
 });
 it("shows how much of Linux is downloaded and then waits for the system to boot", () => {
   workshop = { ...workshop, status: "booting" };

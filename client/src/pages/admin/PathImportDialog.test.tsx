@@ -68,7 +68,7 @@ describe('learning path import', () => {
     const { user } = await open();
     expect(screen.getByRole('button', { name: 'Importuj jako szkic' })).toBeDisabled();
     await user.click(screen.getByText('Format i przykładowy plik JSON'));
-    expect(screen.getByLabelText('Przykładowy JSON')).toHaveValue(example);
+    expect(screen.getByLabelText('Przykładowy JSON')).toHaveValue(example.replace(/\r\n/g, '\n'));
     const link = screen.getByRole('link', { name: 'Pobierz przykład' });
     expect(link).toHaveAttribute('download', 'przyklad-sciezki.json');
     expect(decodeURIComponent(link.getAttribute('href')!.split(',')[1])).toBe(example);

@@ -1,0 +1,660 @@
+{
+  "provider": "PixelLab",
+  "createdAt": "2026-10-21T11:45:52.295Z",
+  "sources": "local-prototype-backups/site-backgrounds-v1",
+  "generationLimit": 150,
+  "generationsUsed": 90,
+  "requests": 43,
+  "selectedImages": 36,
+  "processing": "Lossless WebP encoding at the original generated resolution; decoded RGBA pixels verified identical to the generated PNG. No recoloring, resizing or editing of the artwork.",
+  "images": [
+    {
+      "file": "home-dark.webp",
+      "scene": "home",
+      "theme": "dark",
+      "width": 512,
+      "height": 256,
+      "bytes": 19302,
+      "sha256": "cca96b781452b9748872eb99d4dc64c385145d84908664f83edb2327ddfa281b",
+      "sourceSha256": "b38ad540c40a6a52926cd30deff0ee4f34e0ebadd9b3488af0f102f75de7f8cc",
+      "endpoint": "generate-image-v2",
+      "jobId": "e1df2ecc-fe9c-4a93-b426-57ee1f67f584",
+      "seed": 840100,
+      "prompt": "A polished environmental background for the home section of Hackademy, a programming education website. A welcoming futuristic hacker academy campus entrance with geometric stone stairs, blue glass observatory towers, antennae, a few trees and tiny cyan lamps. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets.",
+      "usage": {
+        "type": "generations",
+        "generations": 25
+      }
+    },
+    {
+      "file": "home-light.webp",
+      "scene": "home",
+      "theme": "light",
+      "width": 512,
+      "height": 256,
+      "bytes": 15420,
+      "sha256": "81b3b7cfe70df3c821165cfc2a52ad6896e76626bff09565158dce38c596e482",
+      "sourceSha256": "22a71c529d8b0aeab1728b2e246f60365addb90853de9883ab93098d4a97d8e1",
+      "endpoint": "generate-image-v2",
+      "jobId": "0de8d46c-ab6c-4e8d-8d29-a2017bb52d4a",
+      "seed": 840101,
+      "prompt": "A polished environmental background for the home section of Hackademy, a programming education website. A welcoming futuristic hacker academy campus entrance with geometric stone stairs, blue glass observatory towers, antennae, a few trees and tiny cyan lamps. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets.",
+      "usage": {
+        "type": "generations",
+        "generations": 25
+      }
+    },
+    {
+      "file": "dashboard-dark.webp",
+      "scene": "dashboard",
+      "theme": "dark",
+      "width": 512,
+      "height": 256,
+      "bytes": 24474,
+      "sha256": "3ab2095746b95002fc80817163c00f4466c03c117adf72917cb1a9923a89f7ac",
+      "sourceSha256": "5607fea1e411d82233ee71fcc7f6fbe1444d370ac461774fdc677c8f94f5ba97",
+      "endpoint": "create-image-pixen",
+      "jobId": null,
+      "seed": 840119,
+      "prompt": "A polished environmental background for the dashboard section of Hackademy, a programming education website. An intimate hacker mission control studio with an empty workbench, blank blue monitors, coiled cables, shelves, one coffee mug and an open window overlooking the academy. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "dashboard-light.webp",
+      "scene": "dashboard",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 5578,
+      "sha256": "f633bb70a1dc80dcbd6ea5f5560662fab2766d09284dccfff29500e5d53420c9",
+      "sourceSha256": "aaf069746f21a0f0a6c7474c870b0391f75d20cf13790387ce209a44f8bf30e4",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "1e6e9894-7d1d-4969-becf-20bd162b56d9",
+      "seed": 840120,
+      "prompt": "A polished environmental background for the dashboard section of Hackademy, a programming education website. An intimate hacker mission control studio with an empty workbench, blank blue monitors, coiled cables, shelves, one coffee mug and an open window overlooking the academy. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "learn-light.webp",
+      "scene": "learn",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 9808,
+      "sha256": "aba7ce82e7cd3798457946bb58722e573369f57b418b51061fd04e47b929dfa3",
+      "sourceSha256": "e16a30160dff9fa66b551571502bc8b90c84fdd39b5a3fa811cfb241be11a385",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "793fe52e-539a-46ec-b258-fe52b3bac8a3",
+      "seed": 840139,
+      "prompt": "A polished environmental background for the learn section of Hackademy, a programming education website. An inviting academy learning courtyard with a small library, bookshelves, glowing circuit pathways, benches, trees and blue glass workshop buildings. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "path-dark.webp",
+      "scene": "path",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 14252,
+      "sha256": "11748382e20fc849818cf1a6a8bee953f476686a64d4873d62333774c56b249c",
+      "sourceSha256": "342dbb140292adad00cbdb9c1d73fa319e2abe7d4cb20abb3d5ba14b5fb1df39",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "d5514c85-803c-4b5a-bb32-a33b5da3a866",
+      "seed": 840157,
+      "prompt": "A polished environmental background for the path section of Hackademy, a programming education website. An adventurous path climbing between floating rocky islands connected by small bridges, with circuit pylons, pine trees, distant academy towers and tiny blue beacons. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "path-light.webp",
+      "scene": "path",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 9022,
+      "sha256": "61889850ea5ef393200b60497efbd88777af5bc3a41feea1dbaff8c1dcea85ce",
+      "sourceSha256": "b314c4d38cac9b37528e3ebcda67ef66437cb0496c99ab538038982540bd9bbc",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "b44d8bc1-b436-4219-a050-272f4fa42ffe",
+      "seed": 840158,
+      "prompt": "A polished environmental background for the path section of Hackademy, a programming education website. An adventurous path climbing between floating rocky islands connected by small bridges, with circuit pylons, pine trees, distant academy towers and tiny blue beacons. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "ctf-light.webp",
+      "scene": "ctf",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 10966,
+      "sha256": "02adb1111e296962867018c92a22e1452ef0f1231153637d66dbf79c7ec81c98",
+      "sourceSha256": "ab77797fb7567fb922590b9fc13de3c08575128afe9457814affe8488eef8380",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "84ab4445-f4e8-40ed-b1b7-da280c58259f",
+      "seed": 840177,
+      "prompt": "A polished environmental background for the ctf section of Hackademy, a programming education website. A mysterious capture-the-flag server vault with locked geometric doors, server racks, cable conduits, blue status lamps and one tiny unmarked fabric pennant. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "ukos-dark.webp",
+      "scene": "ukos",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 8678,
+      "sha256": "fa7e0d972cb25f9f8d621ec3365dcf02f27b3474bdba3be8923c4ed8690dd900",
+      "sourceSha256": "674c5a1b03d30d5fbb37963d813493f520b8bb8b11f6cf88e8f69a9727799fea",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "a50fda0c-dbae-43fe-a76d-58875803f7a4",
+      "seed": 840195,
+      "prompt": "A polished environmental background for the ukos section of Hackademy, a programming education website. A practical Linux operations workshop with an empty desk, an old blank CRT monitor, stacked folders, tools, cables, server shelves and a small desk lamp. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "ukos-light.webp",
+      "scene": "ukos",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 7170,
+      "sha256": "460f5fbec26a8e73d034a3434fed96c9649088f5a9a8f67e5ffd4cd1ab8ef55e",
+      "sourceSha256": "5e11a3b3adf47badeed4d0b61444010d0106812219952dca2fc26290bbe53683",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "9119712f-ab61-4e19-b391-a7e7198430cc",
+      "seed": 840196,
+      "prompt": "A polished environmental background for the ukos section of Hackademy, a programming education website. A practical Linux operations workshop with an empty desk, an old blank CRT monitor, stacked folders, tools, cables, server shelves and a small desk lamp. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "arena-dark.webp",
+      "scene": "arena",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 17846,
+      "sha256": "24e43e8e7dedf4087f291735670962934c67110ce19e813fec0ed537712dc6c1",
+      "sourceSha256": "d6df5f8962e6a0383f3e9e0fa9c218912865588a7bd3665d6e4d642931405e07",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "53eaef3a-6c56-454c-935e-20c437ee1903",
+      "seed": 840214,
+      "prompt": "A polished environmental background for the arena section of Hackademy, a programming education website. A stylish hacker dueling gym with a central empty fighting platform, blue-lit geometric arches, training equipment, side platforms and spectator balconies. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "arena-light.webp",
+      "scene": "arena",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 11652,
+      "sha256": "4cfae40d539b7b9ab8b01b87ea6fae83eeb36350c13bdcb8e54bc7238873db55",
+      "sourceSha256": "05d7dded416684f44d1f00e4e8c0c336936a991e063f46e85529fee7a82e3d56",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "6f5d3434-0fa5-4908-bb04-a4106d413c28",
+      "seed": 840215,
+      "prompt": "A polished environmental background for the arena section of Hackademy, a programming education website. A stylish hacker dueling gym with a central empty fighting platform, blue-lit geometric arches, training equipment, side platforms and spectator balconies. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "battle-light.webp",
+      "scene": "battle",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 9994,
+      "sha256": "8b2f0e4ca3b62ce57d6529ebb292872c65cf8fff0809e56d5b1d5c9b0fd9cd22",
+      "sourceSha256": "8013dd99e06e1eccc271b7dec73de971d6484245db05589da51dfbab1f892d75",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "32861edb-d1c7-4917-8dd8-063aa84af17e",
+      "seed": 840234,
+      "prompt": "A polished environmental background for the battle section of Hackademy, a programming education website. A competitive cyber academy tournament hall seen from the upper spectator gallery, with blue spotlights aimed at an empty central arena and angular stands. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "avatar-dark.webp",
+      "scene": "avatar",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 11160,
+      "sha256": "3095076811ef904eaf30f26af215d6c9bc7816462ab3195828b0fb06611b31a8",
+      "sourceSha256": "3abf04e51f5478eed4c4c3c73d3ff20f02ae0b8976c7e5591dde99b0332c37c3",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "cdb13944-e0b0-489f-97f1-9d2e9269bf5a",
+      "seed": 840252,
+      "prompt": "A polished environmental background for the avatar section of Hackademy, a programming education website. A character outfitter workshop with empty jacket racks, gloves on shelves, sneakers, a tall mirror, equipment cases and a blue changing booth. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "avatar-light.webp",
+      "scene": "avatar",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 8634,
+      "sha256": "63b4a6852d1b88002ae3cfee3b5db98b645210744dd5b75fb6f775986d31e506",
+      "sourceSha256": "b7263d6973234784ab529619a13f0f8792afd6492bdabf72db1aa546e3ccb7ba",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "b3d6bdda-864a-41bc-aca5-79c76aea1dfb",
+      "seed": 840253,
+      "prompt": "A polished environmental background for the avatar section of Hackademy, a programming education website. A character outfitter workshop with empty jacket racks, gloves on shelves, sneakers, a tall mirror, equipment cases and a blue changing booth. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "ranking-dark.webp",
+      "scene": "ranking",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 9124,
+      "sha256": "028531ca86f43a8b7762b206b2edc32057653a64ce0e7d34ac4944425848819e",
+      "sourceSha256": "86a1174f2dcac573e9d16094bfbd32e3dfad0dfee79b05d15ca464419b9897df",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "79d7071b-da45-4131-bed1-d7a404f7d2fe",
+      "seed": 840271,
+      "prompt": "A polished environmental background for the ranking section of Hackademy, a programming education website. An academy trophy gallery with three sculpted podium plinths, one golden pixel trophy, silver and bronze trophies, blue banners without markings and illuminated display alcoves. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "ranking-light.webp",
+      "scene": "ranking",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 8462,
+      "sha256": "89182bb248469b0bd938c281b2c53ec2d035b74f35382e139ceb7249a817e900",
+      "sourceSha256": "cb0baaf1e5769927c932c01dde04d942958e9a3505517731c5b0310ef9f37599",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "0d4e57f4-7434-4dcd-94f1-54077b04ce3f",
+      "seed": 840272,
+      "prompt": "A polished environmental background for the ranking section of Hackademy, a programming education website. An academy trophy gallery with three sculpted podium plinths, one golden pixel trophy, silver and bronze trophies, blue banners without markings and illuminated display alcoves. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "profile-dark.webp",
+      "scene": "profile",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 12782,
+      "sha256": "955c2fe7a27ab0064b8f02648af022df62efd66cc96713d833c3aa4e01865bce",
+      "sourceSha256": "affecc04dcec320bb42c1bd6f7ef821acf5550f74915a25a061e2b26006820c9",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "03427243-38bd-42cf-9075-348e3e11d7fb",
+      "seed": 840290,
+      "prompt": "A polished environmental background for the profile section of Hackademy, a programming education website. A personal hacker studio apartment with a small cozy desk, blank picture frames, plants, collectible shelves, a blue jacket hanging on the wall and a city-view window. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "profile-light.webp",
+      "scene": "profile",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 6140,
+      "sha256": "072b5977743f3370004918aeb7a5febbacaac1d6294a61edfbc5110c60ae2c0c",
+      "sourceSha256": "8f6b097ff6f9aaaa465fa35a7102d018962b248068987194a1363e90adbd30f6",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "9e470634-6f78-4d45-92dc-9debc37b498e",
+      "seed": 840291,
+      "prompt": "A polished environmental background for the profile section of Hackademy, a programming education website. A personal hacker studio apartment with a small cozy desk, blank picture frames, plants, collectible shelves, a blue jacket hanging on the wall and a city-view window. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "friends-dark.webp",
+      "scene": "friends",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 9614,
+      "sha256": "62d0f4adb43be7df00abed6e541c3f6457c43aefd18cd8a276c6b52a81674aa0",
+      "sourceSha256": "d737e4a21498e989f6e1b19fb25c018016b681167e2c0b4e0c1e068b6ac09e32",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "4df68cf3-3345-4a52-9212-279c617e08a8",
+      "seed": 840309,
+      "prompt": "A polished environmental background for the friends section of Hackademy, a programming education website. A friendly academy rooftop clubhouse with several empty seats around a low table, gaming controllers, plants, hanging lamps and a distant connected city skyline. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "friends-light.webp",
+      "scene": "friends",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 10230,
+      "sha256": "216dcb3b32fadc24b2e6c3d2ad153c63e76f62baf90a277025fa6dc37f782589",
+      "sourceSha256": "b48192e6475e489f9cd1f73a03062679b7903d324f3fb7d6bcfec8ccd00d3975",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "12564061-6322-442d-89ea-89475551fc96",
+      "seed": 840310,
+      "prompt": "A polished environmental background for the friends section of Hackademy, a programming education website. A friendly academy rooftop clubhouse with several empty seats around a low table, gaming controllers, plants, hanging lamps and a distant connected city skyline. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "settings-dark.webp",
+      "scene": "settings",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 10810,
+      "sha256": "fcefdfffbdc3943dcc72bb992359fced177fe75d03f8dc47c0e494ad809d1fac",
+      "sourceSha256": "55821f7853219c2afa03814f494fb68bf34dcd12f8af74d1690df4c20ab4e7fa",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "f968deb1-d9cb-4994-ae69-704ea3889dcd",
+      "seed": 840328,
+      "prompt": "A polished environmental background for the settings section of Hackademy, a programming education website. An orderly technical calibration workshop with neatly aligned tools, mechanical control dials, spare blue circuit boards, cable spools and equipment drawers. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "settings-light.webp",
+      "scene": "settings",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 8752,
+      "sha256": "4366e3de6d498b2b47176a837881375fca9f2bb134c84b2bf344dab55d7af889",
+      "sourceSha256": "1e777ae78a5ee34f498153215a7b92613bae96ae1bb02dfc1da069d63266a3a9",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "6fea859b-c92c-4e0e-92ac-b9e522dc8be3",
+      "seed": 840329,
+      "prompt": "A polished environmental background for the settings section of Hackademy, a programming education website. An orderly technical calibration workshop with neatly aligned tools, mechanical control dials, spare blue circuit boards, cable spools and equipment drawers. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "auth-light.webp",
+      "scene": "auth",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 8836,
+      "sha256": "c0fe434504fabf999e6d238ae94f9cfd3ff49aa3b9de38398a3ead639541ad29",
+      "sourceSha256": "34d16dd7bc63988d133647615939a119df2956de10dc719d4ba7782afaaa4c4b",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "8e1d7e59-5318-4d78-9487-f6e8cc83c6cb",
+      "seed": 840348,
+      "prompt": "A polished environmental background for the auth section of Hackademy, a programming education website. A welcoming futuristic academy entry checkpoint with open geometric security gates, small access scanners, potted plants and a bright blue doorway. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "onboarding-light.webp",
+      "scene": "onboarding",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 10870,
+      "sha256": "15bf0c863d8c329447feaf41a930c8fd5c8a878a6d6e262c263ded6effcd99d3",
+      "sourceSha256": "e1fc86756e6036e1568f537a70ac9c903dba41eb0dc2178ad1f2f3b74f4a199b",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "42f2d869-8a8a-421f-8312-9c5304d99c9a",
+      "seed": 840367,
+      "prompt": "A polished environmental background for the onboarding section of Hackademy, a programming education website. A welcoming academy reception courtyard with a small empty guide desk, a round information kiosk with blank screen, geometric paths, trees and a blue-lit entrance. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "legal-dark.webp",
+      "scene": "legal",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 10476,
+      "sha256": "03c30f61e009a11f2b2e03a74baa5d2c5f3667344a0349cd1428468172ba4d83",
+      "sourceSha256": "10f7128db9e15bfb6898f12bb9a5f62a76970b3110e89c6dcbf17589eaa85dda",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "d6ba8ee5-67ce-4004-a024-2d5966516d28",
+      "seed": 840385,
+      "prompt": "A polished environmental background for the legal section of Hackademy, a programming education website. A calm futuristic archive room with orderly document shelves, stacked folders, a small reading desk, a desk lamp and tall geometric windows. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "legal-light.webp",
+      "scene": "legal",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 9290,
+      "sha256": "24da46b20b253220b8a91c434d9f0bcead2c56cd3961a6981f445ecd3722bce2",
+      "sourceSha256": "8660de31243d466297ed3b5c53263ce69cf12184067ad85c1b09a9626d4fb463",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "8a71b137-0e28-4124-8803-80e03ab57273",
+      "seed": 840386,
+      "prompt": "A polished environmental background for the legal section of Hackademy, a programming education website. A calm futuristic archive room with orderly document shelves, stacked folders, a small reading desk, a desk lamp and tall geometric windows. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "notfound-dark.webp",
+      "scene": "notfound",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 5760,
+      "sha256": "c779804e7de9442dac1bf35a3282714c4df7aafb17ab5362162bd4f3bcf86a61",
+      "sourceSha256": "4ab72f02221071d89f98038bf752de0cf803b1b10ebea13799a47eedb2f122e2",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "e1bd0467-a0da-4cf6-922a-2f9fee4dcaa5",
+      "seed": 840404,
+      "prompt": "A polished environmental background for the notfound section of Hackademy, a programming education website. A quiet abandoned network outpost with a short broken bridge, disconnected cable, small empty guard booth and distant glowing academy buildings. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "notfound-light.webp",
+      "scene": "notfound",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 5040,
+      "sha256": "f9fdb443371ee6ad429ed25b13ff1d86987d2f5660584ff5cd788e69968285a2",
+      "sourceSha256": "698224be1c1b22047a8fd8f80232ab2bfdfb6d0f0654d3ec88ebd21c8f85204a",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "94c294a8-0c27-4214-9a45-7be4fe1e8cbb",
+      "seed": 840405,
+      "prompt": "A polished environmental background for the notfound section of Hackademy, a programming education website. A quiet abandoned network outpost with a short broken bridge, disconnected cable, small empty guard booth and distant glowing academy buildings. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "admin-dark.webp",
+      "scene": "admin",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 5602,
+      "sha256": "dd3eda8266179dfca2ec0f20ea7d77e2b3b9683e3933e07d09d6b551d518bd00",
+      "sourceSha256": "c54b37420239b843945131bc5cfdbdab60507e6a9fad6c71b2ce8eb4b4ae7034",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "db2aaa6b-9713-4e89-8509-46eeefb1a244",
+      "seed": 840423,
+      "prompt": "A polished environmental background for the admin section of Hackademy, a programming education website. An academy operations control tower with orderly blank console screens, rolled blueprints, wall panels, tidy equipment racks and a wide window overlooking the campus. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Night atmosphere, deep navy #0f1724 and #151f30, cobalt blue #0b63ff, muted slate, small cyan lamps and restrained warm amber details. No pure black. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool palette: navy blue, dark blue-gray, cobalt and cyan. Walls, desks and props are blue-gray metal, not brown wood. At least 85 percent cool blue tones; tiny amber highlights only. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "admin-light.webp",
+      "scene": "admin",
+      "theme": "light",
+      "width": 400,
+      "height": 200,
+      "bytes": 9424,
+      "sha256": "74e6c86980ed0f54d288bad92c5369ef0f2607ca489dde39a85fd8dc36cfdabd",
+      "sourceSha256": "6edc30a2f316c74cc20e221598045625b609e7fdd7d88dd9a224e414707c77cd",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "7a801bdf-ea63-4891-bbb2-b27301f4f9df",
+      "seed": 840424,
+      "prompt": "A polished environmental background for the admin section of Hackademy, a programming education website. An academy operations control tower with orderly blank console screens, rolled blueprints, wall panels, tidy equipment racks and a wide window overlooking the campus. Panoramic 2D side-view pixel art, crafted 16-bit adventure game environment, consistent chunky pixel clusters, precise hard pixel edges, selective outlines, restrained detail, layered architectural depth. Place the interesting architecture and props mainly in the right third and the far left edge. Keep the central 60 percent and upper-left area calm and spacious with broad simple surfaces for an interface overlay. Clear soft daylight, cool pale blue-gray #e5e7eb and #eef1f6 architecture, white clouds, cobalt blue #0b63ff accents, soft slate shadows, small teal and warm amber details. Bright and airy, never cream. Full-bleed opaque landscape, no vignette, no border. No people, no penguins, no characters, no readable text, no letters, no numbers, no logos, no interface widgets. Strict cool daylight palette: pale blue-gray, white, cobalt and muted teal. Walls, desks and props are blue-gray, not brown or beige. Broad readable pixel clusters, no noise.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "learn-dark.webp",
+      "scene": "learn",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 11742,
+      "sha256": "53e852150b9e518fc6ed05b98de60fc21682070c9fedc39a01ae58e124588951",
+      "sourceSha256": "0b57a71d719b3e8f71f529cc1dbb27892639f7f1d8fb0b337ccd36a05c38ef79",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "3932eb1c-513b-41c4-ae2b-99a648286959",
+      "seed": 841138,
+      "prompt": "A wordless pixel art environment. An empty academy courtyard at night, with blue glass windows, bookshelves visible through open arches, benches, trees and small cyan lamps. All walls are bare navy stone and all doors are plain unmarked metal. No storefronts, no signage, no labels, no text, no people. Wide panoramic 2D side view, crafted 16-bit adventure game background, chunky hard pixel clusters, dark navy and cobalt with tiny amber accents, detailed architecture concentrated along the edges, spacious open middle.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "ctf-dark.webp",
+      "scene": "ctf",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 11348,
+      "sha256": "12661bbaf177ceb7b3f1e3fdd23d5a1e236914812b7a3134181f71b7bc486e6b",
+      "sourceSha256": "3590d04ac39c4c6ee8a4d0dba9b52a0e0e8e3623fa9c63c6790fa74731a2686c",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "cab915d5-d4fc-4f62-b1b4-a1c070194cab",
+      "seed": 841176,
+      "prompt": "A wordless pixel art environment. An empty secure server chamber at night with rows of blue server cabinets, dark metal pillars, cable conduits, small cyan status lamps and broad bare navy walls. No doors with signs, no monitors with content, no signage, no writing, no letters, no logos, no people. Wide panoramic 2D side view, crafted 16-bit adventure game background, chunky hard pixel clusters, dark navy and cobalt with tiny amber accents, detailed architecture concentrated along the edges, spacious open middle.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "battle-dark.webp",
+      "scene": "battle",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 9612,
+      "sha256": "dab4ad7370cb2f53f2a83bf1df20f3ee38aedcb08cefaac9450175ad6ca03e11",
+      "sourceSha256": "947a221955ce1bd648949fe39a8051374121e06b4510953c74225bca760effc0",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "038401e9-3e12-4477-9437-1a2ae6c52587",
+      "seed": 841233,
+      "prompt": "A wordless pixel art environment. An empty indoor fighting stage with blue spectator benches, plain concrete walls, geometric pillars and ceiling spotlights throwing cobalt beams onto the empty stage. All walls are bare and unmarked. No scoreboards, no billboards, no displays, no signage, no numbers, no writing, no people. Wide panoramic 2D side view, crafted 16-bit adventure game background, chunky hard pixel clusters, dark navy and cobalt with tiny amber accents.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "auth-dark.webp",
+      "scene": "auth",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 9958,
+      "sha256": "eeaf411f0474d7043531e95e71abac9b014b2fd12bd3eebf30cf532e7146d916",
+      "sourceSha256": "26f037d48dd1cc9262104943b6ba5293f600213d21944f9da33062cdadd3014f",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "81e96acf-f563-428b-b5f7-724eec56bffc",
+      "seed": 841347,
+      "prompt": "A wordless pixel art environment. An inviting open geometric archway in a futuristic blue stone wall at night. Beyond the arch is a quiet academy garden with trees and cobalt-lit buildings. Plain unmarked blue metal gate panels and small cyan floor lamps. No signs above the arch, no lettering, no plaques, no symbols, no logos, no text, no people. Wide panoramic 2D side view, crafted 16-bit adventure game background, chunky hard pixel clusters, dark navy and cobalt with tiny amber accents, spacious middle.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    },
+    {
+      "file": "onboarding-dark.webp",
+      "scene": "onboarding",
+      "theme": "dark",
+      "width": 400,
+      "height": 200,
+      "bytes": 8976,
+      "sha256": "c46dfee497233601107797a3bac174496f021668145300362b73c90910575147",
+      "sourceSha256": "a3910cd998642607de2b9f42347d1e1d025e7f9befafbcbd3cdeff2b9c8f6891",
+      "endpoint": "create-image-pixflux-background",
+      "jobId": "6f2f7cca-0130-4886-b8f7-fd7998c355c7",
+      "seed": 841366,
+      "prompt": "A wordless pixel art environment. A welcoming empty academy reception courtyard at night with an empty round guide desk under a blue awning, geometric paths, trees and an open illuminated archway. Bare unmarked walls, blank panels, no kiosks with displays, no signs, no plaques, no writing, no letters, no logos, no people. Wide panoramic 2D side view, crafted 16-bit adventure game background, chunky hard pixel clusters, dark navy and cobalt with tiny amber accents, spacious open middle.",
+      "usage": {
+        "type": "generations",
+        "generations": 1
+      }
+    }
+  ]
+}

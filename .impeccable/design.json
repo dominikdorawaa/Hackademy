@@ -3,6 +3,61 @@
   "generatedAt": "2026-10-15T16:09:36+00:00",
   "title": "Design System: Hackademy",
   "extensions": {
+    "ranking": {
+      "scope": "Local existing-world extension for /ranking only; preserves earlier dashboard documentation and global identity.",
+      "sources": [
+        "client/src/pages/RankingPage.tsx",
+        "client/src/pages/RankingPage.css",
+        "client/src/components/room/room.css",
+        "client/src/components/learn/learn.css",
+        "client/src/index.css"
+      ],
+      "surfaceBrief": ".impeccable/surfaces/client-src-pages-rankingpage-tsx.md",
+      "normativeTokens": {
+        "source": "client/src/components/room/room.css: .room-tokens and its light-theme override",
+        "headingsAndNumbers": "--rm-pixel -> var(--font-heading), defined as Jersey 10 with Poppins and sans-serif fallbacks in client/src/index.css",
+        "readingText": "--rm-text -> Archivo, system-ui, sans-serif",
+        "surfaces": [
+          "--rm-ground",
+          "--rm-surface",
+          "--rm-surface-2",
+          "--rm-board",
+          "--rm-field",
+          "--rm-line"
+        ],
+        "textAndActions": [
+          "--rm-ink",
+          "--rm-muted",
+          "--rm-blue",
+          "--rm-blue-hover",
+          "--rm-link"
+        ],
+        "motion": "160ms interactions, a single 480ms stepped numeral reveal, and an 800ms trophy sprite on podium hover/focus. Respect prefers-reduced-motion and the app reduced-motion setting.",
+        "resolution": "Reuse shared CSS values and light-theme overrides; no ranking palette or duplicate primitives."
+      },
+      "components": {
+        "boards": "Two XP/Elo boards with semantic podium lists followed by tables for remaining players. Compact 4px corners, shared tonal surfaces and line separators.",
+        "identity": "Reuse UserAvatar, LeagueIcon and the existing trophy PixelSprite. Gold, shared silver and local bronze podium accents; no new image assets.",
+        "ownStanding": "Solid --rm-blue row with white text; separate own-position tbody when outside a board top ten.",
+        "motivation": "Personal goal targets the closest higher score available in the response. Show exact points to overtake, a score progress bar when the target score is positive and a relevant CTA. Celebrate first place including ties. Podium uses actual ranks, respects ties and never duplicates player entries in the table.",
+        "interaction": "Portrait and username profile links; 2px --rm-link focus outline at 3px offset, white on own row; retry button and learning/Arena links."
+      },
+      "breakpoints": [
+        {
+          "value": "960px",
+          "behavior": "Heading and action group stack; board gap tightens."
+        },
+        {
+          "value": "820px",
+          "behavior": "Boards stack into one column."
+        },
+        {
+          "value": "480px",
+          "behavior": "Narrow padding and score columns; actions share full row width."
+        }
+      ],
+      "verification": "Source-derived documentation. Latest podium/goal pass: 11 RankingPage and 7 loading tests passed, with 100% RankingPage lines and 94.95% branches; typecheck and lint passed. Earlier backend 29 tests passed. Browser surfaces unavailable (CUA []); no rendered visual approval."
+    },
     "scope": "Implemented on the user dashboard only (.user-dashboard, --ud-* tokens). The rest of the app still uses the older global styles.",
     "colorMeta": {
       "brand-blue": {

@@ -38,7 +38,7 @@ describe('CTF JSON import', () => {
     const { user } = await open();
     expect(screen.getByRole('button', { name: 'Importuj jako szkice' })).toBeDisabled();
     await user.click(screen.getByText('Format i przykładowy plik JSON'));
-    expect(screen.getByLabelText('Przykładowy JSON')).toHaveValue(example);
+    expect(screen.getByLabelText('Przykładowy JSON')).toHaveValue(example.replace(/\r\n/g, '\n'));
     const sample = JSON.parse(example) as { rooms: Record<string, unknown>[] };
     expect(sample.rooms.every(room => !('points' in room) && !('tasks' in room))).toBe(true);
     const link = screen.getByRole('link', { name: 'Pobierz przykład' });

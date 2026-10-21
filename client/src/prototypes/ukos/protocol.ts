@@ -62,7 +62,7 @@ export type RuntimeEvent =
     }
   | { type: "output"; bytes: Uint8Array }
   | { type: "prompt"; event: PromptEvent }
-  | { type: "progress"; step: number }
+  | { type: "progress"; step: number; restored?: boolean }
   | { type: "download"; loaded: number; total: number }
   | { type: "dirty" }
   | { type: "saved"; bytes: number; elapsedMs: number; savedAt: number }

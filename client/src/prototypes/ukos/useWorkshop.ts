@@ -8,7 +8,7 @@ export type WorkshopOptions = {
   account: string;
   variant: "lab";
   initialStep?: number;
-  onProgress?: (step: number) => void;
+  onProgress?: (step: number, restored?: boolean) => void;
 };
 
 function attachWebgl(
@@ -143,7 +143,7 @@ export function useWorkshop(
             break;
           case "progress":
             setStep(event.step);
-            optionsRef.current?.onProgress?.(event.step);
+            optionsRef.current?.onProgress?.(event.step, event.restored === true);
             break;
           case "prompt":
             setLastCommand(event.event);

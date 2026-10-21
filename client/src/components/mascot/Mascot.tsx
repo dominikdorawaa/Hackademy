@@ -15,7 +15,7 @@ const DURATION: Record<MascotMood, number> = { idle: 1400, talk: 900, wave: 1000
 export const DANCE_LOOPS = 2;
 export const DANCE_MS = DURATION.scuba * DANCE_LOOPS;
 
-export function Mascot({ mood = 'idle', scale = 2, still = false, className }: { mood?: MascotMood; scale?: number; still?: boolean; className?: string }) {
+export function Mascot({ mood = 'idle', scale = 2, still = false, interactive = true, className }: { mood?: MascotMood; scale?: number; still?: boolean; interactive?: boolean; className?: string }) {
   const [dancing, setDancing] = useState(false);
 
   useEffect(() => {
@@ -28,6 +28,6 @@ export function Mascot({ mood = 'idle', scale = 2, still = false, className }: {
   const sprite = <span className={className ? `mascot ${className}` : 'mascot'} data-mood={shown}>
     <PixelSprite key={shown} sprite={MASCOT_SPRITES[shown]} scale={scale} duration={DURATION[shown]} still={still} />
   </span>;
-  if (still) return sprite;
+  if (still || !interactive) return sprite;
   return <button type="button" className="mascot-dance-button" aria-label="Pingwin Bit, zatańcz" onClick={() => setDancing(true)}>{sprite}</button>;
 }
