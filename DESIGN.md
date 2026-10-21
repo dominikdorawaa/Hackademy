@@ -217,6 +217,7 @@ A navy (or cool grey in light mode) tonal ladder with one saturated brand blue, 
 **Display Font:** Archivo (variable, wdth 62..125, wght 400..800), falling back to system-ui, sans-serif
 **Body Font:** Archivo
 **Label/Mono Font:** none; labels use Archivo at a smaller size
+**Pixel Heading Font:** Jersey 10 (`--font-heading` in `client/src/index.css`, falling back to Poppins). Section headings (`h1`, `h2`) on the dashboard, including the arena panel's "Arena", the mascot's speech and the onboarding titles. Never for body text or numbers.
 
 **Character:** One grotesque used across its width axis. Condensed and heavy, it reads like a stadium scoreboard; at normal width it is a calm, legible reading face.
 
@@ -291,7 +292,10 @@ The greeting sentence in muted field ink, the next room's name at display size, 
 One segment per room in a grid, 10px high with 2px corners and 4px gaps: teal for solved, brand blue for the current room, track colour for the rest. Long paths fall back to a single 10px meter filled by `scaleX`.
 
 ### Standings Card (signature)
-The learner's own profile row, then the rank at rank size, an Elo line with a dotted-underline term button, a today strip (surface fill, 12px 14px padding, today's XP in teal at 1.25rem/800), the XP-gap sentence, the gap bar (8px track, brand-blue fill growing in over 1100ms) with place chips at each end, the ranking window with the learner's row in solid brand blue, a full-ranking link, and the recommended-path card.
+The learner's own profile row, then the rank at rank size with a muted "w rankingu XP" line, a today strip (surface fill, 12px 14px padding, today's XP in teal at 1.25rem/800), the XP-gap sentence, the gap bar (8px track, brand-blue fill growing in over 1100ms) with place chips at each end, the ranking window with the learner's row in solid brand blue, a full-ranking link, the arena panel, and the recommended-path card.
+
+### Arena Panel
+A surface panel (20px padding) inside the standings card, between the ranking window and the recommended path (`client/src/components/arena/ArenaRankPanel.tsx`). Heading "Arena" in the pixel heading font with a "Graj" link to `/arena`; the league's pixel shield at 56px beside the league name (muted label) and the Elo at the level-XP numeral size, followed by the Elo term tooltip; a 10px meter from the current to the next league, flanked by both leagues' 24px shields, with the two thresholds underneath; facts: the place in the Elo ranking and the Elo left to promotion. The top league drops the meter and shows "Najwyższa" instead. Without rank data it shows a dash and a status line, never a guessed league or place. League colour stays on the shields.
 
 ### Term Tooltip
 A dotted-underlined term with a small link-blue info icon. On hover, focus or tap it reveals a floating card (tip ground, 12px 14px padding, label size, line-height 1.5, max 320px) that fades and settles 4px over 140ms.
@@ -319,7 +323,7 @@ Hovering or focusing a username in the standings or friends opens a floating car
 - **Don't** add resting shadows or borders to cards; the floating overlay shadow is for tooltips and previews only.
 - **Don't** use gradients on surfaces, buttons or text.
 - **Don't** use difficulty colours as backgrounds or badge fills; they are label text.
-- **Don't** add a second typeface; vary Archivo's width and weight instead.
+- **Don't** add a second typeface; vary Archivo's width and weight instead. The Jersey 10 pixel heading font is limited to the places listed under Typography.
 - **Don't** set headings or labels in tracked uppercase.
 - **Don't** use decorative icon tiles (an icon in a coloured square or circle); state marks stay small, bare and coloured by state, and icons inside buttons only accompany a text label.
 

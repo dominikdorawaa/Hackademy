@@ -1,5 +1,5 @@
 import { expect, it } from 'vitest';
-import { LEAGUES, leagueFor } from './leagues';
+import { LEAGUES, leagueFor, leagueProgress } from './leagues';
 
 it('places Elo in a league and names the next one', () => {
   expect(leagueFor(500)).toMatchObject({ league: { name: 'Script Kiddie' }, next: { name: 'Skaner', min: 600 } });
@@ -18,4 +18,11 @@ it('keeps the Elo thresholds and gives every league its own icon and colour', ()
   expect(leagueFor(600).league.id).toBe('skaner');
   expect(leagueFor(1199).league.id).toBe('root');
   expect(leagueFor(1200).league.id).toBe('zero-day');
+});
+
+it('measures the way from the league threshold to the next one', () => {
+  expect(leagueProgress(857)).toBeCloseTo(0.285);
+  expect(leagueProgress(800)).toBe(0);
+  expect(leagueProgress(-20)).toBe(0);
+  expect(leagueProgress(1500)).toBe(1);
 });
