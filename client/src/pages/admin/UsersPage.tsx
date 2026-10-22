@@ -45,10 +45,11 @@ export default function UsersPage() {
     }
   }, [sessionKey, page, search]);
 
+  const cancelLoad = useCallback(() => { requestId.current++; }, []);
   useEffect(() => {
     if (sessionKey) void load();
-    return () => { requestId.current++; };
-  }, [sessionKey, load]);
+    return cancelLoad;
+  }, [sessionKey, load, cancelLoad]);
 
   const filtered = users;
 

@@ -1,9 +1,9 @@
 import { setClerkSession } from '../../test/clerk';
 import { Route } from 'react-router-dom';
-import { screen, waitFor, within } from '@testing-library/react';
+import { configure, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { http, HttpResponse } from 'msw';
-import { afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
+import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest';
 import API_URL from '../../apiConfig';
 import { server } from '../../test/mocks/server';
 import { currentUserHandler } from '../../test/mocks/handlers';
@@ -19,7 +19,10 @@ import * as contentApi from '../../services/contentApi';
 
 afterEach(() => vi.restoreAllMocks());
 
+afterAll(() => configure({ asyncUtilTimeout: 1000 }));
+
 beforeAll(() => {
+  configure({ asyncUtilTimeout: 3000 });
   HTMLElement.prototype.hasPointerCapture = () => false;
   HTMLElement.prototype.setPointerCapture = () => {};
   HTMLElement.prototype.releasePointerCapture = () => {};
