@@ -36,4 +36,4 @@ Etap 1 nie zmienia regularnych odpytań HTTP: z kodu dashboardu wynika około 8 
 
 ## Weryfikacja
 
-Backend: 719 testów, 0 błędów, 1 pominięty test opcjonalny. Frontend: 695 testów w 90 plikach, 0 błędów; 91,42% pokrycia linii całego testowanego frontendu, 97,98% w ukierunkowanym zestawie realtime/UKOS. Produkcyjny build, TypeScript i ESLint przeszły. Pokrycie backendu jest zapisane w raporcie JaCoCo; wyniki dla zmienionych klas uzupełnia końcowa weryfikacja PR.
+Backend: 719 testów, 0 błędów, 1 pominięty test opcjonalny. Frontend: 695 testów w 90 plikach, 0 błędów; 91,42% pokrycia linii całego testowanego frontendu, 97,98% w ukierunkowanym zestawie realtime/UKOS. Produkcyjny build, TypeScript i ESLint przeszły. JaCoCo: ClerkUserResolver 100%, ClerkAuthenticationFilter 100%, RoomServiceImpl 100%, DashboardMetrics 100%, DashboardController 94,44%. Dodatkowy test obsługi przeciążenia przeszedł. Testy zasobów Node: 30/30, diff --check bez błędów.

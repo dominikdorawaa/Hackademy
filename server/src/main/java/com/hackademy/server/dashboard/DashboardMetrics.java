@@ -13,7 +13,7 @@ public class DashboardMetrics {
     public Counts read(Long userId) {
         return jdbc.queryForObject("""
                 SELECT EXISTS(SELECT 1 FROM user_solved_rooms s JOIN rooms r ON r.id = s.room_id
-                              WHERE s.user_id = ? AND r.title = 'Tutorial VPN'),
+                              WHERE s.user_id = ? AND r.title IN ('Tutorial VPN', 'Tutorial VM')),
                        COALESCE((SELECT seconds FROM user_weekly_active_time WHERE user_id = ? AND week_key = ?), 0),
                        (SELECT count(*) FROM user_badges WHERE user_id = ?),
                        (SELECT count(*) FROM friendships WHERE (requester_id = ? OR receiver_id = ?) AND status = 'ACCEPTED')
