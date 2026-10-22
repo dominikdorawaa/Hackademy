@@ -27,6 +27,18 @@ import static org.mockito.Mockito.*;
 
 @ExtendWith(MockitoExtension.class)
 class BadgeServiceImplTest {
+    @Test
+    void awardingDuringAProfileReadCannotClearItsCatalogSnapshot() {
+        User learner = user(500);
+        when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "POINTS", 100)));
+        when(userRepository.findById(7L)).thenReturn(java.util.Optional.of(learner));
+        var firstRead = new java.util.concurrent.atomic.AtomicBoolean(true);
+        when(userBadgeRepository.findEarnedBadgeRowsByUserId(7L)).thenAnswer(invocation -> {
+            if (firstRead.getAndSet(false)) service.checkAndAwardBadges(learner);
+            return List.of();
+        });
+        assertEquals(1, service.getAllBadgesWithStatus(7L).size());
+    }
 
     static final Clock TODAY = Clock.fixed(Instant.parse("2026-10-15T12:00:00Z"), ZoneOffset.UTC);
 
