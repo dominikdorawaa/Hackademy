@@ -20,6 +20,10 @@ import * as contentApi from '../../services/contentApi';
 afterEach(() => vi.restoreAllMocks());
 
 beforeAll(() => {
+  HTMLElement.prototype.hasPointerCapture = () => false;
+  HTMLElement.prototype.setPointerCapture = () => {};
+  HTMLElement.prototype.releasePointerCapture = () => {};
+  HTMLElement.prototype.scrollIntoView = () => {};
   class ResizeObserverStub {
     observe() {}
     unobserve() {}
@@ -252,5 +256,102 @@ describe('admin dashboard', () => {
     server.use(http.get(`${API_URL}/api/admin/stats`, () => HttpResponse.json({ message: 'Brak dostępu' }, { status: 403 })));
     mountAdmin('/admin');
     expect(await screen.findByText('Brak dostępu')).toBeInTheDocument();
+  });
+
+  it('pages users on the server and resets to the first page after searching', async () => {
+    signIn('ADMIN');
+    const requests: { page: string; query: string }[] = [];
+    server.use(http.get(`${API_URL}/api/admin/users`, ({ request }) => {
+      const url = new URL(request.url);
+      const page = url.searchParams.get('page') ?? '0';
+      const query = url.searchParams.get('query') ?? '';
+      requests.push({ page, query });
+      return HttpResponse.json({ items: [{ id: Number(page) + 1, username: query || `page${page}`, email: 'fixture@example.com', role: 'USER', createdAt: '2026-10-01T00:00:00' }], page: Number(page), size: 50, hasNext: page === '0' && !query });
+    }));
+    mountAdmin('/admin/users');
+    const user = userEvent.setup();
+    await screen.findByText('page0');
+    expect(screen.getByRole('button', { name: 'Poprzednia' })).toBeDisabled();
+    await user.click(screen.getByRole('button', { name: 'Następna' }));
+    await screen.findByText('page1');
+    expect(screen.getByRole('button', { name: 'Następna' })).toBeDisabled();
+    await user.type(screen.getByRole('textbox', { name: 'Szukaj użytkownika' }), 'selected');
+    await screen.findByText('selected');
+    expect(requests.at(-1)).toEqual({ page: '0', query: 'selected' });
+  });
+
+  it('pages moderation reports without fetching the entire list', async () => {
+    signIn('ADMIN');
+    server.use(http.get(`${API_URL}/api/admin/reports`, ({ request }) => {
+      const page = Number(new URL(request.url).searchParams.get('page'));
+      return HttpResponse.json({ items: [{ id: page + 1, senderId: 1, senderUsername: 'reported', content: `report-page-${page}`, timestamp: '2026-10-01T00:00:00', reported: true }], page, size: 50, hasNext: page === 0 });
+    }));
+    mountAdmin('/admin/reports');
+    await screen.findByText('report-page-0');
+    await userEvent.click(screen.getByRole('button', { name: 'Następna' }));
+    await screen.findByText('report-page-1');
+    expect(screen.getByRole('button', { name: 'Następna' })).toBeDisabled();
+    await userEvent.click(screen.getByRole('button', { name: 'Poprzednia' }));
+    await screen.findByText('report-page-0');
+  });
+
+  it('updates roles and deletes an account from the current page', async () => {
+    signIn('ADMIN');
+    let users = [{ id: 2, username: 'page-user', email: 'page@example.com', role: 'USER', createdAt: '2026-10-01T00:00:00' }];
+    let roleFails = true;
+    server.use(
+      http.get(`${API_URL}/api/admin/users`, () => HttpResponse.json({ items: users, page: 0, size: 50, hasNext: false })),
+      http.put(`${API_URL}/api/admin/users/2/role`, async ({ request }) => {
+        if (roleFails) return HttpResponse.json({ message: 'role refused' }, { status: 500 });
+        const body = await request.json() as { role: string };
+        users = users.map(user => ({ ...user, role: body.role }));
+        return HttpResponse.json(users[0]);
+      }),
+      http.delete(`${API_URL}/api/admin/users/2`, () => { users = []; return new HttpResponse(null, { status: 204 }); }),
+    );
+    mountAdmin('/admin/users');
+    await screen.findByText('page-user');
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('combobox', { name: 'Rola użytkownika page-user' }));
+    await user.click(screen.getByRole('option', { name: 'Ekspert' }));
+    await screen.findByText('role refused');
+    roleFails = false;
+    await user.click(screen.getByRole('combobox', { name: 'Rola użytkownika page-user' }));
+    await user.click(screen.getByRole('option', { name: 'Ekspert' }));
+    await waitFor(() => expect(users[0].role).toBe('EXPERT'));
+    await user.click(screen.getByRole('button', { name: 'Usuń page-user' }));
+    await user.click(await screen.findByRole('button', { name: 'Usuń konto' }));
+    await screen.findByText('Nie znaleziono użytkowników');
+  });
+
+  it('moderates reports from the loaded page and keeps failed actions available to retry', async () => {
+    signIn('ADMIN');
+    const reports = ['dismiss-me', 'delete-me', 'mute-me'].map((content, index) => ({ id: index + 10, senderId: 2, senderUsername: 'reported-user', content, timestamp: '2026-10-01T00:00:00', reported: true }));
+    let deleteFails = true;
+    let muted = false;
+    server.use(
+      http.get(`${API_URL}/api/admin/reports`, () => HttpResponse.json({ items: reports, page: 0, size: 50, hasNext: false })),
+      http.post(`${API_URL}/api/admin/reports/10/dismiss`, () => new HttpResponse(null, { status: 204 })),
+      http.delete(`${API_URL}/api/admin/reports/11`, () => deleteFails ? HttpResponse.json({ message: 'delete refused' }, { status: 500 }) : new HttpResponse(null, { status: 204 })),
+      http.post(`${API_URL}/api/admin/users/2/mute`, () => { muted = true; return new HttpResponse(null, { status: 204 }); }),
+    );
+    mountAdmin('/admin/reports');
+    const user = userEvent.setup();
+    const row = (content: string) => within(screen.getByText(content).closest('tr')!);
+    await screen.findByText('dismiss-me');
+    await user.click(row('dismiss-me').getByRole('button', { name: 'Odrzuć' }));
+    await waitFor(() => expect(screen.queryByText('dismiss-me')).toBeNull());
+    await user.click(row('delete-me').getByRole('button', { name: 'Usuń' }));
+    await user.click(await screen.findByRole('button', { name: 'Usuń wiadomość' }));
+    await screen.findByText('delete refused');
+    deleteFails = false;
+    await user.click(row('delete-me').getByRole('button', { name: 'Usuń' }));
+    await user.click(await screen.findByRole('button', { name: 'Usuń wiadomość' }));
+    await waitFor(() => expect(screen.queryByText('delete-me')).toBeNull());
+    await user.click(row('mute-me').getByRole('button', { name: 'Wycisz' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.click(dialog.getByRole('button', { name: 'Wycisz' }));
+    await waitFor(() => expect(muted).toBe(true));
+    await waitFor(() => expect(screen.queryByText('mute-me')).toBeNull());
   });
 });

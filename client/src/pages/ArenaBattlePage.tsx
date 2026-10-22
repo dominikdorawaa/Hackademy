@@ -7,6 +7,7 @@ import {
 } from '../components/arena/battle/battleView';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
+import { useArenaClock } from '../hooks/useArenaClock';
 import { useArenaSession } from '../hooks/useArenaSession';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
@@ -32,9 +33,9 @@ export default function ArenaBattlePage() {
   const [error, setError] = useState<{ round: number | null; message: string } | null>(null);
   const [confirmSurrender, setConfirmSurrender] = useState(false);
   const [reactionNotice, setReactionNotice] = useState<string | null>(null);
-  const [clock, setClock] = useState({ serverTime: 0, receivedAt: 0, now: 0 });
   const reducedMotion = useReducedMotion();
   const serverTime = session?.serverTime ?? 0;
+  const clock = useArenaClock(serverTime, session?.status === 'ACTIVE');
 
   useEffect(() => {
     if (!sessionKey) return;
@@ -58,14 +59,6 @@ export default function ArenaBattlePage() {
     return () => clearTimeout(timer);
   }, [reactionNotice]);
 
-  useEffect(() => {
-    const update = () => setClock(previous => {
-      const now = Date.now();
-      return previous.serverTime === serverTime ? { ...previous, now } : { serverTime, receivedAt: now, now };
-    });
-    const timer = setInterval(update, 250);
-    return () => clearInterval(timer);
-  }, [serverTime]);
 
   if (!session || meId === null) {
     const failed = identityError === sessionKey && sessionKey !== null;

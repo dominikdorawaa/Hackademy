@@ -23,6 +23,7 @@ public interface UserService {
     ProfilePersonalizationDto getPersonalization(Long userId);
     ProfilePersonalizationDto updateProfile(Long userId, UpdateProfileRequest request);
     List<UserAdminView> findAllUsers();
+    org.springframework.data.domain.Slice<UserAdminView> findUsersPage(int page, int size, String query);
     void deleteUser(Long id);
     UserAdminView updateUserRole(Long id, Role newRole);
     String updateUsername(Long userId, UpdateUsernameRequest request);

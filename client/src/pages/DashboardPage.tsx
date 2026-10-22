@@ -166,7 +166,7 @@ const DashboardPage = () => {
         if (response.ok) {
           const data = await response.json();
           setUserData(data);
-        } else if (response.status === 401 || response.status === 403) {
+        } else if (response.status === 401) {
           logout();
           navigate('/login');
         } else {

@@ -159,6 +159,13 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public org.springframework.data.domain.Slice<UserAdminView> findUsersPage(int page, int size, String query) {
+        String term = query == null ? "" : query.strip();
+        if (term.length() > 64) term = term.substring(0, 64);
+        return userRepository.findAdminPage(term, PageRequest.of(Math.max(0, page), Math.max(1, Math.min(100, size))));
+    }
+
+    @Override
     public List<UserAdminView> findAllUsers() {
         return userRepository.findAll().stream()
                 .map(this::mapUserToUserAdminView)

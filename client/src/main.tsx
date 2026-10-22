@@ -1,3 +1,4 @@
+import { enableDeferredStyles } from './lib/deferredStyles';
 import { ClerkProvider } from '@clerk/react';
 import { StrictMode } from 'react'
 import { createRoot } from 'react-dom/client'
@@ -8,6 +9,8 @@ import { clerkLocalization } from './components/auth/clerkLocalization';
 import './index.css'
 import './styles/landing-experience.css'
 import App from './App'
+
+enableDeferredStyles();
 
 const router = createBrowserRouter([{ path: '*', element: <App /> }]);
 

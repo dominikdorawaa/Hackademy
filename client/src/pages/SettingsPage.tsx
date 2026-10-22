@@ -43,7 +43,7 @@ function eventOutcome(event: SoundEvent, preferences: NotificationPreferences, s
 }
 
 async function responseError(response: ApiResponse<unknown>, fallback: string) {
-  if (response.status === 401 || response.status === 403) return 'Sesja wygasła. Zaloguj się ponownie.';
+  if (response.status === 401) return 'Sesja wygasła. Zaloguj się ponownie.';
   try {
     const body = await response.json() as Record<string, unknown>;
     if (body.message === 'Incorrect current password') return 'Obecne hasło jest nieprawidłowe.';

@@ -1,4 +1,5 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
+import { PageControls } from '../../components/admin/PageControls';
 import { Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -18,27 +19,38 @@ export default function UsersPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const requestId = useRef(0);
+  useEffect(() => {
+    const timer = setTimeout(() => { setSearch(query.trim()); setPage(0); }, 300);
+    return () => clearTimeout(timer);
+  }, [query]);
 
   const load = useCallback(async () => {
+    const generation = ++requestId.current;
     try {
       setLoading(true);
-      setUsers((await adminApi.getUsers(sessionKey)) ?? []);
+      const result = await adminApi.getUsersPage(sessionKey, page, search);
+      if (generation !== requestId.current) return;
+      setUsers(result.items);
+      setHasNext(result.hasNext);
       setError(null);
     } catch (err) {
+      if (generation !== requestId.current) return;
       setError(errorText(err, 'Nie udało się pobrać użytkowników.'));
     } finally {
-      setLoading(false);
+      if (generation === requestId.current) setLoading(false);
     }
-  }, [sessionKey]);
+  }, [sessionKey, page, search]);
 
   useEffect(() => {
     if (sessionKey) void load();
+    return () => { requestId.current++; };
   }, [sessionKey, load]);
 
-  const filtered = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return term ? users.filter((user) => user.username.toLowerCase().includes(term)) : users;
-  }, [users, query]);
+  const filtered = users;
 
   const changeRole = async (userId: number, role: Role) => {
     try {
@@ -52,7 +64,7 @@ export default function UsersPage() {
   const remove = async (userId: number) => {
     try {
       await adminApi.deleteUser(userId, sessionKey);
-      setUsers((current) => current.filter((user) => user.id !== userId));
+      if (users.length === 1 && page > 0) setPage(page - 1); else await load();
     } catch (err) {
       setError(errorText(err, 'Nie udało się usunąć użytkownika.'));
     }
@@ -132,6 +144,7 @@ export default function UsersPage() {
           </Table>
         </div>
       )}
+      <PageControls page={page} hasNext={hasNext} loading={loading} onPage={setPage} />
     </>
   );
 }
