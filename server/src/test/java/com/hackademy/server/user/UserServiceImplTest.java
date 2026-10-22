@@ -326,26 +326,18 @@ class UserServiceImplTest {
     }
 
     @Test
-    void addsClampedActiveSecondsToCurrentWeek() {
-        var id = new UserWeeklyActiveTimeId(1L, ActivityWeek.currentKey());
-        var row = new UserWeeklyActiveTime(1L, ActivityWeek.currentKey(), 100, null);
-        when(userWeeklyActiveTimeRepository.findById(id)).thenReturn(Optional.of(row));
-        when(userWeeklyActiveTimeRepository.save(row)).thenReturn(row);
-
-        assertEquals(160, service.addActiveSecondsThisWeek(1L, 500));
-        assertEquals(160, service.addActiveSecondsThisWeek(1L, -5));
+    void recordsServerActivityWithOneAtomicStatement() {
+        when(userWeeklyActiveTimeRepository.recordActivity(1L, ActivityWeek.currentKey(), true)).thenReturn(60);
+        assertEquals(60, service.recordActivity(1L, true));
+        verify(userWeeklyActiveTimeRepository).recordActivity(1L, ActivityWeek.currentKey(), true);
+        verify(userWeeklyActiveTimeRepository, never()).findById(any());
     }
 
     @Test
-    void startsNewWeekRowAndToleratesMissingTable() {
+    void readsActivityAndToleratesMissingTable() {
         when(userWeeklyActiveTimeRepository.findById(any())).thenReturn(Optional.empty());
-        when(userWeeklyActiveTimeRepository.save(any())).thenAnswer(invocation -> invocation.getArgument(0));
-
-        assertEquals(30, service.addActiveSecondsThisWeek(1L, 30));
         assertEquals(0, service.getActiveSecondsThisWeek(1L));
-
         when(userWeeklyActiveTimeRepository.findById(any())).thenThrow(new IllegalStateException("no table"));
-        assertEquals(0, service.addActiveSecondsThisWeek(1L, 30));
         assertEquals(0, service.getActiveSecondsThisWeek(1L));
     }
 

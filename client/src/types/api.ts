@@ -168,6 +168,8 @@ export interface FriendDto {
   points: number
   streak: number
   online: boolean
+  winsAgainst?: number
+  lossesAgainst?: number
 }
 
 export interface FriendRequestDto {
@@ -451,6 +453,8 @@ export interface RankingSummaryDto {
 
 export interface DashboardUser extends RankingUser {
   hasVpnAccess: boolean
+  onboarding?: OnboardingState
+  notificationPreferences?: import('../services/userApi').NotificationPreferences
 }
 
 export interface DashboardSummaryDto {

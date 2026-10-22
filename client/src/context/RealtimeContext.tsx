@@ -89,7 +89,7 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
         setSession(previous => ({ ...previous, connected: false }));
       },
     });
-    const resume = () => { if (document.visibilityState === 'visible') void sync(); };
+    const resume = () => { if (document.visibilityState === 'visible' && !latest) void sync(); };
     document.addEventListener('visibilitychange', resume);
     connection.start();
     return () => {

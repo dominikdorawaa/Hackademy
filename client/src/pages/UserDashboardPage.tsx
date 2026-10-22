@@ -2,7 +2,8 @@ import UserAvatar from '../components/UserAvatar';
 import ProfilePeek from '../components/ProfilePeek';
 import * as arenaApi from '../services/arenaApi';
 import * as dashboardApi from '../services/dashboardApi';
-import * as friendApi from '../services/friendApi';
+import { useRealtime } from '../context/RealtimeContext';
+import { ROOM_PROGRESS_CHANGED } from '../services/roomApi';
 import * as userApi from '../services/userApi';
 import { levelFromPoints, rankTitleFromPoints } from '../lib/level';
 import { formatRelativeTimePL } from '../lib/relativeTime';
@@ -15,7 +16,7 @@ import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
 import { ArenaRankPanel } from '../components/dashboard/ArenaRankPanel';
-import type { DashboardUser, FriendDto, UserSearchDto, RankingEntry, RecentSolvedRoomDto, PathSummaryDto, PathProgressDto, PathRoomMiniDto } from '../types/api';
+import type { DashboardUser, RankingEntry, RecentSolvedRoomDto, PathSummaryDto, PathProgressDto, PathRoomMiniDto } from '../types/api';
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
@@ -124,9 +125,10 @@ const UserDashboardPage = () => {
   const [activeSecondsThisWeek, setActiveSecondsThisWeek] = useState(0);
   const [badgesEarnedCount, setBadgesEarnedCount] = useState(0);
   const [friendsCount, setFriendsCount] = useState(0);
-  const [friends, setFriends] = useState<FriendDto[] | null>(null);
-  const [friendsFailed, setFriendsFailed] = useState(false);
-  const [headToHead, setHeadToHead] = useState<Record<string, UserSearchDto>>({});
+  const { state: realtime, error: realtimeError } = useRealtime();
+  const friends = realtime?.friends ?? null;
+  const friendsFailed = !!realtimeError;
+  const headToHead = Object.fromEntries((friends ?? []).map(friend => [friend.username, friend]));
   const [challenges, setChallenges] = useState<Record<string, ChallengeState>>({});
   const [recommendedPath, setRecommendedPath] = useState<PathSummaryDto | null>(null);
   const [pathsProgress, setPathsProgress] = useState<PathProgressDto[]>([]);
@@ -161,7 +163,8 @@ const UserDashboardPage = () => {
         setUserData(data?.user ?? null);
         setRanking(Array.isArray(data?.ranking) ? data.ranking : []);
         setMyRank(data?.myRank ?? null);
-        setRecentSolved(Array.isArray(data?.recentSolved) ? data.recentSolved : []);
+        setRecentWindow(Array.isArray(data?.recentSolved) ? data.recentSolved : []);
+        setRecentSolved(Array.isArray(data?.recentSolved) ? data.recentSolved.slice(0, 3) : []);
         setActiveSecondsThisWeek(Number(data?.activeSecondsThisWeek) || 0);
         setBadgesEarnedCount(Number(data?.badgesEarnedCount) || 0);
         setFriendsCount(Number(data?.friendsCount) || 0);
@@ -213,20 +216,12 @@ const UserDashboardPage = () => {
     const onVisibility = () => {
       if (document.visibilityState === 'visible') refreshRecentSolved();
     };
-    const onFocus = () => refreshRecentSolved();
-
     document.addEventListener('visibilitychange', onVisibility);
-    window.addEventListener('focus', onFocus);
-
-    refreshRecentSolved();
-
-    // Light polling to pick up "just solved" quickly.
-    const interval = window.setInterval(refreshRecentSolved, 15000);
+    window.addEventListener(ROOM_PROGRESS_CHANGED, refreshRecentSolved);
 
     return () => {
       document.removeEventListener('visibilitychange', onVisibility);
-      window.removeEventListener('focus', onFocus);
-      window.clearInterval(interval);
+      window.removeEventListener(ROOM_PROGRESS_CHANGED, refreshRecentSolved);
     };
   }, [sessionKey]);
 
@@ -239,12 +234,11 @@ const UserDashboardPage = () => {
     let inFlight = false;
     let disabled = false;
     const tick = async () => {
-      if (document.visibilityState !== 'visible') return;
       if (disabled) return;
       if (inFlight) return;
       inFlight = true;
       try {
-        const res = await userApi.addActiveTime({ deltaSeconds: 15 }, headers);
+        const res = await userApi.addActiveTime({ active: document.visibilityState === 'visible' }, headers);
         if (res.ok) {
           const data = await res.json();
           setActiveSecondsThisWeek(Number(data?.secondsThisWeek) || 0);
@@ -259,52 +253,14 @@ const UserDashboardPage = () => {
       }
     };
 
-    const interval = window.setInterval(tick, 15000);
-    return () => window.clearInterval(interval);
+    void tick();
+    const interval = window.setInterval(() => { if (document.visibilityState === 'visible') void tick(); }, 60_000);
+    const visibility = () => { void tick(); };
+    document.addEventListener('visibilitychange', visibility);
+    return () => { window.clearInterval(interval); document.removeEventListener('visibilitychange', visibility); };
   }, [sessionKey]);
 
-  useEffect(() => {
-    if (!sessionKey) return;
-    let cancelled = false;
-    const headers = {sessionKey,
-    };
 
-    const loadFriends = async () => {
-      try {
-        const res = await friendApi.getFriends(headers);
-        if (!res.ok) throw new Error('friends');
-        const data = await res.json();
-        const list = (Array.isArray(data) ? data : []).sort((a, b) => (b?.points || 0) - (a?.points || 0));
-        if (cancelled) return;
-        setFriends(list);
-
-        const shown = list.slice(0, FRIENDS_SHOWN);
-        const results = await Promise.all(
-          shown.map(async (f) => {
-            try {
-              const r = await friendApi.getStats(f.username, headers);
-              return r.ok ? await r.json() : null;
-            } catch {
-              return null;
-            }
-          }),
-        );
-        if (cancelled) return;
-        const map: Record<string, UserSearchDto> = {};
-        results.forEach((r) => {
-          if (r) map[r.username] = r;
-        });
-        setHeadToHead(map);
-      } catch {
-        if (!cancelled) setFriendsFailed(true);
-      }
-    };
-
-    loadFriends();
-    return () => {
-      cancelled = true;
-    };
-  }, [sessionKey]);
 
   const challenge = async (username: string) => {
     setChallenges((c) => ({ ...c, [username]: 'sending' }));
@@ -637,7 +593,7 @@ const UserDashboardPage = () => {
               <ul className="ud-friend-list">
                 {friends.slice(0, FRIENDS_SHOWN).map((f) => {
                   const h2h = headToHead[f.username];
-                  const played = h2h ? h2h.winsAgainst + h2h.lossesAgainst : 0;
+                  const played = h2h ? (h2h.winsAgainst ?? 0) + (h2h.lossesAgainst ?? 0) : 0;
                   const state = challenges[f.username];
                   return (
                     <li key={f.id} className="ud-friend">

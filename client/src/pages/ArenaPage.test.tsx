@@ -41,12 +41,13 @@ it('lets a player with no XP look for an opponent', async () => {
 it('shows Elo, its position and friends with their duel record', async () => {
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900, hasVpnAccess: true })),
-    http.get(`${API_URL}/api/ranking/summary`, () => HttpResponse.json({ ranking: [], user: null, myRank: { username: 'tester', points: 900, elo: 1086, rankPoints: 4, rankElo: 9 } })),
+    http.get(`${API_URL}/api/ranking/me`, () => HttpResponse.json({ username: 'tester', points: 900, elo: 1086, rankPoints: 4, rankElo: 9 })),
     http.get(`${API_URL}/api/friends`, () => HttpResponse.json([{ id: 2, username: 'ola', points: 860, streak: 0 }, { id: 3, username: 'kuba', points: 120, streak: 0 }])),
     http.get(`${API_URL}/api/friends/stats/:name`, ({ params }) => params.name === 'ola'
       ? HttpResponse.json({ id: 2, username: 'ola', points: 860, friendshipStatus: 'FRIENDS', winsAgainst: 2, lossesAgainst: 1 })
       : HttpResponse.json({ message: 'Brak' }, { status: 404 })),
   );
+  realtime.value.state = state({ friends: [{ id: 2, username: 'ola', points: 860, streak: 0, online: true, winsAgainst: 2, lossesAgainst: 1 }, { id: 3, username: 'kuba', points: 120, streak: 0, online: false }] });
   mount();
   expect(await screen.findByText('1086')).toBeInTheDocument();
   expect(screen.getByText(/#9 w rankingu Elo/)).toBeInTheDocument();
@@ -77,6 +78,7 @@ it('challenges a friend and explains a refused challenge next to the friend', as
       return body.targetUsername === 'ola' ? HttpResponse.json({ message: 'ok' }) : HttpResponse.json({ message: 'Gracz jest offline.' }, { status: 400 });
     }),
   );
+  realtime.value.state = { ...realtime.value.state!, friends: [{ id: 2, username: 'ola', points: 860, streak: 0, online: true }, { id: 3, username: 'kuba', points: 120, streak: 0, online: true }] };
   mount();
   const friendsPanel = (await screen.findByRole('heading', { name: 'Wyzwij znajomego' })).closest('section')!;
   const rows = await within(friendsPanel).findAllByRole('listitem');
@@ -96,6 +98,7 @@ it('keeps the queue open while a challenge waits and lets the player take it bac
     http.get(`${API_URL}/api/friends/stats/:name`, () => HttpResponse.json({ message: 'x' }, { status: 500 })),
     http.post(`${API_URL}/api/arena/challenge/:id/cancel`, () => { cancelled = true; return HttpResponse.json({ message: 'ok' }); }),
   );
+  realtime.value.state = { ...realtime.value.state!, friends: [{ id: 2, username: 'ola', points: 860, streak: 0, online: true }, { id: 3, username: 'kuba', points: 120, streak: 0, online: true }] };
   mount();
   const sent = await screen.findByRole('list', { name: 'Wysłane wyzwania' });
   expect(sent).toHaveTextContent('Czekasz na odpowiedź od ola');
@@ -142,10 +145,11 @@ it('reports a refused queue join and returns to an active match', async () => {
 });
 
 it('explains when friends cannot be loaded', async () => {
+  realtime.value = { ...realtime.value, state: null, error: 'unavailable' as never };
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
     http.get(`${API_URL}/api/friends`, () => HttpResponse.json({ message: 'x' }, { status: 500 })),
-    http.get(`${API_URL}/api/ranking/summary`, () => HttpResponse.error()),
+    http.get(`${API_URL}/api/ranking/me`, () => HttpResponse.error()),
   );
   mount();
   expect(await screen.findByText('Nie udało się wczytać znajomych. Odśwież stronę, żeby spróbować ponownie.')).toBeInTheDocument();
@@ -164,6 +168,7 @@ it('lets a player with no XP challenge a friend', async () => {
     http.get(`${API_URL}/api/friends/stats/:name`, () => HttpResponse.error()),
     http.post(`${API_URL}/api/arena/challenge/create`, async ({ request }) => { bodies.push(await request.json()); return HttpResponse.json({ message: 'ok' }); }),
   );
+  realtime.value.state = state({ friends: [{ id: 2, username: 'ola', points: 860, streak: 0, online: true }] });
   mount();
   const friendsPanel = (await screen.findByRole('heading', { name: 'Wyzwij znajomego' })).closest('section')!;
   const challenge = await within(friendsPanel).findByRole('button', { name: 'Wyzwij' });
@@ -217,39 +222,13 @@ it('drops the old account error while a new session loads the Arena', async () =
   expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
 });
 
-it('shows placeholder rows while friends load', async () => {
-  let release!: () => void;
-  const gate = new Promise<void>(resolve => { release = resolve; });
-  server.use(
-    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
-    http.get(`${API_URL}/api/friends`, async () => { await gate; return HttpResponse.json([]); }),
-  );
-  mount();
-  const rows = await screen.findByRole('status', { name: 'Wczytuję znajomych' });
-  expect(rows.querySelectorAll('.ud-friend')).toHaveLength(3);
-  release();
-  expect(await screen.findByText(/Nie masz jeszcze znajomych/)).toBeInTheDocument();
-  expect(screen.queryByRole('status', { name: 'Wczytuję znajomych' })).not.toBeInTheDocument();
-});
-
-it('shows loading states, then a confirmed empty record separately from an unavailable one', async () => {
-  let releaseRank!: () => void;
-  let releaseStats!: () => void;
-  const rankGate = new Promise<void>(resolve => { releaseRank = resolve; });
-  const statsGate = new Promise<void>(resolve => { releaseStats = resolve; });
-  server.use(
-    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
-    http.get(`${API_URL}/api/ranking/summary`, async () => { await rankGate; return HttpResponse.json({ ranking: [], user: null, myRank: null }); }),
-    http.get(`${API_URL}/api/friends`, () => HttpResponse.json([{ id: 2, username: 'ola', points: 860, streak: 0 }])),
-    http.get(`${API_URL}/api/friends/stats/:name`, async () => { await statsGate; return HttpResponse.json({ id: 2, username: 'ola', points: 860, friendshipStatus: 'FRIENDS', winsAgainst: 0, lossesAgainst: 0 }); }),
-  );
-  mount();
-  expect(await screen.findByText('Wczytuję Elo…')).toBeInTheDocument();
-  expect(await screen.findByText('Wczytuję bilans…')).toBeInTheDocument();
-  releaseStats();
+it('shows placeholders until the combined realtime roster arrives', async () => {
+  realtime.value.state = null;
+  const view = mount();
+  expect(await screen.findByRole('status', { name: 'Wczytuję znajomych' })).toBeInTheDocument();
+  realtime.value.state = state({ friends: [{ id: 2, username: 'ola', points: 860, streak: 0, online: true, winsAgainst: 0, lossesAgainst: 0 }] });
+  view.rerender(<MemoryRouter><AuthProvider><ArenaPage /></AuthProvider></MemoryRouter>);
   expect(await screen.findByText('Jeszcze bez pojedynku')).toBeInTheDocument();
-  releaseRank();
-  expect(await screen.findByText('Nie udało się wczytać Elo')).toBeInTheDocument();
 });
 
 it('runs the player avatar while searching for an opponent and keeps the status announced', async () => {
