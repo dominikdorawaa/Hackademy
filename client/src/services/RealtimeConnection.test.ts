@@ -30,6 +30,9 @@ describe('realtime transport', () => {
     expect(client.config.reconnectDelay).toBeLessThan(5000);
     expect(client.config.reconnectTimeMode).toBe(1);
     expect(client.config.heartbeatStrategy).toBe('worker');
+    expect(client.config.heartbeatIncoming).toBe(10_000);
+    expect(client.config.heartbeatToleranceMultiplier).toBe(7);
+    expect(Math.max(client.config.heartbeatIncoming!, 10_000)).toBeLessThan(55_000);
     expect(client.config.discardWebsocketOnCommFailure).toBe(true);
     client.config.onConnect?.({} as IFrame);
     expect(client.subscribe.mock.calls[0][0]).toBe('/user/queue/realtime');
