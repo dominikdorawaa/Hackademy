@@ -16,6 +16,9 @@ import java.util.Optional;
 
 @Repository
 public interface RoomRepository extends JpaRepository<Room, Long> {
+    @org.springframework.data.jpa.repository.Modifying
+    @Query("UPDATE Room r SET r.solutionsCount = r.solutionsCount + 1 WHERE r.id = :id")
+    int incrementSolutions(@Param("id") Long id);
     @Query("SELECT r.title FROM Room r WHERE r.roomType = :roomType AND r.title IN :titles")
     List<String> findExistingTitles(@Param("roomType") RoomType roomType, @Param("titles") java.util.Collection<String> titles);
     String VISIBLE = "r.published = true AND NOT EXISTS (SELECT cr.roomId FROM ChapterRoom cr JOIN PathChapter c ON c.id = cr.chapterId JOIN Path p ON p.id = c.pathId WHERE cr.roomId = r.id AND p.published = false)";

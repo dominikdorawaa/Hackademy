@@ -29,6 +29,14 @@ import static org.mockito.Mockito.when;
 
 @ExtendWith(MockitoExtension.class)
 class ClerkUserResolverTest {
+    @Test
+    void resolvesAnUnchangedLinkedAccountWithoutTakingTheWriteLock() {
+        var user = user(1L, "user_1", "a@example.com");
+        when(userRepository.findByClerkUserId("user_1")).thenReturn(Optional.of(user));
+        assertSame(user, resolver.resolve(jwt("user_1", Map.of("email", "a@example.com", "email_verified", true))));
+        verify(userRepository, never()).findByClerkUserIdForUpdate(any());
+        verify(transactionManager, never()).getTransaction(any());
+    }
 
     @Mock com.hackademy.server.user.AccountDeletionRepository deletions;
     @Mock org.springframework.transaction.PlatformTransactionManager transactionManager;
@@ -149,7 +157,7 @@ class ClerkUserResolverTest {
 
     @Test
     void rollsBackCreationWhenDeletionWonAConcurrentFirstSignIn() {
-        when(deletions.existsByClerkUserId("user_new")).thenReturn(false, true);
+        when(deletions.existsByClerkUserId("user_new")).thenReturn(false, false, true);
         when(usernameGenerator.generate()).thenReturn("gracz123456");
         when(userRepository.saveAndFlush(any(User.class))).thenAnswer(invocation -> invocation.getArgument(0));
         assertThrows(BadCredentialsException.class, () -> resolver.resolve(jwt("user_new", Map.of("email", "new@example.com", "email_verified", true))));

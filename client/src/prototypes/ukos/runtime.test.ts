@@ -309,6 +309,9 @@ describe("isolated emulator lifecycle and grading", () => {
       cols: 80,
       rows: 24,
     });
+    await vi.advanceTimersByTimeAsync(120000);
+    expect(first.emulators[0].destroy).not.toHaveBeenCalled();
+    first.emulators[0].listeners.get("emulator-loaded")?.(0);
     await vi.advanceTimersByTimeAsync(45001);
     expect(first.emulators[0].destroy).toHaveBeenCalledOnce();
     expect(first.events).toContainEqual(

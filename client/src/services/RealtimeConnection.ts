@@ -1,4 +1,4 @@
-import { Client } from '@stomp/stompjs';
+import { Client, ReconnectionTimeMode, TickerStrategy } from '@stomp/stompjs';
 import SockJS from 'sockjs-client';
 import { sessionToken } from './http';
 import API_URL from '../apiConfig';
@@ -27,10 +27,14 @@ export class RealtimeConnection {
           await this.stop();
         }
       },
-      reconnectDelay: 5000,
+      reconnectDelay: 1000 + Math.floor(Math.random() * 4000),
+      reconnectTimeMode: ReconnectionTimeMode.EXPONENTIAL,
+      maxReconnectDelay: 60000,
       connectionTimeout: 10000,
-      heartbeatIncoming: 10000,
+      heartbeatIncoming: 70000,
       heartbeatOutgoing: 10000,
+      heartbeatStrategy: TickerStrategy.Worker,
+      discardWebsocketOnCommFailure: true,
       onConnect: () => {
         if (this.stopped) return;
         this.client.subscribe('/user/queue/realtime', message => {
@@ -55,6 +59,6 @@ export class RealtimeConnection {
 
   stop() {
     this.stopped = true;
-    return this.client.deactivate();
+    return this.client.deactivate({ force: true });
   }
 }

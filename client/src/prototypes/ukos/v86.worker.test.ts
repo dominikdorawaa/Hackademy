@@ -97,7 +97,7 @@ it("owns one emulator and checks runtime asset responses", async () => {
     "fetch",
     vi
       .fn()
-      .mockResolvedValue({ ok: true, json: async () => ({ version: "v1" }) }),
+      .mockResolvedValue({ ok: true, json: async () => ({ version: "abcdef0123456789" }) }),
   );
-  expect(await environment.manifest("local")).toEqual({ version: "v1" });
+  expect(await environment.manifest("https://academy.test/prototypes/runtime")).toEqual({ version: "abcdef0123456789", assetBase: "https://academy.test/static/ukos/abcdef0123456789" });
 });

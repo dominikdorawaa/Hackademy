@@ -1,21 +1,16 @@
 package com.hackademy.server.dashboard;
 
 import com.hackademy.server.path.dto.PathRoomMiniDto;
-import com.hackademy.server.ranking.RankingEntry;
-import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 
 import com.hackademy.server.path.dto.PathProgressDto;
 import com.hackademy.server.path.dto.PathSummaryDto;
 import com.hackademy.server.user.User;
-import com.hackademy.server.friendship.FriendshipStatus;
-import com.hackademy.server.friendship.FriendshipRepository;
-import com.hackademy.server.badge.UserBadgeRepository;
 import com.hackademy.server.path.PathService;
 import com.hackademy.server.user.UserService;
 import com.hackademy.server.user.UserServiceImpl;
 import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
-import org.springframework.core.task.TaskExecutor;
+import org.springframework.transaction.annotation.Transactional;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.RequestMapping;
@@ -24,7 +19,6 @@ import org.springframework.web.bind.annotation.RestController;
 import java.time.LocalDate;
 import java.util.List;
 import java.util.Map;
-import java.util.concurrent.CompletableFuture;
 import java.util.concurrent.ThreadLocalRandom;
 
 @RestController
@@ -35,12 +29,11 @@ public class DashboardController {
     private final UserService userService;
     private final UserServiceImpl userServiceImpl;
     private final PathService pathService;
-    private final FriendshipRepository friendshipRepository;
-    private final UserBadgeRepository userBadgeRepository;
-    private final TaskExecutor dashboardTaskExecutor;
     private final DashboardSummaryCache dashboardSummaryCache;
+    private final DashboardMetrics dashboardMetrics;
 
     @GetMapping("/summary")
+    @Transactional(readOnly = true)
     public ResponseEntity<DashboardSummaryDto> getSummary() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         if (!(principal instanceof User user)) {
@@ -53,10 +46,8 @@ public class DashboardController {
         long cacheGeneration = dashboardSummaryCache.generation();
         DashboardSummaryDto cached = dashboardSummaryCache.getIfFresh(userId);
         if (cached != null) {
-            cached.setActiveSecondsThisWeek(userService.getActiveSecondsThisWeek(userId));
-            return ResponseEntity.ok(cached);
+            return ResponseEntity.ok(cached.toBuilder().activeSecondsThisWeek(userService.getActiveSecondsThisWeek(userId)).build());
         }
-        long now = System.currentTimeMillis();
 
         int effectiveStreak = user.getStreak();
         LocalDate lastSolved = user.getLastSolvedDate();
@@ -65,7 +56,8 @@ public class DashboardController {
             effectiveStreak = 0;
         }
 
-        boolean hasVpnAccess = userService.hasSolvedTutorialVpn(userId);
+        DashboardMetrics.Counts counts = dashboardMetrics.read(userId);
+        boolean hasVpnAccess = counts.vpn();
         Map<String, Object> userInfo = new java.util.LinkedHashMap<>(Map.of(
                 "id", userId,
                 "username", user.getUsername(),
@@ -79,31 +71,13 @@ public class DashboardController {
         ));
         userInfo.put("avatar", userService.getAvatar(userId));
 
-        CompletableFuture<?> myRankF = CompletableFuture.supplyAsync(
-                () -> userServiceImpl.getUserRankFast(userId, username, user.getPoints(), user.getElo()),
-                dashboardTaskExecutor
-        );
-        CompletableFuture<?> rankingF = CompletableFuture.supplyAsync(userService::getTop10Ranking, dashboardTaskExecutor);
-        CompletableFuture<?> recentSolvedF = CompletableFuture.supplyAsync(() -> userService.getRecentSolvedRooms(userId, 3), dashboardTaskExecutor);
-        CompletableFuture<?> activeSecondsF = CompletableFuture.supplyAsync(() -> userService.getActiveSecondsThisWeek(userId), dashboardTaskExecutor);
-        CompletableFuture<?> badgesCountF = CompletableFuture.supplyAsync(() -> (int) userBadgeRepository.countByUser_Id(userId), dashboardTaskExecutor);
-        CompletableFuture<?> friendsCountF = CompletableFuture.supplyAsync(() -> (int) friendshipRepository.countByUserIdAndStatus(userId, FriendshipStatus.ACCEPTED), dashboardTaskExecutor);
-        CompletableFuture<?> progressF = CompletableFuture.supplyAsync(() -> pathService.getMyPathsProgress(username), dashboardTaskExecutor);
-        CompletableFuture<?> allPathsF = CompletableFuture.supplyAsync(() -> pathService.listPaths(username), dashboardTaskExecutor);
-
-        @SuppressWarnings("unchecked")
-        List<PathProgressDto> progress = (List<PathProgressDto>) progressF.join();
+        List<PathProgressDto> progress = pathService.getMyPathsProgress(username);
         PathProgressDto currentPath = progress.stream().filter(p -> !p.completed()).findFirst()
                 .orElse(progress.isEmpty() ? null : progress.get(0));
 
-        CompletableFuture<?> roomsMiniF = CompletableFuture.supplyAsync(() -> {
-            if (currentPath == null || currentPath.id() == null) return List.of();
-            // The whole path (limit 0): the client needs every room to find the next one and its position.
-            return pathService.getPathRoomsMini(currentPath.id(), username, 0).rooms();
-        }, dashboardTaskExecutor);
-
-        @SuppressWarnings("unchecked")
-        List<PathSummaryDto> listed = (List<PathSummaryDto>) allPathsF.join();
+        List<PathRoomMiniDto> roomsMini = currentPath == null || currentPath.id() == null ? List.of()
+                : pathService.getPathRoomsMini(currentPath.id(), username, 0).rooms();
+        List<PathSummaryDto> listed = pathService.listPaths(username);
         List<PathSummaryDto> allPaths = listed == null ? List.of() : listed.stream()
                 .filter(path -> path.systemKey() == null)
                 .toList();
@@ -115,16 +89,16 @@ public class DashboardController {
 
         DashboardSummaryDto out = DashboardSummaryDto.builder()
                 .user(userInfo)
-                .myRank((com.hackademy.server.ranking.RankingEntry) myRankF.join())
-                .ranking((List<com.hackademy.server.ranking.RankingEntry>) rankingF.join())
-                .recentSolved((List<com.hackademy.server.room.dto.RecentSolvedRoomDto>) recentSolvedF.join())
-                .activeSecondsThisWeek((Integer) activeSecondsF.join())
-                .badgesEarnedCount((Integer) badgesCountF.join())
-                .friendsCount((Integer) friendsCountF.join())
+                .myRank(userServiceImpl.getUserRankFast(userId, username, user.getPoints(), user.getElo()))
+                .ranking(userService.getTop10Ranking())
+                .recentSolved(userService.getRecentSolvedRooms(userId, 3))
+                .activeSecondsThisWeek(counts.seconds())
+                .badgesEarnedCount(counts.badges())
+                .friendsCount(counts.friends())
                 .recommendedPath(recommended)
                 .pathsProgress(progress)
                 .currentPath(currentPath)
-                .currentPathRoomsMini((List<com.hackademy.server.path.dto.PathRoomMiniDto>) roomsMiniF.join())
+                .currentPathRoomsMini(roomsMini)
                 .build();
 
         dashboardSummaryCache.put(userId, out, cacheGeneration);

@@ -1,0 +1,13 @@
+[ {
+  "requests" : 30,
+  "errors" : 30,
+  "p95Millis" : 40554,
+  "durationMillis" : 40556,
+  "peakPoolActive" : 5,
+  "peakPoolWaiting" : 15,
+  "peakHeapMiB" : 121.39199829101562,
+  "maxHeapMiB" : 160.0,
+  "users" : 30,
+  "scenario" : "cold-dashboard",
+  "sqlPerRequest" : 1.9
+} ]

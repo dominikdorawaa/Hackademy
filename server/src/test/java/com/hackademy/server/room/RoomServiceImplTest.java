@@ -322,7 +322,7 @@ class RoomServiceImplTest {
         assertEquals(100, result.pointsEarned());
         assertEquals(List.of("Pierwsza krew"), result.newBadges().stream().map(BadgeDto::name).toList());
         assertEquals(140, alice.getPoints());
-        assertEquals(1, room.getSolutionsCount());
+        verify(roomRepository).incrementSolutions(room.getId());
     }
 
     @Test

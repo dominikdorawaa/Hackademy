@@ -71,9 +71,7 @@ for (const name of (await readdir(output)).sort()) {
 }
 const version = createHash("sha256")
   .update(
-    files["initrd.gz"].sha256 +
-      files["kernel.bin"].sha256 +
-      files["v86.wasm"].sha256,
+    JSON.stringify(files),
   )
   .digest("hex")
   .slice(0, 16);
