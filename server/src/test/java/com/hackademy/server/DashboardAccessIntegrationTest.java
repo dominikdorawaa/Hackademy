@@ -12,6 +12,7 @@ class DashboardAccessIntegrationTest extends PostgresIntegrationTest {
     @Autowired DashboardMetrics metrics;
 
     @Test
+    @org.springframework.transaction.annotation.Transactional
     void preservesExistingVmOrVpnTutorialAccessRule() throws Exception {
         var learner = account(Role.USER);
         assertFalse(metrics.read(learner.id()).vpn());
