@@ -7,6 +7,7 @@ import java.util.List;
 public interface FriendshipService {
     void invalidateProfileCaches();
     void invalidateProfileCaches(Long userId);
+    void invalidateProfileCaches(Long userId, List<Long> related);
     void sendFriendRequest(Long requesterId, String receiverUsername);
     void acceptFriendRequest(Long receiverId, Long requestId);
     void rejectFriendRequest(Long receiverId, Long requestId);

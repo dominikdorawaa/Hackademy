@@ -358,9 +358,12 @@ class UserServiceImplTest {
 
     @Test
     void delegatesAccountDeletionAndInvalidatesCaches() {
+        when(friendships.findRelatedUserIds(1L)).thenReturn(List.of(2L));
         service.deleteUser(1L);
-        verify(accountDeletionService).delete(1L);
-        verify(friendshipService).invalidateProfileCaches(1L);
+        var order = inOrder(friendships, accountDeletionService, friendshipService);
+        order.verify(friendships).findRelatedUserIds(1L);
+        order.verify(accountDeletionService).delete(1L);
+        order.verify(friendshipService).invalidateProfileCaches(1L, List.of(2L));
     }
 
     @Test

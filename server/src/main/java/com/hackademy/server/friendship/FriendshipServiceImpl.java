@@ -34,7 +34,12 @@ public class FriendshipServiceImpl implements FriendshipService {
 
     @Override
     public void invalidateProfileCaches(Long userId) {
-        var ids = new java.util.HashSet<>(friendshipRepository.findRelatedUserIds(userId));
+        invalidateProfileCaches(userId, friendshipRepository.findRelatedUserIds(userId));
+    }
+
+    @Override
+    public void invalidateProfileCaches(Long userId, List<Long> related) {
+        var ids = new java.util.HashSet<>(related);
         ids.add(userId);
         ids.forEach(this::invalidateCachesFor);
         realtime.changed(ids.toArray(Long[]::new));
