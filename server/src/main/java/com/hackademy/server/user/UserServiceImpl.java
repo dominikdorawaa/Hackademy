@@ -167,11 +167,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long id) {
+        var related = friendships.findRelatedUserIds(id);
         accountDeletionService.delete(id);
         invalidateGlobalRankingCache();
         rankCache.invalidate(id);
         tutorialVpnSolvedCache.invalidate(id);
-        friendshipService.invalidateProfileCaches(id);
+        friendshipService.invalidateProfileCaches(id, related);
     }
 
     @Override
