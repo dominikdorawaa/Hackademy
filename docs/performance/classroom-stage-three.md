@@ -31,3 +31,9 @@ Przed: [etap 2](stage-two-after.json), po: [raport etapu 3](stage-three-after.js
 Backend: pełny przebieg 732 testy, zero błędów, dwa testy obciążeniowe opcjonalne pominięte; dodatkowe dwa testy odczytów pokoju i /me również przechodzą. JaCoCo: LocalCaches 100%, RealtimeDelivery 100%, CurrentProfileDetails 100%, FriendshipServiceImpl 100%, DashboardSummaryReader 97,83%, ArenaServiceImpl 97,78%, MatchmakingServiceImpl 95,12%. TypeScript, ESLint, testy API klienta i diff --check przechodzą.
 
 Opcjonalny test rzeczywistego HTTP, WebSocket i restartu: `mvn -f server/pom.xml -Dtest=ClassroomHttpLoadTest -Dclassroom.http=true -Dclassroom.minutes=3 test`, z JAVA_TOOL_OPTIONS=-Xmx160m. Wynik powstaje w server/target/classroom-http.json. Klient obciążeniowy działa w tej samej JVM, więc odczyt sterty obejmuje także klienta i fixture testowe; nie jest RSS dyno. Wyniki tego dłuższego testu są uzupełniane przed zamknięciem całego zadania.
+
+## Rzeczywiste HTTP, WebSocket i restart
+
+Test sieciowy przeszedł z Hikari 5 i Xmx160m: 30/30 wejść, p95 883 ms; 300/300, p95 611 ms. Jedna karta odpowiada jednemu klientowi testowemu. Klasa utrzymała 30 połączeń WebSocket przez 3 minuty, wysyłając 1 żądanie aktywności/osobę/min. p95 pulsów wyniosło 26, 33 i 26 ms, po 3 SQL na żądanie łącznie z uwierzytelnieniem. Po zamknięciu i ponownym uruchomieniu całego kontekstu backendu wszystkie 30 osób połączyło się ponownie, z rozrzutem opóźnień; zajęło to 13,1 s przy 8 równoległych klientach łączenia. Szczyt sterty 134,4 MiB obejmuje serwer i generator ruchu w tej samej JVM; szczyt puli 5 zajętych i 10 oczekujących. [Pełny raport](stage-three-http.json).
+
+To test lokalnej sieci i klienta STOMP, bez routera Heroku i ograniczania timerów prawdziwej przeglądarki. Nie potwierdza 30-minutowego zachowania ukrytej karty w Chrome ani RSS produkcyjnego dyno.
