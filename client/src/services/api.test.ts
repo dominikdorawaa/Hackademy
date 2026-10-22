@@ -65,7 +65,7 @@ describe('HTTP compatibility', () => {
     await user.searchUsers('a+b', headers);
     await path.getRoomsMini('7', 0, headers);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      `${API_URL}/api/user/search?query=a+b`, `${API_URL}/api/paths/7/rooms-mini?limit=0`,
+      `${API_URL}/api/user/search?query=a%2Bb`, `${API_URL}/api/paths/7/rooms-mini?limit=0`,
     ]);
     expect(fetchMock.mock.calls.every(([, options]) => new Headers(options?.headers).get('Authorization') === 'Bearer session-token')).toBe(true);
   });

@@ -76,9 +76,10 @@ class ClassroomHttpLoadTest {
                 assertEquals(30, app.getBean(SimpUserRegistry.class).getUserCount());
             }
             heartbeat.shutdownNow();
+            app.close();
+            org.awaitility.Awaitility.await().atMost(Duration.ofSeconds(5)).until(() -> sockets.stream().allMatch(RealtimeSocket::closedByServer));
             sockets.forEach(RealtimeSocket::close);
             sockets.clear();
-            app.close();
             start(port);
             var reconnectors = Executors.newFixedThreadPool(8);
             long started = System.nanoTime();

@@ -1,0 +1,49 @@
+[ {
+  "p95Millis" : 1092,
+  "requests" : 30,
+  "errors" : 0,
+  "scenario" : "cold-dashboard",
+  "sqlPerRequest" : 12.066666666666666
+}, {
+  "p95Millis" : 744,
+  "requests" : 300,
+  "errors" : 0,
+  "scenario" : "cold-dashboard",
+  "sqlPerRequest" : 12.0
+}, {
+  "p95Millis" : 92,
+  "requests" : 30,
+  "errors" : 0,
+  "scenario" : "activity-start",
+  "sqlPerRequest" : 3.0
+}, {
+  "p95Millis" : 28,
+  "requests" : 30,
+  "errors" : 0,
+  "scenario" : "idle-minute-1",
+  "sqlPerRequest" : 3.0
+}, {
+  "p95Millis" : 24,
+  "requests" : 30,
+  "errors" : 0,
+  "scenario" : "idle-minute-2",
+  "sqlPerRequest" : 3.0
+}, {
+  "p95Millis" : 38,
+  "requests" : 30,
+  "errors" : 0,
+  "scenario" : "idle-minute-3",
+  "sqlPerRequest" : 3.0
+}, {
+  "durationMillis" : 13130,
+  "connections" : 30,
+  "scenario" : "restart-reconnect",
+  "idleMinutes" : 3,
+  "steadyRequestsPerUserMinute" : 1
+}, {
+  "peakHeapMiB" : 125.41990661621094,
+  "peakPoolActive" : 5,
+  "scenario" : "whole-run-resources",
+  "peakPoolWaiting" : 9,
+  "maxHeapMiB" : 160.0
+} ]

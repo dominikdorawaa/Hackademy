@@ -26,6 +26,16 @@ public class FriendPresence {
     private final Map<Long, Set<String>> sessions = new HashMap<>();
     private final Set<Long> online = new HashSet<>();
     private final Map<Long, ScheduledFuture<?>> pendingOffline = new HashMap<>();
+    private boolean closing;
+
+    @EventListener(org.springframework.context.event.ContextClosedEvent.class)
+    public synchronized void stop() {
+        closing = true;
+        pendingOffline.values().forEach(future -> future.cancel(false));
+        pendingOffline.clear();
+        sessions.clear();
+        online.clear();
+    }
 
     public FriendPresence(@Qualifier("taskScheduler") TaskScheduler scheduler, PresenceAnnouncer announcer,
             @Value("${application.realtime.presence-offline-grace:5s}") Duration offlineGrace) {
@@ -52,6 +62,7 @@ public class FriendPresence {
     }
 
     synchronized void connected(Long userId, String sessionId) {
+        if (closing) return;
         sessions.computeIfAbsent(userId, ignored -> new HashSet<>()).add(sessionId);
         var pending = pendingOffline.remove(userId);
         if (pending != null) pending.cancel(false);
@@ -59,6 +70,7 @@ public class FriendPresence {
     }
 
     synchronized void disconnected(Long userId, String sessionId) {
+        if (closing) return;
         var open = sessions.get(userId);
         if (open == null || !open.remove(sessionId) || !open.isEmpty()) return;
         sessions.remove(userId);
@@ -70,6 +82,7 @@ public class FriendPresence {
     }
 
     synchronized void wentOffline(Long userId) {
+        if (closing) return;
         pendingOffline.remove(userId);
         if (!sessions.containsKey(userId) && online.remove(userId)) announcer.announce(userId);
     }

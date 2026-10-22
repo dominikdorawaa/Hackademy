@@ -49,6 +49,8 @@ final class RealtimeSocket implements WebSocket.Listener, AutoCloseable {
 
     Frame poll(long milliseconds) throws InterruptedException { return messages.poll(milliseconds, TimeUnit.MILLISECONDS); }
 
+    boolean closedByServer() { return closedByServer.isDone(); }
+
     int awaitServerClose() throws Exception { return closedByServer.get(30, TimeUnit.SECONDS); }
 
     static String body(Frame frame) {
