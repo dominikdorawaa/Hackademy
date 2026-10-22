@@ -11,7 +11,7 @@ public class RealtimeConfig {
         var executor = new ThreadPoolTaskExecutor();
         executor.setCorePoolSize(2);
         executor.setMaxPoolSize(2);
-        executor.setQueueCapacity(10000);
+        executor.setQueueCapacity(64);
         executor.setThreadNamePrefix("realtime-delivery-");
         executor.setWaitForTasksToCompleteOnShutdown(true);
         executor.setAwaitTerminationSeconds(10);

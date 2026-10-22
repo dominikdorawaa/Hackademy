@@ -123,8 +123,12 @@ public class BadgeServiceImpl implements BadgeService {
         // Fetch counts once
         Map<Long, Long> badgeCounts = getBadgeCountsMap();
 
+        var earnedIds = userBadgeRepository.findEarnedBadgeRowsByUserId(user.getId()).stream()
+                .map(UserBadgeRepository.EarnedBadgeRow::getBadgeId).collect(Collectors.toSet());
+        long solvedCount = userSolvedRoomRepository.countByUser_Id(user.getId());
+        long friendsCount = friendshipRepository.countByUserIdAndStatus(user.getId(), FriendshipStatus.ACCEPTED);
         for (Badge badge : allBadges) {
-            if (userBadgeRepository.existsByUser_IdAndBadge_Id(user.getId(), badge.getId())) {
+            if (earnedIds.contains(badge.getId())) {
                 continue;
             }
 
@@ -141,13 +145,11 @@ public class BadgeServiceImpl implements BadgeService {
                     }
                     break;
                 case "SOLVED_COUNT":
-                    long solvedCount = userSolvedRoomRepository.countByUser_Id(user.getId());
                     if (solvedCount >= badge.getConditionValue()) {
                         earned = true;
                     }
                     break;
                 case "FRIENDS_COUNT":
-                    long friendsCount = friendshipRepository.findByUserAndStatus(user, FriendshipStatus.ACCEPTED).size();
                     if (friendsCount >= badge.getConditionValue()) {
                         earned = true;
                     }

@@ -16,17 +16,48 @@ public class RealtimeDelivery {
     private final SimpMessagingTemplate messaging;
     private final SimpUserRegistry users;
     private final AccountAccess accounts;
+    private final org.springframework.scheduling.concurrent.ThreadPoolTaskExecutor realtimeExecutor;
+    private final java.util.Set<Long> pending = new java.util.LinkedHashSet<>();
 
     public record Envelope(String type, RealtimeState state) {}
 
     @TransactionalEventListener(phase = TransactionPhase.AFTER_COMMIT, fallbackExecution = true)
-    @Async("realtimeExecutor")
     public void deliver(RealtimeChange change) {
         for (Long userId : change.userIds()) {
-            String destination = userId.toString();
-            if (users.getUser(destination) == null) continue;
-            if (!accounts.isActive(userId)) continue;
-            messaging.convertAndSendToUser(destination, "/queue/realtime", new Envelope("STATE", states.forUser(userId)));
+            if (change.social()) states.invalidateSocial(userId);
+            if (users.getUser(userId.toString()) != null) enqueue(userId);
         }
+    }
+
+    private void enqueue(Long userId) {
+        synchronized (pending) {
+            if (pending.contains(userId)) return;
+            if (pending.size() < 1024) { pending.add(userId); return; }
+        }
+        messaging.convertAndSendToUser(userId.toString(), "/queue/realtime", new Envelope("READY", null));
+    }
+
+    @org.springframework.scheduling.annotation.Scheduled(fixedDelay = 50)
+    public void flush() {
+        for (int count = 0; count < 32; count++) {
+            Long userId;
+            synchronized (pending) {
+                var iterator = pending.iterator();
+                if (!iterator.hasNext()) return;
+                userId = iterator.next();
+                iterator.remove();
+            }
+            try { realtimeExecutor.execute(() -> send(userId)); }
+            catch (org.springframework.core.task.TaskRejectedException full) { enqueue(userId); return; }
+        }
+    }
+
+    private void send(Long userId) {
+        try {
+            String destination = userId.toString();
+            if (users.getUser(destination) == null) return;
+            if (!accounts.isActive(userId)) return;
+            messaging.convertAndSendToUser(destination, "/queue/realtime", new Envelope("STATE", states.forUser(userId)));
+        } catch (RuntimeException unavailable) { enqueue(userId); }
     }
 }

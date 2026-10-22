@@ -20,12 +20,16 @@ final class RealtimeSocket implements WebSocket.Listener, AutoCloseable {
     private WebSocket socket;
 
     static RealtimeSocket open(HttpClient client, int port, String token) throws Exception {
+        return open(client, port, token, false);
+    }
+
+    static RealtimeSocket open(HttpClient client, int port, String token, boolean heartbeat) throws Exception {
         var listener = new RealtimeSocket();
         listener.socket = client.newWebSocketBuilder().connectTimeout(Duration.ofSeconds(30))
                 .header("Origin", "https://frontend.example.com").subprotocols("v12.stomp")
                 .buildAsync(URI.create("ws://localhost:" + port + "/ws/websocket"), listener)
                 .get(30, TimeUnit.SECONDS);
-        listener.send("CONNECT\naccept-version:1.2\nhost:localhost\nheart-beat:0,0\nAuthorization:Bearer " + token + "\n\n\0");
+        listener.send("CONNECT\naccept-version:1.2\nhost:localhost\nheart-beat:" + (heartbeat ? "10000,10000" : "0,0") + "\nAuthorization:Bearer " + token + "\n\n\0");
         assertTrue(listener.receive().text().startsWith("CONNECTED\n"));
         return listener;
     }

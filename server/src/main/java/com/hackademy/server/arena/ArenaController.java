@@ -61,13 +61,13 @@ public class ArenaController {
     }
 
     @Scheduled(fixedRate = 500)
-    public synchronized void processMatchmaking() {
+    public void processMatchmaking() {
         for (GameSession session : matchmakingService.checkForMatches()) {
             try {
                 arenaService.addGame(session);
             } catch (RuntimeException error) {
                 log.warn("Could not prepare arena match {}", session.getId(), error);
-            }
+            } finally { matchmakingService.releaseMatch(session); }
         }
     }
 

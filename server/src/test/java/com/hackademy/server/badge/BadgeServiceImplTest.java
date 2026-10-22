@@ -97,7 +97,7 @@ class BadgeServiceImplTest {
         User alice = streakUser(7, LocalDate.of(2026, 10, 1));
         when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "STREAK", 7), badge(2L, "FRIENDS_COUNT", 1)));
         when(userRepository.count()).thenReturn(1L);
-        when(friendshipRepository.findByUserAndStatus(alice, FriendshipStatus.ACCEPTED)).thenReturn(List.of(new Friendship()));
+        when(friendshipRepository.countByUserIdAndStatus(7L, FriendshipStatus.ACCEPTED)).thenReturn(1L);
 
         var earned = service.checkAndAwardBadges(alice);
 
@@ -108,7 +108,6 @@ class BadgeServiceImplTest {
     void expiredStreakKeepsPreviouslyEarnedStreakBadgeAndStreakValue() {
         User alice = streakUser(7, LocalDate.of(2026, 10, 1));
         when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "STREAK", 7)));
-        when(userBadgeRepository.existsByUser_IdAndBadge_Id(7L, 1L)).thenReturn(true);
         when(userBadgeRepository.findEarnedBadgeRowsByUserId(7L)).thenReturn(List.of(new Row(1L, LocalDateTime.of(2026, 9, 1, 0, 0))));
         stubUser(alice);
 
@@ -135,9 +134,7 @@ class BadgeServiceImplTest {
     void friendCountAtThresholdEarnsBadgeButOneShortDoesNot() {
         User alice = user(0);
         when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "FRIENDS_COUNT", 3)));
-        when(friendshipRepository.findByUserAndStatus(alice, FriendshipStatus.ACCEPTED)).thenReturn(
-                List.of(new Friendship(), new Friendship(), new Friendship()),
-                List.of(new Friendship(), new Friendship()));
+        when(friendshipRepository.countByUserIdAndStatus(7L, FriendshipStatus.ACCEPTED)).thenReturn(3L, 2L);
 
         assertEquals(1, service.checkAndAwardBadges(alice).size());
         assertTrue(service.checkAndAwardBadges(alice).isEmpty());
@@ -146,7 +143,7 @@ class BadgeServiceImplTest {
     @Test
     void alreadyEarnedBadgeIsNotAwardedAgain() {
         when(badgeRepository.findAll()).thenReturn(List.of(badge(1L, "POINTS", 100), badge(2L, "POINTS", 50)));
-        when(userBadgeRepository.existsByUser_IdAndBadge_Id(7L, 1L)).thenReturn(true);
+        when(userBadgeRepository.findEarnedBadgeRowsByUserId(7L)).thenReturn(List.of(new Row(1L, LocalDateTime.now())));
 
         var earned = service.checkAndAwardBadges(user(500));
 

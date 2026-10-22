@@ -754,13 +754,13 @@ class RoomServiceImplTest {
     @Test
     void detailShowsSortedHintsUnlockedHintsTasksAndFile() {
         Room room = hintRoom(1L, 12L, 11L);
-        room.setRoomFile(new RoomFile("dump.pcap", "application/octet-stream", new byte[0], room));
+        when(roomFileRepository.findFileNameByRoomId(1L)).thenReturn("dump.pcap");
         RoomTask done = task(20L, "a");
         RoomTask open = task(21L, "b");
         done.setRoom(room);
         open.setRoom(room);
         when(roomTaskRepository.findByRoomIdOrderBySortOrderAsc(1L)).thenReturn(List.of(done, open));
-        when(userCompletedTaskRepository.findCompletedTaskIdsByUserId(7L)).thenReturn(List.of(20L));
+        when(userCompletedTaskRepository.findCompletedTaskIdsInRoom(7L, 1L)).thenReturn(List.of(20L));
         when(userUnlockedHintRepository.findByUser_IdAndHint_Room_Id(7L, 1L))
                 .thenReturn(List.of(new UserUnlockedHint(alice, room.getHints().get(1))));
         alreadySolved(1L);

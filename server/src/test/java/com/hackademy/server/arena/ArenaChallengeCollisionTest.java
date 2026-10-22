@@ -91,7 +91,7 @@ class ArenaChallengeCollisionTest {
         assertTrue(arena.getOutgoingChallenges(1L).isEmpty());
         assertTrue(arena.getPendingChallenges(3L).isEmpty());
         assertTrue(arena.getOutgoingChallenges(4L).isEmpty());
-        verify(realtime).changed(3L, 4L);
+        verify(realtime).arenaChanged(3L, 4L);
     }
 
     @Test
