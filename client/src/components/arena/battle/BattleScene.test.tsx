@@ -26,6 +26,17 @@ const scene = (session: GameSession, reducedMotion = false, serverNow = session.
 const fighter = (side = 'me') => document.querySelector(`.battle-fighter.is-${side}`)!;
 const advance = (ms: number) => act(() => { vi.advanceTimersByTime(ms); });
 
+it('animates independently scaled damage and actual remaining health for each fighter', () => {
+  render(scene(exchange({ 1: 7, 2: 19 })));
+  expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '100');
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
+  advance(900);
+  expect(screen.getByTestId('shot-me')).toHaveTextContent('-19');
+  expect(screen.getByTestId('shot-rival')).toHaveTextContent('-7');
+  expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '93');
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '81');
+});
+
 it('plays cast, flight, impact and recovery without restarting on session updates', () => {
   const session = exchange();
   const view = render(scene(session));

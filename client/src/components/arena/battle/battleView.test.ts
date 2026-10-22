@@ -52,10 +52,13 @@ describe('battle view', () => {
   });
 
   it('summarises who hit in a round', () => {
-    expect(roundSummary(result({ 1: 20, 2: 20 }), 1, 2)).toBe('Oboje trafiliście. Każdy traci 20 HP.');
+    expect(roundSummary(result({ 1: 20, 2: 20 }), 1, 2)).toBe('Oboje trafiliście. Tracisz 20 HP, rywal traci 20 HP.');
     expect(roundSummary(result({ 1: 0, 2: 20 }), 1, 2)).toBe('Trafiasz! Rywal traci 20 HP.');
     expect(roundSummary(result({ 1: 20, 2: 0 }), 1, 2)).toBe('Rywal trafia. Tracisz 20 HP.');
     expect(roundSummary(result({}), 1, 2)).toBe('Nikt nie trafił w tej rundzie.');
+    expect(roundSummary(result({ 1: 7, 2: 19 }), 1, 2)).toBe('Oboje trafiliście. Tracisz 7 HP, rywal traci 19 HP.');
+    expect(roundSummary(result({ 1: 0, 2: 6 }), 1, 2)).toBe('Trafiasz! Rywal traci 6 HP.');
+    expect(roundSummary(result({ 1: 3, 2: 0 }), 1, 2)).toBe('Rywal trafia. Tracisz 3 HP.');
   });
 
   it('casts, waits for the fireball to land and flinches during the reveal', () => {

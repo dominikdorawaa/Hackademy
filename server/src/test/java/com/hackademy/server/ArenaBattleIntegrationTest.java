@@ -4,6 +4,9 @@ import com.hackademy.server.arena.ArenaService;
 import com.hackademy.server.user.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.test.util.ReflectionTestUtils;
+import java.util.concurrent.atomic.AtomicLong;
+import java.util.function.LongSupplier;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -38,6 +41,7 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.question.correctAnswer").doesNotExist())
                 .andExpect(jsonPath("$.questions").doesNotExist())
                 .andExpect(jsonPath("$.choices").doesNotExist())
+                .andExpect(jsonPath("$.answerElapsedMillis").doesNotExist())
                 .andExpect(jsonPath("$.hp['" + first.id() + "']").value(100));
         getAs(outsider, url).andExpect(status().isNotFound());
 
@@ -74,5 +78,36 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
         postJson(beginner, "/api/arena/join", "{}").andExpect(status().isOk())
                 .andExpect(jsonPath("$.message").value("Dołączono do kolejki"));
         postJson(beginner, "/api/arena/leave", "{}").andExpect(status().isOk());
+    }
+
+    @Test
+    void ignoresClientTimingAndDamageAndReportsBothServerTimedHits() throws Exception {
+        var first = account(Role.USER);
+        var second = account(Role.USER);
+        var now = new AtomicLong(10_000);
+        LongSupplier clock = now::get;
+        ReflectionTestUtils.invokeMethod(arena, "useClock", clock);
+        try {
+            var challenge = arena.createChallenge(first.id(), first.username(), second.id(), second.username());
+            String game = arena.acceptChallenge(challenge.getId(), second.id()).getId();
+            String url = "/api/arena/game/" + game;
+            Long question = arena.getGameSession(game).getQuestion().id();
+            int correct = jdbcTemplate.queryForObject("SELECT correct_answer FROM arena_questions WHERE id = ?", Integer.class, question);
+            now.addAndGet(4_999);
+            postJson(first, url + "/answer", "{\"round\":1,\"answer\":" + correct + ",\"elapsedMillis\":0,\"damage\":999999,\"sentAt\":0}")
+                    .andExpect(status().isOk());
+            now.incrementAndGet();
+            postJson(second, url + "/answer", "{\"round\":1,\"answer\":" + correct + ",\"damage\":0}")
+                    .andExpect(status().isOk());
+            getAs(first, url).andExpect(status().isOk())
+                    .andExpect(jsonPath("$.lastRound.damage['" + first.id() + "']").value(15))
+                    .andExpect(jsonPath("$.lastRound.damage['" + second.id() + "']").value(16))
+                    .andExpect(jsonPath("$.hp['" + first.id() + "']").value(85))
+                    .andExpect(jsonPath("$.hp['" + second.id() + "']").value(84))
+                    .andExpect(jsonPath("$.answerElapsedMillis").doesNotExist());
+        } finally {
+            LongSupplier systemClock = System::currentTimeMillis;
+            ReflectionTestUtils.invokeMethod(arena, "useClock", systemClock);
+        }
     }
 }

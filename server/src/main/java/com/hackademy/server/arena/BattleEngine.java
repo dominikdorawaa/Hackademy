@@ -36,6 +36,7 @@ public final class BattleEngine {
         if (session.getChoices().containsKey(userId)) return AnswerResult.ALREADY_ANSWERED;
         if (now > session.getRoundEndsAt()) return AnswerResult.TOO_LATE;
         session.getChoices().put(userId, answer);
+        session.getAnswerElapsedMillis().put(userId, Math.max(0, ROUND_MILLIS - (session.getRoundEndsAt() - now)));
         session.getAnsweredBy().add(userId);
         return AnswerResult.ACCEPTED;
     }
@@ -53,8 +54,8 @@ public final class BattleEngine {
         choices.put(first, session.getChoices().getOrDefault(first, NO_ANSWER));
         choices.put(second, session.getChoices().getOrDefault(second, NO_ANSWER));
         Map<Long, Integer> damage = new HashMap<>();
-        damage.put(first, choices.get(second) == question.getCorrectAnswer() ? DAMAGE : 0);
-        damage.put(second, choices.get(first) == question.getCorrectAnswer() ? DAMAGE : 0);
+        damage.put(first, damage(session, second, first, choices.get(second) == question.getCorrectAnswer()));
+        damage.put(second, damage(session, first, second, choices.get(first) == question.getCorrectAnswer()));
         session.getHp().replaceAll((player, hp) -> Math.max(0, hp - damage.get(player)));
         session.setLastRound(new RoundResult(session.getRound(), question.getId(), question.getContent(),
                 question.answers(), question.getCorrectAnswer(), Map.copyOf(choices), Map.copyOf(damage)));
@@ -85,10 +86,18 @@ public final class BattleEngine {
         return session.getHp().containsValue(0) ? "KNOCKOUT" : "ROUNDS";
     }
 
+    private static int damage(GameSession session, Long attacker, Long target, boolean correct) {
+        Long elapsed = session.getAnswerElapsedMillis().get(attacker);
+        if (!correct || elapsed == null) return 0;
+        int strength = Math.max(0, DAMAGE - (int) (elapsed / 1_000));
+        return Math.min(session.getHp().get(target), strength);
+    }
+
     private static void openRound(GameSession session, int round, long now) {
         session.setRound(round);
         session.setPhase("QUESTION");
         session.getChoices().clear();
+        session.getAnswerElapsedMillis().clear();
         session.getAnsweredBy().clear();
         session.setQuestion(BattleQuestion.of(session.getQuestions().get(round - 1)));
         session.setRoundEndsAt(now + ROUND_MILLIS);
