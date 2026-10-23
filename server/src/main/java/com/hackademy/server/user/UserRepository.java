@@ -46,6 +46,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
     @Query("UPDATE User u SET u.email = :email WHERE u.id = :id AND u.clerkUserId = :clerkUserId")
     int updateClerkEmail(Long id, String clerkUserId, String email);
 
+    @Query("SELECT new com.hackademy.server.admin.UserAdminView(u.id, u.username, u.email, u.role, u.createdAt) FROM User u WHERE LOCATE(LOWER(:query), LOWER(u.username)) > 0 ORDER BY u.id DESC")
+    org.springframework.data.domain.Slice<com.hackademy.server.admin.UserAdminView> findAdminPage(@org.springframework.data.repository.query.Param("query") String query, Pageable pageable);
+
     List<User> findByUsernameContainingIgnoreCase(String username);
 
     @Query("SELECT u FROM User u WHERE LOCATE(LOWER(:query), LOWER(u.username)) > 0 ORDER BY u.username, u.id")

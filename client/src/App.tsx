@@ -8,17 +8,17 @@ import { FriendOnlineFeedProvider } from './context/FriendOnlineFeedContext';
 import HomePage from './pages/HomePage';
 import LoginPage from './pages/LoginPage';
 import RegisterPage from './pages/RegisterPage';
-import LearnPage from './pages/LearnPage';
-import UserDashboardPage from './pages/UserDashboardPage';
-import PathDetailPage from './pages/PathDetailPage';
-import ArenaPage from './pages/ArenaPage';
+const LearnPage = lazy(() => import('./pages/LearnPage'));
+const UserDashboardPage = lazy(() => import('./pages/UserDashboardPage'));
+const PathDetailPage = lazy(() => import('./pages/PathDetailPage'));
+const ArenaPage = lazy(() => import('./pages/ArenaPage'));
 import { lazy, Suspense } from 'react';
-import RankingPage from './pages/RankingPage';
-import ProfilePage from './pages/ProfilePage';
-import PublicProfilePage from './pages/PublicProfilePage';
-import FriendsPage from './pages/FriendsPage';
-import RoomPage from './pages/RoomPage';
-import SettingsPage from './pages/SettingsPage';
+const RankingPage = lazy(() => import('./pages/RankingPage'));
+const ProfilePage = lazy(() => import('./pages/ProfilePage'));
+const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
+const FriendsPage = lazy(() => import('./pages/FriendsPage'));
+const RoomPage = lazy(() => import('./pages/RoomPage'));
+const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import adminRoutes from './pages/admin/adminRoutes';
 import NotFoundPage from './pages/NotFoundPage';
@@ -37,7 +37,7 @@ function App() {
       <RealtimeProvider>
         <NotificationPreferencesProvider>
         <FriendOnlineFeedProvider>
-        <Routes>
+        <Suspense fallback={<ArenaLoader label="Wczytuję aplikację" />}><Routes>
           {adminRoutes}
           <Route element={<SiteLayout />}>
             <Route path="/" element={<HomePage />} />
@@ -125,7 +125,7 @@ function App() {
             />
             <Route path="*" element={<NotFoundPage />} />
           </Route>
-        </Routes>
+        </Routes></Suspense>
         </FriendOnlineFeedProvider>
         </NotificationPreferencesProvider>
       </RealtimeProvider>

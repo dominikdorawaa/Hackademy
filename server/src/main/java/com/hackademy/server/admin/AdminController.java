@@ -95,8 +95,8 @@ public class AdminController {
 
     @GetMapping("/users")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<UserAdminView> getAllUsers() {
-        return userService.findAllUsers();
+    public PageResult<UserAdminView> getAllUsers(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size, @RequestParam(defaultValue = "") String query) {
+        return PageResult.from(userService.findUsersPage(page, size, query));
     }
 
     @DeleteMapping("/users/{id}")
@@ -123,8 +123,8 @@ public class AdminController {
 
     @GetMapping("/reports")
     @PreAuthorize("hasRole('ADMIN')")
-    public List<ChatMessage> getReportedMessages() {
-        return chatService.getReportedMessages();
+    public PageResult<ChatMessage> getReportedMessages(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size) {
+        return PageResult.from(chatService.getReportsPage(page, size));
     }
 
     @DeleteMapping("/reports/{messageId}")

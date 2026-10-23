@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useState } from 'react';
+import { PageControls } from '../../components/admin/PageControls';
 import { Button } from '@/components/ui/button';
 import {
   Dialog,
@@ -33,6 +34,8 @@ const muteDurations: [number, string][] = [
 
 export default function ReportsPage() {
   const { sessionKey } = useAuth();
+  const [page, setPage] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
   const [reports, setReports] = useState<ChatMessage[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -43,14 +46,17 @@ export default function ReportsPage() {
 
   const load = useCallback(async () => {
     try {
-      setReports((await adminApi.getReports(sessionKey)) ?? []);
+      setLoading(true);
+      const result = await adminApi.getReportsPage(sessionKey, page);
+      setReports(result.items);
+      setHasNext(result.hasNext);
       setError(null);
     } catch (err) {
       setError(errorText(err, 'Nie udało się pobrać zgłoszeń.'));
     } finally {
       setLoading(false);
     }
-  }, [sessionKey]);
+  }, [sessionKey, page]);
 
   useEffect(() => {
     if (sessionKey) void load();
@@ -141,6 +147,7 @@ export default function ReportsPage() {
         </div>
       )}
 
+      <PageControls page={page} hasNext={hasNext} loading={loading} onPage={setPage} />
       <Dialog open={muteTarget !== null} onOpenChange={(open) => !open && setMuteTarget(null)}>
         <DialogContent>
           <DialogHeader>

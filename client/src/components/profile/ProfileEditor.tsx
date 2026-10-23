@@ -83,7 +83,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     try {
       const response = await updateProfile(draft, { sessionKey }, controller.signal);
       if (controller.signal.aborted) return;
-      if (response.status === 401 || response.status === 403) { onUnauthorized(); return; }
+      if (response.status === 401) { onUnauthorized(); return; }
       if (!response.ok) {
         setError(response.status === 400 ? 'Sprawdź dane profilu: opis do 500 znaków oraz wyłącznie zdobyte odznaki.' : 'Nie udało się zapisać profilu. Spróbuj ponownie.');
         return;

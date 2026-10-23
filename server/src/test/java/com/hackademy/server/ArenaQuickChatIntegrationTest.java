@@ -94,6 +94,6 @@ class ArenaQuickChatIntegrationTest extends PostgresIntegrationTest {
         postJson(player, "/api/chat/old-game/send", "{\"content\":\"hej\"}").andExpect(status().is4xxClientError());
         postJson(player, "/api/chat/message/" + reported + "/report", "{}").andExpect(status().is4xxClientError());
         getAs(admin, "/api/admin/reports").andExpect(status().isOk())
-                .andExpect(jsonPath("$[*].id", hasItem(reported.intValue())));
+                .andExpect(jsonPath("$.items[*].id", hasItem(reported.intValue())));
     }
 }

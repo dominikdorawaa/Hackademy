@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useRef, useState, useMemo } from 'react';
 import type { PropsWithChildren } from 'react';
 import { useAuth } from './AuthContext';
 import { RealtimeConnection } from '../services/RealtimeConnection';
@@ -103,12 +103,12 @@ export function RealtimeProvider({ children }: PropsWithChildren) {
     };
   }, [sessionKey]);
 
-  const value: RealtimeContextValue = {
+  const value = useMemo<RealtimeContextValue>(() => ({
     state: session.sessionKey === sessionKey && sessionKey ? session.state : null,
     connected: session.sessionKey === sessionKey && !!sessionKey && session.connected,
     error: session.sessionKey === sessionKey && sessionKey ? session.error : null,
     synchronize,
-  };
+  }), [session, sessionKey, synchronize]);
   return <RealtimeContext.Provider value={value}>{children}</RealtimeContext.Provider>;
 }
 

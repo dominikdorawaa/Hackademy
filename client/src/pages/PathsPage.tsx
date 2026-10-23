@@ -111,7 +111,7 @@ const PathsPage = () => {
         setLoading(true);
         setError(null);
         const res = await pathApi.getPaths({ sessionKey });
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 401) {
           logout();
           navigate('/login');
           return;

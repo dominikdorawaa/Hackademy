@@ -149,7 +149,7 @@ const UserDashboardPage = () => {
         };
 
         const res = await dashboardApi.getSummary(headers);
-        if (res.status === 401 || res.status === 403) {
+        if (res.status === 401) {
           logout();
           navigate('/login');
           return;

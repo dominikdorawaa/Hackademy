@@ -19,6 +19,13 @@ public class ChatServiceImpl implements ChatService {
     }
 
     @Override
+    @Transactional(readOnly = true)
+    public org.springframework.data.domain.Slice<ChatMessage> getReportsPage(int page, int size) {
+        return chatMessageRepository.findByReportedTrueOrderByTimestampDescIdDesc(
+                org.springframework.data.domain.PageRequest.of(Math.max(0, page), Math.max(1, Math.min(100, size))));
+    }
+
+    @Override
     @Transactional
     public void deleteMessage(Long messageId) {
         chatMessageRepository.deleteById(messageId);

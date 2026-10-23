@@ -1,22 +1,24 @@
+import { lazy, Suspense } from 'react';
+import { LoadingRows } from '../../components/admin/AdminUi';
 import { Navigate, Route } from 'react-router-dom';
 import { AdminAccessRoute, AdminOnly } from './adminAccess';
 import AdminLayout from './AdminLayout';
-import DashboardPage from './DashboardPage';
-import UsersPage from './UsersPage';
-import ReportsPage from './ReportsPage';
-import RoomsPage from './RoomsPage';
-import RoomEditorPage from './RoomEditorPage';
-import PathsPage from './PathsPage';
-import PathEditorPage from './PathEditorPage';
-import RoomPage from '../RoomPage';
-import PathDetailPage from '../PathDetailPage';
+const DashboardPage = lazy(() => import('./DashboardPage'));
+const UsersPage = lazy(() => import('./UsersPage'));
+const ReportsPage = lazy(() => import('./ReportsPage'));
+const RoomsPage = lazy(() => import('./RoomsPage'));
+const RoomEditorPage = lazy(() => import('./RoomEditorPage'));
+const PathsPage = lazy(() => import('./PathsPage'));
+const PathEditorPage = lazy(() => import('./PathEditorPage'));
+const RoomPage = lazy(() => import('../RoomPage'));
+const PathDetailPage = lazy(() => import('../PathDetailPage'));
 
 const adminRoutes = (
   <Route
     path="/admin"
     element={
       <AdminAccessRoute>
-        <AdminLayout />
+        <Suspense fallback={<LoadingRows label="Wczytuję panel" />}><AdminLayout /></Suspense>
       </AdminAccessRoute>
     }
   >

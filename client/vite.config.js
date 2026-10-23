@@ -1,3 +1,4 @@
+import { connectionHintsPlugin } from './build/connectionHints.mjs';
 import { defineConfig } from "vite";
 import react from "@vitejs/plugin-react";
 import tailwindcss from "@tailwindcss/vite";
@@ -12,6 +13,7 @@ export default defineConfig({
   plugins: [
     react(),
     tailwindcss(),
+    connectionHintsPlugin(),
     {
       name: "ukos-course-runtime",
       async closeBundle() {

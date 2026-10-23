@@ -1,4 +1,4 @@
-import { createContext, useState, useContext, useEffect } from 'react';
+import { createContext, useState, useContext, useEffect, useMemo, useCallback } from 'react';
 import type { PropsWithChildren } from 'react';
 
 export type ThemePreference = 'dark' | 'light';
@@ -34,13 +34,14 @@ export const ThemeProvider = ({ children }: PropsWithChildren) => {
     document.documentElement.setAttribute('data-reduced-motion', String(reducedMotion));
   }, [reducedMotion]);
 
-  const toggleTheme = () => setPreference(theme === 'dark' ? 'light' : 'dark');
-  const resetTheme = () => {
+  const toggleTheme = useCallback(() => setPreference(previous => previous === 'dark' ? 'light' : 'dark'), []);
+  const resetTheme = useCallback(() => {
     setPreference('dark');
     localStorage.removeItem('app-theme');
-  };
+  }, []);
 
-  return <ThemeContext.Provider value={{ theme, preference, setPreference, reducedMotion, setReducedMotion, toggleTheme, resetTheme }}>
+  const value = useMemo(() => ({ theme, preference, setPreference, reducedMotion, setReducedMotion, toggleTheme, resetTheme }), [theme, preference, reducedMotion, toggleTheme, resetTheme]);
+  return <ThemeContext.Provider value={value}>
     {children}
   </ThemeContext.Provider>;
 };

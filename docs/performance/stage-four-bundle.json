@@ -1,0 +1,12 @@
+{
+  "baseline": {
+    "commit": "0e190f4",
+    "mainJavaScriptKB": 1542.7,
+    "gzipKB": 467.67
+  },
+  "after": {
+    "mainJavaScriptBytes": 813070,
+    "gzipBytes": 253557
+  },
+  "reductionPercent": 47.29565048291956
+}

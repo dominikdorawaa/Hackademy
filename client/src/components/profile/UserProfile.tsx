@@ -169,7 +169,7 @@ export default function UserProfile({ username }: { username?: string }) {
         controller.signal,
       );
       if (controller.signal.aborted) return;
-      if (response.status === 401 || response.status === 403) {
+      if (response.status === 401) {
         unauthorized();
         return;
       }

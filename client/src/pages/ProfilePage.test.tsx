@@ -470,7 +470,7 @@ describe('user profile integration', () => {
     },
   );
 
-  it.each([401, 403])(
+  it.each([401])(
     'returns to login when the profile API returns %s',
     async (status) => {
       server.use(
@@ -621,6 +621,13 @@ describe('user profile integration', () => {
     expect(
       await screen.findByRole('heading', { name: 'friend' }),
     ).toBeInTheDocument();
+  });
+
+  it('keeps the session and profile visible after a forbidden activity response', async () => {
+    server.use(http.get(url('/user/me/activity'), () => new HttpResponse(null, { status: 403 })));
+    mount();
+    expect(await screen.findByText('Nie udało się pobrać danych.')).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Logowanie' })).not.toBeInTheDocument();
   });
 
   it('resets the badge page for the next user', async () => {
