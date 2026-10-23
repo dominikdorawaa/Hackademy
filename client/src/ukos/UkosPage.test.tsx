@@ -186,7 +186,7 @@ it("disables the mobile terminal and exposes sync failures", () => {
   expect(document.querySelector('.room-mascot-zone')).toBeNull();
 });
 
-it("lets Bit roam above both panels without a lane, celebrates only confirmed progress and ignores review", () => {
+it("keeps Bit in the footer lane, celebrates only confirmed progress and ignores review", () => {
   vi.useFakeTimers();
   course = { ...course, completed: 5, state: { completedSteps: 5 } };
   workshop = { ...workshop, step: 5 };
@@ -194,10 +194,9 @@ it("lets Bit roam above both panels without a lane, celebrates only confirmed pr
   fireEvent.click(screen.getByRole("button", { name: "Kontynuuj ćwiczenia" }));
   const zone = () => document.querySelector('.room-mascot-zone');
   expect(screen.getByRole('heading', { name: 'Miejsce na sprawy w toku' })).toBeInTheDocument();
-  expect(zone()?.parentElement).toHaveClass('room-body-shell');
+  expect(zone()?.parentElement).toHaveClass('room-footer-lane');
   expect(document.querySelector('.room-split-companion')).toBeNull();
-  expect(zone()).toHaveAttribute('data-roaming', 'true');
-  expect(zone()?.closest('.zero-terminal-pane, .zero-start, .room-pane-scroll')).toBeNull();
+  expect(zone()?.closest('.room-body-shell, .zero-terminal-pane, .zero-start, .room-pane-scroll')).toBeNull();
   expect(zone()).toHaveAttribute('data-state', 'idle');
   fireEvent.click(screen.getByRole('button', { name: 'Podpowiedź' }));
   act(() => options?.onProgress?.(6, true));
@@ -213,7 +212,7 @@ it("lets Bit roam above both panels without a lane, celebrates only confirmed pr
   expect(zone()).toHaveAttribute('data-state', 'idle');
   fireEvent.click(screen.getByRole('button', { name: 'Wstecz' }));
   expect(zone()).toHaveAttribute('data-state', 'idle');
-  expect(zone()?.parentElement).toHaveClass('room-body-shell');
+  expect(zone()?.parentElement).toHaveClass('room-footer-lane');
 });
 it("shows how much of Linux is downloaded and then waits for the system to boot", () => {
   workshop = { ...workshop, status: "booting" };

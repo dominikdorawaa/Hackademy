@@ -1,15 +1,16 @@
 .room-body-shell { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; isolation: isolate; }
-.room-mascot-zone { position: absolute; inset: 0; z-index: 10; pointer-events: none; user-select: none; }
-.room-mascot-track { position: fixed; pointer-events: none; }
-.room-mascot-actor { position: absolute; left: var(--bit-to); top: var(--bit-to-y); width: 116px; height: 118px; padding: 0; border: 0; border-radius: 4px; background: none; cursor: pointer; pointer-events: auto; touch-action: manipulation; }
-.room-mascot-actor:focus-visible { outline: 2px solid var(--rm-link); outline-offset: 4px; }
-.room-mascot-pose { width: 116px; height: 118px; }
+.room-mascot-zone { position: absolute; inset: 0; overflow: hidden; pointer-events: none; user-select: none; }
+.room-mascot-track { position: absolute; inset: 0 58px 0 0; pointer-events: none; }
+.room-mascot-actor { position: absolute; bottom: 4px; left: var(--bit-to); width: 58px; height: 59px; padding: 0; border: 0; border-radius: 4px; background: none; cursor: pointer; pointer-events: auto; touch-action: manipulation; }
+.room-mascot-actor:focus-visible { outline: 2px solid var(--rm-link); outline-offset: -2px; }
+.room-mascot-pose { width: 58px; height: 59px; }
+.room-mascot-pose .mascot { filter: drop-shadow(0 3px 0 rgb(5 10 20 / 0.25)); }
 .room-mascot-actor:is([data-action='right'], [data-action='left'], [data-action='return']) { animation: var(--bit-walk) var(--bit-duration) linear both; }
 .room-mascot-actor:is([data-action='left'], [data-action='return'][data-facing='left']) .room-mascot-pose { transform: scaleX(-1); }
 .room-mascot-actor[data-action='jump'] .room-mascot-pose { animation: room-bit-jump var(--bit-duration) ease-in-out both; }
 .room-mascot-actor[data-action='return'] .pixel-sprite { animation-duration: 480ms; }
-@keyframes room-bit-walk { from { left: var(--bit-from); top: var(--bit-from-y); } to { left: var(--bit-to); top: var(--bit-to-y); } }
-@keyframes room-bit-walk-again { from { left: var(--bit-from); top: var(--bit-from-y); } to { left: var(--bit-to); top: var(--bit-to-y); } }
-@keyframes room-bit-jump { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-18px); } }
+@keyframes room-bit-walk { from { left: var(--bit-from); } to { left: var(--bit-to); } }
+@keyframes room-bit-walk-again { from { left: var(--bit-from); } to { left: var(--bit-to); } }
+@keyframes room-bit-jump { 0%, 100% { transform: translateY(0); } 45% { transform: translateY(-6px); } }
 @media (prefers-reduced-motion: reduce) { .room-mascot-zone *, .room-mascot-zone .pixel-sprite { animation: none !important; } }
 html[data-reduced-motion='true'] .room-mascot-zone * { animation: none !important; }

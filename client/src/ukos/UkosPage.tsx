@@ -384,32 +384,19 @@ function Workshop({
       }}
       footer={
         <RoomFooterBar
-          steps={lessons.map((item, index) => ({
-            key: item.id,
-            title: item.title,
-            done: index < current,
-            locked: index > current,
-          }))}
-          current={selected}
-          unit="Krok"
-          listLabel="Kroki laboratorium"
+          progress={{
+            steps: lessons.map((item, index) => ({
+              key: item.id,
+              title: item.title,
+              done: index < current,
+              locked: index > current,
+            })),
+            current: selected,
+            unit: "Krok",
+            listLabel: "Kroki laboratorium",
+            onSelect: select,
+          }}
           title={finished ? "Laboratorium ukończone" : lesson.title}
-          onSelect={select}
-          center={
-            finished ? (
-              <span className="room-state room-state--done">
-                <Check aria-hidden="true" />
-                Wszystkie kroki ukończone
-              </span>
-            ) : selected < current ? (
-              <span className="room-state room-state--done">
-                <Check aria-hidden="true" />
-                Krok ukończony
-              </span>
-            ) : (
-              <span className="room-state">Zalicza się automatycznie</span>
-            )
-          }
           back={{
             label: "Wstecz",
             disabled: selected === 0 && !finished,

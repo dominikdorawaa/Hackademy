@@ -102,14 +102,13 @@ describe('room footer', () => {
     const next = vi.fn();
     render(
       <>
-        <RoomFooterBar steps={steps} current={1} unit="Krok" listLabel="Kroki" title="Drugi" onSelect={select}
-          center={<span>Środek</span>}
+        <RoomFooterBar progress={{ steps, current: 1, unit: 'Krok', listLabel: 'Kroki', onSelect: select }} title="Drugi"
           back={{ label: 'Wstecz', onClick: back }} next={{ label: 'Dalej', onClick: next, primary: true }} />
         <p>Poza listą</p>
       </>,
     );
     expect(screen.getByText('Krok 2 / 3')).toBeInTheDocument();
-    expect(screen.getByText('Środek')).toBeInTheDocument();
+    expect(document.querySelector('.room-footer-lane .room-mascot-zone')).not.toBeNull();
     const toggle = screen.getByRole('button', { name: 'Kroki' });
     await user.click(toggle);
     const list = screen.getByRole('navigation', { name: 'Kroki' });
@@ -129,6 +128,18 @@ describe('room footer', () => {
     await user.click(screen.getByRole('button', { name: 'Wstecz' }));
     await user.click(screen.getByRole('button', { name: 'Dalej' }));
     expect(back).toHaveBeenCalled();
+    expect(next).toHaveBeenCalled();
+  });
+
+  it('shows only the title, badge and finishing action for a room without steps', async () => {
+    const next = vi.fn();
+    render(<RoomFooterBar title="Flaga" badge={<span>50 pkt</span>} next={{ label: 'Zakończ', onClick: next }} />);
+    expect(screen.getByText('Flaga')).toBeInTheDocument();
+    expect(screen.getByText('50 pkt')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Kroki' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Wstecz/ })).not.toBeInTheDocument();
+    expect(document.querySelector('.room-footer-lane .room-mascot-actor')).not.toBeNull();
+    await userEvent.click(screen.getByRole('button', { name: 'Zakończ' }));
     expect(next).toHaveBeenCalled();
   });
 });

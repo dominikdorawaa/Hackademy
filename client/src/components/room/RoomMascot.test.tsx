@@ -2,7 +2,7 @@ import { act, fireEvent, render, screen } from '@testing-library/react';
 import { StrictMode } from 'react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { ThemeProvider, useTheme } from '../../context/ThemeContext';
-import RoomMascot, { RoomMascotContext, mascotViewport } from './RoomMascot';
+import RoomMascot, { RoomMascotContext } from './RoomMascot';
 import { mockRoomViewport } from '../../test/roomViewport';
 import { DANCE_MS } from '../mascot/Mascot';
 
@@ -42,13 +42,13 @@ afterEach(() => {
   vi.restoreAllMocks();
 });
 
-it('reserves a larger zone with a single mascot control and preserves input focus while walking', () => {
+it('keeps a single small mascot control in its lane and preserves input focus while walking', () => {
   render(content());
   const input = screen.getByRole('textbox', { name: 'Odpowiedź' });
   input.focus();
   expect(zone()).toHaveAttribute('data-state', 'idle');
   expect(screen.getByRole('button', { name: 'Bit, wróć do siebie i zatańcz' })).toBeInTheDocument();
-  expect(zone().querySelector('.pixel-sprite')).toHaveStyle({ '--sprite-width': '116px', '--sprite-height': '118px' });
+  expect(zone().querySelector('.pixel-sprite')).toHaveStyle({ '--sprite-width': '58px', '--sprite-height': '59px' });
   act(() => vi.advanceTimersByTime(2_200));
   expect(zone()).toHaveAttribute('data-state', 'right');
   expect(input).toHaveFocus();
@@ -92,7 +92,7 @@ it('walks farther and reverses at the boundary instead of staying there', () => 
   next();
   expect(zone()).toHaveAttribute('data-state', 'left');
   expect(parseFloat(actor().style.getPropertyValue('--bit-from'))).toBe(100);
-  expect(parseFloat(actor().style.getPropertyValue('--bit-to'))).toBeCloseTo(30);
+  expect(parseFloat(actor().style.getPropertyValue('--bit-to'))).toBeCloseTo(40);
 });
 
 it('takes success over a walk, freezes its current position and drops the old random timer', () => {
@@ -197,20 +197,21 @@ it('pauses in a background tab and safely handles missing resize observers and z
   expect(vi.getTimerCount()).toBe(0);
 });
 
-it('returns from the terminal side, dances at home and ignores repeated clicks without moving input focus', () => {
-  render(<><input aria-label="Terminal" /><RoomMascot roaming /></>);
+it('returns to the middle of the lane, dances there and ignores repeated clicks without moving input focus', () => {
+  render(<><input aria-label="Terminal" />{content()}</>);
   const input = screen.getByRole('textbox', { name: 'Terminal' });
   input.focus();
   act(() => vi.advanceTimersByTime(2_200));
   expect(zone()).toHaveAttribute('data-state', 'right');
-  expect(parseFloat(actor().style.getPropertyValue('--bit-to'))).toBeGreaterThan(70);
+  expect(actor().style.getPropertyValue('--bit-to')).toBe('100%');
   actor().style.left = '320px';
   fireEvent.pointerDown(actor());
   fireEvent.click(actor());
   expect(input).toHaveFocus();
   expect(zone()).toHaveAttribute('data-state', 'return');
   expect(actor().style.getPropertyValue('--bit-from')).toBe('80%');
-  expect(actor().style.getPropertyValue('--bit-to')).toBe('12%');
+  expect(actor().style.getPropertyValue('--bit-to')).toBe('50%');
+  expect(actor()).toHaveAttribute('data-facing', 'left');
   actor().style.left = '';
   const reaction = zone().getAttribute('data-reaction');
   fireEvent.click(actor());
@@ -276,45 +277,20 @@ it('cleans up a dance timer when leaving the room', () => {
   expect(vi.getTimerCount()).toBe(0);
 });
 
-it('bounds the whole sprite, its jump and shadow to the visible room, excluding navigation and footer', () => {
-  const bounds = mascotViewport({ left: 20, top: 60, right: 1020, bottom: 700 }, 900, 640);
-  expect(bounds).toEqual({ left: 36, top: 92, width: 732, height: 412, visible: true });
-  for (const x of [0, .12, .5, 1]) {
-    for (const y of [0, .5, .85, 1]) {
-      expect(bounds.left + x * bounds.width).toBeGreaterThanOrEqual(20 + 16);
-      expect(bounds.left + x * bounds.width + 116).toBeLessThanOrEqual(900 - 16);
-      expect(bounds.top + y * bounds.height - 18).toBeGreaterThanOrEqual(60);
-      expect(bounds.top + y * bounds.height + 118 + 6).toBeLessThanOrEqual(640);
-    }
-  }
-  expect(mascotViewport({ left: -200, top: -400, right: 320, bottom: 700 }, 320, 600)).toEqual({ left: 16, top: 32, width: 172, height: 432, visible: true });
-  expect(mascotViewport({ left: 0, top: 800, right: 320, bottom: 1000 }, 320, 600).visible).toBe(false);
-});
-
-it('walks vertically across the room and returns from the current two-dimensional position', () => {
+it('hides and stays still while its lane is narrower than the mascot, then resumes when it widens', () => {
+  const rect = vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 0, right: 40, bottom: 70, width: 40, height: 70, x: 0, y: 0, toJSON: () => ({}) });
   render(content());
+  expect(zone()).toHaveStyle({ visibility: 'hidden' });
+  expect(zone()).toHaveAttribute('data-state', 'idle');
+  expect(zone().querySelector('.pixel-sprite')).toHaveAttribute('data-still', 'true');
+  expect(vi.getTimerCount()).toBe(0);
+  rect.mockReturnValue({ left: 0, top: 0, right: 600, bottom: 70, width: 600, height: 70, x: 0, y: 0, toJSON: () => ({}) });
+  fireEvent.resize(window);
+  expect(zone()).toHaveStyle({ visibility: 'visible' });
   next();
-  expect(actor().style.getPropertyValue('--bit-from-y')).toBe('85%');
-  expect(actor().style.getPropertyValue('--bit-to-y')).toBe('0%');
-  actor().style.top = '100px';
-  fireEvent.click(actor());
-  expect(zone()).toHaveAttribute('data-state', 'return');
-  expect(actor().style.getPropertyValue('--bit-from-y')).toBe('25%');
-  expect(actor().style.getPropertyValue('--bit-to-y')).toBe('85%');
-});
-
-it('updates its viewport on scrolling and resizing, and stops outside the visible room', () => {
-  render(content());
-  const track = document.querySelector('.room-mascot-track') as HTMLElement;
-  expect(track.style.top).toBe('96px');
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: -100, right: 320, bottom: 500, width: 320, height: 600, x: 0, y: -100, toJSON: () => ({}) });
-  fireEvent.scroll(window);
-  expect(track.style.left).toBe('16px');
-  expect(track.style.top).toBe('32px');
-  expect(track.style.width).toBe('172px');
-  vi.spyOn(HTMLElement.prototype, 'getBoundingClientRect').mockReturnValue({ left: 0, top: 900, right: 320, bottom: 1100, width: 320, height: 200, x: 0, y: 900, toJSON: () => ({}) });
+  expect(zone()).toHaveAttribute('data-state', 'right');
+  rect.mockReturnValue({ left: 0, top: 0, right: 40, bottom: 70, width: 40, height: 70, x: 0, y: 0, toJSON: () => ({}) });
   fireEvent.resize(window);
   expect(zone()).toHaveStyle({ visibility: 'hidden' });
   expect(zone()).toHaveAttribute('data-state', 'idle');
-  expect(vi.getTimerCount()).toBe(0);
 });

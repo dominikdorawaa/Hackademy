@@ -340,7 +340,7 @@
 .notification-online-close:hover { background: var(--bg-panel-lighter); color: var(--text-light); }
 .notification-online-close:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 1px; }
 
-.navbar.navbar--room { padding: 8px 0; }
+.navbar.navbar--room { padding: 15px 0; }
 .navbar--room .hackademy-container { max-width: none; padding: 0 20px; }
 .navbar--room .nav-content { gap: 20px; }
 .navbar--room .logo { flex: none; }
