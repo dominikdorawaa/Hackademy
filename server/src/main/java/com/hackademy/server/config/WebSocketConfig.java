@@ -28,19 +28,19 @@ public class WebSocketConfig implements WebSocketMessageBrokerConfigurer {
 
     @Override
     public void configureClientInboundChannel(ChannelRegistration registration) {
-        registration.taskExecutor().corePoolSize(4).maxPoolSize(16).queueCapacity(10000);
+        registration.taskExecutor().corePoolSize(2).maxPoolSize(4).queueCapacity(128);
         registration.interceptors(authInterceptor, subscriptionInterceptor);
     }
 
     @Override
     public void configureClientOutboundChannel(ChannelRegistration registration) {
-        registration.taskExecutor().corePoolSize(4).maxPoolSize(16).queueCapacity(10000);
+        registration.taskExecutor().corePoolSize(2).maxPoolSize(4).queueCapacity(128);
     }
 
     @Override
     public void configureMessageBroker(MessageBrokerRegistry config) {
         config.enableSimpleBroker("/topic", "/queue")
-                .setHeartbeatValue(new long[] {10000, 10000})
+                .setHeartbeatValue(new long[] {10000, 70000})
                 .setTaskScheduler(webSocketHeartbeatScheduler());
         config.setApplicationDestinationPrefixes("/app");
         config.setPreservePublishOrder(true);

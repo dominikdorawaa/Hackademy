@@ -6,7 +6,7 @@ import { RealtimeConnection } from './RealtimeConnection';
 const clients = vi.hoisted(() => [] as {
   config: StompConfig; subscribe: ReturnType<typeof vi.fn>; activate: ReturnType<typeof vi.fn>; deactivate: ReturnType<typeof vi.fn>;
 }[]);
-vi.mock('@stomp/stompjs', () => ({ Client: class {
+vi.mock('@stomp/stompjs', () => ({ TickerStrategy: { Worker: 'worker' }, ReconnectionTimeMode: { EXPONENTIAL: 1 }, Client: class {
   subscribe = vi.fn(); activate = vi.fn(); deactivate = vi.fn();
   constructor(public config: StompConfig) { clients.push(this); }
 } }));
@@ -26,7 +26,14 @@ describe('realtime transport', () => {
     await client.config.beforeConnect?.(client as never);
     expect((client as unknown as { connectHeaders: unknown }).connectHeaders).toEqual({ Authorization: 'Bearer second' });
     cleanup();
-    expect(client.config.reconnectDelay).toBe(5000);
+    expect(client.config.reconnectDelay).toBeGreaterThanOrEqual(1000);
+    expect(client.config.reconnectDelay).toBeLessThan(5000);
+    expect(client.config.reconnectTimeMode).toBe(1);
+    expect(client.config.heartbeatStrategy).toBe('worker');
+    expect(client.config.heartbeatIncoming).toBe(10_000);
+    expect(client.config.heartbeatToleranceMultiplier).toBe(7);
+    expect(Math.max(client.config.heartbeatIncoming!, 10_000)).toBeLessThan(55_000);
+    expect(client.config.discardWebsocketOnCommFailure).toBe(true);
     client.config.onConnect?.({} as IFrame);
     expect(client.subscribe.mock.calls[0][0]).toBe('/user/queue/realtime');
     const receive = client.subscribe.mock.calls[0][1] as (message: IMessage) => void;
@@ -41,6 +48,7 @@ describe('realtime transport', () => {
     expect(client.subscribe).toHaveBeenCalledTimes(2);
     await connection.stop();
     expect(client.deactivate).toHaveBeenCalledOnce();
+    expect(client.deactivate).toHaveBeenCalledWith({ force: true });
     receive({ body: JSON.stringify({ type: 'STATE', state }) } as IMessage);
     client.config.onConnect?.({} as IFrame);
     client.config.onWebSocketClose?.({} as CloseEvent);

@@ -34,6 +34,11 @@ public class ClerkUserResolver {
     }
 
     public User resolve(Jwt jwt) {
+        Optional<User> existing = userRepository.findByClerkUserId(jwt.getSubject());
+        rejectDeleted(jwt.getSubject());
+        if (existing.isPresent() && verifiedEmail(jwt).map(email -> email.equals(existing.get().getEmail())).orElse(true)) {
+            return existing.get();
+        }
         try {
             return transaction.execute(status -> resolveInTransaction(jwt));
         } catch (DataIntegrityViolationException exception) {

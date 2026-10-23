@@ -18,7 +18,7 @@ export type RuntimeEnvironment = {
   emit: (event: RuntimeEvent) => void;
   manifest: (
     base: string,
-  ) => Promise<{ version: string; files?: Record<string, { bytes: number }> }>;
+  ) => Promise<{ version: string; assetBase?: string; files?: Record<string, { bytes: number }> }>;
   storage: {
     load: (key: string, version: string) => Promise<SavedWorkshop | null>;
     save: (key: string, data: SavedWorkshop) => Promise<void>;
@@ -151,7 +151,7 @@ export class UkosRuntime {
     const generation = ++this.generation;
     this.emit({ type: "status", status: "booting" });
     this.startedAt = performance.now();
-    const { version, files } = await this.environment.manifest(
+    const { version, files, assetBase } = await this.environment.manifest(
       this.start.baseUrl,
     );
     if (generation !== this.generation) return;
@@ -199,19 +199,20 @@ export class UkosRuntime {
     });
     const prompts = new LineDecoder((line) => this.prompt(line), 24 * 1024);
     const dirty = new LineDecoder(() => this.markDirty(), 128);
+    const base = assetBase ?? this.start.baseUrl;
     const emulator = this.environment.create({
-      wasm_path: `${this.start.baseUrl}/v86.wasm`,
+      wasm_path: `${base}/v86.wasm`,
       memory_size: 128 * 1024 * 1024,
       vga_memory_size: 256 * 1024,
-      bios: { url: `${this.start.baseUrl}/seabios.bin` },
-      vga_bios: { url: `${this.start.baseUrl}/vgabios.bin` },
+      bios: { url: `${base}/seabios.bin` },
+      vga_bios: { url: `${base}/vgabios.bin` },
       ...(useBootState
         ? {
-            initial_state: { url: `${this.start.baseUrl}/boot-state.bin.zst` },
+            initial_state: { url: `${base}/boot-state.bin.zst` },
           }
         : {
-            bzimage: { url: `${this.start.baseUrl}/kernel.bin`, async: false },
-            initrd: { url: `${this.start.baseUrl}/initrd.gz`, async: false },
+            bzimage: { url: `${base}/kernel.bin`, async: false },
+            initrd: { url: `${base}/initrd.gz`, async: false },
             cmdline:
               "console=ttyS0,115200 quiet loglevel=0 tsc=reliable mitigations=off random.trust_cpu=on init=/init",
           }),
@@ -245,13 +246,6 @@ export class UkosRuntime {
       });
       this.reportDownload(false);
     });
-    this.bootTimer = setTimeout(() => {
-      void this.fail(
-        new Error(
-          "Linux nie uruchomił się w ciągu 45 sekund. Zatrzymaj warsztat i spróbuj ponownie.",
-        ),
-      );
-    }, 45000);
     const guarded = (decoder: LineDecoder) => (byte: number) => {
       try {
         decoder.push(byte);
@@ -268,6 +262,10 @@ export class UkosRuntime {
     emulator.add_listener("serial2-output-byte", guarded(prompts));
     emulator.add_listener("serial3-output-byte", guarded(dirty));
     emulator.add_listener("emulator-loaded", () => {
+      if (generation !== this.generation) return;
+      this.bootTimer = setTimeout(() => {
+        void this.fail(new Error("Linux nie uruchomił się w ciągu 45 sekund. Zatrzymaj warsztat i spróbuj ponownie."));
+      }, 45000);
       for (const file of this.downloads.values())
         file.loaded = Math.max(file.loaded, file.size);
       this.reportDownload(true);
