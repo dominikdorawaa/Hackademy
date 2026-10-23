@@ -30,17 +30,18 @@ describe('useApiResource', () => {
     const fallback = renderHook(() => useApiResource(fallbackLoad, ignore));
     await waitFor(() => expect(fallback.result.current.error).toBe('Zbyt wiele żądań. Spróbuj ponownie za 30 s.'));
   });
-  it.each([401, 403])('still treats %s as an expired session', async status => {
+  it('still treats 401 as an expired session', async () => {
     const onUnauthorized = vi.fn();
-    const load = reply(null, { status });
+    const load = reply(null, { status: 401 });
     renderHook(() => useApiResource(load, onUnauthorized));
     await waitFor(() => expect(onUnauthorized).toHaveBeenCalledOnce());
   });
-  it.each([[404, 'Nie znaleziono użytkownika.'], [500, 'Nie udało się pobrać danych.']])('keeps the message for %s', async (status, message) => {
+  it.each([[403, 'Nie udało się pobrać danych.'], [404, 'Nie znaleziono użytkownika.'], [500, 'Nie udało się pobrać danych.']])('keeps the message for %s', async (status, message) => {
     const load = reply(null, { status });
     const ignore = vi.fn();
     const { result } = renderHook(() => useApiResource(load, ignore));
     await waitFor(() => expect(result.current.error).toBe(message));
+    expect(ignore).not.toHaveBeenCalled();
   });
   it('reports a connection failure', async () => {
     const load = async () => { throw new TypeError('Failed to fetch'); };
