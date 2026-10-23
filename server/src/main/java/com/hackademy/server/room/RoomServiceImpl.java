@@ -309,10 +309,10 @@ public class RoomServiceImpl implements RoomService {
                 .map(unlockedHint -> unlockedHint.getHint().getId())
                 .collect(Collectors.toList());
         
-        String fileName = room.getRoomFile() != null ? room.getRoomFile().getFileName() : null;
+        String fileName = roomFileRepository.findFileNameByRoomId(id);
 
         // Fetch Tasks
-        List<Long> completedTaskIds = userCompletedTaskRepository.findCompletedTaskIdsByUserId(user.getId());
+        List<Long> completedTaskIds = userCompletedTaskRepository.findCompletedTaskIdsInRoom(user.getId(), id);
         List<RoomTaskDto> taskDtos = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(id).stream()
                 .map(t -> RoomTaskDto.builder()
                         .id(t.getId())

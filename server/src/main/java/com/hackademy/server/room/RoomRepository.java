@@ -42,6 +42,12 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
            "FROM Room r WHERE " + VISIBLE)
     List<RoomSummaryDto> findAllSummaries();
 
+    @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +
+            "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
+            "FROM Room r JOIN ChapterRoom cr ON cr.roomId = r.id JOIN PathChapter c ON c.id = cr.chapterId " +
+            "WHERE c.pathId = :pathId AND " + VISIBLE)
+    List<RoomSummaryDto> findSummariesInPath(@Param("pathId") Long pathId);
+
     @Query("SELECT new com.hackademy.server.room.dto.RoomAdminSummaryDto(" +
            "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn, r.roomType, p.id, p.title, r.published) " +
            "FROM Room r " +

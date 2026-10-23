@@ -92,14 +92,15 @@ public class UserServiceImpl implements UserService {
                     @Override
                     public void afterCommit() {
                         invalidateGlobalRankingCache();
-                        rankCache.clear();
-                        friendshipService.invalidateProfileCaches();
+                        rankCache.invalidateAll();
+                        friendshipService.invalidateProfileCaches(userId);
                     }
                 });
         return personalization(user);
     }
 
     private final UserRepository userRepository;
+    private final com.hackademy.server.friendship.FriendshipRepository friendships;
     private final AccountDeletionService accountDeletionService;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
     private final UserBadgeRepository userBadgeRepository; // Inject UserBadgeRepository
@@ -143,20 +144,18 @@ public class UserServiceImpl implements UserService {
         final T value;
         CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
     }
-    private final ConcurrentHashMap<Long, CacheEntry<RankingEntry>> rankCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Long, CacheEntry<Boolean>> tutorialVpnSolvedCache = new ConcurrentHashMap<>();
-    private volatile long rankingCacheTimeMs = 0;
-    private volatile List<RankingEntry> rankingCache = null;
+    private final com.github.benmanes.caffeine.cache.Cache<Long, CacheEntry<RankingEntry>> rankCache = com.hackademy.server.cache.LocalCaches.bounded(1024, java.time.Duration.ofSeconds(30));
+    private final com.github.benmanes.caffeine.cache.Cache<Long, CacheEntry<Boolean>> tutorialVpnSolvedCache = com.hackademy.server.cache.LocalCaches.bounded(1024, java.time.Duration.ofSeconds(30));
+    private final com.github.benmanes.caffeine.cache.Cache<Integer, List<RankingEntry>> rankingCache = com.hackademy.server.cache.LocalCaches.bounded(1, java.time.Duration.ofSeconds(30));
 
     public void invalidateUserComputedCaches(Long userId) {
         if (userId == null) return;
-        rankCache.remove(userId);
-        tutorialVpnSolvedCache.remove(userId);
+        rankCache.invalidate(userId);
+        tutorialVpnSolvedCache.invalidate(userId);
     }
 
     public void invalidateGlobalRankingCache() {
-        rankingCacheTimeMs = 0;
-        rankingCache = null;
+        rankingCache.invalidateAll();
     }
 
     @Override
@@ -168,11 +167,12 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public void deleteUser(Long id) {
+        var related = friendships.findRelatedUserIds(id);
         accountDeletionService.delete(id);
         invalidateGlobalRankingCache();
-        rankCache.remove(id);
-        tutorialVpnSolvedCache.remove(id);
-        friendshipService.invalidateProfileCaches();
+        rankCache.invalidate(id);
+        tutorialVpnSolvedCache.invalidate(id);
+        friendshipService.invalidateProfileCaches(id, related);
     }
 
     @Override
@@ -231,7 +231,7 @@ public class UserServiceImpl implements UserService {
         Runnable refresh = () -> {
             invalidateUserComputedCaches(userId);
             invalidateGlobalRankingCache();
-            friendshipService.invalidateProfileCaches();
+            friendshipService.invalidateProfileCaches(userId);
         };
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             refresh.run();
@@ -247,22 +247,16 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<RankingEntry> getTop10Ranking() {
-        long now = System.currentTimeMillis();
-        List<RankingEntry> cached = rankingCache;
-        if (cached != null && now - rankingCacheTimeMs <= CACHE_MS) {
-            return cached;
-        }
-
-        List<RankingRow> top = userRepository.findRankingLeaders();
-        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(top.stream().map(RankingRow::getId).toList());
-        List<RankingEntry> out = top.stream()
-                .map(row -> new RankingEntry(
-                        row.getRankPoints(), row.getRankElo(), row.getUsername(),
-                        row.getPoints(), row.getElo(), avatars.get(row.getId())))
-                .collect(Collectors.toList());
-        rankingCache = out;
-        rankingCacheTimeMs = now;
-        return out;
+        return rankingCache.get(0, key -> {
+                    List<RankingRow> top = userRepository.findRankingLeaders();
+                    Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(top.stream().map(RankingRow::getId).toList());
+                    List<RankingEntry> out = top.stream()
+                            .map(row -> new RankingEntry(
+                                    row.getRankPoints(), row.getRankElo(), row.getUsername(),
+                                    row.getPoints(), row.getElo(), avatars.get(row.getId())))
+                            .collect(Collectors.toList());
+            return out;
+        });
     }
 
     @Override
@@ -306,8 +300,19 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    @Transactional(readOnly = true)
     public List<UserSearchDto> searchUsers(String query, Long currentUserId) {
-        List<User> users = userRepository.findByUsernameContainingIgnoreCase(query);
+        if (query == null || query.strip().length() < 2) return List.of();
+        String normalized = query.strip();
+        if (normalized.length() > 64) normalized = normalized.substring(0, 64);
+        List<User> users = userRepository.searchLimited(normalized, PageRequest.of(0, 20));
+        var statuses = new java.util.HashMap<Long, String>();
+        for (var relation : friendships.findForSearch(currentUserId, users.stream().map(User::getId).toList())) {
+            boolean outgoing = relation.getRequester().getId().equals(currentUserId);
+            statuses.put(outgoing ? relation.getReceiver().getId() : relation.getRequester().getId(),
+                    relation.getStatus() == com.hackademy.server.friendship.FriendshipStatus.ACCEPTED
+                            ? "FRIENDS" : outgoing ? "REQUEST_SENT" : "REQUEST_RECEIVED");
+        }
         Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(users.stream().map(User::getId).toList());
         return users.stream()
                 .map(user -> {
@@ -315,9 +320,9 @@ public class UserServiceImpl implements UserService {
                     if (user.getId().equals(currentUserId)) {
                         status = "SELF";
                     } else {
-                        status = friendshipService.getFriendshipStatus(currentUserId, user.getUsername());
+                        status = statuses.getOrDefault(user.getId(), "NONE");
                     }
-                    
+
                     return UserSearchDto.builder()
                             .id(user.getId())
                             .username(user.getUsername())
@@ -340,7 +345,7 @@ public class UserServiceImpl implements UserService {
     public void muteUser(Long userId, long durationInSeconds) {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        
+
         // Use UTC time to ensure consistency across timezones
         if (durationInSeconds == -1) {
             // Permanent mute (e.g., 100 years)
@@ -353,53 +358,39 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public RankingEntry getUserRank(Long userId) {
-        long now = System.currentTimeMillis();
-        CacheEntry<RankingEntry> cached = rankCache.get(userId);
-        if (cached != null && now - cached.timeMs <= CACHE_MS) {
-            return cached.value;
-        }
+        return rankCache.get(userId, key -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        
-        // Calculate rank based on points
-        long rankPoints = userRepository.countByPointsGreaterThan(user.getPoints()) + 1;
-        
-        // Calculate rank based on ELO
-        long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
-        
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), userAvatarRepository.findDtoByUserId(userId));
-        rankCache.put(userId, new CacheEntry<>(now, out));
-        return out;
+            // Calculate rank based on points
+            long rankPoints = userRepository.countByPointsGreaterThan(user.getPoints()) + 1;
+
+            // Calculate rank based on ELO
+            long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
+
+            RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), userAvatarRepository.findDtoByUserId(userId));
+            return new CacheEntry<>(System.currentTimeMillis(), out);
+        }).value;
     }
 
     public RankingEntry getUserRankFast(Long userId, String username, Integer points, Integer elo) {
-        long now = System.currentTimeMillis();
-        CacheEntry<RankingEntry> cached = rankCache.get(userId);
-        if (cached != null && now - cached.timeMs <= CACHE_MS) {
-            return cached.value;
-        }
-
-        int p = points == null ? 0 : points;
-        int e = elo == null ? 500 : elo;
-        long rankPoints = userRepository.countByPointsGreaterThan(p) + 1;
-        long rankElo = userRepository.countByEloGreaterThan(e) + 1;
-        RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, userAvatarRepository.findDtoByUserId(userId));
-        rankCache.put(userId, new CacheEntry<>(now, out));
-        return out;
+        return rankCache.get(userId, key -> {
+            int p = points == null ? 0 : points;
+            int e = elo == null ? 500 : elo;
+            long rankPoints = userRepository.countByPointsGreaterThan(p) + 1;
+            long rankElo = userRepository.countByEloGreaterThan(e) + 1;
+            RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, userAvatarRepository.findDtoByUserId(userId));
+            return new CacheEntry<>(System.currentTimeMillis(), out);
+        }).value;
     }
 
     @Override
     public boolean hasSolvedTutorialVpn(Long userId) {
-        long now = System.currentTimeMillis();
-        CacheEntry<Boolean> cached = tutorialVpnSolvedCache.get(userId);
-        if (cached != null && now - cached.timeMs <= CACHE_MS) {
-            return cached.value;
-        }
-        boolean solved = userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VPN")
-                || userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VM");
-        tutorialVpnSolvedCache.put(userId, new CacheEntry<>(now, solved));
-        return solved;
+        return tutorialVpnSolvedCache.get(userId, key -> {
+            boolean solved = userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VPN")
+                    || userSolvedRoomRepository.existsByUser_IdAndRoom_Title(userId, "Tutorial VM");
+            return new CacheEntry<>(System.currentTimeMillis(), solved);
+        }).value;
     }
 
     @Override

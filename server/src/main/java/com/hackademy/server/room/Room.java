@@ -75,8 +75,6 @@ public class Room {
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Hint> hints = new ArrayList<>();
 
-    @OneToOne(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true, fetch = FetchType.LAZY)
-    private RoomFile roomFile;
 
     @Builder.Default
     @Column(nullable = false)

@@ -50,6 +50,7 @@ class UserServiceImplTest {
 
     @Mock AccountDeletionService accountDeletionService;
     @Mock UserRepository userRepository;
+    @Mock com.hackademy.server.friendship.FriendshipRepository friendships;
     @Mock UserSolvedRoomRepository userSolvedRoomRepository;
     @Mock UserBadgeRepository userBadgeRepository;
     @Mock FriendshipService friendshipService;
@@ -86,7 +87,7 @@ class UserServiceImplTest {
         verifyNoInteractions(friendshipService);
 
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
-        verify(friendshipService).invalidateProfileCaches();
+        verify(friendshipService).invalidateProfileCaches(1L);
     }
 
     @Test
@@ -258,11 +259,11 @@ class UserServiceImplTest {
 
     @Test
     void searchMarksSelfAndOtherFriendshipStatuses() {
-        when(userRepository.findByUsernameContainingIgnoreCase("a"))
+        when(userRepository.searchLimited(eq("al"), any()))
                 .thenReturn(List.of(user(1L, "alice"), user(2L, "adam")));
-        when(friendshipService.getFriendshipStatus(1L, "adam")).thenReturn("FRIENDS");
+        when(friendships.findForSearch(eq(1L), any())).thenReturn(List.of(new com.hackademy.server.friendship.Friendship(user(1L, "alice"), user(2L, "adam"), com.hackademy.server.friendship.FriendshipStatus.ACCEPTED)));
 
-        var results = service.searchUsers("a", 1L);
+        var results = service.searchUsers("al", 1L);
 
         assertEquals("SELF", results.get(0).friendshipStatus());
         assertEquals("FRIENDS", results.get(1).friendshipStatus());
@@ -357,9 +358,12 @@ class UserServiceImplTest {
 
     @Test
     void delegatesAccountDeletionAndInvalidatesCaches() {
+        when(friendships.findRelatedUserIds(1L)).thenReturn(List.of(2L));
         service.deleteUser(1L);
-        verify(accountDeletionService).delete(1L);
-        verify(friendshipService).invalidateProfileCaches();
+        var order = inOrder(friendships, accountDeletionService, friendshipService);
+        order.verify(friendships).findRelatedUserIds(1L);
+        order.verify(accountDeletionService).delete(1L);
+        order.verify(friendshipService).invalidateProfileCaches(1L, List.of(2L));
     }
 
     @Test
@@ -445,14 +449,14 @@ class UserServiceImplTest {
         verifyNoInteractions(friendshipService);
 
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
-        verify(friendshipService, times(2)).invalidateProfileCaches();
+        verify(friendshipService, times(2)).invalidateProfileCaches(1L);
     }
 
     @Test
     void refreshesCachesImmediatelyWithoutATransaction() {
         when(userAvatarRepository.findById(1L)).thenReturn(Optional.empty());
         service.deleteAvatar(1L);
-        verify(friendshipService).invalidateProfileCaches();
+        verify(friendshipService).invalidateProfileCaches(1L);
     }
 
     private record Recent(Long getRoomId, String getTitle, DifficultyLevel getDifficulty, Integer getPoints,

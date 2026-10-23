@@ -14,6 +14,6 @@ public record PathDetailDto(
     boolean hasBanner,
     boolean enrolled,
     PathUnlockMode unlockMode,
-    List<RoomSummaryDto> rooms,
+    @com.fasterxml.jackson.annotation.JsonIgnore List<RoomSummaryDto> rooms,
     List<PathChapterDto> chapters
 ) {}

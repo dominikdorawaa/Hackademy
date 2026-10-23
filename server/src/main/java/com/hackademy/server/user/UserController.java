@@ -32,6 +32,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final CurrentProfileDetails profileDetails;
     private final OnboardingService onboardingService;
     private final NotificationPreferencesRepository notificationPreferencesRepository;
 
@@ -89,13 +90,13 @@ public class UserController {
                 "bio", userDetails.getBio() != null ? userDetails.getBio() : "",
                 "createdAt", userDetails.getCreatedAt(),
                 "hasVpnAccess", hasVpnAccess));
-        ProfilePersonalizationDto appearance = userService.getPersonalization(userDetails.getId());
+        ProfilePersonalizationDto appearance = profileDetails.read(userDetails);
         userInfo.put("bio", appearance.bio());
         userInfo.put("tagline", appearance.tagline());
         userInfo.put("interests", appearance.interests());
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
         userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
-        userInfo.put("onboarding", onboardingService.get(userDetails.getId()));
+        userInfo.put("onboarding", new com.hackademy.server.user.dto.OnboardingDto(userDetails.getAvatarConfirmedAt() != null, userDetails.getTourStatus()));
         userInfo.put("notificationPreferences", getNotificationPreferences(authentication));
 
         return ResponseEntity.ok(userInfo);

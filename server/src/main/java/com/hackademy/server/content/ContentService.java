@@ -19,6 +19,7 @@ public class ContentService {
     private final PathRepository paths;
     private final PathChapterRepository chapters;
     private final ChapterRoomRepository assignments;
+    private final com.hackademy.server.room.RoomFileRepository roomFiles;
     private final RoomRepository rooms;
     private final PathService pathService;
     private final RoomService roomService;
@@ -183,7 +184,7 @@ public class ContentService {
         var r = roomService.getRoomById(id);
         var hints = r.getHints().stream().sorted(Comparator.comparing(Hint::getId)).map(h -> new HintDto(h.getId(), h.getDescription())).toList();
         var tasks = r.getTasks().stream().sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).map(t -> RoomTaskDto.builder().id(t.getId()).title(t.getTitle()).content(t.getContent()).question(t.getQuestion()).completed(false).build()).toList();
-        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).hints(hints).unlockedHintIds(List.of()).fileName(r.getRoomFile() == null ? null : r.getRoomFile().getFileName()).tasks(tasks).build();
+        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).hints(hints).unlockedHintIds(List.of()).fileName(roomFiles.findFileNameByRoomId(r.getId())).tasks(tasks).build();
     }
 
     @Transactional(readOnly = true)

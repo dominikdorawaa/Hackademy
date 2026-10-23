@@ -1,0 +1,17 @@
+Requester:
+Index Scan using idx_friendships_requester_status on friendships  (cost=0.28..8.30 rows=1 width=8) (actual time=0.013..0.013 rows=1 loops=1)
+  Index Cond: ((requester_id = '519'::bigint) AND ((status)::text = 'ACCEPTED'::text))
+  Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=42
+Planning Time: 0.209 ms
+Execution Time: 0.024 ms
+
+Pair:
+Index Scan using uq_friendships_pair on friendships  (cost=0.28..8.30 rows=1 width=8) (actual time=0.008..0.008 rows=1 loops=1)
+  Index Cond: ((LEAST(requester_id, receiver_id) = '519'::bigint) AND (GREATEST(requester_id, receiver_id) = '520'::bigint))
+  Buffers: shared hit=3
+Planning:
+  Buffers: shared hit=6
+Planning Time: 0.069 ms
+Execution Time: 0.017 ms

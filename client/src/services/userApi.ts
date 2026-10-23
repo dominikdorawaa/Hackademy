@@ -130,7 +130,7 @@ export function addActiveTime(
 }
 
 export function searchUsers(query: string, auth: SessionScope) {
-  return request<UserSearchDto[]>(`/api/user/search?query=${query}`, {
+  return request<UserSearchDto[]>(`/api/user/search?query=${encodeURIComponent(query)}`, {
     method: 'GET',
     auth,
   });

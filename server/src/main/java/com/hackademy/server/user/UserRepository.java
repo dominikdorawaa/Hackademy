@@ -48,6 +48,9 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByUsernameContainingIgnoreCase(String username);
 
+    @Query("SELECT u FROM User u WHERE LOCATE(LOWER(:query), LOWER(u.username)) > 0 ORDER BY u.username, u.id")
+    List<User> searchLimited(@org.springframework.data.repository.query.Param("query") String query, Pageable pageable);
+
     @Query("SELECT u FROM User u ORDER BY u.points DESC")
     List<User> findTopByPointsDesc(Pageable pageable);
 

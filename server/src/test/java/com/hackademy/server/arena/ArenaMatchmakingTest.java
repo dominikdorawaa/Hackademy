@@ -88,7 +88,7 @@ class ArenaMatchmakingTest {
         assertNotNull(arena.findCurrentGameForUser(1L));
         assertEquals(arena.findCurrentGameForUser(1L).getId(), arena.findCurrentGameForUser(2L).getId());
         assertEquals(otherGame, arena.findCurrentGameForUser(3L).getId());
-        verify(realtime, atLeastOnce()).changed(1L, 2L);
+        verify(realtime, atLeastOnce()).arenaChanged(1L, 2L);
     }
 
     @Test

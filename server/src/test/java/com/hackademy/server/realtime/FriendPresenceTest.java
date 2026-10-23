@@ -56,6 +56,22 @@ class FriendPresenceTest {
     }
 
     @Test
+    void shutdownCancelsTimersAndIgnoresLateSocketEvents() {
+        scheduleReturnsFuture();
+        presence.connected(1L, "a");
+        presence.disconnected(1L, "a");
+        Runnable callback = scheduledOffline();
+        presence.stop();
+        verify(future).cancel(false);
+        clearInvocations(scheduler, announcer);
+        presence.connected(1L, "b");
+        presence.disconnected(1L, "b");
+        callback.run();
+        assertFalse(presence.isOnline(1L));
+        verifyNoInteractions(scheduler, announcer);
+    }
+
+    @Test
     void closingOneOfTwoTabsKeepsUserOnline() {
         presence.connected(1L, "a");
         presence.connected(1L, "b");

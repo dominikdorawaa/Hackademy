@@ -12,6 +12,10 @@ import java.util.Set;
 public class RealtimeNotifier {
     private final ApplicationEventPublisher events;
 
+    public void arenaChanged(Long... userIds) {
+        events.publishEvent(new RealtimeChange(Set.copyOf(Arrays.asList(userIds)), false));
+    }
+
     public void changed(Long... userIds) {
         events.publishEvent(new RealtimeChange(Set.copyOf(Arrays.asList(userIds))));
     }

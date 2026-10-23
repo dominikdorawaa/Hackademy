@@ -282,7 +282,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.chapters[1].solvedRooms").value(1))
                 .andExpect(jsonPath("$.chapters[1].rooms[0].id").value(first))
                 .andExpect(jsonPath("$.chapters[1].rooms[0].solved").value(true))
-                .andExpect(jsonPath("$.rooms.length()").value(3));
+                .andExpect(jsonPath("$.rooms").doesNotExist());
 
         getAs(user, "/api/paths/" + pathId + "/rooms-mini?limit=0")
                 .andExpect(status().isOk())
