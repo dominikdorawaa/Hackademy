@@ -1,6 +1,7 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronLeft, ChevronRight, List, Lock } from 'lucide-react';
 import { cn } from '../../lib/utils';
+import RoomMascot from './RoomMascot';
 
 export interface RoomStep {
   key: string | number;
@@ -15,20 +16,23 @@ interface RoomFooterAction {
   disabled?: boolean;
 }
 
-interface RoomFooterBarProps {
+interface RoomFooterSteps {
   steps: RoomStep[];
   current: number;
   unit: string;
   listLabel: string;
+  onSelect: (index: number) => void;
+}
+
+interface RoomFooterBarProps {
+  progress?: RoomFooterSteps;
   title: string;
   badge?: ReactNode;
-  center?: ReactNode;
-  onSelect: (index: number) => void;
-  back: RoomFooterAction;
+  back?: RoomFooterAction;
   next: RoomFooterAction & { primary?: boolean };
 }
 
-export default function RoomFooterBar({ steps, current, unit, listLabel, title, badge, center, onSelect, back, next }: RoomFooterBarProps) {
+export default function RoomFooterBar({ progress, title, badge, back, next }: RoomFooterBarProps) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -55,19 +59,21 @@ export default function RoomFooterBar({ steps, current, unit, listLabel, title, 
   return (
     <footer className="room-footer">
       <div className="room-footer-start" ref={root}>
-        <button ref={toggle} type="button" className="room-btn room-btn--icon" aria-label={listLabel}
-          aria-expanded={open} aria-controls={listId} onClick={() => setOpen(value => !value)}>
-          <List aria-hidden="true" />
-        </button>
-        {open && (
-          <nav id={listId} className="room-steps" aria-label={listLabel}>
+        {progress && (
+          <button ref={toggle} type="button" className="room-btn room-btn--icon" aria-label={progress.listLabel}
+            aria-expanded={open} aria-controls={listId} onClick={() => setOpen(value => !value)}>
+            <List aria-hidden="true" />
+          </button>
+        )}
+        {progress && open && (
+          <nav id={listId} className="room-steps" aria-label={progress.listLabel}>
             <ol>
-              {steps.map((step, index) => (
+              {progress.steps.map((step, index) => (
                 <li key={step.key}>
-                  <button type="button" disabled={step.locked} aria-current={index === current ? 'step' : undefined}
+                  <button type="button" disabled={step.locked} aria-current={index === progress.current ? 'step' : undefined}
                     aria-label={step.done ? `${step.title}, ukończone` : undefined}
                     className={cn(step.done && 'is-done')}
-                    onClick={() => { setOpen(false); onSelect(index); }}>
+                    onClick={() => { setOpen(false); progress.onSelect(index); }}>
                     <span className="room-steps-mark" aria-hidden="true">
                       {step.done ? <Check /> : step.locked ? <Lock /> : String(index + 1).padStart(2, '0')}
                     </span>
@@ -80,17 +86,21 @@ export default function RoomFooterBar({ steps, current, unit, listLabel, title, 
         )}
         <div className="room-footer-where">
           <strong title={title}>{title}</strong>
-          <span>
-            {unit} {Math.min(current + 1, steps.length)} / {steps.length}
-            {badge}
-          </span>
+          {(progress || badge) && (
+            <span>
+              {progress && `${progress.unit} ${Math.min(progress.current + 1, progress.steps.length)} / ${progress.steps.length}`}
+              {badge}
+            </span>
+          )}
         </div>
       </div>
-      <div className="room-footer-center">{center}</div>
+      <div className="room-footer-lane"><RoomMascot /></div>
       <div className="room-footer-end">
-        <button type="button" className="room-btn" disabled={back.disabled} onClick={back.onClick}>
-          <ChevronLeft aria-hidden="true" />{back.label}
-        </button>
+        {back && (
+          <button type="button" className="room-btn" disabled={back.disabled} onClick={back.onClick}>
+            <ChevronLeft aria-hidden="true" />{back.label}
+          </button>
+        )}
         <button type="button" className={cn('room-btn', next.primary && 'room-btn--primary')} disabled={next.disabled} onClick={next.onClick}>
           {next.label}<ChevronRight aria-hidden="true" />
         </button>

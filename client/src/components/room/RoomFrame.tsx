@@ -3,7 +3,7 @@ import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import RoomNavInfo, { type RoomNavProps } from './RoomNavInfo';
 import { useRoomChrome } from './roomChrome';
-import RoomMascot, { RoomMascotContext, type RoomMascotState } from './RoomMascot';
+import { RoomMascotContext, type RoomMascotState } from './RoomMascot';
 import './room.css';
 
 interface RoomFrameProps {
@@ -30,7 +30,7 @@ export default function RoomFrame({ nav, footer, children, className, label, mas
     <RoomMascotContext.Provider value={mascot}>
       <div className={cn('room-frame room-tokens', className)} aria-label={label} role="region">
         {chrome ? chrome.slot && createPortal(info, chrome.slot) : <div className="room-inline-bar">{info}</div>}
-        <div className="room-body-shell"><div className="room-frame-body">{children}</div><RoomMascot roaming /></div>
+        <div className="room-body-shell"><div className="room-frame-body">{children}</div></div>
         {footer}
       </div>
     </RoomMascotContext.Provider>

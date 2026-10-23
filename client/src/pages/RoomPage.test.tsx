@@ -247,13 +247,13 @@ describe('CTF room', () => {
 });
 
 describe('Bit room integration', () => {
-  it('keeps the overlay separate from long content, questions and expanded hints without reserving a lane', async () => {
+  it('keeps Bit in the footer lane, away from long content, questions and expanded hints', async () => {
     mountCtf({ description: 'Długa treść '.repeat(1000), unlockedHintIds: [1, 2], requiresVpn: true, title: 'Tutorial VPN' });
     await screen.findByRole('heading', { name: 'Tutorial VPN' });
     expect(bit()).toHaveAttribute('data-state', 'idle');
-    expect(bit()?.closest('.room-body-shell')?.querySelector('.room-pane-scroll')).toHaveTextContent('Długa treść');
-    expect(bit()?.parentElement).toHaveClass('room-body-shell');
-    expect(bit()?.closest('.room-pane-scroll')).toBeNull();
+    expect(bit()?.parentElement).toHaveClass('room-footer-lane');
+    expect(bit()?.closest('.room-body-shell, .room-pane-scroll')).toBeNull();
+    expect(document.querySelector('.room-body-shell .room-pane-scroll')).toHaveTextContent('Długa treść');
     expect(bit()?.querySelector('input, .room-prose, .room-hints')).toBeNull();
     expect(bit()?.querySelectorAll('button')).toHaveLength(1);
     expect(screen.getByText('Szukaj komentarza')).toBeInTheDocument();
@@ -268,8 +268,8 @@ describe('Bit room integration', () => {
     mount(tasks);
     const user = userEvent.setup();
     const input = await screen.findByRole('textbox', { name: 'Co wpiszesz?' });
-    expect(bit()?.previousElementSibling).toHaveClass('room-frame-body');
-    expect(bit()?.previousElementSibling?.querySelector('.room-reader')).not.toBeNull();
+    expect(bit()?.closest('.room-footer')).not.toBeNull();
+    expect(bit()?.closest('.room-reader')).toBeNull();
     expect(bit()).toHaveAttribute('data-state', 'idle');
     await user.type(input, 'pwd');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
@@ -340,7 +340,7 @@ describe('task room reader', () => {
     await user.type(screen.getByLabelText('Ile?'), '42');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
     expect(answer).toEqual({ answer: '42' });
-    expect(await screen.findByText('Zadanie zaliczone')).toBeInTheDocument();
+    expect(await screen.findByRole('button', { name: 'Poprawne' })).toBeDisabled();
     expect(screen.getByRole('progressbar', { name: 'Postęp pokoju' })).toHaveAttribute('aria-valuenow', '1');
     await user.click(screen.getByRole('button', { name: 'Dalej' }));
     expect(screen.getByRole('heading', { name: '02. Drugie' })).toBeInTheDocument();
@@ -371,8 +371,7 @@ describe('task room reader', () => {
       { id: 2, title: 'Drugie', content: 'B', question: 'Co?', completed: true },
     ]);
     expect(await screen.findByRole('heading', { name: '01. Pierwsze' })).toBeInTheDocument();
-    await userEvent.click(screen.getByRole('button', { name: 'Dalej' }));
-    expect(screen.getByRole('button', { name: 'Zakończ' })).toBeDisabled();
+    expect(screen.queryByRole('button', { name: 'Dalej' })).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Ukończ pokój' })).toBeEnabled();
   });
 });
@@ -405,7 +404,7 @@ describe('next room in a path', () => {
 
   it('sends a solved task room from its last task to the next room of the path', async () => {
     mountSolved([{ id: 1, title: 'Jedyne', content: 'A', question: null, completed: true }], '/rooms/7?pathId=1');
-    expect(await screen.findByText('Pokój ukończony')).toBeInTheDocument();
+    expect(await screen.findByText('Rozwiązany')).toBeInTheDocument();
     await userEvent.click(await screen.findByRole('button', { name: 'Następny pokój' }));
     expect(screen.getByTestId('location')).toHaveTextContent('/rooms/8:PUSH');
   });

@@ -2,7 +2,7 @@ import { sanitizeTaskContent } from '../lib/taskContent';
 import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
 import React, { useState, useEffect, useId, useRef } from 'react';
-import { BookOpen, Check, ChevronRight, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
+import { BookOpen, Check, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import ConfirmationModal from '../components/common/ConfirmationModal';
@@ -323,6 +323,10 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     </div>
   );
 
+  const finish = isSolved && nextRoom
+    ? { label: 'Następny pokój', primary: true, onClick: () => navigate(nextRoom.to) }
+    : { label: 'Zakończ', disabled: !isSolved && !preview, primary: isSolved, onClick: () => navigate(backTo) };
+
   const modals = (
     <>
       <ConfirmationModal
@@ -394,11 +398,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
               <h2 className="room-section-title">Gratulacje!</h2>
               <p>Ukończyłeś to wyzwanie i zdobyłeś {room.points} punktów.</p>
               <div className="room-solved-actions">
-                {nextRoom && (
-                  <button type="button" className="room-btn room-btn--primary" onClick={() => navigate(nextRoom.to)}>
-                    Następny pokój<ChevronRight aria-hidden="true" />
-                  </button>
-                )}
                 <button type="button" onClick={() => setIsTrainingMode(true)} className="room-btn">
                   <RotateCcw aria-hidden="true" />
                   Rozwiąż ponownie (Trening)
@@ -412,7 +411,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     );
 
     return (
-      <RoomFrame nav={nav} label="Pokój z flagą" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}>
+      <RoomFrame nav={nav} label="Pokój z flagą" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
+        footer={<RoomFooterBar title={room.title} badge={<span className="room-chip room-chip--points">{room.points} pkt</span>} next={finish} />}>
         {previewBanner}
         <RoomSplit variant="flat" start={descriptionPane} end={solvePane} initial={0.56} />
         {modals}
@@ -427,35 +427,25 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const firstOpenTask = tasks.findIndex(t => !t.completed);
   const answerId = `${titleId}-answer`;
 
-  const next = !lastTask
-    ? { label: 'Dalej', disabled: !task.completed && !preview, primary: task.completed, onClick: () => setActiveTask(taskIndex + 1) }
-    : isSolved && nextRoom
-      ? { label: 'Następny pokój', primary: true, onClick: () => navigate(nextRoom.to) }
-      : { label: 'Zakończ', disabled: !isSolved && !preview, primary: isSolved, onClick: () => navigate(backTo) };
-
-  const center = !isSolved && allTasksDone ? (
-    <button type="button" className="room-btn room-btn--primary" disabled={finishingRoom}
-      onClick={() => void handleCompleteRoom()}>
-      {finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój'}
-    </button>
-  ) : isSolved ? (
-    <span className="room-state room-state--done"><Check aria-hidden="true" />Pokój ukończony</span>
-  ) : task.completed ? (
-    <span className="room-state room-state--done"><Check aria-hidden="true" />Zadanie zaliczone</span>
-  ) : null;
+  const next = !isSolved && allTasksDone
+    ? { label: finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój', disabled: finishingRoom, primary: true, onClick: () => void handleCompleteRoom() }
+    : !lastTask
+      ? { label: 'Dalej', disabled: !task.completed && !preview, primary: task.completed, onClick: () => setActiveTask(taskIndex + 1) }
+      : finish;
 
   return (
     <RoomFrame nav={nav} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
       footer={
         <RoomFooterBar
-          steps={tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask }))}
-          current={taskIndex}
-          unit="Zadanie"
-          listLabel="Lista zadań"
+          progress={{
+            steps: tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask })),
+            current: taskIndex,
+            unit: 'Zadanie',
+            listLabel: 'Lista zadań',
+            onSelect: setActiveTask,
+          }}
           title={task.title}
           badge={<span className="room-chip room-chip--points">{room.points} pkt</span>}
-          center={center}
-          onSelect={setActiveTask}
           back={{ label: 'Wstecz', disabled: taskIndex === 0, onClick: () => setActiveTask(taskIndex - 1) }}
           next={next}
         />
