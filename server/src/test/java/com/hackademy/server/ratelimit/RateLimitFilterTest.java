@@ -1,6 +1,7 @@
 package com.hackademy.server.ratelimit;
 
 import com.hackademy.server.ClerkTestTokens;
+import jakarta.servlet.http.HttpServletRequest;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.CsvSource;
@@ -14,8 +15,10 @@ import org.springframework.security.oauth2.jwt.JwtDecoder;
 
 import java.time.Duration;
 import java.time.Instant;
+import java.util.Collections;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -157,6 +160,33 @@ class RateLimitFilterTest {
         }
     }
 
+    @ParameterizedTest
+    @CsvSource({"GET, /health", "GET, /", "OPTIONS, /api/user/me", "GET, /ws/info", "POST, /ws/1/abc/xhr_send", "GET, /missing"})
+    void hidesTheBearerTokenFromRequestsThatAreNotLimitedPerAccount(String method, String path) throws Exception {
+        var request = get(path, "alice");
+        request.setMethod(method);
+
+        var forwarded = (HttpServletRequest) send(request).chain.getRequest();
+
+        assertNull(forwarded.getHeader("Authorization"));
+        assertFalse(forwarded.getHeaders("authorization").hasMoreElements());
+        assertFalse(Collections.list(forwarded.getHeaderNames()).stream().anyMatch("Authorization"::equalsIgnoreCase));
+        assertEquals(request.getRemoteAddr(), forwarded.getRemoteAddr());
+    }
+
+    @Test
+    void keepsTheBearerTokenAndOtherHeadersForLimitedApiRequests() throws Exception {
+        var request = get("/api/rooms", "alice");
+        request.addHeader("X-Trace", "1");
+
+        var forwarded = (HttpServletRequest) send(request).chain.getRequest();
+
+        assertEquals("Bearer alice", forwarded.getHeader("Authorization"));
+        var hidden = (HttpServletRequest) send(withTrace(get("/health", "alice"))).chain.getRequest();
+        assertEquals("1", hidden.getHeader("X-Trace"));
+        assertTrue(hidden.getHeaders("X-Trace").hasMoreElements());
+    }
+
     @Test
     void stripsTheContextPath() throws Exception {
         for (int i = 0; i < 5; i++) {
@@ -188,6 +218,11 @@ class RateLimitFilterTest {
         var request = new MockHttpServletRequest("GET", path);
         request.setRemoteAddr("198.51.100.1");
         if (token != null) request.addHeader("Authorization", "Bearer " + token);
+        return request;
+    }
+
+    private static MockHttpServletRequest withTrace(MockHttpServletRequest request) {
+        request.addHeader("X-Trace", "1");
         return request;
     }
 

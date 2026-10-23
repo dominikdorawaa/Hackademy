@@ -40,9 +40,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
 
     @Override
     protected boolean shouldNotFilter(@NonNull HttpServletRequest request) {
-        return !properties.enabled()
-                || HttpMethod.OPTIONS.matches(request.getMethod())
-                || UNLIMITED_PATHS.contains(path(request));
+        return !properties.enabled();
     }
 
     @Override
@@ -52,12 +50,19 @@ public class RateLimitFilter extends OncePerRequestFilter {
             @NonNull FilterChain filterChain
     ) throws ServletException, IOException {
         String path = path(request);
-        String account = path.startsWith("/api/") ? account(request) : null;
+        boolean exempt = HttpMethod.OPTIONS.matches(request.getMethod()) || UNLIMITED_PATHS.contains(path);
+        boolean api = path.startsWith("/api/");
+        HttpServletRequest forwarded = api && !exempt ? request : new WithoutAuthorizationHeader(request);
+        if (exempt) {
+            filterChain.doFilter(forwarded, response);
+            return;
+        }
+        String account = api ? account(request) : null;
         RateLimitGroup group = group(request.getMethod(), path, account != null);
         String id = group.perAccount() ? "account:" + account : "ip:" + ClientAddress.key(request.getRemoteAddr());
         RateLimitDecision decision = limiter.acquire(group.name(), id, properties.rule(group));
         if (decision.allowed()) {
-            filterChain.doFilter(request, response);
+            filterChain.doFilter(forwarded, response);
             return;
         }
         log.debug("Rate limited {} request to {}", group, path);

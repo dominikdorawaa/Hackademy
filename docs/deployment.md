@@ -235,6 +235,7 @@ Backend ogranicza ruch filtrem `RateLimitFilter` (#132) niezależnie od reguły 
 
 - Limit to token bucket: burst to pojemność, próg to tempo odnawiania. Nie liczymy `/health`, `/` ani preflight CORS (`OPTIONS`). Statyczny frontend serwuje Cloudflare Pages.
 - Konto ustalamy z podpisanego JWT Clerka bez zapytania do bazy. Żądanie z nieważnym tokenem liczy się do adresu IP.
+- Nagłówek `Authorization` trafia dalej tylko w limitowanych żądaniach do `/api/`. Dla `/health`, `/`, `OPTIONS` i ścieżek spoza API filtr go ukrywa, więc te żądania nie wyszukują ani nie zakładają kont. WebSocket przekazuje token w ramce STOMP `CONNECT`.
 - Adres IP pochodzi z `CF-Connecting-IP` wyłącznie po zgodnym `X-Origin-Verify` (sekcja „Weryfikacja pochodzenia”). Na Heroku Spring Boot rozpoznaje platformę i przyjmuje `X-Forwarded-For` tylko od wewnętrznego routera. Lokalnie liczy się adres połączenia. Wartości `X-Forwarded-For`, `Forwarded` ani `CF-Connecting-IP` wysłane przez klienta nie zmieniają klucza. Bez `ORIGIN_GUARD_SECRETS` wszystkie żądania anonimowe na produkcji miałyby adresy Cloudflare, dlatego filtr pochodzenia musi być włączony.
 - Adresy IPv6 liczymy wspólnie dla prefiksu `/64`, który kontroluje jeden klient.
 - Po przekroczeniu limitu odpowiedź ma kod `429`, nagłówek `Retry-After` (udostępniony przez CORS) i treść `{"message": "Zbyt wiele żądań. Spróbuj ponownie za N s.", "retryAfter": N}`. Klient pokazuje komunikat i nie ponawia zapisów sam.

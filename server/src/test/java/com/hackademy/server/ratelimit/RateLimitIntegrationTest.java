@@ -14,9 +14,11 @@ import java.net.URI;
 import java.net.http.HttpClient;
 import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
+import java.net.http.WebSocket;
 import java.time.Duration;
 import java.util.Map;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -123,6 +125,26 @@ class RateLimitIntegrationTest {
     }
 
     @Test
+    void requestsOutsideTheLimitedApiNeverResolveOrCreateAccounts() throws Exception {
+        String clerkUserId = "user_" + UUID.randomUUID().toString().replace("-", "");
+        String bearer = "Bearer " + ClerkTestTokens.token(clerkUserId, ORIGIN,
+                Map.of("email", clerkUserId + "@example.com", "email_verified", true));
+
+        for (int i = 0; i < 3; i++) {
+            assertEquals(200, send(get("/health", "203.0.113.80").header("Authorization", bearer)).statusCode());
+            send(get("/", "203.0.113.80").header("Authorization", bearer));
+            send(get("/missing", "203.0.113.81").header("Authorization", bearer));
+            send(get("/ws/info", "203.0.113.82").header("Authorization", bearer).header("Origin", ORIGIN));
+            send(get("/api/user/me", "203.0.113.83").header("Authorization", bearer)
+                    .method("OPTIONS", HttpRequest.BodyPublishers.noBody()));
+        }
+
+        assertTrue(userRepository.findByClerkUserId(clerkUserId).isEmpty());
+        assertEquals(200, send(get("/api/user/me", "203.0.113.84").header("Authorization", bearer)).statusCode());
+        assertTrue(userRepository.findByClerkUserId(clerkUserId).isPresent());
+    }
+
+    @Test
     void neverLimitsHealthChecks() throws Exception {
         for (int i = 0; i < 10; i++) {
             assertEquals(200, send(get("/health", "203.0.113.60")).statusCode());
@@ -135,6 +157,20 @@ class RateLimitIntegrationTest {
 
         assertEquals(429, send(get("/ws/info", "203.0.113.70").header("Origin", ORIGIN)).statusCode());
         assertEquals(200, send(get("/ws/info", "203.0.113.71").header("Origin", ORIGIN)).statusCode());
+    }
+
+    @Test
+    void upgradesWebSocketsThroughTheLimiter() throws Exception {
+        WebSocket socket = client.newWebSocketBuilder()
+                .connectTimeout(Duration.ofSeconds(5))
+                .header("Origin", ORIGIN)
+                .header(OriginGuardFilter.SECRET_HEADER, SECRET)
+                .header("CF-Connecting-IP", "203.0.113.90")
+                .subprotocols("v12.stomp")
+                .buildAsync(URI.create("ws://localhost:" + port + "/ws/websocket"), new WebSocket.Listener() { })
+                .get(5, TimeUnit.SECONDS);
+
+        socket.sendClose(WebSocket.NORMAL_CLOSURE, "").get(5, TimeUnit.SECONDS);
     }
 
     private HttpRequest.Builder bio(String bearer, String address, String bio) {
