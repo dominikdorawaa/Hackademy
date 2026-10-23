@@ -17,6 +17,7 @@ public class CorsConfig {
 
     static final List<String> ALLOWED_METHODS = List.of("GET", "POST", "PUT", "PATCH", "DELETE");
     static final List<String> ALLOWED_HEADERS = List.of(HttpHeaders.AUTHORIZATION, HttpHeaders.CONTENT_TYPE);
+    static final List<String> EXPOSED_HEADERS = List.of(HttpHeaders.RETRY_AFTER);
 
     @Bean
     public CorsConfigurationSource corsConfigurationSource(CorsProperties properties) {
@@ -24,6 +25,7 @@ public class CorsConfig {
         configuration.setAllowedOrigins(properties.allowedOrigins());
         configuration.setAllowedMethods(ALLOWED_METHODS);
         configuration.setAllowedHeaders(ALLOWED_HEADERS);
+        configuration.setExposedHeaders(EXPOSED_HEADERS);
         configuration.setAllowCredentials(true);
         configuration.setMaxAge(Duration.ofHours(2));
 

@@ -219,3 +219,29 @@ Sekret zmieniamy po wycieku lub gdy dostęp traci osoba, która go znała.
 2. `node tools/cloudflare/apply.mjs --apply` z nowym `ORIGIN_VERIFY_SECRET`.
 3. Sprawdzenie `/health` przez `api.hackademy.app` (`200`) i adres Heroku (`403`).
 4. `heroku config:set ORIGIN_GUARD_SECRETS="nowy" -a hackademy > /dev/null` i aktualizacja menedżera haseł.
+
+## Limity żądań w backendzie
+
+Backend ogranicza ruch filtrem `RateLimitFilter` (#132) niezależnie od reguły Cloudflare. Filtr działa w łańcuchu Spring Security przed uwierzytelnieniem Clerka, więc odrzucone żądanie nie dociera do kontrolerów ani bazy, nie zakłada konta i nie zmienia stanu meczu.
+
+| Grupa | Klucz | Burst | Próg | Ruch |
+| --- | --- | --- | --- | --- |
+| `api-read` | konto Clerka | 150 | 300 na minutę | `GET` i `HEAD` do `/api/` z ważnym tokenem |
+| `api-write` | konto Clerka | 50 | 100 na minutę | pozostałe metody do `/api/` z ważnym tokenem |
+| `anonymous` | adres IP | 150 | 300 na minutę | żądania bez ważnego tokenu, np. ranking po wylogowaniu |
+| `public-banner` | adres IP | 1000 | 1000 na minutę | bannery ścieżek ładowane przez `<img>` bez tokenu |
+| `websocket-handshake` | adres IP | 540 | 540 na minutę | `/ws/info` i otwarcie WebSocket |
+| `websocket-transport` | adres IP | 600 | 3600 na minutę | pozostałe żądania SockJS (`xhr_send`, `xhr`, `xhr_streaming`) |
+
+- Limit to token bucket: burst to pojemność, próg to tempo odnawiania. Nie liczymy `/health`, `/` ani preflight CORS (`OPTIONS`). Statyczny frontend serwuje Cloudflare Pages.
+- Konto ustalamy z podpisanego JWT Clerka bez zapytania do bazy. Żądanie z nieważnym tokenem liczy się do adresu IP.
+- Nagłówek `Authorization` trafia dalej tylko w limitowanych żądaniach do `/api/`. Dla `/health`, `/`, `OPTIONS` i ścieżek spoza API filtr go ukrywa, więc te żądania nie wyszukują ani nie zakładają kont. WebSocket przekazuje token w ramce STOMP `CONNECT`.
+- Adres IP pochodzi z `CF-Connecting-IP` wyłącznie po zgodnym `X-Origin-Verify` (sekcja „Weryfikacja pochodzenia”). Na Heroku Spring Boot rozpoznaje platformę i przyjmuje `X-Forwarded-For` tylko od wewnętrznego routera. Lokalnie liczy się adres połączenia. Wartości `X-Forwarded-For`, `Forwarded` ani `CF-Connecting-IP` wysłane przez klienta nie zmieniają klucza. Bez `ORIGIN_GUARD_SECRETS` wszystkie żądania anonimowe na produkcji miałyby adresy Cloudflare, dlatego filtr pochodzenia musi być włączony.
+- Adresy IPv6 liczymy wspólnie dla prefiksu `/64`, który kontroluje jeden klient.
+- Po przekroczeniu limitu odpowiedź ma kod `429`, nagłówek `Retry-After` (udostępniony przez CORS) i treść `{"message": "Zbyt wiele żądań. Spróbuj ponownie za N s.", "retryAfter": N}`. Klient pokazuje komunikat i nie ponawia zapisów sam.
+- Liczniki są w pamięci jednej instancji i znikają po restarcie. Tabela ma najwyżej `max-keys` (50 000) kluczy. Klucze, których limit odnowił się w całości, są usuwane. Gdy tabela jest pełna, nowe klucze dzielą jeden wspólny limit grupy.
+- Progi dobrał test `RateLimitDefaultsLoadTest` na podstawie ruchu klienta: klasa 30 osób za jednym NAT przez 10 minut (logowanie, szybka nawigacja, bannery ścieżek, przeładowania, zablokowany WebSocket), ponowne połączenie 60 kart po restarcie i pełny pojedynek z reakcjami przechodzą bez odmowy. Limity na adres IP mają zapas co najmniej trzykrotny dla jednej klasy; większa szkoła za jednym adresem wymaga podniesienia progów.
+- Nie ma lokalnych endpointów logowania ani rejestracji. Logowanie chroni Clerk. Zakładanie konta przy pierwszym żądaniu z nowym tokenem jest objęte limitem konta.
+- `RateLimiter.acquire(scope, id, rule)` może posłużyć do limitu błędnych flag (#40) z własnym zakresem i regułą.
+
+Progi zmieniamy zmiennymi środowiskowymi, np. `APPLICATION_RATELIMIT_RULES_APIREAD_BURST=200`. `RATE_LIMIT_ENABLED=false` wyłącza filtr. Zmiana zmiennej restartuje dyno i zeruje liczniki.

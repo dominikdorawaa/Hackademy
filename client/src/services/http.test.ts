@@ -1,5 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { registerSession, request, sessionToken } from './http';
+import { onRateLimit } from './rateLimit';
 
 const transport = vi.fn<typeof fetch>();
 const expired = vi.fn();
@@ -89,6 +90,27 @@ describe('Clerk API transport', () => {
   it.each(['https://outside.example/api/user/me', '/outside', '//outside.example/api/user/me'])('rejects credential destinations outside the API: %s', async path => {
     await expect(request(path, { auth })).rejects.toThrow('Nieprawidłowy adres API.');
     expect(transport).not.toHaveBeenCalled();
+  });
+  it.each(['GET', 'POST', 'PUT', 'PATCH', 'DELETE'])('keeps the session and does not repeat a rate limited %s request', async method => {
+    const limits = vi.fn();
+    const stop = onRateLimit(limits);
+    transport.mockResolvedValue(Response.json({ message: 'Zbyt wiele żądań. Spróbuj ponownie za 9 s.', retryAfter: 9 }, { status: 429, headers: { 'Retry-After': '9' } }));
+    const response = await request('/api/user/me', { method, auth, body: method === 'GET' ? undefined : '{}' });
+    stop();
+    expect(response.status).toBe(429);
+    expect(await response.json()).toMatchObject({ retryAfter: 9 });
+    expect(transport).toHaveBeenCalledOnce();
+    expect(expired).not.toHaveBeenCalled();
+    expect(limits.mock.calls).toEqual([[9]]);
+  });
+  it('lets a caller show its own rate limit message instead of the shared notice', async () => {
+    const limits = vi.fn();
+    const stop = onRateLimit(limits);
+    transport.mockResolvedValue(new Response(null, { status: 429, headers: { 'Retry-After': '3' } }));
+    await request('/api/arena/game/1/reaction', { method: 'POST', auth, rateLimitNotice: false });
+    await request('/api/user/ranking');
+    stop();
+    expect(limits.mock.calls).toEqual([[3]]);
   });
   it('retains the newer registration when older cleanup runs', async () => {
     const newer = registerSession({ ...auth, getToken: async () => 'newer', expired });

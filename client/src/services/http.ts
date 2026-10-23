@@ -1,5 +1,6 @@
 import API_URL from '../apiConfig';
 import type { ApiError } from '../types/api';
+import { TOO_MANY_REQUESTS, readRetryAfter, reportRateLimit } from './rateLimit';
 
 type ResponseBody<T, E> =
   | { readonly ok: true; json(): Promise<T> }
@@ -68,10 +69,10 @@ export async function sessionToken(scope: SessionScope, skipCache = false) {
   return token;
 }
 
-export interface RequestOptions extends RequestInit { auth?: SessionScope }
+export interface RequestOptions extends RequestInit { auth?: SessionScope; rateLimitNotice?: boolean }
 
 export async function request<T, E = ApiError>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T, E>> {
-  const { auth, ...init } = options;
+  const { auth, rateLimitNotice = true, ...init } = options;
   const url = new URL(path, `${API_URL || window.location.origin}/`);
   const api = new URL(API_URL || window.location.origin);
   if (url.origin !== api.origin || !url.pathname.startsWith('/api/')) throw new Error('Nieprawidłowy adres API.');
@@ -90,6 +91,7 @@ export async function request<T, E = ApiError>(path: string, options: RequestOpt
     response = await send(true);
     if (response.status === 401 && session === current) current?.expired();
   }
+  if (response.status === TOO_MANY_REQUESTS && rateLimitNotice) reportRateLimit(await readRetryAfter(response));
   if (auth?.sessionKey && session !== current) throw new DOMException('Sesja została zmieniona.', 'AbortError');
   if (response.ok && !['GET', 'HEAD'].includes(init.method ?? 'GET') && !url.pathname.endsWith('/active-time')) {
     invalidateReads();

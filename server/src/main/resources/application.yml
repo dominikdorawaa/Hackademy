@@ -41,6 +41,34 @@ application:
     presence-offline-grace: ${PRESENCE_OFFLINE_GRACE:5s}
   origin-guard:
     secrets: ${ORIGIN_GUARD_SECRETS:}
+  rate-limit:
+    enabled: ${RATE_LIMIT_ENABLED:true}
+    max-keys: 50000
+    rules:
+      api-read:
+        burst: 150
+        limit: 300
+        window: 1m
+      api-write:
+        burst: 50
+        limit: 100
+        window: 1m
+      anonymous:
+        burst: 150
+        limit: 300
+        window: 1m
+      public-banner:
+        burst: 1000
+        limit: 1000
+        window: 1m
+      websocket-handshake:
+        burst: 540
+        limit: 540
+        window: 1m
+      websocket-transport:
+        burst: 600
+        limit: 3600
+        window: 1m
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:${FRONTEND_URL:http://localhost:5173}}
   clerk:

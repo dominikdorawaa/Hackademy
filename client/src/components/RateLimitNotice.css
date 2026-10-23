@@ -1,0 +1,47 @@
+.rate-limit-notices {
+  position: fixed;
+  left: 16px;
+  bottom: 16px;
+  z-index: 1000;
+  max-width: min(360px, calc(100vw - 32px));
+  pointer-events: none;
+}
+
+.rate-limit-notice {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  border-radius: 10px;
+  background: var(--bg-panel);
+  color: var(--text-light);
+  font-size: 0.9rem;
+  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  pointer-events: auto;
+}
+
+[data-theme='light'] .rate-limit-notice {
+  box-shadow: 0 0 0 1px rgba(15, 23, 36, 0.08), 0 12px 28px rgba(15, 23, 36, 0.16);
+}
+
+.rate-limit-notice-dot {
+  flex: none;
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: #f1c40f;
+}
+
+.rate-limit-notice-close {
+  margin-left: auto;
+  padding: 4px 6px;
+  border: none;
+  background: none;
+  color: var(--text-gray);
+  cursor: pointer;
+}
+
+.rate-limit-notice-close:hover,
+.rate-limit-notice-close:focus-visible {
+  color: var(--text-light);
+}

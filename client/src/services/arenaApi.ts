@@ -74,7 +74,7 @@ export function answerQuestion(id: ApiId, round: number, answer: number, auth: S
 export function sendReaction(id: ApiId, reaction: string, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/game/${id}/reaction`, {
     method: 'POST',
-    auth, headers: { 'Content-Type': 'application/json' },
+    auth, headers: { 'Content-Type': 'application/json' }, rateLimitNotice: false,
     body: JSON.stringify({ reaction }),
   });
 }
