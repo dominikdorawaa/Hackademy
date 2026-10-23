@@ -17,10 +17,10 @@ const ProtectedRoute = ({ children, onboarding = false }: PropsWithChildren<{ on
       <button type="button" className="ud-btn ud-btn-solid" onClick={refresh}>Spróbuj ponownie</button>
     </div>;
   }
-  if (status !== 'ready' || !state) return <div role="status">Wczytuję…</div>;
-  if (!state.avatarConfirmed && !onboarding) return <Navigate to={ONBOARDING_PATH} replace state={{ from: location.pathname }} />;
-  if (state.avatarConfirmed && onboarding) return <Navigate to="/dashboard" replace />;
-  return <>{children}</>;
+  if (state && !state.avatarConfirmed && !onboarding) return <Navigate to={ONBOARDING_PATH} replace state={{ from: location.pathname }} />;
+  if (state?.avatarConfirmed && onboarding) return <Navigate to="/dashboard" replace />;
+  const pending = status !== 'ready' || !state;
+  return <>{pending && <div role="status">Wczytuję…</div>}<div hidden={pending} inert={pending || undefined} style={pending ? undefined : { display: 'contents' }}>{children}</div></>;
 };
 
 export default ProtectedRoute;

@@ -91,7 +91,7 @@ public class DashboardController {
                 .user(userInfo)
                 .myRank(userServiceImpl.getUserRankFast(userId, username, user.getPoints(), user.getElo()))
                 .ranking(userService.getTop10Ranking())
-                .recentSolved(userService.getRecentSolvedRooms(userId, 3))
+                .recentSolved(userService.getRecentSolvedRooms(userId, 20))
                 .activeSecondsThisWeek(counts.seconds())
                 .badgesEarnedCount(counts.badges())
                 .friendsCount(counts.friends())

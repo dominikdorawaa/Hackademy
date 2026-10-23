@@ -2,7 +2,6 @@ import UserAvatar from '../components/UserAvatar';
 import ProfilePeek from '../components/ProfilePeek';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
-import * as friendApi from '../services/friendApi';
 import * as rankingApi from '../services/rankingApi';
 import React, { useState, useEffect } from 'react';
 import { useAuth } from '../context/AuthContext';
@@ -14,7 +13,7 @@ import { LeagueIcon } from '../components/arena/LeagueIcon';
 import { EloHelp } from '../components/arena/EloHelp';
 import { ArenaLoader, ArenaRunner } from '../components/arena/ArenaLoader';
 import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
-import type { DashboardUser, FriendDto, RankingEntry, UserSearchDto } from '../types/api';
+import type { DashboardUser, RankingEntry } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaPage.css';
 
@@ -30,17 +29,17 @@ const ArenaPage = () => {
     const [userFailed, setUserFailed] = useState(false);
     const [userAttempt, setUserAttempt] = useState(0);
     const [rank, setRank] = useState<{ status: 'loading' | 'ready' | 'error'; entry: RankingEntry | null }>({ status: 'loading', entry: null });
-    const { state: realtime, connected, synchronize } = useRealtime();
+    const { state: realtime, connected, synchronize, error: realtimeError } = useRealtime();
     const [joiningQueue, setJoiningQueue] = useState(false);
     const gameSession = realtime?.gameSession ?? null;
     const challenges = realtime?.challenges ?? [];
     const status: ArenaStatus = gameSession && gameSession.status !== 'FINISHED' ? 'GAME'
         : realtime?.queued ? 'QUEUE' : 'IDLE';
     const [error, setError] = useState<string | null>(null);
-    const [friends, setFriends] = useState<FriendDto[] | null>(null);
-    const [friendsFailed, setFriendsFailed] = useState(false);
-    const [headToHead, setHeadToHead] = useState<Record<string, UserSearchDto | 'error'>>({});
-    const [statsLoading, setStatsLoading] = useState(true);
+    const friends = realtime?.friends ?? null;
+    const friendsFailed = !!realtimeError;
+    const headToHead = Object.fromEntries((friends ?? []).map(friend => [friend.username, friend]));
+    const statsLoading = !realtime;
     const [friendChallenges, setFriendChallenges] = useState<Record<string, FriendChallenge>>({});
     const outgoing = realtime?.outgoingChallenges ?? [];
     const challengedFriends = outgoing.map(challenge => challenge.targetUsername);
@@ -61,25 +60,11 @@ const ArenaPage = () => {
 
     useEffect(() => {
         const headers = { sessionKey };
-        rankingApi.getSummary(headers)
+        rankingApi.getMyRank(headers)
             .then(response => { if (!response.ok) throw new Error('ranking'); return response.json(); })
-            .then(data => setRank(data?.myRank ? { status: 'ready', entry: data.myRank } : { status: 'error', entry: null }))
+            .then(data => setRank(data ? { status: 'ready', entry: data } : { status: 'error', entry: null }))
             .catch(() => setRank({ status: 'error', entry: null }));
-        friendApi.getFriends(headers)
-            .then(async response => {
-                if (!response.ok) throw new Error('friends');
-                const list: FriendDto[] = await response.json();
-                setFriends(list);
-                const stats = await Promise.all(list.slice(0, FRIENDS_SHOWN).map(async friend => {
-                    try {
-                        const r = await friendApi.getStats(friend.username, headers);
-                        return [friend.username, r.ok ? await r.json() as UserSearchDto : 'error' as const] as const;
-                    } catch { return [friend.username, 'error' as const] as const; }
-                }));
-                setHeadToHead(Object.fromEntries(stats));
-                setStatsLoading(false);
-            })
-            .catch(() => { setFriendsFailed(true); setStatsLoading(false); });
+
     }, [sessionKey]);
 
     const handleChallengeFriend = async (username: string) => {
@@ -320,8 +305,8 @@ const ArenaPage = () => {
                             <ul className="ud-friend-list">
                                 {friends.slice(0, FRIENDS_SHOWN).map(friend => {
                                     const h2h = headToHead[friend.username];
-                                    const record = h2h && h2h !== 'error' ? h2h : null;
-                                    const played = record ? record.winsAgainst + record.lossesAgainst : 0;
+                                    const record = h2h && h2h.winsAgainst !== undefined ? h2h : null;
+                                    const played = record ? (record.winsAgainst ?? 0) + (record.lossesAgainst ?? 0) : 0;
                                     const state = friendChallenges[friend.username];
                                     const sent = challengedFriends.includes(friend.username);
                                     return (

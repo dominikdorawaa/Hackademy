@@ -3,7 +3,7 @@ import type { ProfilePersonalization } from '../lib/profile';
 import { createContext, useState, useContext, useEffect, useLayoutEffect, useCallback } from 'react';
 import type { PropsWithChildren } from 'react';
 import { useAuth as useClerkAuth, useClerk } from '@clerk/react';
-import { registerSession } from '../services/http';
+import { registerSession, invalidateReads } from '../services/http';
 import { getCurrentUser } from '../services/userApi';
 import type { DashboardUser } from '../types/api';
 
@@ -48,6 +48,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const refreshUser = useCallback(async () => {
     if (!sessionKey || !authenticated) return;
+    invalidateReads();
     const response = await getCurrentUser({ sessionKey });
     if (!response.ok) throw new Error('Nie udało się pobrać konta.');
     setProfile({ sessionKey, user: await response.json() });

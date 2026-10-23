@@ -429,22 +429,9 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public int addActiveSecondsThisWeek(Long userId, int deltaSeconds) {
-        int safeDelta = Math.max(0, Math.min(deltaSeconds, 60));
-        if (safeDelta == 0) return getActiveSecondsThisWeek(userId);
-
-        String weekKey = currentWeekKey();
-        var id = new com.hackademy.server.dashboard.UserWeeklyActiveTimeId(userId, weekKey);
-        try {
-            var row = userWeeklyActiveTimeRepository.findById(id)
-                    .orElseGet(() -> new com.hackademy.server.dashboard.UserWeeklyActiveTime(userId, weekKey, 0, null));
-
-            row.setSeconds(row.getSeconds() + safeDelta);
-            return userWeeklyActiveTimeRepository.save(row).getSeconds();
-        } catch (RuntimeException e) {
-            // If the table isn't present (e.g. migrations not applied yet), don't break the whole app.
-            return 0;
-        }
+    @Transactional
+    public int recordActivity(Long userId, boolean active) {
+        return userWeeklyActiveTimeRepository.recordActivity(userId, currentWeekKey(), active);
     }
 
     @Override

@@ -22,6 +22,13 @@ public class RankingController {
     private final UserService userService;
     private final UserServiceImpl userServiceImpl;
 
+    @GetMapping("/me")
+    public ResponseEntity<RankingEntry> myRank() {
+        var principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        if (!(principal instanceof User user)) return ResponseEntity.status(401).build();
+        return ResponseEntity.ok(userServiceImpl.getUserRankFast(user.getId(), user.getUsername(), user.getPoints(), user.getElo()));
+    }
+
     @GetMapping("/summary")
     public ResponseEntity<RankingSummaryDto> summary() {
         List<RankingEntry> ranking = userService.getTop10Ranking();

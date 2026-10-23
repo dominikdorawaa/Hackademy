@@ -96,6 +96,7 @@ public class UserController {
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
         userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
         userInfo.put("onboarding", onboardingService.get(userDetails.getId()));
+        userInfo.put("notificationPreferences", getNotificationPreferences(authentication));
 
         return ResponseEntity.ok(userInfo);
     }
@@ -215,17 +216,8 @@ public class UserController {
     @PostMapping("/me/active-time")
     public ResponseEntity<Map<String, Object>> addMyActiveTimeThisWeek(@RequestBody Map<String, Object> payload) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Object deltaObj = payload.get("deltaSeconds");
-        int delta = 0;
-        if (deltaObj instanceof Number) {
-            delta = ((Number) deltaObj).intValue();
-        }
-        try {
-            int seconds = userService.addActiveSecondsThisWeek(user.getId(), delta);
-            return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
-        } catch (RuntimeException e) {
-            return ResponseEntity.ok(Map.of("secondsThisWeek", 0));
-        }
+        boolean active = !Boolean.FALSE.equals(payload.get("active"));
+        return ResponseEntity.ok(Map.of("secondsThisWeek", userService.recordActivity(user.getId(), active)));
     }
 
     @GetMapping("/{username}/activity")

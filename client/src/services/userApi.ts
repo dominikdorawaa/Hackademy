@@ -1,4 +1,4 @@
-import { request } from './http';
+import { request, cachedRequest, invalidateReads } from './http';
 import type { SessionScope } from './http';
 import type {
   ActivityDto,
@@ -27,7 +27,13 @@ export const defaultNotificationPreferences: NotificationPreferences = {
 };
 
 export function getNotificationPreferences(auth: SessionScope, signal?: AbortSignal) {
-  return request<NotificationPreferences>('/api/user/me/notification-preferences', { method: 'GET', auth, signal });
+  return getCurrentUser(auth, signal).then(async response => {
+    if (response.ok) {
+      const user = await response.json();
+      if (user.notificationPreferences) return new Response(JSON.stringify(user.notificationPreferences), { status: 200 }) as import('./http').ApiResponse<NotificationPreferences>;
+    }
+    return request<NotificationPreferences>('/api/user/me/notification-preferences', { method: 'GET', auth, signal });
+  });
 }
 
 export function saveNotificationPreference(preference: keyof NotificationPreferences, enabled: boolean, auth: SessionScope, signal?: AbortSignal) {
@@ -59,10 +65,12 @@ export function saveAvatar(avatar: AvatarConfig, auth: SessionScope, signal?: Ab
 }
 
 export function getCurrentUser(auth: SessionScope, signal?: AbortSignal) {
-  return request<DashboardUser>(`/api/user/me`, {
-    method: 'GET',
-    auth,
-    ...(signal ? { signal } : {}),
+  return cachedRequest<DashboardUser>('/api/user/me', auth, 60_000, signal).then(async response => {
+    if (response.ok) {
+      const user = await response.clone().json().catch(() => null);
+      if (typeof user?.id !== 'number' || !Number.isInteger(user.id) || user.id <= 0) invalidateReads();
+    }
+    return response;
   });
 }
 
@@ -111,7 +119,7 @@ export function getRecentSolved(
 }
 
 export function addActiveTime(
-  data: { deltaSeconds: number },
+  data: { active: boolean },
   auth: SessionScope,
 ) {
   return request<{ secondsThisWeek: number }>(`/api/user/me/active-time`, {
