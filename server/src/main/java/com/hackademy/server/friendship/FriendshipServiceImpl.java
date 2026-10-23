@@ -27,9 +27,22 @@ public class FriendshipServiceImpl implements FriendshipService {
 
     @Override
     public void invalidateProfileCaches() {
-        friendsCache.clear();
-        requestsCache.clear();
+        friendsCache.invalidateAll();
+        requestsCache.invalidateAll();
         dashboardSummaryCache.invalidateAll();
+    }
+
+    @Override
+    public void invalidateProfileCaches(Long userId) {
+        invalidateProfileCaches(userId, friendshipRepository.findRelatedUserIds(userId));
+    }
+
+    @Override
+    public void invalidateProfileCaches(Long userId, List<Long> related) {
+        var ids = new java.util.HashSet<>(related);
+        ids.add(userId);
+        ids.forEach(this::invalidateCachesFor);
+        realtime.changed(ids.toArray(Long[]::new));
     }
 
     private final FriendshipRepository friendshipRepository;
@@ -46,13 +59,13 @@ public class FriendshipServiceImpl implements FriendshipService {
         final T value;
         CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
     }
-    private final ConcurrentHashMap<Long, CacheEntry<List<FriendDto>>> friendsCache = new ConcurrentHashMap<>();
-    private final ConcurrentHashMap<Long, CacheEntry<List<FriendRequestDto>>> requestsCache = new ConcurrentHashMap<>();
+    private final com.github.benmanes.caffeine.cache.Cache<Long, CacheEntry<List<FriendDto>>> friendsCache = com.hackademy.server.cache.LocalCaches.weighted(5_000, java.time.Duration.ofSeconds(30), value -> 1 + value.value.size());
+    private final com.github.benmanes.caffeine.cache.Cache<Long, CacheEntry<List<FriendRequestDto>>> requestsCache = com.hackademy.server.cache.LocalCaches.weighted(5_000, java.time.Duration.ofSeconds(30), value -> 1 + value.value.size());
 
     private void invalidateCachesFor(Long userId) {
         if (userId == null) return;
-        friendsCache.remove(userId);
-        requestsCache.remove(userId);
+        friendsCache.invalidate(userId);
+        requestsCache.invalidate(userId);
         dashboardSummaryCache.invalidateUser(userId);
     }
 
@@ -146,27 +159,23 @@ public class FriendshipServiceImpl implements FriendshipService {
     @Override
     @Transactional(readOnly = true)
     public List<FriendDto> getFriends(Long userId) {
-        long now = System.currentTimeMillis();
-        CacheEntry<List<FriendDto>> cached = friendsCache.get(userId);
-        if (cached != null && now - cached.timeMs <= CACHE_MS) {
-            return withPresence(cached.value);
-        }
+        var cached = friendsCache.get(userId, key -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+            List<Friendship> friendships = friendshipRepository.findByUserAndStatus(user, FriendshipStatus.ACCEPTED);
 
-        List<Friendship> friendships = friendshipRepository.findByUserAndStatus(user, FriendshipStatus.ACCEPTED);
+            List<User> friends = friendships.stream()
+                    .map(f -> f.getRequester().getId().equals(userId) ? f.getReceiver() : f.getRequester())
+                    .toList();
+            Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(friends.stream().map(User::getId).toList());
+            List<FriendDto> out = friends.stream()
+                    .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), avatars.get(friend.getId())))
+                    .collect(Collectors.toList());
 
-        List<User> friends = friendships.stream()
-                .map(f -> f.getRequester().getId().equals(userId) ? f.getReceiver() : f.getRequester())
-                .toList();
-        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(friends.stream().map(User::getId).toList());
-        List<FriendDto> out = friends.stream()
-                .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), avatars.get(friend.getId())))
-                .collect(Collectors.toList());
-
-        friendsCache.put(userId, new CacheEntry<>(now, out));
-        return withPresence(out);
+            return new CacheEntry<>(System.currentTimeMillis(), out);
+        });
+        return withPresence(cached.value);
     }
 
     private List<FriendDto> withPresence(List<FriendDto> friends) {
@@ -176,23 +185,19 @@ public class FriendshipServiceImpl implements FriendshipService {
     @Override
     @Transactional(readOnly = true)
     public List<FriendRequestDto> getPendingRequests(Long userId) {
-        long now = System.currentTimeMillis();
-        CacheEntry<List<FriendRequestDto>> cached = requestsCache.get(userId);
-        if (cached != null && now - cached.timeMs <= CACHE_MS) {
-            return cached.value;
-        }
+        var cached = requestsCache.get(userId, key -> {
+            User user = userRepository.findById(userId)
+                    .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
+            List<Friendship> pending = friendshipRepository.findPendingRequestsForUser(user);
+            Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(pending.stream().map(f -> f.getRequester().getId()).toList());
+            List<FriendRequestDto> out = pending.stream()
+                    .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), avatars.get(f.getRequester().getId())))
+                    .collect(Collectors.toList());
 
-        List<Friendship> pending = friendshipRepository.findPendingRequestsForUser(user);
-        Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(pending.stream().map(f -> f.getRequester().getId()).toList());
-        List<FriendRequestDto> out = pending.stream()
-                .map(f -> new FriendRequestDto(f.getId(), f.getRequester().getUsername(), f.getCreatedAt(), avatars.get(f.getRequester().getId())))
-                .collect(Collectors.toList());
-
-        requestsCache.put(userId, new CacheEntry<>(now, out));
-        return out;
+            return new CacheEntry<>(System.currentTimeMillis(), out);
+        });
+        return cached.value;
     }
 
     @Override

@@ -10,8 +10,9 @@ spring:
     hikari:
       maximum-pool-size: 5
       minimum-idle: 1
-      connection-timeout: 10000
+      connection-timeout: 1500
   jpa:
+    open-in-view: false
     hibernate:
       ddl-auto: validate
   flyway:
@@ -24,6 +25,14 @@ spring:
       max-request-size: 60MB
 
 server:
+  tomcat:
+    threads:
+      max: 12
+      min-spare: 2
+    accept-count: 320
+    max-connections: 512
+    connection-timeout: 5s
+    keep-alive-timeout: 20s
   port: ${PORT:8080}
   shutdown: graceful
 

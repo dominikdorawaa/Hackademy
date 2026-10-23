@@ -32,35 +32,15 @@ public class BadgeServiceImpl implements BadgeService {
     private final DashboardSummaryCache dashboardSummaryCache;
     private final Clock clock;
 
-    private static final long CACHE_MS = 30_000; // 30 seconds
-    private final AtomicLong cacheTimeMs = new AtomicLong(0);
-    private volatile List<Badge> cachedAllBadges = null;
-    private volatile Map<Long, Long> cachedBadgeCounts = null;
-    private volatile long cachedTotalUsers = 0;
+    private record Catalog(List<Badge> badges, Map<Long, Long> counts, long totalUsers) {}
+    private final com.github.benmanes.caffeine.cache.Cache<Integer, Catalog> catalog =
+            com.hackademy.server.cache.LocalCaches.bounded(1, java.time.Duration.ofSeconds(30));
 
-    private void invalidateCache() {
-        cacheTimeMs.set(0);
-        cachedAllBadges = null;
-        cachedBadgeCounts = null;
-        cachedTotalUsers = 0;
-    }
+    private void invalidateCache() { catalog.invalidateAll(); }
 
-    private void ensureCache() {
-        long now = System.currentTimeMillis();
-        if (cachedAllBadges != null && cachedBadgeCounts != null && now - cacheTimeMs.get() <= CACHE_MS) {
-            return;
-        }
-        synchronized (this) {
-            now = System.currentTimeMillis();
-            if (cachedAllBadges != null && cachedBadgeCounts != null && now - cacheTimeMs.get() <= CACHE_MS) {
-                return;
-            }
-            cachedAllBadges = badgeRepository.findAll();
-            cachedBadgeCounts = getBadgeCountsMap();
-            long total = userRepository.count();
-            cachedTotalUsers = total == 0 ? 1 : total;
-            cacheTimeMs.set(now);
-        }
+    private Catalog catalog() {
+        return catalog.get(0, key -> new Catalog(List.copyOf(badgeRepository.findAll()),
+                Map.copyOf(getBadgeCountsMap()), Math.max(1, userRepository.count())));
     }
 
     @Override
@@ -72,15 +52,15 @@ public class BadgeServiceImpl implements BadgeService {
     @Override
     @Transactional(readOnly = true)
     public List<BadgeDto> getAllBadgesWithStatus(Long userId) {
-        ensureCache();
-        List<Badge> allBadges = cachedAllBadges;
+        var snapshot = catalog();
+        List<Badge> allBadges = snapshot.badges();
         List<UserBadgeRepository.EarnedBadgeRow> earnedRows = userBadgeRepository.findEarnedBadgeRowsByUserId(userId);
 
         Map<Long, UserBadgeRepository.EarnedBadgeRow> earnedMap = earnedRows.stream()
                 .collect(Collectors.toMap(UserBadgeRepository.EarnedBadgeRow::getBadgeId, r -> r));
 
-        long totalUsers = cachedTotalUsers;
-        Map<Long, Long> badgeCounts = cachedBadgeCounts;
+        long totalUsers = snapshot.totalUsers();
+        Map<Long, Long> badgeCounts = snapshot.counts();
 
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new com.hackademy.server.exception.UserNotFoundException("User not found"));
@@ -123,8 +103,12 @@ public class BadgeServiceImpl implements BadgeService {
         // Fetch counts once
         Map<Long, Long> badgeCounts = getBadgeCountsMap();
 
+        var earnedIds = userBadgeRepository.findEarnedBadgeRowsByUserId(user.getId()).stream()
+                .map(UserBadgeRepository.EarnedBadgeRow::getBadgeId).collect(Collectors.toSet());
+        long solvedCount = userSolvedRoomRepository.countByUser_Id(user.getId());
+        long friendsCount = friendshipRepository.countByUserIdAndStatus(user.getId(), FriendshipStatus.ACCEPTED);
         for (Badge badge : allBadges) {
-            if (userBadgeRepository.existsByUser_IdAndBadge_Id(user.getId(), badge.getId())) {
+            if (earnedIds.contains(badge.getId())) {
                 continue;
             }
 
@@ -141,13 +125,11 @@ public class BadgeServiceImpl implements BadgeService {
                     }
                     break;
                 case "SOLVED_COUNT":
-                    long solvedCount = userSolvedRoomRepository.countByUser_Id(user.getId());
                     if (solvedCount >= badge.getConditionValue()) {
                         earned = true;
                     }
                     break;
                 case "FRIENDS_COUNT":
-                    long friendsCount = friendshipRepository.findByUserAndStatus(user, FriendshipStatus.ACCEPTED).size();
                     if (friendsCount >= badge.getConditionValue()) {
                         earned = true;
                     }

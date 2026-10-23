@@ -29,20 +29,22 @@ public class RealtimeFriendshipStateService {
     public State forUser(Long userId) {
         var user = users.findById(userId).orElseThrow();
         var pending = friendships.findPendingRequestsForUser(user);
-        List<User> accepted = friendships.findByUserAndStatus(user, FriendshipStatus.ACCEPTED).stream()
-                .map(friendship -> friendship.getRequester().getId().equals(user.getId())
-                        ? friendship.getReceiver() : friendship.getRequester())
-                .toList();
+        var accepted = friendships.findByUserAndStatus(user, FriendshipStatus.ACCEPTED);
         var avatarsById = avatars.findDtosByUserIds(Stream.concat(
                 pending.stream().map(friendship -> friendship.getRequester().getId()),
-                accepted.stream().map(User::getId)).distinct().toList());
+                accepted.stream().map(f -> f.getRequester().getId().equals(userId) ? f.getReceiver().getId() : f.getRequester().getId())).distinct().toList());
         var requests = pending.stream()
                 .map(friendship -> new FriendRequestDto(friendship.getId(), friendship.getRequester().getUsername(),
                         friendship.getCreatedAt(),
                         avatarsById.get(friendship.getRequester().getId()))).toList();
-        var friends = accepted.stream()
-                .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(),
-                        friend.getStreak(), avatarsById.get(friend.getId()), presence.isOnline(friend.getId()))).toList();
+        var friends = accepted.stream().map(f -> {
+            boolean requester = f.getRequester().getId().equals(userId);
+            var friend = requester ? f.getReceiver() : f.getRequester();
+            return new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(),
+                    avatarsById.get(friend.getId()), presence.isOnline(friend.getId()),
+                    requester ? f.getRequesterWins() : f.getReceiverWins(),
+                    requester ? f.getReceiverWins() : f.getRequesterWins());
+        }).toList();
         return new State(user.getId(), requests, friends);
     }
 }

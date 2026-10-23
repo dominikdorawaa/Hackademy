@@ -309,10 +309,10 @@ public class RoomServiceImpl implements RoomService {
                 .map(unlockedHint -> unlockedHint.getHint().getId())
                 .collect(Collectors.toList());
         
-        String fileName = room.getRoomFile() != null ? room.getRoomFile().getFileName() : null;
+        String fileName = roomFileRepository.findFileNameByRoomId(id);
 
         // Fetch Tasks
-        List<Long> completedTaskIds = userCompletedTaskRepository.findCompletedTaskIdsByUserId(user.getId());
+        List<Long> completedTaskIds = userCompletedTaskRepository.findCompletedTaskIdsInRoom(user.getId(), id);
         List<RoomTaskDto> taskDtos = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(id).stream()
                 .map(t -> RoomTaskDto.builder()
                         .id(t.getId())
@@ -347,7 +347,7 @@ public class RoomServiceImpl implements RoomService {
         visibility.requireRoom(roomId);
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        Room room = roomRepository.findByIdForUpdate(roomId)
+        Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found"));
         pathUnlockPolicy.requireUnlocked(roomId, user.getId());
         RoomTask task = roomTaskRepository.findById(taskId)
@@ -384,7 +384,7 @@ public class RoomServiceImpl implements RoomService {
         visibility.requireRoom(roomId);
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        Room room = roomRepository.findByIdForUpdate(roomId)
+        Room room = roomRepository.findById(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found"));
         pathUnlockPolicy.requireUnlocked(roomId, user.getId());
         List<RoomTask> tasks = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(roomId);
@@ -412,7 +412,7 @@ public class RoomServiceImpl implements RoomService {
             userSolvedRoomRepository.save(userSolvedRoom);
 
             user.setPoints(user.getPoints() + (int) pointsToAward);
-            room.setSolutionsCount(room.getSolutionsCount() + 1);
+            roomRepository.incrementSolutions(roomId);
 
             // Streak logic
             LocalDate today = LocalDate.now(clock);
@@ -425,7 +425,6 @@ public class RoomServiceImpl implements RoomService {
             user.setLastSolvedDate(today);
 
             userRepository.save(user);
-            roomRepository.save(room);
             userServiceImpl.invalidateUserComputedCaches(user.getId());
             userServiceImpl.invalidateGlobalRankingCache();
             dashboardSummaryCache.invalidateUser(user.getId());

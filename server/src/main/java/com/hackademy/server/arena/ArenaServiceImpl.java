@@ -54,6 +54,9 @@ public class ArenaServiceImpl implements ArenaService {
     private final MatchmakingService matchmaking;
 
     private final Map<String, GameSession> activeGames = new ConcurrentHashMap<>();
+    private final Map<Long, String> currentGames = new ConcurrentHashMap<>();
+    private final Map<String, Long> finishedAt = new ConcurrentHashMap<>();
+    private final Map<String, Long> challengeCreatedAt = new ConcurrentHashMap<>();
     private final Map<String, Challenge> challenges = new ConcurrentHashMap<>();
     private final Map<Long, Deque<Long>> recentReactions = new ConcurrentHashMap<>();
     private final AtomicLong reactionIds = new AtomicLong();
@@ -144,6 +147,8 @@ public class ArenaServiceImpl implements ArenaService {
         List<Challenge> dropped;
         synchronized (players) {
             activeGames.put(session.getId(), session);
+            currentGames.put(session.getPlayer1Id(), session.getId());
+            currentGames.put(session.getPlayer2Id(), session.getId());
             playingIn.put(session.getPlayer1Id(), session.getId());
             playingIn.put(session.getPlayer2Id(), session.getId());
             dropped = challenges.values().stream().filter(challenge -> session.includes(challenge.getChallengerId())
@@ -152,7 +157,7 @@ public class ArenaServiceImpl implements ArenaService {
         }
         matchmaking.leaveQueue(session.getPlayer1Id());
         matchmaking.leaveQueue(session.getPlayer2Id());
-        realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+        realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
         var others = new TreeSet<Long>();
         dropped.forEach(challenge -> {
             others.add(challenge.getChallengerId());
@@ -160,11 +165,12 @@ public class ArenaServiceImpl implements ArenaService {
         });
         others.remove(session.getPlayer1Id());
         others.remove(session.getPlayer2Id());
-        if (!others.isEmpty()) realtime.changed(others.toArray(Long[]::new));
+        if (!others.isEmpty()) realtime.arenaChanged(others.toArray(Long[]::new));
     }
 
     private boolean removeChallenge(Challenge challenge, String status) {
         if (!challenges.remove(challenge.getId(), challenge)) return false;
+        challengeCreatedAt.remove(challenge.getId());
         challenge.setStatus(status);
         return true;
     }
@@ -192,7 +198,7 @@ public class ArenaServiceImpl implements ArenaService {
             var result = BattleEngine.answer(session, userId, round, answer, now);
             if (result != BattleEngine.AnswerResult.ACCEPTED) return result;
             if (BattleEngine.roundOver(session, now)) resolveRound(session, now);
-            realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+            if (!"FINISHED".equals(session.getStatus())) realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
             return result;
         }
     }
@@ -211,7 +217,7 @@ public class ArenaServiceImpl implements ArenaService {
                     BattleEngine.nextRound(session, now);
                     changed = true;
                 }
-                if (changed) realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+                if (changed && !"FINISHED".equals(session.getStatus())) realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
             }
         }
     }
@@ -259,6 +265,7 @@ public class ArenaServiceImpl implements ArenaService {
     private void finish(GameSession session, Long winnerId, String reason) {
         if ("FINISHED".equals(session.getStatus())) return;
         session.setStatus("FINISHED");
+        finishedAt.put(session.getId(), clock.getAsLong());
         synchronized (players) {
             playingIn.remove(session.getPlayer1Id(), session.getId());
             playingIn.remove(session.getPlayer2Id(), session.getId());
@@ -316,27 +323,15 @@ public class ArenaServiceImpl implements ArenaService {
 
     @Override
     public GameSession findActiveGameForUser(Long userId) {
-        return activeGames.values().stream()
-                .filter(game -> game.includes(userId))
-                .map(GameSession::snapshot)
-                .filter(game -> "ACTIVE".equals(game.getStatus()))
-                .findFirst()
-                .orElse(null);
+        String id;
+        synchronized (players) { id = playingIn.get(userId); }
+        return id == null ? null : getGameSession(id);
     }
 
     @Override
     public GameSession findCurrentGameForUser(Long userId) {
-        return activeGames.values().stream()
-                .filter(game -> game.includes(userId))
-                .map(GameSession::snapshot)
-                .sorted((first, second) -> {
-                    boolean firstActive = "ACTIVE".equals(first.getStatus());
-                    boolean secondActive = "ACTIVE".equals(second.getStatus());
-                    if (firstActive != secondActive) return firstActive ? -1 : 1;
-                    return second.getStartTime().compareTo(first.getStartTime());
-                })
-                .findFirst()
-                .orElse(null);
+        String id = currentGames.get(userId);
+        return id == null ? null : getGameSession(id);
     }
 
     @Override
@@ -374,7 +369,7 @@ public class ArenaServiceImpl implements ArenaService {
             reactions.add(new ArenaReaction(reactionIds.incrementAndGet(), userId, reaction.get().id(), now));
             while (reactions.size() > REACTIONS_KEPT) reactions.remove(0);
         }
-        realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+        realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
         return ReactionOutcome.of(ReactionOutcome.Status.SENT);
     }
 
@@ -393,9 +388,11 @@ public class ArenaServiceImpl implements ArenaService {
             boolean alreadySent = challenges.values().stream().anyMatch(existing -> existing.getChallengerId().equals(challengerId)
                     && existing.getTargetId().equals(targetId));
             if (alreadySent) throw new IllegalStateException("Już wyzwałeś " + targetUsername + ".");
+            if (challenges.size() >= 1024) throw new IllegalStateException(SHUTTING_DOWN);
             challenges.put(challenge.getId(), challenge);
+            challengeCreatedAt.put(challenge.getId(), clock.getAsLong());
         }
-        realtime.changed(challengerId, targetId);
+        realtime.arenaChanged(challengerId, targetId);
         return challenge;
     }
 
@@ -413,7 +410,7 @@ public class ArenaServiceImpl implements ArenaService {
             } catch (PlayerBusyException busy) {
                 // A player merely starting another game may still fail to start it; only a running game ends this challenge.
                 if (hasGame(busy.userId) && removeChallenge(challenge, "CANCELLED")) {
-                    realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
+                    realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
                 }
                 throw busy;
             }
@@ -452,7 +449,7 @@ public class ArenaServiceImpl implements ArenaService {
         synchronized (challenge) {
             if (challenges.get(challengeId) == challenge && "PENDING".equals(challenge.getStatus()) && challenge.getTargetId().equals(userId)) {
                 removeChallenge(challenge, "REJECTED");
-                realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
+                realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
             }
         }
     }
@@ -479,7 +476,7 @@ public class ArenaServiceImpl implements ArenaService {
                 throw new IllegalArgumentException(STALE_CHALLENGE);
             }
             removeChallenge(challenge, "CANCELLED");
-            realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
+            realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
         }
     }
 
@@ -488,6 +485,7 @@ public class ArenaServiceImpl implements ArenaService {
     @Scheduled(fixedRate = 5_000)
     public void sweepAbandonedChallenges() {
         long now = clock.getAsLong();
+        sweepHistory(now);
         var involved = new HashSet<Long>();
         challenges.values().forEach(challenge -> {
             involved.add(challenge.getChallengerId());
@@ -499,13 +497,36 @@ public class ArenaServiceImpl implements ArenaService {
             else playerGoneSince.putIfAbsent(player, now);
         }
         for (Challenge challenge : challenges.values()) {
-            if (!goneLongEnough(challenge.getChallengerId(), now) && !goneLongEnough(challenge.getTargetId(), now)) continue;
+            long age = now - challengeCreatedAt.getOrDefault(challenge.getId(), now);
+            if (age < 120_000 && !goneLongEnough(challenge.getChallengerId(), now) && !goneLongEnough(challenge.getTargetId(), now)) continue;
             synchronized (challenge) {
                 if (challenges.get(challenge.getId()) == challenge && removeChallenge(challenge, "CANCELLED")) {
-                    realtime.changed(challenge.getChallengerId(), challenge.getTargetId());
+                    realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
                 }
             }
         }
+    }
+
+    private void sweepHistory(long now) {
+        var expired = finishedAt.entrySet().stream().sorted(Map.Entry.comparingByValue()).toList();
+        int excess = Math.max(0, expired.size() - 512);
+        for (var entry : expired) {
+            if (now - entry.getValue() < 300_000 && excess-- <= 0) continue;
+            var session = activeGames.get(entry.getKey());
+            if (session == null) { finishedAt.remove(entry.getKey()); continue; }
+            synchronized (session) {
+                if (!"FINISHED".equals(session.getStatus())) continue;
+                activeGames.remove(entry.getKey(), session);
+                currentGames.remove(session.getPlayer1Id(), entry.getKey());
+                currentGames.remove(session.getPlayer2Id(), entry.getKey());
+                finishedAt.remove(entry.getKey());
+            }
+        }
+        recentReactions.forEach((id, sent) -> {
+            synchronized (sent) {
+                if (sent.isEmpty() || now - sent.peekLast() >= REACTION_WINDOW_MILLIS) recentReactions.remove(id, sent);
+            }
+        });
     }
 
     private boolean goneLongEnough(Long player, long now) {

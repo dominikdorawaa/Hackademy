@@ -16,10 +16,46 @@ export interface SessionProvider {
   expired: () => void;
 }
 let session: SessionProvider | null = null;
+const reads = new Map<string, { expires: number; pending: Promise<Response>; controller: AbortController }>();
+let cacheGeneration = 0;
+
+export function invalidateReads(cancel = false) {
+  if (cancel) for (const entry of reads.values()) entry.controller.abort();
+  cacheGeneration += 1;
+  reads.clear();
+}
+
+export async function cachedRequest<T>(path: string, auth: SessionScope, ttl: number, signal?: AbortSignal): Promise<ApiResponse<T>> {
+  signal?.throwIfAborted();
+  const key = JSON.stringify([auth.sessionKey, path]);
+  let entry = reads.get(key);
+  if (!entry || entry.expires <= Date.now()) {
+    const generation = cacheGeneration;
+    const controller = new AbortController();
+    const next = { expires: Infinity, controller, pending: Promise.resolve(new Response()) };
+    next.pending = request<T>(path, { method: 'GET', auth, signal: controller.signal }).then(response => {
+      if (!response.ok || generation !== cacheGeneration) {
+        if (reads.get(key) === next) reads.delete(key);
+      } else next.expires = Date.now() + ttl;
+      return response;
+    }).catch(error => { if (reads.get(key) === next) reads.delete(key); throw error; });
+    while (reads.size >= 64) reads.delete(reads.keys().next().value!);
+    reads.set(key, next);
+    entry = next;
+  }
+  return new Promise((resolve, reject) => {
+    const abort = () => reject(signal?.reason ?? new DOMException('Aborted', 'AbortError'));
+    signal?.addEventListener('abort', abort, { once: true });
+    entry.pending.then(response => {
+      if (signal?.aborted) abort(); else resolve(response.clone() as ApiResponse<T>);
+    }, reject).finally(() => signal?.removeEventListener('abort', abort));
+  });
+}
 
 export function registerSession(provider: SessionProvider) {
+  if (session?.sessionKey !== provider.sessionKey) invalidateReads(true);
   session = provider;
-  return () => { if (session === provider) session = null; };
+  return () => { if (session === provider) { session = null; invalidateReads(true); } };
 }
 
 export async function sessionToken(scope: SessionScope, skipCache = false) {
@@ -57,5 +93,12 @@ export async function request<T, E = ApiError>(path: string, options: RequestOpt
   }
   if (response.status === TOO_MANY_REQUESTS && rateLimitNotice) reportRateLimit(await readRetryAfter(response));
   if (auth?.sessionKey && session !== current) throw new DOMException('Sesja została zmieniona.', 'AbortError');
+  if (response.ok && !['GET', 'HEAD'].includes(init.method ?? 'GET') && !url.pathname.endsWith('/active-time')) {
+    invalidateReads();
+    if (url.pathname.startsWith('/api/rooms/') && (url.pathname.endsWith('/solve') || url.pathname.endsWith('/complete'))) {
+      const result = await response.clone().json().catch(() => null);
+      if (result?.success) window.dispatchEvent(new Event('hackademy:room-progress'));
+    }
+  }
   return response as ApiResponse<T, E>;
 }

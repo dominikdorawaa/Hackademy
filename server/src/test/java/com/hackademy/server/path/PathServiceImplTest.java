@@ -155,7 +155,7 @@ class PathServiceImplTest {
         assertEquals("https://img", detail.bannerUrl());
         assertFalse(detail.hasBanner());
         assertFalse(detail.enrolled());
-        verify(roomService).getAllRoomsByType(null, RoomType.PATH);
+        verify(roomRepository).findSummariesInPath(5L);
     }
 
     @Test
@@ -177,7 +177,7 @@ class PathServiceImplTest {
                 new Progression(100L, 10L, true), new Progression(100L, 11L, false), new Progression(101L, 12L, false)));
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
         when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
-        when(roomService.getAllRoomsByType("alice", RoomType.PATH))
+        when(roomRepository.findSummariesInPath(5L))
                 .thenReturn(List.of(room(10L, true), room(11L, false), room(12L, false)));
 
         var detail = service.getPathDetail(5L, "alice");
@@ -198,7 +198,8 @@ class PathServiceImplTest {
                 new ChapterRoom(10L, 100L, 0), new ChapterRoom(11L, 100L, 1), new ChapterRoom(99L, 100L, 2)));
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
         when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(enrolled);
-        when(roomService.getAllRoomsByType("alice", RoomType.PATH)).thenReturn(List.of(
+        when(userSolvedRoomRepository.findSolvedRoomIdsInPath(1L, 5L)).thenReturn(List.of(10L));
+        when(roomRepository.findSummariesInPath(5L)).thenReturn(List.of(
                 room(10L, true), room(11L, false), room(10L, false)));
     }
 

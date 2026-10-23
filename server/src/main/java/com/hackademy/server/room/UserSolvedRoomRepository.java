@@ -36,6 +36,9 @@ public interface UserSolvedRoomRepository extends JpaRepository<UserSolvedRoom, 
     @Query("SELECT usr.room.id FROM UserSolvedRoom usr WHERE usr.user.id = :userId")
     List<Long> findSolvedRoomIdsByUserId(@Param("userId") Long userId);
 
+    @Query("SELECT s.room.id FROM UserSolvedRoom s JOIN ChapterRoom cr ON cr.roomId = s.room.id JOIN PathChapter c ON c.id = cr.chapterId WHERE s.user.id = :userId AND c.pathId = :pathId")
+    List<Long> findSolvedRoomIdsInPath(@Param("userId") Long userId, @Param("pathId") Long pathId);
+
     @Query("SELECT usr.room.title FROM UserSolvedRoom usr WHERE usr.user.id = :userId AND usr.room.title IN :titles")
     List<String> findSolvedRoomTitlesByUserId(@Param("userId") Long userId, @Param("titles") List<String> titles);
     

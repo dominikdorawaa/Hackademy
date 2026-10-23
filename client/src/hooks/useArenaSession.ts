@@ -12,7 +12,7 @@ export function useArenaSession(gameId: string | null, sessionKey: string | null
   }, [gameId, sessionKey, live]);
 
   useEffect(() => {
-    if (!gameId || !sessionKey) return;
+    if (!gameId || !sessionKey || isLive) return;
     let disposed = false;
     void arenaApi.getGame(gameId, { sessionKey }).then(async response => {
       if (response.status === 404) {

@@ -61,7 +61,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
     try {
       setError(null);
       const res = await (preview ? request<PathDetailDto>(`/api/admin/content/paths/${id}/preview`, { auth: { sessionKey } }) : pathApi.getPath(id ?? '', { sessionKey }));
-      if (res.status === 401 || res.status === 403) {
+      if (res.status === 401) {
         logout();
         navigate('/login');
         return;

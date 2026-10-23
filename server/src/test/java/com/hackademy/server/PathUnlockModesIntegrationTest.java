@@ -77,7 +77,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
 
     private List<Boolean> roomLocks(Account user, long pathId) throws Exception {
         return JsonPath.read(getAs(user, "/api/paths/" + pathId).andExpect(status().isOk())
-                .andReturn().getResponse().getContentAsString(), "$.rooms[*].locked");
+                .andReturn().getResponse().getContentAsString(), "$.chapters[*].rooms[*].locked");
     }
 
     private List<Boolean> chapterLocks(Account user, long pathId) throws Exception {

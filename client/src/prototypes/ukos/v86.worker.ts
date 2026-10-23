@@ -11,7 +11,9 @@ const runtime = new UkosRuntime({
     const response = await fetch(`${base}/manifest.json`);
     if (!response.ok)
       throw new Error("Brak obrazu Linuksa. Uruchom npm run ukos:prepare.");
-    return response.json();
+    const manifest = await response.json();
+    if (!/^[a-f0-9]{16}$/.test(manifest.version)) throw new Error("Nieprawidłowa wersja obrazu Linuksa.");
+    return { ...manifest, assetBase: new URL(`/static/ukos/${manifest.version}`, base).href };
   },
   storage: workshopStorage,
 });

@@ -21,6 +21,11 @@ import java.util.Map;
 
 @RestControllerAdvice
 public class GlobalExceptionHandler {
+    @ExceptionHandler({org.springframework.transaction.CannotCreateTransactionException.class, org.springframework.dao.DataAccessResourceFailureException.class})
+    public ResponseEntity<Map<String, String>> databaseUnavailable(RuntimeException failure) {
+        return ResponseEntity.status(HttpStatus.SERVICE_UNAVAILABLE).header("Retry-After", "2")
+                .body(Map.of("message", "Serwer jest chwilowo zajęty. Spróbuj ponownie za chwilę."));
+    }
 
     @ResponseStatus(HttpStatus.BAD_REQUEST)
     @ExceptionHandler(MethodArgumentNotValidException.class)

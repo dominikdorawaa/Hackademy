@@ -1,0 +1,19 @@
+Requester:
+Seq Scan on friendships  (cost=0.00..26.54 rows=1 width=8) (actual time=0.006..0.032 rows=1 loops=1)
+  Filter: ((requester_id = '38'::bigint) AND ((status)::text = 'ACCEPTED'::text))
+  Rows Removed by Filter: 1035
+  Buffers: shared hit=11
+Planning:
+  Buffers: shared hit=34
+Planning Time: 0.197 ms
+Execution Time: 0.039 ms
+
+Pair:
+Seq Scan on friendships  (cost=0.00..31.72 rows=1 width=8) (actual time=0.006..0.035 rows=1 loops=1)
+  Filter: (((requester_id = '38'::bigint) AND (receiver_id = '39'::bigint)) OR ((requester_id = '39'::bigint) AND (receiver_id = '38'::bigint)))
+  Rows Removed by Filter: 1035
+  Buffers: shared hit=11
+Planning:
+  Buffers: shared hit=3
+Planning Time: 0.062 ms
+Execution Time: 0.040 ms

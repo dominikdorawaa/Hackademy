@@ -32,6 +32,7 @@ import java.util.Map;
 public class UserController {
 
     private final UserService userService;
+    private final CurrentProfileDetails profileDetails;
     private final OnboardingService onboardingService;
     private final NotificationPreferencesRepository notificationPreferencesRepository;
 
@@ -89,13 +90,14 @@ public class UserController {
                 "bio", userDetails.getBio() != null ? userDetails.getBio() : "",
                 "createdAt", userDetails.getCreatedAt(),
                 "hasVpnAccess", hasVpnAccess));
-        ProfilePersonalizationDto appearance = userService.getPersonalization(userDetails.getId());
+        ProfilePersonalizationDto appearance = profileDetails.read(userDetails);
         userInfo.put("bio", appearance.bio());
         userInfo.put("tagline", appearance.tagline());
         userInfo.put("interests", appearance.interests());
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
         userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
-        userInfo.put("onboarding", onboardingService.get(userDetails.getId()));
+        userInfo.put("onboarding", new com.hackademy.server.user.dto.OnboardingDto(userDetails.getAvatarConfirmedAt() != null, userDetails.getTourStatus()));
+        userInfo.put("notificationPreferences", getNotificationPreferences(authentication));
 
         return ResponseEntity.ok(userInfo);
     }
@@ -215,17 +217,8 @@ public class UserController {
     @PostMapping("/me/active-time")
     public ResponseEntity<Map<String, Object>> addMyActiveTimeThisWeek(@RequestBody Map<String, Object> payload) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        Object deltaObj = payload.get("deltaSeconds");
-        int delta = 0;
-        if (deltaObj instanceof Number) {
-            delta = ((Number) deltaObj).intValue();
-        }
-        try {
-            int seconds = userService.addActiveSecondsThisWeek(user.getId(), delta);
-            return ResponseEntity.ok(Map.of("secondsThisWeek", seconds));
-        } catch (RuntimeException e) {
-            return ResponseEntity.ok(Map.of("secondsThisWeek", 0));
-        }
+        boolean active = !Boolean.FALSE.equals(payload.get("active"));
+        return ResponseEntity.ok(Map.of("secondsThisWeek", userService.recordActivity(user.getId(), active)));
     }
 
     @GetMapping("/{username}/activity")

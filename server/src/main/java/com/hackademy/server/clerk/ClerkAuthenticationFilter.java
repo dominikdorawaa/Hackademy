@@ -39,6 +39,12 @@ public class ClerkAuthenticationFilter extends OncePerRequestFilter {
             } catch (AuthenticationException exception) {
                 SecurityContextHolder.clearContext();
                 log.debug("Ignoring an invalid bearer token: {}", exception.getMessage());
+            } catch (org.springframework.transaction.CannotCreateTransactionException | org.springframework.dao.DataAccessResourceFailureException unavailable) {
+                response.setStatus(HttpServletResponse.SC_SERVICE_UNAVAILABLE);
+                response.setHeader("Retry-After", "2");
+                response.setContentType("application/json");
+                response.getWriter().write("{\"message\":\"Serwer jest chwilowo zajęty. Spróbuj ponownie za chwilę.\"}");
+                return;
             }
         }
         filterChain.doFilter(request, response);

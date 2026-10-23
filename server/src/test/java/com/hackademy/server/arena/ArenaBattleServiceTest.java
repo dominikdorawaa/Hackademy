@@ -65,6 +65,25 @@ class ArenaBattleServiceTest {
     }
 
     @Test
+    void expiresFinishedHistoryAndOnlineChallengesWithoutTouchingANewerGame() {
+        arena.finishGame("game", 1L);
+        var next = new GameSession();
+        next.setId("next");
+        next.setPlayer1Id(1L);
+        next.setPlayer2Id(2L);
+        arena.addGame(next);
+        now.addAndGet(300_001);
+        arena.sweepAbandonedChallenges();
+        assertNull(arena.getGameSession("game"));
+        assertEquals("next", arena.findCurrentGameForUser(1L).getId());
+        arena.finishGame("next", null);
+        arena.createChallenge(1L, "first", 2L, "second");
+        now.addAndGet(120_001);
+        arena.sweepAbandonedChallenges();
+        assertTrue(arena.getPendingChallenges(2L).isEmpty());
+    }
+
+    @Test
     void usesTheServerClockAndFirstAcceptedAnswerIndependentlyForBothPlayers() {
         now.addAndGet(999);
         assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer("game", 1L, 1, 2));
@@ -213,7 +232,7 @@ class ArenaBattleServiceTest {
         assertEquals(before.getRoundEndsAt(), after.getRoundEndsAt());
         assertEquals(before.getHp(), after.getHp());
         assertEquals(before.getAnsweredBy(), after.getAnsweredBy());
-        verify(realtime, times(2)).changed(1L, 2L);
+        verify(realtime, times(2)).arenaChanged(1L, 2L);
     }
 
     @Test

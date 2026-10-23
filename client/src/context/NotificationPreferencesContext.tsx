@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useLayoutEffect, useRef, useState, useMemo } from 'react';
 import type { PropsWithChildren } from 'react';
 import { useAuth } from './AuthContext';
 import { defaultNotificationPreferences, getNotificationPreferences, saveNotificationPreference } from '../services/userApi';
@@ -78,11 +78,13 @@ export function NotificationPreferencesProvider({ children }: PropsWithChildren)
   }, [sessionKey, session]);
 
   const current = sessionKey && session.sessionKey === sessionKey;
-  return <PreferencesContext.Provider value={{
+  const reload = useCallback(() => setAttempt(previous => previous + 1), []);
+  const value = useMemo(() => ({
     preferences: current ? session.preferences : defaultNotificationPreferences,
     loaded: !!current && session.loaded, saving, error: current ? session.error : null,
-    reload: () => setAttempt(previous => previous + 1), update,
-  }}>{children}</PreferencesContext.Provider>;
+    reload, update,
+  }), [current, session, saving, reload, update]);
+  return <PreferencesContext.Provider value={value}>{children}</PreferencesContext.Provider>;
 }
 
 export function useNotificationPreferences() {

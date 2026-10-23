@@ -1,4 +1,4 @@
-import { createContext, useCallback, useContext, useEffect, useState } from 'react';
+import { createContext, useCallback, useContext, useEffect, useState, useMemo } from 'react';
 import type { PropsWithChildren } from 'react';
 import { useAuth } from './AuthContext';
 import { getOnboarding } from '../services/onboardingApi';
@@ -38,7 +38,8 @@ export function OnboardingProvider({ children }: PropsWithChildren) {
   const current = sessionKey && entry?.sessionKey === sessionKey ? entry : null;
   const status: Status = loading ? 'loading' : !sessionKey ? 'idle' : current ? current.status : 'loading';
 
-  return <OnboardingContext.Provider value={{ status, state: current?.state ?? null, refresh, update }}>{children}</OnboardingContext.Provider>;
+  const value = useMemo(() => ({ status, state: current?.state ?? null, refresh, update }), [status, current?.state, refresh, update]);
+  return <OnboardingContext.Provider value={value}>{children}</OnboardingContext.Provider>;
 }
 
 export function useOnboarding() {

@@ -58,6 +58,15 @@ function GameLocation() {
 beforeEach(() => { connections.length = 0; });
 
 describe('shared realtime state', () => {
+  it('keeps the existing live snapshot when the visible tab resumes', async () => {
+    let requests = 0;
+    server.use(http.get(`${API_URL}/api/realtime/state`, () => { requests++; return HttpResponse.json(snapshot()); }));
+    mount();
+    act(() => connections[0].callbacks.ready());
+    await waitFor(() => expect(screen.getByTestId('arena')).toHaveTextContent('1:online'));
+    act(() => document.dispatchEvent(new Event('visibilitychange')));
+    expect(requests).toBe(1);
+  });
   it('offers a route back to an active match after leaving its room', async () => {
     server.use(
       http.get(`${API_URL}/api/user/me`, () => HttpResponse.json({ ...createUser(), points: 500 })),

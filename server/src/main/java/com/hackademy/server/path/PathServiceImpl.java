@@ -124,8 +124,15 @@ public class PathServiceImpl implements PathService {
         Long userId = resolveUserId(username);
         boolean enrolled = userId != null && pathEnrollmentRepository.existsByUserIdAndPathId(userId, id);
 
-        Map<Long, RoomSummaryDto> byId = roomService.getAllRoomsByType(username, RoomType.PATH).stream()
+        Map<Long, RoomSummaryDto> byId = roomRepository.findSummariesInPath(id).stream()
                 .collect(Collectors.toMap(RoomSummaryDto::getId, Function.identity(), (a, b) -> a));
+        Set<Long> solvedIds = userId == null ? Set.of() : new HashSet<>(userSolvedRoomRepository.findSolvedRoomIdsInPath(userId, id));
+        var tutorials = userId == null ? List.<String>of() : userSolvedRoomRepository.findSolvedRoomTitlesByUserId(userId, List.of("Tutorial VM", "Tutorial VPN"));
+        byId.values().forEach(room -> {
+            room.setSolved(solvedIds.contains(room.getId()));
+            room.setLocked(("Tutorial VPN".equals(room.getTitle()) && !tutorials.contains("Tutorial VM"))
+                    || (room.isRequiresVpn() && !tutorials.contains("Tutorial VPN")));
+        });
         PathUnlockPolicy.Locks locks = pathUnlockPolicy.locks(id, path.getUnlockMode(), userId);
 
         List<RoomSummaryDto> rooms = new ArrayList<>();

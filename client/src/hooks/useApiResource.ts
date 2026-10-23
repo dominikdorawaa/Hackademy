@@ -24,7 +24,7 @@ export function useApiResource<T>(
       try {
         const response = await load(controller.signal);
         if (controller.signal.aborted) return;
-        if (response.status === 401 || response.status === 403) {
+        if (response.status === 401) {
           onUnauthorized();
           return;
         }

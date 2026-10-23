@@ -23,6 +23,7 @@ public interface UserService {
     ProfilePersonalizationDto getPersonalization(Long userId);
     ProfilePersonalizationDto updateProfile(Long userId, UpdateProfileRequest request);
     List<UserAdminView> findAllUsers();
+    org.springframework.data.domain.Slice<UserAdminView> findUsersPage(int page, int size, String query);
     void deleteUser(Long id);
     UserAdminView updateUserRole(Long id, Role newRole);
     String updateUsername(Long userId, UpdateUsernameRequest request);
@@ -38,6 +39,6 @@ public interface UserService {
     boolean hasSolvedTutorialVpn(Long userId); // New method
     List<ActivityDto> getUserActivity(Long userId); // New method
     List<RecentSolvedRoomDto> getRecentSolvedRooms(Long userId, int limit);
-    int addActiveSecondsThisWeek(Long userId, int deltaSeconds);
+    int recordActivity(Long userId, boolean active);
     int getActiveSecondsThisWeek(Long userId);
 }

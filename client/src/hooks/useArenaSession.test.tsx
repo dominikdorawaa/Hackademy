@@ -32,7 +32,7 @@ describe('displayed arena game', () => {
       return HttpResponse.json(game());
     }));
     const { result, rerender } = renderHook(({ live }) => useArenaSession('a', 'sessionKey', live),
-      { initialProps: { live: game() } });
+      { initialProps: { live: null as GameSession | null } });
     await waitFor(() => expect(release).toBeDefined());
     const finished = game('a', 'FINISHED');
     rerender({ live: finished });

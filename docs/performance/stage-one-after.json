@@ -1,0 +1,35 @@
+[ {
+  "requests" : 30,
+  "errors" : 0,
+  "p95Millis" : 741,
+  "durationMillis" : 745,
+  "peakPoolActive" : 5,
+  "peakPoolWaiting" : 9,
+  "peakHeapMiB" : 110.00895690917969,
+  "maxHeapMiB" : 160.0,
+  "users" : 30,
+  "scenario" : "cold-dashboard",
+  "sqlPerRequest" : 12.333333333333334
+}, {
+  "requests" : 300,
+  "errors" : 0,
+  "p95Millis" : 478,
+  "durationMillis" : 505,
+  "peakPoolActive" : 5,
+  "peakPoolWaiting" : 7,
+  "peakHeapMiB" : 115.3182373046875,
+  "maxHeapMiB" : 160.0,
+  "users" : 300,
+  "scenario" : "cold-dashboard",
+  "sqlPerRequest" : 12.0
+}, {
+  "requests" : 90,
+  "errors" : 0,
+  "p95Millis" : 722,
+  "durationMillis" : 744,
+  "peakPoolActive" : 5,
+  "peakPoolWaiting" : 7,
+  "peakHeapMiB" : 105.02880096435547,
+  "maxHeapMiB" : 160.0,
+  "scenario" : "shared-room-correct-wrong-duplicate"
+} ]

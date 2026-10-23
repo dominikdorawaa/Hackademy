@@ -1,9 +1,9 @@
 import { PROFILE_UPDATED } from '../lib/profile';
 import type { ProfilePersonalization } from '../lib/profile';
-import { createContext, useState, useContext, useEffect, useLayoutEffect, useCallback } from 'react';
+import { createContext, useState, useContext, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
 import type { PropsWithChildren } from 'react';
 import { useAuth as useClerkAuth, useClerk } from '@clerk/react';
-import { registerSession } from '../services/http';
+import { registerSession, invalidateReads } from '../services/http';
 import { getCurrentUser } from '../services/userApi';
 import type { DashboardUser } from '../types/api';
 
@@ -48,6 +48,7 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const refreshUser = useCallback(async () => {
     if (!sessionKey || !authenticated) return;
+    invalidateReads();
     const response = await getCurrentUser({ sessionKey });
     if (!response.ok) throw new Error('Nie udało się pobrać konta.');
     setProfile({ sessionKey, user: await response.json() });
@@ -66,7 +67,9 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   const user = authenticated && profile?.sessionKey === sessionKey ? profile.user : null;
   const loading = !isLoaded;
-  return <AuthContext.Provider value={{ sessionKey: authenticated ? sessionKey : null, user, logout, refreshUser, isAuthenticated: authenticated, loading }}>
+  const value = useMemo(() => ({ sessionKey: authenticated ? sessionKey : null, user, logout, refreshUser, isAuthenticated: authenticated, loading }),
+    [sessionKey, authenticated, user, logout, refreshUser, loading]);
+  return <AuthContext.Provider value={value}>
     {children}
   </AuthContext.Provider>;
 }

@@ -50,7 +50,7 @@ class ProductionCorsIntegrationTest {
                 .andExpect(header().string(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"))
                 .andExpect(header().string(ACCESS_CONTROL_ALLOW_METHODS, "GET,POST,PUT,PATCH,DELETE"))
                 .andExpect(header().string(ACCESS_CONTROL_ALLOW_HEADERS, equalToIgnoringCase("authorization, content-type")))
-                .andExpect(header().string(ACCESS_CONTROL_MAX_AGE, "3600"));
+                .andExpect(header().string(ACCESS_CONTROL_MAX_AGE, "7200"));
     }
 
     @ParameterizedTest

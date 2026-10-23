@@ -1,3 +1,4 @@
+export const ROOM_PROGRESS_CHANGED = 'hackademy:room-progress';
 import { request } from './http';
 import type { SessionScope } from './http';
 import type { ApiId, MessageResponse, RoomSummaryDto, RoomDetailDto, SolveRoomResponse } from '../types/api';

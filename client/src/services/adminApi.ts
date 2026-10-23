@@ -24,6 +24,17 @@ interface AdminRequestOptions extends Omit<RequestInit, 'headers'> {
     headers?: Record<string, string>;
 }
 const API_BASE_URL = '/api/admin';
+export interface PageResult<T> { items: T[]; page: number; size: number; hasNext: boolean }
+const normalizePage = <T>(data: PageResult<T> | T[] | undefined, page: number): PageResult<T> =>
+    Array.isArray(data) ? { items: data, page, size: data.length, hasNext: false } : data ?? { items: [], page, size: 50, hasNext: false };
+
+export async function getUsersPage(sessionKey: string | null, page = 0, query = '') {
+    return normalizePage(await request<PageResult<UserAdminView>>('/users?page=' + page + '&size=50&query=' + encodeURIComponent(query), { method: 'GET', sessionKey }), page);
+}
+
+export async function getReportsPage(sessionKey: string | null, page = 0) {
+    return normalizePage(await request<PageResult<ChatMessage>>('/reports?page=' + page + '&size=50', { method: 'GET', sessionKey }), page);
+}
 
 const request = async <T>(endpoint: string, options: AdminRequestOptions): Promise<T | undefined> => {
     const { sessionKey, ...restOptions } = options;
@@ -69,7 +80,7 @@ export const readResponse = async <T>(response: Response): Promise<T | undefined
 };
 
 export const getUsers = (sessionKey: string | null) => {
-    return request<UserAdminView[]>('/users', { method: 'GET', sessionKey });
+    return request<PageResult<UserAdminView> | UserAdminView[]>('/users', { method: 'GET', sessionKey }).then(data => normalizePage(data, 0).items);
 };
 
 export const deleteUser = (id: ApiId, sessionKey: string | null) => {
@@ -173,7 +184,7 @@ export const updateRoomTasks = (id: ApiId, revision: number, tasks: RoomTaskRequ
 };
 
 export const getReports = (sessionKey: string | null) => {
-    return request<ChatMessage[]>('/reports', { method: 'GET', sessionKey });
+    return request<PageResult<ChatMessage> | ChatMessage[]>('/reports', { method: 'GET', sessionKey }).then(data => normalizePage(data, 0).items);
 };
 
 export const deleteReport = (id: ApiId, sessionKey: string | null) => {

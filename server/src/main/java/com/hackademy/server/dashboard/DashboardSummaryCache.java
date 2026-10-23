@@ -13,7 +13,7 @@ public class DashboardSummaryCache {
 
     public synchronized long generation() { return generation; }
 
-    public synchronized void invalidateAll() { generation++; byUserId.clear(); }
+    public synchronized void invalidateAll() { generation++; byUserId.invalidateAll(); }
 
     public void invalidateAllAfterCommit() {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
@@ -34,12 +34,16 @@ public class DashboardSummaryCache {
         CacheEntry(long timeMs, T value) { this.timeMs = timeMs; this.value = value; }
     }
 
-    private final ConcurrentHashMap<Long, CacheEntry<DashboardSummaryDto>> byUserId = new ConcurrentHashMap<>();
+    private final com.github.benmanes.caffeine.cache.Cache<Long, CacheEntry<DashboardSummaryDto>> byUserId = com.hackademy.server.cache.LocalCaches.bounded(512, java.time.Duration.ofMinutes(10));
+
+    public DashboardSummaryDto load(Long id, java.util.function.Supplier<DashboardSummaryDto> loader) {
+        return byUserId.get(id, key -> new CacheEntry<>(System.currentTimeMillis(), loader.get())).value;
+    }
 
     public DashboardSummaryDto getIfFresh(Long userId) {
         if (userId == null) return null;
         long now = System.currentTimeMillis();
-        CacheEntry<DashboardSummaryDto> cached = byUserId.get(userId);
+        CacheEntry<DashboardSummaryDto> cached = byUserId.getIfPresent(userId);
         if (cached != null && now - cached.timeMs <= CACHE_MS) {
             return cached.value;
         }
@@ -53,7 +57,7 @@ public class DashboardSummaryCache {
 
     public void invalidateUser(Long userId) {
         if (userId == null) return;
-        byUserId.remove(userId);
+        byUserId.invalidate(userId);
     }
 }
 

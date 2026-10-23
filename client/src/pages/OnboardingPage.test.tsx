@@ -92,7 +92,7 @@ it('does not treat a reply without confirmation as done', async () => {
 
 it('starts from the saved account avatar and offers a retry when the account cannot load', async () => {
   let calls = 0;
-  server.use(http.get(currentUserUrl, () => (++calls <= 2
+  server.use(http.get(currentUserUrl, () => (++calls <= 1
     ? HttpResponse.json({}, { status: 500 })
     : HttpResponse.json({ ...createUser(), username: 'nowy', avatar: { outfit: 'bluza', hair: 'kucyk', hat: 'brak', skin: 'jasna', hairColor: 'rude', topColor: 'bialy', bottomColor: 'granatowy', shoesColor: 'czerwony', hatColor: 'bialy', pose: 'postawa' } }))));
   renderWithAuth(routes, '/witaj');
