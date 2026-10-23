@@ -20,7 +20,7 @@ public final class BattleEngine {
 
     public static void start(GameSession session, List<ArenaQuestion> questions, long now) {
         if (questions.isEmpty()) throw new IllegalStateException("Brak pytań do walki.");
-        session.setQuestions(List.copyOf(questions));
+        session.setQuestions(questions.stream().map(QuestionSnapshot::of).toList());
         session.setTotalRounds(Math.min(ROUNDS, questions.size()));
         session.getHp().put(session.getPlayer1Id(), MAX_HP);
         session.getHp().put(session.getPlayer2Id(), MAX_HP);
@@ -47,18 +47,18 @@ public final class BattleEngine {
     }
 
     public static boolean resolve(GameSession session, long now) {
-        ArenaQuestion question = session.getQuestions().get(session.getRound() - 1);
+        QuestionSnapshot question = session.getQuestions().get(session.getRound() - 1);
         Long first = session.getPlayer1Id();
         Long second = session.getPlayer2Id();
         Map<Long, Integer> choices = new HashMap<>();
         choices.put(first, session.getChoices().getOrDefault(first, NO_ANSWER));
         choices.put(second, session.getChoices().getOrDefault(second, NO_ANSWER));
         Map<Long, Integer> damage = new HashMap<>();
-        damage.put(first, damage(session, second, first, choices.get(second) == question.getCorrectAnswer()));
-        damage.put(second, damage(session, first, second, choices.get(first) == question.getCorrectAnswer()));
+        damage.put(first, damage(session, second, first, choices.get(second) == question.correctAnswer()));
+        damage.put(second, damage(session, first, second, choices.get(first) == question.correctAnswer()));
         session.getHp().replaceAll((player, hp) -> Math.max(0, hp - damage.get(player)));
-        session.setLastRound(new RoundResult(session.getRound(), question.getId(), question.getContent(),
-                question.answers(), question.getCorrectAnswer(), Map.copyOf(choices), Map.copyOf(damage)));
+        session.setLastRound(new RoundResult(session.getRound(), question.id(), question.content(),
+                question.answers(), question.correctAnswer(), Map.copyOf(choices), Map.copyOf(damage)));
         session.setQuestion(null);
         session.setPhase("REVEAL");
         session.setRoundEndsAt(0);

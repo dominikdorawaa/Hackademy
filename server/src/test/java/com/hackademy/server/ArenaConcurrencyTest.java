@@ -47,7 +47,7 @@ class ArenaConcurrencyTest {
 
     static List<ArenaQuestion> questionSet() {
         return LongStream.rangeClosed(1, 10).mapToObj(id -> new ArenaQuestion(id, "Pytanie " + id,
-                "A", "B", "C", "D", 1, "WEB", "EASY")).toList();
+                "A", "B", "C", "D", 1, "WEB", "EASY", 0L)).toList();
     }
 
     @BeforeEach

@@ -1,0 +1,1 @@
+ALTER TABLE arena_questions ADD COLUMN version BIGINT NOT NULL DEFAULT 0;

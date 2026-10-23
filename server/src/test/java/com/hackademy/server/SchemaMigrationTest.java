@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 25;
+    static final int SCHEMA_VERSION = 26;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 

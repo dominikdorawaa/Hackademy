@@ -10,6 +10,7 @@ const RoomsPage = lazy(() => import('./RoomsPage'));
 const RoomEditorPage = lazy(() => import('./RoomEditorPage'));
 const PathsPage = lazy(() => import('./PathsPage'));
 const PathEditorPage = lazy(() => import('./PathEditorPage'));
+const ArenaQuestionsPage = lazy(() => import('./ArenaQuestionsPage'));
 const RoomPage = lazy(() => import('../RoomPage'));
 const PathDetailPage = lazy(() => import('../PathDetailPage'));
 
@@ -25,6 +26,7 @@ const adminRoutes = (
     <Route index element={<AdminOnly><DashboardPage /></AdminOnly>} />
     <Route path="users" element={<AdminOnly><UsersPage /></AdminOnly>} />
     <Route path="reports" element={<AdminOnly><ReportsPage /></AdminOnly>} />
+    <Route path="arena/questions" element={<AdminOnly><ArenaQuestionsPage /></AdminOnly>} />
     <Route path="preview/rooms/:id" element={<RoomPage preview />} />
     <Route path="preview/paths/:id" element={<PathDetailPage preview />} />
     <Route path="paths" element={<PathsPage />} />

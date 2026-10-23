@@ -45,7 +45,7 @@ public class GameSession {
     private List<ArenaReaction> reactions = new ArrayList<>();
 
     @JsonIgnore
-    private List<ArenaQuestion> questions = new ArrayList<>();
+    private List<QuestionSnapshot> questions = new ArrayList<>();
     @JsonIgnore
     private Map<Long, Integer> choices = new HashMap<>();
     @JsonIgnore
