@@ -1,3 +1,4 @@
+import { lazy, Suspense } from 'react';
 import { Routes, Route } from 'react-router-dom';
 import SiteLayout from './components/SiteLayout';
 import { AuthProvider } from './context/AuthContext';
@@ -12,7 +13,6 @@ const LearnPage = lazy(() => import('./pages/LearnPage'));
 const UserDashboardPage = lazy(() => import('./pages/UserDashboardPage'));
 const PathDetailPage = lazy(() => import('./pages/PathDetailPage'));
 const ArenaPage = lazy(() => import('./pages/ArenaPage'));
-import { lazy, Suspense } from 'react';
 const RankingPage = lazy(() => import('./pages/RankingPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
