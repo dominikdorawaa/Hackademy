@@ -1,6 +1,7 @@
 package com.hackademy.server.config;
 
 import com.hackademy.server.clerk.ClerkAuthenticationFilter;
+import com.hackademy.server.ratelimit.RateLimitFilter;
 import org.springframework.boot.web.servlet.FilterRegistrationBean;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -23,9 +24,11 @@ import org.springframework.security.web.util.matcher.RegexRequestMatcher;
 public class SecurityConfig {
 
     private final ClerkAuthenticationFilter clerkAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
 
-    public SecurityConfig(ClerkAuthenticationFilter clerkAuthenticationFilter) {
+    public SecurityConfig(ClerkAuthenticationFilter clerkAuthenticationFilter, RateLimitFilter rateLimitFilter) {
         this.clerkAuthenticationFilter = clerkAuthenticationFilter;
+        this.rateLimitFilter = rateLimitFilter;
     }
 
     @Bean
@@ -55,7 +58,8 @@ public class SecurityConfig {
             )
             .sessionManagement(session -> session.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
             .exceptionHandling(exceptions -> exceptions.authenticationEntryPoint(new HttpStatusEntryPoint(HttpStatus.UNAUTHORIZED)))
-            .addFilterBefore(clerkAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
+            .addFilterBefore(clerkAuthenticationFilter, UsernamePasswordAuthenticationFilter.class)
+            .addFilterBefore(rateLimitFilter, ClerkAuthenticationFilter.class);
 
         return http.build();
     }

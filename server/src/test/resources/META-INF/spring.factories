@@ -1,2 +1,3 @@
 org.springframework.boot.EnvironmentPostProcessor=\
-com.hackademy.server.ClerkTestEnvironmentPostProcessor
+com.hackademy.server.ClerkTestEnvironmentPostProcessor,\
+com.hackademy.server.RateLimitTestEnvironmentPostProcessor

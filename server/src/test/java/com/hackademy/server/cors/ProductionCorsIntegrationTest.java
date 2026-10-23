@@ -99,7 +99,8 @@ class ProductionCorsIntegrationTest {
         mockMvc.perform(get("/api/rooms/top3").header(ORIGIN, FRONTEND))
                 .andExpect(status().isOk())
                 .andExpect(header().string(ACCESS_CONTROL_ALLOW_ORIGIN, FRONTEND))
-                .andExpect(header().string(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"));
+                .andExpect(header().string(ACCESS_CONTROL_ALLOW_CREDENTIALS, "true"))
+                .andExpect(header().string("Access-Control-Expose-Headers", "Retry-After"));
 
         mockMvc.perform(get("/api/rooms/top3").header(ORIGIN, "https://www.hackademy.app"))
                 .andExpect(status().isForbidden())
