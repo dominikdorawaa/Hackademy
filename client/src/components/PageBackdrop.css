@@ -1,5 +1,6 @@
 .site-canvas {
   --scenery-ground: var(--bg-dark, #0f1724);
+  --scene-focus: .5;
   --page-scene: var(--scene-dark);
   position: relative;
   min-width: 0;
@@ -15,8 +16,8 @@
     linear-gradient(90deg, var(--scenery-ground) 4%, color-mix(in srgb, var(--scenery-ground) 84%, transparent) 35%, color-mix(in srgb, var(--scenery-ground) 70%, transparent) 80%),
     linear-gradient(0deg, var(--scenery-ground), transparent 65%),
     var(--page-scene);
-  background-size: cover;
-  background-position: center top;
+  background-size: 100% 100%, 100% 100%, var(--scene-size, cover);
+  background-position: 0 0, 0 0, var(--scene-offset, center top);
   background-repeat: no-repeat;
   image-rendering: pixelated;
   pointer-events: none;
@@ -30,10 +31,14 @@
   background-image:
     linear-gradient(90deg, var(--scenery-panel, var(--ud-hero-bg, var(--scenery-ground))) 6%, color-mix(in srgb, var(--scenery-panel, var(--ud-hero-bg, var(--scenery-ground))) 94%, transparent) 55%, color-mix(in srgb, var(--scenery-panel, var(--ud-hero-bg, var(--scenery-ground))) 72%, transparent)),
     var(--page-scene);
-  background-size: cover;
-  background-position: center;
+  background-size: 100% 100%, cover;
+  background-position: 0 0, center;
   background-repeat: no-repeat;
   image-rendering: pixelated;
+}
+.site-canvas :is(.ud-next, .profile-header, .auth-intro, .arena-card, .ranking-board-head)[data-scene-aligned] {
+  background-size: 100% 100%, var(--scene-size);
+  background-position: 0 0, var(--scene-offset);
 }
 .site-canvas .profile-header { --scenery-panel: var(--profile-hero); }
 .site-canvas .auth-intro { --scenery-panel: var(--auth-field); }
@@ -50,12 +55,12 @@
 .site-canvas[data-scene='home'] .hero { background-color: transparent; }
 .site-canvas[data-scene='admin'] .page-backdrop { height: 560px; opacity: .55; }
 @media (max-width: 899px) {
-  .page-backdrop { height: min(480px, 100%); background-position: 65% top; }
+  .site-canvas { --scene-focus: .65; }
+  .page-backdrop { height: min(480px, 100%); }
   .site-shell--room .site-page-content { flex: 0 0 auto; }
 }
 @media (max-width: 600px) {
   .page-backdrop { opacity: .6; }
-  .site-canvas :is(.ud-next, .profile-header, .auth-intro, .arena-card, .ranking-board-head) { background-position: 65% center; }
 }
 @media print {
   .page-backdrop { display: none; }
