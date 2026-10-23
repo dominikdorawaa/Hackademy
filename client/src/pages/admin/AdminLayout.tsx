@@ -32,6 +32,7 @@ import ThemeSwitcher from '../../components/ThemeSwitcher';
 import { TooltipProvider } from '@/components/ui/tooltip';
 import { useAdminAccess } from './adminAccess';
 import PageBackdrop from '../../components/PageBackdrop';
+import RateLimitNotice from '../../components/RateLimitNotice';
 import { pageScene, sceneStyle } from '../../lib/pageScenery';
 
 interface NavItem {
@@ -211,6 +212,7 @@ export default function AdminLayout() {
           <div className="site-page-content mx-auto w-full max-w-6xl flex-1 px-4 py-6 md:px-8 md:py-8">
             <Outlet />
           </div>
+          <RateLimitNotice />
         </SidebarInset>
       </SidebarProvider>
     </TooltipProvider>

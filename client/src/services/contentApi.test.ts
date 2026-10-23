@@ -68,6 +68,11 @@ describe('content API contracts', () => {
     expect(await readJson((transport.mock.calls[0][1]?.body as FormData).get('content') as Blob)).toEqual(request);
     await expect(saveRoom(5, room, null, 'sessionKey')).rejects.toMatchObject({ message: 'Conflict', fields: { title: 'Duplicate' } });
   });
+  it('explains a rate limited save without sending it again', async () => {
+    const transport = vi.spyOn(globalThis, 'fetch').mockResolvedValueOnce(HttpResponse.json({ message: 'Zbyt wiele żądań. Spróbuj ponownie za 20 s.', retryAfter: 20 }, { status: 429 }));
+    await expect(saveRoom(5, room, null, 'sessionKey')).rejects.toMatchObject({ message: 'Zbyt wiele żądań. Spróbuj ponownie za 20 s.', fields: {} });
+    expect(transport).toHaveBeenCalledOnce();
+  });
   it('reports a useful failure when the API returns only detail or no message', async () => {
     server.use(http.get(`${API_URL}/api/admin/content/detail`, () => HttpResponse.json({ detail: 'Failed detail' }, { status: 400 })),
       http.get(`${API_URL}/api/admin/content/empty`, () => HttpResponse.json({}, { status: 500 })));

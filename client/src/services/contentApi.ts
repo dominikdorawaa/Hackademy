@@ -1,4 +1,5 @@
 import { request } from './http';
+import { rateLimitText } from './rateLimit';
 import type { ChapterRequest, PathAdminDetailDto, PathUnlockMode, RoomAdminDto, RoomTasksAdminDto, RoomTaskRequest, RoomWriteRequest } from '../types/api';
 import type { FieldErrors } from '../components/admin/ContentFields';
 
@@ -19,7 +20,12 @@ export class ContentError extends Error {
 }
 export async function contentRequest<T>(path: string, sessionKey: string | null, options: RequestInit = {}): Promise<T> {
   const response = await request<T, { message?: string; detail?: string; fields?: FieldErrors }>(`/api/admin/content${path}`, { ...options, auth: { sessionKey } });
-  if (!response.ok) { const body = await response.json(); throw new ContentError(body.message || body.detail || 'Nie udało się zapisać materiału.', body.fields ?? {}); }
+  if (!response.ok) {
+    const limited = await rateLimitText(response);
+    if (limited) throw new ContentError(limited);
+    const body = await response.json();
+    throw new ContentError(body.message || body.detail || 'Nie udało się zapisać materiału.', body.fields ?? {});
+  }
   return response.json();
 }
 function multipart(data: unknown, file: File | null) {

@@ -1,4 +1,5 @@
 import { request as apiRequest } from './http';
+import { rateLimitText } from './rateLimit';
 import type {
     AdminStatsDto,
     ApiId,
@@ -52,6 +53,8 @@ const errorMessageFrom = (errorData: Record<string, unknown>) => {
 
 export const readResponse = async <T>(response: Response): Promise<T | undefined> => {
     if (!response.ok) {
+        const limited = await rateLimitText(response);
+        if (limited) throw new Error(limited);
         const errorData: Record<string, unknown> = await response.json().catch(() => ({ message: response.statusText }));
         const errorMessage = errorMessageFrom(errorData);
         throw new Error(errorMessage === undefined ? undefined : String(errorMessage));

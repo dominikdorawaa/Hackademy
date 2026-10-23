@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { ApiResponse } from '../services/http';
+import { rateLimitText } from '../services/rateLimit';
 
 export function useApiResource<T>(
   load: (signal: AbortSignal) => Promise<ApiResponse<T>>,
@@ -25,6 +26,12 @@ export function useApiResource<T>(
         if (controller.signal.aborted) return;
         if (response.status === 401 || response.status === 403) {
           onUnauthorized();
+          return;
+        }
+        const limited = await rateLimitText(response);
+        if (controller.signal.aborted) return;
+        if (limited) {
+          setState({ data: null, loading: false, error: limited });
           return;
         }
         if (!response.ok) {

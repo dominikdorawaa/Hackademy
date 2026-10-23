@@ -151,6 +151,12 @@ describe('existing adminApi compatibility', () => {
     await expect(legacyAdmin.getUsers('sessionKey')).rejects.toThrow(expected);
   });
 
+  it('shows when an admin may try again after the server limits requests', async () => {
+    fetchMock.mockResolvedValue(new Response('busy', { status: 429, headers: { 'Retry-After': '12' } }));
+    await expect(legacyAdmin.deleteUser(7, 'sessionKey')).rejects.toThrow('Zbyt wiele żądań. Spróbuj ponownie za 12 s.');
+    expect(fetchMock).toHaveBeenCalledOnce();
+  });
+
   it('joins field messages from a validation error', async () => {
     fetchMock.mockResolvedValue(Response.json({ message: 'Validation failed', title: 'Tytuł jest wymagany', points: 'Za mało punktów' }, { status: 400 }));
     await expect(legacyAdmin.getUsers('sessionKey')).rejects.toThrow('Tytuł jest wymagany Za mało punktów');

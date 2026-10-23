@@ -3,6 +3,7 @@ import GuidedTour from './tour/GuidedTour';
 import Navbar from './Navbar';
 import RealtimeGameNavigation from './RealtimeGameNavigation';
 import RealtimeNotifications from './RealtimeNotifications';
+import RateLimitNotice from './RateLimitNotice';
 import Footer from './Footer';
 import RoomChromeProvider from './room/RoomChromeProvider';
 import { useRoomChrome } from './room/roomChrome';
@@ -16,6 +17,7 @@ function SiteShell() {
     <div className={roomMode ? 'site-shell--room flex flex-col' : 'flex flex-col min-h-screen'}>
       <RealtimeGameNavigation />
       <RealtimeNotifications />
+      <RateLimitNotice />
       <Navbar />
       <main className="site-canvas flex-grow" data-scene={scene} style={sceneStyle(scene)}>
         <PageBackdrop />
