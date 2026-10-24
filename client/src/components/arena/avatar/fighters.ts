@@ -1,10 +1,10 @@
-import type { AvatarOutfit } from './avatarModel';
+import type { AvatarOutfit, FinisherMove, VictoryDance } from './avatarModel';
 
-export type FinisherMove = 'beam' | 'combo';
-export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: { groove: number; sixseven: number; scuba: number }; run: number; finishers: Record<FinisherMove, number> }
+export type { FinisherMove };
+export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: Record<VictoryDance, number>; run: number; finishers: Record<FinisherMove, number> }
 
 const BASE = '/assets/arena/avatar-v1/';
-const DANCES = { groove: 6, sixseven: 8, scuba: 13 };
+const DANCES: Record<VictoryDance, number> = { groove: 6, sixseven: 8, scuba: 13 };
 const RUN = 10;
 const FINISHERS: Record<FinisherMove, number> = { beam: 2, combo: 11 };
 
@@ -22,5 +22,6 @@ export const danceFrames = (row: number) => [row, row + 1].flatMap(line => Array
 export const TURNS = { sixseven: 15, scuba: 16 };
 const turnFrames = (row: number) => Array.from({ length: 4 }, (_, column) => row * 9 + column + 1);
 export const turnedDance = (dance: number, turn: number) => [...turnFrames(turn), ...danceFrames(dance), ...turnFrames(turn).reverse(), turn * 9];
+export const victoryDance = (dance: VictoryDance) => ({ turn: dance === 'groove' ? [] : turnFrames(TURNS[dance]), loop: danceFrames(DANCES[dance]) });
 export const runFrames = (row: number) => Array.from({ length: 8 }, (_, column) => row * 9 + column + 1);
 export const RUN_FRAME_TIME = 90;

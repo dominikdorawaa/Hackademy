@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 28;
+    static final int SCHEMA_VERSION = 29;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -182,6 +182,20 @@ class SchemaMigrationTest {
         execute("UPDATE user_avatars SET pose = 'profil' WHERE user_id = 1");
         assertSqlState("23514", "UPDATE user_avatars SET pose = 'bokiem' WHERE user_id = 1");
         assertEquals("profil", text("SELECT pose FROM user_avatars WHERE user_id = 1"));
+    }
+
+    @Test
+    void givesExistingAvatarsTheDefaultFinisherAndVictoryDance() throws Exception {
+        flyway("28").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        execute("INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color) VALUES (1, 'dres', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy')");
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals("beam", text("SELECT finisher FROM user_avatars WHERE user_id = 1"));
+        assertEquals("groove", text("SELECT victory_dance FROM user_avatars WHERE user_id = 1"));
+        execute("UPDATE user_avatars SET finisher = 'combo', victory_dance = 'scuba' WHERE user_id = 1");
+        assertSqlState("23514", "UPDATE user_avatars SET finisher = 'kopniak' WHERE user_id = 1");
+        assertSqlState("23514", "UPDATE user_avatars SET victory_dance = 'walc' WHERE user_id = 1");
+        assertEquals("scuba", text("SELECT victory_dance FROM user_avatars WHERE user_id = 1"));
     }
 
     @Test

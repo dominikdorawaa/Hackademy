@@ -22,7 +22,7 @@ vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
   useAvatarPortrait: (config: AvatarConfig | null) => config ? `/portrait-${config.hat}-${config.pose}.png` : null,
 }));
 
-const initialAvatar: AvatarConfig = { outfit: 'dres', hair: 'kucyk', hat: 'brak', skin: 'ciemna', hairColor: 'rude', topColor: 'czerwony', bottomColor: 'bialy', shoesColor: 'granatowy', hatColor: 'turkusowy', pose: 'profil' };
+const initialAvatar: AvatarConfig = { outfit: 'dres', hair: 'kucyk', hat: 'brak', skin: 'ciemna', hairColor: 'rude', topColor: 'czerwony', bottomColor: 'bialy', shoesColor: 'granatowy', hatColor: 'turkusowy', pose: 'profil', finisher: 'combo', victoryDance: 'scuba' };
 let avatar: AvatarConfig;
 let writes: AvatarConfig[];
 let fail: boolean;

@@ -108,7 +108,8 @@ it('plays the finisher before victory and defeat after a knockout', () => {
 });
 
 it('shows the rival finisher after my last hit lands', () => {
-  render(scene({ ...exchange(), id: 'game1', status: 'FINISHED', finishReason: 'KNOCKOUT', winnerId: 2, hp: { 1: 0, 2: 20 } }));
+  render(scene({ ...exchange(), id: 'game1', status: 'FINISHED', finishReason: 'KNOCKOUT', winnerId: 2, hp: { 1: 0, 2: 20 },
+    player2Avatar: { outfit: 'baza', hair: 'brak', hat: 'brak', skin: 'jasna', hairColor: 'czarne', topColor: 'granatowy', bottomColor: 'piaskowy', shoesColor: 'grafitowy', hatColor: 'czerwony', finisher: 'combo' } }));
   const myHp = () => screen.getByRole('meter', { name: 'HP: tester' }), rivalHp = () => screen.getByRole('meter', { name: 'HP: opponent' });
   expect(screen.getByTestId('shot-me')).toHaveTextContent('-20');
   expect(screen.getByTestId('finisher-combo')).toHaveClass('from-rival');

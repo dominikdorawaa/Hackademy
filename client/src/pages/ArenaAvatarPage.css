@@ -68,8 +68,7 @@
   .avatar-stage .avatar-stage-loader { align-self: end; width: min(352px, 100%); min-height: 0; padding: 0; }
   .avatar-stage-loader .arena-runner { width: 100%; }
   .avatar-front, .avatar-stage .avatar-sprite { display: block; width: min(352px, 100%); max-width: 100%; aspect-ratio: 1; image-rendering: pixelated; }
-  .avatar-animations { display: flex; flex-wrap: wrap; gap: 6px; }
-  .avatar-animations button, .avatar-styles label {
+  .avatar-styles label {
     min-height: 40px;
     padding: 9px 12px;
     border-radius: var(--ud-radius);
@@ -81,9 +80,8 @@
     line-height: 1.4;
     cursor: pointer;
   }
-  .avatar-animations button { border: 0; }
-  .avatar-animations button:hover, .avatar-styles label:hover { background: var(--ud-track); }
-  .avatar-animations button[aria-pressed='true'], .avatar-styles label[data-selected='true'] { background: var(--ud-blue); color: var(--ud-blue-ink); }
+  .avatar-styles label:hover { background: var(--ud-track); }
+  .avatar-styles label[data-selected='true'] { background: var(--ud-blue); color: var(--ud-blue-ink); }
   .avatar-controls { min-width: 0; border-radius: var(--ud-radius); background: var(--ud-surface); }
   .avatar-controls fieldset { min-inline-size: 0; margin: 0; padding: 0; border: 0; }
   .avatar-controls .avatar-form { display: block; }

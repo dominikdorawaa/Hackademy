@@ -8,29 +8,15 @@ import { getCurrentUser, saveAvatar as saveAccountAvatar } from '../services/use
 import { PROFILE_UPDATED } from '../lib/profile';
 import { AvatarSprite } from '../components/arena/avatar/AvatarSprite';
 import { useAvatarAtlas, useAvatarPortrait } from '../components/arena/avatar/useAvatarAtlas';
-import { AVATAR_POSES, fromAvatarConfig, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, toAvatarConfig } from '../components/arena/avatar/avatarModel';
+import { AVATAR_POSES, FINISHER_MOVES, fromAvatarConfig, HAIR_STYLES, HAT_STYLES, readAvatar, saveAvatar, toAvatarConfig, VICTORY_DANCES } from '../components/arena/avatar/avatarModel';
 import type { Avatar } from '../components/arena/avatar/avatarModel';
-import { COLOR_GROUPS, HAIR_NAMES, HAT_NAMES, OUTFITS, POSE_NAMES } from '../components/arena/avatar/avatarOptions';
+import { COLOR_GROUPS, DANCE_OPTIONS, FINISHER_OPTIONS, HAIR_NAMES, HAT_NAMES, OUTFITS, POSE_NAMES } from '../components/arena/avatar/avatarOptions';
 import { ColorChoices } from '../components/arena/avatar/ColorChoices';
-import { AVATAR_ATLASES, danceFrames, RUN_FRAME_TIME, runFrames } from '../components/arena/avatar/fighters';
-import type { AvatarAtlasSource } from '../components/arena/avatar/fighters';
+import { AVATAR_ATLASES } from '../components/arena/avatar/fighters';
+import { dancePreview, finisherPreview } from '../components/arena/avatar/movePreviews';
 import './ArenaAvatarPage.css';
 import './UserDashboardPage.css';
 
-const row = (index: number, count = 8) => Array.from({ length: count }, (_, column) => index * 9 + column + 1);
-const PREVIEWS: { id: string; label: string; frames: (source: AvatarAtlasSource) => number[]; loop: boolean; frameTime?: number }[] = [
-  { id: 'front', label: 'Przód', frames: () => [0], loop: true },
-  { id: 'idle', label: 'Postawa', frames: () => [0], loop: true },
-  { id: 'attack', label: 'Atak', frames: () => row(1), loop: true },
-  { id: 'hurt', label: 'Trafienie', frames: () => [...row(4, 4), 0, 0, 0], loop: true },
-  { id: 'defeat', label: 'Upadek', frames: () => row(5), loop: false },
-  { id: 'run', label: 'Bieg', frames: source => runFrames(source.run), loop: true, frameTime: RUN_FRAME_TIME },
-  { id: 'groove', label: 'Taniec', frames: source => danceFrames(source.dances.groove), loop: true },
-  { id: 'sixseven', label: 'Six-seven', frames: source => danceFrames(source.dances.sixseven), loop: true },
-  { id: 'scuba', label: 'Scuba', frames: source => danceFrames(source.dances.scuba), loop: true },
-  { id: 'beam', label: 'Przeciążenie', frames: source => [...danceFrames(source.finishers.beam), 0, 0, 0], loop: true, frameTime: 100 },
-  { id: 'combo', label: 'Ctrl+Alt+Del', frames: source => [...danceFrames(source.finishers.combo), 0, 0, 0], loop: true, frameTime: 100 },
-];
 function PosePortrait({ avatar }: { avatar: Avatar }) {
   const portrait = useAvatarPortrait(toAvatarConfig(avatar));
   return portrait ? <img className="avatar-pose-image" src={portrait} alt="" /> : <span className="avatar-pose-image" aria-hidden="true" />;
@@ -40,13 +26,14 @@ export default function ArenaAvatarPage() {
   const [params] = useSearchParams();
   const fromProfile = params.get('from') === 'profile';
   const reducedMotion = useReducedMotion();
-  const [avatar, setAvatar] = useState<Avatar>(readAvatar);
+  const [avatar, setLook] = useState<Avatar>(readAvatar);
   const [saved, setSaved] = useState(() => JSON.stringify(readAvatar()));
-  const [preview, setPreview] = useState('front');
+  const [preview, setPreview] = useState<'front' | 'finisher' | 'dance'>('front');
   const atlas = useAvatarAtlas(avatar);
   const fighter = AVATAR_ATLASES[avatar.outfit];
-  const active = PREVIEWS.find(item => item.id === preview) ?? PREVIEWS[0];
   const dirty = saved !== JSON.stringify(avatar);
+  const setAvatar = (change: Avatar | ((current: Avatar) => Avatar)) => { setPreview('front'); setLook(change); };
+  const setMove = (patch: Partial<Pick<Avatar, 'finisher' | 'dance'>>, shown: 'finisher' | 'dance') => { setLook(current => ({ ...current, ...patch })); setPreview(shown); };
   const setColor = (key: keyof Avatar['colors'], value: string) => setAvatar(current => ({ ...current, colors: { ...current.colors, [key]: value } }));
   const { isAuthenticated, sessionKey } = useAuth();
   const sessionToken = isAuthenticated && sessionKey ? sessionKey : null;
@@ -61,7 +48,7 @@ export default function ArenaAvatarPage() {
         if (!user?.username) throw new Error('account');
         setAccount({ sessionKey: sessionToken, status: 'ready', username: user.username });
         const remote = fromAvatarConfig(user.avatar);
-        if (remote) { setAvatar(remote); setSaved(JSON.stringify(remote)); } else setSaved('');
+        if (remote) { setLook(remote); setSaved(JSON.stringify(remote)); } else setSaved('');
       })
       .catch(() => { if (!controller.signal.aborted) setAccount({ sessionKey: sessionToken, status: 'error', username: null }); });
     return () => controller.abort();
@@ -105,12 +92,13 @@ export default function ArenaAvatarPage() {
       <section className="avatar-preview" aria-label="Podgląd awatara">
         <div className="avatar-preview-heading"><h2>Podgląd</h2><span>{OUTFITS.find(outfit => outfit.id === avatar.outfit)?.name}</span></div>
         <div className="avatar-stage">
-          {atlas && active.id === 'front' && atlas.front ? <img className="avatar-front" src={atlas.front} alt="Awatar, widok z przodu" data-reduced-motion={reducedMotion} />
-            : atlas ? <AvatarSprite key={active.id} atlas={atlas.atlas} atlasHeight={fighter.atlasHeight} frames={active.frames(fighter)} loop={active.loop} frameTime={active.frameTime} reducedMotion={reducedMotion} label={`Awatar, animacja: ${active.label}`} />
-            : <ArenaLoader label="Przygotowuję postać" avatar={toAvatarConfig(avatar)} className="avatar-stage-loader" />}
-        </div>
-        <div className="avatar-animations" role="group" aria-label="Animacja podglądu">
-          {PREVIEWS.map(item => <button key={item.id} type="button" aria-pressed={item.id === active.id} onClick={() => setPreview(item.id)}>{item.label}</button>)}
+          {!atlas ? <ArenaLoader label="Przygotowuję postać" avatar={toAvatarConfig(avatar)} className="avatar-stage-loader" />
+            : preview === 'finisher' ? <AvatarSprite key={`finisher-${avatar.finisher}`} atlas={atlas.atlas} atlasHeight={fighter.atlasHeight} frames={finisherPreview(avatar.finisher, reducedMotion)}
+              frameTime={100} reducedMotion={reducedMotion} label={`Awatar, finisher: ${FINISHER_OPTIONS[avatar.finisher].name}`} />
+            : preview === 'dance' ? <AvatarSprite key={`dance-${avatar.dance}`} atlas={atlas.atlas} atlasHeight={fighter.atlasHeight} frames={dancePreview(avatar.dance, reducedMotion)}
+              frameTime={110} reducedMotion={reducedMotion} label={`Awatar, taniec zwycięstwa: ${DANCE_OPTIONS[avatar.dance].name}`} />
+            : atlas.front ? <img className="avatar-front" src={atlas.front} alt="Awatar, widok z przodu" data-reduced-motion={reducedMotion} />
+            : <AvatarSprite atlas={atlas.atlas} atlasHeight={fighter.atlasHeight} frames={[0]} reducedMotion={reducedMotion} label="Awatar w postawie" />}
         </div>
         <p className="avatar-note" role="status" aria-live="polite" data-state={status === 'error' || accountState === 'error' ? 'error' : status}>{note}</p>
       </section>
@@ -145,6 +133,26 @@ export default function ArenaAvatarPage() {
         </div>
         </div>
         <div className="avatar-section">
+        <h2>Walka</h2>
+        <div className="avatar-head-options">
+        <fieldset><legend>Finisher</legend><div className="avatar-outfits">
+          {FINISHER_MOVES.map(move => <label key={move} data-selected={avatar.finisher === move}>
+            <input type="radio" name="avatar-finisher" value={move} checked={avatar.finisher === move} onChange={() => setMove({ finisher: move }, 'finisher')} onClick={() => setPreview('finisher')} />
+            <span className="avatar-choice-mark" aria-hidden="true">{avatar.finisher === move && <Check size={14} />}</span>
+            <strong>{FINISHER_OPTIONS[move].name}</strong><small>{FINISHER_OPTIONS[move].description}</small>
+          </label>)}
+        </div></fieldset>
+        <fieldset><legend>Taniec zwycięstwa</legend><div className="avatar-outfits">
+          {VICTORY_DANCES.map(dance => <label key={dance} data-selected={avatar.dance === dance}>
+            <input type="radio" name="avatar-dance" value={dance} checked={avatar.dance === dance} onChange={() => setMove({ dance }, 'dance')} onClick={() => setPreview('dance')} />
+            <span className="avatar-choice-mark" aria-hidden="true">{avatar.dance === dance && <Check size={14} />}</span>
+            <strong>{DANCE_OPTIONS[dance].name}</strong><small>{DANCE_OPTIONS[dance].description}</small>
+          </label>)}
+        </div></fieldset>
+        </div>
+        <p className="avatar-hint">Wybrany ruch od razu gra w podglądzie. Finisher kończy wygraną walkę, a taniec zobaczy rywal po Twojej wygranej.</p>
+        </div>
+        <div className="avatar-section">
         <h2>Ikona profilu</h2>
         <fieldset><legend>Poza na ikonie</legend><div className="avatar-poses">
           {AVATAR_POSES.map(pose => <label key={pose} data-selected={avatar.pose === pose}>
@@ -153,7 +161,7 @@ export default function ArenaAvatarPage() {
             <span>{POSE_NAMES[pose]}</span>
           </label>)}
         </div>
-        <p className="avatar-hint">Ikona pojawia się w profilu, nawigacji, rankingu, u znajomych i w Arenie. Animacje w podglądzie jej nie zmieniają.</p></fieldset>
+        <p className="avatar-hint">Ikona pojawia się w profilu, nawigacji, rankingu, u znajomych i w Arenie.</p></fieldset>
         </div>
         </fieldset>
       </section>

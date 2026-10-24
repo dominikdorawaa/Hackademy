@@ -4,6 +4,7 @@ import {
   absenceNotice, animatedRound, CAST_MS, choreography, eloChange, finisher, FINISHER_FRAME_MS, FINISHERS, finishText, frozenSecondsLeft, IMPACT_MS, impactAt, outcome, outcomeTitle,
   pauseNotice, perspective, roundSummary, secondsLeft,
 } from './battleView';
+import { danceFrames } from '../avatar/fighters';
 import type { RoundResult } from '../../../types/api';
 
 const result = (damage: Record<string, number>): RoundResult => ({
@@ -139,7 +140,8 @@ describe('battle view', () => {
   });
 
   it('lets the loser land a last hit before the finisher and skips finishers without a knockout blow', () => {
-    const trade = createGameSession({ id: 'game1', status: 'FINISHED', winnerId: 1, finishReason: 'KNOCKOUT', lastRound: result({ 1: 20, 2: 20 }) });
+    const trade = createGameSession({ id: 'game1', status: 'FINISHED', winnerId: 1, finishReason: 'KNOCKOUT', lastRound: result({ 1: 20, 2: 20 }),
+      player1Avatar: { outfit: 'baza', hair: 'brak', hat: 'brak', skin: 'jasna', hairColor: 'czarne', topColor: 'granatowy', bottomColor: 'piaskowy', shoesColor: 'grafitowy', hatColor: 'czerwony', finisher: 'combo' } });
     expect(finisher(trade)).toEqual({ move: 'combo', winnerId: 1, loserId: 2, start: 1340, impact: 2340, end: 3240 });
     expect(choreography(trade, 1, 2).map(segment => segment.ms)).toEqual([IMPACT_MS, 440, 1900, undefined]);
     expect(choreography(trade, 1, 2)[2].frames).toEqual(FINISHERS.combo.frames);
@@ -154,6 +156,22 @@ describe('battle view', () => {
     expect(finisher({ ...trade, lastRound: result({ 1: 20, 2: 0 }) })).toBeNull();
     expect(finisher({ ...trade, lastRound: null })).toBeNull();
     expect(finisher({ ...trade, status: 'ACTIVE' })).toBeNull();
+  });
+
+  it('plays the finisher and the victory dance the winner chose, with defaults for older avatars', () => {
+    const base = { outfit: 'baza', hair: 'brak', hat: 'brak', skin: 'jasna', hairColor: 'czarne', topColor: 'granatowy', bottomColor: 'piaskowy', shoesColor: 'grafitowy', hatColor: 'czerwony' };
+    const won = (avatar: typeof base & { finisher?: string; victoryDance?: string } | null) => createGameSession({ id: 'game1', status: 'FINISHED', winnerId: 1, finishReason: 'KNOCKOUT', lastRound: result({ 1: 0, 2: 20 }), player1Avatar: avatar });
+    expect(finisher(won({ ...base, finisher: 'combo' }))?.move).toBe('combo');
+    expect(finisher(won({ ...base, finisher: 'beam' }))?.move).toBe('beam');
+    expect(finisher(won(base))?.move).toBe('beam');
+    expect(finisher(won(null))?.move).toBe('beam');
+    expect(choreography(won(base), 1, 2).at(-1)).toEqual({ frames: danceFrames(6), loop: true, frameTime: 110 });
+    const scuba = choreography(won({ ...base, victoryDance: 'scuba' }), 1, 2);
+    expect(scuba.at(-2)).toEqual({ frames: [145, 146, 147, 148], loop: false, frameTime: 110, ms: 440 });
+    expect(scuba.at(-1)).toEqual({ frames: danceFrames(13), loop: true, frameTime: 110 });
+    const rounds = createGameSession({ status: 'FINISHED', winnerId: 2, finishReason: 'SURRENDER', lastRound: null, player2Avatar: { ...base, victoryDance: 'sixseven' } });
+    expect(choreography(rounds, 2, 1)).toEqual([{ frames: [136, 137, 138, 139], loop: false, frameTime: 110, ms: 440 }, { frames: danceFrames(8), loop: true, frameTime: 110 }]);
+    expect(choreography(rounds, 1, 2)).toEqual([{ frames: [46, 47, 48, 49, 50, 51, 52, 53], loop: false, frameTime: 120 }]);
   });
 
   it('counts down against the server clock', () => {
