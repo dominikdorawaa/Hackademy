@@ -4,7 +4,7 @@ import { afterEach, beforeEach, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import API_URL from '../apiConfig';
 import { server } from '../test/mocks/server';
-import { LEAVE_DELAY_MS, useBattlePresence } from './useBattlePresence';
+import { LEAVE_DELAY_MS, RETRY_MS, useBattlePresence } from './useBattlePresence';
 
 const calls: string[] = [];
 const of = (id: string) => calls.filter(call => call.endsWith(`:${id}`));
@@ -34,7 +34,7 @@ it('ignores a remount of the same battle view', async () => {
   renderHook(() => useBattlePresence('b', 'sessionKey'));
   vi.advanceTimersByTime(LEAVE_DELAY_MS * 2);
   vi.useRealTimers();
-  await waitFor(() => expect(of('b')).toEqual(['return:b', 'return:b']));
+  await waitFor(() => expect(of('b')).toEqual(['return:b']));
 });
 
 it('sends a return only after a leave that is still on its way', async () => {
@@ -56,7 +56,40 @@ it('sends a return only after a leave that is still on its way', async () => {
   await waitFor(() => expect(of('d')).toEqual(['return:d', 'leave-start:d', 'leave:d', 'return:d']));
 });
 
-it('keeps going after a failed request', async () => {
+it('retries a failed return without a remount until the server has it', async () => {
+  let returns = 0;
+  server.use(http.post(`${API_URL}/api/arena/game/:id/return`, ({ params }) => {
+    if (params.id === 'f') returns += 1;
+    if (params.id === 'f' && returns === 2) { calls.push(`return-failed:${params.id}`); return HttpResponse.error(); }
+    calls.push(`return:${params.id}`);
+    return new HttpResponse(null, { status: 204 });
+  }));
+  const first = renderHook(() => useBattlePresence('f', 'sessionKey'));
+  await waitFor(() => expect(of('f')).toEqual(['return:f']));
+  first.unmount();
+  await waitFor(() => expect(of('f')).toEqual(['return:f', 'leave:f']));
+  renderHook(() => useBattlePresence('f', 'sessionKey'));
+  await waitFor(() => expect(of('f')).toEqual(['return:f', 'leave:f', 'return-failed:f']));
+  await waitFor(() => expect(of('f')).toEqual(['return:f', 'leave:f', 'return-failed:f', 'return:f']), { timeout: RETRY_MS * 3 });
+});
+
+it('retries a failed leave and stops once the server answers', async () => {
+  let leaves = 0;
+  server.use(http.post(`${API_URL}/api/arena/game/:id/leave`, ({ params }) => {
+    if (params.id !== 'g') return new HttpResponse(null, { status: 204 });
+    leaves += 1;
+    calls.push(`leave-${leaves === 1 ? 'failed' : 'refused'}:${params.id}`);
+    return leaves === 1 ? new HttpResponse(null, { status: 503 }) : new HttpResponse(null, { status: 404 });
+  }));
+  const first = renderHook(() => useBattlePresence('g', 'sessionKey'));
+  await waitFor(() => expect(of('g')).toEqual(['return:g']));
+  first.unmount();
+  await waitFor(() => expect(of('g')).toEqual(['return:g', 'leave-failed:g', 'leave-refused:g']), { timeout: RETRY_MS * 3 });
+  await new Promise(resolve => setTimeout(resolve, RETRY_MS + 200));
+  expect(of('g')).toEqual(['return:g', 'leave-failed:g', 'leave-refused:g']);
+});
+
+it('sends the newest view instead of retrying a stale one', async () => {
   server.use(http.post(`${API_URL}/api/arena/game/:id/return`, ({ params }) => {
     calls.push(`return:${params.id}`);
     return HttpResponse.error();

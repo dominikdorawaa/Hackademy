@@ -2,14 +2,48 @@ import { useEffect } from 'react';
 import * as arenaApi from '../services/arenaApi';
 
 export const LEAVE_DELAY_MS = 500;
+export const RETRY_MS = 1000;
+const RETRIES = 30;
+
+type View = 'return' | 'leave';
 
 const leaving = new Map<string, ReturnType<typeof setTimeout>>();
-const sending = new Map<string, Promise<unknown>>();
+const wanted = new Map<string, View>();
+const delivering = new Set<string>();
 
-function inOrder(key: string, call: () => Promise<unknown>) {
-  const next = (sending.get(key) ?? Promise.resolve()).then(call).catch(() => {});
-  sending.set(key, next);
-  void next.then(() => { if (sending.get(key) === next) sending.delete(key); });
+async function send(view: View, gameId: string, sessionKey: string) {
+  try {
+    const call = view === 'leave' ? arenaApi.leaveBattle : arenaApi.returnToBattle;
+    return (await call(gameId, { sessionKey })).status < 500;
+  } catch {
+    return false;
+  }
+}
+
+async function deliver(key: string, gameId: string, sessionKey: string) {
+  delivering.add(key);
+  let failures = 0;
+  try {
+    for (let view = wanted.get(key); view; view = wanted.get(key)) {
+      const delivered = await send(view, gameId, sessionKey);
+      if (wanted.get(key) !== view) {
+        failures = 0;
+        continue;
+      }
+      if (delivered || ++failures > RETRIES) {
+        wanted.delete(key);
+        return;
+      }
+      await new Promise(resolve => setTimeout(resolve, RETRY_MS));
+    }
+  } finally {
+    delivering.delete(key);
+  }
+}
+
+function report(key: string, gameId: string, sessionKey: string, view: View) {
+  wanted.set(key, view);
+  if (!delivering.has(key)) void deliver(key, gameId, sessionKey);
 }
 
 export function useBattlePresence(gameId: string, sessionKey: string | null) {
@@ -18,11 +52,11 @@ export function useBattlePresence(gameId: string, sessionKey: string | null) {
     const key = `${sessionKey}:${gameId}`;
     clearTimeout(leaving.get(key));
     leaving.delete(key);
-    inOrder(key, () => arenaApi.returnToBattle(gameId, { sessionKey }));
+    report(key, gameId, sessionKey, 'return');
     return () => {
       leaving.set(key, setTimeout(() => {
         leaving.delete(key);
-        inOrder(key, () => arenaApi.leaveBattle(gameId, { sessionKey }));
+        report(key, gameId, sessionKey, 'leave');
       }, LEAVE_DELAY_MS));
     };
   }, [gameId, sessionKey]);
