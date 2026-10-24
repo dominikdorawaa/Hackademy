@@ -187,7 +187,8 @@ public class ArenaServiceImpl implements ArenaService {
         session.setPlayer1Avatar(avatars.get(session.getPlayer1Id()));
         session.setPlayer2Avatar(avatars.get(session.getPlayer2Id()));
         session.setStartTime(LocalDateTime.now());
-        BattleEngine.start(session, questionRepository.findRandom(BattleEngine.ROUNDS), clock.getAsLong(), random);
+        int elo = QuestionDraw.averageElo(session.getPlayer1Elo(), session.getPlayer2Elo());
+        BattleEngine.start(session, questionRepository.drawForElo(elo, BattleEngine.ROUNDS, random), clock.getAsLong(), random);
     }
 
     @Override

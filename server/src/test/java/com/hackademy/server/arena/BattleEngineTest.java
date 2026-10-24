@@ -39,7 +39,7 @@ class BattleEngineTest {
         assertEquals(10, session.getTotalRounds());
         assertEquals(1_000 + BattleEngine.ROUND_MILLIS, session.getRoundEndsAt());
         assertEquals(Map.of(1L, 100, 2L, 100), session.getHp());
-        assertEquals(new BattleQuestion(1L, "Pytanie 1", "SIECI", List.of("A", "B", "C", "D")), session.getQuestion());
+        assertEquals(new BattleQuestion(1L, "Pytanie 1", "SIECI", "MEDIUM", List.of("A", "B", "C", "D")), session.getQuestion());
     }
 
     @Test
@@ -89,7 +89,7 @@ class BattleEngineTest {
         assertEquals(2, duel.getLastRound().correctAnswer());
         assertEquals(81, duel.getHp().get(2L));
         BattleEngine.nextRound(duel, 4_000);
-        assertEquals(new BattleQuestion(2L, "Pytanie 2", "SIECI", List.of("A", "B", "C", "D")), duel.getQuestion());
+        assertEquals(new BattleQuestion(2L, "Pytanie 2", "SIECI", "MEDIUM", List.of("A", "B", "C", "D")), duel.getQuestion());
     }
 
     @Test

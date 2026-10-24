@@ -1,6 +1,6 @@
 import type { ArenaQuestionAdmin, ArenaQuestionCategory, ArenaQuestionDifficulty, ArenaQuestionRequest } from '../../types/api';
 import type { FieldErrors } from '../../components/admin/ContentFields';
-import { difficultyLabels } from '../../components/admin/adminFormat';
+import { arenaDifficulties, arenaDifficultyLabels } from '../../components/arena/arenaDifficulty';
 
 export const CONTENT_LIMIT = 500;
 export const ANSWER_LIMIT = 200;
@@ -14,14 +14,10 @@ export const categoryLabels: Record<ArenaQuestionCategory, string> = {
   OGOLNE: 'Ogólne',
 };
 
-export const arenaDifficultyLabels: Record<ArenaQuestionDifficulty, string> = {
-  EASY: difficultyLabels.EASY,
-  MEDIUM: difficultyLabels.MEDIUM,
-  HARD: difficultyLabels.HARD,
-};
+export { arenaDifficultyLabels };
 
 export const categories = Object.keys(categoryLabels) as ArenaQuestionCategory[];
-export const difficulties = Object.keys(arenaDifficultyLabels) as ArenaQuestionDifficulty[];
+export const difficulties = arenaDifficulties;
 
 export interface QuestionForm {
   content: string;

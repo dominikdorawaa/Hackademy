@@ -6,12 +6,23 @@ import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
+import java.util.Objects;
+import java.util.random.RandomGenerator;
 
 public interface ArenaQuestionRepository extends JpaRepository<ArenaQuestion, Long> {
 
-    @Query(value = "SELECT * FROM arena_questions ORDER BY random() LIMIT :count", nativeQuery = true)
-    List<ArenaQuestion> findRandom(@Param("count") int count);
+    @Query("SELECT new com.hackademy.server.arena.QuestionLevel(q.id, q.difficulty) FROM ArenaQuestion q")
+    List<QuestionLevel> findLevels();
+
+    default List<ArenaQuestion> drawForElo(int elo, int count, RandomGenerator random) {
+        List<Long> ids = QuestionDraw.pick(findLevels(), elo, count, random);
+        Map<Long, ArenaQuestion> found = new HashMap<>();
+        findAllById(ids).forEach(question -> found.put(question.getId(), question));
+        return ids.stream().map(found::get).filter(Objects::nonNull).toList();
+    }
 
     @Query("""
             SELECT q FROM ArenaQuestion q

@@ -83,7 +83,7 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
     void createsSearchesEditsAndDeletesQuestions() throws Exception {
         var admin = account(Role.ADMIN);
         String marker = UUID.randomUUID().toString().substring(0, 8);
-        long first = create(admin, "Bank " + marker + " pierwsze", "LINUX", "HARD");
+        long first = create(admin, "Bank " + marker + " pierwsze", "LINUX", "VERY_HARD");
         long second = create(admin, "Bank " + marker + " drugie", "OGOLNE", "EASY");
 
         getAs(admin, URL + "?query=" + marker.toUpperCase()).andExpect(status().isOk())
@@ -98,11 +98,15 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.items[0].id").value(first));
         getAs(admin, URL + "?query=" + marker + "&difficulty=EASY").andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].id").value(second));
+        getAs(admin, URL + "?query=" + marker + "&difficulty=very_hard").andExpect(jsonPath("$.items", hasSize(1)))
+                .andExpect(jsonPath("$.items[0].id").value(first))
+                .andExpect(jsonPath("$.items[0].difficulty").value("VERY_HARD"));
+        getAs(admin, URL + "?query=" + marker + "&difficulty=HARD").andExpect(jsonPath("$.items", hasSize(0)));
         getAs(admin, URL + "?category=CTF").andExpect(status().isBadRequest());
         getAs(admin, URL + "?query=Trzecia&size=1").andExpect(jsonPath("$.items", hasSize(1))).andExpect(jsonPath("$.hasNext").value(true));
         getAs(admin, URL + "?query=Czwarta&size=1").andExpect(jsonPath("$.items", hasSize(1))).andExpect(jsonPath("$.hasNext").value(true));
 
-        putJson(admin, URL + "/" + first, body("Bank " + marker + " poprawione", " Root ", List.of("Użytkownik ", "Grupa", "Inni"), "WEB", "MEDIUM", 0L))
+        putJson(admin, URL + "/" + first, body("Bank " + marker + " poprawione", " Root ", List.of("Użytkownik ", "Grupa", "Inni"), "WEB", "VERY_EASY", 0L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value("Bank " + marker + " poprawione"))
                 .andExpect(jsonPath("$.correctAnswer").value("Root"))
@@ -117,7 +121,7 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
         deleteAs(admin, second).andExpect(status().isNoContent());
         deleteAs(admin, second).andExpect(status().isNotFound());
         getAs(admin, URL + "?query=" + marker).andExpect(jsonPath("$.items", hasSize(1)))
-                .andExpect(jsonPath("$.items[0].difficulty").value("MEDIUM"));
+                .andExpect(jsonPath("$.items[0].difficulty").value("VERY_EASY"));
     }
 
     @Test

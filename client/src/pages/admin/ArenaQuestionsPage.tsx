@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
-import { ConfirmAction, DifficultyBadge, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
+import { ArenaDifficultyBadge, ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
 import { PageControls } from '../../components/admin/PageControls';
 import { errorText } from '../../components/admin/adminFormat';
 import { useAuth } from '../../context/AuthContext';
@@ -149,7 +149,7 @@ export default function ArenaQuestionsPage() {
               <TableRow>
                 <TableHead>Pytanie</TableHead>
                 <TableHead className="hidden w-32 md:table-cell">Kategoria</TableHead>
-                <TableHead className="hidden w-28 sm:table-cell">Trudność</TableHead>
+                <TableHead className="hidden w-32 sm:table-cell">Trudność</TableHead>
                 <TableHead className="w-24"><span className="sr-only">Akcje</span></TableHead>
               </TableRow>
             </TableHeader>
@@ -163,11 +163,11 @@ export default function ArenaQuestionsPage() {
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1 md:hidden">
                       <Badge variant="secondary">{categoryLabels[question.category]}</Badge>
-                      <span className="sm:hidden"><DifficultyBadge difficulty={question.difficulty} /></span>
+                      <span className="sm:hidden"><ArenaDifficultyBadge difficulty={question.difficulty} /></span>
                     </div>
                   </TableCell>
                   <TableCell className="hidden md:table-cell"><Badge variant="secondary">{categoryLabels[question.category]}</Badge></TableCell>
-                  <TableCell className="hidden sm:table-cell"><DifficultyBadge difficulty={question.difficulty} /></TableCell>
+                  <TableCell className="hidden sm:table-cell"><ArenaDifficultyBadge difficulty={question.difficulty} /></TableCell>
                   <TableCell>
                     <div className="flex justify-end gap-1">
                       <Button variant="ghost" size="icon-sm" aria-label={`Edytuj pytanie: ${shorten(question.content, 60)}`} onClick={() => openEditor(question)}>

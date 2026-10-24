@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 27;
+    static final int SCHEMA_VERSION = 28;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -151,6 +151,24 @@ class SchemaMigrationTest {
         assertEquals("Podatnością naprawioną w dniu zgłoszenia|Podatnością dotyczącą tylko starych systemów|Podatnością, której nie da się wykorzystać",
                 text("SELECT wrong_answer_1 || '|' || wrong_answer_2 || '|' || wrong_answer_3 FROM arena_questions WHERE content = 'Czym jest podatność zero-day?'"));
         assertEquals("Na którym porcie domyślnie działa HTTPS?:443:80|8080|25", text("SELECT content || ':' || correct_answer || ':' || wrong_answer_1 || '|' || wrong_answer_2 || '|' || wrong_answer_3 FROM arena_questions WHERE content = 'Na którym porcie domyślnie działa HTTPS?'"));
+    }
+
+    @Test
+    void spreadsArenaQuestionsOverFiveDifficultyLevels() throws Exception {
+        flyway("27").migrate();
+        execute("UPDATE arena_questions SET difficulty = 'MEDIUM' WHERE content = 'Czym jest phishing?'");
+        assertSqlState("23514", "UPDATE arena_questions SET difficulty = 'VERY_EASY' WHERE content = 'Czym jest OSINT?'");
+        assertEquals(1, flyway("28").migrate().migrationsExecuted);
+        assertEquals("EASY:19,HARD:3,MEDIUM:15,VERY_EASY:4,VERY_HARD:1", text("""
+                SELECT string_agg(difficulty || ':' || total, ',' ORDER BY difficulty)
+                FROM (SELECT difficulty, count(*) AS total FROM arena_questions GROUP BY difficulty) levels
+                """));
+        assertEquals("MEDIUM", text("SELECT difficulty FROM arena_questions WHERE content = 'Czym jest phishing?'"));
+        assertEquals("VERY_EASY", text("SELECT difficulty FROM arena_questions WHERE content = 'Które polecenie wyświetla bieżący katalog?'"));
+        assertEquals("VERY_HARD", text("SELECT difficulty FROM arena_questions WHERE content = 'Czym jest SSRF?'"));
+        assertEquals("HARD", text("SELECT difficulty FROM arena_questions WHERE content = 'Dlaczego MD5 nie nadaje się do przechowywania haseł?'"));
+        execute("UPDATE arena_questions SET difficulty = 'VERY_EASY' WHERE content = 'Czym jest OSINT?'");
+        assertSqlState("23514", "UPDATE arena_questions SET difficulty = 'INSANE' WHERE content = 'Czym jest OSINT?'");
     }
 
     @Test

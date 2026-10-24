@@ -45,6 +45,7 @@ it('shows both fighters, the question and the timer, and sends one answer', asyn
   expect(screen.getByText('tester (Ty)')).toBeInTheDocument();
   expect(screen.getByText('opponent')).toBeInTheDocument();
   expect(screen.getByText('Runda 1/10')).toBeInTheDocument();
+  expect(screen.getByText('Bardzo łatwy')).toHaveAttribute('data-level', 'VERY_EASY');
   expect(screen.getByRole('timer')).toHaveTextContent('15');
   expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '100');
   expect(screen.getByRole('img', { name: 'Twój awatar, tester' })).toBeInTheDocument();

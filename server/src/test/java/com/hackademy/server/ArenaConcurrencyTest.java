@@ -61,7 +61,7 @@ class ArenaConcurrencyTest {
             user.setElo(500);
             when(users.findById(id)).thenReturn(Optional.of(user));
         }
-        when(questions.findRandom(anyInt())).thenReturn(questionSet());
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(questionSet());
         when(avatars.findDtosByUserIds(anyCollection())).thenReturn(Map.of());
         when(presence.isConnected(any())).thenReturn(true);
         ReflectionTestUtils.invokeMethod(arena, "useRandom", AnswerOrder.correctAt(1));
@@ -101,7 +101,7 @@ class ArenaConcurrencyTest {
         var readingQuestions = new CountDownLatch(1);
         var releaseQuestions = new CountDownLatch(1);
         var competingStarted = new CountDownLatch(1);
-        when(questions.findRandom(anyInt())).thenAnswer(invocation -> {
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenAnswer(invocation -> {
             readingQuestions.countDown();
             assertTrue(releaseQuestions.await(5, TimeUnit.SECONDS));
             return questionSet();
@@ -126,7 +126,7 @@ class ArenaConcurrencyTest {
             releaseQuestions.countDown();
             assertEquals(accepted.get(5, TimeUnit.SECONDS).getId(), arena.findCurrentGameForUser(1L).getId());
             competing.get(5, TimeUnit.SECONDS);
-            verify(questions, times(1)).findRandom(BattleEngine.ROUNDS);
+            verify(questions, times(1)).drawForElo(anyInt(), eq(BattleEngine.ROUNDS), any());
             assertTrue(arena.getOutgoingChallenges(1L).isEmpty());
         } finally {
             releaseQuestions.countDown();
@@ -154,7 +154,7 @@ class ArenaConcurrencyTest {
             int successes = 0;
             for (var attempt : attempts) if (attempt.get(5, TimeUnit.SECONDS)) successes++;
             assertEquals(1, successes);
-            verify(questions, times(1)).findRandom(BattleEngine.ROUNDS);
+            verify(questions, times(1)).drawForElo(anyInt(), eq(BattleEngine.ROUNDS), any());
         } finally {
             executor.shutdownNow();
         }
@@ -163,10 +163,10 @@ class ArenaConcurrencyTest {
     @Test
     void failedAcceptanceKeepsChallengeAvailableForRetry() {
         var challenge = challenge();
-        when(questions.findRandom(anyInt())).thenReturn(List.of());
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(List.of());
         assertThrows(IllegalStateException.class, () -> arena.acceptChallenge(challenge.getId(), 2L));
         assertEquals(1, arena.getPendingChallenges(2L).size());
-        when(questions.findRandom(anyInt())).thenReturn(questionSet());
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(questionSet());
         assertNotNull(arena.acceptChallenge(challenge.getId(), 2L));
     }
 
