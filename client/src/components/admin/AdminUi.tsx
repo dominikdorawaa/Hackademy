@@ -5,7 +5,8 @@ import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Skeleton } from '@/components/ui/skeleton';
 import { cn } from '@/lib/utils';
-import type { DifficultyLevel } from '../../types/api';
+import type { ArenaQuestionDifficulty, DifficultyLevel } from '../../types/api';
+import { arenaDifficultyLabels } from '../arena/arenaDifficulty';
 import { difficultyLabels } from './adminFormat';
 
 export function PageHeader({ title, description, actions }: { title: string; description?: ReactNode; actions?: ReactNode }) {
@@ -56,6 +57,22 @@ export function DifficultyBadge({ difficulty }: { difficulty: DifficultyLevel })
   return (
     <Badge variant="outline" className={difficultyTone[difficulty]}>
       {difficultyLabels[difficulty]}
+    </Badge>
+  );
+}
+
+const arenaDifficultyTone: Record<ArenaQuestionDifficulty, string> = {
+  VERY_EASY: 'border-sky-500/40 text-sky-600 dark:text-sky-400',
+  EASY: 'border-emerald-500/40 text-emerald-600 dark:text-emerald-400',
+  MEDIUM: 'border-amber-500/40 text-amber-600 dark:text-amber-400',
+  HARD: 'border-orange-500/40 text-orange-600 dark:text-orange-400',
+  VERY_HARD: 'border-destructive/50 text-destructive',
+};
+
+export function ArenaDifficultyBadge({ difficulty }: { difficulty: ArenaQuestionDifficulty }) {
+  return (
+    <Badge variant="outline" className={cn('whitespace-nowrap', arenaDifficultyTone[difficulty])}>
+      {arenaDifficultyLabels[difficulty]}
     </Badge>
   );
 }

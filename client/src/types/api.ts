@@ -22,7 +22,7 @@ export type ApiId = string | number
 
 export type ArenaQuestionCategory = 'WEB' | 'SIECI' | 'KRYPTOGRAFIA' | 'LINUX' | 'OGOLNE'
 
-export type ArenaQuestionDifficulty = 'EASY' | 'MEDIUM' | 'HARD'
+export type ArenaQuestionDifficulty = 'VERY_EASY' | 'EASY' | 'MEDIUM' | 'HARD' | 'VERY_HARD'
 
 export interface ArenaQuestionRequest {
   content: string

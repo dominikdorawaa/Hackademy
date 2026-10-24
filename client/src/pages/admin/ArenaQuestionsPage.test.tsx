@@ -140,7 +140,7 @@ describe('arena question form rules', () => {
 describe('arena questions page', () => {
   it('lists, searches and filters the bank for an administrator', async () => {
     signIn('ADMIN');
-    const { requests } = bank([question(1, 'Na którym porcie działa SSH?'), question(2, 'Co to XSS?', { category: 'WEB', correctAnswer: 'Atak', wrongAnswers: ['Port', 'Plik', 'Szyfr'] })]);
+    const { requests } = bank([question(1, 'Na którym porcie działa SSH?'), question(2, 'Co to XSS?', { category: 'WEB', difficulty: 'VERY_EASY', correctAnswer: 'Atak', wrongAnswers: ['Port', 'Plik', 'Szyfr'] })]);
     const user = userEvent.setup();
     mountAdmin('/admin/arena/questions');
 
@@ -151,6 +151,15 @@ describe('arena questions page', () => {
     expect(screen.getAllByText('Poprawna: 22')).toHaveLength(1);
     expect(screen.queryByText(/Poprawna: [A-D] ·/)).not.toBeInTheDocument();
 
+    const xssRow = screen.getByText('Co to XSS?').closest('tr')!;
+    expect(within(xssRow).getAllByText('Bardzo łatwy')[0]).toHaveClass('text-sky-600');
+    await user.click(screen.getByRole('combobox', { name: 'Filtruj według trudności' }));
+    expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual(['Każda trudność', 'Bardzo łatwy', 'Łatwy', 'Średni', 'Trudny', 'Bardzo trudny']);
+    await user.click(screen.getByRole('option', { name: 'Bardzo łatwy' }));
+    await waitFor(() => expect(requests.at(-1)?.url.searchParams.get('difficulty')).toBe('VERY_EASY'));
+    await user.click(screen.getByRole('combobox', { name: 'Filtruj według trudności' }));
+    await user.click(await screen.findByRole('option', { name: 'Każda trudność' }));
+    await waitFor(() => expect(requests.at(-1)?.url.searchParams.get('difficulty')).toBe(''));
     await user.type(screen.getByLabelText('Szukaj pytania'), 'xss');
     await waitFor(() => expect(screen.queryByText('Na którym porcie działa SSH?')).not.toBeInTheDocument());
     expect(screen.getByText('Co to XSS?')).toBeInTheDocument();
@@ -187,7 +196,8 @@ describe('arena questions page', () => {
     await user.click(dialog.getByRole('combobox', { name: 'Kategoria *' }));
     await user.click(await screen.findByRole('option', { name: 'Sieci' }));
     await user.click(dialog.getByRole('combobox', { name: 'Trudność *' }));
-    await user.click(await screen.findByRole('option', { name: 'Łatwy' }));
+    expect((await screen.findAllByRole('option')).map((option) => option.textContent)).toEqual(['Bardzo łatwy', 'Łatwy', 'Średni', 'Trudny', 'Bardzo trudny']);
+    await user.click(screen.getByRole('option', { name: 'Bardzo trudny' }));
     await user.click(dialog.getByRole('button', { name: 'Dodaj pytanie' }));
     expect(dialog.getByText('Odpowiedzi muszą się od siebie różnić.')).toBeInTheDocument();
 
@@ -198,7 +208,7 @@ describe('arena questions page', () => {
     expect(await screen.findByText('Dodano pytanie do banku areny.')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(requests.find((entry) => entry.method === 'POST')?.body).toEqual({
-      content: 'Które narzędzie skanuje porty?', correctAnswer: 'nmap', wrongAnswers: ['grep', 'tar', 'ls'], category: 'SIECI', difficulty: 'EASY',
+      content: 'Które narzędzie skanuje porty?', correctAnswer: 'nmap', wrongAnswers: ['grep', 'tar', 'ls'], category: 'SIECI', difficulty: 'VERY_HARD',
     });
     expect(await screen.findByText('Które narzędzie skanuje porty?')).toBeInTheDocument();
   });

@@ -51,7 +51,7 @@ class ArenaBattleServiceTest {
             players.put(id, user);
             when(users.findById(id)).thenReturn(Optional.of(user));
         }
-        when(questions.findRandom(anyInt())).thenReturn(BattleEngineTest.questions(10));
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(BattleEngineTest.questions(10));
         when(avatars.findDtosByUserIds(anyCollection())).thenReturn(Map.of(1L, avatar));
         when(presence.isConnected(any())).thenReturn(true);
         var game = new GameSession();
@@ -63,6 +63,20 @@ class ArenaBattleServiceTest {
 
     private GameSession state() {
         return arena.getGameSession("game");
+    }
+
+    @Test
+    void drawsQuestionsForTheAverageEloOfBothPlayers() {
+        verify(questions).drawForElo(eq(500), eq(BattleEngine.ROUNDS), any());
+        var game = new GameSession();
+        game.setId("elo");
+        game.setPlayer1Id(3L);
+        game.setPlayer2Id(4L);
+        game.setPlayer1Elo(301);
+        game.setPlayer2Elo(1200);
+        arena.addGame(game);
+        verify(questions).drawForElo(eq(751), eq(BattleEngine.ROUNDS), any());
+        assertEquals("ACTIVE", arena.getGameSession("elo").getStatus());
     }
 
     @Test

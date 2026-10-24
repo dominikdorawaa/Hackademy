@@ -47,7 +47,7 @@ class ArenaMatchmakingTest {
             matchmaking.joinQueue(id, user.getUsername());
         }
         when(avatars.findDtosByUserIds(anyCollection())).thenReturn(Map.of());
-        when(questions.findRandom(anyInt())).thenReturn(BattleEngineTest.questions(10));
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(BattleEngineTest.questions(10));
     }
 
     @AfterEach
@@ -67,9 +67,9 @@ class ArenaMatchmakingTest {
         switch (failure) {
             case "avatars" -> when(avatars.findDtosByUserIds(anyCollection()))
                     .thenThrow(new IllegalStateException("Unavailable avatars")).thenReturn(Map.of());
-            case "questions" -> when(questions.findRandom(anyInt()))
+            case "questions" -> when(questions.drawForElo(anyInt(), anyInt(), any()))
                     .thenThrow(new IllegalStateException("Unavailable questions")).thenReturn(BattleEngineTest.questions(10));
-            case "empty" -> when(questions.findRandom(anyInt()))
+            case "empty" -> when(questions.drawForElo(anyInt(), anyInt(), any()))
                     .thenReturn(List.of()).thenReturn(BattleEngineTest.questions(10));
             default -> fail("Unknown failure");
         }
@@ -93,7 +93,7 @@ class ArenaMatchmakingTest {
 
     @Test
     void playersStayQueuedUntilThePreparedGameCanBePublished() {
-        when(questions.findRandom(anyInt())).thenAnswer(invocation -> {
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenAnswer(invocation -> {
             long first = arena.findCurrentGameForUser(1L) == null ? 1L : 3L;
             long second = first + 1;
             assertTrue(matchmaking.isQueued(first));
@@ -109,7 +109,7 @@ class ArenaMatchmakingTest {
 
     @Test
     void aWaitingPlayerCanLeaveOrRejoinAfterPreparationFails() {
-        when(questions.findRandom(anyInt())).thenReturn(List.of());
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(List.of());
         controller.processMatchmaking();
         User user = signIn(1L);
         assertEquals(204, controller.checkStatus().getStatusCode().value());
@@ -143,11 +143,11 @@ class ArenaMatchmakingTest {
         assertNotNull(pending);
         assertEquals(1, pending.size());
         String challengeId = pending.get(0).getId();
-        when(questions.findRandom(anyInt())).thenReturn(List.of());
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(List.of());
         assertEquals(400, controller.acceptChallenge(challengeId).getStatusCode().value());
         assertEquals(1, controller.getPendingChallenges().getBody().size());
         assertNull(arena.findCurrentGameForUser(1L));
-        when(questions.findRandom(anyInt())).thenReturn(BattleEngineTest.questions(10));
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(BattleEngineTest.questions(10));
         assertEquals(200, controller.acceptChallenge(challengeId).getStatusCode().value());
         assertTrue(controller.getPendingChallenges().getBody().isEmpty());
         assertNotNull(arena.findCurrentGameForUser(1L));

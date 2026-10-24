@@ -41,6 +41,7 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.round").value(1))
                 .andExpect(jsonPath("$.totalRounds").value(10))
                 .andExpect(jsonPath("$.question.answers", hasSize(4)))
+                .andExpect(jsonPath("$.question.difficulty").doesNotExist())
                 .andExpect(jsonPath("$.question.correctAnswer").doesNotExist())
                 .andExpect(jsonPath("$.questions").doesNotExist())
                 .andExpect(jsonPath("$.choices").doesNotExist())
