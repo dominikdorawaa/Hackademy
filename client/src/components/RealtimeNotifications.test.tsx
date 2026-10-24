@@ -17,8 +17,12 @@ vi.mock('../lib/notificationSounds', async importOriginal => ({
 vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPreferences: () => ({ preferences: environment.preferences, loaded: environment.loaded }) }));
 
 const answers = vi.hoisted(() => {
-  const state = { calls: [] as string[], ok: true,
-    answer: (name: string) => async (id: string | number) => { state.calls.push(`${name}:${id}`); return { ok: state.ok } as Response; } };
+  const state = { calls: [] as string[], ok: true, gate: null as Promise<void> | null,
+    answer: (name: string) => async (id: string | number) => {
+      state.calls.push(`${name}:${id}`);
+      if (state.gate) await state.gate;
+      return { ok: state.ok } as Response;
+    } };
   return state;
 });
 vi.mock('../services/friendApi', () => ({ acceptRequest: answers.answer('friend-accept'), rejectRequest: answers.answer('friend-reject') }));
@@ -481,6 +485,49 @@ describe('invitation toast actions', () => {
       act(() => { vi.advanceTimersByTime(CHALLENGE_TOAST_DURATION_MS - TOAST_DURATION_MS); });
       expect(screen.queryByRole('group', { name: 'Wyzwanie w Arenie' })).not.toBeInTheDocument();
     } finally { vi.useRealTimers(); }
+  });
+
+  it('keeps a toast while its answer is still being sent, then shows the failure', async () => {
+    vi.useFakeTimers();
+    let finish!: () => void;
+    answers.gate = new Promise(resolve => { finish = resolve; });
+    answers.ok = false;
+    try {
+      const { rerender } = render(<RealtimeNotifications />);
+      environment.state = { ...snapshot(), revision: 2, friendRequests: [request] };
+      rerender(<RealtimeNotifications />);
+      const toast = screen.getByRole('group', { name: 'Zaproszenie do znajomych' });
+      fireEvent.click(within(toast).getByRole('button', { name: 'Akceptuj' }));
+      fireEvent.mouseLeave(toast);
+      fireEvent.blur(toast);
+      act(() => { vi.advanceTimersByTime(TOAST_DURATION_MS * 3); });
+      expect(screen.getByRole('group', { name: 'Zaproszenie do znajomych' })).toBeInTheDocument();
+      await act(async () => { finish(); await Promise.resolve(); await Promise.resolve(); });
+      expect(screen.getByRole('alert')).toHaveTextContent('Nie udało się');
+      act(() => { vi.advanceTimersByTime(TOAST_DURATION_MS); });
+      expect(screen.queryByRole('group', { name: 'Zaproszenie do znajomych' })).not.toBeInTheDocument();
+    } finally {
+      answers.gate = null;
+      answers.ok = true;
+      vi.useRealTimers();
+    }
+  });
+
+  it('folds invitations arriving one by one into a single summary once three are on screen', () => {
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request] };
+    rerender(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 3, friendRequests: [request], challenges: [challenge] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getAllByRole('group')).toHaveLength(2);
+    environment.state = { ...snapshot(), revision: 4, friendRequests: [request, { ...request, id: 8 }], challenges: [challenge] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
+    expect(screen.getByText('Masz 3 nowe zaproszenia. Znajdziesz je w dzwonku')).toBeInTheDocument();
+    environment.state = { ...snapshot(), revision: 5, friendRequests: [request, { ...request, id: 8 }, { ...request, id: 9 }], challenges: [challenge] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByText('Masz 4 nowe zaproszenia. Znajdziesz je w dzwonku')).toBeInTheDocument();
+    expect(screen.queryByText(/Masz 3/)).not.toBeInTheDocument();
   });
 
   it('drops the toast once the invitation was answered in the bell', () => {

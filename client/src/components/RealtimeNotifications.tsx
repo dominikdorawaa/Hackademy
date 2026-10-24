@@ -42,6 +42,8 @@ interface Toast {
   failed?: boolean;
   paused?: boolean;
   duration: number;
+  /** How many invitations a summary toast stands for. */
+  count?: number;
 }
 
 
@@ -74,10 +76,15 @@ export default function RealtimeNotifications() {
   const toastTimers = useRef(new Map<number, number>());
   const toastClock = useRef(new Map<number, { deadline: number; remaining: number }>());
   const [toasts, setToasts] = useState<Toast[]>([]);
+  const visibleToasts = useRef<Toast[]>([]);
+  useEffect(() => { visibleToasts.current = toasts; }, [toasts]);
+  // Toasts whose answer is still being sent: their countdown stays held so a slow request cannot lose them.
+  const answering = useRef(new Set<number>());
   const dismiss = useCallback((id: number) => {
     window.clearTimeout(toastTimers.current.get(id));
     toastTimers.current.delete(id);
     toastClock.current.delete(id);
+    answering.current.delete(id);
     setToasts(current => current.filter(toast => toast.id !== id));
   }, []);
   const schedule = useCallback((id: number, delay: number) => {
@@ -100,15 +107,17 @@ export default function RealtimeNotifications() {
     toastClock.current.set(id, { ...clock, remaining: Math.max(0, clock.deadline - Date.now()) });
     update(id, { paused: true });
   }, [update]);
-  const resume = useCallback((id: number, element: HTMLElement) => {
+  const resume = useCallback((id: number, element?: Element | null) => {
     const clock = toastClock.current.get(id);
-    if (!clock || toastTimers.current.has(id) || element.matches(':hover, :focus-within')) return;
+    if (!clock || toastTimers.current.has(id) || answering.current.has(id) || element?.matches(':hover, :focus-within')) return;
     toastClock.current.set(id, { deadline: Date.now() + clock.remaining, remaining: clock.remaining });
     toastTimers.current.set(id, window.setTimeout(() => dismiss(id), clock.remaining));
     update(id, { paused: false });
   }, [dismiss, update]);
   const respond = async (toast: Toast, accept: boolean) => {
     if (toast.busy || toast.targetId === undefined || !sessionKey) return;
+    answering.current.add(toast.id);
+    pause(toast.id);
     update(toast.id, { busy: true, failed: false });
     try {
       const response = toast.kind === 'friend'
@@ -118,7 +127,9 @@ export default function RealtimeNotifications() {
       dismiss(toast.id);
       await synchronize();
     } catch {
+      answering.current.delete(toast.id);
       update(toast.id, { busy: false, failed: true });
+      resume(toast.id, document.querySelector(`[data-toast-id="${toast.id}"]`));
     }
   };
 
@@ -185,8 +196,14 @@ export default function RealtimeNotifications() {
     const onlineSummary = online.length ? describeFriendsOnline(online.map(event => event.username!)) : null;
     if (onlineSummary) showToast(onlineSummary);
     const invitations = eligible.filter(event => event.category === 'friendRequests' || event.category === 'challenges');
-    if (invitations.length > 2) showToast(describeInvitations(invitations.length), { kind: 'summary' });
-    else invitations.forEach(event => showToast(event.body, { kind: event.category === 'friendRequests' ? 'friend' : 'challenge',
+    // The threshold covers invitation cards already on screen too, so a slow trickle still folds into one summary.
+    const shownInvitations = visibleToasts.current.filter(toast => (toast.kind === 'friend' || toast.kind === 'challenge' || toast.kind === 'summary')
+      && !answering.current.has(toast.id));
+    const total = invitations.length ? shownInvitations.reduce((sum, toast) => sum + (toast.count ?? 1), invitations.length) : 0;
+    if (total > 2) {
+      shownInvitations.forEach(toast => dismiss(toast.id));
+      showToast(describeInvitations(total), { kind: 'summary', count: total });
+    } else invitations.forEach(event => showToast(event.body, { kind: event.category === 'friendRequests' ? 'friend' : 'challenge',
       actor: event.actor, targetId: event.targetId, avatar: event.avatar, elo: event.elo, ownElo: event.ownElo }));
     const signal = loudestEvent(eligible.map(event => event.category));
     if (signal && preferences.sound) playSound(signal);
@@ -202,7 +219,7 @@ export default function RealtimeNotifications() {
         } catch { return; }
       });
     }
-  }, [state, sessionKey, preferences, loaded, showToast]);
+  }, [state, sessionKey, preferences, loaded, showToast, dismiss]);
 
   useEffect(() => {
     if (!connected && seen.current) seen.current.staleState = state;
@@ -231,7 +248,7 @@ export default function RealtimeNotifications() {
   return <div className="realtime-toasts" role="status" aria-live="polite">
     {toasts.map(toast => {
       const invitation = toast.kind === 'friend' || toast.kind === 'challenge';
-      return <div key={toast.id} className="realtime-toast" data-kind={toast.kind} data-paused={toast.paused || toast.busy || undefined}
+      return <div key={toast.id} className="realtime-toast" data-toast-id={toast.id} data-kind={toast.kind} data-paused={toast.paused || toast.busy || undefined}
         aria-label={invitation ? (toast.kind === 'friend' ? 'Zaproszenie do znajomych' : 'Wyzwanie w Arenie') : undefined}
         role={invitation ? 'group' : undefined}
         style={{ '--toast-duration': `${toast.duration}ms` } as CSSProperties}

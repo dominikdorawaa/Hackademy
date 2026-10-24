@@ -30,19 +30,20 @@ async function mountEditor(initial = original) {
   const closed = vi.fn();
   const saved = vi.fn();
   const unauthorized = vi.fn();
+  const renamed = vi.fn();
   function Host() {
     const [open, setOpen] = useState(false);
     return <>
       <button onClick={() => setOpen(true)}>Edytuj profil</button>
       {open && <ProfileEditor username="tester" initial={initial} badges={profileBadges}
-        onSaved={saved} onUnauthorized={unauthorized} onClose={() => { closed(); setOpen(false); }} />}
+        onSaved={saved} onRenamed={renamed} onUnauthorized={unauthorized} onClose={() => { closed(); setOpen(false); }} />}
     </>;
   }
   const view = render(<AuthProvider><Host /></AuthProvider>);
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'Edytuj profil' }));
   const editor = screen.getByRole('dialog', { name: 'Edytuj profil' });
-  return { ...view, user, editor, closed, saved, unauthorized };
+  return { ...view, user, editor, closed, saved, unauthorized, renamed };
 }
 
 async function requestClose(action: string, user: ReturnType<typeof userEvent.setup>, editor: HTMLElement) {
@@ -245,13 +246,15 @@ describe('profile editor username', () => {
       http.patch(usernameEndpoint, () => { renames += 1; return HttpResponse.json({ username: 'newname' }); }),
       http.patch(endpoint, () => new HttpResponse(null, { status: 500 })),
     );
-    const { user, editor, saved } = await mountEditor();
+    const { user, editor, saved, renamed } = await mountEditor();
     const field = within(editor).getByRole('textbox', { name: 'Nazwa użytkownika' });
     await user.clear(field);
     await user.type(field, 'newname');
     await user.type(within(editor).getByRole('textbox', { name: 'O mnie' }), ' updated');
     await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
     await within(editor).findByRole('alert');
+    expect(renamed).toHaveBeenCalledWith('newname');
+    expect(saved).not.toHaveBeenCalled();
     server.use(http.patch(endpoint, async ({ request }) => HttpResponse.json(await request.json())));
     await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
     await waitFor(() => expect(saved).toHaveBeenCalledWith(expect.objectContaining({ bio: 'Original bio updated' }), 'newname'));

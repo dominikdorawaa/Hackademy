@@ -11,9 +11,11 @@ import BadgeIcon from './BadgeIcon';
 import { useUsernameChange, validateUsername } from '../../hooks/useUsernameChange';
 import { USERNAME_MAX } from '../../lib/username';
 
-export default function ProfileEditor({ username, initial, badges, onSaved, onClose, onUnauthorized }: {
+export default function ProfileEditor({ username, initial, badges, onSaved, onRenamed, onClose, onUnauthorized }: {
   username: string; initial: ProfilePersonalization; badges: BadgeDto[];
   onSaved: (profile: ProfilePersonalization, username: string) => void; onClose: () => void; onUnauthorized: () => void;
+  /** The rename is saved on its own, so the page learns about it even if the other fields then fail. */
+  onRenamed?: (username: string) => void;
 }) {
   const { sessionKey } = useAuth();
   const id = useId();
@@ -101,6 +103,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
         }
         current = renamed.username;
         setSavedName(current);
+        onRenamed?.(current);
         if (!profileChanged) { onSaved(original, current); onClose(); return; }
       }
       const response = await updateProfile(draft, { sessionKey }, controller.signal);

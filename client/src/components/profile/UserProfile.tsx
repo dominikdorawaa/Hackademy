@@ -304,7 +304,7 @@ export default function UserProfile({ username }: { username?: string }) {
         <ProfileLearningStats activity={activity.data} loading={activity.loading} />
       </div>
       {editing && <ProfileEditor username={person.username} initial={appearance} badges={profileBadges} onClose={() => setEditing(false)}
-        onUnauthorized={unauthorized} onSaved={(value, name) => { setPersonalization(value); setRenamed(name); setSaved(true); }} />}
+        onUnauthorized={unauthorized} onRenamed={setRenamed} onSaved={(value, name) => { setPersonalization(value); setRenamed(name); setSaved(true); }} />}
     </div>
   );
 }
