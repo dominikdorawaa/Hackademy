@@ -61,16 +61,19 @@ describe('battle view', () => {
       absences: { 2: { reason: 'DISCONNECTED', since: 1_005_000 } },
     });
     expect(pauseNotice(paused, 1, 1_008_100)).toEqual({
-      reason: 'Rywal stracił połączenie.', secondsLeft: 7,
-      uses: 'Każdy gracz ma jedną pauzę na mecz. Twoja: dostępna. Rywala: wykorzystana.',
+      reason: 'Rywal stracił połączenie.', secondsLeft: 7, cause: 'rival',
+      me: { paused: false, used: false, status: null },
+      rival: { paused: true, used: true, status: 'Brak połączenia' },
     });
-    expect(pauseNotice(paused, 2, 1_016_000)).toEqual({
-      reason: 'Straciłeś połączenie.', secondsLeft: 0,
-      uses: 'Każdy gracz ma jedną pauzę na mecz. Twoja: wykorzystana. Rywala: dostępna.',
-    });
+    expect(pauseNotice(paused, 2, 1_016_000)).toMatchObject({ reason: 'Straciłeś połączenie.', secondsLeft: 0, cause: 'me' });
+    expect(pauseNotice(paused, 1, 990_000)?.secondsLeft).toBe(10);
+    expect(pauseNotice({ ...paused, pausesUsed: undefined }, 1, 1_008_100)?.rival.used).toBe(false);
     const both = { ...paused, pause: { players: [2, 1], startedAt: 1_005_000, endsAt: 1_015_000 }, pausesUsed: [2, 1],
       absences: { 1: { reason: 'LEFT' as const, since: 1_006_000 } } };
-    expect(pauseNotice(both, 1, 1_006_000)?.reason).toBe('Rywal wrócił do walki. Opuściłeś widok walki.');
+    expect(pauseNotice(both, 1, 1_006_000)).toMatchObject({
+      reason: 'Rywal wrócił do walki. Opuściłeś widok walki.', cause: 'both',
+      me: { paused: true, used: true, status: 'Poza widokiem walki' }, rival: { paused: true, status: null },
+    });
     expect(pauseNotice(both, 2, 1_006_000)?.reason).toBe('Rywal opuścił widok walki. Wróciłeś do walki.');
     expect(pauseNotice(createGameSession(), 1, 1_000_000)).toBeNull();
     expect(pauseNotice({ ...paused, status: 'FINISHED' }, 1, 1_000_000)).toBeNull();

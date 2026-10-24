@@ -1,5 +1,6 @@
 import { useEffect, useState } from 'react';
 import { Link, useParams } from 'react-router-dom';
+import { BattlePause } from '../components/arena/battle/BattlePause';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
@@ -132,7 +133,7 @@ export default function ArenaBattlePage() {
   return (
     <div className="user-dashboard battle-page" data-still={reducedMotion}>
       <div className="battle-shell">
-        <div className="battle-arena">
+        <div className="battle-arena" data-paused={pause !== null}>
           <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
             quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>
             <div className="battle-round">
@@ -151,13 +152,7 @@ export default function ArenaBattlePage() {
           )}
           {absence && <p className="battle-absence" role="status">{absence}</p>}
           {pause ? (
-            <section className="battle-card battle-pause" aria-labelledby="battle-pause-title">
-              <p className="battle-card-meta">Runda {session.round} zatrzymana</p>
-              <h1 id="battle-pause-title" className="battle-question">Walka wstrzymana</h1>
-              <p className="battle-pause-reason" role="status">{pause.reason}</p>
-              <p className="battle-pause-timer" role="timer" aria-label="Wznowienie najpóźniej za">{pause.secondsLeft} s</p>
-              <p className="battle-summary">{pause.uses} Czas rundy stoi, a odpowiedzi poczekają na wznowienie.</p>
-            </section>
+            <BattlePause pause={pause} me={me} rival={rival} />
           ) : reveal ? (
             <section className="battle-card" aria-labelledby="battle-question">
               <p className="battle-card-meta">Wynik rundy {reveal.round}</p>

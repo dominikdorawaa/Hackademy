@@ -67,7 +67,10 @@ it('hides the question and freezes the round clock while the duel is paused', as
   expect(screen.getByText('Rywal opuścił widok walki.')).toBeInTheDocument();
   expect(screen.getByRole('timer', { name: 'Czas na odpowiedź' })).toHaveTextContent('9');
   expect(screen.getByRole('timer', { name: 'Wznowienie najpóźniej za' })).toHaveTextContent(/\d+ s/);
-  expect(screen.getByText(/Twoja: dostępna\. Rywala: wykorzystana\./)).toBeInTheDocument();
+  const players = within(screen.getByRole('list', { name: 'Pauzy graczy' })).getAllByRole('listitem');
+  expect(players[0]).toHaveTextContent('tester (Ty)Pauza dostępna');
+  expect(players[1]).toHaveTextContent('opponentPauza wykorzystanaPoza widokiem walki');
+  expect(players[1]).toHaveAttribute('data-away', 'true');
 });
 
 it('warns when the rival is away without a pause left', async () => {

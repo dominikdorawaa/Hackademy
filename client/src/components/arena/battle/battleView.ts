@@ -84,12 +84,20 @@ export function roundSummary(result: RoundResult, meId: number, rivalId: number)
 
 export const ABSENCE_MS = 30_000;
 
-export interface PauseNotice { reason: string; secondsLeft: number; uses: string }
+export const PAUSE_SECONDS = 10;
+
+export interface PauseSide { paused: boolean; used: boolean; status: string | null }
+export interface PauseNotice { reason: string; secondsLeft: number; cause: 'me' | 'rival' | 'both'; me: PauseSide; rival: PauseSide }
 
 function absenceText(absence: ArenaAbsence | undefined, mine: boolean) {
   if (!absence) return mine ? 'Wróciłeś do walki.' : 'Rywal wrócił do walki.';
   if (absence.reason === 'LEFT') return mine ? 'Opuściłeś widok walki.' : 'Rywal opuścił widok walki.';
   return mine ? 'Straciłeś połączenie.' : 'Rywal stracił połączenie.';
+}
+
+function absenceStatus(absence: ArenaAbsence | undefined) {
+  if (!absence) return null;
+  return absence.reason === 'LEFT' ? 'Poza widokiem walki' : 'Brak połączenia';
 }
 
 export function pauseNotice(session: GameSession, meId: number, serverNow: number): PauseNotice | null {
@@ -99,11 +107,15 @@ export function pauseNotice(session: GameSession, meId: number, serverNow: numbe
   const absences = session.absences ?? {};
   const reason = [rivalId, meId].filter(id => pause.players.includes(id))
     .map(id => absenceText(absences[id], id === meId)).join(' ');
-  const used = (id: number) => session.pausesUsed?.includes(id) ? 'wykorzystana' : 'dostępna';
+  const side = (id: number): PauseSide => ({
+    paused: pause.players.includes(id), used: session.pausesUsed?.includes(id) ?? false, status: absenceStatus(absences[id]),
+  });
+  const me = side(meId), rival = side(rivalId);
   return {
     reason,
-    secondsLeft: Math.max(0, Math.ceil((pause.endsAt - serverNow) / 1000)),
-    uses: `Każdy gracz ma jedną pauzę na mecz. Twoja: ${used(meId)}. Rywala: ${used(rivalId)}.`,
+    secondsLeft: Math.min(PAUSE_SECONDS, Math.max(0, Math.ceil((pause.endsAt - serverNow) / 1000))),
+    cause: me.paused && rival.paused ? 'both' : me.paused ? 'me' : 'rival',
+    me, rival,
   };
 }
 
