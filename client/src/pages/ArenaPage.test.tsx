@@ -137,23 +137,28 @@ it('counts down a sent challenge and lets the player close the note about an exp
   }
 });
 
-it('tells only the challenger that a challenge was rejected and lets them close the note', async () => {
+it('shows only the challenger a card about a rejected challenge with a retry and a close button', async () => {
   const dismissed: string[] = [];
+  const sent: unknown[] = [];
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
     http.post(`${API_URL}/api/arena/challenge/:id/dismiss`, ({ params }) => { dismissed.push(String(params.id)); return HttpResponse.json({ message: 'ok' }); }),
+    http.post(`${API_URL}/api/arena/challenge/create`, async ({ request }) => { sent.push(await request.json()); return HttpResponse.json({ message: 'ok' }); }),
   );
   realtime.value.state = state({
     expiredChallenges: [{ ...incoming, id: 'old', challengerUsername: 'tester', targetUsername: 'kuba', status: 'EXPIRED' }],
     rejectedChallenges: [{ ...incoming, id: 'no', challengerUsername: 'tester', targetUsername: 'ola', status: 'REJECTED' }],
   });
   const challenger = mount();
-  const sent = await screen.findByRole('list', { name: 'Wysłane wyzwania' });
-  expect(sent).toHaveTextContent('Wyzwanie dla ola zostało odrzucone.');
-  expect(sent).toHaveTextContent('Wyzwanie dla kuba wygasło bez odpowiedzi.');
-  expect(within(sent).getAllByRole('listitem')).toHaveLength(2);
-  const note = within(sent).getByText(/zostało odrzucone/).closest('li')!;
-  fireEvent.click(within(note).getByRole('button', { name: 'Zamknij' }));
+  const cards = await screen.findByRole('list', { name: 'Odrzucone wyzwania' });
+  const card = within(cards).getByRole('listitem');
+  expect(card).toHaveTextContent('Wyzwanie odrzucone');
+  expect(card).toHaveTextContent('ola odrzuca Twoje wyzwanie na pojedynek.');
+  expect(screen.getByRole('list', { name: 'Wysłane wyzwania' })).toHaveTextContent('Wyzwanie dla kuba wygasło bez odpowiedzi.');
+  expect(screen.getByRole('list', { name: 'Wysłane wyzwania' })).not.toHaveTextContent('ola');
+  fireEvent.click(within(card).getByRole('button', { name: 'Wyzwij ponownie' }));
+  await waitFor(() => expect(sent).toEqual([{ targetUsername: 'ola' }]));
+  fireEvent.click(within(card).getByRole('button', { name: 'Zamknij powiadomienie o odrzuceniu przez ola' }));
   await waitFor(() => expect(dismissed).toEqual(['no']));
   expect(realtime.value.synchronize).toHaveBeenCalled();
   challenger.unmount();
@@ -161,9 +166,21 @@ it('tells only the challenger that a challenge was rejected and lets them close 
   realtime.value.state = state();
   mount();
   expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
-  expect(screen.queryByRole('list', { name: 'Wysłane wyzwania' })).not.toBeInTheDocument();
-  expect(screen.queryByText(/odrzucone/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('list', { name: 'Odrzucone wyzwania' })).not.toBeInTheDocument();
+  expect(screen.queryByText(/odrzuca/)).not.toBeInTheDocument();
   expect(screen.queryByRole('heading', { name: /Otrzymane wyzwania/ })).not.toBeInTheDocument();
+});
+
+it('explains on the card why the retry failed', async () => {
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+    http.post(`${API_URL}/api/arena/challenge/create`, () => HttpResponse.json({ message: 'Już wyzwałeś ola.' }, { status: 400 })),
+  );
+  realtime.value.state = state({ rejectedChallenges: [{ ...incoming, id: 'no', challengerUsername: 'tester', targetUsername: 'ola', status: 'REJECTED' }] });
+  mount();
+  const card = within(await screen.findByRole('list', { name: 'Odrzucone wyzwania' })).getByRole('listitem');
+  fireEvent.click(within(card).getByRole('button', { name: 'Wyzwij ponownie' }));
+  expect(await within(card).findByRole('alert')).toHaveTextContent('Już wyzwałeś ola.');
 });
 
 it('explains why an expired challenge could not be taken back or its note closed', async () => {

@@ -242,7 +242,34 @@ const ArenaPage = () => {
                             ) : (
                                 <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
                             )}
-                            {status !== 'GAME' && outgoing.length + expired.length + rejected.length > 0 && (
+                            {status !== 'GAME' && rejected.length > 0 && (
+                                <ul className="arena-rejected" aria-label="Odrzucone wyzwania">
+                                    {rejected.map(challenge => {
+                                        const retry = friendChallenges[challenge.targetUsername];
+                                        return (
+                                            <li key={challenge.id} className="arena-rejected-card">
+                                                <UserAvatar className="arena-rejected-avatar" username={challenge.targetUsername} avatar={challenge.targetAvatar} alt="" />
+                                                <div className="arena-rejected-copy">
+                                                    <p className="arena-rejected-title">Wyzwanie odrzucone</p>
+                                                    <p><strong>{challenge.targetUsername}</strong> odrzuca Twoje wyzwanie na pojedynek.</p>
+                                                    {retry && typeof retry === 'object' && <p role="alert" className="arena-rejected-error">{retry.error}</p>}
+                                                </div>
+                                                <div className="arena-rejected-actions">
+                                                    <button type="button" className="ud-btn ud-btn-small" onClick={() => handleChallengeFriend(challenge.targetUsername)}
+                                                        disabled={offline || retry === 'sending'}>
+                                                        {retry === 'sending' ? 'Wysyłam…' : 'Wyzwij ponownie'}
+                                                    </button>
+                                                    <button type="button" className="arena-rejected-close" aria-label={`Zamknij powiadomienie o odrzuceniu przez ${challenge.targetUsername}`}
+                                                        onClick={() => handleDismissNotice(challenge.id)}>
+                                                        <i className="fas fa-times" aria-hidden="true"></i>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            )}
+                            {status !== 'GAME' && outgoing.length + expired.length > 0 && (
                                 <ul className="arena-sent" aria-label="Wysłane wyzwania">
                                     {outgoing.map(challenge => (
                                         <li key={challenge.id}>
@@ -256,13 +283,6 @@ const ArenaPage = () => {
                                         <li key={challenge.id} className="arena-sent-closed">
                                             <span className="arena-sent-mark" aria-hidden="true" />
                                             <span>Wyzwanie dla <strong>{challenge.targetUsername}</strong> wygasło bez odpowiedzi.</span>
-                                            <button type="button" className="ud-link" onClick={() => handleDismissNotice(challenge.id)}>Zamknij</button>
-                                        </li>
-                                    ))}
-                                    {rejected.map(challenge => (
-                                        <li key={challenge.id} className="arena-sent-closed">
-                                            <span className="arena-sent-mark" aria-hidden="true" />
-                                            <span>Wyzwanie dla <strong>{challenge.targetUsername}</strong> zostało odrzucone.</span>
                                             <button type="button" className="ud-link" onClick={() => handleDismissNotice(challenge.id)}>Zamknij</button>
                                         </li>
                                     ))}

@@ -31,16 +31,12 @@ export function describeFriendsOnline(usernames: string[]) {
   return `${usernames[0]} i ${usernames.length - 1} innych znajomych są online`;
 }
 
-function closedChallengeIds(state: RealtimeState) {
-  return new Set([...state.expiredChallenges, ...state.rejectedChallenges].map(challenge => challenge.id));
-}
-
 export default function RealtimeNotifications() {
   const { sessionKey } = useAuth();
   const { state, connected } = useRealtime();
   const { preferences, loaded } = useNotificationPreferences();
   const seen = useRef<{ sessionKey: string | null; stream: string; ids: Set<string>; offlineFriends: Set<number>;
-    pending: Map<string, Alert>; closed: Set<string>; staleState: RealtimeState | null } | null>(null);
+    pending: Map<string, Alert>; expired: Set<string>; staleState: RealtimeState | null } | null>(null);
   const lastOnlineToast = useRef(new Map<number, number>());
   const nextToastId = useRef(0);
   const toastTimers = useRef(new Map<number, number>());
@@ -86,7 +82,7 @@ export default function RealtimeNotifications() {
     const offlineFriends = new Set(state.friends.filter(friend => !friend.online).map(friend => friend.id));
     if (!seen.current || seen.current.sessionKey !== sessionKey || seen.current.stream !== state.streamId) {
       seen.current = { sessionKey, stream: state.streamId, ids: new Set(events.map(event => event.id)), offlineFriends, pending: new Map(),
-        closed: closedChallengeIds(state), staleState: null };
+        expired: new Set(state.expiredChallenges.map(challenge => challenge.id)), staleState: null };
       return;
     }
     const history = seen.current;
@@ -101,15 +97,12 @@ export default function RealtimeNotifications() {
     history.ids.forEach(id => { if (id.startsWith(ONLINE_EVENT_PREFIX) && !activeIds.has(id)) history.ids.delete(id); });
     if (!loaded) return;
     const missed = history.staleState !== null;
-    const closed = missed ? [] : [
-      ...state.expiredChallenges.map(challenge => ({ id: challenge.id, text: `Wyzwanie dla ${challenge.targetUsername} wygasło bez odpowiedzi.` })),
-      ...state.rejectedChallenges.map(challenge => ({ id: challenge.id, text: `Wyzwanie dla ${challenge.targetUsername} zostało odrzucone.` })),
-    ].filter(notice => !history.closed.has(notice.id));
+    const expired = missed ? [] : state.expiredChallenges.filter(challenge => !history.expired.has(challenge.id));
     if (history.staleState !== state) {
-      history.closed = closedChallengeIds(state);
+      history.expired = new Set(state.expiredChallenges.map(challenge => challenge.id));
       history.staleState = null;
     }
-    if (preferences.challenges) closed.forEach(notice => showToast(notice.text));
+    if (preferences.challenges) expired.forEach(challenge => showToast(`Wyzwanie dla ${challenge.targetUsername} wygasło bez odpowiedzi.`));
     const now = Date.now();
     const eligible = [...history.pending.values()].filter(event => preferences[event.category]
       && (event.friendId === undefined || now - (lastOnlineToast.current.get(event.friendId) ?? -Infinity) >= ONLINE_TOAST_COOLDOWN_MS));
