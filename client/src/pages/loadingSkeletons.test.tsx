@@ -98,7 +98,7 @@ describe('player pages show skeletons while loading', () => {
     const heading = screen.getByRole('heading', { name: 'Znajomi', level: 1 });
     expectSkeleton('Wczytuję znajomych');
     expect(screen.queryByRole('heading', { name: 'Znajdź znajomych' })).not.toBeInTheDocument();
-    act(() => realtime.publish({ streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession: null, queued: false }));
+    act(() => realtime.publish({ streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0, gameSession: null, queued: false }));
     expect(screen.queryByRole('status', { name: 'Wczytuję znajomych' })).not.toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Znajdź znajomych' })).toBeInTheDocument();
     expect(screen.getByRole('heading', { name: 'Znajomi', level: 1 })).toBe(heading);

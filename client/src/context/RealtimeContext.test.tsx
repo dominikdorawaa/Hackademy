@@ -29,7 +29,7 @@ vi.mock('../services/RealtimeConnection', () => ({
 }));
 
 const snapshot = (revision = 1, streamId = 'server'): RealtimeState => ({
-  revision, streamId, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession: null, queued: false,
+  revision, streamId, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0, gameSession: null, queued: false,
 });
 
 const game = (id = 'game', status: GameSession['status'] = 'ACTIVE'): GameSession => createGameSession({ id, status });
@@ -197,7 +197,7 @@ describe('shared realtime state', () => {
     expect(screen.getByRole('button', { name: 'Anuluj' })).toBeInTheDocument();
     const incoming = { ...snapshot(3), challenges: [{
       id: 'challenge', challengerId: 2, challengerUsername: 'opponent', targetId: 1, targetUsername: 'tester',
-      createdAt: '2026-10-11T12:00:00', status: 'PENDING' as const,
+      createdAt: '2026-10-11T12:00:00', status: 'PENDING' as const, expiresAt: 1_060_000,
     }] };
     act(() => connections[0].callbacks.state(incoming));
     fireEvent.click(screen.getByRole('button', { name: 'Powiadomienia' }));

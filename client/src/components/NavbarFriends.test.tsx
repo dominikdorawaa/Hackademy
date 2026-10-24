@@ -18,7 +18,7 @@ vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: envi
 
 const friend = (id: number, username: string, online: boolean) => ({ id, username, points: 0, streak: 0, online });
 const challengeTo = (targetUsername: string): Challenge => ({ id: `c-${targetUsername}`, challengerId: 1, challengerUsername: 'me',
-  targetId: 9, targetUsername, createdAt: '2026-10-20T10:00:00', status: 'PENDING' });
+  targetId: 9, targetUsername, createdAt: '2026-10-20T10:00:00', status: 'PENDING', expiresAt: 1_060_000 });
 const player = (id: number, username: string, friendshipStatus: UserSearchDto['friendshipStatus']): UserSearchDto =>
   ({ id, username, points: 0, friendshipStatus, winsAgainst: 0, lossesAgainst: 0 });
 
@@ -27,7 +27,7 @@ beforeEach(() => {
   environment.synchronize.mockClear();
   environment.state = { streamId: 'stream', revision: 1, challenges: [], gameSession: null, queued: false,
     friendRequests: [{ id: 5, requesterUsername: 'nowy', createdAt: '2026-10-20T09:00:00' }],
-    outgoingChallenges: [],
+    outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0,
     friends: [friend(2, 'ola', true), friend(3, 'kuba', true), friend(4, 'zenek', false)] };
 });
 

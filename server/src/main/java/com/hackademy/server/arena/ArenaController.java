@@ -176,6 +176,12 @@ public class ArenaController {
         return ResponseEntity.ok(Map.of("message", "Propozycja została odrzucona!"));
     }
 
+    @PostMapping("/challenge/{challengeId}/dismiss")
+    public ResponseEntity<?> dismissChallengeNotice(@PathVariable String challengeId) {
+        arenaService.dismissChallengeNotice(challengeId, currentUser().getId());
+        return ResponseEntity.ok(Map.of("message", "Powiadomienie zamknięte"));
+    }
+
     @PostMapping("/challenge/{challengeId}/cancel")
     public ResponseEntity<?> cancelChallenge(@PathVariable String challengeId) {
         try {

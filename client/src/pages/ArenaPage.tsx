@@ -13,6 +13,8 @@ import { LeagueIcon } from '../components/arena/LeagueIcon';
 import { EloHelp } from '../components/arena/EloHelp';
 import { ArenaLoader, ArenaRunner } from '../components/arena/ArenaLoader';
 import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
+import { secondsLeft } from '../components/arena/battle/battleView';
+import { useArenaClock } from '../hooks/useArenaClock';
 import type { DashboardUser, RankingEntry } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaPage.css';
@@ -42,7 +44,14 @@ const ArenaPage = () => {
     const statsLoading = !realtime;
     const [friendChallenges, setFriendChallenges] = useState<Record<string, FriendChallenge>>({});
     const outgoing = realtime?.outgoingChallenges ?? [];
+    const expired = realtime?.expiredChallenges ?? [];
+    const rejected = realtime?.rejectedChallenges ?? [];
     const challengedFriends = outgoing.map(challenge => challenge.targetUsername);
+    const serverTime = realtime?.serverTime ?? 0;
+    const clock = useArenaClock(serverTime, outgoing.length > 0 || challenges.length > 0);
+    const timeLeft = (expiresAt: number) => clock.serverTime === serverTime
+        ? secondsLeft(expiresAt, serverTime, clock.receivedAt, clock.now)
+        : Math.max(0, Math.ceil((expiresAt - serverTime) / 1000));
     const [processingChallengeId, setProcessingChallengeId] = useState<string | null>(null);
     const [acceptedChallenges, setAcceptedChallenges] = useState<string[]>([]);
     const [challengeError, setChallengeError] = useState<string | null>(null);
@@ -117,10 +126,23 @@ const ArenaPage = () => {
     const handleCancelChallenge = async (challengeId: string) => {
         try {
             const response = await arenaApi.cancelChallenge(challengeId, { sessionKey });
-            if (!response.ok) throw new Error('Cannot cancel challenge');
+            if (!response.ok) {
+                const data = await response.json().catch(() => null);
+                setError(data?.message ?? 'Nie udało się cofnąć wyzwania.');
+            }
             await synchronize();
         } catch {
             setError('Nie udało się cofnąć wyzwania.');
+        }
+    };
+
+    const handleDismissNotice = async (challengeId: string) => {
+        try {
+            const response = await arenaApi.dismissChallengeNotice(challengeId, { sessionKey });
+            if (!response.ok) throw new Error('Cannot dismiss challenge notice');
+            await synchronize();
+        } catch {
+            setError('Nie udało się zamknąć komunikatu.');
         }
     };
 
@@ -220,13 +242,48 @@ const ArenaPage = () => {
                             ) : (
                                 <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
                             )}
-                            {status !== 'GAME' && outgoing.length > 0 && (
+                            {status !== 'GAME' && rejected.length > 0 && (
+                                <ul className="arena-rejected" aria-label="Odrzucone wyzwania">
+                                    {rejected.map(challenge => {
+                                        const retry = friendChallenges[challenge.targetUsername];
+                                        return (
+                                            <li key={challenge.id} className="arena-rejected-card">
+                                                <UserAvatar className="arena-rejected-avatar" username={challenge.targetUsername} avatar={challenge.targetAvatar} alt="" />
+                                                <div className="arena-rejected-copy">
+                                                    <p className="arena-rejected-title">Wyzwanie odrzucone</p>
+                                                    <p><strong>{challenge.targetUsername}</strong> odrzuca Twoje wyzwanie na pojedynek.</p>
+                                                    {retry && typeof retry === 'object' && <p role="alert" className="arena-rejected-error">{retry.error}</p>}
+                                                </div>
+                                                <div className="arena-rejected-actions">
+                                                    <button type="button" className="ud-btn ud-btn-small" onClick={() => handleChallengeFriend(challenge.targetUsername)}
+                                                        disabled={offline || retry === 'sending'}>
+                                                        {retry === 'sending' ? 'Wysyłam…' : 'Wyzwij ponownie'}
+                                                    </button>
+                                                    <button type="button" className="arena-rejected-close" aria-label={`Zamknij powiadomienie o odrzuceniu przez ${challenge.targetUsername}`}
+                                                        onClick={() => handleDismissNotice(challenge.id)}>
+                                                        <i className="fas fa-times" aria-hidden="true"></i>
+                                                    </button>
+                                                </div>
+                                            </li>
+                                        );
+                                    })}
+                                </ul>
+                            )}
+                            {status !== 'GAME' && outgoing.length + expired.length > 0 && (
                                 <ul className="arena-sent" aria-label="Wysłane wyzwania">
                                     {outgoing.map(challenge => (
                                         <li key={challenge.id}>
                                             <span className="arena-pulse" aria-hidden="true" />
-                                            Czekasz na odpowiedź od <strong>{challenge.targetUsername}</strong>
+                                            <span>Czekasz na odpowiedź od <strong>{challenge.targetUsername}</strong></span>
+                                            <span className="arena-sent-left">wygasa za {timeLeft(challenge.expiresAt)} s</span>
                                             <button type="button" className="ud-link" onClick={() => handleCancelChallenge(challenge.id)}>Cofnij</button>
+                                        </li>
+                                    ))}
+                                    {expired.map(challenge => (
+                                        <li key={challenge.id} className="arena-sent-closed">
+                                            <span className="arena-sent-mark" aria-hidden="true" />
+                                            <span>Wyzwanie dla <strong>{challenge.targetUsername}</strong> wygasło bez odpowiedzi.</span>
+                                            <button type="button" className="ud-link" onClick={() => handleDismissNotice(challenge.id)}>Zamknij</button>
                                         </li>
                                     ))}
                                 </ul>
@@ -270,7 +327,7 @@ const ArenaPage = () => {
                                             <UserAvatar className="ud-friend-avatar" username={challenge.challengerUsername} avatar={challenge.challengerAvatar} alt="" />
                                             <span className="ud-friend-who">
                                                 <ProfilePeek className="ud-friend-name" username={challenge.challengerUsername} sessionKey={sessionKey} />
-                                                <span className="ud-friend-xp">Wyzywa Cię na pojedynek</span>
+                                                <span className="ud-friend-xp">Wyzywa Cię na pojedynek, wygasa za {timeLeft(challenge.expiresAt)} s</span>
                                             </span>
                                             <span className="ud-friend-act arena-challenge-act">
                                                 {!accepted && (

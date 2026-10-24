@@ -3,6 +3,7 @@ package com.hackademy.server;
 import com.hackademy.server.arena.ArenaQuestion;
 import com.hackademy.server.arena.ArenaQuestionRepository;
 import com.hackademy.server.arena.ArenaService;
+import com.hackademy.server.arena.ArenaServiceImpl;
 import com.hackademy.server.arena.BattleEngine;
 import com.hackademy.server.arena.GameSession;
 import com.hackademy.server.arena.MatchmakingService;
@@ -22,6 +23,7 @@ import org.junit.jupiter.params.provider.ValueSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.test.util.ReflectionTestUtils;
 import org.springframework.transaction.support.TransactionTemplate;
 import org.springframework.transaction.PlatformTransactionManager;
 
@@ -36,6 +38,7 @@ import java.net.http.HttpRequest;
 import java.net.http.HttpResponse;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.function.LongSupplier;
 import javax.sql.DataSource;
 
 import static org.junit.jupiter.api.Assertions.*;
@@ -292,6 +295,64 @@ class RealtimeIntegrationTest {
             assertEquals(false, JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.queued"));
             arena.addGame(game);
             sa.receive(); sb.receive();
+            assertNull(sa.poll(100)); assertNull(sb.poll(100));
+        }
+    }
+
+    @Test
+    void anExpiredChallengeLeavesBothListsAndStaysOnlyWithTheChallenger() throws Exception {
+        var a = user(); var b = user();
+        try (var sa = connected(a); var sb = connected(b)) {
+            var challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername());
+            String sent = RealtimeSocket.body(sa.receive());
+            long left = JsonPath.<Number>read(sent, "$.state.outgoingChallenges[0].expiresAt").longValue()
+                    - JsonPath.<Number>read(sent, "$.state.serverTime").longValue();
+            assertTrue(left > 55_000 && left <= 60_000, "left " + left);
+            assertEquals(challenge.getId(), JsonPath.read(RealtimeSocket.body(sb.receive()), "$.state.challenges[0].id"));
+            LongSupplier late = () -> System.currentTimeMillis() + 60_000;
+            ReflectionTestUtils.invokeMethod(arena, "useClock", late);
+            try {
+                ((ArenaServiceImpl) arena).expireChallenges();
+                String challenger = RealtimeSocket.body(sa.receive());
+                String target = RealtimeSocket.body(sb.receive());
+                assertEquals(0, (int) JsonPath.read(challenger, "$.state.outgoingChallenges.length()"));
+                assertEquals(challenge.getId(), JsonPath.read(challenger, "$.state.expiredChallenges[0].id"));
+                assertEquals("EXPIRED", JsonPath.read(challenger, "$.state.expiredChallenges[0].status"));
+                assertEquals(0, (int) JsonPath.read(target, "$.state.challenges.length()"));
+                assertEquals(0, (int) JsonPath.read(target, "$.state.expiredChallenges.length()"));
+                assertThrows(IllegalArgumentException.class, () -> arena.acceptChallenge(challenge.getId(), b.getId()));
+                assertNull(arena.findActiveGameForUser(b.getId()));
+                arena.dismissChallengeNotice(challenge.getId(), a.getId());
+                assertEquals(0, (int) JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.expiredChallenges.length()"));
+                assertNull(sa.poll(100)); assertNull(sb.poll(100));
+            } finally {
+                LongSupplier system = System::currentTimeMillis;
+                ReflectionTestUtils.invokeMethod(arena, "useClock", system);
+            }
+        }
+    }
+
+    @Test
+    void aRejectedChallengeLeavesBothListsAndOnlyTheChallengerHearsAboutIt() throws Exception {
+        var a = user(); var b = user();
+        try (var sa = connected(a); var sb = connected(b)) {
+            var challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername());
+            sa.receive();
+            assertEquals(challenge.getId(), JsonPath.read(RealtimeSocket.body(sb.receive()), "$.state.challenges[0].id"));
+            arena.rejectChallenge(challenge.getId(), b.getId());
+            String challenger = RealtimeSocket.body(sa.receive());
+            String target = RealtimeSocket.body(sb.receive());
+            assertEquals(0, (int) JsonPath.read(challenger, "$.state.outgoingChallenges.length()"));
+            assertEquals(1, (int) JsonPath.read(challenger, "$.state.rejectedChallenges.length()"));
+            assertEquals(challenge.getId(), JsonPath.read(challenger, "$.state.rejectedChallenges[0].id"));
+            assertEquals("REJECTED", JsonPath.read(challenger, "$.state.rejectedChallenges[0].status"));
+            assertEquals(0, (int) JsonPath.read(challenger, "$.state.expiredChallenges.length()"));
+            assertEquals(0, (int) JsonPath.read(target, "$.state.challenges.length()"));
+            assertEquals(0, (int) JsonPath.read(target, "$.state.rejectedChallenges.length()"));
+            arena.rejectChallenge(challenge.getId(), b.getId());
+            assertNull(sa.poll(100)); assertNull(sb.poll(100));
+            arena.dismissChallengeNotice(challenge.getId(), a.getId());
+            assertEquals(0, (int) JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.rejectedChallenges.length()"));
             assertNull(sa.poll(100)); assertNull(sb.poll(100));
         }
     }

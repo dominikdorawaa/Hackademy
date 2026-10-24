@@ -7,10 +7,10 @@ import RealtimeNotifications, { ONLINE_TOAST_COOLDOWN_MS, TOAST_DURATION_MS, des
 import RealtimeGameNavigation from './RealtimeGameNavigation';
 import { createGameSession } from '../test/fixtures/arena';
 
-const environment = vi.hoisted(() => ({ sessionKey: 'first', state: null as RealtimeState | null, loaded: true,
+const environment = vi.hoisted(() => ({ sessionKey: 'first', state: null as RealtimeState | null, connected: true, loaded: true,
   preferences: { friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: true, friendOnline: true } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ sessionKey: environment.sessionKey }) }));
-vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state }) }));
+vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state, connected: environment.connected }) }));
 const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), unlock: vi.fn(async () => true) }));
 vi.mock('../lib/notificationSounds', async importOriginal => ({
   ...await importOriginal<typeof import('../lib/notificationSounds')>(), playSound: sounds.play, unlockAudio: sounds.unlock }));
@@ -18,7 +18,7 @@ vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPre
 
 const delivered = vi.fn();
 const snapshot = (): RealtimeState => ({ streamId: 'stream', revision: 1, friendRequests: [], challenges: [],
-  friends: [], outgoingChallenges: [], gameSession: null, queued: false });
+  friends: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0, gameSession: null, queued: false });
 const request = { id: 7, requesterUsername: 'friend', createdAt: '2026-10-11T12:00:00' };
 
 beforeEach(() => {
@@ -27,6 +27,7 @@ beforeEach(() => {
   sounds.unlock.mockClear();
   environment.sessionKey = 'first';
   environment.state = snapshot();
+  environment.connected = true;
   environment.loaded = true;
   environment.preferences = { ...defaultNotificationPreferences, browserNotifications: true };
   vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
@@ -44,7 +45,7 @@ describe('realtime notification delivery', () => {
     const { rerender } = render(<RealtimeNotifications />);
     environment.state = { ...snapshot(), revision: 2, friendRequests: [request, { ...request, id: 8 }],
       challenges: [{ id: 'challenge', challengerId: 2, challengerUsername: 'second', targetId: 1,
-        targetUsername: 'first', createdAt: request.createdAt, status: 'PENDING' }],
+        targetUsername: 'first', createdAt: request.createdAt, status: 'PENDING', expiresAt: 1_060_000 }],
       gameSession: createGameSession({ id: 'match', player1Username: 'first', player2Username: 'second' }) };
     rerender(<RealtimeNotifications />);
     expect(delivered).not.toHaveBeenCalled();
@@ -278,5 +279,92 @@ describe('friend online toasts', () => {
     rerender(<RealtimeNotifications />);
     expect(sounds.play).toHaveBeenCalledTimes(1);
     expect(sounds.play).toHaveBeenCalledWith('friendOnline');
+  });
+});
+
+describe('expired challenge toasts', () => {
+  const expired = (id: string, targetUsername: string) => ({ id, challengerId: 1, challengerUsername: 'first', targetId: 2,
+    targetUsername, createdAt: '2026-10-24T12:00:00', status: 'EXPIRED' as const, expiresAt: 1_060_000 });
+  const withExpired = (revision: number, ...expiredChallenges: ReturnType<typeof expired>[]) => ({ ...snapshot(), revision, expiredChallenges });
+
+  it('tells the challenger once that their challenge expired, without a sound or system notification', () => {
+    environment.preferences = { ...environment.preferences, sound: true };
+    environment.state = withExpired(1, expired('old', 'kuba'));
+    const { rerender } = render(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.state = withExpired(2, expired('old', 'kuba'), expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('Wyzwanie dla ola wygasło bez odpowiedzi.');
+    environment.state = withExpired(3, expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    environment.state = withExpired(4, expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getAllByText(/wygasło/)).toHaveLength(1);
+    expect(screen.queryByText(/kuba/)).not.toBeInTheDocument();
+    expect(sounds.play).not.toHaveBeenCalled();
+    expect(delivered).not.toHaveBeenCalled();
+  });
+
+  it('does not present challenges that expired while the connection was down as new after reconnecting', () => {
+    environment.state = withExpired(1);
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.connected = false;
+    rerender(<RealtimeNotifications />);
+    environment.connected = true;
+    rerender(<RealtimeNotifications />);
+    environment.state = withExpired(2, expired('missed', 'kuba'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.state = withExpired(3, expired('missed', 'kuba'), expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('Wyzwanie dla ola wygasło bez odpowiedzi.');
+    expect(screen.queryByText(/kuba/)).not.toBeInTheDocument();
+  });
+
+  it('keeps waiting for a fresh state when preferences change while the connection is down', () => {
+    environment.state = withExpired(1);
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.connected = false;
+    rerender(<RealtimeNotifications />);
+    environment.preferences = { ...environment.preferences, sound: true };
+    rerender(<RealtimeNotifications />);
+    environment.connected = true;
+    rerender(<RealtimeNotifications />);
+    environment.preferences = { ...environment.preferences, sound: false };
+    rerender(<RealtimeNotifications />);
+    environment.state = withExpired(2, expired('missed', 'kuba'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.state = withExpired(3, expired('missed', 'kuba'), expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('Wyzwanie dla ola wygasło bez odpowiedzi.');
+    expect(screen.queryByText(/kuba/)).not.toBeInTheDocument();
+  });
+
+  it('waits for the loaded preferences and stays silent when challenge notifications are off', () => {
+    environment.loaded = false;
+    environment.state = withExpired(1);
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = withExpired(2, expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.preferences = { ...environment.preferences, challenges: false };
+    environment.loaded = true;
+    environment.state = withExpired(3, expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+});
+
+describe('rejected challenges', () => {
+  it('leave the toast corner alone, because the bell and the arena show them', () => {
+    environment.state = snapshot();
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, rejectedChallenges: [{ id: 'no', challengerId: 1, challengerUsername: 'first',
+      targetId: 2, targetUsername: 'ola', createdAt: '2026-10-24T12:00:00', status: 'REJECTED', expiresAt: 1_060_000 }] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(sounds.play).not.toHaveBeenCalled();
+    expect(delivered).not.toHaveBeenCalled();
   });
 });

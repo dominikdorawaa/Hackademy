@@ -228,7 +228,7 @@ class ArenaBotMatchTest {
     @Test
     void privateChallengesNeverTurnIntoBotDuels() {
         var challenge = arena.createChallenge(1L, "player1", 2L, "player2");
-        for (long offset = 0; offset <= 60_000; offset += 5_000) at(offset);
+        for (long offset = 0; offset < ArenaServiceImpl.DEFAULT_CHALLENGE_EXPIRY.toMillis(); offset += 5_000) at(offset);
         assertNull(game(1));
         assertNull(game(2));
         GameSession session = arena.acceptChallenge(challenge.getId(), 2L);

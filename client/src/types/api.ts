@@ -93,7 +93,8 @@ export interface Challenge {
   targetId: number
   targetUsername: string
   createdAt: ApiDateTime
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'EXPIRED'
+  expiresAt: number
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED'
 }
 
 export interface BattleQuestion {
