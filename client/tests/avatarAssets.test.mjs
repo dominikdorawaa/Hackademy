@@ -146,3 +146,22 @@ for (const [outfit, [atlasFile]] of Object.entries(ATLASES)) {
     }
   });
 }
+
+{
+  const [outfit, [atlasFile]] = ['bluza', ATLASES.bluza];
+  test(`${outfit} trousers in the front dances and turns take the chosen trouser colour`, () => {
+    const atlas = decode(read(atlasFile)), map = model.buildColorMap(atlas.pixels, model.OUTFIT_SPECS[outfit]);
+    for (const row of [8, 9, 13, 14, 15, 16]) for (let column = 1; column <= 8; column++) {
+      if (row >= 15 && column > 4) continue;
+      let trousers = 0, outline = 0;
+      for (let y = 42; y < 50; y++) for (let x = 0; x < 64; x++) {
+        const index = ((row * 64 + y) * 576 + column * 64 + x) * 4;
+        if (!atlas.pixels[index + 3]) continue;
+        const material = map.get((atlas.pixels[index] << 16) | (atlas.pixels[index + 1] << 8) | atlas.pixels[index + 2])?.material;
+        if (material === 'bottom') trousers++;
+        if (material === 'outline') outline++;
+      }
+      assert.ok(trousers > outline, `cell ${row * 9 + column} draws its trousers in outline colours`);
+    }
+  });
+}
