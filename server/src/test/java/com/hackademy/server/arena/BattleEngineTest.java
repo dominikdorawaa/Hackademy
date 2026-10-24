@@ -20,7 +20,7 @@ class BattleEngineTest {
 
     static List<ArenaQuestion> questions(int count) {
         return LongStream.rangeClosed(1, count).mapToObj(id -> new ArenaQuestion(id, "Pytanie " + id,
-                "A", "B", "C", "D", 2, "SIECI", "MEDIUM", 0L)).toList();
+                "C", "A", "B", "D", "SIECI", "MEDIUM", 0L)).toList();
     }
 
     @BeforeEach
@@ -28,7 +28,7 @@ class BattleEngineTest {
         session = new GameSession();
         session.setPlayer1Id(1L);
         session.setPlayer2Id(2L);
-        BattleEngine.start(session, questions(12), 1_000);
+        BattleEngine.start(session, questions(12), 1_000, AnswerOrder.correctAt(2));
     }
 
     @Test
@@ -47,8 +47,8 @@ class BattleEngineTest {
         var empty = new GameSession();
         empty.setPlayer1Id(1L);
         empty.setPlayer2Id(2L);
-        assertThrows(IllegalStateException.class, () -> BattleEngine.start(empty, List.of(), 0));
-        BattleEngine.start(empty, questions(3), 0);
+        assertThrows(IllegalStateException.class, () -> BattleEngine.start(empty, List.of(), 0, AnswerOrder.correctAt(2)));
+        BattleEngine.start(empty, questions(3), 0, AnswerOrder.correctAt(2));
         assertEquals(3, empty.getTotalRounds());
     }
 
@@ -75,11 +75,11 @@ class BattleEngineTest {
         var duel = new GameSession();
         duel.setPlayer1Id(1L);
         duel.setPlayer2Id(2L);
-        BattleEngine.start(duel, bank, 0);
+        BattleEngine.start(duel, bank, 0, AnswerOrder.correctAt(2));
         bank.forEach(question -> {
             question.setContent("Zmienione");
-            question.setAnswerA("X");
-            question.setCorrectAnswer(0);
+            question.setWrongAnswer1("X");
+            question.setCorrectAnswer("Y");
         });
         bank.clear();
         BattleEngine.answer(duel, 1L, 1, 2, 1_000);

@@ -12,7 +12,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { ArenaQuestionAdmin, ArenaQuestionCategory, ArenaQuestionDifficulty } from '../../types/api';
 import ArenaQuestionDialog from './ArenaQuestionDialog';
-import { answerLetters, arenaDifficultyLabels, categories, categoryLabels, difficulties } from './arenaQuestionForm';
+import { arenaDifficultyLabels, categories, categoryLabels, difficulties } from './arenaQuestionForm';
 
 const ALL = 'ALL';
 
@@ -159,7 +159,7 @@ export default function ArenaQuestionsPage() {
                   <TableCell className="max-w-0 whitespace-normal">
                     <p className="font-medium break-words text-foreground">{question.content}</p>
                     <p className="mt-1 truncate text-xs text-muted-foreground">
-                      Poprawna: <span className="font-mono">{answerLetters[question.correctAnswer]}</span> · {shorten(question.answers[question.correctAnswer])}
+                      Poprawna: {shorten(question.correctAnswer)}
                     </p>
                     <div className="mt-2 flex flex-wrap gap-1 md:hidden">
                       <Badge variant="secondary">{categoryLabels[question.category]}</Badge>

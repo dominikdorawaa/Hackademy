@@ -71,16 +71,17 @@ public class ArenaQuestionAdminService {
     }
 
     private static void apply(ArenaQuestion question, ArenaQuestionRequest request) {
-        List<String> answers = request.answers().stream().map(String::strip).toList();
+        String correct = request.correctAnswer().strip();
+        List<String> wrong = request.wrongAnswers().stream().map(String::strip).toList();
         var distinct = new HashSet<String>();
-        answers.forEach(answer -> distinct.add(answer.toLowerCase(Locale.ROOT)));
+        distinct.add(correct.toLowerCase(Locale.ROOT));
+        wrong.forEach(answer -> distinct.add(answer.toLowerCase(Locale.ROOT)));
         if (distinct.size() != BattleEngine.ANSWERS) throw new IllegalArgumentException(DUPLICATE_ANSWERS);
         question.setContent(request.content().strip());
-        question.setAnswerA(answers.get(0));
-        question.setAnswerB(answers.get(1));
-        question.setAnswerC(answers.get(2));
-        question.setAnswerD(answers.get(3));
-        question.setCorrectAnswer(request.correctAnswer());
+        question.setCorrectAnswer(correct);
+        question.setWrongAnswer1(wrong.get(0));
+        question.setWrongAnswer2(wrong.get(1));
+        question.setWrongAnswer3(wrong.get(2));
         question.setCategory(request.category());
         question.setDifficulty(request.difficulty());
     }

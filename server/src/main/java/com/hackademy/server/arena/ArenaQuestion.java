@@ -29,20 +29,17 @@ public class ArenaQuestion {
     @Column(nullable = false, length = 500)
     private String content;
 
-    @Column(name = "answer_a", nullable = false, length = 200)
-    private String answerA;
+    @Column(name = "correct_answer", nullable = false, length = 200)
+    private String correctAnswer;
 
-    @Column(name = "answer_b", nullable = false, length = 200)
-    private String answerB;
+    @Column(name = "wrong_answer_1", nullable = false, length = 200)
+    private String wrongAnswer1;
 
-    @Column(name = "answer_c", nullable = false, length = 200)
-    private String answerC;
+    @Column(name = "wrong_answer_2", nullable = false, length = 200)
+    private String wrongAnswer2;
 
-    @Column(name = "answer_d", nullable = false, length = 200)
-    private String answerD;
-
-    @Column(name = "correct_answer", nullable = false)
-    private int correctAnswer;
+    @Column(name = "wrong_answer_3", nullable = false, length = 200)
+    private String wrongAnswer3;
 
     @Column(nullable = false, length = 30)
     private String category;
@@ -54,7 +51,7 @@ public class ArenaQuestion {
     @Column(nullable = false)
     private long version;
 
-    public List<String> answers() {
-        return List.of(answerA, answerB, answerC, answerD);
+    public List<String> wrongAnswers() {
+        return List.of(wrongAnswer1, wrongAnswer2, wrongAnswer3);
     }
 }

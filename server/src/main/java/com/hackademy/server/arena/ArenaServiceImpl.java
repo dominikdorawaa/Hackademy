@@ -13,6 +13,7 @@ import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
+import java.security.SecureRandom;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayDeque;
@@ -28,6 +29,7 @@ import java.util.UUID;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
+import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
 
 @Service
@@ -67,10 +69,15 @@ public class ArenaServiceImpl implements ArenaService {
     private final Map<Long, String> playingIn = new HashMap<>();
     private final Map<Long, Long> playerGoneSince = new ConcurrentHashMap<>();
     private LongSupplier clock = System::currentTimeMillis;
+    private RandomGenerator random = new SecureRandom();
     private volatile boolean closing;
 
     void useClock(LongSupplier clock) {
         this.clock = clock;
+    }
+
+    void useRandom(RandomGenerator random) {
+        this.random = random;
     }
 
     @Override
@@ -180,7 +187,7 @@ public class ArenaServiceImpl implements ArenaService {
         session.setPlayer1Avatar(avatars.get(session.getPlayer1Id()));
         session.setPlayer2Avatar(avatars.get(session.getPlayer2Id()));
         session.setStartTime(LocalDateTime.now());
-        BattleEngine.start(session, questionRepository.findRandom(BattleEngine.ROUNDS), clock.getAsLong());
+        BattleEngine.start(session, questionRepository.findRandom(BattleEngine.ROUNDS), clock.getAsLong(), random);
     }
 
     @Override

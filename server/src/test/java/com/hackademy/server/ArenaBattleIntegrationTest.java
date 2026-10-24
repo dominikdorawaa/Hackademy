@@ -21,7 +21,10 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
     void seedsEnoughQuestionsForAFullBattle() {
         assertEquals(42, jdbcTemplate.queryForObject("SELECT count(*) FROM arena_questions", Integer.class));
         assertEquals(0, jdbcTemplate.queryForObject(
-                "SELECT count(*) FROM arena_questions WHERE correct_answer NOT BETWEEN 0 AND 3", Integer.class));
+                """
+                SELECT count(*) FROM arena_questions WHERE (SELECT count(DISTINCT lower(answer))
+                    FROM unnest(ARRAY[correct_answer, wrong_answer_1, wrong_answer_2, wrong_answer_3]) AS answer) <> 4
+                """, Integer.class));
     }
 
     @Test
@@ -91,8 +94,9 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
             var challenge = arena.createChallenge(first.id(), first.username(), second.id(), second.username());
             String game = arena.acceptChallenge(challenge.getId(), second.id()).getId();
             String url = "/api/arena/game/" + game;
-            Long question = arena.getGameSession(game).getQuestion().id();
-            int correct = jdbcTemplate.queryForObject("SELECT correct_answer FROM arena_questions WHERE id = ?", Integer.class, question);
+            var question = arena.getGameSession(game).getQuestion();
+            String answer = jdbcTemplate.queryForObject("SELECT correct_answer FROM arena_questions WHERE id = ?", String.class, question.id());
+            int correct = question.answers().indexOf(answer);
             now.addAndGet(4_999);
             postJson(first, url + "/answer", "{\"round\":1,\"answer\":" + correct + ",\"elapsedMillis\":0,\"damage\":999999,\"sentAt\":0}")
                     .andExpect(status().isOk());

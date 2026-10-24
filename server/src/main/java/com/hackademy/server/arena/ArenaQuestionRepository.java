@@ -16,8 +16,8 @@ public interface ArenaQuestionRepository extends JpaRepository<ArenaQuestion, Lo
     @Query("""
             SELECT q FROM ArenaQuestion q
             WHERE (LOCATE(LOWER(:query), LOWER(q.content)) > 0
-                OR LOCATE(LOWER(:query), LOWER(q.answerA)) > 0 OR LOCATE(LOWER(:query), LOWER(q.answerB)) > 0
-                OR LOCATE(LOWER(:query), LOWER(q.answerC)) > 0 OR LOCATE(LOWER(:query), LOWER(q.answerD)) > 0)
+                OR LOCATE(LOWER(:query), LOWER(q.correctAnswer)) > 0 OR LOCATE(LOWER(:query), LOWER(q.wrongAnswer1)) > 0
+                OR LOCATE(LOWER(:query), LOWER(q.wrongAnswer2)) > 0 OR LOCATE(LOWER(:query), LOWER(q.wrongAnswer3)) > 0)
               AND (:category = '' OR q.category = :category)
               AND (:difficulty = '' OR q.difficulty = :difficulty)
             ORDER BY q.id DESC

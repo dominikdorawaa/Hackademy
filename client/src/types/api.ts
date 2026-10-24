@@ -26,8 +26,8 @@ export type ArenaQuestionDifficulty = 'EASY' | 'MEDIUM' | 'HARD'
 
 export interface ArenaQuestionRequest {
   content: string
-  answers: string[]
-  correctAnswer: number
+  correctAnswer: string
+  wrongAnswers: string[]
   category: ArenaQuestionCategory
   difficulty: ArenaQuestionDifficulty
   version?: number
