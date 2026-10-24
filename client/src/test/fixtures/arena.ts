@@ -23,7 +23,7 @@ export function createGameSession(overrides: Partial<GameSession> = {}): GameSes
     serverTime: 1_000_000,
     hp: { 1: 100, 2: 100 },
     answeredBy: [],
-    question: { id: 11, content: 'Na którym porcie domyślnie działa SSH?', category: 'SIECI', difficulty: 'VERY_EASY', answers: ['21', '22', '23', '25'] },
+    question: { id: 11, content: 'Na którym porcie domyślnie działa SSH?', category: 'SIECI', answers: ['21', '22', '23', '25'] },
     lastRound: null,
     reactions: [],
     ...overrides,

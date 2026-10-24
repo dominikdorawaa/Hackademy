@@ -1,6 +1,5 @@
 package com.hackademy.server;
 
-import com.hackademy.server.arena.ArenaQuestionRules;
 import com.hackademy.server.arena.ArenaService;
 import com.hackademy.server.user.Role;
 import org.junit.jupiter.api.Test;
@@ -10,7 +9,6 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.in;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
@@ -43,7 +41,7 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.round").value(1))
                 .andExpect(jsonPath("$.totalRounds").value(10))
                 .andExpect(jsonPath("$.question.answers", hasSize(4)))
-                .andExpect(jsonPath("$.question.difficulty").value(in(ArenaQuestionRules.DIFFICULTIES)))
+                .andExpect(jsonPath("$.question.difficulty").doesNotExist())
                 .andExpect(jsonPath("$.question.correctAnswer").doesNotExist())
                 .andExpect(jsonPath("$.questions").doesNotExist())
                 .andExpect(jsonPath("$.choices").doesNotExist())

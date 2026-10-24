@@ -76,7 +76,7 @@ class ArenaBattleServiceTest {
         game.setPlayer2Elo(1200);
         arena.addGame(game);
         verify(questions).drawForElo(eq(751), eq(BattleEngine.ROUNDS), any());
-        assertEquals("MEDIUM", arena.getGameSession("elo").getQuestion().difficulty());
+        assertEquals("ACTIVE", arena.getGameSession("elo").getStatus());
     }
 
     @Test

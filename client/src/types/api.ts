@@ -100,7 +100,6 @@ export interface BattleQuestion {
   id: number
   content: string
   category: string
-  difficulty: ArenaQuestionDifficulty
   answers: string[]
 }
 

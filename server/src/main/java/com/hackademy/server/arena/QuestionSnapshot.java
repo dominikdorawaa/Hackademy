@@ -6,8 +6,7 @@ import java.util.List;
 import java.util.random.RandomGenerator;
 
 /** The copy of a bank question a duel plays with, so later edits or deletions do not reach a started match. */
-public record QuestionSnapshot(Long id, String content, String category, String difficulty, List<String> answers,
-                               int correctAnswer) {
+public record QuestionSnapshot(Long id, String content, String category, List<String> answers, int correctAnswer) {
 
     static QuestionSnapshot shuffled(ArenaQuestion question, RandomGenerator random) {
         List<String> answers = new ArrayList<>(BattleEngine.ANSWERS);
@@ -21,6 +20,6 @@ public record QuestionSnapshot(Long id, String content, String category, String 
             else if (correct == swap) correct = index;
         }
         return new QuestionSnapshot(question.getId(), question.getContent(), question.getCategory(),
-                question.getDifficulty(), List.copyOf(answers), correct);
+                List.copyOf(answers), correct);
     }
 }

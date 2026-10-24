@@ -11,7 +11,6 @@ import { useArenaClock } from '../hooks/useArenaClock';
 import { useArenaSession } from '../hooks/useArenaSession';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
-import { arenaDifficultyLabels } from '../components/arena/arenaDifficulty';
 import * as arenaApi from '../services/arenaApi';
 import * as userApi from '../services/userApi';
 import type { AvatarConfig } from '../types/api';
@@ -172,10 +171,7 @@ export default function ArenaBattlePage() {
             </section>
           ) : !finished && session.question ? (
             <section className="battle-card" aria-labelledby="battle-question">
-              <p className="battle-card-meta">
-                <span>{session.question.category}</span>
-                <span className="battle-difficulty" data-level={session.question.difficulty}>{arenaDifficultyLabels[session.question.difficulty]}</span>
-              </p>
+              <p className="battle-card-meta">{session.question.category}</p>
               <h1 id="battle-question" className="battle-question">{session.question.content}</h1>
               <div className="battle-answers" role="group" aria-label="Odpowiedzi">
                 {session.question.answers.map((text, index) => (
