@@ -56,6 +56,10 @@ export function cancelChallenge(id: ApiId, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/challenge/${id}/cancel`, { method: 'POST', auth });
 }
 
+export function dismissExpiredChallenge(id: ApiId, auth: SessionScope) {
+  return request<MessageResponse>(`/api/arena/challenge/${id}/dismiss`, { method: 'POST', auth });
+}
+
 export function getGame(id: ApiId, auth: SessionScope) {
   return request<GameSession>(`/api/arena/game/${id}`, {
     method: 'GET',

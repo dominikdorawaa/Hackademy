@@ -17,7 +17,7 @@ vi.mock('../context/RealtimeContext', () => ({
 
 const friend = (id: number, username: string, online: boolean): FriendDto => ({ id, username, points: 100, streak: 1, online });
 const snapshot = (friends: FriendDto[]): RealtimeState => ({ streamId: 'stream', revision: 1, friendRequests: [],
-  friends, challenges: [], outgoingChallenges: [], gameSession: null, queued: false });
+  friends, challenges: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 0, gameSession: null, queued: false });
 
 function mount() {
   return render(<MemoryRouter><FriendsPage /></MemoryRouter>);
@@ -155,7 +155,7 @@ describe('friends page', () => {
 
   it('marks friends who were already challenged', () => {
     environment.state = { ...snapshot([friend(2, 'ola', true)]), outgoingChallenges: [{ id: 'c', challengerId: 1,
-      challengerUsername: 'me', targetId: 2, targetUsername: 'ola', createdAt: '2026-10-19T10:00:00', status: 'PENDING' }] };
+      challengerUsername: 'me', targetId: 2, targetUsername: 'ola', createdAt: '2026-10-19T10:00:00', status: 'PENDING', expiresAt: 1_060_000 }] };
     mount();
     expect(screen.getByRole('button', { name: 'Wyzwano' })).toBeDisabled();
   });

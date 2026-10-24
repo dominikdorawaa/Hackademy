@@ -20,7 +20,7 @@ vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => realtime.value
 vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({ useAvatarAtlas: () => ({ atlas: 'blob:test-atlas', front: null }), useAvatarPortrait: () => null }));
 
 const live = (gameSession: GameSession): RealtimeState => ({
-  streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], gameSession, queued: false,
+  streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 0, gameSession, queued: false,
 });
 const battle = () => <MemoryRouter initialEntries={['/arena/battle/game']}><AuthProvider>
   <Routes><Route path="/arena/battle/:gameId" element={<ArenaBattlePage />} /></Routes>

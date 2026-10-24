@@ -7,8 +7,10 @@ export interface RealtimeState {
   friends: FriendDto[];
   challenges: Challenge[];
   outgoingChallenges: Challenge[];
+  expiredChallenges: Challenge[];
   gameSession: GameSession | null;
   queued: boolean;
+  serverTime: number;
 }
 
 export type RealtimeEnvelope = { type: 'READY'; state: null } | { type: 'STATE'; state: RealtimeState };

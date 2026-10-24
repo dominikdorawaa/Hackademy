@@ -20,9 +20,10 @@ public class Challenge {
     private String status;
     private UserAvatarDto challengerAvatar;
     private UserAvatarDto targetAvatar;
+    private long expiresAt;
 
     public Challenge(String id, Long challengerId, String challengerUsername, Long targetId,
                      String targetUsername, LocalDateTime createdAt, String status) {
-        this(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status, null, null);
+        this(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status, null, null, 0);
     }
 }
