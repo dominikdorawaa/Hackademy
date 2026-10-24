@@ -86,7 +86,7 @@
   "atlasSha256": {
     "fighter.png": "eac977c2a77f9154183aa064b9b5d8325dae49438590bda0ccbe8fe1f18833a7",
     "hoodie/fighter.png": "25851ebe2aaa46a56fab135460e09f13a24eb28c844dcef55b289201c65b1f31",
-    "track/fighter.png": "884c1bee323dec75cf46d4d5f9f07fa982310453f443168a47985a62e8fb2957"
+    "track/fighter.png": "b52774ade79df89c3fa8fc9d7cd4b2262b641ab7697fd2b261ccda2591ac80a0"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -398,6 +398,7 @@
     "shrink": "the front dance rows 8, 9, 13 and 14 are scaled to 0.8 around the feet so the front body matches the side stance size and the feet stand on row 54 like every side frame; each new pixel takes the outline colour when at least 30% of its area is outline, stays transparent when at least half of it is empty and otherwise takes the colour covering most of it, and a light one-pixel detail between dark pixels such as the white of an eye is the eyes are placed back after scaling as the white of the eye with its pupil beside it, so the palette does not change and the eyes stay open; the front hair and hats are scaled the same way into dance/",
     "legs": "in the hoodie Scuba rows 13, 14 and 16 the inner jeans pixels used the dark colour 242937 that the recolouring treats as outline, so the trousers kept their dark blue instead of the chosen colour; those pixels take the middle trouser shade 223856 and the outer outline stays",
     "lying": "the last defeat frame (cell 53) of baza and the hoodie raised the head with the chin on the floor, so the hair stood up; both now take the track suit frame, where the head rests lower at 20 degrees, with every pixel recoloured to the same material and shade of their own outfit (trousers one shade lighter, the white stripes take the colour around them) and the same head anchor",
+    "holes": "the original background removal cut the white out of the track suit: the trouser stripes, the white parts of the shoes and the white of the eye were see-through in most frames; every enclosed see-through gap next to the trousers or shoes, and every one or two pixel gap inside the head, is filled with white (the lightest shoe colour next to the shoes), while the gaps between arms, hands and the body stay open",
     "rows": "row 15 turns into Six-seven and row 16 into Scuba: column 0 is the side stance, columns 1 to 4 are generated frames 2 to 5 snapped to the outfit palette and moved onto the stance ground line",
     "endpoint": "animate-with-text-v3",
     "frameCount": 6,

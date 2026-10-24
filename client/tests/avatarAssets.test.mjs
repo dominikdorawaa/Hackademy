@@ -165,3 +165,31 @@ for (const [outfit, [atlasFile]] of Object.entries(ATLASES)) {
     }
   });
 }
+
+test('the track suit has no see-through gaps in the trousers, shoes or eyes', () => {
+  const atlas = decode(read('track/fighter.png')), anchors = JSON.parse(read('track/anchors.json').toString());
+  const map = model.buildColorMap(atlas.pixels, model.OUTFIT_SPECS.dres);
+  for (let cell = 0; cell < atlas.height / 64 * 9; cell++) {
+    const left = (cell % 9) * 64, top = Math.floor(cell / 9) * 64;
+    const open = (x, y) => !atlas.pixels[((top + y) * 576 + left + x) * 4 + 3];
+    if (!anchors.cells[cell]) continue;
+    const outside = new Uint8Array(4096), stack = [];
+    for (let i = 0; i < 64; i++) stack.push([i, 0], [i, 63], [0, i], [63, i]);
+    while (stack.length) {
+      const [x, y] = stack.pop();
+      if (x < 0 || y < 0 || x > 63 || y > 63 || outside[y * 64 + x] || !open(x, y)) continue;
+      outside[y * 64 + x] = 1;
+      stack.push([x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]);
+    }
+    for (let y = 1; y < 63; y++) for (let x = 1; x < 63; x++) {
+      if (!open(x, y) || outside[y * 64 + x]) continue;
+      for (const [nx, ny] of [[x + 1, y], [x - 1, y], [x, y + 1], [x, y - 1]]) {
+        if (open(nx, ny)) continue;
+        const index = ((top + ny) * 576 + left + nx) * 4;
+        const material = map.get((atlas.pixels[index] << 16) | (atlas.pixels[index + 1] << 8) | atlas.pixels[index + 2])?.material;
+        assert.ok(material !== 'bottom' && material !== 'shoes', `cell ${cell} has a see-through gap at ${x},${y} next to the ${material}`);
+      }
+      assert.ok(y >= anchors.cells[cell].y + 4 || x < 8, `cell ${cell} has a see-through gap in the head at ${x},${y}`);
+    }
+  }
+});
