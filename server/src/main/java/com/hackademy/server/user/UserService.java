@@ -5,6 +5,7 @@ import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateUsernameRequest;
+import com.hackademy.server.user.dto.UsernameAvailabilityDto;
 import com.hackademy.server.admin.UserAdminView;
 import com.hackademy.server.user.dto.UserProfileDto;
 import com.hackademy.server.user.dto.ProfileStatsDto;
@@ -27,6 +28,8 @@ public interface UserService {
     void deleteUser(Long id);
     UserAdminView updateUserRole(Long id, Role newRole);
     String updateUsername(Long userId, UpdateUsernameRequest request);
+
+    UsernameAvailabilityDto usernameAvailability(Long userId, String username);
     List<RankingEntry> getTop10Ranking();
     UserProfileDto getPublicProfile(String username);
     ProfileStatsDto getProfileStats(Long userId);
@@ -34,7 +37,6 @@ public interface UserService {
     void updateBio(Long userId, UpdateBioRequest request);
     List<UserSearchDto> searchUsers(String query, Long currentUserId);
     Long getUserIdByUsername(String username);
-    void muteUser(Long userId, long durationInSeconds);
     RankingEntry getUserRank(Long userId); // New method
     boolean hasSolvedTutorialVpn(Long userId); // New method
     List<ActivityDto> getUserActivity(Long userId); // New method

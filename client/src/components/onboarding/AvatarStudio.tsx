@@ -3,26 +3,30 @@ import type { KeyboardEvent, ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import { AvatarSprite } from '../arena/avatar/AvatarSprite';
 import { useAvatarAtlas, useAvatarPortrait } from '../arena/avatar/useAvatarAtlas';
-import { AVATAR_POSES, HAIR_STYLES, HAT_STYLES, toAvatarConfig } from '../arena/avatar/avatarModel';
+import { AVATAR_POSES, FINISHER_MOVES, HAIR_STYLES, HAT_STYLES, toAvatarConfig, VICTORY_DANCES } from '../arena/avatar/avatarModel';
 import type { Avatar } from '../arena/avatar/avatarModel';
 import { AVATAR_ATLASES } from '../arena/avatar/fighters';
-import { COLOR_GROUPS, HAIR_NAMES, HAT_NAMES, OUTFITS, POSE_NAMES } from '../arena/avatar/avatarOptions';
+import { COLOR_GROUPS, DANCE_OPTIONS, FINISHER_OPTIONS, HAIR_NAMES, HAT_NAMES, OUTFITS, POSE_NAMES } from '../arena/avatar/avatarOptions';
+import { danceFrame, dancePreview, finisherFrame, finisherPreview } from '../arena/avatar/movePreviews';
 import { ColorChoices } from '../arena/avatar/ColorChoices';
 import { ArenaLoader } from '../arena/ArenaLoader';
+import './AvatarStudio.css';
 
-export type StudioTab = 'outfit' | 'head' | 'colors' | 'icon';
+export type StudioTab = 'outfit' | 'head' | 'colors' | 'finisher' | 'dance' | 'icon';
 const TABS: { id: StudioTab; label: string }[] = [
   { id: 'outfit', label: 'Strój' },
   { id: 'head', label: 'Fryzura i czapka' },
   { id: 'colors', label: 'Kolory' },
+  { id: 'finisher', label: 'Finisher' },
+  { id: 'dance', label: 'Taniec' },
   { id: 'icon', label: 'Ikona profilu' },
 ];
-type View = 'front' | 'fight' | 'icon';
+type View = 'front' | 'fight';
 const VIEWS: { id: View; label: string }[] = [
   { id: 'front', label: 'Przód' },
   { id: 'fight', label: 'W walce' },
-  { id: 'icon', label: 'Ikona' },
 ];
+const LOOK_TABS: StudioTab[] = ['outfit', 'head', 'colors'];
 const ATTACK = Array.from({ length: 8 }, (_, column) => 9 + column + 1);
 
 function Portrait({ avatar, className }: { avatar: Avatar; className: string }) {
@@ -34,6 +38,8 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
   avatar: Avatar; onChange: (avatar: Avatar) => void; reducedMotion: boolean; tab: StudioTab; onTab: (tab: StudioTab) => void; disabled?: boolean; aside?: ReactNode;
 }) {
   const [view, setView] = useState<View>('front');
+  const look = LOOK_TABS.includes(tab);
+  const height = AVATAR_ATLASES[avatar.outfit].atlasHeight;
   const atlas = useAvatarAtlas(avatar);
   const id = useId();
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
@@ -51,14 +57,18 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
   return <div className="studio">
     <div className="studio-side">
     <section className="studio-stage-card" aria-label="Podgląd awatara">
-      <div className="studio-views" role="group" aria-label="Widok podglądu">
+      {look && <div className="studio-views" role="group" aria-label="Widok podglądu">
         {VIEWS.map(item => <button key={item.id} type="button" aria-pressed={view === item.id} onClick={() => setView(item.id)}>{item.label}</button>)}
-      </div>
-      <div className="studio-stage" data-view={view}>
+      </div>}
+      <div className="studio-stage" data-view={look ? view : tab}>
         {!atlas ? <ArenaLoader label="Przygotowuję postać" avatar={toAvatarConfig(avatar)} className="studio-loader" />
+          : tab === 'icon' ? <span className="studio-icon-frame"><Portrait avatar={avatar} className="studio-icon" /><span className="sr-only">Ikona profilu, poza: {POSE_NAMES[avatar.pose]}</span></span>
+          : tab === 'finisher' ? <AvatarSprite key={`finisher-${avatar.finisher}`} atlas={atlas.atlas} atlasHeight={height}
+            frames={finisherPreview(avatar.finisher, reducedMotion)} frameTime={100} reducedMotion={reducedMotion} label={`Twój finisher: ${FINISHER_OPTIONS[avatar.finisher].name}`} />
+          : tab === 'dance' ? <AvatarSprite key={`dance-${avatar.dance}`} atlas={atlas.atlas} atlasHeight={height}
+            frames={dancePreview(avatar.dance, reducedMotion)} frameTime={110} reducedMotion={reducedMotion} label={`Twój taniec zwycięstwa: ${DANCE_OPTIONS[avatar.dance].name}`} />
           : view === 'front' && atlas.front ? <img className="studio-front" src={atlas.front} alt="Twój awatar, widok z przodu" />
-          : view === 'icon' ? <span className="studio-icon-frame"><Portrait avatar={avatar} className="studio-icon" /><span className="sr-only">Ikona profilu, poza: {POSE_NAMES[avatar.pose]}</span></span>
-          : <AvatarSprite key={avatar.outfit} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[avatar.outfit].atlasHeight}
+          : <AvatarSprite key={avatar.outfit} atlas={atlas.atlas} atlasHeight={height}
             frames={[0, 0, 0, 0, 0, 0, ...ATTACK]} frameTime={110} reducedMotion={reducedMotion} label="Twój awatar w walce" />}
       </div>
       <p className="studio-caption">{OUTFITS.find(outfit => outfit.id === avatar.outfit)?.name} · {HAIR_NAMES[avatar.hair]}{avatar.hat !== 'brak' ? ` · ${HAT_NAMES[avatar.hat]}` : ''}</p>
@@ -100,6 +110,32 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
           {COLOR_GROUPS.filter(group => group.key !== 'hat' || avatar.hat !== 'brak').map(group => <ColorChoices key={group.key} legend={group.legend}
             value={avatar.colors[group.key]} options={group.options} presets={group.presets} name={`${id}-${group.key}`} onChange={value => setColor(group.key, value)} />)}
           <p className="studio-hint">Kliknij kolorowy kwadracik, żeby wybrać dowolny kolor z koła.</p>
+        </div>}
+
+        {tab === 'finisher' && <div className="studio-group">
+          <h3 id={`${id}-finisher`}>Cios kończący</h3>
+          <div className="studio-cards" role="radiogroup" aria-labelledby={`${id}-finisher`}>
+            {FINISHER_MOVES.map(move => <label key={move} className="studio-card" data-selected={avatar.finisher === move}>
+              <input type="radio" name={`${id}-finisher`} checked={avatar.finisher === move} onChange={() => set({ finisher: move })} />
+              <span className="studio-card-portrait studio-card-move" aria-hidden="true">{atlas && <AvatarSprite atlas={atlas.atlas} atlasHeight={height} frames={[finisherFrame(move)]} label="" />}</span>
+              <span className="studio-card-text"><strong>{FINISHER_OPTIONS[move].name}</strong><small>{FINISHER_OPTIONS[move].description}</small></span>
+              {avatar.finisher === move && <Check className="studio-card-check" size={18} aria-hidden="true" />}
+            </label>)}
+          </div>
+          <p className="studio-hint">Tym ciosem kończysz walkę, gdy Twoje trafienie zbije rywalowi ostatnie HP.</p>
+        </div>}
+
+        {tab === 'dance' && <div className="studio-group">
+          <h3 id={`${id}-dance`}>Taniec zwycięstwa</h3>
+          <div className="studio-cards" role="radiogroup" aria-labelledby={`${id}-dance`}>
+            {VICTORY_DANCES.map(dance => <label key={dance} className="studio-card" data-selected={avatar.dance === dance}>
+              <input type="radio" name={`${id}-dance`} checked={avatar.dance === dance} onChange={() => set({ dance })} />
+              <span className="studio-card-portrait studio-card-move" aria-hidden="true">{atlas && <AvatarSprite atlas={atlas.atlas} atlasHeight={height} frames={[danceFrame(dance)]} label="" />}</span>
+              <span className="studio-card-text"><strong>{DANCE_OPTIONS[dance].name}</strong><small>{DANCE_OPTIONS[dance].description}</small></span>
+              {avatar.dance === dance && <Check className="studio-card-check" size={18} aria-hidden="true" />}
+            </label>)}
+          </div>
+          <p className="studio-hint">Ten taniec zobaczy rywal po Twojej wygranej walce.</p>
         </div>}
 
         {tab === 'icon' && <div className="studio-group">

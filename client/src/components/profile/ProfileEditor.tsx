@@ -8,10 +8,14 @@ import { updateProfile } from '../../services/userApi';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
 import BadgeIcon from './BadgeIcon';
+import { useUsernameChange, validateUsername } from '../../hooks/useUsernameChange';
+import { USERNAME_MAX } from '../../lib/username';
 
-export default function ProfileEditor({ username, initial, badges, onSaved, onClose, onUnauthorized }: {
+export default function ProfileEditor({ username, initial, badges, onSaved, onRenamed, onClose, onUnauthorized }: {
   username: string; initial: ProfilePersonalization; badges: BadgeDto[];
-  onSaved: (profile: ProfilePersonalization) => void; onClose: () => void; onUnauthorized: () => void;
+  onSaved: (profile: ProfilePersonalization, username: string) => void; onClose: () => void; onUnauthorized: () => void;
+  /** The rename is saved on its own, so the page learns about it even if the other fields then fail. */
+  onRenamed?: (username: string) => void;
 }) {
   const { sessionKey } = useAuth();
   const id = useId();
@@ -27,12 +31,20 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [badgePage, setBadgePage] = useState(0);
+  const [savedName, setSavedName] = useState(username);
+  const [name, setName] = useState(username);
+  const [nameError, setNameError] = useState('');
+  const { change: changeUsername } = useUsernameChange();
   const earned = badges.filter(badge => badge.earned).sort((a, b) => (b.earnedAt ?? '').localeCompare(a.earnedAt ?? '') || a.id - b.id);
   const pages = Math.ceil(earned.length / 6);
-  const invalid = draft.bio.length > 500;
-  const changed = draft.bio !== original.bio || draft.tagline !== original.tagline
+  const nameChanged = name.trim() !== savedName;
+  const typedNameProblem = name.trim() === savedName ? null : validateUsername(name);
+  const nameProblem = nameError || typedNameProblem;
+  const invalid = draft.bio.length > 500 || !!typedNameProblem;
+  const profileChanged = draft.bio !== original.bio || draft.tagline !== original.tagline
     || JSON.stringify(draft.interests) !== JSON.stringify(original.interests)
     || JSON.stringify(draft.featuredBadgeIds) !== JSON.stringify(original.featuredBadgeIds);
+  const changed = nameChanged || profileChanged;
 
   useEffect(() => {
     const element = dialog.current!;
@@ -79,8 +91,21 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     if (saving || pending.current || invalid || confirmDiscard) return;
     const controller = new AbortController();
     pending.current = controller;
-    setSaving(true); setError('');
+    setSaving(true); setError(''); setNameError('');
     try {
+      let current = savedName;
+      if (nameChanged) {
+        const renamed = await changeUsername(name);
+        if (controller.signal.aborted || !renamed) return;
+        if (!renamed.ok) {
+          if (renamed.unauthorized) onUnauthorized(); else setNameError(renamed.error);
+          return;
+        }
+        current = renamed.username;
+        setSavedName(current);
+        onRenamed?.(current);
+        if (!profileChanged) { onSaved(original, current); onClose(); return; }
+      }
       const response = await updateProfile(draft, { sessionKey }, controller.signal);
       if (controller.signal.aborted) return;
       if (response.status === 401) { onUnauthorized(); return; }
@@ -90,8 +115,8 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
       }
       const profile = await response.json();
       if (controller.signal.aborted) return;
-      onSaved(profile);
-      window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username, ...profile } }));
+      onSaved(profile, current);
+      window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username: current, ...profile } }));
       onClose();
     } catch {
       if (!controller.signal.aborted) setError('Nie udało się połączyć z serwerem. Twoje zmiany pozostają w formularzu.');
@@ -109,6 +134,12 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     </header>
     <form onSubmit={event => void save(event)}>
       <fieldset disabled={saving} className="profile-editor-fields">
+        <div className="profile-editor-field"><label htmlFor={`${id}-username`}>Nazwa użytkownika</label>
+          <input id={`${id}-username`} autoComplete="username" value={name} maxLength={USERNAME_MAX}
+            aria-invalid={!!nameProblem} aria-describedby={`${id}-username-help`}
+            onChange={event => { setName(event.target.value); setNameError(''); }} />
+          <span id={`${id}-username-help`} className={nameProblem ? 'profile-error' : 'profile-muted'} role={nameProblem ? 'alert' : undefined}>
+            {nameProblem || 'Tak zobaczą Cię inni użytkownicy.'}</span></div>
         <div className="profile-editor-field"><label htmlFor={`${id}-bio`}>O mnie</label>
           <textarea id={`${id}-bio`} value={draft.bio} maxLength={500} rows={4} placeholder="Co Cię interesuje? Czego chcesz się nauczyć?"
             aria-describedby={`${id}-bio-count`} onChange={event => setDraft({ ...draft, bio: event.target.value })} />

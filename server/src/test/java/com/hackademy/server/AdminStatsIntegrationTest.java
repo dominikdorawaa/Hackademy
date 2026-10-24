@@ -68,8 +68,8 @@ class AdminStatsIntegrationTest extends PostgresIntegrationTest {
         jdbcTemplate.update("INSERT INTO user_weekly_active_time (user_id, week_key, seconds, updated_at) VALUES (?, '1999-W01', 50, now())",
                 bob.id());
         jdbcTemplate.update("""
-                INSERT INTO chat_messages (game_id, sender_id, sender_username, content, reported, sent_at)
-                VALUES ('g', ?, 'a', 'zgłoszona', true, now()), ('g', ?, 'a', 'zwykła', false, now())
+                INSERT INTO bug_reports (reporter_id, source, description, status, created_at)
+                VALUES (?, 'ARENA', 'Otwarte zgłoszenie', 'OPEN', now()), (?, 'ARENA', 'Rozwiązane zgłoszenie', 'RESOLVED', now())
                 """, alice.id(), alice.id());
 
         String today = LocalDate.now().toString();
@@ -78,7 +78,7 @@ class AdminStatsIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.totals.users").value(3))
                 .andExpect(jsonPath("$.totals.solves").value(9))
                 .andExpect(jsonPath("$.totals.activeThisWeek").value(1))
-                .andExpect(jsonPath("$.totals.pendingReports").value(1))
+                .andExpect(jsonPath("$.totals.openBugReports").value(1))
                 .andExpect(jsonPath("$.rangeDays").value(7))
                 .andExpect(jsonPath("$.timeline.length()").value(7))
                 .andExpect(jsonPath("$.timeline[0].date").value(LocalDate.now().minusDays(6).toString()))

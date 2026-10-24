@@ -72,6 +72,18 @@ class ArenaChallengeRejectionTest {
     }
 
     @Test
+    void aChallengeCarriesBothPlayersEloSoTheTargetCanJudgeIt() {
+        User challenger = users.findById(1L).orElseThrow();
+        User target = users.findById(2L).orElseThrow();
+        challenger.setElo(812);
+        target.setElo(455);
+        when(users.findAllById(List.of(1L, 2L))).thenReturn(List.of(challenger, target));
+        var sent = challenge(1, 2);
+        assertEquals(812, sent.getChallengerElo());
+        assertEquals(455, sent.getTargetElo());
+    }
+
+    @Test
     void aRejectionLeavesANoticeOnlyForTheChallenger() {
         var sent = challenge(1, 2);
         now.addAndGet(5_000);

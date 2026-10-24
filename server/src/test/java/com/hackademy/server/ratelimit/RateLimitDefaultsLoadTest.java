@@ -44,6 +44,16 @@ class RateLimitDefaultsLoadTest {
     }
 
     @Test
+    void letsOneAccountSendABugReportEveryThirtySeconds() {
+        for (long t = 0; t < 300_000; t += 10_000) {
+            at(t, RateLimitGroup.BUG_REPORT, "account:reporter", 1);
+        }
+
+        assertEquals(new RateLimitProperties.Rule(1, 1, Duration.ofSeconds(30)), properties.rule(RateLimitGroup.BUG_REPORT));
+        assertEquals(20, refusals().get(RateLimitGroup.BUG_REPORT));
+    }
+
+    @Test
     void aClassBehindOneSchoolAddressWorksForTenMinutesWithoutRefusals() {
         for (int student = 0; student < STUDENTS; student++) {
             String account = "account:student-" + student;

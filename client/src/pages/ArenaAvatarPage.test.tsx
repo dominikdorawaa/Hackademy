@@ -1,5 +1,5 @@
 import { setClerkSession } from '../test/clerk';
-import { act, fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
 import { beforeEach, expect, it, vi } from 'vitest';
@@ -23,6 +23,14 @@ import ArenaAvatarPage from './ArenaAvatarPage';
 
 beforeEach(() => { atlas.ready = true; atlas.front = 'blob:front'; atlas.last = null; });
 const setup = () => render(<MemoryRouter><AuthProvider><ThemeProvider><ArenaAvatarPage /></ThemeProvider></AuthProvider></MemoryRouter>);
+const openTab = (name: string) => fireEvent.click(screen.getByRole('tab', { name }));
+
+it('uses the same creator tabs as the onboarding', () => {
+  setup();
+  const tabs = within(screen.getByRole('tablist', { name: 'Kategorie' })).getAllByRole('tab');
+  expect(tabs.map(tab => tab.textContent)).toEqual(['Strój', 'Fryzura i czapka', 'Kolory', 'Finisher', 'Taniec', 'Ikona profilu']);
+  for (const name of ['Postawa', 'Atak', 'Trafienie', 'Upadek', 'Bieg', 'Przeciążenie', 'Ctrl+Alt+Del']) expect(screen.queryByRole('button', { name })).not.toBeInTheDocument();
+});
 
 it('waits for the recolored atlas before showing the preview', () => {
   atlas.ready = false;
@@ -30,19 +38,21 @@ it('waits for the recolored atlas before showing the preview', () => {
   const loader = screen.getByRole('status', { name: 'Przygotowuję postać' });
   expect(loader).not.toHaveAttribute('aria-busy');
   expect(loader.querySelector('.avatar-sprite image')).toHaveAttribute('href', '/assets/arena/avatar-v1/fighter.png');
-  expect(screen.queryByRole('img', { name: /Awatar, animacja/ })).not.toBeInTheDocument();
+  expect(screen.queryByRole('img', { name: 'Twój awatar, widok z przodu' })).not.toBeInTheDocument();
 });
 
 it('offers only outfits that support hairstyles and hats', () => {
   setup();
-  const outfits = screen.getAllByRole<HTMLInputElement>('radio').filter(input => input.name === 'avatar-outfit');
-  expect(outfits.map(input => input.value)).toEqual(['baza', 'bluza', 'dres']);
+  const outfits = within(screen.getByRole('radiogroup', { name: 'Strój' })).getAllByRole('radio');
+  expect(outfits).toHaveLength(3);
+  expect(screen.getByRole('radio', { name: /Klasyczna/ })).toBeChecked();
   expect(screen.queryByText(/Sportowa|Loki/)).not.toBeInTheDocument();
 });
 
-it('customizes colors, previews animations and saves the avatar', () => {
+it('customizes colors, previews the chosen finisher and dance and saves the avatar', () => {
   setup();
   expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled();
+  openTab('Kolory');
   fireEvent.click(screen.getByRole('radio', { name: 'Skóra: Hebanowa' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Włosy: Rude' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Góra: Bordowy' }));
@@ -50,60 +60,60 @@ it('customizes colors, previews animations and saves the avatar', () => {
   fireEvent.click(screen.getByRole('radio', { name: 'Buty: Czerwony' }));
   expect(atlas.last!.colors).toMatchObject({ skin: 'heban', hair: 'rude', top: 'bordowy', bottom: 'bialy', shoes: 'czerwony' });
   expect(screen.getByText('Masz niezapisane zmiany.')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('button', { name: 'Bieg' }));
-  expect(screen.getByRole('button', { name: 'Bieg' })).toHaveAttribute('aria-pressed', 'true');
-  expect(screen.getByRole('img', { name: 'Awatar, animacja: Bieg' })).toHaveAttribute('data-frame', '91');
-  fireEvent.click(screen.getByRole('button', { name: 'Six-seven' }));
-  expect(screen.getByRole('img', { name: 'Awatar, animacja: Six-seven' })).toHaveAttribute('data-frame', '73');
-  fireEvent.click(screen.getByRole('button', { name: 'Przeciążenie' }));
-  expect(screen.getByRole('img', { name: 'Awatar, animacja: Przeciążenie' })).toHaveAttribute('data-frame', '19');
-  fireEvent.click(screen.getByRole('button', { name: 'Ctrl+Alt+Del' }));
-  expect(screen.getByRole('img', { name: 'Awatar, animacja: Ctrl+Alt+Del' })).toHaveAttribute('data-frame', '100');
-  fireEvent.click(screen.getByRole('button', { name: 'Taniec' }));
-  expect(screen.getByRole('img', { name: 'Awatar, animacja: Taniec' })).toHaveAttribute('data-frame', '55');
-  fireEvent.click(screen.getByRole('button', { name: 'Upadek' }));
-  expect(screen.getByRole('img', { name: 'Awatar, animacja: Upadek' })).toHaveAttribute('data-frame', '46');
+  openTab('Finisher');
+  expect(screen.getByRole('radio', { name: /^Przeciążenie/ })).toBeChecked();
+  fireEvent.click(screen.getByRole('radio', { name: /^Ctrl\+Alt\+Del/ }));
+  expect(screen.getByRole('img', { name: 'Twój finisher: Ctrl+Alt+Del' })).toHaveAttribute('data-frame', '100');
+  openTab('Taniec');
+  expect(screen.getByRole('radio', { name: /^Luz/ })).toBeChecked();
+  fireEvent.click(screen.getByRole('radio', { name: /^Scuba/ }));
+  expect(screen.getByRole('img', { name: 'Twój taniec zwycięstwa: Scuba' })).toHaveAttribute('data-frame', '145');
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
-  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ outfit: 'baza', colors: { skin: 'heban', hair: 'rude', top: 'bordowy', bottom: 'bialy', shoes: 'czerwony' } });
+  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ outfit: 'baza', finisher: 'combo', dance: 'scuba', colors: { skin: 'heban', hair: 'rude', top: 'bordowy', bottom: 'bialy', shoes: 'czerwony' } });
   expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled();
 });
 
 it('restores the saved avatar', () => {
-  localStorage.setItem(AVATAR_KEY, JSON.stringify({ outfit: 'baza', hair: 'kucyk', hat: 'brak', colors: { skin: 'ciemna', hair: 'siwe', top: 'bialy', bottom: 'oliwkowy', shoes: 'bordowy', hat: 'czerwony' } }));
+  localStorage.setItem(AVATAR_KEY, JSON.stringify({ outfit: 'baza', hair: 'kucyk', hat: 'brak', dance: 'sixseven', colors: { skin: 'ciemna', hair: 'siwe', top: 'bialy', bottom: 'oliwkowy', shoes: 'bordowy', hat: 'czerwony' } }));
   setup();
-  expect(screen.getByRole('radio', { name: /^Kucyk$/ })).toBeChecked();
+  openTab('Fryzura i czapka');
+  expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked();
+  openTab('Kolory');
   expect(screen.getByRole('radio', { name: 'Włosy: Siwe' })).toBeChecked();
-  expect(screen.getByRole('button', { name: 'Atak' })).toBeInTheDocument();
+  openTab('Taniec');
+  expect(screen.getByRole('radio', { name: /^Six-seven/ })).toBeChecked();
 });
 
 it('chooses a hairstyle and a hat, and hides the hair under the hat', () => {
   setup();
-  expect(screen.getByRole('radio', { name: /^Krótkie$/ })).toBeChecked();
-  fireEvent.click(screen.getByRole('radio', { name: /^Irokez$/ }));
-  fireEvent.click(screen.getByRole('radio', { name: /^Daszek$/ }));
+  openTab('Fryzura i czapka');
+  expect(screen.getByRole('radio', { name: 'Krótkie' })).toBeChecked();
+  fireEvent.click(screen.getByRole('radio', { name: 'Irokez' }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Daszek' }));
+  expect(screen.getByText('Pod czapką fryzura jest schowana. Zdejmij czapkę, żeby ją zobaczyć.')).toBeInTheDocument();
+  openTab('Kolory');
   fireEvent.click(screen.getByRole('radio', { name: 'Kolor czapki: Bordowy' }));
   expect(atlas.last).toMatchObject({ outfit: 'baza', hair: 'irokez', hat: 'daszek', colors: { hat: 'bordowy' } });
-  expect(screen.getByText('Pod czapką fryzura jest schowana. Zdejmij czapkę, żeby ją zobaczyć.')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('radio', { name: /^Bez czapki$/ }));
+  openTab('Fryzura i czapka');
+  fireEvent.click(screen.getByRole('radio', { name: 'Bez czapki' }));
   expect(screen.queryByText(/Pod czapką/)).not.toBeInTheDocument();
-  fireEvent.click(screen.getByRole('radio', { name: /^Bez włosów$/ }));
-  fireEvent.click(screen.getByRole('radio', { name: /^Czapka zimowa$/ }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Bez włosów' }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Czapka zimowa' }));
   expect(screen.queryByText(/Pod czapką/)).not.toBeInTheDocument();
 });
 
 it('shows the avatar from the front by default and falls back to the side view', () => {
   const { unmount } = setup();
-  expect(screen.getByRole('img', { name: 'Awatar, widok z przodu' })).toHaveAttribute('src', 'blob:front');
-  expect(screen.getByRole('button', { name: 'Przód' })).toHaveAttribute('aria-pressed', 'true');
-  fireEvent.click(screen.getByRole('button', { name: 'Postawa' }));
-  expect(screen.queryByRole('img', { name: 'Awatar, widok z przodu' })).not.toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'Twój awatar, widok z przodu' })).toHaveAttribute('src', 'blob:front');
+  fireEvent.click(screen.getByRole('button', { name: 'W walce' }));
+  expect(screen.queryByRole('img', { name: 'Twój awatar, widok z przodu' })).not.toBeInTheDocument();
   unmount();
   atlas.front = null;
   setup();
-  expect(screen.getByRole('img', { name: 'Awatar, animacja: Przód' })).toHaveAttribute('data-frame', '0');
+  expect(screen.getByRole('img', { name: 'Twój awatar w walce' })).toHaveAttribute('data-frame', '0');
 });
 
-const accountAvatar = { outfit: 'dres', hair: 'kucyk', hat: 'brak', skin: 'ciemna', hairColor: 'rude', topColor: 'czerwony', bottomColor: 'bialy', shoesColor: 'granatowy', hatColor: 'turkusowy' };
+const accountAvatar = { outfit: 'dres', hair: 'kucyk', hat: 'brak', skin: 'ciemna', hairColor: 'rude', topColor: 'czerwony', bottomColor: 'bialy', shoesColor: 'granatowy', hatColor: 'turkusowy', finisher: 'combo', victoryDance: 'sixseven' };
 
 it('loads the avatar from the account and saves changes there', async () => {
   setClerkSession(createToken());
@@ -116,13 +126,15 @@ it('loads the avatar from the account and saves changes there', async () => {
   const listener = (event: Event) => updates.push((event as CustomEvent).detail);
   window.addEventListener(PROFILE_UPDATED, listener);
   setup();
-  await waitFor(() => expect(screen.getByRole('radio', { name: /^Kucyk$/ })).toBeChecked());
+  openTab('Fryzura i czapka');
+  await waitFor(() => expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked());
   expect(screen.getByText(/zapisany na Twoim koncie/)).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('radio', { name: /^Daszek$/ }));
+  fireEvent.click(screen.getByRole('radio', { name: 'Daszek' }));
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled());
-  expect(saved).toEqual({ ...accountAvatar, hat: 'daszek', pose: 'przod' });
-  expect(updates).toEqual([{ username: 'tester', avatar: { ...accountAvatar, hat: 'daszek', pose: 'przod' } }]);
+  const stored = { ...accountAvatar, hat: 'daszek', pose: 'przod' };
+  expect(saved).toEqual(stored);
+  expect(updates).toEqual([{ username: 'tester', avatar: stored }]);
   window.removeEventListener(PROFILE_UPDATED, listener);
 });
 
@@ -134,7 +146,8 @@ it('keeps unsaved changes and explains when the account save fails', async () =>
   );
   setup();
   expect(await screen.findByText('Ten awatar nie jest jeszcze zapisany na Twoim koncie.')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('radio', { name: /^Irokez$/ }));
+  openTab('Fryzura i czapka');
+  fireEvent.click(screen.getByRole('radio', { name: 'Irokez' }));
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
   expect(await screen.findByText('Nie udało się zapisać awatara na koncie. Spróbuj ponownie.')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Zapisz awatar' })).toBeEnabled();
@@ -152,11 +165,12 @@ it('blocks editing and saving until the account avatar has loaded', async () => 
   server.use(http.get(currentUserUrl, async () => { await gate; return HttpResponse.json({ ...createUser(), avatar: accountAvatar }); }));
   setup();
   expect(await screen.findByText('Wczytuję awatar z Twojego konta…')).toBeInTheDocument();
-  expect(screen.getByRole('radio', { name: /^Daszek$/ })).toBeDisabled();
+  openTab('Fryzura i czapka');
+  expect(screen.getByRole('radio', { name: 'Daszek' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled();
   release();
-  await waitFor(() => expect(screen.getByRole('radio', { name: /^Kucyk$/ })).toBeChecked());
-  expect(screen.getByRole('radio', { name: /^Daszek$/ })).toBeEnabled();
+  await waitFor(() => expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked());
+  expect(screen.getByRole('radio', { name: 'Daszek' })).toBeEnabled();
 });
 
 it('does not fall back to a browser-only save when the account cannot be loaded', async () => {
@@ -168,7 +182,8 @@ it('does not fall back to a browser-only save when the account cannot be loaded'
   );
   setup();
   expect(await screen.findByText('Nie udało się wczytać awatara z konta. Odśwież stronę, żeby zapisać zmiany.')).toBeInTheDocument();
-  fireEvent.click(screen.getByRole('radio', { name: /^Irokez$/ }));
+  openTab('Fryzura i czapka');
+  fireEvent.click(screen.getByRole('radio', { name: 'Irokez' }));
   const button = screen.getByRole('button', { name: 'Zapisz awatar' });
   expect(button).toBeDisabled();
   fireEvent.click(button);
@@ -189,22 +204,21 @@ it('lets a player save the shown avatar when the account has none yet', async ()
   expect(button).toBeEnabled();
   fireEvent.click(button);
   await waitFor(() => expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled());
-  expect(saved).toMatchObject({ outfit: 'baza' });
+  expect(saved).toMatchObject({ outfit: 'baza', finisher: 'beam', victoryDance: 'groove' });
   expect(screen.getByText(/zapisany na Twoim koncie i widoczny/)).toBeInTheDocument();
 });
 
-it('shows still animation previews when the system asks for reduced motion', () => {
+it('shows still move previews when the system asks for reduced motion', () => {
   const listeners: (() => void)[] = [];
   vi.stubGlobal('matchMedia', (query: string) => ({ matches: query.includes('reduce'), media: query,
     addEventListener: (_: string, listener: () => void) => listeners.push(listener), removeEventListener: vi.fn() }));
   vi.useFakeTimers();
   try {
     setup();
-    fireEvent.click(screen.getByRole('button', { name: 'Atak' }));
-    const sprite = screen.getByRole('img', { name: 'Awatar, animacja: Atak' });
-    const first = sprite.getAttribute('data-frame');
+    openTab('Finisher');
+    expect(screen.getByRole('img', { name: 'Twój finisher: Przeciążenie' })).toHaveAttribute('data-frame', '29');
     act(() => { vi.advanceTimersByTime(600); });
-    expect(screen.getByRole('img', { name: 'Awatar, animacja: Atak' })).toHaveAttribute('data-frame', first!);
+    expect(screen.getByRole('img', { name: 'Twój finisher: Przeciążenie' })).toHaveAttribute('data-frame', '29');
     expect(listeners).toHaveLength(1);
   } finally {
     vi.useRealTimers();
@@ -212,16 +226,19 @@ it('shows still animation previews when the system asks for reduced motion', () 
   }
 });
 
-it('chooses the portrait pose separately from the animation preview and saves it', () => {
+it('chooses the portrait pose separately from the move preview and saves it', () => {
   setup();
-  const poses = screen.getAllByRole<HTMLInputElement>('radio').filter(input => input.name === 'avatar-pose');
-  expect(poses.map(input => input.value)).toEqual(['przod', 'postawa', 'profil']);
+  openTab('Ikona profilu');
+  const poses = within(screen.getByRole('radiogroup', { name: 'Poza na ikonie profilu' })).getAllByRole('radio');
+  expect(poses).toHaveLength(3);
   expect(screen.getByRole('radio', { name: 'Przód' })).toBeChecked();
   expect(screen.getByRole('radio', { name: 'Profil' }).closest('label')!.querySelector('img')).toHaveAttribute('src', 'blob:portrait-profil');
   fireEvent.click(screen.getByRole('radio', { name: 'Profil' }));
-  expect(screen.getByRole('radio', { name: 'Profil' })).toBeChecked();
-  fireEvent.click(screen.getByRole('button', { name: 'Taniec' }));
+  expect(screen.getByText('Ikona profilu, poza: Profil')).toBeInTheDocument();
+  openTab('Taniec');
+  fireEvent.click(screen.getByRole('radio', { name: /^Scuba/ }));
+  openTab('Ikona profilu');
   expect(screen.getByRole('radio', { name: 'Profil' })).toBeChecked();
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
-  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ pose: 'profil' });
+  expect(JSON.parse(localStorage.getItem(AVATAR_KEY)!)).toMatchObject({ pose: 'profil', dance: 'scuba' });
 });

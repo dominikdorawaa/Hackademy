@@ -9,6 +9,8 @@ export interface AvatarConfig {
   shoesColor: string
   hatColor: string
   pose?: string
+  finisher?: string
+  victoryDance?: string
 }
 
 export type ApiDate = string
@@ -40,7 +42,6 @@ export interface ArenaQuestionAdmin extends ArenaQuestionRequest {
 
 export interface ApiError {
   message?: string
-  mutedUntil?: ApiDateTime
   [key: string]: unknown
 }
 
@@ -94,6 +95,8 @@ export interface Challenge {
   targetUsername: string
   createdAt: ApiDateTime
   expiresAt: number
+  challengerElo?: number | null
+  targetElo?: number | null
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED'
 }
 
@@ -164,14 +167,34 @@ export interface ArenaReaction {
   sentAt: number
 }
 
-export interface ChatMessage {
+export type BugReportSource = 'ROOM' | 'ARENA' | 'LAB'
+export type BugReportStatus = 'OPEN' | 'RESOLVED'
+
+export interface BugReportRequest {
+  source: BugReportSource
+  roomId?: number
+  taskId?: number
+  gameId?: string
+  lessonId?: string
+  pagePath?: string
+  description: string
+}
+
+export interface BugReportAdmin {
   id: number
-  gameId: string
-  senderId: number
-  senderUsername: string
-  content: string
-  reported: boolean
-  timestamp: ApiDateTime
+  reporterUsername: string
+  source: BugReportSource
+  roomId: number | null
+  roomTitle: string | null
+  taskId: number | null
+  taskTitle: string | null
+  gameId: string | null
+  lessonId: string | null
+  pagePath: string | null
+  description: string
+  status: BugReportStatus
+  createdAt: ApiDateTime
+  resolvedAt: ApiDateTime | null
 }
 
 export interface ActivityDto {
@@ -336,7 +359,7 @@ export interface AdminStatsDto {
     users: number
     solves: number
     activeThisWeek: number
-    pendingReports: number
+    openBugReports: number
   }
   rangeDays: StatsRange
   timeline: { date: ApiDate; registrations: number; solves: number }[]

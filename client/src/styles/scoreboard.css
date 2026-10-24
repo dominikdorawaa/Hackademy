@@ -1,6 +1,7 @@
 @layer components {
 .user-dashboard,
-.profile-page {
+.profile-page,
+.settings-page {
   --ud-ground: var(--bg-dark);
   --ud-surface: #151f30;
   --ud-surface-2: #1c2840;
@@ -42,7 +43,7 @@
   font-variant-numeric: tabular-nums;
 }
 
-[data-theme='light'] :is(.user-dashboard, .profile-page) {
+[data-theme='light'] :is(.user-dashboard, .profile-page, .settings-page) {
   --ud-surface: #f9fafb;
   --ud-surface-2: #eef1f6;
   --ud-board: #dfe5ee;
