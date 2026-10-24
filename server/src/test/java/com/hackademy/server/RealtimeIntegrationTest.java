@@ -93,6 +93,17 @@ class RealtimeIntegrationTest {
         return ClerkTestTokens.tokenFor(user, ORIGIN);
     }
 
+    private void changeAvatar(User user, String method, String outfit) throws Exception {
+        String body = outfit == null ? "" : "{\"outfit\":\"" + outfit + "\",\"hair\":\"kucyk\",\"hat\":\"brak\",\"skin\":\"jasna\","
+                + "\"hairColor\":\"rude\",\"topColor\":\"bialy\",\"bottomColor\":\"granatowy\",\"shoesColor\":\"czerwony\",\"hatColor\":\"bialy\"}";
+        var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/user/me/avatar"))
+                .header("Authorization", "Bearer " + ClerkTestTokens.tokenFor(user, ORIGIN))
+                .header("Content-Type", "application/json")
+                .method(method, outfit == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertTrue(response.statusCode() < 300, response.body());
+    }
+
     private String state(String token) throws Exception {
         var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/realtime/state"))
                 .header("Authorization", "Bearer " + token).GET().build(), HttpResponse.BodyHandlers.ofString());
@@ -329,6 +340,34 @@ class RealtimeIntegrationTest {
                 LongSupplier system = System::currentTimeMillis;
                 ReflectionTestUtils.invokeMethod(arena, "useClock", system);
             }
+        }
+    }
+
+    @Test
+    void aSavedAvatarReachesTheOtherSideOfAChallengeWithoutAFriendship() throws Exception {
+        var a = user(); var b = user();
+        try (var sa = connected(a); var sb = connected(b)) {
+            arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername());
+            sa.receive();
+            String sent = RealtimeSocket.body(sb.receive());
+            assertNull(JsonPath.read(sent, "$.state.challenges[0].challengerAvatar"));
+            changeAvatar(a, "PUT", "dres");
+            await().atMost(5, TimeUnit.SECONDS).ignoreExceptions().until(() -> {
+                String next = RealtimeSocket.body(sb.receive());
+                return "dres".equals(JsonPath.read(next, "$.state.challenges[0].challengerAvatar.outfit"));
+            });
+            changeAvatar(b, "PUT", "bluza");
+            await().atMost(5, TimeUnit.SECONDS).ignoreExceptions().until(() -> {
+                String next = RealtimeSocket.body(sa.receive());
+                return "bluza".equals(JsonPath.read(next, "$.state.outgoingChallenges[0].targetAvatar.outfit"))
+                        && "dres".equals(JsonPath.read(next, "$.state.outgoingChallenges[0].challengerAvatar.outfit"));
+            });
+            changeAvatar(a, "DELETE", null);
+            await().atMost(5, TimeUnit.SECONDS).ignoreExceptions().until(() -> {
+                String next = RealtimeSocket.body(sb.receive());
+                return JsonPath.read(next, "$.state.challenges[0].challengerAvatar") == null;
+            });
+            assertEquals("bluza", JsonPath.read(state(ClerkTestTokens.tokenFor(b, ORIGIN)), "$.challenges[0].targetAvatar.outfit"));
         }
     }
 

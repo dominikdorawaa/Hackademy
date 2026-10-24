@@ -31,6 +31,7 @@ import org.mockito.ArgumentCaptor;
 import org.mockito.InjectMocks;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
@@ -59,6 +60,7 @@ class UserServiceImplTest {
     @Mock PathRepository pathRepository;
     @Mock UserAvatarRepository userAvatarRepository;
     @Mock com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
+    @Mock ApplicationEventPublisher events;
     @InjectMocks UserServiceImpl service;
 
     @AfterEach
@@ -88,6 +90,7 @@ class UserServiceImplTest {
 
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
         verify(friendshipService).invalidateProfileCaches(1L);
+        verifyNoInteractions(events);
     }
 
     @Test
@@ -459,10 +462,11 @@ class UserServiceImplTest {
 
         assertEquals(avatar, service.saveAvatar(1L, avatar));
         service.deleteAvatar(1L);
-        verifyNoInteractions(friendshipService);
+        verifyNoInteractions(friendshipService, events);
 
         TransactionSynchronizationManager.getSynchronizations().forEach(TransactionSynchronization::afterCommit);
         verify(friendshipService, times(2)).invalidateProfileCaches(1L);
+        verify(events, times(2)).publishEvent(new AvatarChangedEvent(1L));
     }
 
     @Test
@@ -470,6 +474,7 @@ class UserServiceImplTest {
         when(userAvatarRepository.findById(1L)).thenReturn(Optional.empty());
         service.deleteAvatar(1L);
         verify(friendshipService).invalidateProfileCaches(1L);
+        verify(events).publishEvent(new AvatarChangedEvent(1L));
     }
 
     private record Recent(Long getRoomId, String getTitle, DifficultyLevel getDifficulty, Integer getPoints,
