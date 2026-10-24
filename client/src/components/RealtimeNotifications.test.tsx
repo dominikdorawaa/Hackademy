@@ -6,10 +6,16 @@ import type { RealtimeState } from '../types/realtime';
 import RealtimeNotifications, { ONLINE_TOAST_COOLDOWN_MS, TOAST_DURATION_MS, describeFriendsOnline, describeInvitations, CHALLENGE_TOAST_DURATION_MS } from './RealtimeNotifications';
 import RealtimeGameNavigation from './RealtimeGameNavigation';
 import { createGameSession } from '../test/fixtures/arena';
+import { avatarFromUsername, toAvatarConfig } from './arena/avatar/avatarModel';
+import type { AvatarConfig } from '../types/api';
 
 const environment = vi.hoisted(() => ({ sessionKey: 'first', state: null as RealtimeState | null, connected: true, loaded: true,
+  user: null as { username: string; avatar?: AvatarConfig | null } | null,
   preferences: { friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: true, friendOnline: true } }));
-vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ sessionKey: environment.sessionKey }) }));
+vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ sessionKey: environment.sessionKey, user: environment.user }) }));
+vi.mock('./arena/avatar/useAvatarAtlas', () => ({
+  useAvatarPortrait: (config: AvatarConfig | null | undefined) => config ? `blob:${config.outfit}-${config.hair}-${config.skin}` : null,
+}));
 vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state, connected: environment.connected, synchronize: async () => {} }) }));
 const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), unlock: vi.fn(async () => true) }));
 vi.mock('../lib/notificationSounds', async importOriginal => ({
@@ -38,6 +44,7 @@ beforeEach(() => {
   sounds.play.mockClear();
   sounds.unlock.mockClear();
   environment.sessionKey = 'first';
+  environment.user = null;
   environment.state = snapshot();
   environment.connected = true;
   environment.loaded = true;
@@ -538,5 +545,54 @@ describe('invitation toast actions', () => {
     environment.state = { ...snapshot(), revision: 3 };
     rerender(<RealtimeNotifications />);
     expect(screen.queryByRole('group', { name: 'Zaproszenie do znajomych' })).not.toBeInTheDocument();
+  });
+});
+
+describe('invitation toast portraits', () => {
+  const look = (outfit: string, hair: string): AvatarConfig => ({ outfit, hair, hat: 'brak', skin: 'jasna', hairColor: 'rude',
+    topColor: 'bialy', bottomColor: 'granatowy', shoesColor: 'czerwony', hatColor: 'bialy' });
+  const portrait = (avatar: AvatarConfig) => `blob:${avatar.outfit}-${avatar.hair}-${avatar.skin}`;
+  const challenge = (challengerAvatar?: AvatarConfig | null) => ({ id: 'duel', challengerId: 2, challengerUsername: 'kuba', targetId: 1,
+    targetUsername: 'first', createdAt: request.createdAt, status: 'PENDING' as const, expiresAt: 1_060_000, challengerAvatar });
+  const portraits = (name: string) => [...screen.getByRole('group', { name }).querySelectorAll('img.invite-portrait')];
+
+  it('puts the challenger and the viewer side by side with their saved avatars', () => {
+    const own = look('baza', 'krotkie');
+    const challenger = look('dres', 'kucyk');
+    environment.user = { username: 'first', avatar: own };
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, challenges: [challenge(challenger)] };
+    rerender(<RealtimeNotifications />);
+    const [them, me] = portraits('Wyzwanie w Arenie');
+    expect(them).toHaveAttribute('src', portrait(challenger));
+    expect(them).toHaveAttribute('data-avatar', 'custom');
+    expect(me).toHaveAttribute('src', portrait(own));
+    expect(me).toHaveClass('invite-portrait-own');
+  });
+
+  it('follows an avatar changed while the toast is still on screen', () => {
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [{ ...request, avatar: look('bluza', 'irokez') }], challenges: [challenge(look('dres', 'kucyk'))] };
+    rerender(<RealtimeNotifications />);
+    const changed = look('baza', 'brak');
+    environment.state = { ...snapshot(), revision: 3, friendRequests: [{ ...request, avatar: changed }], challenges: [challenge(changed)] };
+    rerender(<RealtimeNotifications />);
+    expect(portraits('Zaproszenie do znajomych')[0]).toHaveAttribute('src', portrait(changed));
+    expect(portraits('Wyzwanie w Arenie')[0]).toHaveAttribute('src', portrait(changed));
+    environment.state = { ...snapshot(), revision: 4, challenges: [challenge(null)] };
+    rerender(<RealtimeNotifications />);
+    expect(portraits('Wyzwanie w Arenie')[0]).toHaveAttribute('data-avatar', 'generated');
+  });
+
+  it('draws accounts without a saved avatar from their name, the viewer included', () => {
+    environment.user = { username: 'first', avatar: null };
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request], challenges: [challenge()] };
+    rerender(<RealtimeNotifications />);
+    expect(portraits('Zaproszenie do znajomych')[0]).toHaveAttribute('src', portrait(toAvatarConfig(avatarFromUsername('friend'))));
+    const [them, me] = portraits('Wyzwanie w Arenie');
+    expect(them).toHaveAttribute('src', portrait(toAvatarConfig(avatarFromUsername('kuba'))));
+    expect(me).toHaveAttribute('src', portrait(toAvatarConfig(avatarFromUsername('first'))));
+    for (const image of [them, me]) expect(image).toHaveAttribute('data-avatar', 'generated');
   });
 });
