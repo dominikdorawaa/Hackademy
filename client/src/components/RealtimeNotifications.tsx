@@ -4,6 +4,7 @@ import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
 import { loudestEvent, playSound, unlockAudio } from '../lib/notificationSounds';
 import type { SoundEvent } from '../lib/notificationSounds';
+import type { RealtimeState } from '../types/realtime';
 import './RealtimeNotifications.css';
 
 interface Alert {
@@ -35,7 +36,7 @@ export default function RealtimeNotifications() {
   const { state, connected } = useRealtime();
   const { preferences, loaded } = useNotificationPreferences();
   const seen = useRef<{ sessionKey: string | null; stream: string; ids: Set<string>; offlineFriends: Set<number>;
-    pending: Map<string, Alert>; expired: Set<string>; expiredMissed: boolean } | null>(null);
+    pending: Map<string, Alert>; expired: Set<string>; staleState: RealtimeState | null } | null>(null);
   const lastOnlineToast = useRef(new Map<number, number>());
   const nextToastId = useRef(0);
   const toastTimers = useRef(new Map<number, number>());
@@ -81,7 +82,7 @@ export default function RealtimeNotifications() {
     const offlineFriends = new Set(state.friends.filter(friend => !friend.online).map(friend => friend.id));
     if (!seen.current || seen.current.sessionKey !== sessionKey || seen.current.stream !== state.streamId) {
       seen.current = { sessionKey, stream: state.streamId, ids: new Set(events.map(event => event.id)), offlineFriends, pending: new Map(),
-        expired: new Set(state.expiredChallenges.map(challenge => challenge.id)), expiredMissed: false };
+        expired: new Set(state.expiredChallenges.map(challenge => challenge.id)), staleState: null };
       return;
     }
     const history = seen.current;
@@ -95,9 +96,12 @@ export default function RealtimeNotifications() {
     history.pending.forEach((_event, id) => { if (!activeIds.has(id)) history.pending.delete(id); });
     history.ids.forEach(id => { if (id.startsWith(ONLINE_EVENT_PREFIX) && !activeIds.has(id)) history.ids.delete(id); });
     if (!loaded) return;
-    const expired = history.expiredMissed ? [] : state.expiredChallenges.filter(challenge => !history.expired.has(challenge.id));
-    history.expired = new Set(state.expiredChallenges.map(challenge => challenge.id));
-    history.expiredMissed = false;
+    const missed = history.staleState !== null;
+    const expired = missed ? [] : state.expiredChallenges.filter(challenge => !history.expired.has(challenge.id));
+    if (history.staleState !== state) {
+      history.expired = new Set(state.expiredChallenges.map(challenge => challenge.id));
+      history.staleState = null;
+    }
     if (preferences.challenges) expired.forEach(challenge => showToast(`Wyzwanie dla ${challenge.targetUsername} wygasło bez odpowiedzi.`));
     const now = Date.now();
     const eligible = [...history.pending.values()].filter(event => preferences[event.category]
@@ -124,8 +128,8 @@ export default function RealtimeNotifications() {
   }, [state, sessionKey, preferences, loaded, showToast]);
 
   useEffect(() => {
-    if (!connected && seen.current) seen.current.expiredMissed = true;
-  }, [connected]);
+    if (!connected && seen.current) seen.current.staleState = state;
+  }, [connected, state]);
 
   useEffect(() => {
     const timers = toastTimers.current;

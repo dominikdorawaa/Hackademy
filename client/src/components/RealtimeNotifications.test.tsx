@@ -321,6 +321,26 @@ describe('expired challenge toasts', () => {
     expect(screen.queryByText(/kuba/)).not.toBeInTheDocument();
   });
 
+  it('keeps waiting for a fresh state when preferences change while the connection is down', () => {
+    environment.state = withExpired(1);
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.connected = false;
+    rerender(<RealtimeNotifications />);
+    environment.preferences = { ...environment.preferences, sound: true };
+    rerender(<RealtimeNotifications />);
+    environment.connected = true;
+    rerender(<RealtimeNotifications />);
+    environment.preferences = { ...environment.preferences, sound: false };
+    rerender(<RealtimeNotifications />);
+    environment.state = withExpired(2, expired('missed', 'kuba'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.state = withExpired(3, expired('missed', 'kuba'), expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('Wyzwanie dla ola wygasło bez odpowiedzi.');
+    expect(screen.queryByText(/kuba/)).not.toBeInTheDocument();
+  });
+
   it('waits for the loaded preferences and stays silent when challenge notifications are off', () => {
     environment.loaded = false;
     environment.state = withExpired(1);
