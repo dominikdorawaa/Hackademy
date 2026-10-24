@@ -13,7 +13,7 @@ public record AdminStatsDto(
     List<Slice> solvesBySource,
     List<RecentSolve> recentSolves
 ) {
-    public record Totals(long users, long solves, long activeThisWeek, long pendingReports) {}
+    public record Totals(long users, long solves, long activeThisWeek, long openBugReports) {}
 
     public record Day(LocalDate date, long registrations, long solves) {}
 

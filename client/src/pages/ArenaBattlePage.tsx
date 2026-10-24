@@ -13,6 +13,7 @@ import { useArenaSession } from '../hooks/useArenaSession';
 import { useBattlePresence } from '../hooks/useBattlePresence';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
+import { BugReportButton } from '../components/bugReport/BugReportButton';
 import * as arenaApi from '../services/arenaApi';
 import * as userApi from '../services/userApi';
 import type { AvatarConfig } from '../types/api';
@@ -200,19 +201,18 @@ export default function ArenaBattlePage() {
           ) : null}
         </div>
 
-        {!finished && (
-          <div className="battle-actions">
-            {confirmSurrender ? (
-              <>
-                <span>Poddanie oznacza porażkę.</span>
-                <button type="button" className="ud-btn ud-btn-small battle-surrender" onClick={() => void surrender()}>Tak, poddaję walkę</button>
-                <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(false)}>Walczę dalej</button>
-              </>
-            ) : (
-              <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(true)}>Poddaj walkę</button>
-            )}
-          </div>
-        )}
+        <div className="battle-actions">
+          <BugReportButton labelled className="ud-btn ud-btn-small battle-report" context={{ source: 'ARENA', gameId: session.id }} />
+          {!finished && (confirmSurrender ? (
+            <>
+              <span>Poddanie oznacza porażkę.</span>
+              <button type="button" className="ud-btn ud-btn-small battle-surrender" onClick={() => void surrender()}>Tak, poddaję walkę</button>
+              <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(false)}>Walczę dalej</button>
+            </>
+          ) : (
+            <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(true)}>Poddaj walkę</button>
+          ))}
+        </div>
       </div>
     </div>
   );

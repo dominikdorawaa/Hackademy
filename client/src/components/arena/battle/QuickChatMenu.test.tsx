@@ -68,6 +68,6 @@ it('closes when focus or a tap leaves the menu', () => {
 });
 
 it('shows why a reaction was refused', () => {
-  mount(vi.fn(), 'Masz wyciszone reakcje na stałe.');
-  expect(screen.getByRole('alert')).toHaveTextContent('Masz wyciszone reakcje na stałe.');
+  mount(vi.fn(), 'Za szybko. Kolejna reakcja za 2 s.');
+  expect(screen.getByRole('alert')).toHaveTextContent('Za szybko. Kolejna reakcja za 2 s.');
 });

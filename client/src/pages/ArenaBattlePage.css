@@ -986,6 +986,10 @@ button.battle-answer:disabled {
   font-size: var(--ud-text-s);
 }
 
+.battle-report {
+  margin-right: auto;
+}
+
 .battle-page .battle-surrender:hover {
   background: var(--ud-hard);
 }

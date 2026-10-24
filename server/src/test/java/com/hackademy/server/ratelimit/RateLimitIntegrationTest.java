@@ -99,6 +99,18 @@ class RateLimitIntegrationTest {
     }
 
     @Test
+    void anEncodedAddressSharesTheBugReportBudget() throws Exception {
+        User user = ClerkTestTokens.createUser(userRepository, name("reporter"), Role.USER);
+        String bearer = ClerkTestTokens.bearer(user);
+
+        assertEquals(201, send(bugReport("/api/bug-reports", bearer, "Pierwsze zgłoszenie z areny")).statusCode());
+        var encoded = send(bugReport("/api/%62ug-reports", bearer, "Drugie zgłoszenie z areny"));
+
+        assertEquals(429, encoded.statusCode());
+        assertEquals("30", encoded.headers().firstValue("Retry-After").orElseThrow());
+    }
+
+    @Test
     void givesEverySignedInPersonBehindOneAddressTheirOwnBudget() throws Exception {
         for (int person = 0; person < 4; person++) {
             User user = ClerkTestTokens.createUser(userRepository, name("student"), Role.USER);
@@ -181,6 +193,16 @@ class RateLimitIntegrationTest {
                 .header("Authorization", bearer)
                 .header("Content-Type", "application/json")
                 .method("PATCH", HttpRequest.BodyPublishers.ofString("{\"bio\":\"" + bio + "\"}"));
+    }
+
+    private HttpRequest.Builder bugReport(String path, String bearer, String description) {
+        return HttpRequest.newBuilder(URI.create("http://localhost:" + port + path))
+                .timeout(Duration.ofSeconds(5))
+                .header(OriginGuardFilter.SECRET_HEADER, SECRET)
+                .header("CF-Connecting-IP", "203.0.113.35")
+                .header("Authorization", bearer)
+                .header("Content-Type", "application/json")
+                .POST(HttpRequest.BodyPublishers.ofString("{\"source\":\"ARENA\",\"description\":\"" + description + "\"}"));
     }
 
     private HttpRequest.Builder get(String path, String address) {

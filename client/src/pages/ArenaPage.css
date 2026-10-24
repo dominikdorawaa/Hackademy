@@ -540,6 +540,18 @@ html[data-reduced-motion='true'] .arena-rejected-card {
   line-height: 1.2;
 }
 
+.arena-report {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 8px 12px;
+  margin-top: 24px;
+  padding-top: 16px;
+  border-top: 1px solid var(--ud-track);
+  color: var(--ud-muted);
+  font-size: var(--ud-text-s);
+}
+
 .arena-rules {
   counter-reset: arena-rule;
   display: flex;

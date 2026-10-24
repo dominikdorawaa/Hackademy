@@ -358,3 +358,25 @@ it('starts running as soon as the player asks to join the queue', async () => {
   expect(screen.getByRole('button', { name: 'Anuluj' })).toBeDisabled();
   releaseJoin();
 });
+
+it('lets a player report an arena problem from the lobby', async () => {
+  let body: unknown = null;
+  server.use(http.post(`${API_URL}/api/bug-reports`, async ({ request }) => { body = await request.json(); return HttpResponse.json({ message: 'ok' }, { status: 201 }); }));
+  mount();
+  expect(await screen.findByText('Coś nie działa na arenie?')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Zgłoś błąd' }));
+  fireEvent.change(await screen.findByLabelText('Opis problemu'), { target: { value: 'Kolejka nie znajduje rywala' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Wyślij zgłoszenie' }));
+  await waitFor(() => expect(body).toEqual({ source: 'ARENA', pagePath: '/', description: 'Kolejka nie znajduje rywala' }));
+});
+
+it('attaches the current match to an arena report', async () => {
+  let body: unknown = null;
+  realtime.value = { ...realtime.value, state: state({ gameSession: createGameSession({ id: 'match-1' }) }) };
+  server.use(http.post(`${API_URL}/api/bug-reports`, async ({ request }) => { body = await request.json(); return HttpResponse.json({ message: 'ok' }, { status: 201 }); }));
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: 'Zgłoś błąd' }));
+  fireEvent.change(await screen.findByLabelText('Opis problemu'), { target: { value: 'Mecz nie chce się otworzyć' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Wyślij zgłoszenie' }));
+  await waitFor(() => expect(body).toMatchObject({ source: 'ARENA', gameId: 'match-1' }));
+});

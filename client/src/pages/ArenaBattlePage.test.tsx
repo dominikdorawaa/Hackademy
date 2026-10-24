@@ -170,6 +170,31 @@ it('shows the result with the Elo change when the battle ends', async () => {
   expect(screen.queryByRole('timer')).not.toBeInTheDocument();
 });
 
+it('lets a player report a problem with the battle without leaving it', async () => {
+  let body: unknown = null;
+  const left = vi.fn();
+  server.use(
+    http.post(`${API_URL}/api/bug-reports`, async ({ request }) => { body = await request.json(); return HttpResponse.json({ message: 'ok' }, { status: 201 }); }),
+    http.post(`${API_URL}/api/arena/game/game/leave`, () => { left(); return new HttpResponse(null, { status: 204 }); }),
+  );
+  mount();
+  await screen.findByRole('heading', { name: 'Na którym porcie domyślnie działa SSH?' });
+  fireEvent.click(screen.getByRole('button', { name: 'Zgłoś błąd' }));
+  fireEvent.change(await screen.findByLabelText('Opis problemu'), { target: { value: 'Pasek HP nie spadł po trafieniu' } });
+  fireEvent.click(screen.getByRole('button', { name: 'Wyślij zgłoszenie' }));
+  await waitFor(() => expect(body).toEqual({ source: 'ARENA', gameId: 'game', pagePath: '/arena/battle/game', description: 'Pasek HP nie spadł po trafieniu' }));
+  expect(await screen.findByText('Dziękujemy! Zgłoszenie trafiło do zespołu.')).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Poddaj walkę' })).toBeInTheDocument();
+  expect(left).not.toHaveBeenCalled();
+});
+
+it('still offers a bug report on the result screen', async () => {
+  realtime.value = { ...realtime.value, state: live(createGameSession({ status: 'FINISHED', winnerId: 1, finishReason: 'KNOCKOUT', hp: { 1: 40, 2: 0 } })) };
+  mount();
+  expect(await screen.findByRole('heading', { name: 'Zwycięstwo' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Zgłoś błąd' })).toBeInTheDocument();
+});
+
 it('asks before surrendering and reports a failed surrender', async () => {
   let surrendered = 0;
   server.use(http.post(`${API_URL}/api/arena/game/game/surrender`, () => { surrendered++; return HttpResponse.json({ message: 'nie' }, { status: 500 }); }));
@@ -270,16 +295,16 @@ it('sends a quick reaction from the own portrait and has no text chat', async ()
   expect(screen.queryByRole('alert')).toBeNull();
 });
 
-it('explains a muted or too fast reaction', async () => {
+it('explains a refused or too fast reaction', async () => {
   const replies = [
-    HttpResponse.json({ message: 'Masz wyciszone reakcje.', mutedUntil: '2126-01-01T12:00:00Z' }, { status: 403 }),
+    HttpResponse.json({ message: 'Brak walki.' }, { status: 404 }),
     HttpResponse.json({ message: 'Za szybko.', retryAfter: 2 }, { status: 429 }),
   ];
   server.use(http.post(`${API_URL}/api/arena/game/game/reaction`, () => replies.shift() ?? HttpResponse.error()));
   mount();
   await openQuickChat();
   fireEvent.click(screen.getByRole('menuitem', { name: 'GG' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Masz wyciszone reakcje na stałe.');
+  expect(await screen.findByRole('alert')).toHaveTextContent('Ta walka nie jest już dostępna.');
   await openQuickChat();
   fireEvent.click(screen.getByRole('menuitem', { name: 'Śmiech' }));
   expect(await screen.findByText('Za szybko. Kolejna reakcja za 2 s.')).toBeInTheDocument();
@@ -295,14 +320,11 @@ it('shows the rival reaction to the player', async () => {
 });
 
 it('words every refused reaction', () => {
-  const now = Date.parse('2026-10-18T12:00:00Z');
-  expect(reactionRefusal(403, { mutedUntil: '2026-10-18T12:30:00Z' }, now)).toMatch(/^Masz wyciszone reakcje do .+.$/);
-  expect(reactionRefusal(403, { mutedUntil: '2126-10-18T12:00:00Z' }, now)).toBe('Masz wyciszone reakcje na stałe.');
-  expect(reactionRefusal(403, { mutedUntil: 'nie data' }, now)).toBe('Masz wyciszone reakcje.');
-  expect(reactionRefusal(403, null, now)).toBe('Nie udało się wysłać reakcji.');
-  expect(reactionRefusal(429, {}, now)).toBe('Za szybko. Kolejna reakcja za 1 s.');
-  expect(reactionRefusal(404, null, now)).toBe('Ta walka nie jest już dostępna.');
-  expect(reactionRefusal(500, null, now)).toBe('Nie udało się wysłać reakcji.');
+  expect(reactionRefusal(403, null)).toBe('Nie udało się wysłać reakcji.');
+  expect(reactionRefusal(429, {})).toBe('Za szybko. Kolejna reakcja za 1 s.');
+  expect(reactionRefusal(429, { retryAfter: 3 })).toBe('Za szybko. Kolejna reakcja za 3 s.');
+  expect(reactionRefusal(404, null)).toBe('Ta walka nie jest już dostępna.');
+  expect(reactionRefusal(500, null)).toBe('Nie udało się wysłać reakcji.');
 });
 
 it('explains that a battle missing after a server restart was cancelled', async () => {
