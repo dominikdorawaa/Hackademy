@@ -5,7 +5,7 @@ import { AdminAccessRoute, AdminOnly } from './adminAccess';
 import AdminLayout from './AdminLayout';
 const DashboardPage = lazy(() => import('./DashboardPage'));
 const UsersPage = lazy(() => import('./UsersPage'));
-const ReportsPage = lazy(() => import('./ReportsPage'));
+const BugReportsPage = lazy(() => import('./BugReportsPage'));
 const RoomsPage = lazy(() => import('./RoomsPage'));
 const RoomEditorPage = lazy(() => import('./RoomEditorPage'));
 const PathsPage = lazy(() => import('./PathsPage'));
@@ -25,7 +25,7 @@ const adminRoutes = (
   >
     <Route index element={<AdminOnly><DashboardPage /></AdminOnly>} />
     <Route path="users" element={<AdminOnly><UsersPage /></AdminOnly>} />
-    <Route path="reports" element={<AdminOnly><ReportsPage /></AdminOnly>} />
+    <Route path="bug-reports" element={<AdminOnly><BugReportsPage /></AdminOnly>} />
     <Route path="arena/questions" element={<AdminOnly><ArenaQuestionsPage /></AdminOnly>} />
     <Route path="preview/rooms/:id" element={<RoomPage preview />} />
     <Route path="preview/paths/:id" element={<PathDetailPage preview />} />

@@ -1,5 +1,6 @@
 package com.hackademy.server.ratelimit;
 
+import com.hackademy.server.bugreport.BugReportController;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -14,6 +15,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -80,6 +82,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
                     ? RateLimitGroup.PUBLIC_BANNER
                     : RateLimitGroup.ANONYMOUS;
         }
+        if (HttpMethod.POST.matches(method) && path.equals(BugReportController.PATH)) {
+            return RateLimitGroup.BUG_REPORT;
+        }
         return READ_METHODS.contains(method) ? RateLimitGroup.API_READ : RateLimitGroup.API_WRITE;
     }
 
@@ -110,8 +115,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private static String path(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        String context = request.getContextPath();
-        return context != null && !context.isEmpty() && uri.startsWith(context) ? uri.substring(context.length()) : uri;
+        return UrlPathHelper.defaultInstance.getPathWithinApplication(request);
     }
 }

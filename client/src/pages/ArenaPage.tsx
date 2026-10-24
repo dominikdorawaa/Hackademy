@@ -15,6 +15,7 @@ import { ArenaLoader, ArenaRunner } from '../components/arena/ArenaLoader';
 import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
 import { secondsLeft } from '../components/arena/battle/battleView';
 import { useArenaClock } from '../hooks/useArenaClock';
+import { BugReportButton } from '../components/bugReport/BugReportButton';
 import type { DashboardUser, RankingEntry } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaPage.css';
@@ -403,6 +404,10 @@ const ArenaPage = () => {
                             <li>Gdy ktoś opuści walkę lub straci połączenie, pojedynek staje na maksymalnie 10 sekund. Każdy gracz ma jedną pauzę na mecz, a jej czas wlicza się do tych 30 sekund. Gdy oboje są nieobecni przez 30 sekund, mecz jest anulowany bez zmiany Elo.</li>
                         </ol>
                         <Link className="ud-link" to="/ranking">Pełny ranking</Link>
+                        <div className="arena-report">
+                            <p>Coś nie działa na arenie?</p>
+                            <BugReportButton labelled className="ud-btn ud-btn-small" context={{ source: 'ARENA', gameId: gameSession?.id }} />
+                        </div>
                     </section>
                 </aside>
             </div>

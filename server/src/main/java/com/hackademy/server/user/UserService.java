@@ -34,7 +34,6 @@ public interface UserService {
     void updateBio(Long userId, UpdateBioRequest request);
     List<UserSearchDto> searchUsers(String query, Long currentUserId);
     Long getUserIdByUsername(String username);
-    void muteUser(Long userId, long durationInSeconds);
     RankingEntry getUserRank(Long userId); // New method
     boolean hasSolvedTutorialVpn(Long userId); // New method
     List<ActivityDto> getUserActivity(Long userId); // New method

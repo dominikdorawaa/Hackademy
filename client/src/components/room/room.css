@@ -102,6 +102,20 @@
 .room-nav-back:focus-visible { outline: 2px solid var(--rm-link); outline-offset: 2px; }
 .room-nav-sep { color: var(--rm-line-strong); }
 
+.room-nav-report {
+  flex: none;
+  margin-left: auto;
+  padding: 6px;
+  border: 0;
+  border-radius: 4px;
+  background: none;
+  color: var(--rm-muted);
+  transition: color 160ms var(--rm-ease);
+}
+
+.room-nav-report:hover { color: var(--rm-ink); }
+.room-nav-report:focus-visible { outline: 2px solid var(--rm-link); outline-offset: 2px; }
+
 .room-nav-title {
   min-width: 0;
   overflow: hidden;
@@ -812,6 +826,7 @@
 
 @media (prefers-reduced-motion: reduce) {
   .room-nav-back,
+  .room-nav-report,
   .room-input,
   .room-meter span,
   .room-btn,

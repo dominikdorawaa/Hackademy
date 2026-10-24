@@ -415,3 +415,38 @@ describe('next room in a path', () => {
     expect(screen.getByTestId('location')).toHaveTextContent('/learn:PUSH');
   });
 });
+
+describe('bug reports from a room', () => {
+  it('reports a problem with the task the player is reading', async () => {
+    let body: unknown = null;
+    server.use(http.post(`${API_URL}/api/bug-reports`, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ message: 'ok' }, { status: 201 });
+    }));
+    mount([
+      { id: 1, title: 'Pierwsze', content: 'A', question: null, completed: true },
+      { id: 2, title: 'Drugie', content: 'B', question: 'Ile?', completed: false },
+    ]);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Lista zadań' }));
+    await user.click(screen.getByRole('button', { name: /Drugie/ }));
+    await user.click(screen.getByRole('button', { name: 'Zgłoś błąd' }));
+    await user.type(await screen.findByLabelText('Opis problemu'), 'Pytanie nie przyjmuje odpowiedzi');
+    await user.click(screen.getByRole('button', { name: 'Wyślij zgłoszenie' }));
+    await waitFor(() => expect(body).toEqual({ source: 'ROOM', roomId: 7, taskId: 2, pagePath: '/rooms/7', description: 'Pytanie nie przyjmuje odpowiedzi' }));
+  });
+
+  it('reports a flag room without a task', async () => {
+    let body: unknown = null;
+    server.use(http.post(`${API_URL}/api/bug-reports`, async ({ request }) => {
+      body = await request.json();
+      return HttpResponse.json({ message: 'ok' }, { status: 201 });
+    }));
+    mount([]);
+    const user = userEvent.setup();
+    await user.click(await screen.findByRole('button', { name: 'Zgłoś błąd' }));
+    await user.type(await screen.findByLabelText('Opis problemu'), 'Plik do pobrania jest pusty');
+    await user.click(screen.getByRole('button', { name: 'Wyślij zgłoszenie' }));
+    await waitFor(() => expect(body).toEqual({ source: 'ROOM', roomId: 7, pagePath: '/rooms/7', description: 'Plik do pobrania jest pusty' }));
+  });
+});

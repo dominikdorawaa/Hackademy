@@ -40,7 +40,6 @@ export interface ArenaQuestionAdmin extends ArenaQuestionRequest {
 
 export interface ApiError {
   message?: string
-  mutedUntil?: ApiDateTime
   [key: string]: unknown
 }
 
@@ -164,14 +163,32 @@ export interface ArenaReaction {
   sentAt: number
 }
 
-export interface ChatMessage {
+export type BugReportSource = 'ROOM' | 'ARENA'
+export type BugReportStatus = 'OPEN' | 'RESOLVED'
+
+export interface BugReportRequest {
+  source: BugReportSource
+  roomId?: number
+  taskId?: number
+  gameId?: string
+  pagePath?: string
+  description: string
+}
+
+export interface BugReportAdmin {
   id: number
-  gameId: string
-  senderId: number
-  senderUsername: string
-  content: string
-  reported: boolean
-  timestamp: ApiDateTime
+  reporterUsername: string
+  source: BugReportSource
+  roomId: number | null
+  roomTitle: string | null
+  taskId: number | null
+  taskTitle: string | null
+  gameId: string | null
+  pagePath: string | null
+  description: string
+  status: BugReportStatus
+  createdAt: ApiDateTime
+  resolvedAt: ApiDateTime | null
 }
 
 export interface ActivityDto {
@@ -336,7 +353,7 @@ export interface AdminStatsDto {
     users: number
     solves: number
     activeThisWeek: number
-    pendingReports: number
+    openBugReports: number
   }
   rangeDays: StatsRange
   timeline: { date: ApiDate; registrations: number; solves: number }[]

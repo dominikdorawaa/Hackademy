@@ -1,11 +1,9 @@
 package com.hackademy.server.arena;
 
-import java.time.LocalDateTime;
-
-public record ReactionOutcome(Status status, LocalDateTime mutedUntil, long retryAfterMillis) {
-    public enum Status { SENT, NOT_PLAYER, UNKNOWN_REACTION, MUTED, TOO_FAST }
+public record ReactionOutcome(Status status, long retryAfterMillis) {
+    public enum Status { SENT, NOT_PLAYER, UNKNOWN_REACTION, TOO_FAST }
 
     static ReactionOutcome of(Status status) {
-        return new ReactionOutcome(status, null, 0);
+        return new ReactionOutcome(status, 0);
     }
 }
