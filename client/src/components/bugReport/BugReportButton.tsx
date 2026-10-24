@@ -25,7 +25,7 @@ export function waitText(seconds: number) {
 
 type Context = Omit<BugReportRequest, 'description' | 'pagePath'>;
 
-export function BugReportButton({ context, className }: { context: Context; className?: string }) {
+export function BugReportButton({ context, className, labelled = false }: { context: Context; className?: string; labelled?: boolean }) {
   const { sessionKey } = useAuth();
   const { pathname } = useLocation();
   const fieldId = useId();
@@ -83,10 +83,16 @@ export function BugReportButton({ context, className }: { context: Context; clas
     <>
       <Dialog open={open} onOpenChange={(next) => { if (!sending) { setOpen(next); setError(null); } }}>
         <DialogTrigger asChild>
-          <button type="button" className={`bug-report-trigger${className ? ` ${className}` : ''}`} aria-label="Zgłoś błąd">
-            <Bug aria-hidden="true" />
-            <span>Zgłoś błąd</span>
-          </button>
+          {labelled ? (
+            <button type="button" className={`bug-report-trigger${className ? ` ${className}` : ''}`}>
+              <Bug aria-hidden="true" />
+              <span>Zgłoś błąd</span>
+            </button>
+          ) : (
+            <button type="button" className={`bug-report-trigger is-icon${className ? ` ${className}` : ''}`} aria-label="Zgłoś błąd" title="Zgłoś błąd">
+              <Bug aria-hidden="true" />
+            </button>
+          )}
         </DialogTrigger>
         <DialogContent>
           <form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); void send(); }}>

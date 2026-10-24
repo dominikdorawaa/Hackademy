@@ -202,7 +202,7 @@ export default function ArenaBattlePage() {
         </div>
 
         <div className="battle-actions">
-          <BugReportButton className="ud-btn ud-btn-small battle-report" context={{ source: 'ARENA', gameId: session.id }} />
+          <BugReportButton labelled className="ud-btn ud-btn-small battle-report" context={{ source: 'ARENA', gameId: session.id }} />
           {!finished && (confirmSurrender ? (
             <>
               <span>Poddanie oznacza porażkę.</span>

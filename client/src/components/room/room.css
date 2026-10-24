@@ -104,21 +104,15 @@
 
 .room-nav-report {
   flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
   margin-left: auto;
-  padding: 4px 8px;
+  padding: 6px;
   border: 0;
   border-radius: 4px;
   background: none;
   color: var(--rm-muted);
-  font: 500 0.875rem/1.2 var(--rm-text);
-  white-space: nowrap;
   transition: color 160ms var(--rm-ease);
 }
 
-.room-nav-report svg { width: 16px; height: 16px; }
 .room-nav-report:hover { color: var(--rm-ink); }
 .room-nav-report:focus-visible { outline: 2px solid var(--rm-link); outline-offset: 2px; }
 
@@ -817,10 +811,8 @@
 @media (max-width: 600px) {
   .room-nav-sep,
   .room-nav-title,
-  .room-nav-back span,
-  .room-nav-report span { display: none; }
-  .room-nav-back,
-  .room-nav-report { padding: 6px; }
+  .room-nav-back span { display: none; }
+  .room-nav-back { padding: 6px; }
   .room-meter { flex: 1 1 auto; width: auto; min-width: 40px; }
   .room-nav-progress { flex: 1 1 auto; min-width: 0; }
   .room-nav-percent { font-size: 1.125rem; }

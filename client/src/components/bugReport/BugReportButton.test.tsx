@@ -14,10 +14,10 @@ import { BugReportButton, reportLength, waitText } from './BugReportButton';
 
 const URL = `${API_URL}/api/bug-reports`;
 
-function mount(context: Omit<BugReportRequest, 'description' | 'pagePath'> = { source: 'ROOM', roomId: 4, taskId: 9 }) {
+function mount(context: Omit<BugReportRequest, 'description' | 'pagePath'> = { source: 'ROOM', roomId: 4, taskId: 9 }, labelled = false) {
   return render(
     <MemoryRouter initialEntries={['/rooms/4?tab=tasks']}>
-      <AuthProvider><BugReportButton className="trigger" context={context} /></AuthProvider>
+      <AuthProvider><BugReportButton className="trigger" context={context} labelled={labelled} /></AuthProvider>
     </MemoryRouter>,
   );
 }
@@ -40,7 +40,9 @@ describe('bug report button', () => {
       return HttpResponse.json({ message: 'ok' }, { status: 201 });
     }));
     mount();
-    expect(screen.getByRole('button', { name: 'Zgłoś błąd' })).toHaveClass('bug-report-trigger', 'trigger');
+    expect(screen.getByRole('button', { name: 'Zgłoś błąd' })).toHaveClass('bug-report-trigger', 'is-icon', 'trigger');
+    expect(screen.getByRole('button', { name: 'Zgłoś błąd' })).toHaveAttribute('title', 'Zgłoś błąd');
+    expect(screen.getByRole('button', { name: 'Zgłoś błąd' })).not.toHaveTextContent('Zgłoś błąd');
     const { user, dialog } = await open();
     await user.type(dialog.getByLabelText('Opis problemu'), '  Flaga nie przechodzi  ');
     await user.click(dialog.getByRole('button', { name: 'Wyślij zgłoszenie' }));
@@ -50,6 +52,14 @@ describe('bug report button', () => {
     expect(screen.getByText('Dziękujemy! Zgłoszenie trafiło do zespołu.')).toBeInTheDocument();
     const again = await open();
     expect(again.dialog.getByLabelText('Opis problemu')).toHaveValue('');
+  });
+
+  it('shows the label next to the icon when asked to', () => {
+    mount({ source: 'ARENA' }, true);
+    const button = screen.getByRole('button', { name: 'Zgłoś błąd' });
+    expect(button).toHaveTextContent('Zgłoś błąd');
+    expect(button).not.toHaveClass('is-icon');
+    expect(button).not.toHaveAttribute('title');
   });
 
   it('counts characters and only allows a description of 10 to 2000 characters', async () => {

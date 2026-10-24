@@ -406,7 +406,7 @@ const ArenaPage = () => {
                         <Link className="ud-link" to="/ranking">Pełny ranking</Link>
                         <div className="arena-report">
                             <p>Coś nie działa na arenie?</p>
-                            <BugReportButton className="ud-btn ud-btn-small" context={{ source: 'ARENA', gameId: gameSession?.id }} />
+                            <BugReportButton labelled className="ud-btn ud-btn-small" context={{ source: 'ARENA', gameId: gameSession?.id }} />
                         </div>
                     </section>
                 </aside>
