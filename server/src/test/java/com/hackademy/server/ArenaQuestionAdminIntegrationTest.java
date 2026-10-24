@@ -173,7 +173,9 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
         int changed = (correct + 1) % 4;
 
         long version = ((Number) original.get("version")).longValue();
-        putJson(admin, URL + "/" + id, body("Zmienione w trakcie walki", answers.get(changed), List.of("X", "Y", "Z"), "OGOLNE", "HARD", version))
+        String suffix = " " + UUID.randomUUID();
+        List<String> replaced = List.of("X" + suffix, "Y" + suffix, "Z" + suffix);
+        putJson(admin, URL + "/" + id, body("Zmienione w trakcie walki", answers.get(changed), replaced, "OGOLNE", "HARD", version))
                 .andExpect(status().isOk());
 
         getAs(second, game).andExpect(jsonPath("$.question.id").value(id))
