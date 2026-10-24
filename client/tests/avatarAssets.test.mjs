@@ -10,6 +10,7 @@ const read = path => readFileSync(new URL(path, ROOT));
 const ATLASES = { baza: ['fighter.png', 'anchors.json'], bluza: ['hoodie/fighter.png', 'hoodie/anchors.json'], dres: ['track/fighter.png', 'track/anchors.json'] };
 const RUN_ROW = 10;
 const FINISHER_ROWS = [2, 3, 11, 12];
+const TURN_ROWS = [15, 16];
 const provenance = JSON.parse(read('provenance.json').toString());
 const modelSource = readFileSync(new URL('../src/components/arena/avatar/avatarModel.ts', import.meta.url), 'utf8');
 const model = await import('data:text/javascript,' + encodeURIComponent(ts.transpileModule(modelSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText));
@@ -41,7 +42,7 @@ function decode(file) {
 for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
   test(`${outfit} running and Six-seven frames are whole, anchored and listed in provenance`, () => {
     const file = read(atlasFile), atlas = decode(file), anchors = JSON.parse(read(anchorFile).toString());
-    assert.deepEqual([atlas.width, atlas.height], [576, 960]);
+    assert.deepEqual([atlas.width, atlas.height], [576, 1088]);
     for (let column = 1; column <= 8; column++) {
       const cell = RUN_ROW * 9 + column, top = RUN_ROW * 64, left = column * 64;
       assert.equal(anchors.cells[cell]?.angle, 0);
@@ -56,7 +57,7 @@ for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
     }
     for (const cell of [...Array.from({ length: 8 }, (_, i) => 73 + i), ...Array.from({ length: 8 }, (_, i) => 82 + i), ...Array.from({ length: 8 }, (_, i) => 118 + i), ...Array.from({ length: 8 }, (_, i) => 127 + i)]) {
       const anchor = anchors.cells[cell], top = Math.floor(cell / 9) * 64, left = (cell % 9) * 64;
-      assert.equal(anchor?.view, 'front', `cell ${cell} has no front head anchor`);
+      assert.equal(anchor?.view, 'dance', `cell ${cell} has no dance head anchor`);
       assert.equal(atlas.pixels[((top + Math.round(anchor.y)) * 576 + left + Math.round(anchor.x)) * 4 + 3], 255, `cell ${cell} anchor is not on the head`);
       for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
         const alpha = atlas.pixels[((top + y) * 576 + left + x) * 4 + 3];
@@ -66,6 +67,20 @@ for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
     }
     assert.ok(provenance.sixseven.outfits[outfit].animation.frames === 15);
     assert.ok(provenance.scuba.animation.frames === 16 && provenance.scuba.outfits[outfit]);
+    for (const row of TURN_ROWS) for (let column = 0; column <= 4; column++) {
+      const cell = row * 9 + column, anchor = anchors.cells[cell], top = row * 64, left = column * 64;
+      assert.ok(anchor, `turn cell ${cell} has no head anchor`);
+      assert.equal(atlas.pixels[((top + Math.round(anchor.y)) * 576 + left + Math.round(anchor.x)) * 4 + 3], 255, `turn cell ${cell} anchor is not on the head`);
+      let opaque = 0, ground = 0;
+      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
+        const alpha = atlas.pixels[((top + y) * 576 + left + x) * 4 + 3];
+        assert.ok(alpha === 0 || alpha === 255, `partial alpha in turn cell ${cell}`);
+        if (alpha) { opaque++; ground = Math.max(ground, y); assert.ok(x > 0 && y > 0 && x < 63 && y < 63, `turn cell ${cell} touches its border`); }
+      }
+      assert.ok(opaque > 300, `turn cell ${cell} is empty`);
+      assert.equal(ground, 54, `turn cell ${cell} does not stand on the side ground line`);
+    }
+    for (const [file, hash] of Object.entries(provenance.danceTurn.overlaysSha256)) assert.equal(createHash('sha256').update(read('dance/' + file)).digest('hex'), hash);
     for (let column = 1; column <= 8; column++) {
       const cell = 9 + column;
       assert.equal(anchors.cells[cell]?.angle, 0, `attack cell ${cell} has no head anchor`);
@@ -128,6 +143,25 @@ for (const [outfit, [atlasFile]] of Object.entries(ATLASES)) {
         if (frontMap.has(key)) assert.equal(entry.shade, frontMap.get(key).shade, `cell ${cell} pixel ${x},${y} shades differently from the front view`);
         else assert.ok(Math.abs(entry.shade - Math.min(3, Math.max(0, Math.round(((lightness(key) - low) / (high - low || 1)) * 3)))) <= 1, `cell ${cell} pixel ${x},${y} shades differently from the front view`);
       }
+    }
+  });
+}
+
+{
+  const [outfit, [atlasFile]] = ['bluza', ATLASES.bluza];
+  test(`${outfit} trousers in the front dances and turns take the chosen trouser colour`, () => {
+    const atlas = decode(read(atlasFile)), map = model.buildColorMap(atlas.pixels, model.OUTFIT_SPECS[outfit]);
+    for (const row of [8, 9, 13, 14, 15, 16]) for (let column = 1; column <= 8; column++) {
+      if (row >= 15 && column > 4) continue;
+      let trousers = 0, outline = 0;
+      for (let y = 42; y < 50; y++) for (let x = 0; x < 64; x++) {
+        const index = ((row * 64 + y) * 576 + column * 64 + x) * 4;
+        if (!atlas.pixels[index + 3]) continue;
+        const material = map.get((atlas.pixels[index] << 16) | (atlas.pixels[index + 1] << 8) | atlas.pixels[index + 2])?.material;
+        if (material === 'bottom') trousers++;
+        if (material === 'outline') outline++;
+      }
+      assert.ok(trousers > outline, `cell ${row * 9 + column} draws its trousers in outline colours`);
     }
   });
 }
