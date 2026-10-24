@@ -1,4 +1,4 @@
 package com.hackademy.server.bugreport;
 
-public record BugReportRequest(BugReportSource source, Long roomId, Long taskId, String gameId, String pagePath, String description) {
+public record BugReportRequest(BugReportSource source, Long roomId, Long taskId, String gameId, String lessonId, String pagePath, String description) {
 }

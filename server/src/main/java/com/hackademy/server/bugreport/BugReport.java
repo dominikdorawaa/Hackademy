@@ -46,6 +46,9 @@ public class BugReport {
     @Column(name = "game_id", length = 64)
     private String gameId;
 
+    @Column(name = "lesson_id", length = 64)
+    private String lessonId;
+
     @Column(name = "page_path", length = 300)
     private String pagePath;
 

@@ -10,10 +10,11 @@ import { dateTimeFormat, errorText } from '../../components/admin/adminFormat';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { BugReportAdmin, BugReportStatus } from '../../types/api';
+import { lessons } from '../../ukos/content';
 
 const ALL = 'ALL';
 const filters: [BugReportStatus | typeof ALL, string][] = [['OPEN', 'Otwarte'], ['RESOLVED', 'Rozwiązane'], [ALL, 'Wszystkie']];
-const LOCAL_PAGE = /^\/(rooms\/\d+|arena(\/battle\/[A-Za-z0-9-]+)?)$/;
+const LOCAL_PAGE = /^\/(rooms\/\d+|arena(\/battle\/[A-Za-z0-9-]+)?|learn\/ukos)$/;
 
 const emptyText: Record<BugReportStatus | typeof ALL, string> = {
   OPEN: 'Nic nie czeka na sprawdzenie.',
@@ -22,12 +23,16 @@ const emptyText: Record<BugReportStatus | typeof ALL, string> = {
 };
 
 function Place({ report }: { report: BugReportAdmin }) {
+  const lessonIndex = lessons.findIndex(lesson => lesson.id === report.lessonId);
   const where = report.source === 'ROOM'
     ? <>
         <span className="font-medium">Pokój: {report.roomTitle ?? 'usunięty'}</span>
         {report.taskTitle && <span className="text-muted-foreground">Zadanie: {report.taskTitle}</span>}
       </>
-    : <>
+    : report.source === 'LAB' ? <>
+        <span className="font-medium">Laboratorium: Dyżur Zero</span>
+        <span className="text-muted-foreground">Krok: {lessonIndex >= 0 ? `${lessonIndex + 1}. ${lessons[lessonIndex].title}` : report.lessonId}</span>
+      </> : <>
         <span className="font-medium">Arena</span>
         {report.gameId && <span className="text-muted-foreground" title={report.gameId}>Mecz {report.gameId.slice(0, 8)}</span>}
       </>;
@@ -104,7 +109,7 @@ export default function BugReportsPage() {
 
   return (
     <>
-      <PageHeader title="Zgłoszenia błędów" description="Problemy, które gracze zgłosili z pokojów i z areny." />
+      <PageHeader title="Zgłoszenia błędów" description="Problemy, które gracze zgłosili z pokojów, areny i laboratorium." />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <Select value={filter} onValueChange={(value) => { setFilter(value as BugReportStatus | typeof ALL); setPage(0); setSuccess(null); }}>
           <SelectTrigger aria-label="Filtruj według statusu" className="w-full sm:w-48">
