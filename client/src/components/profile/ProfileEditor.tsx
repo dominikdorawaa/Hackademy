@@ -8,7 +8,8 @@ import { updateProfile } from '../../services/userApi';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
 import BadgeIcon from './BadgeIcon';
-import { USERNAME_MAX, USERNAME_MIN, useUsernameChange, validateUsername } from '../../hooks/useUsernameChange';
+import { useUsernameChange, validateUsername } from '../../hooks/useUsernameChange';
+import { USERNAME_MAX, USERNAME_MIN } from '../../lib/username';
 
 export default function ProfileEditor({ username, initial, badges, onSaved, onClose, onUnauthorized }: {
   username: string; initial: ProfilePersonalization; badges: BadgeDto[];
@@ -133,7 +134,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
             aria-invalid={!!nameError} aria-describedby={`${id}-username-help`}
             onChange={event => { setName(event.target.value); setNameError(''); }} />
           <span id={`${id}-username-help`} className={nameError ? 'profile-error' : 'profile-muted'} role={nameError ? 'alert' : undefined}>
-            {nameError || `Tak zobaczą Cię inni użytkownicy. Od ${USERNAME_MIN} do ${USERNAME_MAX} znaków.`}</span></div>
+            {nameError || `Tak zobaczą Cię inni użytkownicy. Od ${USERNAME_MIN} do ${USERNAME_MAX} znaków: litery, cyfry, _ i -.`}</span></div>
         <div className="profile-editor-field"><label htmlFor={`${id}-bio`}>O mnie</label>
           <textarea id={`${id}-bio`} value={draft.bio} maxLength={500} rows={4} placeholder="Co Cię interesuje? Czego chcesz się nauczyć?"
             aria-describedby={`${id}-bio-count`} onChange={event => setDraft({ ...draft, bio: event.target.value })} />

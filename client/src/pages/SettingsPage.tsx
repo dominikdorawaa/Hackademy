@@ -17,9 +17,10 @@ import { ArenaRunner } from '../components/arena/ArenaLoader';
 import InvitationCard from '../components/InvitationCard';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import type { Icon } from '@phosphor-icons/react';
-import { USERNAME_MAX, USERNAME_MIN, useUsernameChange } from '../hooks/useUsernameChange';
+import { useUsernameChange } from '../hooks/useUsernameChange';
 import { chooseVariant, playSound, selectedVariant, soundVariants, unlockAudio } from '../lib/notificationSounds';
 import type { SoundEvent } from '../lib/notificationSounds';
+import { USERNAME_MAX, USERNAME_MIN } from '../lib/username';
 
 const sections: Record<'account' | 'notifications' | 'appearance' | 'security', { title: string; description: string; icon: Icon }> = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.', icon: UserCircle },
@@ -75,6 +76,7 @@ async function responseError(response: ApiResponse<unknown>, fallback: string) {
   try {
     const body = await response.json() as Record<string, unknown>;
     if (body.message === 'Incorrect current password') return 'Obecne hasło jest nieprawidłowe.';
+    if (typeof body.newUsername === 'string') return `${body.newUsername}.`;
   } catch { return fallback; }
   return fallback;
 }
@@ -235,7 +237,7 @@ export default function SettingsPage() {
               <form className="settings-form" onSubmit={event => void changeName(event)}>
                 <label htmlFor="settings-username">Nazwa użytkownika</label>
                 <input id="settings-username" autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} required minLength={USERNAME_MIN} maxLength={USERNAME_MAX} disabled={renaming} aria-describedby="settings-username-help" />
-                <p id="settings-username-help">Tak zobaczą Cię inni użytkownicy. Od {USERNAME_MIN} do {USERNAME_MAX} znaków. Możesz ją też zmienić w edycji profilu.</p>
+                <p id="settings-username-help">Tak zobaczą Cię inni użytkownicy. Od {USERNAME_MIN} do {USERNAME_MAX} znaków: litery, cyfry, _ i -. Możesz ją też zmienić w edycji profilu.</p>
                 <button className="settings-button settings-button-primary" disabled={renaming || username.trim() === account.username}>{renaming ? 'Zapisywanie…' : 'Zapisz nazwę'}</button>
               </form>
               <SettingRow title="Adres e-mail" description="Służy do logowania. Aby go zmienić, dodaj nowy adres, potwierdź go kodem i ustaw jako główny."

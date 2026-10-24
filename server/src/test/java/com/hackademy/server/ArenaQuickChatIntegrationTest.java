@@ -5,7 +5,6 @@ import com.hackademy.server.user.Role;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 
-import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.header;
@@ -51,19 +50,6 @@ class ArenaQuickChatIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void mutedPlayersCannotReact() throws Exception {
-        var first = account(Role.USER);
-        var second = account(Role.USER);
-        String url = "/api/arena/game/" + game(first, second);
-        jdbcTemplate.update("UPDATE users SET muted_until = '2999-01-01 12:00:00' WHERE id = ?", second.id());
-
-        postJson(second, url + "/reaction", "{\"reaction\":\"gg\"}").andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Masz wyciszone reakcje."))
-                .andExpect(jsonPath("$.mutedUntil").value("2999-01-01T12:00:00Z"));
-        getAs(first, url).andExpect(jsonPath("$.reactions", hasSize(0)));
-    }
-
-    @Test
     void outsiderSurrenderIsRejectedWithoutChangingTheGame() throws Exception {
         var first = account(Role.USER);
         var second = account(Role.USER);
@@ -83,17 +69,18 @@ class ArenaQuickChatIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void theOldTextChatIsGoneButReportedMessagesStayForModeration() throws Exception {
+    void theOldTextChatItsReportsAndMutingAreGone() throws Exception {
         var player = account(Role.USER);
         var admin = account(Role.ADMIN);
-        jdbcTemplate.update("INSERT INTO chat_messages (game_id, sender_id, sender_username, content, reported, sent_at) VALUES (?, ?, ?, ?, true, now())",
-                "old-game", player.id(), player.username(), "zgłoszona");
-        Long reported = jdbcTemplate.queryForObject("SELECT id FROM chat_messages WHERE game_id = 'old-game'", Long.class);
 
         getAs(player, "/api/chat/old-game").andExpect(status().isNotFound());
         postJson(player, "/api/chat/old-game/send", "{\"content\":\"hej\"}").andExpect(status().is4xxClientError());
-        postJson(player, "/api/chat/message/" + reported + "/report", "{}").andExpect(status().is4xxClientError());
-        getAs(admin, "/api/admin/reports").andExpect(status().isOk())
-                .andExpect(jsonPath("$.items[*].id", hasItem(reported.intValue())));
+        getAs(admin, "/api/admin/reports").andExpect(status().isNotFound());
+        postJson(admin, "/api/admin/reports/1/dismiss", "{}").andExpect(status().isNotFound());
+        postJson(admin, "/api/admin/users/" + player.id() + "/mute", "{\"duration\":60}").andExpect(status().isNotFound());
+        assertEquals(0, jdbcTemplate.queryForObject("""
+                SELECT count(*) FROM information_schema.columns
+                WHERE table_schema = current_schema() AND (table_name = 'chat_messages' OR column_name = 'muted_until')
+                """, Integer.class));
     }
 }

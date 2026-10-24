@@ -11,7 +11,6 @@ import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.web.bind.annotation.*;
 
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 
@@ -122,9 +121,6 @@ public class ArenaController {
             case SENT -> ResponseEntity.ok(Map.of("message", "Reakcja wysłana"));
             case NOT_PLAYER -> ResponseEntity.notFound().build();
             case UNKNOWN_REACTION -> ResponseEntity.badRequest().body(Map.of("message", "Wybierz reakcję z menu."));
-            case MUTED -> ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of(
-                    "message", "Masz wyciszone reakcje.",
-                    "mutedUntil", outcome.mutedUntil().atOffset(ZoneOffset.UTC).toInstant().toString()));
             case TOO_FAST -> {
                 long seconds = Math.max(1, (outcome.retryAfterMillis() + 999) / 1000);
                 yield ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)

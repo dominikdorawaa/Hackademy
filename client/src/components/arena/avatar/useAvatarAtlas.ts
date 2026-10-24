@@ -1,8 +1,8 @@
 import { useEffect, useState } from 'react';
 import { AVATAR_ATLASES } from './fighters';
 import { buildColorMap, CLOTH_RAMPS, compositeOverlay, rampFor, FRONT_VIEWS, HAIR_RAMPS, HEAD_ANCHORS, HEAD_OVERLAYS, OUTFIT_SPECS, PORTRAIT_CROPS, PROFILE_VIEWS, recolorAtlas, recolorOverlay } from './avatarModel';
-import type { Avatar, ColorMap, HeadAnchors } from './avatarModel';
-import { fromAvatarConfig } from './avatarModel';
+import type { Avatar, AvatarLook, ColorMap, HeadAnchors, HeadView } from './avatarModel';
+import { avatarLook, fromAvatarConfig } from './avatarModel';
 import type { AvatarConfig } from '../../../types/api';
 import { createPortraitCache } from './portraitCache';
 
@@ -46,7 +46,7 @@ function loadView(outfit: Avatar['outfit'], image: string) {
 }
 const loadFront = (outfit: Avatar['outfit']) => loadView(outfit, FRONT_VIEWS[outfit].image);
 
-async function portraitPixels(avatar: Avatar) {
+async function portraitPixels(avatar: AvatarLook) {
   const spec = OUTFIT_SPECS[avatar.outfit];
   if (avatar.pose === 'postawa') {
     const source = await loadSource(avatar.outfit), cell = new Uint8ClampedArray(64 * 64 * 4);
@@ -62,10 +62,11 @@ async function portraitPixels(avatar: Avatar) {
   return pixels;
 }
 
-async function dressHead(pixels: Uint8ClampedArray, width: number, avatar: Avatar, anchorFile: string, prefix: string) {
+async function dressHead(pixels: Uint8ClampedArray, width: number, avatar: AvatarLook, anchorFile: string, prefix: string) {
   const anchors = await loadAnchors(anchorFile);
-  const views: ['side' | 'front', string][] = [['side', prefix]];
-  if (Object.values(anchors.cells).some(anchor => anchor?.view === 'front')) views.push(['front', 'front/']);
+  const views: [HeadView, string][] = [['side', prefix]];
+  const cells = pixels.length / 4 / (64 * 64);
+  for (const view of ['front', 'dance'] as const) if (Object.entries(anchors.cells).some(([key, anchor]) => anchor?.view === view && Number(key) < cells)) views.push([view, view + '/']);
   for (const [view, folder] of views) {
     if (avatar.hair !== 'brak' && avatar.hat === 'brak') compositeOverlay(pixels, width, recolorOverlay(await loadOverlay(folder + HEAD_OVERLAYS[avatar.hair]), rampFor(HAIR_RAMPS, avatar.colors.hair)), anchors, view);
     if (avatar.hat !== 'brak') compositeOverlay(pixels, width, recolorOverlay(await loadOverlay(folder + HEAD_OVERLAYS[avatar.hat]), rampFor(CLOTH_RAMPS, avatar.colors.hat)), anchors, view);
@@ -80,7 +81,7 @@ function toCanvas(pixels: Uint8ClampedArray<ArrayBuffer>, width: number, height:
   return canvas;
 }
 
-async function frontUrl(avatar: Avatar) {
+async function frontUrl(avatar: AvatarLook) {
   try {
     const front = await loadFront(avatar.outfit);
     const pixels = recolorAtlas(front.pixels, front.width, front.map, OUTFIT_SPECS[avatar.outfit], avatar.colors);
@@ -97,10 +98,10 @@ export interface AvatarAtlas { atlas: string; front: string | null }
 
 export function useAvatarAtlas(avatar: Avatar) {
   const [result, setResult] = useState<{ key: string; value: AvatarAtlas } | null>(null);
-  const key = JSON.stringify(avatar);
+  const key = JSON.stringify(avatarLook(avatar));
   useEffect(() => {
     let cancelled = false, created: string[] = [];
-    const current: Avatar = JSON.parse(key);
+    const current: AvatarLook = JSON.parse(key);
     (async () => {
       const source = await loadSource(current.outfit);
       const pixels = recolorAtlas(source.pixels, source.width, source.map, OUTFIT_SPECS[current.outfit], current.colors);
@@ -117,7 +118,7 @@ export function useAvatarAtlas(avatar: Avatar) {
 }
 
 const portraits = createPortraitCache(async key => {
-  const avatar: Avatar = JSON.parse(key);
+  const avatar: AvatarLook = JSON.parse(key);
   const pixels = await portraitPixels(avatar), [left, top] = PORTRAIT_CROPS[avatar.pose];
   const face = document.createElement('canvas');
   face.width = 32; face.height = 32;
@@ -127,7 +128,7 @@ const portraits = createPortraitCache(async key => {
 
 export function useAvatarPortrait(config: AvatarConfig | null | undefined) {
   const avatar = fromAvatarConfig(config);
-  const key = avatar ? JSON.stringify(avatar) : '';
+  const key = avatar ? JSON.stringify(avatarLook(avatar)) : '';
   const [result, setResult] = useState<{ key: string; url: string } | null>(null);
   useEffect(() => {
     if (!key) return;

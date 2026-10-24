@@ -39,8 +39,8 @@ export function AuthProvider({ children }: PropsWithChildren) {
 
   useEffect(() => {
     const update = (event: Event) => {
-      const changed = (event as CustomEvent<ProfilePersonalization & { username: string }>).detail;
-      setProfile(previous => previous?.user.username === changed.username ? { ...previous, user: { ...previous.user, ...changed } } : previous);
+      const { previousUsername, ...changed } = (event as CustomEvent<ProfilePersonalization & { username: string; previousUsername?: string }>).detail;
+      setProfile(previous => previous?.user.username === (previousUsername ?? changed.username) ? { ...previous, user: { ...previous.user, ...changed } } : previous);
     };
     window.addEventListener(PROFILE_UPDATED, update);
     return () => window.removeEventListener(PROFILE_UPDATED, update);

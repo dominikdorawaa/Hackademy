@@ -39,10 +39,10 @@ it('recolors materials from the chosen ramps and keeps outline, kept colors and 
 });
 
 it('saves and restores a valid avatar and falls back for invalid values', () => {
-  saveAvatar({ outfit: 'baza', hair: 'irokez', hat: 'daszek', pose: 'profil', colors: { hair: 'rude', skin: 'heban', top: 'bialy', bottom: 'czerwony', shoes: 'oliwkowy', hat: 'turkusowy' } });
-  expect(readAvatar()).toEqual({ outfit: 'baza', hair: 'irokez', hat: 'daszek', pose: 'profil', colors: { hair: 'rude', skin: 'heban', top: 'bialy', bottom: 'czerwony', shoes: 'oliwkowy', hat: 'turkusowy' } });
+  saveAvatar({ outfit: 'baza', hair: 'irokez', hat: 'daszek', pose: 'profil', finisher: 'combo', dance: 'scuba', colors: { hair: 'rude', skin: 'heban', top: 'bialy', bottom: 'czerwony', shoes: 'oliwkowy', hat: 'turkusowy' } });
+  expect(readAvatar()).toEqual({ outfit: 'baza', hair: 'irokez', hat: 'daszek', pose: 'profil', finisher: 'combo', dance: 'scuba', colors: { hair: 'rude', skin: 'heban', top: 'bialy', bottom: 'czerwony', shoes: 'oliwkowy', hat: 'turkusowy' } });
   localStorage.setItem(AVATAR_KEY, JSON.stringify({ outfit: 'mira', colors: { hair: 'blond' } }));
-  expect(readAvatar()).toMatchObject({ outfit: 'baza', hair: DEFAULT_AVATAR.hair, hat: 'brak', pose: 'przod', colors: { hair: 'blond', hat: DEFAULT_AVATAR.colors.hat } });
+  expect(readAvatar()).toMatchObject({ outfit: 'baza', hair: DEFAULT_AVATAR.hair, hat: 'brak', pose: 'przod', finisher: 'beam', dance: 'groove', colors: { hair: 'blond', hat: DEFAULT_AVATAR.colors.hat } });
   localStorage.setItem(AVATAR_KEY, JSON.stringify({ outfit: 'removed', colors: { hair: 'zielone', skin: 1 } }));
   expect(readAvatar()).toEqual(DEFAULT_AVATAR);
   localStorage.setItem(AVATAR_KEY, '{');
@@ -110,14 +110,26 @@ it('uses front overlays and the front head center only for front-view cells', ()
   expect([...side.slice(((10 + 5) * 128 + 64 + 32 - 20) * 4, ((10 + 5) * 128 + 64 + 32 - 20) * 4 + 4)]).toEqual([0, 0, 0, 0]);
 });
 
+it('uses shrunken dance overlays around the dance head center only for dance cells', () => {
+  const target = new Uint8ClampedArray(128 * 64 * 4);
+  const overlay = atlas([[30, 5, '#00ff00']]);
+  const anchors = { center: [10, 10] as [number, number], frontCenter: [20, 20] as [number, number], danceCenter: [30, 15] as [number, number], cells: { 0: { angle: 0, x: 10, y: 10, view: 'front' as const }, 1: { angle: 0, x: 32, y: 20, view: 'dance' as const } } };
+  compositeOverlay(target, 128, overlay, anchors, 'dance');
+  const at = (x: number, y: number) => [...target.slice((y * 128 + x) * 4, (y * 128 + x) * 4 + 4)];
+  expect(at(64 + 32, 10)).toEqual([0, 255, 0, 255]);
+  expect(target.filter((_, index) => index % 4 === 3 && target[index] === 255)).toHaveLength(1);
+});
+
 it('converts between the API avatar and the creator avatar and rejects unknown values', () => {
-  const avatar = { outfit: 'dres' as const, hair: 'kucyk' as const, hat: 'daszek' as const, pose: 'postawa' as const, colors: { skin: 'heban', hair: 'rude', top: 'bialy', bottom: 'czerwony', shoes: 'granatowy', hat: 'oliwkowy' } };
+  const avatar = { outfit: 'dres' as const, hair: 'kucyk' as const, hat: 'daszek' as const, pose: 'postawa' as const, finisher: 'combo' as const, dance: 'sixseven' as const, colors: { skin: 'heban', hair: 'rude', top: 'bialy', bottom: 'czerwony', shoes: 'granatowy', hat: 'oliwkowy' } };
   const config = toAvatarConfig(avatar);
-  expect(config).toEqual({ outfit: 'dres', hair: 'kucyk', hat: 'daszek', skin: 'heban', hairColor: 'rude', topColor: 'bialy', bottomColor: 'czerwony', shoesColor: 'granatowy', hatColor: 'oliwkowy', pose: 'postawa' });
+  expect(config).toEqual({ outfit: 'dres', hair: 'kucyk', hat: 'daszek', skin: 'heban', hairColor: 'rude', topColor: 'bialy', bottomColor: 'czerwony', shoesColor: 'granatowy', hatColor: 'oliwkowy', pose: 'postawa', finisher: 'combo', victoryDance: 'sixseven' });
   expect(fromAvatarConfig(config)).toEqual(avatar);
   expect(fromAvatarConfig({ ...config, pose: undefined })).toEqual({ ...avatar, pose: 'przod' });
   expect(fromAvatarConfig({ ...config, pose: 'od-tylu' })).toEqual({ ...avatar, pose: 'przod' });
   expect(fromAvatarConfig({ ...config, pose: 'profil' })?.pose).toBe('profil');
+  expect(fromAvatarConfig({ ...config, finisher: undefined, victoryDance: undefined })).toEqual({ ...avatar, finisher: 'beam', dance: 'groove' });
+  expect(fromAvatarConfig({ ...config, finisher: 'kopniak', victoryDance: 'walc' })).toEqual({ ...avatar, finisher: 'beam', dance: 'groove' });
   expect(fromAvatarConfig(null)).toBeNull();
   expect(fromAvatarConfig(undefined)).toBeNull();
   for (const broken of [{ outfit: 'pirat' }, { hair: 'afro' }, { hat: 'korona' }, { skin: 'zielona' }, { hairColor: 'zlote' }, { topColor: 'tecza' }, { hatColor: 'x' }]) {

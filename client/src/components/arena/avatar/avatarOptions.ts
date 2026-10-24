@@ -1,5 +1,5 @@
 import { CLOTH_RAMPS, HAIR_RAMPS, SKIN_RAMPS } from './avatarModel';
-import type { Avatar, Ramp } from './avatarModel';
+import type { Avatar, FinisherMove, Ramp, VictoryDance } from './avatarModel';
 
 export const OUTFITS: { id: Avatar['outfit']; name: string; description: string }[] = [
   { id: 'baza', name: 'Klasyczna', description: 'Koszulka i proste spodnie.' },
@@ -28,4 +28,13 @@ export const COLOR_NAMES: Record<string, string> = {
   granatowy: 'Granatowy', grafitowy: 'Grafitowy', bordowy: 'Bordowy', turkusowy: 'Turkusowy', piaskowy: 'Piaskowy', oliwkowy: 'Oliwkowy', czerwony: 'Czerwony', bialy: 'Biały',
 };
 export const LIGHT_COLORS = ['bialy', 'blond', 'siwe', 'jasna', 'porcelanowa', 'piaskowy'];
+export const FINISHER_OPTIONS: Record<FinisherMove, { name: string; description: string }> = {
+  beam: { name: 'Przeciążenie', description: 'Kumuluje energię i powala rywala jednym wyładowaniem.' },
+  combo: { name: 'Ctrl+Alt+Del', description: 'Szybka seria trzech ciosów zakończona nokautem.' },
+};
+export const DANCE_OPTIONS: Record<VictoryDance, { name: string; description: string }> = {
+  groove: { name: 'Luz', description: 'Swobodny taniec bokiem do rywala.' },
+  sixseven: { name: 'Six-seven', description: 'Obrót do widowni i ręce ważące: sześć, siedem.' },
+  scuba: { name: 'Scuba', description: 'Obrót do widowni, zatkany nos i fala ręką.' },
+};
 export const POSE_NAMES: Record<Avatar['pose'], string> = { przod: 'Przód', postawa: 'Postawa', profil: 'Profil' };

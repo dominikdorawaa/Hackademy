@@ -13,7 +13,9 @@ public record UserAvatarDto(
         @NotNull @Pattern(regexp = UserAvatarDto.CLOTH_COLORS) String bottomColor,
         @NotNull @Pattern(regexp = UserAvatarDto.CLOTH_COLORS) String shoesColor,
         @NotNull @Pattern(regexp = UserAvatarDto.CLOTH_COLORS) String hatColor,
-        @Pattern(regexp = UserAvatarDto.POSES) String pose) {
+        @Pattern(regexp = UserAvatarDto.POSES) String pose,
+        @Pattern(regexp = UserAvatarDto.FINISHERS) String finisher,
+        @Pattern(regexp = UserAvatarDto.VICTORY_DANCES) String victoryDance) {
 
     public static final String OUTFITS = "baza|bluza|dres";
     public static final String HAIR_STYLES = "brak|krotkie|irokez|kucyk";
@@ -24,4 +26,8 @@ public record UserAvatarDto(
     public static final String CLOTH_COLORS = "granatowy|grafitowy|bordowy|turkusowy|piaskowy|oliwkowy|czerwony|bialy|" + CUSTOM_COLOR;
     public static final String POSES = "przod|postawa|profil";
     public static final String DEFAULT_POSE = "przod";
+    public static final String FINISHERS = "beam|combo";
+    public static final String DEFAULT_FINISHER = "beam";
+    public static final String VICTORY_DANCES = "groove|sixseven|scuba";
+    public static final String DEFAULT_VICTORY_DANCE = "groove";
 }

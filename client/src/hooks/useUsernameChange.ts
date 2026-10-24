@@ -1,22 +1,21 @@
 import { useLayoutEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import * as userApi from '../services/userApi';
-
-export const USERNAME_MIN = 3;
-export const USERNAME_MAX = 20;
+import { usernameProblem } from '../lib/username';
 
 export type UsernameChangeResult = { ok: true; username: string } | { ok: false; error: string; unauthorized?: boolean };
 
 export function validateUsername(value: string) {
-  const length = value.trim().length;
-  return length < USERNAME_MIN || length > USERNAME_MAX ? `Nazwa użytkownika musi mieć od ${USERNAME_MIN} do ${USERNAME_MAX} znaków.` : null;
+  const problem = usernameProblem(value.trim());
+  return problem && `${problem}.`;
 }
 
 async function failure(response: Awaited<ReturnType<typeof userApi.changeUsername>>): Promise<UsernameChangeResult> {
   if (response.status === 401) return { ok: false, error: 'Sesja wygasła. Zaloguj się ponownie.', unauthorized: true };
+  if (response.status === 409) return { ok: false, error: 'Ta nazwa jest już zajęta. Wybierz inną.' };
   try {
     const body = await response.json() as unknown as Record<string, unknown>;
-    if (body.message === 'Username already taken') return { ok: false, error: 'Ta nazwa jest już zajęta. Wybierz inną.' };
+    if (typeof body.newUsername === 'string') return { ok: false, error: `${body.newUsername}.` };
   } catch { /* fall through to the generic message */ }
   return { ok: false, error: 'Nie udało się zmienić nazwy użytkownika. Spróbuj ponownie.' };
 }

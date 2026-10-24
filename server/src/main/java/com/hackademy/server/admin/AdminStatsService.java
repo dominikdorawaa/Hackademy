@@ -47,7 +47,7 @@ public class AdminStatsService {
                 count("SELECT count(*) FROM users"),
                 count("SELECT count(*) FROM user_solved_rooms"),
                 count("SELECT count(DISTINCT user_id) FROM user_weekly_active_time WHERE week_key = ? AND seconds > 0", ActivityWeek.keyFor(today)),
-                count("SELECT count(*) FROM chat_messages WHERE reported")
+                count("SELECT count(*) FROM bug_reports WHERE status = 'OPEN'")
         );
     }
 
