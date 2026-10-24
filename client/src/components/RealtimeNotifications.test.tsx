@@ -7,10 +7,10 @@ import RealtimeNotifications, { ONLINE_TOAST_COOLDOWN_MS, TOAST_DURATION_MS, des
 import RealtimeGameNavigation from './RealtimeGameNavigation';
 import { createGameSession } from '../test/fixtures/arena';
 
-const environment = vi.hoisted(() => ({ sessionKey: 'first', state: null as RealtimeState | null, loaded: true,
+const environment = vi.hoisted(() => ({ sessionKey: 'first', state: null as RealtimeState | null, connected: true, loaded: true,
   preferences: { friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: true, friendOnline: true } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ sessionKey: environment.sessionKey }) }));
-vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state }) }));
+vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state, connected: environment.connected }) }));
 const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), unlock: vi.fn(async () => true) }));
 vi.mock('../lib/notificationSounds', async importOriginal => ({
   ...await importOriginal<typeof import('../lib/notificationSounds')>(), playSound: sounds.play, unlockAudio: sounds.unlock }));
@@ -27,6 +27,7 @@ beforeEach(() => {
   sounds.unlock.mockClear();
   environment.sessionKey = 'first';
   environment.state = snapshot();
+  environment.connected = true;
   environment.loaded = true;
   environment.preferences = { ...defaultNotificationPreferences, browserNotifications: true };
   vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
@@ -302,6 +303,22 @@ describe('expired challenge toasts', () => {
     expect(screen.queryByText(/kuba/)).not.toBeInTheDocument();
     expect(sounds.play).not.toHaveBeenCalled();
     expect(delivered).not.toHaveBeenCalled();
+  });
+
+  it('does not present challenges that expired while the connection was down as new after reconnecting', () => {
+    environment.state = withExpired(1);
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.connected = false;
+    rerender(<RealtimeNotifications />);
+    environment.connected = true;
+    rerender(<RealtimeNotifications />);
+    environment.state = withExpired(2, expired('missed', 'kuba'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.state = withExpired(3, expired('missed', 'kuba'), expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('Wyzwanie dla ola wygasło bez odpowiedzi.');
+    expect(screen.queryByText(/kuba/)).not.toBeInTheDocument();
   });
 
   it('waits for the loaded preferences and stays silent when challenge notifications are off', () => {
