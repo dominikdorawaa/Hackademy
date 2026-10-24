@@ -148,6 +148,7 @@ export default function UserProfile({ username }: { username?: string }) {
   );
   const [personalization, setPersonalization] = useState<ProfilePersonalization | null>(null);
   const [editing, setEditing] = useState(false);
+  const [renamed, setRenamed] = useState<string | null>(null);
   const [saved, setSaved] = useState(false);
   const dismissSaved = useCallback(() => setSaved(false), []);
   const [sending, setSending] = useState(false);
@@ -195,7 +196,7 @@ export default function UserProfile({ username }: { username?: string }) {
       </div>
     );
 
-  const person = profile.data;
+  const person = profile.data && renamed ? { ...profile.data, username: renamed } : profile.data;
   const friendshipStatus = requestSent
     ? 'REQUEST_SENT'
     : friendship.data?.status;
@@ -303,7 +304,7 @@ export default function UserProfile({ username }: { username?: string }) {
         <ProfileLearningStats activity={activity.data} loading={activity.loading} />
       </div>
       {editing && <ProfileEditor username={person.username} initial={appearance} badges={profileBadges} onClose={() => setEditing(false)}
-        onUnauthorized={unauthorized} onSaved={value => { setPersonalization(value); setSaved(true); }} />}
+        onUnauthorized={unauthorized} onSaved={(value, name) => { setPersonalization(value); setRenamed(name); setSaved(true); }} />}
     </div>
   );
 }
