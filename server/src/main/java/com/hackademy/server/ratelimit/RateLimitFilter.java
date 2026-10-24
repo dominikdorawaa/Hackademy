@@ -1,5 +1,6 @@
 package com.hackademy.server.ratelimit;
 
+import com.hackademy.server.bugreport.BugReportController;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -79,6 +80,9 @@ public class RateLimitFilter extends OncePerRequestFilter {
             return READ_METHODS.contains(method) && BANNER.matcher(path).matches()
                     ? RateLimitGroup.PUBLIC_BANNER
                     : RateLimitGroup.ANONYMOUS;
+        }
+        if (HttpMethod.POST.matches(method) && path.equals(BugReportController.PATH)) {
+            return RateLimitGroup.BUG_REPORT;
         }
         return READ_METHODS.contains(method) ? RateLimitGroup.API_READ : RateLimitGroup.API_WRITE;
     }

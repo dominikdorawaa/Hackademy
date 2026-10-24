@@ -103,9 +103,6 @@ public class User implements UserDetails {
     @Column(nullable = false)
     private Role role = Role.USER;
 
-    @Column(name = "muted_until")
-    private LocalDateTime mutedUntil;
-
     @Override
     public String getUsername() {
         return username;

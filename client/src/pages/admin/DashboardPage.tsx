@@ -139,12 +139,12 @@ export default function DashboardPage() {
             <StatTile label="Użytkownicy" value={stats.totals.users} detail={`+${numberFormat.format(periodTotals.registrations)} w ostatnich ${rangeLabel}`} />
             <StatTile label="Rozwiązania" value={stats.totals.solves} detail={`+${numberFormat.format(periodTotals.solves)} w ostatnich ${rangeLabel}`} />
             <StatTile label="Aktywni w tym tygodniu" value={stats.totals.activeThisWeek} detail="Gracze z czasem nauki w bieżącym tygodniu" />
-            <Link to="/admin/reports" className="group block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
+            <Link to="/admin/bug-reports" className="group block h-full rounded-xl outline-none focus-visible:ring-[3px] focus-visible:ring-ring/50">
               <StatTile
                 className="transition-colors group-hover:border-primary/50 group-hover:bg-accent/40"
-                label="Zgłoszenia czatu"
-                value={stats.totals.pendingReports}
-                detail={stats.totals.pendingReports > 0 ? 'Czekają na decyzję. Otwórz listę' : 'Nic nie czeka na decyzję'}
+                label="Zgłoszenia błędów"
+                value={stats.totals.openBugReports}
+                detail={stats.totals.openBugReports > 0 ? 'Czekają na sprawdzenie. Otwórz listę' : 'Nic nie czeka na sprawdzenie'}
               />
             </Link>
           </div>

@@ -1,0 +1,11 @@
+.bug-report-trigger {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.bug-report-trigger svg {
+  flex: none;
+  width: 1em;
+  height: 1em;
+}
