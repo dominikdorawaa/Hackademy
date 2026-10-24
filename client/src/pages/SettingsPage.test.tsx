@@ -125,7 +125,7 @@ describe('settings', () => {
     expect(localStorage.getItem('token')).toBeNull();
   });
 
-  it('explains a taken name and a name with characters the server refuses', async () => {
+  it('explains a taken name and checks the allowed characters before and after sending', async () => {
     let attempts = 0;
     server.use(
       http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(defaultNotificationPreferences)),
@@ -141,6 +141,11 @@ describe('settings', () => {
     fireEvent.change(field, { target: { value: 'zła nazwa' } });
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz nazwę' }));
     await screen.findByText('Nazwa może zawierać tylko litery, cyfry, _ i -.');
+    expect(attempts).toBe(1);
+    fireEvent.change(field, { target: { value: 'dobra_nazwa' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz nazwę' }));
+    await screen.findByText('Nazwa może zawierać tylko litery, cyfry, _ i -.');
+    expect(attempts).toBe(2);
   });
 
   it('opens Clerk account security for password and connected account changes', () => {

@@ -51,7 +51,7 @@ export function changeUsername(newUsername: string, auth: SessionScope) {
 }
 
 export function checkUsername(name: string, auth: SessionScope, signal?: AbortSignal) {
-  return request<{ available: boolean; message: string | null }>(`/api/user/me/username/availability?name=${encodeURIComponent(name)}`, {
+  return request<{ available: boolean; reason: 'length' | 'characters' | 'taken' | null; message: string | null }>(`/api/user/me/username/availability?name=${encodeURIComponent(name)}`, {
     method: 'GET', auth, signal,
   });
 }

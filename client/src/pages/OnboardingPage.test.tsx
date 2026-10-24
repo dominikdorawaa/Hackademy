@@ -134,7 +134,7 @@ it('requires a valid free profile name and saves a new one before the avatar', a
     http.get(availabilityUrl, ({ request }) => {
       const name = new URL(request.url).searchParams.get('name')!;
       checked.push(name);
-      return HttpResponse.json(name.toLowerCase() === 'zajety' ? { available: false, message: 'Ta nazwa jest zajęta' } : { available: true, message: null });
+      return HttpResponse.json(name.toLowerCase() === 'zajety' ? { available: false, reason: 'taken', message: 'Ta nazwa jest zajęta' } : { available: true, reason: null, message: null });
     }),
     http.patch(usernameUrl, async ({ request }) => {
       renamed = await request.json();
@@ -169,7 +169,7 @@ it('requires a valid free profile name and saves a new one before the avatar', a
 
 it('keeps the player on the name step when someone takes the name first', async () => {
   server.use(
-    http.get(availabilityUrl, () => HttpResponse.json({ available: true, message: null })),
+    http.get(availabilityUrl, () => HttpResponse.json({ available: true, reason: null, message: null })),
     http.patch(usernameUrl, () => HttpResponse.json({ message: 'Ta nazwa jest zajęta' }, { status: 409 })),
   );
   await openName();
@@ -178,6 +178,20 @@ it('keeps the player on the name step when someone takes the name first', async 
   fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
   expect(await screen.findByText('Ta nazwa jest zajęta')).toBeInTheDocument();
   expect(screen.getByRole('heading', { name: 'Jak mamy Cię nazywać?' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
+});
+
+it('shows the rule the server refused the name with', async () => {
+  server.use(
+    http.get(availabilityUrl, () => HttpResponse.json({ available: true, reason: null, message: null })),
+    http.patch(usernameUrl, () => HttpResponse.json({ message: 'Validation failed', newUsername: 'Nazwa użytkownika jest wymagana' }, { status: 400 })),
+  );
+  await openName();
+  fireEvent.change(screen.getByRole('textbox', { name: 'Nazwa profilu' }), { target: { value: 'poprawna' } });
+  expect(await screen.findByText('Ta nazwa jest wolna.')).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: 'Dalej' }));
+  expect(await screen.findByText('Nazwa użytkownika jest wymagana')).toBeInTheDocument();
+  expect(screen.getByRole('textbox', { name: 'Nazwa profilu' })).toHaveAttribute('aria-invalid', 'true');
   expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
 });
 

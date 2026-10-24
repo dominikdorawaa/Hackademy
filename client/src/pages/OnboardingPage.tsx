@@ -80,7 +80,7 @@ export default function OnboardingPage() {
         .then(async response => {
           if (!response.ok) throw new Error('check');
           const result = await response.json();
-          setCheck({ name: chosen, state: result.available ? 'available' : result.message === USERNAME_TAKEN ? 'taken' : 'invalid', message: result.message });
+          setCheck({ name: chosen, state: result.available ? 'available' : result.reason === 'taken' ? 'taken' : 'invalid', message: result.message });
         })
         .catch(() => { if (!controller.signal.aborted) setCheck({ name: chosen, state: 'error', message: null }); });
     }, CHECK_DELAY_MS);
@@ -95,6 +95,10 @@ export default function OnboardingPage() {
     try {
       const response = await changeUsername(chosen, { sessionKey });
       if (response.status === 409) { setCheck({ name: chosen, state: 'taken', message: USERNAME_TAKEN }); setNaming('idle'); return; }
+      if (response.status === 400) {
+        const body = await response.json() as { newUsername?: string };
+        if (body.newUsername) { setCheck({ name: chosen, state: 'invalid', message: body.newUsername }); setNaming('idle'); return; }
+      }
       if (!response.ok) throw new Error('rename');
       const { username } = await response.json();
       window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username, previousUsername: account.username } }));

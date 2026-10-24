@@ -14,6 +14,7 @@ import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import { Play } from 'lucide-react';
 import { chooseVariant, playSound, selectedVariant, soundVariants, unlockAudio } from '../lib/notificationSounds';
 import type { SoundEvent } from '../lib/notificationSounds';
+import { USERNAME_MAX, USERNAME_MIN, usernameProblem } from '../lib/username';
 
 const sections = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.' },
@@ -44,7 +45,6 @@ function eventOutcome(event: SoundEvent, preferences: NotificationPreferences, s
 
 async function responseError(response: ApiResponse<unknown>, fallback: string) {
   if (response.status === 401) return 'Sesja wygasła. Zaloguj się ponownie.';
-  if (response.status === 409) return 'Ta nazwa jest już zajęta. Wybierz inną.';
   try {
     const body = await response.json() as Record<string, unknown>;
     if (body.message === 'Incorrect current password') return 'Obecne hasło jest nieprawidłowe.';
@@ -114,8 +114,9 @@ export default function SettingsPage() {
     event.preventDefault();
     if (!sessionKey || submitting.current) return;
     const newUsername = username.trim();
-    if (newUsername.length < 3 || newUsername.length > 20) {
-      setFeedback({ message: 'Nazwa użytkownika musi mieć od 3 do 20 znaków.', error: true });
+    const problem = usernameProblem(newUsername);
+    if (problem) {
+      setFeedback({ message: `${problem}.`, error: true });
       return;
     }
     submitting.current = true;
@@ -123,6 +124,7 @@ export default function SettingsPage() {
     setFeedback(null);
     try {
       const response = await userApi.changeUsername(newUsername, { sessionKey });
+      if (response.status === 409) throw new Error('Ta nazwa jest już zajęta. Wybierz inną.');
       if (!response.ok) throw new Error(await responseError(response, 'Nie udało się zmienić nazwy użytkownika. Spróbuj ponownie.'));
       await response.json();
       if (activeToken.current !== sessionKey) return;
@@ -208,8 +210,8 @@ export default function SettingsPage() {
             </LoadingSkeleton> : <>
               <form className="settings-form" onSubmit={event => void changeName(event)}>
                 <label htmlFor="settings-username">Nazwa użytkownika</label>
-                <input id="settings-username" autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} required minLength={3} maxLength={20} disabled={!!busy} aria-describedby="settings-username-help" />
-                <p id="settings-username-help">Tak zobaczą Cię inni użytkownicy. Od 3 do 20 znaków.</p>
+                <input id="settings-username" autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} required minLength={USERNAME_MIN} maxLength={USERNAME_MAX} disabled={!!busy} aria-describedby="settings-username-help" />
+                <p id="settings-username-help">Tak zobaczą Cię inni użytkownicy. Od {USERNAME_MIN} do {USERNAME_MAX} znaków: litery, cyfry, _ i -.</p>
                 <button className="settings-button settings-button-primary" disabled={!!busy || username.trim() === account.username}>{busy === 'username' ? 'Zapisywanie…' : 'Zapisz nazwę'}</button>
               </form>
               <SettingRow title="Adres e-mail" description="Adres używany do logowania."><span className="settings-email">{account.email}</span></SettingRow>

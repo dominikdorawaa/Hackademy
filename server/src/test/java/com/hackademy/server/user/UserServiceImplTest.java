@@ -59,6 +59,7 @@ class UserServiceImplTest {
     @Mock UserUnlockedHintRepository userUnlockedHintRepository;
     @Mock PathRepository pathRepository;
     @Mock UserAvatarRepository userAvatarRepository;
+    @Mock com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
     @InjectMocks UserServiceImpl service;
 
     @AfterEach
@@ -415,6 +416,8 @@ class UserServiceImplTest {
         assertEquals("Ta nazwa jest zajęta", taken.getReason());
         assertEquals("carol", service.updateUsername(1L, new UpdateUsernameRequest("carol")));
         assertEquals("carol", alice.getUsername());
+        verify(friendshipService).invalidateProfileCaches(1L);
+        verify(dashboardSummaryCache).invalidateUser(1L);
         assertThrows(UserNotFoundException.class, () -> service.updateUsername(9L, new UpdateUsernameRequest("dave")));
     }
 
@@ -435,12 +438,14 @@ class UserServiceImplTest {
         when(userRepository.findByUsernameIgnoringCase("alice")).thenReturn(Optional.of(user(1L, "alice")));
         when(userRepository.findByUsernameIgnoringCase("carol")).thenReturn(Optional.empty());
 
-        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(false, "Ta nazwa jest zajęta"), service.usernameAvailability(1L, "bob"));
-        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(true, null), service.usernameAvailability(1L, "alice"));
-        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(true, null), service.usernameAvailability(1L, "carol"));
+        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(false, "taken", "Ta nazwa jest zajęta"), service.usernameAvailability(1L, "bob"));
+        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(true, null, null), service.usernameAvailability(1L, "alice"));
+        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(true, null, null), service.usernameAvailability(1L, "carol"));
         assertEquals(false, service.usernameAvailability(1L, "ab").available());
         assertEquals(false, service.usernameAvailability(1L, "a".repeat(21)).available());
         assertEquals("Nazwa może zawierać tylko litery, cyfry, _ i -", service.usernameAvailability(1L, "zła nazwa").message());
+        assertEquals("characters", service.usernameAvailability(1L, "zła nazwa").reason());
+        assertEquals("length", service.usernameAvailability(1L, "ab").reason());
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────

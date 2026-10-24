@@ -114,6 +114,7 @@ public class UserServiceImpl implements UserService {
     private final UserUnlockedHintRepository userUnlockedHintRepository;
     private final PathRepository pathRepository;
     private final UserAvatarRepository userAvatarRepository;
+    private final com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
 
     @Override
     @Transactional(readOnly = true)
@@ -209,26 +210,29 @@ public class UserServiceImpl implements UserService {
         }
 
         user.setUsername(request.newUsername());
+        String saved;
         try {
-            return userRepository.saveAndFlush(user).getUsername();
+            saved = userRepository.saveAndFlush(user).getUsername();
         } catch (DataIntegrityViolationException taken) {
             throw new ResponseStatusException(HttpStatus.CONFLICT, UpdateUsernameRequest.TAKEN_MESSAGE);
         }
+        refreshProfileCaches(userId);
+        return saved;
     }
 
     @Override
     @Transactional(readOnly = true)
     public UsernameAvailabilityDto usernameAvailability(Long userId, String username) {
         if (username.length() < UpdateUsernameRequest.MIN || username.length() > UpdateUsernameRequest.MAX) {
-            return new UsernameAvailabilityDto(false, UpdateUsernameRequest.LENGTH_MESSAGE);
+            return new UsernameAvailabilityDto(false, UsernameAvailabilityDto.LENGTH, UpdateUsernameRequest.LENGTH_MESSAGE);
         }
         if (!username.matches(UpdateUsernameRequest.PATTERN)) {
-            return new UsernameAvailabilityDto(false, UpdateUsernameRequest.CHARACTERS_MESSAGE);
+            return new UsernameAvailabilityDto(false, UsernameAvailabilityDto.CHARACTERS, UpdateUsernameRequest.CHARACTERS_MESSAGE);
         }
         if (takenByAnother(userId, username)) {
-            return new UsernameAvailabilityDto(false, UpdateUsernameRequest.TAKEN_MESSAGE);
+            return new UsernameAvailabilityDto(false, UsernameAvailabilityDto.TAKEN, UpdateUsernameRequest.TAKEN_MESSAGE);
         }
-        return new UsernameAvailabilityDto(true, null);
+        return new UsernameAvailabilityDto(true, null, null);
     }
 
     private boolean takenByAnother(Long userId, String username) {
@@ -248,7 +252,7 @@ public class UserServiceImpl implements UserService {
         UserAvatar entity = userAvatarRepository.findById(userId).orElseGet(() -> UserAvatar.of(userId, avatar));
         entity.apply(avatar);
         UserAvatarDto saved = userAvatarRepository.save(entity).toDto();
-        refreshAvatarCaches(userId);
+        refreshProfileCaches(userId);
         return saved;
     }
 
@@ -256,14 +260,15 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteAvatar(Long userId) {
         userAvatarRepository.findById(userId).ifPresent(userAvatarRepository::delete);
-        refreshAvatarCaches(userId);
+        refreshProfileCaches(userId);
     }
 
-    private void refreshAvatarCaches(Long userId) {
+    private void refreshProfileCaches(Long userId) {
         Runnable refresh = () -> {
             invalidateUserComputedCaches(userId);
             invalidateGlobalRankingCache();
             friendshipService.invalidateProfileCaches(userId);
+            dashboardSummaryCache.invalidateUser(userId);
         };
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             refresh.run();
