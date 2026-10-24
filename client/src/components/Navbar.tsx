@@ -241,7 +241,8 @@ const Navbar = () => {
             <img className="logo-mark" src="/brand-pixel/hackademy-mark-white-web.png" alt="Hackademy Logo" />
           </Link>
           {roomMode && <div className="navbar-room-slot" ref={roomChrome?.setSlot} />}
-          {!isAuthPage && !roomMode && (
+          {/* Signed-in phones navigate with the bottom tab bar; the Menu toggle stays for the public landing page. */}
+          {!isAuthPage && !roomMode && !isAuthenticated && (
             <Button type="button" variant="outline" size="sm" className="mobile-nav-toggle md:hidden" ref={mobileToggleRef}
               aria-expanded={mobileMenuOpen} aria-controls="main-nav-links"
               onClick={() => setMobileMenuPath(mobileMenuOpen ? null : location.pathname)}>Menu</Button>

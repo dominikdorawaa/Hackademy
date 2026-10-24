@@ -8,13 +8,18 @@ import Footer from './Footer';
 import RoomChromeProvider from './room/RoomChromeProvider';
 import { useRoomChrome } from './room/roomChrome';
 import PageBackdrop from './PageBackdrop';
+import MobileTabBar, { showsMobileTabBar } from './MobileTabBar';
+import { useAuth } from '../context/AuthContext';
 import { pageScene, sceneStyle } from '../lib/pageScenery';
 
 function SiteShell() {
   const roomMode = Boolean(useRoomChrome()?.active);
-  const scene = pageScene(useLocation().pathname);
+  const { pathname } = useLocation();
+  const { isAuthenticated } = useAuth();
+  const scene = pageScene(pathname);
+  const tabBar = isAuthenticated && !roomMode && showsMobileTabBar(pathname);
   return (
-    <div className={roomMode ? 'site-shell--room flex flex-col' : 'flex flex-col min-h-screen'}>
+    <div className={`${roomMode ? 'site-shell--room flex flex-col' : 'flex flex-col min-h-screen'}${tabBar ? ' site-shell--tabbar' : ''}`}>
       <RealtimeGameNavigation />
       <RealtimeNotifications />
       <RateLimitNotice />
@@ -25,6 +30,7 @@ function SiteShell() {
       </main>
       <GuidedTour />
       {!roomMode && <Footer />}
+      {tabBar && <MobileTabBar />}
     </div>
   );
 }
