@@ -25,6 +25,17 @@ it('opens on click and closes after clicking outside', async () => {
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 });
 
+it('closes on a second tap of the term', async () => {
+  render(<EloHelp />);
+  const button = screen.getByRole('button', { name: 'Co oznacza Elo?' });
+  fireEvent.pointerDown(button, { pointerType: 'touch' });
+  fireEvent.click(button);
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  fireEvent.pointerDown(button, { pointerType: 'touch' });
+  fireEvent.click(button);
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});
+
 it('stays open while moving from the trigger to the explanation', async () => {
   render(<EloHelp />);
   const button = screen.getByRole('button', { name: 'Co oznacza Elo?' });

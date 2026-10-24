@@ -1,4 +1,5 @@
 import { render, screen } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 import { expect, it } from 'vitest';
 import type { RankingEntry } from '../../types/api';
@@ -16,7 +17,6 @@ it('shows the league, Elo, progress to the next league and the place in the Elo 
   expect(screen.getByRole('link', { name: 'Graj' })).toHaveAttribute('href', '/arena');
   expect(screen.getByText('Liga Exploit')).toBeInTheDocument();
   expect(screen.getByText('857')).toBeInTheDocument();
-  expect(screen.getByRole('tooltip')).toHaveTextContent('Elo to Twoja siła w pojedynkach.');
   const meter = screen.getByRole('progressbar', { name: 'Postęp do ligi Root' });
   expect(meter).toHaveAttribute('aria-valuemin', '800');
   expect(meter).toHaveAttribute('aria-valuemax', '1000');
@@ -26,6 +26,15 @@ it('shows the league, Elo, progress to the next league and the place in the Elo 
   expect(document.querySelector('.ud-arena-badge')).toHaveAttribute('data-league', 'exploit');
   expect(fact('Miejsce w arenie')).toHaveTextContent('#12');
   expect(fact('Do awansu')).toHaveTextContent('143 Elo');
+});
+
+it('explains Elo in a popover outside the big Elo numeral, so it keeps the small tooltip text', async () => {
+  mount(entry());
+  await userEvent.setup().click(screen.getByRole('button', { name: 'Co oznacza Elo?' }));
+  const help = await screen.findByRole('dialog', { name: 'Jak działa Elo' });
+  expect(help).toHaveTextContent('Elo to Twoja siła w pojedynkach.');
+  expect(help).toHaveClass('elo-help-tip');
+  expect(help.closest('.ud-level-xp')).toBeNull();
 });
 
 it('takes the place from the Elo ranking, not the XP ranking', () => {
