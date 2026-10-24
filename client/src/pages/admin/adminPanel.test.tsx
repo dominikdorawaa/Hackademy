@@ -341,6 +341,7 @@ describe('admin dashboard', () => {
       bugReport({ id: 1, description: 'room-report', pagePath: '/rooms/4' }),
       bugReport({ id: 2, description: 'arena-report', source: 'ARENA', roomId: null, roomTitle: null, taskId: null, taskTitle: null, gameId: '7f0c2d1e-aaaa', pagePath: null }),
       bugReport({ id: 3, description: 'gone-room', roomId: null, roomTitle: null, taskId: null, taskTitle: null, pagePath: null }),
+      bugReport({ id: 4, description: 'foreign-path', source: 'ARENA', roomId: null, roomTitle: null, taskId: null, taskTitle: null, pagePath: '//evil.example/login' }),
     ], page: 0, size: 50, hasNext: false })));
     mountAdmin('/admin/bug-reports');
     const row = async (text: string) => within((await screen.findByText(text)).closest('tr')!);
@@ -354,6 +355,9 @@ describe('admin dashboard', () => {
     expect(arena.getAllByText('Arena')[0]).toBeInTheDocument();
     expect(arena.getAllByText('Mecz 7f0c2d1e')[0]).toHaveAttribute('title', '7f0c2d1e-aaaa');
     expect((await row('gone-room')).getAllByText('Pokój: usunięty')[0]).toBeInTheDocument();
+    const foreign = await row('foreign-path');
+    expect(foreign.getAllByText('//evil.example/login')[0].tagName).toBe('SPAN');
+    expect(foreign.queryByRole('link')).toBeNull();
   });
 
   it('updates roles and deletes an account from the current page', async () => {

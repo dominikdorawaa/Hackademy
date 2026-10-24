@@ -22,7 +22,6 @@ public class BugReportService {
 
     static final int MIN_LENGTH = 10;
     static final int MAX_LENGTH = 2000;
-    static final int MAX_PATH_LENGTH = 300;
     static final Duration HOUR = Duration.ofHours(1);
     static final Duration DAY = Duration.ofHours(24);
     static final String TOO_SHORT = "Opisz problem w co najmniej " + MIN_LENGTH + " znakach.";
@@ -37,7 +36,7 @@ public class BugReportService {
     static final String NOT_FOUND = "Nie znaleziono zgłoszenia.";
 
     private static final Pattern GAME_ID = Pattern.compile("[A-Za-z0-9-]{1,64}");
-    private static final Pattern PAGE_PATH = Pattern.compile("/[A-Za-z0-9/_.~%-]*");
+    private static final Pattern ARENA_PATH = Pattern.compile("/arena(/battle/[A-Za-z0-9-]{1,64})?");
 
     private final BugReportRepository reports;
     private final RoomRepository rooms;
@@ -64,7 +63,7 @@ public class BugReportService {
             if (request.gameId() != null && !GAME_ID.matcher(request.gameId()).matches()) throw new IllegalArgumentException(WRONG_GAME);
             report.setGameId(request.gameId());
         }
-        report.setPagePath(pagePath(request.pagePath()));
+        report.setPagePath(pagePath(request.pagePath(), report));
         reports.lockReporter(reporterId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
         LocalDateTime now = LocalDateTime.now(clock);
         long wait = Math.max(waitFor(reporterId, limits.hourlyLimit(), HOUR, now), waitFor(reporterId, limits.dailyLimit(), DAY, now));
@@ -121,9 +120,12 @@ public class BugReportService {
         return text;
     }
 
-    private static String pagePath(String value) {
+    private static String pagePath(String value, BugReport report) {
         if (value == null || value.isEmpty()) return null;
-        if (value.length() > MAX_PATH_LENGTH || !PAGE_PATH.matcher(value).matches()) throw new IllegalArgumentException(WRONG_PATH);
+        boolean known = report.getSource() == BugReportSource.ROOM
+                ? value.equals("/rooms/" + report.getRoomId())
+                : ARENA_PATH.matcher(value).matches();
+        if (!known) throw new IllegalArgumentException(WRONG_PATH);
         return value;
     }
 

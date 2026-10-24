@@ -13,6 +13,8 @@ import type { BugReportAdmin, BugReportStatus } from '../../types/api';
 
 const ALL = 'ALL';
 const filters: [BugReportStatus | typeof ALL, string][] = [['OPEN', 'Otwarte'], ['RESOLVED', 'Rozwiązane'], [ALL, 'Wszystkie']];
+const LOCAL_PAGE = /^\/(rooms\/\d+|arena(\/battle\/[A-Za-z0-9-]+)?)$/;
+
 const emptyText: Record<BugReportStatus | typeof ALL, string> = {
   OPEN: 'Nic nie czeka na sprawdzenie.',
   RESOLVED: 'Nie ma jeszcze rozwiązanych zgłoszeń.',
@@ -32,7 +34,9 @@ function Place({ report }: { report: BugReportAdmin }) {
   return (
     <div className="flex flex-col gap-0.5">
       {where}
-      {report.pagePath && <Link className="w-fit text-xs text-primary underline-offset-4 hover:underline" to={report.pagePath}>{report.pagePath}</Link>}
+      {report.pagePath && (LOCAL_PAGE.test(report.pagePath)
+        ? <Link className="w-fit text-xs text-primary underline-offset-4 hover:underline" to={report.pagePath}>{report.pagePath}</Link>
+        : <span className="text-xs break-all text-muted-foreground">{report.pagePath}</span>)}
     </div>
   );
 }

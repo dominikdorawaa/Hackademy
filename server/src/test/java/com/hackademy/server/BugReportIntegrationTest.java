@@ -143,8 +143,16 @@ class BugReportIntegrationTest extends PostgresIntegrationTest {
         postJson(player, URL, "{\"source\":\"ARENA\",\"pagePath\":\"javascript:alert(1)\",\"description\":\"Dziwny adres strony\"}")
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Nieprawidłowy adres strony."));
-        postJson(player, URL, "{\"source\":\"ARENA\",\"pagePath\":\"/%s\",\"description\":\"Za długi adres strony\"}".formatted("a".repeat(300)))
-                .andExpect(status().isBadRequest());
+        for (String path : List.of("//evil.example/login", "/arena//evil.example", "/arena/battle/../admin", "/admin/bug-reports", "/rooms/" + room)) {
+            postJson(player, URL, "{\"source\":\"ARENA\",\"pagePath\":\"%s\",\"description\":\"Adres spoza areny\"}".formatted(path))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Nieprawidłowy adres strony."));
+        }
+        for (String path : List.of("//evil.example/login", "/rooms/" + other, "/rooms/" + room + "/x", "/arena")) {
+            postJson(player, URL, "{\"source\":\"ROOM\",\"roomId\":%d,\"pagePath\":\"%s\",\"description\":\"Adres spoza pokoju\"}".formatted(room, path))
+                    .andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Nieprawidłowy adres strony."));
+        }
         postJson(player, URL, "{\"source\":\"CHAT\",\"description\":\"Nieznane miejsce\"}").andExpect(status().isBadRequest());
         mockMvc.perform(post(URL).contentType("application/json").content(arena("Bez zalogowania się")))
                 .andExpect(status().isUnauthorized());
@@ -152,6 +160,7 @@ class BugReportIntegrationTest extends PostgresIntegrationTest {
 
         postJson(player, URL, arena("\uD83D\uDC1B".repeat(2000))).andExpect(status().isCreated());
         postJson(player, URL, "{\"source\":\"ARENA\",\"pagePath\":\"\",\"description\":\"Pusty adres \\u0000strony\"}").andExpect(status().isCreated());
+        postJson(player, URL, "{\"source\":\"ARENA\",\"pagePath\":\"/arena\",\"description\":\"Zgłoszenie z lobby areny\"}").andExpect(status().isCreated());
         assertEquals(2000, jdbcTemplate.queryForObject("SELECT char_length(description) FROM bug_reports WHERE reporter_id = ? AND description LIKE '%\uD83D\uDC1B'",
                 Integer.class, player.id()));
         assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM bug_reports WHERE reporter_id = ? AND description = 'Pusty adres strony' AND page_path IS NULL",
