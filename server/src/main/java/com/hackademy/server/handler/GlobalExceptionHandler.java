@@ -5,6 +5,7 @@ import com.hackademy.server.room.RoomRuleException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
+import org.springframework.orm.ObjectOptimisticLockingFailureException;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.web.HttpRequestMethodNotSupportedException;
 import org.springframework.validation.FieldError;
@@ -70,6 +71,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleRoomRuleException(RoomRuleException ex) {
         return ResponseEntity.status(ex.getStatusCode())
                 .body(Map.of("message", ex.getReason(), "fields", Map.of(ex.field(), ex.getReason())));
+    }
+
+    @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
+    public ResponseEntity<Map<String, String>> handleOptimisticLockingFailure(ObjectOptimisticLockingFailureException ex) {
+        return ResponseEntity.status(HttpStatus.CONFLICT)
+                .body(Map.of("message", "Ktoś zmienił te dane w międzyczasie. Odśwież widok i spróbuj ponownie."));
     }
 
     @ExceptionHandler(ResponseStatusException.class)

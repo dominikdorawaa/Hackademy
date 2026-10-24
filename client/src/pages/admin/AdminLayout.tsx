@@ -5,6 +5,7 @@ import {
   LayoutDashboard,
   MessageSquareWarning,
   Route as RouteIcon,
+  Swords,
   Users,
 } from 'lucide-react';
 import type { LucideIcon } from 'lucide-react';
@@ -69,6 +70,10 @@ const navigation: NavGroup[] = [
       },
       { title: 'Pokoje CTF', to: '/admin/ctf', icon: Flag, match: ['/admin/ctf/*'] },
     ],
+  },
+  {
+    label: 'Arena',
+    items: [{ title: 'Pytania areny', to: '/admin/arena/questions', icon: Swords, match: ['/admin/arena/questions'], adminOnly: true }],
   },
   {
     label: 'Społeczność',

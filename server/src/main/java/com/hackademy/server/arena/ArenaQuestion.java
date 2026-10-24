@@ -6,6 +6,7 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
+import jakarta.persistence.Version;
 import lombok.AllArgsConstructor;
 import lombok.Getter;
 import lombok.NoArgsConstructor;
@@ -48,6 +49,10 @@ public class ArenaQuestion {
 
     @Column(nullable = false, length = 10)
     private String difficulty;
+
+    @Version
+    @Column(nullable = false)
+    private long version;
 
     public List<String> answers() {
         return List.of(answerA, answerB, answerC, answerD);

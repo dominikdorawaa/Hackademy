@@ -20,7 +20,7 @@ class BattleEngineTest {
 
     static List<ArenaQuestion> questions(int count) {
         return LongStream.rangeClosed(1, count).mapToObj(id -> new ArenaQuestion(id, "Pytanie " + id,
-                "A", "B", "C", "D", 2, "SIECI", "MEDIUM")).toList();
+                "A", "B", "C", "D", 2, "SIECI", "MEDIUM", 0L)).toList();
     }
 
     @BeforeEach
@@ -67,6 +67,29 @@ class BattleEngineTest {
         BattleEngine.resolve(session, 20_001);
         assertEquals(Map.of(1L, 100, 2L, 100), session.getHp());
         assertEquals(Map.of(1L, 0, 2L, 0), session.getLastRound().choices());
+    }
+
+    @Test
+    void editingTheBankAfterTheStartDoesNotChangeTheDuel() {
+        var bank = new java.util.ArrayList<>(questions(2));
+        var duel = new GameSession();
+        duel.setPlayer1Id(1L);
+        duel.setPlayer2Id(2L);
+        BattleEngine.start(duel, bank, 0);
+        bank.forEach(question -> {
+            question.setContent("Zmienione");
+            question.setAnswerA("X");
+            question.setCorrectAnswer(0);
+        });
+        bank.clear();
+        BattleEngine.answer(duel, 1L, 1, 2, 1_000);
+        BattleEngine.resolve(duel, 1_000);
+        assertEquals("Pytanie 1", duel.getLastRound().content());
+        assertEquals(List.of("A", "B", "C", "D"), duel.getLastRound().answers());
+        assertEquals(2, duel.getLastRound().correctAnswer());
+        assertEquals(81, duel.getHp().get(2L));
+        BattleEngine.nextRound(duel, 4_000);
+        assertEquals(new BattleQuestion(2L, "Pytanie 2", "SIECI", List.of("A", "B", "C", "D")), duel.getQuestion());
     }
 
     @Test

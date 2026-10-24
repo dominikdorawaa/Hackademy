@@ -20,6 +20,24 @@ export type FriendshipStatus = 'NONE' | 'FRIENDS' | 'REQUEST_SENT' | 'REQUEST_RE
 
 export type ApiId = string | number
 
+export type ArenaQuestionCategory = 'WEB' | 'SIECI' | 'KRYPTOGRAFIA' | 'LINUX' | 'OGOLNE'
+
+export type ArenaQuestionDifficulty = 'EASY' | 'MEDIUM' | 'HARD'
+
+export interface ArenaQuestionRequest {
+  content: string
+  answers: string[]
+  correctAnswer: number
+  category: ArenaQuestionCategory
+  difficulty: ArenaQuestionDifficulty
+  version?: number
+}
+
+export interface ArenaQuestionAdmin extends ArenaQuestionRequest {
+  id: number
+  version: number
+}
+
 export interface ApiError {
   message?: string
   mutedUntil?: ApiDateTime

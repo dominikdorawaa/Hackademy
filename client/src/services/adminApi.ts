@@ -3,6 +3,10 @@ import { rateLimitText } from './rateLimit';
 import type {
     AdminStatsDto,
     ApiId,
+    ArenaQuestionAdmin,
+    ArenaQuestionCategory,
+    ArenaQuestionDifficulty,
+    ArenaQuestionRequest,
     ChapterRequest,
     ChatMessage,
     CreatePathRequest,
@@ -35,6 +39,22 @@ export async function getUsersPage(sessionKey: string | null, page = 0, query = 
 export async function getReportsPage(sessionKey: string | null, page = 0) {
     return normalizePage(await request<PageResult<ChatMessage>>('/reports?page=' + page + '&size=50', { method: 'GET', sessionKey }), page);
 }
+
+export interface ArenaQuestionFilters { query?: string; category?: ArenaQuestionCategory | ''; difficulty?: ArenaQuestionDifficulty | '' }
+
+export async function getArenaQuestionsPage(sessionKey: string | null, page = 0, filters: ArenaQuestionFilters = {}) {
+    const params = new URLSearchParams({ page: String(page), size: '50', query: filters.query ?? '', category: filters.category ?? '', difficulty: filters.difficulty ?? '' });
+    return normalizePage(await request<PageResult<ArenaQuestionAdmin>>('/arena/questions?' + params, { method: 'GET', sessionKey }), page);
+}
+
+export const createArenaQuestion = (question: ArenaQuestionRequest, sessionKey: string | null) =>
+    request<ArenaQuestionAdmin>('/arena/questions', { method: 'POST', sessionKey, body: JSON.stringify(question) });
+
+export const updateArenaQuestion = (id: ApiId, question: ArenaQuestionRequest, sessionKey: string | null) =>
+    request<ArenaQuestionAdmin>(`/arena/questions/${id}`, { method: 'PUT', sessionKey, body: JSON.stringify(question) });
+
+export const deleteArenaQuestion = (id: ApiId, sessionKey: string | null) =>
+    request<void>(`/arena/questions/${id}`, { method: 'DELETE', sessionKey });
 
 const request = async <T>(endpoint: string, options: AdminRequestOptions): Promise<T | undefined> => {
     const { sessionKey, ...restOptions } = options;

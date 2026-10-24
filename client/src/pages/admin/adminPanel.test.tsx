@@ -111,7 +111,7 @@ describe('admin panel layout', () => {
     mountAdmin('/admin/users');
 
     expect(await screen.findByRole('heading', { name: 'Użytkownicy', level: 1 })).toBeInTheDocument();
-    for (const name of ['Pulpit', 'Ścieżki', 'Pokoje ścieżek', 'Pokoje CTF', 'Użytkownicy', 'Zgłoszenia']) {
+    for (const name of ['Pulpit', 'Ścieżki', 'Pokoje ścieżek', 'Pokoje CTF', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia']) {
       expect(navigation().getByRole('link', { name })).toBeInTheDocument();
     }
     expect(navigation().getByRole('link', { name: 'Wróć do aplikacji' })).toHaveAttribute('href', '/dashboard');
@@ -128,7 +128,7 @@ describe('admin panel layout', () => {
     expect(await screen.findByRole('heading', { name: 'Ścieżki', level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId('location').textContent).toBe('/admin/paths:REPLACE');
     expect(navigation().getByRole('link', { name: 'Pokoje CTF' })).toBeInTheDocument();
-    for (const name of ['Pulpit', 'Użytkownicy', 'Zgłoszenia']) {
+    for (const name of ['Pulpit', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia']) {
       expect(navigation().queryByRole('link', { name })).toBeNull();
     }
     expect(navigation().getByRole('link', { name: 'Hackademy, panel eksperta' })).toHaveAttribute('href', '/admin/paths');
