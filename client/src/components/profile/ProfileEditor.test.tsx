@@ -177,7 +177,7 @@ describe('profile editor dismissal', () => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Edytuj profil' })).toHaveFocus();
     });
-    expect(saved).toHaveBeenCalledWith(expect.objectContaining({ bio: 'Original bio updated' }));
+    expect(saved).toHaveBeenCalledWith(expect.objectContaining({ bio: 'Original bio updated' }), 'tester');
     expect(closed).toHaveBeenCalledOnce();
   });
 
@@ -200,5 +200,69 @@ describe('profile editor dismissal', () => {
     await user.click(controls.getByRole('button', { name: 'Zapisz profil' }));
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     expect(saved).toHaveBeenCalledOnce();
+  });
+});
+
+describe('profile editor username', () => {
+  const usernameEndpoint = `${API_URL}/api/user/me/username`;
+
+  it('renames without touching the profile when only the name changed', async () => {
+    const renames: unknown[] = [];
+    server.use(http.patch(usernameEndpoint, async ({ request }) => {
+      renames.push(await request.json());
+      return HttpResponse.json({ username: 'newname' });
+    }));
+    const { user, editor, saved, closed } = await mountEditor();
+    const field = within(editor).getByRole('textbox', { name: 'Nazwa użytkownika' });
+    await user.clear(field);
+    await user.type(field, ' newname ');
+    await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
+    await waitFor(() => expect(closed).toHaveBeenCalledOnce());
+    expect(renames).toEqual([{ newUsername: 'newname' }]);
+    expect(writes).toHaveLength(0);
+    expect(saved).toHaveBeenCalledWith(original, 'newname');
+  });
+
+  it('keeps the editor open with the error under the field when the name is taken', async () => {
+    server.use(http.patch(usernameEndpoint, () => HttpResponse.json({ message: 'Username already taken' }, { status: 409 })));
+    const { user, editor, saved } = await mountEditor();
+    const field = within(editor).getByRole('textbox', { name: 'Nazwa użytkownika' });
+    await user.clear(field);
+    await user.type(field, 'taken');
+    await user.type(within(editor).getByRole('textbox', { name: 'O mnie' }), ' updated');
+    await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
+    expect(await within(editor).findByRole('alert')).toHaveTextContent('Ta nazwa jest już zajęta. Wybierz inną.');
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(writes).toHaveLength(0);
+    expect(saved).not.toHaveBeenCalled();
+    await user.type(field, 'x');
+    expect(field).toHaveAttribute('aria-invalid', 'false');
+  });
+
+  it('does not rename twice when the profile save fails after a successful rename', async () => {
+    let renames = 0;
+    server.use(
+      http.patch(usernameEndpoint, () => { renames += 1; return HttpResponse.json({ username: 'newname' }); }),
+      http.patch(endpoint, () => new HttpResponse(null, { status: 500 })),
+    );
+    const { user, editor, saved } = await mountEditor();
+    const field = within(editor).getByRole('textbox', { name: 'Nazwa użytkownika' });
+    await user.clear(field);
+    await user.type(field, 'newname');
+    await user.type(within(editor).getByRole('textbox', { name: 'O mnie' }), ' updated');
+    await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
+    await within(editor).findByRole('alert');
+    server.use(http.patch(endpoint, async ({ request }) => HttpResponse.json(await request.json())));
+    await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
+    await waitFor(() => expect(saved).toHaveBeenCalledWith(expect.objectContaining({ bio: 'Original bio updated' }), 'newname'));
+    expect(renames).toBe(1);
+  });
+
+  it('blocks saving a name outside 3 to 20 characters', async () => {
+    const { user, editor } = await mountEditor();
+    const field = within(editor).getByRole('textbox', { name: 'Nazwa użytkownika' });
+    await user.clear(field);
+    await user.type(field, 'ab');
+    expect(within(editor).getByRole('button', { name: 'Zapisz profil' })).toBeDisabled();
   });
 });

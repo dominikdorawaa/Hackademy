@@ -1,20 +1,28 @@
-import { act, fireEvent, render, screen } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
 import { MemoryRouter, useLocation } from 'react-router-dom';
 import { defaultNotificationPreferences } from '../services/userApi';
 import type { RealtimeState } from '../types/realtime';
-import RealtimeNotifications, { ONLINE_TOAST_COOLDOWN_MS, TOAST_DURATION_MS, describeFriendsOnline } from './RealtimeNotifications';
+import RealtimeNotifications, { ONLINE_TOAST_COOLDOWN_MS, TOAST_DURATION_MS, describeFriendsOnline, describeInvitations, CHALLENGE_TOAST_DURATION_MS } from './RealtimeNotifications';
 import RealtimeGameNavigation from './RealtimeGameNavigation';
 import { createGameSession } from '../test/fixtures/arena';
 
 const environment = vi.hoisted(() => ({ sessionKey: 'first', state: null as RealtimeState | null, connected: true, loaded: true,
   preferences: { friendRequests: true, challenges: true, matchFound: true, sound: false, browserNotifications: true, friendOnline: true } }));
 vi.mock('../context/AuthContext', () => ({ useAuth: () => ({ sessionKey: environment.sessionKey }) }));
-vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state, connected: environment.connected }) }));
+vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => ({ state: environment.state, connected: environment.connected, synchronize: async () => {} }) }));
 const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), unlock: vi.fn(async () => true) }));
 vi.mock('../lib/notificationSounds', async importOriginal => ({
   ...await importOriginal<typeof import('../lib/notificationSounds')>(), playSound: sounds.play, unlockAudio: sounds.unlock }));
 vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPreferences: () => ({ preferences: environment.preferences, loaded: environment.loaded }) }));
+
+const answers = vi.hoisted(() => {
+  const state = { calls: [] as string[], ok: true,
+    answer: (name: string) => async (id: string | number) => { state.calls.push(`${name}:${id}`); return { ok: state.ok } as Response; } };
+  return state;
+});
+vi.mock('../services/friendApi', () => ({ acceptRequest: answers.answer('friend-accept'), rejectRequest: answers.answer('friend-reject') }));
+vi.mock('../services/arenaApi', () => ({ acceptChallenge: answers.answer('challenge-accept'), rejectChallenge: answers.answer('challenge-reject') }));
 
 const delivered = vi.fn();
 const snapshot = (): RealtimeState => ({ streamId: 'stream', revision: 1, friendRequests: [], challenges: [],
@@ -366,5 +374,122 @@ describe('rejected challenges', () => {
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
     expect(sounds.play).not.toHaveBeenCalled();
     expect(delivered).not.toHaveBeenCalled();
+  });
+});
+
+describe('invitation toasts', () => {
+  const challenge = { id: 'duel', challengerId: 2, challengerUsername: 'kuba', targetId: 1, targetUsername: 'first',
+    createdAt: request.createdAt, status: 'PENDING' as const, expiresAt: 1_060_000 };
+
+  it('briefly shows a new friend request and challenge in the corner as well as in the bell', () => {
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request], challenges: [challenge] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent(/friend\s*chce dodać Cię do znajomych/);
+    expect(screen.getByRole('status')).toHaveTextContent(/kuba\s*wyzywa Cię na pojedynek/);
+  });
+
+  it('sums up a burst of invitations in one toast', () => {
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request, { ...request, id: 8 }, { ...request, id: 9 }] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByText('Masz 3 nowe zaproszenia. Znajdziesz je w dzwonku')).toBeInTheDocument();
+    expect(screen.queryByRole('group')).not.toBeInTheDocument();
+  });
+
+  it('stays quiet for invitations switched off in settings', () => {
+    environment.preferences = { ...environment.preferences, friendRequests: false };
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it.each([[3, 'nowe zaproszenia'], [5, 'nowych zaproszeń'], [12, 'nowych zaproszeń'], [22, 'nowe zaproszenia']])('declines %i invitations', (count, words) => {
+    expect(describeInvitations(count)).toBe(`Masz ${count} ${words}. Znajdziesz je w dzwonku`);
+  });
+});
+
+describe('invitation toast actions', () => {
+  const challenge = { id: 'duel', challengerId: 2, challengerUsername: 'kuba', targetId: 1, targetUsername: 'first',
+    createdAt: request.createdAt, status: 'PENDING' as const, expiresAt: 1_060_000 };
+
+  it('tells a friend request from a challenge by its heading and lets the viewer answer right away', async () => {
+    answers.calls = [];
+    answers.ok = true;
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request], challenges: [challenge] };
+    rerender(<RealtimeNotifications />);
+    const friendToast = screen.getByRole('group', { name: 'Zaproszenie do znajomych' });
+    const challengeToast = screen.getByRole('group', { name: 'Wyzwanie w Arenie' });
+    expect(friendToast).toHaveAttribute('data-kind', 'friend');
+    expect(challengeToast).toHaveAttribute('data-kind', 'challenge');
+    fireEvent.click(within(friendToast).getByRole('button', { name: 'Akceptuj' }));
+    fireEvent.click(within(challengeToast).getByRole('button', { name: 'Odrzuć' }));
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Zaproszenie do znajomych' })).not.toBeInTheDocument());
+    await waitFor(() => expect(screen.queryByRole('group', { name: 'Wyzwanie w Arenie' })).not.toBeInTheDocument());
+    expect(answers.calls.sort()).toEqual(['challenge-reject:duel', 'friend-accept:7']);
+  });
+
+  it('keeps the toast with an error when answering fails', async () => {
+    answers.ok = false;
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request] };
+    rerender(<RealtimeNotifications />);
+    fireEvent.click(screen.getByRole('button', { name: 'Akceptuj' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się');
+    expect(screen.getByRole('button', { name: 'Akceptuj' })).toBeEnabled();
+    answers.ok = true;
+  });
+
+  it('holds the countdown while hovered and resumes it on leave', () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(<RealtimeNotifications />);
+      environment.state = { ...snapshot(), revision: 2, friendRequests: [request] };
+      rerender(<RealtimeNotifications />);
+      const toast = screen.getByRole('group', { name: 'Zaproszenie do znajomych' });
+      act(() => { vi.advanceTimersByTime(TOAST_DURATION_MS - 1000); });
+      fireEvent.mouseEnter(toast);
+      expect(toast).toHaveAttribute('data-paused', 'true');
+      act(() => { vi.advanceTimersByTime(TOAST_DURATION_MS * 3); });
+      expect(screen.getByRole('group', { name: 'Zaproszenie do znajomych' })).toBeInTheDocument();
+      fireEvent.mouseLeave(toast);
+      act(() => { vi.advanceTimersByTime(1000); });
+      expect(screen.queryByRole('group', { name: 'Zaproszenie do znajomych' })).not.toBeInTheDocument();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('shows the Elo of both fighters on a challenge', () => {
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, challenges: [{ ...challenge, challengerElo: 812, targetElo: 455 }] };
+    rerender(<RealtimeNotifications />);
+    const duel = screen.getByRole('group', { name: 'Wyzwanie w Arenie' });
+    expect(within(duel).getByLabelText('Elo kuba: 812')).toHaveTextContent('812 Elo');
+    expect(within(duel).getByLabelText('Twoje Elo: 455')).toBeInTheDocument();
+  });
+
+  it('keeps a challenge on screen longer than a friend request', () => {
+    vi.useFakeTimers();
+    try {
+      const { rerender } = render(<RealtimeNotifications />);
+      environment.state = { ...snapshot(), revision: 2, friendRequests: [request], challenges: [challenge] };
+      rerender(<RealtimeNotifications />);
+      act(() => { vi.advanceTimersByTime(TOAST_DURATION_MS); });
+      expect(screen.queryByRole('group', { name: 'Zaproszenie do znajomych' })).not.toBeInTheDocument();
+      expect(screen.getByRole('group', { name: 'Wyzwanie w Arenie' })).toBeInTheDocument();
+      act(() => { vi.advanceTimersByTime(CHALLENGE_TOAST_DURATION_MS - TOAST_DURATION_MS); });
+      expect(screen.queryByRole('group', { name: 'Wyzwanie w Arenie' })).not.toBeInTheDocument();
+    } finally { vi.useRealTimers(); }
+  });
+
+  it('drops the toast once the invitation was answered in the bell', () => {
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friendRequests: [request] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('group', { name: 'Zaproszenie do znajomych' })).toBeInTheDocument();
+    environment.state = { ...snapshot(), revision: 3 };
+    rerender(<RealtimeNotifications />);
+    expect(screen.queryByRole('group', { name: 'Zaproszenie do znajomych' })).not.toBeInTheDocument();
   });
 });

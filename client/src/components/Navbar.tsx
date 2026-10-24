@@ -334,7 +334,9 @@ const Navbar = () => {
                                                             {notif.type === 'CHALLENGE' ? ' wyzywa Cię na pojedynek!' : ' wysłał zaproszenie.'}
                                                         </p>
                                                         <span className="notification-type" style={{ color: 'var(--text-gray)' }}>
-                                                            {notif.type === 'CHALLENGE' ? 'Tryb Rankingowy' : 'Znajomi'}
+                                                            {notif.type === 'CHALLENGE'
+                                                                ? notif.data.challengerElo != null ? `Tryb Rankingowy · ${notif.data.challengerElo} Elo` : 'Tryb Rankingowy'
+                                                                : 'Znajomi'}
                                                         </span>
                                                     </div>
                                                 </div>
