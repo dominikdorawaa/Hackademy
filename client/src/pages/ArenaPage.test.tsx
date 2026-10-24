@@ -18,7 +18,7 @@ const realtime = vi.hoisted(() => ({ value: { state: null as RealtimeState | nul
 vi.mock('../context/RealtimeContext', () => ({ useRealtime: () => realtime.value }));
 
 const state = (overrides: Partial<RealtimeState> = {}): RealtimeState => ({
-  streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 1_000_000, gameSession: null, queued: false, ...overrides,
+  streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 1_000_000, gameSession: null, queued: false, ...overrides,
 });
 const incoming = { id: 'c1', challengerId: 2, challengerUsername: 'rywal', targetId: 1, targetUsername: 'tester', createdAt: '2026-10-11T12:00:00', status: 'PENDING' as const, expiresAt: 1_060_000 };
 const mount = () => render(<MemoryRouter><AuthProvider><ArenaPage /></AuthProvider></MemoryRouter>);
@@ -135,6 +135,35 @@ it('counts down a sent challenge and lets the player close the note about an exp
   } finally {
     clock.mockRestore();
   }
+});
+
+it('tells only the challenger that a challenge was rejected and lets them close the note', async () => {
+  const dismissed: string[] = [];
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+    http.post(`${API_URL}/api/arena/challenge/:id/dismiss`, ({ params }) => { dismissed.push(String(params.id)); return HttpResponse.json({ message: 'ok' }); }),
+  );
+  realtime.value.state = state({
+    expiredChallenges: [{ ...incoming, id: 'old', challengerUsername: 'tester', targetUsername: 'kuba', status: 'EXPIRED' }],
+    rejectedChallenges: [{ ...incoming, id: 'no', challengerUsername: 'tester', targetUsername: 'ola', status: 'REJECTED' }],
+  });
+  const challenger = mount();
+  const sent = await screen.findByRole('list', { name: 'Wysłane wyzwania' });
+  expect(sent).toHaveTextContent('Wyzwanie dla ola zostało odrzucone.');
+  expect(sent).toHaveTextContent('Wyzwanie dla kuba wygasło bez odpowiedzi.');
+  expect(within(sent).getAllByRole('listitem')).toHaveLength(2);
+  const note = within(sent).getByText(/zostało odrzucone/).closest('li')!;
+  fireEvent.click(within(note).getByRole('button', { name: 'Zamknij' }));
+  await waitFor(() => expect(dismissed).toEqual(['no']));
+  expect(realtime.value.synchronize).toHaveBeenCalled();
+  challenger.unmount();
+
+  realtime.value.state = state();
+  mount();
+  expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeInTheDocument();
+  expect(screen.queryByRole('list', { name: 'Wysłane wyzwania' })).not.toBeInTheDocument();
+  expect(screen.queryByText(/odrzucone/)).not.toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: /Otrzymane wyzwania/ })).not.toBeInTheDocument();
 });
 
 it('explains why an expired challenge could not be taken back or its note closed', async () => {

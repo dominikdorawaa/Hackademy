@@ -45,6 +45,7 @@ const ArenaPage = () => {
     const [friendChallenges, setFriendChallenges] = useState<Record<string, FriendChallenge>>({});
     const outgoing = realtime?.outgoingChallenges ?? [];
     const expired = realtime?.expiredChallenges ?? [];
+    const rejected = realtime?.rejectedChallenges ?? [];
     const challengedFriends = outgoing.map(challenge => challenge.targetUsername);
     const serverTime = realtime?.serverTime ?? 0;
     const clock = useArenaClock(serverTime, outgoing.length > 0 || challenges.length > 0);
@@ -135,10 +136,10 @@ const ArenaPage = () => {
         }
     };
 
-    const handleDismissExpired = async (challengeId: string) => {
+    const handleDismissNotice = async (challengeId: string) => {
         try {
-            const response = await arenaApi.dismissExpiredChallenge(challengeId, { sessionKey });
-            if (!response.ok) throw new Error('Cannot dismiss expired challenge');
+            const response = await arenaApi.dismissChallengeNotice(challengeId, { sessionKey });
+            if (!response.ok) throw new Error('Cannot dismiss challenge notice');
             await synchronize();
         } catch {
             setError('Nie udało się zamknąć komunikatu.');
@@ -241,7 +242,7 @@ const ArenaPage = () => {
                             ) : (
                                 <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
                             )}
-                            {status !== 'GAME' && outgoing.length + expired.length > 0 && (
+                            {status !== 'GAME' && outgoing.length + expired.length + rejected.length > 0 && (
                                 <ul className="arena-sent" aria-label="Wysłane wyzwania">
                                     {outgoing.map(challenge => (
                                         <li key={challenge.id}>
@@ -252,10 +253,17 @@ const ArenaPage = () => {
                                         </li>
                                     ))}
                                     {expired.map(challenge => (
-                                        <li key={challenge.id} className="arena-sent-expired">
+                                        <li key={challenge.id} className="arena-sent-closed">
                                             <span className="arena-sent-mark" aria-hidden="true" />
                                             <span>Wyzwanie dla <strong>{challenge.targetUsername}</strong> wygasło bez odpowiedzi.</span>
-                                            <button type="button" className="ud-link" onClick={() => handleDismissExpired(challenge.id)}>Zamknij</button>
+                                            <button type="button" className="ud-link" onClick={() => handleDismissNotice(challenge.id)}>Zamknij</button>
+                                        </li>
+                                    ))}
+                                    {rejected.map(challenge => (
+                                        <li key={challenge.id} className="arena-sent-closed">
+                                            <span className="arena-sent-mark" aria-hidden="true" />
+                                            <span>Wyzwanie dla <strong>{challenge.targetUsername}</strong> zostało odrzucone.</span>
+                                            <button type="button" className="ud-link" onClick={() => handleDismissNotice(challenge.id)}>Zamknij</button>
                                         </li>
                                     ))}
                                 </ul>

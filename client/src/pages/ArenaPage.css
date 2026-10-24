@@ -335,11 +335,11 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   background: var(--ud-muted);
 }
 
-.arena-sent-expired {
+.arena-sent-closed {
   color: var(--ud-muted);
 }
 
-.arena-sent-expired strong {
+.arena-sent-closed strong {
   color: var(--ud-ink);
 }
 

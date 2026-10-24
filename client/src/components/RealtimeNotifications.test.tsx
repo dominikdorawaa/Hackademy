@@ -18,7 +18,7 @@ vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPre
 
 const delivered = vi.fn();
 const snapshot = (): RealtimeState => ({ streamId: 'stream', revision: 1, friendRequests: [], challenges: [],
-  friends: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 0, gameSession: null, queued: false });
+  friends: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0, gameSession: null, queued: false });
 const request = { id: 7, requesterUsername: 'friend', createdAt: '2026-10-11T12:00:00' };
 
 beforeEach(() => {
@@ -353,5 +353,76 @@ describe('expired challenge toasts', () => {
     environment.state = withExpired(3, expired('new', 'ola'));
     rerender(<RealtimeNotifications />);
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+});
+
+describe('rejected challenge toasts', () => {
+  const sent = { id: 'sent', challengerId: 1, challengerUsername: 'first', targetId: 2, targetUsername: 'ola',
+    createdAt: '2026-10-24T12:00:00', status: 'PENDING' as const, expiresAt: 1_060_000 };
+  const rejected = (id: string, targetUsername: string) => ({ ...sent, id, targetUsername, status: 'REJECTED' as const });
+  const withRejected = (revision: number, ...rejectedChallenges: ReturnType<typeof rejected>[]) => ({ ...snapshot(), revision, rejectedChallenges });
+
+  it('tells the challenger once and leaves the player who rejected without a notification', () => {
+    environment.preferences = { ...environment.preferences, sound: true };
+    environment.state = { ...snapshot(), outgoingChallenges: [sent] };
+    const challenger = render(<RealtimeNotifications />);
+    environment.state = withRejected(2, rejected('sent', 'ola'));
+    challenger.rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('Wyzwanie dla ola zostało odrzucone.');
+    environment.state = withRejected(3, rejected('sent', 'ola'));
+    challenger.rerender(<RealtimeNotifications />);
+    environment.state = withRejected(4);
+    challenger.rerender(<RealtimeNotifications />);
+    expect(screen.getAllByText(/odrzucone/)).toHaveLength(1);
+    challenger.unmount();
+
+    environment.sessionKey = 'second';
+    environment.state = { ...snapshot(), challenges: [{ ...sent, challengerUsername: 'first', targetUsername: 'second' }] };
+    const target = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2 };
+    target.rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(sounds.play).not.toHaveBeenCalled();
+    expect(delivered).not.toHaveBeenCalled();
+  });
+
+  it('does not repeat the toast after a refresh or a reconnect', () => {
+    environment.state = withRejected(1, rejected('seen', 'ola'));
+    const page = render(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    page.unmount();
+    environment.state = withRejected(2, rejected('seen', 'ola'));
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.connected = false;
+    rerender(<RealtimeNotifications />);
+    environment.connected = true;
+    rerender(<RealtimeNotifications />);
+    environment.state = withRejected(3, rejected('seen', 'ola'), rejected('missed', 'kuba'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.state = withRejected(4, rejected('seen', 'ola'), rejected('missed', 'kuba'), rejected('new', 'ala'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('Wyzwanie dla ala zostało odrzucone.');
+    expect(screen.getAllByText(/odrzucone/)).toHaveLength(1);
+  });
+
+  it('stays silent when challenge notifications are off', () => {
+    environment.preferences = { ...environment.preferences, challenges: false };
+    environment.state = withRejected(1);
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = withRejected(2, rejected('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+
+  it('tells a rejection apart from an expiry', () => {
+    environment.state = withRejected(1);
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...withRejected(2, rejected('no', 'ola')),
+      expiredChallenges: [{ ...sent, id: 'late', targetUsername: 'kuba', status: 'EXPIRED' as const }] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByText('Wyzwanie dla ola zostało odrzucone.')).toBeInTheDocument();
+    expect(screen.getByText('Wyzwanie dla kuba wygasło bez odpowiedzi.')).toBeInTheDocument();
+    expect(screen.getAllByText(/Wyzwanie dla/)).toHaveLength(2);
   });
 });

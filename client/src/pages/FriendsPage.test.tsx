@@ -17,7 +17,7 @@ vi.mock('../context/RealtimeContext', () => ({
 
 const friend = (id: number, username: string, online: boolean): FriendDto => ({ id, username, points: 100, streak: 1, online });
 const snapshot = (friends: FriendDto[]): RealtimeState => ({ streamId: 'stream', revision: 1, friendRequests: [],
-  friends, challenges: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 0, gameSession: null, queued: false });
+  friends, challenges: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0, gameSession: null, queued: false });
 
 function mount() {
   return render(<MemoryRouter><FriendsPage /></MemoryRouter>);

@@ -20,5 +20,5 @@ public interface ArenaService {
     GameSession acceptChallenge(String challengeId, Long userId);
     void rejectChallenge(String challengeId, Long userId);
     List<Challenge> getPendingChallenges(Long userId);
-    void dismissExpiredChallenge(String challengeId, Long userId);
+    void dismissChallengeNotice(String challengeId, Long userId);
 }

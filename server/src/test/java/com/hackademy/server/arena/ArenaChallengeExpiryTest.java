@@ -223,12 +223,12 @@ class ArenaChallengeExpiryTest {
     void onlyTheChallengerCanDismissTheExpiryNotice() {
         var sent = challenge(1, 2);
         at(60_000);
-        arena.dismissExpiredChallenge(sent.getId(), 2L);
-        arena.dismissExpiredChallenge("missing", 1L);
+        arena.dismissChallengeNotice(sent.getId(), 2L);
+        arena.dismissChallengeNotice("missing", 1L);
         assertEquals(List.of(sent), arena.getExpiredChallenges(1L));
         verify(realtime, never()).arenaChanged(2L);
         signIn(1);
-        assertEquals(200, controller.dismissExpiredChallenge(sent.getId()).getStatusCode().value());
+        assertEquals(200, controller.dismissChallengeNotice(sent.getId()).getStatusCode().value());
         assertTrue(arena.getExpiredChallenges(1L).isEmpty());
         verify(realtime).arenaChanged(1L);
         assertEquals(ArenaServiceImpl.STALE_CHALLENGE,
@@ -262,7 +262,7 @@ class ArenaChallengeExpiryTest {
     void expiryNoticesFadeAfterFiveMinutes() {
         var sent = challenge(1, 2);
         at(60_000);
-        now.set(1_060_000 + ArenaServiceImpl.EXPIRED_NOTICE_MILLIS - 1);
+        now.set(1_060_000 + ArenaServiceImpl.NOTICE_MILLIS - 1);
         arena.sweepAbandonedChallenges();
         assertEquals(List.of(sent), arena.getExpiredChallenges(1L));
         now.incrementAndGet();
@@ -273,7 +273,7 @@ class ArenaChallengeExpiryTest {
 
     @Test
     void onlyTheNewestExpiryNoticesAreKept() {
-        for (long challenger = 100; challenger < 100 + ArenaServiceImpl.EXPIRED_NOTICES_KEPT; challenger++) {
+        for (long challenger = 100; challenger < 100 + ArenaServiceImpl.NOTICES_KEPT; challenger++) {
             now.incrementAndGet();
             arena.createChallenge(challenger, "p" + challenger, 2L, "player2");
         }
