@@ -5,26 +5,46 @@
   .nav-user-controls { display: flex; align-items: center; gap: 15px; }
   .nav-account-toggle { display: block; padding: 0; border: 0; background: transparent; border-radius: 50%; cursor: pointer; }
   .nav-account-toggle:focus-visible { outline: 2px solid var(--primary-blue); outline-offset: 3px; }
+  .nav-account { position: relative; flex: none; }
+  .profile-dropdown {
+    position: absolute;
+    top: 55px;
+    right: 0;
+    z-index: 100;
+    width: 220px;
+    padding: 8px;
+    border: 1px solid var(--border-color);
+    border-radius: 8px;
+    background-color: var(--bg-panel);
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+  }
   @media (min-width: 768px) and (max-width: 1100px) {
+    .navbar .hackademy-container { padding: 0 24px; }
+    .navbar .nav-content { gap: 16px; }
     .navbar .nav-links { gap: 12px; }
     .navbar .nav-links a { font-size: 14px; white-space: nowrap; }
+    .navbar .logo { flex: none; }
     .navbar .logo img { height: 48px; margin: 0; }
     .nav-user-controls { gap: 8px; }
+  }
+  /* Below 960px the streak would push the account menu off the bar; it stays on the dashboard and profile. */
+  @media (min-width: 768px) and (max-width: 959px) {
+    .navbar .nav-streak { display: none; }
   }
   @media (max-width: 767px) {
     .navbar .hackademy-container { padding: 0 16px; }
     .navbar .nav-content { flex-wrap: wrap; gap: 12px; }
     .navbar .logo { margin-right: auto; }
     .navbar .logo img { height: 44px; margin: -4.5px 0; }
-    .navbar .mobile-nav-toggle { display: inline-flex; order: 1; }
-    .navbar .nav-auth { order: 2; gap: 8px; }
+    .navbar .nav-auth { order: 1; gap: 8px; }
+    .navbar .mobile-nav-toggle { display: inline-flex; order: 2; }
     .navbar .nav-user-controls { gap: 8px; }
     .navbar .nav-streak { display: none; }
     .navbar .nav-links { display: none; flex-basis: 100%; order: 3; gap: 0; border-top: 1px solid var(--border-color); padding-top: 8px; }
     .navbar .nav-links.mobile-nav-open { display: flex; flex-direction: column; }
     .navbar .nav-links a { display: block; padding: 12px 4px; }
-    .navbar .notifications-dropdown { position: fixed; top: 72px; left: 16px; right: 16px; width: auto; max-width: calc(100vw - 32px); }
-    .navbar .profile-dropdown { max-width: calc(100vw - 32px); }
+    .navbar .notifications-dropdown { position: fixed; top: 100%; left: 16px; right: 16px; width: auto; max-width: calc(100vw - 32px); }
+    .navbar .profile-dropdown { position: fixed; top: calc(100% + 8px); right: 16px; max-width: calc(100vw - 32px); }
   }
 /* Navbar.css */
 
@@ -374,6 +394,7 @@
 .navbar--room .logo img { height: 40px; margin: 0; }
 .navbar-room-slot { flex: 1; min-width: 0; display: flex; }
 .navbar .logo .logo-mark { display: none; }
+.navbar .nav-join { padding: 8px 20px; font-size: 0.9rem; }
 
 .site-shell--room { height: 100vh; height: 100dvh; }
 .site-shell--room > main { display: flex; flex-direction: column; min-height: 0; }
@@ -388,4 +409,12 @@
   .navbar--room .logo { margin-right: 0; }
   .navbar--room .logo img { display: none; }
   .navbar--room .logo .logo-mark { display: block; height: 32px; margin: 0; }
+  .navbar .mobile-nav-toggle { height: 40px; padding-inline: 14px; }
+}
+
+/* On phones the wordmark leaves no room for the controls, so the bar keeps to one row with the mark. */
+@media (max-width: 479px) {
+  .navbar .logo img { display: none; }
+  .navbar .logo .logo-mark { display: block; height: 32px; margin: 0; }
+  .navbar .nav-auth .btn { min-height: 40px; padding: 8px 12px; font-size: 0.9rem; }
 }
