@@ -165,7 +165,7 @@ export interface ArenaReaction {
   sentAt: number
 }
 
-export type BugReportSource = 'ROOM' | 'ARENA'
+export type BugReportSource = 'ROOM' | 'ARENA' | 'LAB'
 export type BugReportStatus = 'OPEN' | 'RESOLVED'
 
 export interface BugReportRequest {
@@ -173,6 +173,7 @@ export interface BugReportRequest {
   roomId?: number
   taskId?: number
   gameId?: string
+  lessonId?: string
   pagePath?: string
   description: string
 }
@@ -186,6 +187,7 @@ export interface BugReportAdmin {
   taskId: number | null
   taskTitle: string | null
   gameId: string | null
+  lessonId: string | null
   pagePath: string | null
   description: string
   status: BugReportStatus

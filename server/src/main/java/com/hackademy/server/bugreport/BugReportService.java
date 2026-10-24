@@ -14,6 +14,7 @@ import java.time.Clock;
 import java.time.Duration;
 import java.time.LocalDateTime;
 import java.util.Locale;
+import java.util.Set;
 import java.util.regex.Pattern;
 
 @Service
@@ -32,11 +33,16 @@ public class BugReportService {
     static final String ROOM_IN_ARENA = "Zgłoszenie z areny nie może wskazywać pokoju.";
     static final String WRONG_GAME = "Nieprawidłowy identyfikator meczu.";
     static final String WRONG_PATH = "Nieprawidłowy adres strony.";
+    static final String WRONG_LESSON = "Nieprawidłowy krok laboratorium.";
+    static final String WRONG_LAB_CONTEXT = "Zgłoszenie z laboratorium nie może wskazywać pokoju, zadania ani meczu.";
     static final String DUPLICATE = "To zgłoszenie już do nas trafiło. Nie musisz wysyłać go ponownie.";
     static final String NOT_FOUND = "Nie znaleziono zgłoszenia.";
 
     private static final Pattern GAME_ID = Pattern.compile("[A-Za-z0-9-]{1,64}");
     private static final Pattern ARENA_PATH = Pattern.compile("/arena(/battle/[A-Za-z0-9-]{1,64})?");
+    private static final Set<String> LAB_LESSONS = Set.of("pwd", "ls", "ls-detail", "ls-hidden", "lab-read-message",
+            "lab-directory", "lab-remove", "cd-relative", "lab-read-report", "lab-copy", "lab-move",
+            "cd-absolute", "lab-touch", "lab-note", "history");
 
     private final BugReportRepository reports;
     private final RoomRepository rooms;
@@ -50,6 +56,7 @@ public class BugReportService {
         if (request.source() == null) throw new IllegalArgumentException(MISSING_SOURCE);
         BugReport report = new BugReport();
         report.setSource(request.source());
+        if (request.source() != BugReportSource.LAB && request.lessonId() != null) throw new IllegalArgumentException(WRONG_LESSON);
         if (request.source() == BugReportSource.ROOM) {
             if (request.roomId() == null || !rooms.existsById(request.roomId())) throw new IllegalArgumentException(MISSING_ROOM);
             if (request.taskId() != null && !reports.taskBelongsToRoom(request.taskId(), request.roomId())) {
@@ -58,10 +65,16 @@ public class BugReportService {
             if (request.gameId() != null) throw new IllegalArgumentException(WRONG_GAME);
             report.setRoomId(request.roomId());
             report.setTaskId(request.taskId());
-        } else {
+        } else if (request.source() == BugReportSource.ARENA) {
             if (request.roomId() != null || request.taskId() != null) throw new IllegalArgumentException(ROOM_IN_ARENA);
             if (request.gameId() != null && !GAME_ID.matcher(request.gameId()).matches()) throw new IllegalArgumentException(WRONG_GAME);
             report.setGameId(request.gameId());
+        } else {
+            if (request.roomId() != null || request.taskId() != null || request.gameId() != null) {
+                throw new IllegalArgumentException(WRONG_LAB_CONTEXT);
+            }
+            if (request.lessonId() == null || !LAB_LESSONS.contains(request.lessonId())) throw new IllegalArgumentException(WRONG_LESSON);
+            report.setLessonId(request.lessonId());
         }
         report.setPagePath(pagePath(request.pagePath(), report));
         reports.lockReporter(reporterId).orElseThrow(() -> new ResponseStatusException(HttpStatus.UNAUTHORIZED));
@@ -122,9 +135,11 @@ public class BugReportService {
 
     private static String pagePath(String value, BugReport report) {
         if (value == null || value.isEmpty()) return null;
-        boolean known = report.getSource() == BugReportSource.ROOM
-                ? value.equals("/rooms/" + report.getRoomId())
-                : ARENA_PATH.matcher(value).matches();
+        boolean known = switch (report.getSource()) {
+            case ROOM -> value.equals("/rooms/" + report.getRoomId());
+            case ARENA -> ARENA_PATH.matcher(value).matches();
+            case LAB -> value.equals("/learn/ukos");
+        };
         if (!known) throw new IllegalArgumentException(WRONG_PATH);
         return value;
     }

@@ -14,7 +14,7 @@ public interface BugReportRepository extends JpaRepository<BugReport, Long> {
 
     String VIEW = """
             SELECT new com.hackademy.server.bugreport.BugReportView(b.id, u.username, b.source, b.roomId, r.title,
-                b.taskId, t.title, b.gameId, b.pagePath, b.description, b.status, b.createdAt, b.resolvedAt)
+                b.taskId, t.title, b.gameId, b.lessonId, b.pagePath, b.description, b.status, b.createdAt, b.resolvedAt)
             FROM BugReport b JOIN b.reporter u
             LEFT JOIN Room r ON r.id = b.roomId
             LEFT JOIN RoomTask t ON t.id = b.taskId
