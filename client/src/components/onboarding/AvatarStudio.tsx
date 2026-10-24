@@ -10,6 +10,7 @@ import { COLOR_GROUPS, DANCE_OPTIONS, FINISHER_OPTIONS, HAIR_NAMES, HAT_NAMES, O
 import { danceFrame, dancePreview, finisherFrame, finisherPreview } from '../arena/avatar/movePreviews';
 import { ColorChoices } from '../arena/avatar/ColorChoices';
 import { ArenaLoader } from '../arena/ArenaLoader';
+import './AvatarStudio.css';
 
 export type StudioTab = 'outfit' | 'head' | 'colors' | 'finisher' | 'dance' | 'icon';
 const TABS: { id: StudioTab; label: string }[] = [
