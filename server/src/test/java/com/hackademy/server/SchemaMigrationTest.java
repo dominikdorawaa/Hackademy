@@ -229,7 +229,7 @@ class SchemaMigrationTest {
         flyway("29").migrate();
         insertUser(1, "Alice", "alice@example.com");
         execute("INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color) VALUES (1, 'dres', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy')");
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 29, flyway().migrate().migrationsExecuted);
         assertEquals("beam", text("SELECT finisher FROM user_avatars WHERE user_id = 1"));
         assertEquals("groove", text("SELECT victory_dance FROM user_avatars WHERE user_id = 1"));
         execute("UPDATE user_avatars SET finisher = 'combo', victory_dance = 'scuba' WHERE user_id = 1");
