@@ -36,8 +36,8 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mobileMenuPath, setMobileMenuPath] = useState<string | null>(null);
   const mobileMenuOpen = mobileMenuPath === location.pathname;
-  const navRef = useRef<HTMLElement | null>(null);
   const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
+  const mobileLinksRef = useRef<HTMLDivElement | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { state: realtime, synchronize } = useRealtime();
   const { preferences } = useNotificationPreferences();
@@ -70,8 +70,11 @@ const Navbar = () => {
       setIsNotificationsOpen(false);
       if (mobileMenuOpen) mobileToggleRef.current?.focus();
     };
+    // Any press outside the menu and its toggle closes it, the navbar's own panels included,
+    // so a panel never opens below the expanded links and runs off the screen.
     const closeMobileOutside = (event: MouseEvent) => {
-      if (!navRef.current?.contains(event.target as Node)) setMobileMenuPath(null);
+      const target = event.target as Node;
+      if (!mobileLinksRef.current?.contains(target) && !mobileToggleRef.current?.contains(target)) setMobileMenuPath(null);
     };
     document.addEventListener('keydown', closeMenus);
     document.addEventListener('mousedown', closeMobileOutside);
@@ -217,7 +220,7 @@ const Navbar = () => {
   );
 
   return (
-    <nav className={roomMode ? 'navbar navbar--room' : 'navbar'} ref={navRef} aria-label="Nawigacja główna">
+    <nav className={roomMode ? 'navbar navbar--room' : 'navbar'} aria-label="Nawigacja główna">
       <div className="hackademy-container">
         <div className="nav-content">
           <Link
@@ -235,7 +238,7 @@ const Navbar = () => {
               src="/brand-pixel/hackademy-logo-white.png"
               alt="Hackademy Logo"
             />
-            {roomMode && <img className="logo-mark" src="/brand-pixel/hackademy-mark-white-web.png" alt="" aria-hidden="true" />}
+            <img className="logo-mark" src="/brand-pixel/hackademy-mark-white-web.png" alt="Hackademy Logo" />
           </Link>
           {roomMode && <div className="navbar-room-slot" ref={roomChrome?.setSlot} />}
           {!isAuthPage && !roomMode && (
@@ -244,7 +247,7 @@ const Navbar = () => {
               onClick={() => setMobileMenuPath(mobileMenuOpen ? null : location.pathname)}>Menu</Button>
           )}
           {!isAuthPage && !roomMode && (
-            <div id="main-nav-links" className={`nav-links ${mobileMenuOpen ? 'mobile-nav-open' : ''}`}
+            <div id="main-nav-links" ref={mobileLinksRef} className={`nav-links ${mobileMenuOpen ? 'mobile-nav-open' : ''}`}
               onClick={event => { if ((event.target as HTMLElement).closest('a')) setMobileMenuPath(null); }}>
               {isAuthenticated ? (
                 <>
@@ -425,7 +428,7 @@ const Navbar = () => {
                     <span>{userData.streak || 0}</span>
                 </div>
 
-                <div ref={menuRef} style={{ position: 'relative' }}>
+                <div ref={menuRef} className="nav-account">
                   <button type="button" className="nav-account-toggle" data-slot="nav-account"
                     aria-label="Menu konta" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(!isMenuOpen)}>
                   <UserAvatar username={userData.username} avatar={userData.avatar}
@@ -441,18 +444,7 @@ const Navbar = () => {
                   />
                   </button>
                   {isMenuOpen && (
-                    <div className="profile-dropdown" style={{
-                      position: 'absolute',
-                      top: '55px',
-                      right: 0,
-                      backgroundColor: 'var(--bg-panel)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '8px',
-                      width: '220px',
-                      padding: '8px',
-                      zIndex: 100,
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                    }}>
+                    <div className="profile-dropdown">
                       <div className="dropdown-header" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
                         <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-light)' }}>{userData.username}</p>
                         <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-gray)' }}>{userData.email}</p>
@@ -510,8 +502,7 @@ const Navbar = () => {
                 <Link to="/login" className="btn btn-text">Zaloguj</Link>
                 <Link
                   to="/register"
-                  className="btn btn-primary"
-                  style={{ padding: '8px 20px', fontSize: '0.9rem' }}
+                  className="btn btn-primary nav-join"
                 >
                   Dołącz
                 </Link>

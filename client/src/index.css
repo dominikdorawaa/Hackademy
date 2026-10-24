@@ -778,6 +778,14 @@ footer {
 .footer-links a:hover {
   color: var(--primary-blue);
 }
+@media (max-width: 767px) {
+  .footer-links { row-gap: 0; }
+  .footer-links a {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+  }
+}
 
 /* --- COMPETITION / ARENA SECTION --- */
 .arena-section {

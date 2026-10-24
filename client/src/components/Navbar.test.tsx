@@ -56,6 +56,23 @@ it('opens navigation, closes it with Escape and restores focus, then closes afte
   );
 });
 
+it('closes the phone menu when a navbar panel opens, so the panel hangs from the collapsed bar', async () => {
+  setClerkSession(createToken());
+  server.use(
+    http.get(`${API_URL}/api/friends/requests`, () => HttpResponse.json<FriendRequestDto[]>([])),
+    http.get(`${API_URL}/api/arena/challenges`, () => HttpResponse.json<Challenge[]>([])),
+  );
+  renderWithAuth(<Route path="*" element={<Navbar />} />, '/profile');
+  await screen.findByRole('button', { name: 'Menu konta' });
+  const user = userEvent.setup();
+  const menu = screen.getByRole('button', { name: /^Menu$/ });
+  await user.click(menu);
+  expect(menu).toHaveAttribute('aria-expanded', 'true');
+  await user.click(screen.getByRole('button', { name: 'Powiadomienia' }));
+  expect(menu).toHaveAttribute('aria-expanded', 'false');
+  expect(screen.getByRole('heading', { name: 'Powiadomienia' })).toBeInTheDocument();
+});
+
 it.each([[0, true], [3, false]])('shows a pixel flame for a %i day streak, lit only while the streak lasts', async (streak, out) => {
   setClerkSession(createToken());
   server.use(
