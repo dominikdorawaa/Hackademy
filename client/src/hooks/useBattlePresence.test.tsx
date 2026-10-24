@@ -89,6 +89,43 @@ it('retries a failed leave and stops once the server answers', async () => {
   expect(of('g')).toEqual(['return:g', 'leave-failed:g', 'leave-refused:g']);
 });
 
+it('retries a rate limited return and leave after the server says to', async () => {
+  const limited = new Set<string>();
+  const limit = (kind: string) => ({ params }: { params: Record<string, string | readonly string[]> }) => {
+    if (params.id !== 'h') return new HttpResponse(null, { status: 204 });
+    if (!limited.has(kind)) {
+      limited.add(kind);
+      calls.push(`${kind}-limited:h`);
+      return HttpResponse.json({ message: 'Za dużo żądań' }, { status: 429, headers: { 'Retry-After': '1' } });
+    }
+    calls.push(`${kind}:h`);
+    return new HttpResponse(null, { status: 204 });
+  };
+  server.use(
+    http.post(`${API_URL}/api/arena/game/:id/return`, limit('return')),
+    http.post(`${API_URL}/api/arena/game/:id/leave`, limit('leave')),
+  );
+  const first = renderHook(() => useBattlePresence('h', 'sessionKey'));
+  await waitFor(() => expect(of('h')).toEqual(['return-limited:h']));
+  await waitFor(() => expect(of('h')).toEqual(['return-limited:h', 'return:h']), { timeout: RETRY_MS * 3 });
+  first.unmount();
+  await waitFor(() => expect(of('h')).toEqual(['return-limited:h', 'return:h', 'leave-limited:h']));
+  await waitFor(() => expect(of('h')).toEqual(['return-limited:h', 'return:h', 'leave-limited:h', 'leave:h']), { timeout: RETRY_MS * 3 });
+});
+
+it('retries a request timeout', async () => {
+  let timedOut = false;
+  server.use(http.post(`${API_URL}/api/arena/game/:id/return`, ({ params }) => {
+    if (params.id !== 'i') return new HttpResponse(null, { status: 204 });
+    calls.push(`return-${timedOut ? 'ok' : 'timeout'}:i`);
+    if (timedOut) return new HttpResponse(null, { status: 204 });
+    timedOut = true;
+    return new HttpResponse(null, { status: 408 });
+  }));
+  renderHook(() => useBattlePresence('i', 'sessionKey'));
+  await waitFor(() => expect(of('i')).toEqual(['return-timeout:i', 'return-ok:i']), { timeout: RETRY_MS * 3 });
+});
+
 it('sends the newest view instead of retrying a stale one', async () => {
   server.use(http.post(`${API_URL}/api/arena/game/:id/return`, ({ params }) => {
     calls.push(`return:${params.id}`);
