@@ -21,7 +21,7 @@
 .settings-panel > .settings-form { padding-block: 16px 24px; }
 .settings-panel > .settings-error { padding-block: 20px; }
 .settings-row { display: flex; align-items: center; justify-content: space-between; gap: 24px; padding: 20px 0; }
-.settings-panel > * + .settings-row, .settings-panel > .settings-form + .settings-row { border-top: 1px solid var(--ud-track); }
+.settings-panel > * + .settings-row { border-top: 1px solid var(--ud-track); }
 .settings-row-text { min-width: 0; }
 .settings-row h4 { font-size: var(--ud-text); font-weight: 600; line-height: 1.5; margin-bottom: 2px; }
 .settings-control { flex-shrink: 0; max-width: 100%; }
@@ -39,11 +39,15 @@
 .settings-segmented input:not(:checked):hover + span { color: var(--ud-ink); }
 .settings-segmented input:focus-visible + span { outline: 2px solid var(--ud-link); outline-offset: 2px; }
 .settings-form { display: grid; gap: 8px; max-width: 440px; }
-.settings-form label { font-size: var(--ud-text-s); font-weight: 600; }
-.settings-form input { min-height: 48px; width: 100%; padding: 0 14px; border: 1px solid var(--ud-track); border-radius: var(--ud-radius); background: var(--ud-board); color: var(--ud-ink); font-size: var(--ud-text); caret-color: var(--ud-blue); }
-.settings-form input:hover:not(:disabled) { border-color: var(--ud-muted); }
-.settings-form input:disabled { opacity: .65; }
-.settings-form .settings-button { margin-top: 8px; justify-self: start; }
+.settings-name h4 label { cursor: pointer; }
+.settings-name .settings-row-text { flex: 1 1 auto; }
+.settings-name-control { display: grid; grid-template-columns: 200px auto; align-items: center; gap: 8px; }
+.settings-name input { min-height: 36px; width: 100%; padding: 0 12px; border: 1px solid var(--ud-track); border-radius: var(--ud-radius); background: var(--ud-board); color: var(--ud-ink); font-size: var(--ud-text-s); caret-color: var(--ud-blue); transition: border-color 150ms var(--ud-ease); }
+.settings-name input:hover:not(:disabled) { border-color: var(--ud-muted); }
+.settings-name input[aria-invalid='true'] { border-color: var(--settings-error-color); }
+.settings-name input:disabled { opacity: .65; }
+.settings-page .settings-field-error { grid-column: 1 / -1; color: var(--settings-error-color); font-size: .8125rem; }
+.settings-button { margin-top: 8px; justify-self: start; }
 .settings-button { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 36px; padding: 0 16px; border: 0; border-radius: var(--ud-radius); background: var(--ud-surface-2); color: var(--ud-ink); font-size: var(--ud-text-s); font-weight: 600; text-decoration: none; white-space: nowrap; cursor: pointer; transition: background-color 150ms var(--ud-ease), color 150ms var(--ud-ease); }
 .settings-button:hover:not(:disabled) { background: var(--ud-blue); color: var(--ud-blue-ink); }
 .settings-button-primary { min-height: 48px; padding: 0 24px; background: var(--ud-blue); color: var(--ud-blue-ink); font-size: var(--ud-text); }
@@ -88,12 +92,14 @@
   .settings-page { padding-block: 24px 40px; }
   .settings-heading { margin-bottom: 24px; }
   .settings-layout { grid-template-columns: minmax(0, 1fr); gap: 24px; }
-  .settings-nav { position: static; display: flex; overflow-x: auto; scrollbar-width: none; }
-  .settings-nav button { width: auto; flex-shrink: 0; white-space: nowrap; min-height: 44px; padding: 0 14px; font-size: var(--ud-text-s); gap: 8px; }
+  .settings-nav { position: static; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px; }
+  .settings-nav button { min-width: 0; min-height: 44px; padding: 0 12px; font-size: var(--ud-text-s); gap: 8px; }
   .settings-panel { padding: 4px 20px; }
   .settings-group { margin-top: 28px; }
   .settings-row { gap: 16px; }
   .settings-row:has(.settings-email, a, .settings-button, .settings-segmented) { flex-direction: column; align-items: flex-start; }
+  .settings-name .settings-control { width: 100%; }
+  .settings-name-control { grid-template-columns: minmax(0, 1fr) auto; }
   .settings-preview-strip { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .settings-sound-list li > span { min-width: 0; flex-basis: 100%; }
 }

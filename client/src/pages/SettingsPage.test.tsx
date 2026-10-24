@@ -148,6 +148,21 @@ describe('settings', () => {
     expect(openUserProfile).toHaveBeenCalledOnce();
   });
 
+  it('keeps the naming rules hidden until the typed name breaks them', async () => {
+    mount();
+    const field = await screen.findByLabelText('Nazwa użytkownika');
+    expect(screen.queryByText(/litery, cyfry/)).not.toBeInTheDocument();
+    fireEvent.change(field, { target: { value: 'ab' } });
+    expect(screen.getByRole('alert')).toHaveTextContent('od 3 do 20 znaków');
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Zapisz nazwę' })).toBeDisabled();
+    fireEvent.change(field, { target: { value: 'zła nazwa' } });
+    expect(screen.getByRole('alert')).toHaveTextContent('litery, cyfry, _ i -');
+    fireEvent.change(field, { target: { value: 'dobra_nazwa' } });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zapisz nazwę' })).toBeEnabled();
+  });
+
   it('shows a taken username as an error and keeps the typed name', async () => {
     server.use(http.patch(`${API_URL}/api/user/me/username`, () => HttpResponse.json({ message: 'Username already taken' }, { status: 409 })));
     mount();

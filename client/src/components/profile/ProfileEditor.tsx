@@ -9,7 +9,7 @@ import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
 import BadgeIcon from './BadgeIcon';
 import { useUsernameChange, validateUsername } from '../../hooks/useUsernameChange';
-import { USERNAME_MAX, USERNAME_MIN } from '../../lib/username';
+import { USERNAME_MAX } from '../../lib/username';
 
 export default function ProfileEditor({ username, initial, badges, onSaved, onClose, onUnauthorized }: {
   username: string; initial: ProfilePersonalization; badges: BadgeDto[];
@@ -36,7 +36,9 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
   const earned = badges.filter(badge => badge.earned).sort((a, b) => (b.earnedAt ?? '').localeCompare(a.earnedAt ?? '') || a.id - b.id);
   const pages = Math.ceil(earned.length / 6);
   const nameChanged = name.trim() !== savedName;
-  const invalid = draft.bio.length > 500 || !!validateUsername(name);
+  const typedNameProblem = name.trim() === savedName ? null : validateUsername(name);
+  const nameProblem = nameError || typedNameProblem;
+  const invalid = draft.bio.length > 500 || !!typedNameProblem;
   const profileChanged = draft.bio !== original.bio || draft.tagline !== original.tagline
     || JSON.stringify(draft.interests) !== JSON.stringify(original.interests)
     || JSON.stringify(draft.featuredBadgeIds) !== JSON.stringify(original.featuredBadgeIds);
@@ -130,11 +132,11 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     <form onSubmit={event => void save(event)}>
       <fieldset disabled={saving} className="profile-editor-fields">
         <div className="profile-editor-field"><label htmlFor={`${id}-username`}>Nazwa użytkownika</label>
-          <input id={`${id}-username`} autoComplete="username" value={name} required minLength={USERNAME_MIN} maxLength={USERNAME_MAX}
-            aria-invalid={!!nameError} aria-describedby={`${id}-username-help`}
+          <input id={`${id}-username`} autoComplete="username" value={name} maxLength={USERNAME_MAX}
+            aria-invalid={!!nameProblem} aria-describedby={`${id}-username-help`}
             onChange={event => { setName(event.target.value); setNameError(''); }} />
-          <span id={`${id}-username-help`} className={nameError ? 'profile-error' : 'profile-muted'} role={nameError ? 'alert' : undefined}>
-            {nameError || `Tak zobaczą Cię inni użytkownicy. Od ${USERNAME_MIN} do ${USERNAME_MAX} znaków: litery, cyfry, _ i -.`}</span></div>
+          <span id={`${id}-username-help`} className={nameProblem ? 'profile-error' : 'profile-muted'} role={nameProblem ? 'alert' : undefined}>
+            {nameProblem || 'Tak zobaczą Cię inni użytkownicy.'}</span></div>
         <div className="profile-editor-field"><label htmlFor={`${id}-bio`}>O mnie</label>
           <textarea id={`${id}-bio`} value={draft.bio} maxLength={500} rows={4} placeholder="Co Cię interesuje? Czego chcesz się nauczyć?"
             aria-describedby={`${id}-bio-count`} onChange={event => setDraft({ ...draft, bio: event.target.value })} />

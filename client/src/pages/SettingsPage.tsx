@@ -17,10 +17,10 @@ import { ArenaRunner } from '../components/arena/ArenaLoader';
 import InvitationCard from '../components/InvitationCard';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import type { Icon } from '@phosphor-icons/react';
-import { useUsernameChange } from '../hooks/useUsernameChange';
+import { useUsernameChange, validateUsername } from '../hooks/useUsernameChange';
 import { chooseVariant, playSound, selectedVariant, soundVariants, unlockAudio } from '../lib/notificationSounds';
 import type { SoundEvent } from '../lib/notificationSounds';
-import { USERNAME_MAX, USERNAME_MIN } from '../lib/username';
+import { USERNAME_MAX } from '../lib/username';
 
 const sections: Record<'account' | 'notifications' | 'appearance' | 'security', { title: string; description: string; icon: Icon }> = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.', icon: UserCircle },
@@ -113,6 +113,7 @@ export default function SettingsPage() {
   const { openUserProfile } = useClerk();
   const [busy, setBusy] = useState<'permission' | null>(null);
   const { change: changeUsername, changing: renaming } = useUsernameChange();
+  const [nameError, setNameError] = useState('');
   const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
   const activeToken = useRef(sessionKey);
   useLayoutEffect(() => { activeToken.current = sessionKey; }, [sessionKey]);
@@ -146,12 +147,18 @@ export default function SettingsPage() {
     setFeedback(null);
   };
 
+  // The naming rules only show up once the typed name breaks them.
+  const unchangedName = !account || username.trim() === account.username;
+  const typedNameProblem = unchangedName ? null : validateUsername(username);
+  const nameProblem = nameError || typedNameProblem;
+
   const changeName = async (event: FormEvent) => {
     event.preventDefault();
     setFeedback(null);
+    setNameError('');
     const result = await changeUsername(username);
     if (!result) return;
-    if (!result.ok) { setFeedback({ message: result.error, error: true }); return; }
+    if (!result.ok) { setNameError(result.error); return; }
     setAccount(previous => previous && { ...previous, username: result.username });
     setFeedback({ message: 'Nazwa użytkownika została zmieniona.', error: false });
   };
@@ -234,11 +241,16 @@ export default function SettingsPage() {
               <Skeleton width="70%" height={14} tone="raised" />
               <Skeleton width={150} height={48} radius={6} tone="raised" />
             </LoadingSkeleton> : <>
-              <form className="settings-form" onSubmit={event => void changeName(event)}>
-                <label htmlFor="settings-username">Nazwa użytkownika</label>
-                <input id="settings-username" autoComplete="username" value={username} onChange={event => setUsername(event.target.value)} required minLength={USERNAME_MIN} maxLength={USERNAME_MAX} disabled={renaming} aria-describedby="settings-username-help" />
-                <p id="settings-username-help">Tak zobaczą Cię inni użytkownicy. Od {USERNAME_MIN} do {USERNAME_MAX} znaków: litery, cyfry, _ i -. Możesz ją też zmienić w edycji profilu.</p>
-                <button className="settings-button settings-button-primary" disabled={renaming || username.trim() === account.username}>{renaming ? 'Zapisywanie…' : 'Zapisz nazwę'}</button>
+              <form className="settings-row settings-name" noValidate onSubmit={event => void changeName(event)}>
+                <div className="settings-row-text"><h4><label htmlFor="settings-username">Nazwa użytkownika</label></h4>
+                  <p id="settings-username-help">Tak zobaczą Cię inni użytkownicy. Możesz ją też zmienić w edycji profilu.</p></div>
+                <div className="settings-control settings-name-control">
+                  <input id="settings-username" autoComplete="username" value={username} maxLength={USERNAME_MAX} disabled={renaming}
+                    aria-invalid={!!nameProblem} aria-describedby={nameProblem ? 'settings-username-error settings-username-help' : 'settings-username-help'}
+                    onChange={event => { setUsername(event.target.value); setNameError(''); }} />
+                  <button className="settings-button" disabled={renaming || unchangedName || !!typedNameProblem}>{renaming ? 'Zapisywanie…' : 'Zapisz nazwę'}</button>
+                  {nameProblem && <p id="settings-username-error" className="settings-field-error" role="alert">{nameProblem}</p>}
+                </div>
               </form>
               <SettingRow title="Adres e-mail" description="Służy do logowania. Aby go zmienić, dodaj nowy adres, potwierdź go kodem i ustaw jako główny."
                 extra={<p className="settings-email">{account.email}</p>}>
