@@ -1,4 +1,4 @@
-import { danceFrames } from '../avatar/fighters';
+import { danceFrames, TURNS, turnedDance } from '../avatar/fighters';
 import type { SpriteSheet } from '../../PixelSprite';
 import type { ArenaReaction, GameSession } from '../../../types/api';
 
@@ -24,9 +24,9 @@ export const QUICK_REACTIONS: QuickReaction[] = [
   { id: 'gg', kind: 'emote', text: 'GG', name: 'GG', sprite: EMOTE_SPRITES.gg },
   { id: 'laugh', kind: 'emote', text: 'Śmiech', name: 'Śmiech', sprite: EMOTE_SPRITES.laugh },
   { id: 'shock', kind: 'emote', text: 'Szok', name: 'Szok', sprite: EMOTE_SPRITES.shock },
-  { id: '67', kind: 'animation', text: '67', name: 'Six-seven', frames: danceFrames(8) },
+  { id: '67', kind: 'animation', text: '67', name: 'Six-seven', frames: turnedDance(8, TURNS.sixseven) },
   { id: 'groove', kind: 'animation', text: 'Luz', name: 'Taniec Luz', frames: danceFrames(6) },
-  { id: 'scuba', kind: 'animation', text: 'Scuba', name: 'Scuba', frames: danceFrames(13) },
+  { id: 'scuba', kind: 'animation', text: 'Scuba', name: 'Scuba', frames: turnedDance(13, TURNS.scuba) },
 ];
 
 export const REACTION_MS = 3000;
@@ -44,7 +44,7 @@ export function shownReaction(session: GameSession, senderId: number, serverNow:
   if (!latest) return null;
   const reaction = findReaction(latest.reaction);
   const age = serverNow - latest.sentAt;
-  if (!reaction || age < 0 || age >= REACTION_MS) return null;
+  if (!reaction || age < 0 || age >= Math.max(REACTION_MS, (reaction.frames?.length ?? 0) * REACTION_FRAME_MS + REACTION_SLACK_MS)) return null;
   return { key: latest.id, reaction, age };
 }
 

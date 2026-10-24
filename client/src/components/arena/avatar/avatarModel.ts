@@ -211,11 +211,12 @@ export function recolorOverlay(pixels: Uint8ClampedArray, ramp: Ramp) {
   return out;
 }
 
-export interface HeadAnchor { angle: number; x: number; y: number; view?: 'side' | 'front'; floor?: number }
-export interface HeadAnchors { center: [number, number]; frontCenter?: [number, number]; cells: Record<string, HeadAnchor | null> }
+export type HeadView = 'side' | 'front' | 'dance';
+export interface HeadAnchor { angle: number; x: number; y: number; view?: HeadView; floor?: number }
+export interface HeadAnchors { center: [number, number]; frontCenter?: [number, number]; danceCenter?: [number, number]; cells: Record<string, HeadAnchor | null> }
 
-export function compositeOverlay(atlas: Uint8ClampedArray, width: number, overlay: Uint8ClampedArray, anchors: HeadAnchors, view: 'side' | 'front' = 'side') {
-  const [centerX, centerY] = view === 'front' && anchors.frontCenter ? anchors.frontCenter : anchors.center;
+export function compositeOverlay(atlas: Uint8ClampedArray, width: number, overlay: Uint8ClampedArray, anchors: HeadAnchors, view: HeadView = 'side') {
+  const [centerX, centerY] = (view === 'front' ? anchors.frontCenter : view === 'dance' ? anchors.danceCenter : null) ?? anchors.center;
   for (const [key, anchor] of Object.entries(anchors.cells)) {
     if (!anchor || (anchor.view ?? 'side') !== view) continue;
     const index = Number(key), cellX = (index % (width / 64)) * 64, cellY = Math.floor(index / (width / 64)) * 64;
