@@ -58,6 +58,7 @@ Migracje bazy uruchamia Flyway przy starcie backendu. Muszą działać ze starym
 | `FRONTEND_URL` | `https://hackademy.app`; jedyny origin dopuszczony dla API i WebSocket, dopóki nie ustawiono `CORS_ALLOWED_ORIGINS` |
 
 - Nie ustawiamy na Heroku `DB_URL`, `DB_USERNAME` ani `DB_PASSWORD`. Zmienne `VPN_SERVER_*` nie są ustawione, bo VPN nie działa i nie był migrowany.
+- `ARENA_CHALLENGE_EXPIRY` (opcjonalna, domyślnie `60s`) ustala, po jakim czasie nieprzyjęte wyzwanie w Arenie wygasa. Przyjmuje format czasu Springa, np. `45s` albo `2m`, i musi być dodatnia.
 - Zmiana zmiennej restartuje dyno.
 - Włączone jest `log-runtime-metrics`, więc `heroku logs -a hackademy` pokazuje zużycie pamięci (`sample#memory_rss`).
 

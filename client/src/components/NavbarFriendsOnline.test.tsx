@@ -31,7 +31,7 @@ vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPre
 
 const friend = (id: number, username: string, online: boolean) => ({ id, username, points: 0, streak: 0, online });
 const snapshot = (friends: ReturnType<typeof friend>[], revision = 1): RealtimeState => ({ streamId: 'stream', revision,
-  friendRequests: [], challenges: [], outgoingChallenges: [], gameSession: null, queued: false, friends });
+  friendRequests: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 0, gameSession: null, queued: false, friends });
 
 beforeEach(() => {
   setClerkSession(createToken());

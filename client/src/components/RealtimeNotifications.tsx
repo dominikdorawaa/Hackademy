@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
@@ -35,16 +35,21 @@ export default function RealtimeNotifications() {
   const { state } = useRealtime();
   const { preferences, loaded } = useNotificationPreferences();
   const seen = useRef<{ sessionKey: string | null; stream: string; ids: Set<string>; offlineFriends: Set<number>;
-    pending: Map<string, Alert> } | null>(null);
+    pending: Map<string, Alert>; expired: Set<string> } | null>(null);
   const lastOnlineToast = useRef(new Map<number, number>());
   const nextToastId = useRef(0);
   const toastTimers = useRef(new Map<number, number>());
   const [toasts, setToasts] = useState<Toast[]>([]);
-  const dismiss = (id: number) => {
+  const dismiss = useCallback((id: number) => {
     window.clearTimeout(toastTimers.current.get(id));
     toastTimers.current.delete(id);
     setToasts(current => current.filter(toast => toast.id !== id));
-  };
+  }, []);
+  const showToast = useCallback((text: string) => {
+    const id = nextToastId.current++;
+    setToasts(current => [...current, { id, text }]);
+    toastTimers.current.set(id, window.setTimeout(() => dismiss(id), TOAST_DURATION_MS));
+  }, [dismiss]);
 
   useEffect(() => {
     if (!preferences.sound || !sessionKey) return;
@@ -75,7 +80,8 @@ export default function RealtimeNotifications() {
     ];
     const offlineFriends = new Set(state.friends.filter(friend => !friend.online).map(friend => friend.id));
     if (!seen.current || seen.current.sessionKey !== sessionKey || seen.current.stream !== state.streamId) {
-      seen.current = { sessionKey, stream: state.streamId, ids: new Set(events.map(event => event.id)), offlineFriends, pending: new Map() };
+      seen.current = { sessionKey, stream: state.streamId, ids: new Set(events.map(event => event.id)), offlineFriends, pending: new Map(),
+        expired: new Set(state.expiredChallenges.map(challenge => challenge.id)) };
       return;
     }
     const history = seen.current;
@@ -89,6 +95,9 @@ export default function RealtimeNotifications() {
     history.pending.forEach((_event, id) => { if (!activeIds.has(id)) history.pending.delete(id); });
     history.ids.forEach(id => { if (id.startsWith(ONLINE_EVENT_PREFIX) && !activeIds.has(id)) history.ids.delete(id); });
     if (!loaded) return;
+    const expired = state.expiredChallenges.filter(challenge => !history.expired.has(challenge.id));
+    history.expired = new Set(state.expiredChallenges.map(challenge => challenge.id));
+    if (preferences.challenges) expired.forEach(challenge => showToast(`Wyzwanie dla ${challenge.targetUsername} wygasło bez odpowiedzi.`));
     const now = Date.now();
     const eligible = [...history.pending.values()].filter(event => preferences[event.category]
       && (event.friendId === undefined || now - (lastOnlineToast.current.get(event.friendId) ?? -Infinity) >= ONLINE_TOAST_COOLDOWN_MS));
@@ -96,11 +105,7 @@ export default function RealtimeNotifications() {
     const online = eligible.filter(event => event.friendId !== undefined);
     online.forEach(event => lastOnlineToast.current.set(event.friendId!, now));
     const onlineSummary = online.length ? describeFriendsOnline(online.map(event => event.username!)) : null;
-    if (onlineSummary) {
-      const id = nextToastId.current++;
-      setToasts(current => [...current, { id, text: onlineSummary }]);
-      toastTimers.current.set(id, window.setTimeout(() => dismiss(id), TOAST_DURATION_MS));
-    }
+    if (onlineSummary) showToast(onlineSummary);
     const signal = loudestEvent(eligible.map(event => event.category));
     if (signal && preferences.sound) playSound(signal);
     if (preferences.browserNotifications && document.visibilityState === 'hidden'
@@ -115,7 +120,7 @@ export default function RealtimeNotifications() {
         } catch { return; }
       });
     }
-  }, [state, sessionKey, preferences, loaded]);
+  }, [state, sessionKey, preferences, loaded, showToast]);
 
   useEffect(() => {
     const timers = toastTimers.current;

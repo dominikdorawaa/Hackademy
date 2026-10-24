@@ -93,8 +93,8 @@ class ArenaBattleServiceTest {
         assertEquals("next", arena.findCurrentGameForUser(1L).getId());
         arena.finishGame("next", null);
         arena.createChallenge(1L, "first", 2L, "second");
-        now.addAndGet(120_001);
-        arena.sweepAbandonedChallenges();
+        now.addAndGet(ArenaServiceImpl.DEFAULT_CHALLENGE_EXPIRY.toMillis());
+        arena.expireChallenges();
         assertTrue(arena.getPendingChallenges(2L).isEmpty());
     }
 

@@ -18,7 +18,7 @@ vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPre
 
 const delivered = vi.fn();
 const snapshot = (): RealtimeState => ({ streamId: 'stream', revision: 1, friendRequests: [], challenges: [],
-  friends: [], outgoingChallenges: [], gameSession: null, queued: false });
+  friends: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 0, gameSession: null, queued: false });
 const request = { id: 7, requesterUsername: 'friend', createdAt: '2026-10-11T12:00:00' };
 
 beforeEach(() => {
@@ -44,7 +44,7 @@ describe('realtime notification delivery', () => {
     const { rerender } = render(<RealtimeNotifications />);
     environment.state = { ...snapshot(), revision: 2, friendRequests: [request, { ...request, id: 8 }],
       challenges: [{ id: 'challenge', challengerId: 2, challengerUsername: 'second', targetId: 1,
-        targetUsername: 'first', createdAt: request.createdAt, status: 'PENDING' }],
+        targetUsername: 'first', createdAt: request.createdAt, status: 'PENDING', expiresAt: 1_060_000 }],
       gameSession: createGameSession({ id: 'match', player1Username: 'first', player2Username: 'second' }) };
     rerender(<RealtimeNotifications />);
     expect(delivered).not.toHaveBeenCalled();
@@ -278,5 +278,43 @@ describe('friend online toasts', () => {
     rerender(<RealtimeNotifications />);
     expect(sounds.play).toHaveBeenCalledTimes(1);
     expect(sounds.play).toHaveBeenCalledWith('friendOnline');
+  });
+});
+
+describe('expired challenge toasts', () => {
+  const expired = (id: string, targetUsername: string) => ({ id, challengerId: 1, challengerUsername: 'first', targetId: 2,
+    targetUsername, createdAt: '2026-10-24T12:00:00', status: 'EXPIRED' as const, expiresAt: 1_060_000 });
+  const withExpired = (revision: number, ...expiredChallenges: ReturnType<typeof expired>[]) => ({ ...snapshot(), revision, expiredChallenges });
+
+  it('tells the challenger once that their challenge expired, without a sound or system notification', () => {
+    environment.preferences = { ...environment.preferences, sound: true };
+    environment.state = withExpired(1, expired('old', 'kuba'));
+    const { rerender } = render(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.state = withExpired(2, expired('old', 'kuba'), expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('Wyzwanie dla ola wygasło bez odpowiedzi.');
+    environment.state = withExpired(3, expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    environment.state = withExpired(4, expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getAllByText(/wygasło/)).toHaveLength(1);
+    expect(screen.queryByText(/kuba/)).not.toBeInTheDocument();
+    expect(sounds.play).not.toHaveBeenCalled();
+    expect(delivered).not.toHaveBeenCalled();
+  });
+
+  it('waits for the loaded preferences and stays silent when challenge notifications are off', () => {
+    environment.loaded = false;
+    environment.state = withExpired(1);
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = withExpired(2, expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.preferences = { ...environment.preferences, challenges: false };
+    environment.loaded = true;
+    environment.state = withExpired(3, expired('new', 'ola'));
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
   });
 });

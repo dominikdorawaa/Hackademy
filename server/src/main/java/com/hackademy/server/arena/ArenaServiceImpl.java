@@ -8,15 +8,19 @@ import com.hackademy.server.user.UserAvatarRepository;
 import com.hackademy.server.user.UserRepository;
 import com.hackademy.server.user.UserServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Value;
+import org.springframework.boot.convert.DurationStyle;
 import org.springframework.context.event.ContextClosedEvent;
 import org.springframework.context.event.EventListener;
 import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 
 import java.security.SecureRandom;
+import java.time.Duration;
 import java.time.LocalDateTime;
 import java.time.ZoneOffset;
 import java.util.ArrayDeque;
+import java.util.Comparator;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Deque;
@@ -43,7 +47,11 @@ public class ArenaServiceImpl implements ArenaService {
     static final String SHUTTING_DOWN = "Arena jest chwilowo niedostępna. Spróbuj ponownie za chwilę.";
     static final String YOU_ARE_PLAYING = "Jesteś w trakcie pojedynku.";
     static final String STALE_CHALLENGE = "To wyzwanie jest już nieaktualne.";
+    static final String EXPIRED_CHALLENGE = "To wyzwanie wygasło.";
     static final long PLAYER_GONE_MILLIS = 30_000;
+    static final Duration DEFAULT_CHALLENGE_EXPIRY = Duration.ofSeconds(60);
+    static final long EXPIRED_NOTICE_MILLIS = 300_000;
+    static final int EXPIRED_NOTICES_KEPT = 1024;
 
     private final ArenaQuestionRepository questionRepository;
     private final FriendshipRepository friendshipRepository;
@@ -58,8 +66,8 @@ public class ArenaServiceImpl implements ArenaService {
     private final Map<String, GameSession> activeGames = new ConcurrentHashMap<>();
     private final Map<Long, String> currentGames = new ConcurrentHashMap<>();
     private final Map<String, Long> finishedAt = new ConcurrentHashMap<>();
-    private final Map<String, Long> challengeCreatedAt = new ConcurrentHashMap<>();
     private final Map<String, Challenge> challenges = new ConcurrentHashMap<>();
+    private final Map<String, Challenge> expiredChallenges = new ConcurrentHashMap<>();
     private final Map<Long, Deque<Long>> recentReactions = new ConcurrentHashMap<>();
     private final AtomicLong reactionIds = new AtomicLong();
     // A player can be in one game at a time. Queue matches and accepted challenges both reserve their
@@ -70,10 +78,23 @@ public class ArenaServiceImpl implements ArenaService {
     private final Map<Long, Long> playerGoneSince = new ConcurrentHashMap<>();
     private LongSupplier clock = System::currentTimeMillis;
     private RandomGenerator random = new SecureRandom();
+    private volatile long challengeExpiryMillis = DEFAULT_CHALLENGE_EXPIRY.toMillis();
     private volatile boolean closing;
 
     void useClock(LongSupplier clock) {
         this.clock = clock;
+    }
+
+    @Value("${application.arena.challenge-expiry:60s}")
+    void useChallengeExpiry(String expiry) {
+        useChallengeExpiry(DurationStyle.detectAndParse(expiry));
+    }
+
+    void useChallengeExpiry(Duration expiry) {
+        if (expiry == null || expiry.isNegative() || expiry.isZero()) {
+            throw new IllegalArgumentException("application.arena.challenge-expiry must be positive");
+        }
+        challengeExpiryMillis = expiry.toMillis();
     }
 
     void useRandom(RandomGenerator random) {
@@ -178,9 +199,24 @@ public class ArenaServiceImpl implements ArenaService {
 
     private boolean removeChallenge(Challenge challenge, String status) {
         if (!challenges.remove(challenge.getId(), challenge)) return false;
-        challengeCreatedAt.remove(challenge.getId());
         challenge.setStatus(status);
         return true;
+    }
+
+    private boolean pastDeadline(Challenge challenge) {
+        return clock.getAsLong() >= challenge.getExpiresAt();
+    }
+
+    private void expire(Challenge challenge) {
+        if (!removeChallenge(challenge, "EXPIRED")) return;
+        expiredChallenges.put(challenge.getId(), challenge);
+        realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
+    }
+
+    private IllegalArgumentException goneChallenge(String challengeId, Long userId) {
+        var expired = expiredChallenges.get(challengeId);
+        boolean involved = expired != null && (expired.getChallengerId().equals(userId) || expired.getTargetId().equals(userId));
+        return new IllegalArgumentException(involved ? EXPIRED_CHALLENGE : STALE_CHALLENGE);
     }
 
     private void prepareBattle(GameSession session) {
@@ -435,8 +471,10 @@ public class ArenaServiceImpl implements ArenaService {
                     && existing.getTargetId().equals(targetId));
             if (alreadySent) throw new IllegalStateException("Już wyzwałeś " + targetUsername + ".");
             if (challenges.size() >= 1024) throw new IllegalStateException(SHUTTING_DOWN);
+            challenge.setExpiresAt(clock.getAsLong() + challengeExpiryMillis);
             challenges.put(challenge.getId(), challenge);
-            challengeCreatedAt.put(challenge.getId(), clock.getAsLong());
+            expiredChallenges.values().removeIf(expired -> expired.getChallengerId().equals(challengerId)
+                    && expired.getTargetId().equals(targetId));
         }
         realtime.arenaChanged(challengerId, targetId);
         return challenge;
@@ -445,10 +483,14 @@ public class ArenaServiceImpl implements ArenaService {
     @Override
     public GameSession acceptChallenge(String challengeId, Long userId) {
         Challenge challenge = challenges.get(challengeId);
-        if (challenge == null) throw new IllegalArgumentException(STALE_CHALLENGE);
+        if (challenge == null) throw goneChallenge(challengeId, userId);
         synchronized (challenge) {
             if (challenges.get(challengeId) != challenge || !challenge.getTargetId().equals(userId) || !"PENDING".equals(challenge.getStatus())) {
-                throw new IllegalArgumentException(STALE_CHALLENGE);
+                throw goneChallenge(challengeId, userId);
+            }
+            if (pastDeadline(challenge)) {
+                expire(challenge);
+                throw new IllegalArgumentException(EXPIRED_CHALLENGE);
             }
             if (closing) throw new IllegalStateException(SHUTTING_DOWN);
             try {
@@ -494,8 +536,12 @@ public class ArenaServiceImpl implements ArenaService {
         if (challenge == null) return;
         synchronized (challenge) {
             if (challenges.get(challengeId) == challenge && "PENDING".equals(challenge.getStatus()) && challenge.getTargetId().equals(userId)) {
-                removeChallenge(challenge, "REJECTED");
-                realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
+                if (pastDeadline(challenge)) {
+                    expire(challenge);
+                } else {
+                    removeChallenge(challenge, "REJECTED");
+                    realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
+                }
             }
         }
     }
@@ -513,16 +559,46 @@ public class ArenaServiceImpl implements ArenaService {
                 .toList();
     }
 
+    public List<Challenge> getExpiredChallenges(Long userId) {
+        return expiredChallenges.values().stream()
+                .filter(challenge -> challenge.getChallengerId().equals(userId))
+                .sorted(Comparator.comparingLong(Challenge::getExpiresAt).thenComparing(Challenge::getId))
+                .toList();
+    }
+
+    @Override
+    public void dismissExpiredChallenge(String challengeId, Long userId) {
+        var challenge = expiredChallenges.get(challengeId);
+        if (challenge != null && challenge.getChallengerId().equals(userId) && expiredChallenges.remove(challengeId, challenge)) {
+            realtime.arenaChanged(userId);
+        }
+    }
+
     @Override
     public void cancelChallenge(String challengeId, Long userId) {
         var challenge = challenges.get(challengeId);
-        if (challenge == null) throw new IllegalArgumentException(STALE_CHALLENGE);
+        if (challenge == null) throw goneChallenge(challengeId, userId);
         synchronized (challenge) {
             if (challenges.get(challengeId) != challenge || !"PENDING".equals(challenge.getStatus()) || !challenge.getChallengerId().equals(userId)) {
-                throw new IllegalArgumentException(STALE_CHALLENGE);
+                throw goneChallenge(challengeId, userId);
+            }
+            if (pastDeadline(challenge)) {
+                expire(challenge);
+                throw new IllegalArgumentException(EXPIRED_CHALLENGE);
             }
             removeChallenge(challenge, "CANCELLED");
             realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
+        }
+    }
+
+    @Scheduled(fixedRate = 500)
+    public void expireChallenges() {
+        long now = clock.getAsLong();
+        for (Challenge challenge : challenges.values()) {
+            if (now < challenge.getExpiresAt()) continue;
+            synchronized (challenge) {
+                if (challenges.get(challenge.getId()) == challenge) expire(challenge);
+            }
         }
     }
 
@@ -532,6 +608,7 @@ public class ArenaServiceImpl implements ArenaService {
     public void sweepAbandonedChallenges() {
         long now = clock.getAsLong();
         sweepHistory(now);
+        sweepExpiredNotices(now);
         var involved = new HashSet<Long>();
         challenges.values().forEach(challenge -> {
             involved.add(challenge.getChallengerId());
@@ -543,8 +620,7 @@ public class ArenaServiceImpl implements ArenaService {
             else playerGoneSince.putIfAbsent(player, now);
         }
         for (Challenge challenge : challenges.values()) {
-            long age = now - challengeCreatedAt.getOrDefault(challenge.getId(), now);
-            if (age < 120_000 && !goneLongEnough(challenge.getChallengerId(), now) && !goneLongEnough(challenge.getTargetId(), now)) continue;
+            if (!goneLongEnough(challenge.getChallengerId(), now) && !goneLongEnough(challenge.getTargetId(), now)) continue;
             synchronized (challenge) {
                 if (challenges.get(challenge.getId()) == challenge && removeChallenge(challenge, "CANCELLED")) {
                     realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
@@ -572,6 +648,18 @@ public class ArenaServiceImpl implements ArenaService {
                 if (sent.isEmpty() || now - sent.peekLast() >= REACTION_WINDOW_MILLIS) recentReactions.remove(id, sent);
             }
         });
+    }
+
+    private void sweepExpiredNotices(long now) {
+        var notices = expiredChallenges.values().stream().sorted(Comparator.comparingLong(Challenge::getExpiresAt)).toList();
+        int kept = notices.size();
+        var dismissed = new TreeSet<Long>();
+        for (Challenge notice : notices) {
+            if (now - notice.getExpiresAt() < EXPIRED_NOTICE_MILLIS && kept <= EXPIRED_NOTICES_KEPT) break;
+            if (expiredChallenges.remove(notice.getId(), notice)) dismissed.add(notice.getChallengerId());
+            kept--;
+        }
+        if (!dismissed.isEmpty()) realtime.arenaChanged(dismissed.toArray(Long[]::new));
     }
 
     private boolean goneLongEnough(Long player, long now) {

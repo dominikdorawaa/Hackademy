@@ -322,6 +322,27 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   cursor: pointer;
 }
 
+.arena-sent-left {
+  color: var(--ud-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.arena-sent-mark {
+  width: 8px;
+  height: 8px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ud-muted);
+}
+
+.arena-sent-expired {
+  color: var(--ud-muted);
+}
+
+.arena-sent-expired strong {
+  color: var(--ud-ink);
+}
+
 .arena-search {
   display: flex;
   align-items: center;

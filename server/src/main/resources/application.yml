@@ -39,6 +39,8 @@ server:
 application:
   realtime:
     presence-offline-grace: ${PRESENCE_OFFLINE_GRACE:5s}
+  arena:
+    challenge-expiry: ${ARENA_CHALLENGE_EXPIRY:60s}
   origin-guard:
     secrets: ${ORIGIN_GUARD_SECRETS:}
   rate-limit:
