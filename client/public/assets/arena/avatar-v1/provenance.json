@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "27705ae0fc40fa525e2aa949c64327c1522efef69c50f3e2fb205149e6b29a62",
-    "hoodie/fighter.png": "47334ef5e7ef877b10c061ab8691192627a3e430deb1c16d2e13c789bc41be7c",
-    "track/fighter.png": "8d64b451f3a6cfecfaacfa27385ed654798ff16c3b38cfe30322b6a8652b4552"
+    "fighter.png": "8ad3f71a118e68f83e0a37e0a608f9190bb8f728ae176dd13d07c848761c337b",
+    "hoodie/fighter.png": "ee07971a3162821a03afdc8cff8d80e192776e42a050a1d325028f6ec86e2c49",
+    "track/fighter.png": "dd0f87ef0314ffee175b432fafac97d62b604f79689e49a8b5cf0b1236f613fd"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -395,7 +395,7 @@
   "danceTurn": {
     "generatedAt": "2026-10-24",
     "sources": "local-prototype-backups/arena-dance-turn-v1",
-    "shrink": "the front dance rows 8, 9, 13 and 14 are scaled to 0.8 around the feet so the front body matches the side stance size and the feet stand on row 54 like every side frame; each new pixel takes the outline colour when at least 30% of its area is outline, stays transparent when at least half of it is empty and otherwise takes the colour covering most of it, so the palette does not change; the front hair and hats are scaled the same way into dance/",
+    "shrink": "the front dance rows 8, 9, 13 and 14 are scaled to 0.8 around the feet so the front body matches the side stance size and the feet stand on row 54 like every side frame; each new pixel takes the outline colour when at least 30% of its area is outline, stays transparent when at least half of it is empty and otherwise takes the colour covering most of it, and a light one-pixel detail between dark pixels such as the white of an eye is stamped back where it lands, so the palette does not change and the eyes stay open; the front hair and hats are scaled the same way into dance/",
     "rows": "row 15 turns into Six-seven and row 16 into Scuba: column 0 is the side stance, columns 1 to 4 are generated frames 2 to 5 snapped to the outfit palette and moved onto the stance ground line",
     "endpoint": "animate-with-text-v3",
     "frameCount": 6,
