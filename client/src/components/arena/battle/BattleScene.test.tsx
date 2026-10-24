@@ -108,7 +108,8 @@ it('plays the finisher before victory and defeat after a knockout', () => {
 });
 
 it('shows the rival finisher after my last hit lands', () => {
-  render(scene({ ...exchange(), id: 'game1', status: 'FINISHED', finishReason: 'KNOCKOUT', winnerId: 2, hp: { 1: 0, 2: 20 } }));
+  render(scene({ ...exchange(), id: 'game1', status: 'FINISHED', finishReason: 'KNOCKOUT', winnerId: 2, hp: { 1: 0, 2: 20 },
+    player2Avatar: { outfit: 'baza', hair: 'brak', hat: 'brak', skin: 'jasna', hairColor: 'czarne', topColor: 'granatowy', bottomColor: 'piaskowy', shoesColor: 'grafitowy', hatColor: 'czerwony', finisher: 'combo' } }));
   const myHp = () => screen.getByRole('meter', { name: 'HP: tester' }), rivalHp = () => screen.getByRole('meter', { name: 'HP: opponent' });
   expect(screen.getByTestId('shot-me')).toHaveTextContent('-20');
   expect(screen.getByTestId('finisher-combo')).toHaveClass('from-rival');
@@ -167,7 +168,7 @@ const reacted = (reaction: string, senderId: number, overrides: Partial<GameSess
 
 it('shows a rival reaction above their fighter and plays 67 while they stand idle', () => {
   render(scene(reacted('67', 2)));
-  expect(fighter('rival')).toHaveAttribute('data-frames', turnedDance(8, TURNS.sixseven).join(','));
+  expect(fighter('rival')).toHaveAttribute('data-frames', turnedDance('sixseven').join(','));
   expect(fighter('rival')).toHaveAttribute('data-idle', 'false');
   expect(document.querySelector('.battle-reaction')).toBeNull();
   expect(screen.getByText('opponent: Six-seven')).toHaveAttribute('role', 'status');
@@ -189,7 +190,7 @@ it('lets a blow play before a reaction animation and never changes HP', () => {
 
 it('keeps the finished pose and shows only the bubble after the match ends', () => {
   render(scene(reacted('67', 1, { status: 'FINISHED', winnerId: 2, finishReason: 'SURRENDER', phase: 'QUESTION' })));
-  expect(fighter()).not.toHaveAttribute('data-frames', turnedDance(8, TURNS.sixseven).join(','));
+  expect(fighter()).not.toHaveAttribute('data-frames', turnedDance('sixseven').join(','));
   expect(document.querySelector('.battle-reaction')).toBeNull();
   expect(screen.getByText('Ty: Six-seven')).toBeInTheDocument();
 });
@@ -211,12 +212,12 @@ it('shows reactions without dancing for reduced motion and drops old or unknown 
 
 it('keeps a turning dance on screen until its turn back has played', () => {
   render(scene(reacted('scuba', 2), false, 999_000 + 3_100));
-  expect(fighter('rival')).toHaveAttribute('data-frames', turnedDance(13, TURNS.scuba).join(','));
-  expect(turnedDance(13, TURNS.scuba).at(-1)).toBe(TURNS.scuba * 9);
+  expect(fighter('rival')).toHaveAttribute('data-frames', turnedDance('scuba').join(','));
+  expect(turnedDance('scuba').at(-1)).toBe(TURNS.scuba * 9);
 });
 
 it('drops the dance once it has played but keeps the bubble a little longer', () => {
-  render(scene(reacted('67', 2), false, 999_000 + turnedDance(8, TURNS.sixseven).length * 110 + 500));
+  render(scene(reacted('67', 2), false, 999_000 + turnedDance('sixseven').length * 110 + 500));
   expect(fighter('rival')).toHaveAttribute('data-frames', '0');
   expect(document.querySelector('.battle-reaction')).toBeNull();
 });

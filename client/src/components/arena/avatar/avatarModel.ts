@@ -170,9 +170,15 @@ export const AVATAR_POSES = ['przod', 'postawa', 'profil'] as const;
 export type AvatarPose = typeof AVATAR_POSES[number];
 export const PORTRAIT_CROPS: Record<AvatarPose, [number, number]> = { przod: [16, 0], postawa: [18, 1], profil: [17, 0] };
 const toPose = (value: unknown): AvatarPose => (AVATAR_POSES as readonly unknown[]).includes(value) ? value as AvatarPose : 'przod';
+export const FINISHER_MOVES = ['beam', 'combo'] as const;
+export type FinisherMove = typeof FINISHER_MOVES[number];
+export const VICTORY_DANCES = ['groove', 'sixseven', 'scuba'] as const;
+export type VictoryDance = typeof VICTORY_DANCES[number];
+const toFinisher = (value: unknown): FinisherMove => (FINISHER_MOVES as readonly unknown[]).includes(value) ? value as FinisherMove : 'beam';
+const toDance = (value: unknown): VictoryDance => (VICTORY_DANCES as readonly unknown[]).includes(value) ? value as VictoryDance : 'groove';
 
-export interface Avatar { outfit: AvatarOutfit; colors: AvatarColors & { hat: string }; hair: HairStyle; hat: HatStyle; pose: AvatarPose }
-export const DEFAULT_AVATAR: Avatar = { outfit: 'baza', hair: 'krotkie', hat: 'brak', pose: 'przod', colors: { hair: 'brazowe', skin: 'jasna', top: 'granatowy', bottom: 'piaskowy', shoes: 'grafitowy', hat: 'czerwony' } };
+export interface Avatar { outfit: AvatarOutfit; colors: AvatarColors & { hat: string }; hair: HairStyle; hat: HatStyle; pose: AvatarPose; finisher: FinisherMove; dance: VictoryDance }
+export const DEFAULT_AVATAR: Avatar = { outfit: 'baza', hair: 'krotkie', hat: 'brak', pose: 'przod', finisher: 'beam', dance: 'groove', colors: { hair: 'brazowe', skin: 'jasna', top: 'granatowy', bottom: 'piaskowy', shoes: 'grafitowy', hat: 'czerwony' } };
 export const AVATAR_KEY = 'hackademy-avatar-v1';
 
 export function readAvatar(): Avatar {
@@ -182,13 +188,16 @@ export function readAvatar(): Avatar {
     const pick = (value: unknown, options: Record<string, Ramp>, fallback: string) => isColorChoice(options, value) ? value : fallback;
     const choose = <T extends string>(value: unknown, options: readonly T[], fallback: T) => options.includes(value as T) ? value as T : fallback;
     const colors = saved?.colors ?? {};
-    return { outfit, hair: choose(saved?.hair, HAIR_STYLES, DEFAULT_AVATAR.hair), hat: choose(saved?.hat, HAT_STYLES, DEFAULT_AVATAR.hat), pose: toPose(saved?.pose), colors: {
+    return { outfit, hair: choose(saved?.hair, HAIR_STYLES, DEFAULT_AVATAR.hair), hat: choose(saved?.hat, HAT_STYLES, DEFAULT_AVATAR.hat), pose: toPose(saved?.pose), finisher: toFinisher(saved?.finisher), dance: toDance(saved?.dance), colors: {
       hair: pick(colors.hair, HAIR_RAMPS, DEFAULT_AVATAR.colors.hair), skin: pick(colors.skin, SKIN_RAMPS, DEFAULT_AVATAR.colors.skin),
       top: pick(colors.top, CLOTH_RAMPS, DEFAULT_AVATAR.colors.top), bottom: pick(colors.bottom, CLOTH_RAMPS, DEFAULT_AVATAR.colors.bottom),
       shoes: pick(colors.shoes, CLOTH_RAMPS, DEFAULT_AVATAR.colors.shoes), hat: pick(colors.hat, CLOTH_RAMPS, DEFAULT_AVATAR.colors.hat),
     } };
   } catch { return { ...DEFAULT_AVATAR, colors: { ...DEFAULT_AVATAR.colors } }; }
 }
+export type AvatarLook = Omit<Avatar, 'finisher' | 'dance'>;
+export const avatarLook = ({ outfit, colors, hair, hat, pose }: Avatar): AvatarLook => ({ outfit, colors, hair, hat, pose });
+
 export function saveAvatar(avatar: Avatar) {
   try { localStorage.setItem(AVATAR_KEY, JSON.stringify(avatar)); } catch { return; }
 }
@@ -241,14 +250,15 @@ export function avatarFromUsername(username: string): Avatar {
   const pick = <T,>(options: readonly T[]) => { const value = options[hash % options.length]; hash = Math.imul(hash ^ (hash >>> 13), 2246822519) >>> 0; return value; };
   const cloth = Object.keys(CLOTH_RAMPS);
   return {
-    outfit: pick(AVATAR_OUTFITS), hair: pick(['krotkie', 'krotkie', 'irokez', 'kucyk', 'brak'] as const), hat: pick(['brak', 'brak', 'brak', 'czapka', 'daszek'] as const), pose: 'przod',
+    outfit: pick(AVATAR_OUTFITS), hair: pick(['krotkie', 'krotkie', 'irokez', 'kucyk', 'brak'] as const), hat: pick(['brak', 'brak', 'brak', 'czapka', 'daszek'] as const), pose: 'przod', finisher: 'beam', dance: 'groove',
     colors: { skin: pick(Object.keys(SKIN_RAMPS)), hair: pick(Object.keys(HAIR_RAMPS)), top: pick(cloth), bottom: pick(cloth), shoes: pick(cloth), hat: pick(cloth) },
   };
 }
 
 export function toAvatarConfig(avatar: Avatar): AvatarConfig {
   return { outfit: avatar.outfit, hair: avatar.hair, hat: avatar.hat, skin: avatar.colors.skin, hairColor: avatar.colors.hair,
-    topColor: avatar.colors.top, bottomColor: avatar.colors.bottom, shoesColor: avatar.colors.shoes, hatColor: avatar.colors.hat, pose: avatar.pose };
+    topColor: avatar.colors.top, bottomColor: avatar.colors.bottom, shoesColor: avatar.colors.shoes, hatColor: avatar.colors.hat, pose: avatar.pose,
+    finisher: avatar.finisher, victoryDance: avatar.dance };
 }
 
 export function fromAvatarConfig(config: AvatarConfig | null | undefined): Avatar | null {
@@ -258,5 +268,6 @@ export function fromAvatarConfig(config: AvatarConfig | null | undefined): Avata
     && [config.topColor, config.bottomColor, config.shoesColor, config.hatColor].every(color => isColorChoice(CLOTH_RAMPS, color));
   if (!valid) return null;
   return { outfit: config.outfit as AvatarOutfit, hair: config.hair as HairStyle, hat: config.hat as HatStyle, pose: toPose(config.pose),
+    finisher: toFinisher(config.finisher), dance: toDance(config.victoryDance),
     colors: { skin: config.skin, hair: config.hairColor, top: config.topColor, bottom: config.bottomColor, shoes: config.shoesColor, hat: config.hatColor } };
 }

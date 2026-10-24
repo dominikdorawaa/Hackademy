@@ -35,7 +35,7 @@ class ArenaBattleServiceTest {
             mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence, mock(MatchmakingService.class));
     private final AtomicLong now = new AtomicLong(10_000);
     private final Map<Long, User> players = new HashMap<>();
-    private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod");
+    private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod", "beam", "groove");
 
     @BeforeEach
     void setUp() {

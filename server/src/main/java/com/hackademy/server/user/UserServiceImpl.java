@@ -14,6 +14,7 @@ import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateUsernameRequest;
+import com.hackademy.server.user.dto.UsernameAvailabilityDto;
 import com.hackademy.server.admin.UserAdminView;
 import com.hackademy.server.user.dto.UserProfileDto;
 import com.hackademy.server.user.dto.ProfileStatsDto;
@@ -28,11 +29,14 @@ import com.hackademy.server.room.UserSolvedRoomRepository;
 import com.hackademy.server.room.RecentSolvedRoomView;
 import com.hackademy.server.dashboard.UserWeeklyActiveTimeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.http.HttpStatus;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.transaction.support.TransactionSynchronization;
 import org.springframework.transaction.support.TransactionSynchronizationManager;
+import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
@@ -109,6 +113,7 @@ public class UserServiceImpl implements UserService {
     private final UserUnlockedHintRepository userUnlockedHintRepository;
     private final PathRepository pathRepository;
     private final UserAvatarRepository userAvatarRepository;
+    private final com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
 
     @Override
     @Transactional(readOnly = true)
@@ -195,18 +200,42 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        userRepository.findByUsernameIgnoringCase(request.newUsername()).ifPresent(existingUser -> {
-            if (!existingUser.getId().equals(userId)) {
-                throw new IllegalArgumentException("Username already taken");
-            }
-        });
+        if (takenByAnother(userId, request.newUsername())) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, UpdateUsernameRequest.TAKEN_MESSAGE);
+        }
 
         if (user.getUsername().equals(request.newUsername())) {
             return user.getUsername();
         }
 
         user.setUsername(request.newUsername());
-        return userRepository.save(user).getUsername();
+        String saved;
+        try {
+            saved = userRepository.saveAndFlush(user).getUsername();
+        } catch (DataIntegrityViolationException taken) {
+            throw new ResponseStatusException(HttpStatus.CONFLICT, UpdateUsernameRequest.TAKEN_MESSAGE);
+        }
+        refreshProfileCaches(userId);
+        return saved;
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public UsernameAvailabilityDto usernameAvailability(Long userId, String username) {
+        if (username.length() < UpdateUsernameRequest.MIN || username.length() > UpdateUsernameRequest.MAX) {
+            return new UsernameAvailabilityDto(false, UsernameAvailabilityDto.LENGTH, UpdateUsernameRequest.LENGTH_MESSAGE);
+        }
+        if (!username.matches(UpdateUsernameRequest.PATTERN)) {
+            return new UsernameAvailabilityDto(false, UsernameAvailabilityDto.CHARACTERS, UpdateUsernameRequest.CHARACTERS_MESSAGE);
+        }
+        if (takenByAnother(userId, username)) {
+            return new UsernameAvailabilityDto(false, UsernameAvailabilityDto.TAKEN, UpdateUsernameRequest.TAKEN_MESSAGE);
+        }
+        return new UsernameAvailabilityDto(true, null, null);
+    }
+
+    private boolean takenByAnother(Long userId, String username) {
+        return userRepository.findByUsernameIgnoringCase(username).filter(existing -> !existing.getId().equals(userId)).isPresent();
     }
 
     @Override
@@ -222,7 +251,7 @@ public class UserServiceImpl implements UserService {
         UserAvatar entity = userAvatarRepository.findById(userId).orElseGet(() -> UserAvatar.of(userId, avatar));
         entity.apply(avatar);
         UserAvatarDto saved = userAvatarRepository.save(entity).toDto();
-        refreshAvatarCaches(userId);
+        refreshProfileCaches(userId);
         return saved;
     }
 
@@ -230,14 +259,15 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteAvatar(Long userId) {
         userAvatarRepository.findById(userId).ifPresent(userAvatarRepository::delete);
-        refreshAvatarCaches(userId);
+        refreshProfileCaches(userId);
     }
 
-    private void refreshAvatarCaches(Long userId) {
+    private void refreshProfileCaches(Long userId) {
         Runnable refresh = () -> {
             invalidateUserComputedCaches(userId);
             invalidateGlobalRankingCache();
             friendshipService.invalidateProfileCaches(userId);
+            dashboardSummaryCache.invalidateUser(userId);
         };
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             refresh.run();

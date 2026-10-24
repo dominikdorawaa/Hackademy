@@ -58,6 +58,7 @@ class UserServiceImplTest {
     @Mock UserUnlockedHintRepository userUnlockedHintRepository;
     @Mock PathRepository pathRepository;
     @Mock UserAvatarRepository userAvatarRepository;
+    @Mock com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
     @InjectMocks UserServiceImpl service;
 
     @AfterEach
@@ -388,13 +389,44 @@ class UserServiceImplTest {
         when(userRepository.findByUsernameIgnoringCase("alice")).thenReturn(Optional.of(alice));
         when(userRepository.findByUsernameIgnoringCase("bob")).thenReturn(Optional.of(user(2L, "bob")));
         when(userRepository.findByUsernameIgnoringCase("carol")).thenReturn(Optional.empty());
-        when(userRepository.save(alice)).thenReturn(alice);
+        when(userRepository.saveAndFlush(alice)).thenReturn(alice);
 
         assertEquals("alice", service.updateUsername(1L, new UpdateUsernameRequest("alice")));
-        assertThrows(IllegalArgumentException.class, () -> service.updateUsername(1L, new UpdateUsernameRequest("bob")));
+        var taken = assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> service.updateUsername(1L, new UpdateUsernameRequest("bob")));
+        assertEquals(409, taken.getStatusCode().value());
+        assertEquals("Ta nazwa jest zajęta", taken.getReason());
         assertEquals("carol", service.updateUsername(1L, new UpdateUsernameRequest("carol")));
         assertEquals("carol", alice.getUsername());
+        verify(friendshipService).invalidateProfileCaches(1L);
+        verify(dashboardSummaryCache).invalidateUser(1L);
         assertThrows(UserNotFoundException.class, () -> service.updateUsername(9L, new UpdateUsernameRequest("dave")));
+    }
+
+    @Test
+    void reportsARenameRaceOnTheUniqueIndexAsATakenName() {
+        var alice = user(1L, "alice");
+        when(userRepository.findById(1L)).thenReturn(Optional.of(alice));
+        when(userRepository.findByUsernameIgnoringCase("erin")).thenReturn(Optional.empty());
+        when(userRepository.saveAndFlush(alice)).thenThrow(new org.springframework.dao.DataIntegrityViolationException("uq_users_username_lower"));
+
+        var taken = assertThrows(org.springframework.web.server.ResponseStatusException.class, () -> service.updateUsername(1L, new UpdateUsernameRequest("erin")));
+        assertEquals(409, taken.getStatusCode().value());
+    }
+
+    @Test
+    void tellsWhetherANameCanBeTaken() {
+        when(userRepository.findByUsernameIgnoringCase("bob")).thenReturn(Optional.of(user(2L, "bob")));
+        when(userRepository.findByUsernameIgnoringCase("alice")).thenReturn(Optional.of(user(1L, "alice")));
+        when(userRepository.findByUsernameIgnoringCase("carol")).thenReturn(Optional.empty());
+
+        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(false, "taken", "Ta nazwa jest zajęta"), service.usernameAvailability(1L, "bob"));
+        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(true, null, null), service.usernameAvailability(1L, "alice"));
+        assertEquals(new com.hackademy.server.user.dto.UsernameAvailabilityDto(true, null, null), service.usernameAvailability(1L, "carol"));
+        assertEquals(false, service.usernameAvailability(1L, "ab").available());
+        assertEquals(false, service.usernameAvailability(1L, "a".repeat(21)).available());
+        assertEquals("Nazwa może zawierać tylko litery, cyfry, _ i -", service.usernameAvailability(1L, "zła nazwa").message());
+        assertEquals("characters", service.usernameAvailability(1L, "zła nazwa").reason());
+        assertEquals("length", service.usernameAvailability(1L, "ab").reason());
     }
 
     // ── helpers ─────────────────────────────────────────────────────────────
@@ -419,7 +451,7 @@ class UserServiceImplTest {
 
     @Test
     void refreshesFriendAndDashboardCachesOnlyAfterTheAvatarSaveCommits() {
-        var avatar = new UserAvatarDto("bluza", "irokez", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "profil");
+        var avatar = new UserAvatarDto("bluza", "irokez", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "profil", "combo", "scuba");
         when(userRepository.existsById(1L)).thenReturn(true);
         when(userAvatarRepository.findById(1L)).thenReturn(Optional.empty());
         when(userAvatarRepository.save(any(UserAvatar.class))).thenAnswer(invocation -> invocation.getArgument(0));
