@@ -56,7 +56,7 @@ export function cancelChallenge(id: ApiId, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/challenge/${id}/cancel`, { method: 'POST', auth });
 }
 
-export function dismissExpiredChallenge(id: ApiId, auth: SessionScope) {
+export function dismissChallengeNotice(id: ApiId, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/challenge/${id}/dismiss`, { method: 'POST', auth });
 }
 

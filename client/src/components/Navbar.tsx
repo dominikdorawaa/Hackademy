@@ -49,9 +49,13 @@ const Navbar = () => {
       timestamp: ch.createdAt, data: ch,
     })),
   ], [realtime, preferences.friendRequests, preferences.challenges]);
+  const rejectedChallenges = useMemo(() => preferences.challenges ? realtime?.rejectedChallenges ?? [] : [],
+    [realtime, preferences.challenges]);
+  const [readRejections, setReadRejections] = useState<ReadonlySet<string>>(() => new Set());
   const onlineFeed = useFriendOnlineFeed();
   const { markAllRead } = onlineFeed;
-  const unreadCount = notifications.length + onlineFeed.entries.filter(entry => !entry.read).length;
+  const unreadCount = notifications.length + rejectedChallenges.filter(challenge => !readRejections.has(challenge.id)).length
+    + onlineFeed.entries.filter(entry => !entry.read).length;
   const [processedNotifications, setProcessedNotifications] = useState<string[]>([]); // Track processed IDs
   const menuRef = useRef<HTMLDivElement | null>(null);
   const notifRef = useRef<HTMLDivElement | null>(null);
@@ -101,9 +105,13 @@ const Navbar = () => {
     return () => window.clearInterval(timer);
   }, [isNotificationsOpen]);
   useEffect(() => {
-    if (wasNotificationsOpen.current && !isNotificationsOpen) markAllRead();
+    if (wasNotificationsOpen.current && !isNotificationsOpen) {
+      markAllRead();
+      setReadRejections(read => rejectedChallenges.every(challenge => read.has(challenge.id))
+        ? read : new Set([...read, ...rejectedChallenges.map(challenge => challenge.id)]));
+    }
     wasNotificationsOpen.current = isNotificationsOpen;
-  }, [isNotificationsOpen, markAllRead]);
+  }, [isNotificationsOpen, markAllRead, rejectedChallenges]);
 
   const handleLogout = () => {
     setIsMenuOpen(false);
@@ -170,6 +178,21 @@ const Navbar = () => {
         console.error(err);
     } finally {
         setProcessedNotifications(previous => previous.filter(id => id !== `CHALLENGE-${challengeId}`));
+    }
+  };
+
+  const handleDismissRejection = async (challengeId: string) => {
+    if (processedNotifications.includes(`REJECTED-${challengeId}`)) return;
+    setProcessedNotifications(prev => [...prev, `REJECTED-${challengeId}`]);
+
+    try {
+        const response = await arenaApi.dismissChallengeNotice(challengeId, { sessionKey });
+        if (!response.ok) throw new Error("Notification action failed");
+        await synchronize();
+    } catch (err) {
+        console.error(err);
+    } finally {
+        setProcessedNotifications(previous => previous.filter(id => id !== `REJECTED-${challengeId}`));
     }
   };
 
@@ -287,7 +310,7 @@ const Navbar = () => {
                                 )}
                             </div>
                             
-                            {notifications.length === 0 && onlineFeed.entries.length === 0 ? (
+                            {notifications.length === 0 && rejectedChallenges.length === 0 && onlineFeed.entries.length === 0 ? (
                                 <div className="notifications-empty" style={{ color: 'var(--text-gray)' }}>
                                     <i className="far fa-bell-slash"></i>
                                     <span>Brak nowych powiadomień</span>
@@ -338,6 +361,30 @@ const Navbar = () => {
                                             </li>
                                         );
                                     })}
+                                    {rejectedChallenges.map(challenge => (
+                                        <li key={`REJECTED-${challenge.id}`} className="notification-item notification-rejected"
+                                            data-unread={!readRejections.has(challenge.id)}>
+                                            <div className="notification-content">
+                                                <div className="notification-avatar">
+                                                    <UserAvatar username={challenge.targetUsername} avatar={challenge.targetAvatar} alt=""
+                                                        style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} />
+                                                    <span className="notification-rejected-mark" aria-hidden="true"><i className="fas fa-times"></i></span>
+                                                </div>
+                                                <div className="notification-text-wrapper">
+                                                    <p className="notification-message">
+                                                        <strong>{challenge.targetUsername}</strong> odrzuca Twoje wyzwanie na pojedynek.
+                                                    </p>
+                                                    <span className="notification-type">Tryb Rankingowy</span>
+                                                </div>
+                                                <button type="button" className="notification-online-close"
+                                                    aria-label={`Zamknij powiadomienie: ${challenge.targetUsername} odrzuca Twoje wyzwanie`}
+                                                    disabled={processedNotifications.includes(`REJECTED-${challenge.id}`)}
+                                                    onClick={() => handleDismissRejection(challenge.id)}>
+                                                    <i className="fas fa-times" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
                                     {onlineFeed.entries.map(entry => (
                                         <li key={entry.id} className="notification-online" data-unread={!entry.read}>
                                             <span className="presence-dot" aria-hidden="true" />

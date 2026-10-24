@@ -29,7 +29,7 @@ vi.mock('../services/RealtimeConnection', () => ({
 }));
 
 const snapshot = (revision = 1, streamId = 'server'): RealtimeState => ({
-  revision, streamId, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 0, gameSession: null, queued: false,
+  revision, streamId, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0, gameSession: null, queued: false,
 });
 
 const game = (id = 'game', status: GameSession['status'] = 'ACTIVE'): GameSession => createGameSession({ id, status });

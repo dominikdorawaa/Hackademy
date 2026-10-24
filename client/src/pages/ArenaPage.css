@@ -335,12 +335,141 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   background: var(--ud-muted);
 }
 
-.arena-sent-expired {
+.arena-sent-closed {
   color: var(--ud-muted);
 }
 
-.arena-sent-expired strong {
+.arena-sent-closed strong {
   color: var(--ud-ink);
+}
+
+.arena-rejected {
+  display: grid;
+  gap: 8px;
+  max-width: 60ch;
+  margin: 16px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.arena-rejected-card {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px 14px;
+  padding: 12px;
+  border-radius: var(--ud-radius);
+  background: rgba(6, 13, 28, 0.42);
+  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
+  animation: arena-rejected-in 240ms var(--ud-ease) both;
+}
+
+[data-theme='light'] .arena-rejected-card {
+  background: rgba(255, 255, 255, 0.72);
+  box-shadow: inset 0 0 0 1px rgba(11, 31, 68, 0.12);
+}
+
+.arena-rejected-avatar {
+  width: 52px;
+  height: 52px;
+  border-radius: 4px;
+  background: var(--ud-surface-2);
+  object-fit: cover;
+  image-rendering: pixelated;
+}
+
+.arena-rejected-copy {
+  min-width: 0;
+}
+
+.arena-console-copy .arena-rejected-copy p:not(.arena-kicker) {
+  margin-top: 2px;
+  color: var(--ud-hero-muted);
+}
+
+.arena-console-copy .arena-rejected-copy p.arena-rejected-title {
+  margin-top: 0;
+  color: var(--ud-hard);
+  font-family: var(--font-heading);
+  font-size: 1.5rem;
+  line-height: 1;
+  letter-spacing: 0.02em;
+}
+
+.arena-rejected-copy strong {
+  color: var(--ud-hero-ink);
+}
+
+.arena-console-copy .arena-rejected-copy p.arena-rejected-error {
+  color: var(--ud-hard);
+  font-size: var(--ud-text-s);
+}
+
+.arena-rejected-actions {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.arena-rejected-close {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border: 0;
+  border-radius: var(--ud-radius);
+  background: none;
+  color: var(--ud-hero-muted);
+  cursor: pointer;
+  transition: background-color 160ms var(--ud-ease), color 160ms var(--ud-ease);
+}
+
+.arena-rejected-close:hover {
+  background: rgba(255, 255, 255, 0.1);
+  color: var(--ud-hero-ink);
+}
+
+[data-theme='light'] .arena-rejected-close:hover {
+  background: rgba(11, 31, 68, 0.08);
+}
+
+.arena-rejected-close:focus-visible {
+  outline: 2px solid var(--ud-link);
+  outline-offset: 1px;
+}
+
+@keyframes arena-rejected-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
+html[data-reduced-motion='true'] .arena-rejected-card {
+  animation: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .arena-rejected-card {
+    animation: none;
+  }
+}
+
+@media (max-width: 560px) {
+  .arena-rejected-card {
+    grid-template-columns: 44px minmax(0, 1fr);
+  }
+
+  .arena-rejected-avatar {
+    width: 44px;
+    height: 44px;
+  }
+
+  .arena-rejected-actions {
+    grid-column: 1 / -1;
+    justify-content: space-between;
+  }
 }
 
 .arena-search {

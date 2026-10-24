@@ -27,7 +27,7 @@ beforeEach(() => {
   environment.synchronize.mockClear();
   environment.state = { streamId: 'stream', revision: 1, challenges: [], gameSession: null, queued: false,
     friendRequests: [{ id: 5, requesterUsername: 'nowy', createdAt: '2026-10-20T09:00:00' }],
-    outgoingChallenges: [], expiredChallenges: [], serverTime: 0,
+    outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0,
     friends: [friend(2, 'ola', true), friend(3, 'kuba', true), friend(4, 'zenek', false)] };
 });
 

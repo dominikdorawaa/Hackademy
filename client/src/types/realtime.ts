@@ -8,6 +8,7 @@ export interface RealtimeState {
   challenges: Challenge[];
   outgoingChallenges: Challenge[];
   expiredChallenges: Challenge[];
+  rejectedChallenges: Challenge[];
   gameSession: GameSession | null;
   queued: boolean;
   serverTime: number;

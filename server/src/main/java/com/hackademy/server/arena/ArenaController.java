@@ -177,8 +177,8 @@ public class ArenaController {
     }
 
     @PostMapping("/challenge/{challengeId}/dismiss")
-    public ResponseEntity<?> dismissExpiredChallenge(@PathVariable String challengeId) {
-        arenaService.dismissExpiredChallenge(challengeId, currentUser().getId());
+    public ResponseEntity<?> dismissChallengeNotice(@PathVariable String challengeId) {
+        arenaService.dismissChallengeNotice(challengeId, currentUser().getId());
         return ResponseEntity.ok(Map.of("message", "Powiadomienie zamknięte"));
     }
 

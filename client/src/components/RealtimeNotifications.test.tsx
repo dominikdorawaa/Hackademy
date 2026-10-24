@@ -18,7 +18,7 @@ vi.mock('../context/NotificationPreferencesContext', () => ({ useNotificationPre
 
 const delivered = vi.fn();
 const snapshot = (): RealtimeState => ({ streamId: 'stream', revision: 1, friendRequests: [], challenges: [],
-  friends: [], outgoingChallenges: [], expiredChallenges: [], serverTime: 0, gameSession: null, queued: false });
+  friends: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0, gameSession: null, queued: false });
 const request = { id: 7, requesterUsername: 'friend', createdAt: '2026-10-11T12:00:00' };
 
 beforeEach(() => {
@@ -353,5 +353,18 @@ describe('expired challenge toasts', () => {
     environment.state = withExpired(3, expired('new', 'ola'));
     rerender(<RealtimeNotifications />);
     expect(screen.getByRole('status')).toBeEmptyDOMElement();
+  });
+});
+
+describe('rejected challenges', () => {
+  it('leave the toast corner alone, because the bell and the arena show them', () => {
+    environment.state = snapshot();
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, rejectedChallenges: [{ id: 'no', challengerId: 1, challengerUsername: 'first',
+      targetId: 2, targetUsername: 'ola', createdAt: '2026-10-24T12:00:00', status: 'REJECTED', expiresAt: 1_060_000 }] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    expect(sounds.play).not.toHaveBeenCalled();
+    expect(delivered).not.toHaveBeenCalled();
   });
 });

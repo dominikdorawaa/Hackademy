@@ -30,9 +30,10 @@ public class RealtimeStateService {
             var challenges = arena.getPendingChallenges(social.userId());
             var outgoing = arena.getOutgoingChallenges(social.userId());
             var expired = arena.getExpiredChallenges(social.userId());
+            var rejected = arena.getRejectedChallenges(social.userId());
             boolean queued = matchmaking.isQueued(social.userId());
             return new RealtimeState(streamId, revision.incrementAndGet(), social.requests(), social.friends(), challenges, outgoing,
-                    expired, game, queued, System.currentTimeMillis());
+                    expired, rejected, game, queued, System.currentTimeMillis());
         }
     }
 
