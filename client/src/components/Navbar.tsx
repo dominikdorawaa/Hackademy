@@ -36,8 +36,8 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mobileMenuPath, setMobileMenuPath] = useState<string | null>(null);
   const mobileMenuOpen = mobileMenuPath === location.pathname;
-  const navRef = useRef<HTMLElement | null>(null);
   const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
+  const mobileLinksRef = useRef<HTMLDivElement | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { state: realtime, synchronize } = useRealtime();
   const { preferences } = useNotificationPreferences();
@@ -70,8 +70,11 @@ const Navbar = () => {
       setIsNotificationsOpen(false);
       if (mobileMenuOpen) mobileToggleRef.current?.focus();
     };
+    // Any press outside the menu and its toggle closes it, the navbar's own panels included,
+    // so a panel never opens below the expanded links and runs off the screen.
     const closeMobileOutside = (event: MouseEvent) => {
-      if (!navRef.current?.contains(event.target as Node)) setMobileMenuPath(null);
+      const target = event.target as Node;
+      if (!mobileLinksRef.current?.contains(target) && !mobileToggleRef.current?.contains(target)) setMobileMenuPath(null);
     };
     document.addEventListener('keydown', closeMenus);
     document.addEventListener('mousedown', closeMobileOutside);
@@ -217,7 +220,7 @@ const Navbar = () => {
   );
 
   return (
-    <nav className={roomMode ? 'navbar navbar--room' : 'navbar'} ref={navRef} aria-label="Nawigacja główna">
+    <nav className={roomMode ? 'navbar navbar--room' : 'navbar'} aria-label="Nawigacja główna">
       <div className="hackademy-container">
         <div className="nav-content">
           <Link
@@ -244,7 +247,7 @@ const Navbar = () => {
               onClick={() => setMobileMenuPath(mobileMenuOpen ? null : location.pathname)}>Menu</Button>
           )}
           {!isAuthPage && !roomMode && (
-            <div id="main-nav-links" className={`nav-links ${mobileMenuOpen ? 'mobile-nav-open' : ''}`}
+            <div id="main-nav-links" ref={mobileLinksRef} className={`nav-links ${mobileMenuOpen ? 'mobile-nav-open' : ''}`}
               onClick={event => { if ((event.target as HTMLElement).closest('a')) setMobileMenuPath(null); }}>
               {isAuthenticated ? (
                 <>
