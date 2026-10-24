@@ -144,6 +144,7 @@ const FriendsPage = () => {
                         onChange={(e) => setSearchQuery(e.target.value)}
                         style={{
                             flex: 1,
+                            minWidth: 0,
                             padding: '10px',
                             borderRadius: '6px',
                             border: '1px solid var(--input-border)',
@@ -208,7 +209,7 @@ const FriendsPage = () => {
                         <i className="fas fa-envelope" style={{ marginRight: '10px' }}></i>
                         Oczekujące Zaproszenia ({requests.length})
                     </h2>
-                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(300px, 1fr))', gap: '20px' }}>
+                    <div style={{ display: 'grid', gridTemplateColumns: 'repeat(auto-fill, minmax(min(300px, 100%), 1fr))', gap: '20px' }}>
                         {requests.map(req => (
                             <div key={req.id} style={{
                                 backgroundColor: 'var(--bg-panel)',
