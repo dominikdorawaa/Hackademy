@@ -6,6 +6,7 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 import java.time.LocalDateTime;
+import java.util.Map;
 
 @Data
 @NoArgsConstructor
@@ -28,5 +29,10 @@ public class Challenge {
     public Challenge(String id, Long challengerId, String challengerUsername, Long targetId,
                      String targetUsername, LocalDateTime createdAt, String status) {
         this(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status, null, null, 0, null, null);
+    }
+
+    public Challenge withAvatars(Map<Long, UserAvatarDto> avatars) {
+        return new Challenge(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status,
+                avatars.get(challengerId), avatars.get(targetId), expiresAt, challengerElo, targetElo);
     }
 }
