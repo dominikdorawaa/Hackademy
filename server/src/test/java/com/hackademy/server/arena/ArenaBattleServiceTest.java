@@ -42,6 +42,7 @@ class ArenaBattleServiceTest {
     @BeforeEach
     void setUp() {
         arena.useClock(now::get);
+        arena.useRandom(AnswerOrder.correctAt(2));
         for (long id = 1; id <= 2; id++) {
             User user = new User();
             user.setId(id);

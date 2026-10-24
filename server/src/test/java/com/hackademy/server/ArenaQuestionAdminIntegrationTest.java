@@ -33,23 +33,26 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
     void restoreTheSeededBank() {
         created.forEach(id -> jdbcTemplate.update("DELETE FROM arena_questions WHERE id = ?", id));
         restore.forEach(row -> jdbcTemplate.update("""
-                UPDATE arena_questions SET content = ?, answer_a = ?, answer_b = ?, answer_c = ?, answer_d = ?,
-                    correct_answer = ?, category = ?, difficulty = ? WHERE id = ?
-                """, row.get("content"), row.get("answer_a"), row.get("answer_b"), row.get("answer_c"),
-                row.get("answer_d"), row.get("correct_answer"), row.get("category"), row.get("difficulty"), row.get("id")));
+                UPDATE arena_questions SET content = ?, correct_answer = ?, wrong_answer_1 = ?, wrong_answer_2 = ?,
+                    wrong_answer_3 = ?, category = ?, difficulty = ? WHERE id = ?
+                """, row.get("content"), row.get("correct_answer"), row.get("wrong_answer_1"), row.get("wrong_answer_2"),
+                row.get("wrong_answer_3"), row.get("category"), row.get("difficulty"), row.get("id")));
     }
 
-    private static String body(String content, List<String> answers, Object correct, String category, String difficulty, Long version) {
-        String list = answers == null ? "null" : answers.stream().map(answer -> answer == null ? "null" : "\"" + answer + "\"")
+    private static String text(String value) {
+        return value == null ? "null" : "\"" + value + "\"";
+    }
+
+    private static String body(String content, String correct, List<String> wrong, String category, String difficulty, Long version) {
+        String list = wrong == null ? "null" : wrong.stream().map(ArenaQuestionAdminIntegrationTest::text)
                 .reduce((left, right) -> left + "," + right).map(items -> "[" + items + "]").orElse("[]");
         return """
-                {"content":%s,"answers":%s,"correctAnswer":%s,"category":%s,"difficulty":%s,"version":%s}
-                """.formatted(content == null ? "null" : "\"" + content + "\"", list, correct,
-                category == null ? "null" : "\"" + category + "\"", difficulty == null ? "null" : "\"" + difficulty + "\"", version);
+                {"content":%s,"correctAnswer":%s,"wrongAnswers":%s,"category":%s,"difficulty":%s,"version":%s}
+                """.formatted(text(content), text(correct), list, text(category), text(difficulty), version);
     }
 
     private long create(Account admin, String content, String category, String difficulty) throws Exception {
-        var result = postJson(admin, URL, body(content, List.of("Pierwsza", "Druga", "Trzecia", "Czwarta"), 2, category, difficulty, null))
+        var result = postJson(admin, URL, body(content, "Trzecia", List.of("Pierwsza", "Druga", "Czwarta"), category, difficulty, null))
                 .andExpect(status().isCreated()).andReturn();
         long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
         created.add(id);
@@ -64,7 +67,7 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
     void onlyAdministratorsManageTheBank() throws Exception {
         var admin = account(Role.ADMIN);
         long id = create(admin, "Pytanie tylko dla admina " + UUID.randomUUID(), "WEB", "EASY");
-        String valid = body("Zmiana", List.of("A", "B", "C", "D"), 0, "WEB", "EASY", 0L);
+        String valid = body("Zmiana", "A", List.of("B", "C", "D"), "WEB", "EASY", 0L);
         for (var role : List.of(Role.EXPERT, Role.USER)) {
             var other = account(role);
             getAs(other, URL).andExpect(status().isForbidden());
@@ -86,25 +89,29 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
         getAs(admin, URL + "?query=" + marker.toUpperCase()).andExpect(status().isOk())
                 .andExpect(jsonPath("$.items", hasSize(2)))
                 .andExpect(jsonPath("$.items[0].id").value(second))
-                .andExpect(jsonPath("$.items[1].answers", hasSize(4)))
-                .andExpect(jsonPath("$.items[1].correctAnswer").value(2))
+                .andExpect(jsonPath("$.items[1].wrongAnswers", hasSize(3)))
+                .andExpect(jsonPath("$.items[1].wrongAnswers[2]").value("Czwarta"))
+                .andExpect(jsonPath("$.items[1].correctAnswer").value("Trzecia"))
+                .andExpect(jsonPath("$.items[1].answers").doesNotExist())
                 .andExpect(jsonPath("$.items[1].version").value(0));
         getAs(admin, URL + "?query=" + marker + "&category=LINUX").andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].id").value(first));
         getAs(admin, URL + "?query=" + marker + "&difficulty=EASY").andExpect(jsonPath("$.items", hasSize(1)))
                 .andExpect(jsonPath("$.items[0].id").value(second));
         getAs(admin, URL + "?category=CTF").andExpect(status().isBadRequest());
+        getAs(admin, URL + "?query=Trzecia&size=1").andExpect(jsonPath("$.items", hasSize(1))).andExpect(jsonPath("$.hasNext").value(true));
         getAs(admin, URL + "?query=Czwarta&size=1").andExpect(jsonPath("$.items", hasSize(1))).andExpect(jsonPath("$.hasNext").value(true));
 
-        putJson(admin, URL + "/" + first, body("Bank " + marker + " poprawione", List.of(" Root ", "Użytkownik", "Grupa", "Inni"), 0, "WEB", "MEDIUM", 0L))
+        putJson(admin, URL + "/" + first, body("Bank " + marker + " poprawione", " Root ", List.of("Użytkownik ", "Grupa", "Inni"), "WEB", "MEDIUM", 0L))
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.content").value("Bank " + marker + " poprawione"))
-                .andExpect(jsonPath("$.answers[0]").value("Root"))
+                .andExpect(jsonPath("$.correctAnswer").value("Root"))
+                .andExpect(jsonPath("$.wrongAnswers[0]").value("Użytkownik"))
                 .andExpect(jsonPath("$.category").value("WEB"))
                 .andExpect(jsonPath("$.version").value(1));
-        putJson(admin, URL + "/" + first, body("Nieaktualne", List.of("A", "B", "C", "D"), 1, "WEB", "EASY", 0L))
+        putJson(admin, URL + "/" + first, body("Nieaktualne", "A", List.of("B", "C", "D"), "WEB", "EASY", 0L))
                 .andExpect(status().isConflict());
-        putJson(admin, URL + "/999999999", body("Brak", List.of("A", "B", "C", "D"), 1, "WEB", "EASY", 0L))
+        putJson(admin, URL + "/999999999", body("Brak", "A", List.of("B", "C", "D"), "WEB", "EASY", 0L))
                 .andExpect(status().isNotFound());
 
         deleteAs(admin, second).andExpect(status().isNoContent());
@@ -116,25 +123,31 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
     @Test
     void rejectsQuestionsTheEngineCannotPlay() throws Exception {
         var admin = account(Role.ADMIN);
-        var four = List.of("A", "B", "C", "D");
+        var three = List.of("B", "C", "D");
         int before = jdbcTemplate.queryForObject("SELECT count(*) FROM arena_questions", Integer.class);
-        postJson(admin, URL, body("  ", four, 0, "WEB", "EASY", null)).andExpect(status().isBadRequest())
+        postJson(admin, URL, body("  ", "A", three, "WEB", "EASY", null)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.content").value("Treść pytania jest wymagana."));
-        postJson(admin, URL, body("x".repeat(501), four, 0, "WEB", "EASY", null)).andExpect(status().isBadRequest());
-        postJson(admin, URL, body("Trzy odpowiedzi", List.of("A", "B", "C"), 0, "WEB", "EASY", null)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.answers").value("Podaj cztery odpowiedzi."));
-        postJson(admin, URL, body("Bez odpowiedzi", null, 0, "WEB", "EASY", null)).andExpect(status().isBadRequest());
-        postJson(admin, URL, body("Pusta odpowiedź", java.util.Arrays.asList("A", " ", "C", "D"), 0, "WEB", "EASY", null))
+        postJson(admin, URL, body("x".repeat(501), "A", three, "WEB", "EASY", null)).andExpect(status().isBadRequest());
+        postJson(admin, URL, body("Bez poprawnej", null, three, "WEB", "EASY", null)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.correctAnswer").value("Poprawna odpowiedź jest wymagana."));
+        postJson(admin, URL, body("Pusta poprawna", " ", three, "WEB", "EASY", null)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.correctAnswer").value("Poprawna odpowiedź jest wymagana."));
+        postJson(admin, URL, body("Za długa poprawna", "x".repeat(201), three, "WEB", "EASY", null)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.correctAnswer").value("Odpowiedź może mieć najwyżej 200 znaków."));
+        postJson(admin, URL, body("Dwie błędne", "A", List.of("B", "C"), "WEB", "EASY", null)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.wrongAnswers").value("Podaj trzy błędne odpowiedzi."));
+        postJson(admin, URL, body("Cztery błędne", "A", List.of("B", "C", "D", "E"), "WEB", "EASY", null)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.wrongAnswers").value("Podaj trzy błędne odpowiedzi."));
+        postJson(admin, URL, body("Bez błędnych", "A", null, "WEB", "EASY", null)).andExpect(status().isBadRequest());
+        postJson(admin, URL, body("Pusta błędna", "A", java.util.Arrays.asList("B", " ", "D"), "WEB", "EASY", null))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$['answers[1]']").value("Każda z czterech odpowiedzi jest wymagana."));
-        postJson(admin, URL, body("Za długa odpowiedź", List.of("A", "x".repeat(201), "C", "D"), 0, "WEB", "EASY", null)).andExpect(status().isBadRequest());
-        postJson(admin, URL, body("Bez wskazania", four, null, "WEB", "EASY", null)).andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.correctAnswer").value("Wskaż poprawną odpowiedź."));
-        postJson(admin, URL, body("Piąta odpowiedź", four, 4, "WEB", "EASY", null)).andExpect(status().isBadRequest());
-        postJson(admin, URL, body("Ujemna", four, -1, "WEB", "EASY", null)).andExpect(status().isBadRequest());
-        postJson(admin, URL, body("Kategoria", four, 0, "CTF", "EASY", null)).andExpect(status().isBadRequest());
-        postJson(admin, URL, body("Trudność", four, 0, "WEB", "INSANE", null)).andExpect(status().isBadRequest());
-        postJson(admin, URL, body("Powtórka", List.of("A", "a", "C", "D"), 0, "WEB", "EASY", null)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$['wrongAnswers[1]']").value("Każda z trzech błędnych odpowiedzi jest wymagana."));
+        postJson(admin, URL, body("Za długa błędna", "A", List.of("B", "x".repeat(201), "D"), "WEB", "EASY", null)).andExpect(status().isBadRequest());
+        postJson(admin, URL, body("Kategoria", "A", three, "CTF", "EASY", null)).andExpect(status().isBadRequest());
+        postJson(admin, URL, body("Trudność", "A", three, "WEB", "INSANE", null)).andExpect(status().isBadRequest());
+        postJson(admin, URL, body("Powtórka", "A", List.of("a", "C", "D"), "WEB", "EASY", null)).andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Odpowiedzi muszą się od siebie różnić."));
+        postJson(admin, URL, body("Powtórka błędnych", "A", List.of("B", " b ", "D"), "WEB", "EASY", null)).andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Odpowiedzi muszą się od siebie różnić."));
         assertEquals(before, jdbcTemplate.queryForObject("SELECT count(*) FROM arena_questions", Integer.class));
     }
@@ -152,20 +165,21 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
         List<String> answers = JsonPath.read(state, "$.question.answers");
         var original = jdbcTemplate.queryForMap("SELECT * FROM arena_questions WHERE id = ?", id);
         restore.add(original);
-        int correct = ((Number) original.get("correct_answer")).intValue();
+        int correct = answers.indexOf((String) original.get("correct_answer"));
         int changed = (correct + 1) % 4;
 
         long version = ((Number) original.get("version")).longValue();
-        putJson(admin, URL + "/" + id, body("Zmienione w trakcie walki", List.of("W", "X", "Y", "Z"), changed, "OGOLNE", "HARD", version))
+        putJson(admin, URL + "/" + id, body("Zmienione w trakcie walki", answers.get(changed), List.of("X", "Y", "Z"), "OGOLNE", "HARD", version))
                 .andExpect(status().isOk());
 
         getAs(second, game).andExpect(jsonPath("$.question.id").value(id))
                 .andExpect(jsonPath("$.question.content").value(content))
-                .andExpect(jsonPath("$.question.answers[0]").value(answers.get(0)))
+                .andExpect(jsonPath("$.question.answers").value(answers))
                 .andExpect(jsonPath("$.question.correctAnswer").doesNotExist());
         postJson(first, game + "/answer", "{\"round\":1,\"answer\":" + correct + "}").andExpect(status().isOk());
         postJson(second, game + "/answer", "{\"round\":1,\"answer\":" + changed + "}").andExpect(status().isOk());
         getAs(first, game).andExpect(jsonPath("$.lastRound.content").value(content))
+                .andExpect(jsonPath("$.lastRound.answers").value(answers))
                 .andExpect(jsonPath("$.lastRound.correctAnswer").value(correct))
                 .andExpect(jsonPath("$.lastRound.damage['" + first.id() + "']").value(0))
                 .andExpect(jsonPath("$.hp['" + first.id() + "']").value(100));

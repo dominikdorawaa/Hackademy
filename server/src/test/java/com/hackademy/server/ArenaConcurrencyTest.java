@@ -1,5 +1,6 @@
 package com.hackademy.server;
 
+import com.hackademy.server.arena.AnswerOrder;
 import com.hackademy.server.arena.ArenaPresence;
 import com.hackademy.server.arena.ArenaQuestion;
 import com.hackademy.server.arena.ArenaQuestionRepository;
@@ -18,6 +19,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.ValueSource;
+import org.springframework.test.util.ReflectionTestUtils;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -47,7 +49,7 @@ class ArenaConcurrencyTest {
 
     static List<ArenaQuestion> questionSet() {
         return LongStream.rangeClosed(1, 10).mapToObj(id -> new ArenaQuestion(id, "Pytanie " + id,
-                "A", "B", "C", "D", 1, "WEB", "EASY", 0L)).toList();
+                "B", "A", "C", "D", "WEB", "EASY", 0L)).toList();
     }
 
     @BeforeEach
@@ -62,6 +64,7 @@ class ArenaConcurrencyTest {
         when(questions.findRandom(anyInt())).thenReturn(questionSet());
         when(avatars.findDtosByUserIds(anyCollection())).thenReturn(Map.of());
         when(presence.isConnected(any())).thenReturn(true);
+        ReflectionTestUtils.invokeMethod(arena, "useRandom", AnswerOrder.correctAt(1));
     }
 
     private Challenge challenge() {

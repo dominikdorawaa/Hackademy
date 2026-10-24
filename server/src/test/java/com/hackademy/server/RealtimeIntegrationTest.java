@@ -64,7 +64,7 @@ class RealtimeIntegrationTest {
     void seedBattleQuestions() {
         if (questions.count() >= BattleEngine.ROUNDS) return;
         for (int index = 0; index < BattleEngine.ROUNDS; index++) {
-            questions.save(new ArenaQuestion(null, "Pytanie " + index, "A", "B", "C", "D", 0, "WEB", "EASY", 0L));
+            questions.save(new ArenaQuestion(null, "Pytanie " + index, "A", "B", "C", "D", "WEB", "EASY", 0L));
         }
     }
 

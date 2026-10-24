@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 26;
+    static final int SCHEMA_VERSION = 27;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -113,6 +113,44 @@ class SchemaMigrationTest {
         assertEquals(0, scalar("SELECT count(*) FROM user_profile_interests"));
         assertEquals(0, scalar("SELECT count(*) FROM user_featured_badges"));
         assertEquals(0, flyway().migrate().migrationsExecuted);
+    }
+
+    @Test
+    void splitsArenaAnswersIntoTheCorrectOneAndThreeWrongOnes() throws Exception {
+        flyway("26").migrate();
+        execute("""
+                DELETE FROM arena_questions;
+                INSERT INTO arena_questions (id, content, answer_a, answer_b, answer_c, answer_d, correct_answer, category, difficulty, version) VALUES
+                (1, 'Pierwsza', 'P', 'X1', 'X2', 'X3', 0, 'WEB', 'EASY', 4),
+                (2, 'Druga', 'X1', 'P', 'X2', 'X3', 1, 'SIECI', 'MEDIUM', 0),
+                (3, 'Trzecia', 'X1', 'X2', 'P', 'X3', 2, 'LINUX', 'HARD', 0),
+                (4, 'Czwarta', 'X1', 'X2', 'X3', 'P', 3, 'OGOLNE', 'EASY', 0);
+                """);
+        assertEquals(1, flyway("27").migrate().migrationsExecuted);
+        assertEquals(4, scalar("""
+                SELECT count(*) FROM arena_questions
+                WHERE correct_answer = 'P' AND wrong_answer_1 = 'X1' AND wrong_answer_2 = 'X2' AND wrong_answer_3 = 'X3'
+                """));
+        assertEquals("1:Pierwsza:WEB:EASY:4", text("SELECT id || ':' || content || ':' || category || ':' || difficulty || ':' || version FROM arena_questions WHERE id = 1"));
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema()
+                AND table_name = 'arena_questions' AND column_name IN ('answer_a', 'answer_b', 'answer_c', 'answer_d', 'correct_answer_text')
+                """));
+        assertEquals("character varying", text("""
+                SELECT data_type FROM information_schema.columns WHERE table_schema = current_schema()
+                AND table_name = 'arena_questions' AND column_name = 'correct_answer'
+                """));
+        assertSqlState("23502", "INSERT INTO arena_questions (content, correct_answer, wrong_answer_1, wrong_answer_2, category, difficulty) VALUES ('Brak', 'P', 'X1', 'X2', 'WEB', 'EASY')");
+    }
+
+    @Test
+    void keepsTheSeededArenaAnswersWhenSplittingThem() throws Exception {
+        flyway().migrate();
+        assertEquals(42, scalar("SELECT count(*) FROM arena_questions"));
+        assertEquals("Podatnością nieznaną producentowi i bez dostępnej poprawki", text("SELECT correct_answer FROM arena_questions WHERE content = 'Czym jest podatność zero-day?'"));
+        assertEquals("Podatnością naprawioną w dniu zgłoszenia|Podatnością dotyczącą tylko starych systemów|Podatnością, której nie da się wykorzystać",
+                text("SELECT wrong_answer_1 || '|' || wrong_answer_2 || '|' || wrong_answer_3 FROM arena_questions WHERE content = 'Czym jest podatność zero-day?'"));
+        assertEquals("Na którym porcie domyślnie działa HTTPS?:443:80|8080|25", text("SELECT content || ':' || correct_answer || ':' || wrong_answer_1 || '|' || wrong_answer_2 || '|' || wrong_answer_3 FROM arena_questions WHERE content = 'Na którym porcie domyślnie działa HTTPS?'"));
     }
 
     @Test

@@ -56,6 +56,7 @@ class ArenaChallengeCollisionTest {
         when(questions.findRandom(anyInt())).thenReturn(BattleEngineTest.questions(10));
         when(presence.isConnected(any())).thenReturn(true);
         arena.useClock(now::get);
+        arena.useRandom(AnswerOrder.correctAt(2));
     }
 
     @AfterEach

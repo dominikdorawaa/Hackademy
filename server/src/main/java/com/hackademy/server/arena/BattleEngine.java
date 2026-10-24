@@ -3,6 +3,7 @@ package com.hackademy.server.arena;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.random.RandomGenerator;
 
 public final class BattleEngine {
     public static final int MAX_HP = 100;
@@ -18,9 +19,9 @@ public final class BattleEngine {
 
     private BattleEngine() {}
 
-    public static void start(GameSession session, List<ArenaQuestion> questions, long now) {
+    public static void start(GameSession session, List<ArenaQuestion> questions, long now, RandomGenerator random) {
         if (questions.isEmpty()) throw new IllegalStateException("Brak pytań do walki.");
-        session.setQuestions(questions.stream().map(QuestionSnapshot::of).toList());
+        session.setQuestions(questions.stream().map(question -> QuestionSnapshot.shuffled(question, random)).toList());
         session.setTotalRounds(Math.min(ROUNDS, questions.size()));
         session.getHp().put(session.getPlayer1Id(), MAX_HP);
         session.getHp().put(session.getPlayer2Id(), MAX_HP);

@@ -44,8 +44,8 @@ beforeAll(() => {
 const question = (id: number, content: string, overrides: Partial<ArenaQuestionAdmin> = {}): ArenaQuestionAdmin => ({
   id,
   content,
-  answers: ['21', '22', '23', '25'],
-  correctAnswer: 1,
+  correctAnswer: '22',
+  wrongAnswers: ['21', '23', '25'],
   category: 'SIECI',
   difficulty: 'EASY',
   version: 0,
@@ -111,25 +111,28 @@ function bank(initial: ArenaQuestionAdmin[]) {
 }
 
 describe('arena question form rules', () => {
-  it('requires content, four different answers, a correct answer, category and difficulty', () => {
+  it('requires content, one correct and three different wrong answers, category and difficulty', () => {
     expect(validateQuestion(formFor())).toEqual({
       content: 'Treść pytania jest wymagana.',
-      'answer-0': 'Ta odpowiedź jest wymagana.',
-      'answer-1': 'Ta odpowiedź jest wymagana.',
-      'answer-2': 'Ta odpowiedź jest wymagana.',
-      'answer-3': 'Ta odpowiedź jest wymagana.',
-      correctAnswer: 'Wskaż poprawną odpowiedź.',
+      correctAnswer: 'Poprawna odpowiedź jest wymagana.',
+      'wrong-0': 'Ta odpowiedź jest wymagana.',
+      'wrong-1': 'Ta odpowiedź jest wymagana.',
+      'wrong-2': 'Ta odpowiedź jest wymagana.',
       category: 'Wybierz kategorię.',
       difficulty: 'Wybierz trudność.',
     });
-    const form = { content: 'x'.repeat(501), answers: ['A', ' a ', 'C', 'x'.repeat(201)], correctAnswer: 0, category: 'WEB' as const, difficulty: 'HARD' as const };
+    const form = { content: 'x'.repeat(501), correctAnswer: 'A', wrongAnswers: [' a ', 'C', 'x'.repeat(201)], category: 'WEB' as const, difficulty: 'HARD' as const };
     expect(validateQuestion(form)).toEqual({
       content: 'Treść pytania może mieć najwyżej 500 znaków.',
-      'answer-3': 'Odpowiedź może mieć najwyżej 200 znaków.',
+      'wrong-2': 'Odpowiedź może mieć najwyżej 200 znaków.',
       answers: 'Odpowiedzi muszą się od siebie różnić.',
     });
-    expect(requestFrom({ ...form, content: ' Pytanie ', answers: [' A ', 'B', 'C', 'D'] }, 4)).toEqual({
-      content: 'Pytanie', answers: ['A', 'B', 'C', 'D'], correctAnswer: 0, category: 'WEB', difficulty: 'HARD', version: 4,
+    expect(validateQuestion({ ...form, content: 'Pytanie', correctAnswer: 'x'.repeat(201), wrongAnswers: ['B', ' b', 'D'] })).toEqual({
+      correctAnswer: 'Odpowiedź może mieć najwyżej 200 znaków.',
+      answers: 'Odpowiedzi muszą się od siebie różnić.',
+    });
+    expect(requestFrom({ ...form, content: ' Pytanie ', correctAnswer: ' A ', wrongAnswers: ['B ', 'C', 'D'] }, 4)).toEqual({
+      content: 'Pytanie', correctAnswer: 'A', wrongAnswers: ['B', 'C', 'D'], category: 'WEB', difficulty: 'HARD', version: 4,
     });
   });
 });
@@ -137,7 +140,7 @@ describe('arena question form rules', () => {
 describe('arena questions page', () => {
   it('lists, searches and filters the bank for an administrator', async () => {
     signIn('ADMIN');
-    const { requests } = bank([question(1, 'Na którym porcie działa SSH?'), question(2, 'Co to XSS?', { category: 'WEB', answers: ['Atak', 'Port', 'Plik', 'Szyfr'], correctAnswer: 0 })]);
+    const { requests } = bank([question(1, 'Na którym porcie działa SSH?'), question(2, 'Co to XSS?', { category: 'WEB', correctAnswer: 'Atak', wrongAnswers: ['Port', 'Plik', 'Szyfr'] })]);
     const user = userEvent.setup();
     mountAdmin('/admin/arena/questions');
 
@@ -145,7 +148,8 @@ describe('arena questions page', () => {
     expect(screen.getByText(/Pokoje CTF nie są źródłem tych pytań/)).toBeInTheDocument();
     expect(within(screen.getByLabelText('Nawigacja panelu')).getByRole('link', { name: 'Pytania areny' })).toHaveAttribute('aria-current', 'page');
     expect(await screen.findByText('Na którym porcie działa SSH?')).toBeInTheDocument();
-    expect(screen.getByText(/· 22$/)).toBeInTheDocument();
+    expect(screen.getAllByText('Poprawna: 22')).toHaveLength(1);
+    expect(screen.queryByText(/Poprawna: [A-D] ·/)).not.toBeInTheDocument();
 
     await user.type(screen.getByLabelText('Szukaj pytania'), 'xss');
     await waitFor(() => expect(screen.queryByText('Na którym porcie działa SSH?')).not.toBeInTheDocument());
@@ -169,15 +173,17 @@ describe('arena questions page', () => {
     const dialog = within(await screen.findByRole('dialog'));
     await user.click(dialog.getByRole('button', { name: 'Dodaj pytanie' }));
     expect(dialog.getByText('Treść pytania jest wymagana.')).toBeInTheDocument();
-    expect(dialog.getByText('Wskaż poprawną odpowiedź.')).toBeInTheDocument();
+    expect(dialog.getByText('Poprawna odpowiedź jest wymagana.')).toBeInTheDocument();
+    expect(dialog.getByText(/Arena losuje ich kolejność w każdym pojedynku/)).toBeInTheDocument();
+    expect(dialog.queryByRole('radio')).not.toBeInTheDocument();
     expect(dialog.getByLabelText('Treść pytania *')).toHaveFocus();
     expect(requests.filter((entry) => entry.method === 'POST')).toHaveLength(0);
 
     await user.type(dialog.getByLabelText('Treść pytania *'), 'Które narzędzie skanuje porty?');
-    for (const [letter, answer] of [['A', 'grep'], ['B', 'nmap'], ['C', 'tar'], ['D', 'grep']]) {
-      await user.type(dialog.getByLabelText(`Odpowiedź ${letter}`), answer);
+    await user.type(dialog.getByLabelText('Poprawna'), 'nmap');
+    for (const [index, answer] of [[1, 'grep'], [2, 'tar'], [3, 'NMAP ']] as const) {
+      await user.type(dialog.getByLabelText(`Błędna ${index}`), answer);
     }
-    await user.click(dialog.getByRole('radio', { name: 'Odpowiedź B jest poprawna' }));
     await user.click(dialog.getByRole('combobox', { name: 'Kategoria *' }));
     await user.click(await screen.findByRole('option', { name: 'Sieci' }));
     await user.click(dialog.getByRole('combobox', { name: 'Trudność *' }));
@@ -185,13 +191,14 @@ describe('arena questions page', () => {
     await user.click(dialog.getByRole('button', { name: 'Dodaj pytanie' }));
     expect(dialog.getByText('Odpowiedzi muszą się od siebie różnić.')).toBeInTheDocument();
 
-    await user.clear(dialog.getByLabelText('Odpowiedź D'));
-    await user.type(dialog.getByLabelText('Odpowiedź D'), 'ls');
+    expect(dialog.getByLabelText('Poprawna')).toHaveFocus();
+    await user.clear(dialog.getByLabelText('Błędna 3'));
+    await user.type(dialog.getByLabelText('Błędna 3'), 'ls');
     await user.click(dialog.getByRole('button', { name: 'Dodaj pytanie' }));
     expect(await screen.findByText('Dodano pytanie do banku areny.')).toBeInTheDocument();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(requests.find((entry) => entry.method === 'POST')?.body).toEqual({
-      content: 'Które narzędzie skanuje porty?', answers: ['grep', 'nmap', 'tar', 'ls'], correctAnswer: 1, category: 'SIECI', difficulty: 'EASY',
+      content: 'Które narzędzie skanuje porty?', correctAnswer: 'nmap', wrongAnswers: ['grep', 'tar', 'ls'], category: 'SIECI', difficulty: 'EASY',
     });
     expect(await screen.findByText('Które narzędzie skanuje porty?')).toBeInTheDocument();
   });
@@ -204,8 +211,9 @@ describe('arena questions page', () => {
 
     await user.click(await screen.findByRole('button', { name: /Edytuj pytanie: Na którym porcie/ }));
     let dialog = within(await screen.findByRole('dialog'));
-    expect(dialog.getByLabelText('Odpowiedź B')).toHaveValue('22');
-    expect(dialog.getByRole('radio', { name: 'Odpowiedź B jest poprawna' })).toBeChecked();
+    expect(dialog.getByLabelText('Poprawna')).toHaveValue('22');
+    expect(dialog.getByLabelText('Błędna 1')).toHaveValue('21');
+    expect(dialog.getByLabelText('Błędna 3')).toHaveValue('25');
     await user.type(dialog.getByLabelText('Treść pytania *'), ' (domyślnie)');
     setVersion(4, 3);
     await user.click(dialog.getByRole('button', { name: 'Zapisz zmiany' }));
@@ -217,11 +225,12 @@ describe('arena questions page', () => {
     await user.click(screen.getByRole('button', { name: /Edytuj pytanie: Na którym porcie/ }));
     dialog = within(await screen.findByRole('dialog'));
     expect(dialog.getByLabelText('Treść pytania *')).toHaveValue('Na którym porcie działa SSH?');
-    await user.click(dialog.getByRole('radio', { name: 'Odpowiedź C jest poprawna' }));
+    await user.clear(dialog.getByLabelText('Poprawna'));
+    await user.type(dialog.getByLabelText('Poprawna'), '2222');
     await user.click(dialog.getByRole('button', { name: 'Zapisz zmiany' }));
     expect(await screen.findByText('Zapisano zmiany w pytaniu.')).toBeInTheDocument();
-    expect(requests.filter((entry) => entry.method === 'PUT').at(-1)?.body).toMatchObject({ correctAnswer: 2, version: 3 });
-    expect(await screen.findByText(/· 23$/)).toBeInTheDocument();
+    expect(requests.filter((entry) => entry.method === 'PUT').at(-1)?.body).toMatchObject({ correctAnswer: '2222', wrongAnswers: ['21', '23', '25'], version: 3 });
+    expect(await screen.findByText('Poprawna: 2222')).toBeInTheDocument();
   });
 
   it('deletes a question after confirmation and reports server refusals', async () => {

@@ -1,4 +1,5 @@
 import { useState } from 'react';
+import { Check, X } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogHeader, DialogTitle } from '@/components/ui/dialog';
 import { Input } from '@/components/ui/input';
@@ -14,7 +15,6 @@ import type { ArenaQuestionAdmin, ArenaQuestionCategory, ArenaQuestionDifficulty
 import {
   ANSWER_LIMIT,
   CONTENT_LIMIT,
-  answerLetters,
   arenaDifficultyLabels,
   categories,
   categoryLabels,
@@ -27,6 +27,44 @@ import {
 
 function FieldError({ id, message }: { id: string; message?: string }) {
   return message ? <p id={id} role="alert" className="text-sm text-destructive">{message}</p> : null;
+}
+
+function AnswerField({ id, label, correct, value, error, onChange }: {
+  id: string;
+  label: string;
+  correct: boolean;
+  value: string;
+  error?: string;
+  onChange: (value: string) => void;
+}) {
+  const Icon = correct ? Check : X;
+  return (
+    <div className="grid gap-1">
+      <div
+        data-correct={correct}
+        className={cn(
+          'flex min-w-0 items-center gap-3 rounded-lg border px-3 py-2 transition-colors',
+          correct ? 'border-emerald-500/60 bg-emerald-500/10' : 'bg-background/40',
+        )}
+      >
+        <Icon aria-hidden="true" className={cn('size-4 shrink-0', correct ? 'text-emerald-500' : 'text-muted-foreground')} />
+        <span aria-hidden="true" className="w-20 shrink-0 text-xs font-medium text-muted-foreground">{label}</span>
+        <Input
+          id={id}
+          aria-label={label}
+          aria-invalid={!!error}
+          aria-describedby={error ? `${id}-error` : undefined}
+          value={value}
+          className="h-8 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
+          onChange={(event) => onChange(event.target.value)}
+        />
+        <span className={cn('shrink-0 text-xs tabular-nums', value.length > ANSWER_LIMIT ? 'text-destructive' : 'text-muted-foreground')}>
+          {value.length}/{ANSWER_LIMIT}
+        </span>
+      </div>
+      <FieldError id={`${id}-error`} message={error} />
+    </div>
+  );
 }
 
 function QuestionEditor({ question, onCancel, onSaved, onFailed }: {
@@ -56,7 +94,7 @@ function QuestionEditor({ question, onCancel, onSaved, onFailed }: {
     setFailure(null);
     if (Object.keys(problems).length > 0) {
       const first = Object.keys(problems)[0];
-      const target = first === 'answers' ? 'answer-0' : first;
+      const target = first === 'answers' ? 'correctAnswer' : first;
       document.getElementById(target === 'content' ? 'content-content' : `question-${target}`)?.focus();
       return;
     }
@@ -96,53 +134,32 @@ function QuestionEditor({ question, onCancel, onSaved, onFailed }: {
       <fieldset className="grid min-w-0 gap-2" aria-describedby="question-answers-help">
         <legend className="mb-2 text-sm font-medium">Odpowiedzi *</legend>
         <p id="question-answers-help" className="-mt-1 mb-1 text-xs text-muted-foreground">
-          Wpisz cztery różne odpowiedzi i zaznacz tę, która jest poprawna.
+          Wpisz jedną poprawną i trzy błędne odpowiedzi. Arena losuje ich kolejność w każdym pojedynku.
         </p>
-        {answerLetters.map((letter, index) => {
-          const correct = form.correctAnswer === index;
-          const problem = errors[`answer-${index}`] ?? (form.answers[index].length > ANSWER_LIMIT ? `Maksymalnie ${ANSWER_LIMIT} znaków` : undefined);
-          return (
-            <div key={letter} className="grid gap-1">
-              <div
-                data-correct={correct}
-                className={cn(
-                  'flex min-w-0 items-center gap-3 rounded-lg border px-3 py-2 transition-colors',
-                  correct ? 'border-emerald-500/60 bg-emerald-500/10' : 'bg-background/40',
-                )}
-              >
-                <input
-                  type="radio"
-                  name="question-correct"
-                  id={index === 0 ? 'question-correctAnswer' : undefined}
-                  className="size-4 shrink-0 accent-emerald-500"
-                  checked={correct}
-                  aria-label={`Odpowiedź ${letter} jest poprawna`}
-                  onChange={() => change({ correctAnswer: index }, 'correctAnswer')}
-                />
-                <span aria-hidden="true" className="w-4 shrink-0 font-mono text-sm font-semibold text-muted-foreground">{letter}</span>
-                <Input
-                  id={`question-answer-${index}`}
-                  aria-label={`Odpowiedź ${letter}`}
-                  aria-invalid={!!problem || !!errors.answers}
-                  aria-describedby={problem ? `question-answer-${index}-error` : undefined}
-                  value={form.answers[index]}
-                  className="h-8 min-w-0 flex-1 border-0 bg-transparent px-1 shadow-none focus-visible:ring-0 dark:bg-transparent"
-                  onChange={(event) => {
-                    const answers = [...form.answers];
-                    answers[index] = event.target.value;
-                    change({ answers }, `answer-${index}`, 'answers');
-                  }}
-                />
-                <span className={cn('shrink-0 text-xs tabular-nums', form.answers[index].length > ANSWER_LIMIT ? 'text-destructive' : 'text-muted-foreground')}>
-                  {form.answers[index].length}/{ANSWER_LIMIT}
-                </span>
-              </div>
-              <FieldError id={`question-answer-${index}-error`} message={problem} />
-            </div>
-          );
-        })}
+        <AnswerField
+          id="question-correctAnswer"
+          label="Poprawna"
+          correct
+          value={form.correctAnswer}
+          error={errors.correctAnswer ?? (form.correctAnswer.length > ANSWER_LIMIT ? `Maksymalnie ${ANSWER_LIMIT} znaków` : undefined)}
+          onChange={(correctAnswer) => change({ correctAnswer }, 'correctAnswer', 'answers')}
+        />
+        {form.wrongAnswers.map((answer, index) => (
+          <AnswerField
+            key={index}
+            id={`question-wrong-${index}`}
+            label={`Błędna ${index + 1}`}
+            correct={false}
+            value={answer}
+            error={errors[`wrong-${index}`] ?? (answer.length > ANSWER_LIMIT ? `Maksymalnie ${ANSWER_LIMIT} znaków` : undefined)}
+            onChange={(value) => {
+              const wrongAnswers = [...form.wrongAnswers];
+              wrongAnswers[index] = value;
+              change({ wrongAnswers }, `wrong-${index}`, 'answers');
+            }}
+          />
+        ))}
         <FieldError id="question-answers-error" message={errors.answers} />
-        <FieldError id="question-correct-error" message={errors.correctAnswer} />
       </fieldset>
 
       <div className="grid gap-4 sm:grid-cols-2">

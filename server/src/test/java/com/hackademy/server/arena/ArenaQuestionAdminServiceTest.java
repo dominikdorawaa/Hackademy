@@ -21,11 +21,11 @@ class ArenaQuestionAdminServiceTest {
     private final ArenaQuestionAdminService service = new ArenaQuestionAdminService(repository);
 
     private static ArenaQuestionRequest request(List<String> answers, Long version) {
-        return new ArenaQuestionRequest("  Co robi nmap?  ", answers, 1, "SIECI", "EASY", version);
+        return new ArenaQuestionRequest("  Co robi nmap?  ", answers.get(0), answers.subList(1, 4), "SIECI", "EASY", version);
     }
 
     private static ArenaQuestion stored(long version) {
-        return new ArenaQuestion(7L, "Stare", "A", "B", "C", "D", 0, "WEB", "HARD", version);
+        return new ArenaQuestion(7L, "Stare", "A", "B", "C", "D", "WEB", "HARD", version);
     }
 
     private static HttpStatus status(ResponseStatusException failure) {
@@ -42,8 +42,8 @@ class ArenaQuestionAdminServiceTest {
         var view = service.create(request(List.of(" Skanuje porty ", "Szyfruje", "Kompresuje", "Drukuje"), null));
         assertEquals(9L, view.id());
         assertEquals("Co robi nmap?", view.content());
-        assertEquals(List.of("Skanuje porty", "Szyfruje", "Kompresuje", "Drukuje"), view.answers());
-        assertEquals(1, view.correctAnswer());
+        assertEquals("Skanuje porty", view.correctAnswer());
+        assertEquals(List.of("Szyfruje", "Kompresuje", "Drukuje"), view.wrongAnswers());
         assertEquals("SIECI", view.category());
         assertEquals("EASY", view.difficulty());
     }
@@ -53,6 +53,9 @@ class ArenaQuestionAdminServiceTest {
         var failure = assertThrows(IllegalArgumentException.class,
                 () -> service.create(request(List.of("Porty", " porty", "Pliki", "Hasła"), null)));
         assertEquals(ArenaQuestionAdminService.DUPLICATE_ANSWERS, failure.getMessage());
+        var wrong = assertThrows(IllegalArgumentException.class,
+                () -> service.create(request(List.of("Porty", "Pliki", "PLIKI ", "Hasła"), null)));
+        assertEquals(ArenaQuestionAdminService.DUPLICATE_ANSWERS, wrong.getMessage());
         verify(repository, never()).saveAndFlush(any());
     }
 
@@ -72,7 +75,8 @@ class ArenaQuestionAdminServiceTest {
         var view = service.update(7L, request(answers, 3L));
         assertEquals("Co robi nmap?", view.content());
         assertEquals("SIECI", question.getCategory());
-        assertEquals("Drukuje", question.getAnswerD());
+        assertEquals("Skanuje porty", question.getCorrectAnswer());
+        assertEquals("Drukuje", question.getWrongAnswer3());
     }
 
     @Test

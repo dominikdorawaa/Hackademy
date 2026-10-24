@@ -83,6 +83,34 @@ it('reveals the correct answer, both choices and who hit', async () => {
   expect(screen.queryByTestId('shot-rival')).not.toBeInTheDocument();
 });
 
+it('sends the position the server drew for this match', async () => {
+  let body: unknown = null;
+  server.use(http.post(`${API_URL}/api/arena/game/game/answer`, async ({ request }) => { body = await request.json(); return HttpResponse.json({ message: 'ok' }); }));
+  const shuffled = createGameSession();
+  realtime.value = { ...realtime.value, state: live({ ...shuffled, question: { ...shuffled.question!, answers: ['25', '21', '23', '22'] } }) };
+  mount();
+  expect(await screen.findByRole('button', { name: /^D\s*22$/ })).toBeInTheDocument();
+  fireEvent.click(screen.getByRole('button', { name: /22/ }));
+  await waitFor(() => expect(body).toEqual({ round: 1, answer: 3 }));
+});
+
+it('reveals the correct answer at the position the server drew', async () => {
+  realtime.value = { ...realtime.value, state: live(createGameSession({
+    phase: 'REVEAL', question: null, hp: { 1: 100, 2: 81 }, nextRoundAt: 1_003_000,
+    lastRound: { round: 1, questionId: 11, content: 'Na którym porcie domyślnie działa SSH?', answers: ['25', '21', '23', '22'],
+      correctAnswer: 3, choices: { 1: 3, 2: 0 }, damage: { 1: 0, 2: 19 } },
+  })) };
+  mount();
+  expect(await screen.findByText('Trafiasz! Rywal traci 19 HP.')).toBeInTheDocument();
+  const answers = screen.getAllByRole('listitem');
+  expect(answers.map((answer) => answer.textContent)).toEqual([
+    expect.stringContaining('25'), expect.stringContaining('21'), expect.stringContaining('23'), expect.stringContaining('22'),
+  ]);
+  expect(within(answers[3]).getByText('Poprawna')).toBeInTheDocument();
+  expect(within(answers[3]).getByText('Ty')).toBeInTheDocument();
+  expect(within(answers[0]).getByText('opponent')).toBeInTheDocument();
+});
+
 it('hides the shots when the player asked for reduced motion', async () => {
   localStorage.setItem('app-reduced-motion', 'true');
   realtime.value = { ...realtime.value, state: live(createGameSession({
