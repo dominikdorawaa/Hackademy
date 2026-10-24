@@ -12,6 +12,7 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
+import java.util.stream.Stream;
 
 @Data
 @NoArgsConstructor
@@ -59,9 +60,28 @@ public class GameSession {
     private Set<Long> leftView = new HashSet<>();
     @JsonIgnore
     private Set<Long> forfeited = new HashSet<>();
+    @JsonIgnore
+    private Long botId;
+    @JsonIgnore
+    private BotMove botMove;
+    @JsonIgnore
+    private Map<Long, Long> queueTickets = new HashMap<>();
 
     public boolean includes(Long userId) {
         return player1Id.equals(userId) || player2Id.equals(userId);
+    }
+
+    public boolean isBot(Long playerId) {
+        return botId != null && botId.equals(playerId);
+    }
+
+    public Long[] people() {
+        return Stream.of(player1Id, player2Id).filter(player -> !isBot(player)).toArray(Long[]::new);
+    }
+
+    public int eloOf(Long playerId) {
+        Integer elo = player1Id.equals(playerId) ? player1Elo : player2Elo;
+        return elo == null ? QuestionDraw.DEFAULT_ELO : elo;
     }
 
     public Long opponentOf(Long userId) {
