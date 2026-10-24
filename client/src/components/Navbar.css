@@ -304,10 +304,6 @@
   filter: grayscale(1);
 }
 
-.notification-rejected {
-  box-shadow: inset 3px 0 0 #ff6b6b;
-}
-
 .notification-rejected[data-unread='true'] {
   background: rgba(255, 107, 107, 0.07);
 }

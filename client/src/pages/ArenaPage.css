@@ -357,8 +357,7 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   grid-template-columns: 52px minmax(0, 1fr) auto;
   align-items: center;
   gap: 12px 14px;
-  padding: 12px 12px 12px 14px;
-  border-left: 4px solid var(--ud-hard);
+  padding: 12px;
   border-radius: var(--ud-radius);
   background: rgba(6, 13, 28, 0.42);
   box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
