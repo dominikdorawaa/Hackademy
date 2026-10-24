@@ -21,9 +21,12 @@ public class Challenge {
     private UserAvatarDto challengerAvatar;
     private UserAvatarDto targetAvatar;
     private long expiresAt;
+    /** Elo when the challenge was sent, so the target can judge the duel before answering. */
+    private Integer challengerElo;
+    private Integer targetElo;
 
     public Challenge(String id, Long challengerId, String challengerUsername, Long targetId,
                      String targetUsername, LocalDateTime createdAt, String status) {
-        this(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status, null, null, 0);
+        this(id, challengerId, challengerUsername, targetId, targetUsername, createdAt, status, null, null, 0, null, null);
     }
 }

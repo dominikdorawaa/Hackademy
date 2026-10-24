@@ -65,7 +65,7 @@ function NotificationPreview({ ownName, ownAvatar }: { ownName?: string; ownAvat
     <figure><figcaption>Zaproszenie do znajomych</figcaption>
       <div inert><InvitationCard kind="friend" actor="ola_sec" /></div></figure>
     <figure><figcaption>Wyzwanie w Arenie</figcaption>
-      <div inert><InvitationCard kind="challenge" actor="kuba_root" ownName={ownName} ownAvatar={ownAvatar} /></div></figure>
+      <div inert><InvitationCard kind="challenge" actor="kuba_root" elo={812} ownName={ownName} ownAvatar={ownAvatar} /></div></figure>
     <p className="settings-preview-note">Zaproszenie widać w rogu ekranu przez 5 sekund, wyzwanie przez 15. Najechanie na komunikat wstrzymuje odliczanie, a potem zostaje on w dzwonku.</p>
   </div>;
 }

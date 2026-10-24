@@ -476,6 +476,10 @@ public class ArenaServiceImpl implements ArenaService {
         var avatars = avatarRepository.findDtosByUserIds(List.of(challengerId, targetId));
         challenge.setChallengerAvatar(avatars.get(challengerId));
         challenge.setTargetAvatar(avatars.get(targetId));
+        userRepository.findAllById(List.of(challengerId, targetId)).forEach(user -> {
+            if (user.getId().equals(challengerId)) challenge.setChallengerElo(user.getElo());
+            else challenge.setTargetElo(user.getElo());
+        });
         // Checked and stored under the players lock, so a game starting meanwhile either sees it or blocks it.
         synchronized (players) {
             if (isPlaying(challengerId)) throw new IllegalStateException(YOU_ARE_PLAYING);

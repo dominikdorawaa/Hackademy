@@ -23,6 +23,8 @@ interface Alert {
   actor?: string;
   targetId?: number | string;
   avatar?: AvatarConfig | null;
+  elo?: number | null;
+  ownElo?: number | null;
 }
 
 type ToastKind = 'info' | 'friend' | 'challenge' | 'summary';
@@ -34,6 +36,8 @@ interface Toast {
   actor?: string;
   targetId?: number | string;
   avatar?: AvatarConfig | null;
+  elo?: number | null;
+  ownElo?: number | null;
   busy?: boolean;
   failed?: boolean;
   paused?: boolean;
@@ -140,7 +144,8 @@ export default function RealtimeNotifications() {
         actor: request.requesterUsername, targetId: request.id, avatar: request.avatar })),
       ...state.challenges.map(challenge => ({ id: `challenge:${challenge.id}`, category: 'challenges' as const,
         title: 'Wyzwanie w Arenie', body: `${challenge.challengerUsername} zaprasza Cię do pojedynku.`,
-        actor: challenge.challengerUsername, targetId: challenge.id, avatar: challenge.challengerAvatar })),
+        actor: challenge.challengerUsername, targetId: challenge.id, avatar: challenge.challengerAvatar,
+        elo: challenge.challengerElo, ownElo: challenge.targetElo })),
       ...(state.gameSession?.status === 'ACTIVE' ? [{ id: `match:${state.gameSession.id}`,
         category: 'matchFound' as const, title: 'Mecz jest gotowy', body: 'Znaleźliśmy przeciwnika. Twój pojedynek zaraz się rozpocznie.' }] : []),
       ...state.friends.filter(friend => friend.online).map(friend => ({ id: `${ONLINE_EVENT_PREFIX}${friend.id}`,
@@ -182,7 +187,7 @@ export default function RealtimeNotifications() {
     const invitations = eligible.filter(event => event.category === 'friendRequests' || event.category === 'challenges');
     if (invitations.length > 2) showToast(describeInvitations(invitations.length), { kind: 'summary' });
     else invitations.forEach(event => showToast(event.body, { kind: event.category === 'friendRequests' ? 'friend' : 'challenge',
-      actor: event.actor, targetId: event.targetId, avatar: event.avatar }));
+      actor: event.actor, targetId: event.targetId, avatar: event.avatar, elo: event.elo, ownElo: event.ownElo }));
     const signal = loudestEvent(eligible.map(event => event.category));
     if (signal && preferences.sound) playSound(signal);
     if (preferences.browserNotifications && document.visibilityState === 'hidden'
@@ -234,8 +239,8 @@ export default function RealtimeNotifications() {
         onMouseLeave={event => resume(toast.id, event.currentTarget)}
         onBlur={event => { const element = event.currentTarget; window.setTimeout(() => resume(toast.id, element)); }}>
         {invitation
-          ? <InvitationCard kind={toast.kind as 'friend' | 'challenge'} actor={toast.actor ?? ''} avatar={toast.avatar}
-            ownName={user?.username} ownAvatar={user?.avatar} busy={toast.busy} failed={toast.failed}
+          ? <InvitationCard kind={toast.kind as 'friend' | 'challenge'} actor={toast.actor ?? ''} avatar={toast.avatar} elo={toast.elo}
+            ownName={user?.username} ownAvatar={user?.avatar} ownElo={toast.ownElo} busy={toast.busy} failed={toast.failed}
             onAccept={() => void respond(toast, true)} onReject={() => void respond(toast, false)} />
           : <>
             {toast.kind === 'summary'

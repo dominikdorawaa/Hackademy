@@ -460,6 +460,15 @@ describe('invitation toast actions', () => {
     } finally { vi.useRealTimers(); }
   });
 
+  it('shows the Elo of both fighters on a challenge', () => {
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, challenges: [{ ...challenge, challengerElo: 812, targetElo: 455 }] };
+    rerender(<RealtimeNotifications />);
+    const duel = screen.getByRole('group', { name: 'Wyzwanie w Arenie' });
+    expect(within(duel).getByLabelText('Elo kuba: 812')).toHaveTextContent('812 Elo');
+    expect(within(duel).getByLabelText('Twoje Elo: 455')).toBeInTheDocument();
+  });
+
   it('keeps a challenge on screen longer than a friend request', () => {
     vi.useFakeTimers();
     try {

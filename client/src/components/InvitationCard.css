@@ -51,16 +51,33 @@
 
 .invite-duel {
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   gap: 12px;
 }
 
 .invite-duel .invite-portrait { width: 56px; height: 56px; }
-.invite-duel .invite-portrait-own { transform: scaleX(-1); }
+.invite-duel .invite-portrait-own:not([data-avatar='loading']) { transform: scaleX(-1); }
+
+.invite-fighter { display: grid; justify-items: center; gap: 6px; }
+
+.invite-elo {
+  color: var(--invite-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.invite-elo b {
+  color: var(--invite-ink);
+  font-size: 1rem;
+  font-weight: 800;
+  font-variation-settings: 'wdth' 75;
+}
 
 .invite-versus {
   font-family: var(--font-heading);
+  margin-top: 12px;
   font-size: 2rem;
   line-height: 1;
   color: var(--invite-link);

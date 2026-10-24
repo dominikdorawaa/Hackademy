@@ -203,7 +203,7 @@ it('explains why an expired challenge could not be taken back or its note closed
 });
 
 it('accepts and rejects incoming challenges and shows a refused acceptance', async () => {
-  realtime.value.state = state({ challenges: [incoming, { ...incoming, id: 'c2', challengerUsername: 'drugi' }] });
+  realtime.value.state = state({ challenges: [incoming, { ...incoming, id: 'c2', challengerUsername: 'drugi', challengerElo: 812 }] });
   let rejected = false;
   server.use(
     http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
@@ -213,8 +213,10 @@ it('accepts and rejects incoming challenges and shows a refused acceptance', asy
   );
   mount();
   const panel = (await screen.findByRole('heading', { name: 'Otrzymane wyzwania (2)' })).closest('section')!;
-  expect(within(panel).getAllByText('Wyzywa Cię na pojedynek, wygasa za 60 s')).toHaveLength(2);
   const [first, second] = within(panel).getAllByRole('listitem');
+  expect(first).toHaveTextContent('Wyzywa Cię na pojedynek, wygasa za 60 s');
+  expect(first).not.toHaveTextContent('Elo');
+  expect(second).toHaveTextContent('812 Elo · Wyzywa Cię na pojedynek, wygasa za 60 s');
   fireEvent.click(within(first).getByRole('button', { name: 'Akceptuj' }));
   expect(await screen.findByText('Wyzwanie wygasło.')).toBeInTheDocument();
   fireEvent.click(within(second).getByRole('button', { name: 'Akceptuj' }));
