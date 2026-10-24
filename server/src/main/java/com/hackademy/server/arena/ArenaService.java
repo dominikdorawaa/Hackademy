@@ -5,7 +5,7 @@ import java.util.List;
 public interface ArenaService {
     void cancelChallenge(String challengeId, Long userId);
     GameSession getGameSession(String gameId);
-    void addGame(GameSession session);
+    boolean addGame(GameSession session);
     void joinQueue(Long userId, String username);
     void finishGame(String gameId, Long winnerId);
     GameSession findActiveGameForUser(Long userId);

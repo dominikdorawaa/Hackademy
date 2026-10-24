@@ -81,7 +81,7 @@ public class ArenaServiceImpl implements ArenaService {
     }
 
     @Override
-    public void addGame(GameSession session) {
+    public boolean addGame(GameSession session) {
         if (closing) throw new IllegalStateException(SHUTTING_DOWN);
         try {
             reserve(session.getPlayer1Id(), busyMessage(session.getPlayer1Username()),
@@ -93,7 +93,7 @@ public class ArenaServiceImpl implements ArenaService {
         }
         try {
             prepareBattle(session);
-            start(session);
+            return start(session);
         } finally {
             release(session.getPlayer1Id(), session.getPlayer2Id());
         }
@@ -150,21 +150,21 @@ public class ArenaServiceImpl implements ArenaService {
 
     // A starting game takes its players out of the queue and drops their other challenges, all at once,
     // so nothing created a moment earlier can pull them into a second game.
-    private void start(GameSession session) {
+    private boolean start(GameSession session) {
         List<Challenge> dropped;
         synchronized (players) {
+            if (!session.getQueueTickets().isEmpty() && !matchmaking.takeFromQueue(session.getQueueTickets())) return false;
             activeGames.put(session.getId(), session);
-            currentGames.put(session.getPlayer1Id(), session.getId());
-            currentGames.put(session.getPlayer2Id(), session.getId());
-            playingIn.put(session.getPlayer1Id(), session.getId());
-            playingIn.put(session.getPlayer2Id(), session.getId());
+            for (Long person : session.people()) {
+                currentGames.put(person, session.getId());
+                playingIn.put(person, session.getId());
+            }
             dropped = challenges.values().stream().filter(challenge -> session.includes(challenge.getChallengerId())
                     || session.includes(challenge.getTargetId())).toList();
             dropped.forEach(challenge -> removeChallenge(challenge, "CANCELLED"));
         }
-        matchmaking.leaveQueue(session.getPlayer1Id());
-        matchmaking.leaveQueue(session.getPlayer2Id());
-        realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
+        for (Long person : session.people()) matchmaking.leaveQueue(person);
+        realtime.arenaChanged(session.people());
         var others = new TreeSet<Long>();
         dropped.forEach(challenge -> {
             others.add(challenge.getChallengerId());
@@ -173,6 +173,7 @@ public class ArenaServiceImpl implements ArenaService {
         others.remove(session.getPlayer1Id());
         others.remove(session.getPlayer2Id());
         if (!others.isEmpty()) realtime.arenaChanged(others.toArray(Long[]::new));
+        return true;
     }
 
     private boolean removeChallenge(Challenge challenge, String status) {
@@ -183,12 +184,13 @@ public class ArenaServiceImpl implements ArenaService {
     }
 
     private void prepareBattle(GameSession session) {
-        var avatars = avatarRepository.findDtosByUserIds(List.of(session.getPlayer1Id(), session.getPlayer2Id()));
-        session.setPlayer1Avatar(avatars.get(session.getPlayer1Id()));
-        session.setPlayer2Avatar(avatars.get(session.getPlayer2Id()));
+        var avatars = avatarRepository.findDtosByUserIds(List.of(session.people()));
+        if (!session.isBot(session.getPlayer1Id())) session.setPlayer1Avatar(avatars.get(session.getPlayer1Id()));
+        if (!session.isBot(session.getPlayer2Id())) session.setPlayer2Avatar(avatars.get(session.getPlayer2Id()));
         session.setStartTime(LocalDateTime.now());
         int elo = QuestionDraw.averageElo(session.getPlayer1Elo(), session.getPlayer2Elo());
         BattleEngine.start(session, questionRepository.drawForElo(elo, BattleEngine.ROUNDS, random), clock.getAsLong(), random);
+        BotPlayer.plan(session, random);
     }
 
     @Override
@@ -206,7 +208,7 @@ public class ArenaServiceImpl implements ArenaService {
             var result = BattleEngine.answer(session, userId, round, answer, now);
             if (result != BattleEngine.AnswerResult.ACCEPTED) return result;
             if (BattleEngine.roundOver(session, now)) resolveRound(session, now);
-            if (!"FINISHED".equals(session.getStatus())) realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
+            if (!"FINISHED".equals(session.getStatus())) realtime.arenaChanged(session.people());
             return result;
         }
     }
@@ -217,23 +219,24 @@ public class ArenaServiceImpl implements ArenaService {
         for (GameSession session : activeGames.values()) {
             synchronized (session) {
                 if (!"ACTIVE".equals(session.getStatus())) continue;
-                boolean changed = false;
+                boolean changed = BotPlayer.act(session, now);
                 if (BattleEngine.roundOver(session, now)) {
                     resolveRound(session, now);
                     changed = true;
                 } else if (BattleEngine.nextRoundDue(session, now)) {
                     BattleEngine.nextRound(session, now);
+                    BotPlayer.plan(session, random);
                     changed = true;
                 }
                 if ("ACTIVE".equals(session.getStatus())) changed |= checkPresence(session, now);
-                if (changed && !"FINISHED".equals(session.getStatus())) realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
+                if (changed && !"FINISHED".equals(session.getStatus())) realtime.arenaChanged(session.people());
             }
         }
     }
 
     private boolean checkPresence(GameSession session, long now) {
         var absent = new HashMap<Long, ArenaAbsence.Reason>();
-        for (Long player : List.of(session.getPlayer1Id(), session.getPlayer2Id())) {
+        for (Long player : session.people()) {
             if (!presence.isConnected(player)) absent.put(player, ArenaAbsence.Reason.DISCONNECTED);
             else if (session.getLeftView().contains(player)) absent.put(player, ArenaAbsence.Reason.LEFT);
         }
@@ -293,15 +296,29 @@ public class ArenaServiceImpl implements ArenaService {
         session.setPause(null);
         finishedAt.put(session.getId(), clock.getAsLong());
         synchronized (players) {
-            playingIn.remove(session.getPlayer1Id(), session.getId());
-            playingIn.remove(session.getPlayer2Id(), session.getId());
+            for (Long person : session.people()) playingIn.remove(person, session.getId());
         }
         session.setWinnerId(winnerId);
         session.setFinishReason(reason);
         session.setPlayer1EloChange(0);
         session.setPlayer2EloChange(0);
-        if (winnerId != null) recordWin(session, winnerId);
-        realtime.changed(session.getPlayer1Id(), session.getPlayer2Id());
+        if (winnerId != null && session.getBotId() != null) recordBotGame(session, winnerId);
+        else if (winnerId != null) recordWin(session, winnerId);
+        realtime.changed(session.people());
+    }
+
+    private void recordBotGame(GameSession session, Long winnerId) {
+        Long humanId = session.opponentOf(session.getBotId());
+        User human = userRepository.findById(humanId).orElse(null);
+        if (human == null) return;
+        int botElo = session.eloOf(session.getBotId());
+        int[] changes = humanId.equals(winnerId) ? eloChanges(human.getElo(), botElo) : eloChanges(botElo, human.getElo());
+        human.setElo(human.getElo() + (humanId.equals(winnerId) ? changes[0] : changes[1]));
+        setEloChanges(session, winnerId, changes);
+        userRepository.save(human);
+        userServiceImpl.invalidateUserComputedCaches(humanId);
+        userServiceImpl.invalidateGlobalRankingCache();
+        dashboardSummaryCache.invalidateUser(humanId);
     }
 
     private void recordWin(GameSession session, Long winnerId) {
@@ -329,22 +346,25 @@ public class ArenaServiceImpl implements ArenaService {
     }
 
     private void updateElo(User winner, User loser, GameSession session) {
+        int[] changes = eloChanges(winner.getElo(), loser.getElo());
+        winner.setElo(winner.getElo() + changes[0]);
+        loser.setElo(loser.getElo() + changes[1]);
+        setEloChanges(session, winner.getId(), changes);
+    }
+
+    static int[] eloChanges(int winnerElo, int loserElo) {
         int k = 32;
-        double winnerExpected = 1.0 / (1.0 + Math.pow(10.0, (loser.getElo() - winner.getElo()) / 400.0));
-        double loserExpected = 1.0 / (1.0 + Math.pow(10.0, (winner.getElo() - loser.getElo()) / 400.0));
-        int winnerNewElo = (int) Math.round(winner.getElo() + k * (1.0 - winnerExpected));
-        int loserNewElo = Math.max(0, (int) Math.round(loser.getElo() + k * (0.0 - loserExpected)));
-        int winnerChange = winnerNewElo - winner.getElo();
-        int loserChange = loserNewElo - loser.getElo();
-        winner.setElo(winnerNewElo);
-        loser.setElo(loserNewElo);
-        if (session.getPlayer1Id().equals(winner.getId())) {
-            session.setPlayer1EloChange(winnerChange);
-            session.setPlayer2EloChange(loserChange);
-        } else {
-            session.setPlayer2EloChange(winnerChange);
-            session.setPlayer1EloChange(loserChange);
-        }
+        double winnerExpected = 1.0 / (1.0 + Math.pow(10.0, (loserElo - winnerElo) / 400.0));
+        double loserExpected = 1.0 / (1.0 + Math.pow(10.0, (winnerElo - loserElo) / 400.0));
+        int winnerNewElo = (int) Math.round(winnerElo + k * (1.0 - winnerExpected));
+        int loserNewElo = Math.max(0, (int) Math.round(loserElo + k * (0.0 - loserExpected)));
+        return new int[] {winnerNewElo - winnerElo, loserNewElo - loserElo};
+    }
+
+    private static void setEloChanges(GameSession session, Long winnerId, int[] changes) {
+        boolean firstWon = session.getPlayer1Id().equals(winnerId);
+        session.setPlayer1EloChange(firstWon ? changes[0] : changes[1]);
+        session.setPlayer2EloChange(firstWon ? changes[1] : changes[0]);
     }
 
     @Override
@@ -395,7 +415,7 @@ public class ArenaServiceImpl implements ArenaService {
             reactions.add(new ArenaReaction(reactionIds.incrementAndGet(), userId, reaction.get().id(), now));
             while (reactions.size() > REACTIONS_KEPT) reactions.remove(0);
         }
-        realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
+        realtime.arenaChanged(session.people());
         return ReactionOutcome.of(ReactionOutcome.Status.SENT);
     }
 
@@ -543,8 +563,7 @@ public class ArenaServiceImpl implements ArenaService {
             synchronized (session) {
                 if (!"FINISHED".equals(session.getStatus())) continue;
                 activeGames.remove(entry.getKey(), session);
-                currentGames.remove(session.getPlayer1Id(), entry.getKey());
-                currentGames.remove(session.getPlayer2Id(), entry.getKey());
+                for (Long person : session.people()) currentGames.remove(person, entry.getKey());
                 finishedAt.remove(entry.getKey());
             }
         }

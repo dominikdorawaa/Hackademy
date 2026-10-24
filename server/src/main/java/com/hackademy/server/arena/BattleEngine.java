@@ -92,8 +92,12 @@ public final class BattleEngine {
     public static void resume(GameSession session, long now) {
         ArenaPause pause = session.getPause();
         long shift = Math.min(now, pause.endsAt()) - pause.startedAt();
-        if ("QUESTION".equals(session.getPhase())) session.setRoundEndsAt(session.getRoundEndsAt() + shift);
-        else session.setNextRoundAt(session.getNextRoundAt() + shift);
+        if ("QUESTION".equals(session.getPhase())) {
+            session.setRoundEndsAt(session.getRoundEndsAt() + shift);
+            if (session.getBotMove() != null) session.setBotMove(session.getBotMove().delayed(shift));
+        } else {
+            session.setNextRoundAt(session.getNextRoundAt() + shift);
+        }
         session.setPause(null);
     }
 
