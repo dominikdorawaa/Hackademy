@@ -436,7 +436,7 @@
 
 .room-btn--primary:hover:not(:disabled) { border-color: var(--rm-blue-shade); background: var(--rm-blue-hover); }
 
-.room-btn--icon { width: 42px; padding: 0; }
+.room-btn--icon { flex: none; width: 42px; padding: 0; }
 .room-btn--icon svg { width: 20px; height: 20px; }
 .room-btn--small { height: 34px; padding: 0 12px; font-size: 1.125rem; }
 .room-btn--small svg { width: 15px; height: 15px; }
@@ -798,7 +798,7 @@
   .room-nav-sep,
   .room-nav-title,
   .room-nav-back span { display: none; }
-  .room-nav-back { padding: 6px; }
+  .room-nav-back { justify-content: center; min-width: 40px; min-height: 40px; padding: 6px; }
   .room-meter { flex: 1 1 auto; width: auto; min-width: 40px; }
   .room-nav-progress { flex: 1 1 auto; min-width: 0; }
   .room-nav-percent { font-size: 1.125rem; }
@@ -808,6 +808,11 @@
   .room-reader { padding: 0 16px 56px; }
   .room-reader-bar { margin: 0 -16px; padding: 0 16px; }
   .room-field { flex-direction: column; }
+}
+
+/* The room bar above already names the room and the step, so a squeezed footer leaves the room to its buttons. */
+@media (max-width: 420px) {
+  .room-footer-where:has(> span) { display: none; }
 }
 
 @media (prefers-reduced-motion: reduce) {
