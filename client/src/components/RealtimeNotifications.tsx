@@ -65,6 +65,15 @@ export function describeInvitations(count: number) {
   return `Masz ${count} ${few ? 'nowe zaproszenia' : 'nowych zaproszeń'}. Znajdziesz je w dzwonku`;
 }
 
+function currentAvatar(toast: Toast, state: RealtimeState | null) {
+  if (toast.kind === 'friend') {
+    const request = state?.friendRequests.find(entry => entry.id === toast.targetId);
+    return request ? request.avatar : toast.avatar;
+  }
+  const challenge = state?.challenges.find(entry => entry.id === toast.targetId);
+  return challenge ? challenge.challengerAvatar : toast.avatar;
+}
+
 export default function RealtimeNotifications() {
   const { sessionKey, user } = useAuth();
   const { state, connected, synchronize } = useRealtime();
@@ -256,7 +265,7 @@ export default function RealtimeNotifications() {
         onMouseLeave={event => resume(toast.id, event.currentTarget)}
         onBlur={event => { const element = event.currentTarget; window.setTimeout(() => resume(toast.id, element)); }}>
         {invitation
-          ? <InvitationCard kind={toast.kind as 'friend' | 'challenge'} actor={toast.actor ?? ''} avatar={toast.avatar} elo={toast.elo}
+          ? <InvitationCard kind={toast.kind as 'friend' | 'challenge'} actor={toast.actor ?? ''} avatar={currentAvatar(toast, state)} elo={toast.elo}
             ownName={user?.username} ownAvatar={user?.avatar} ownElo={toast.ownElo} busy={toast.busy} failed={toast.failed}
             onAccept={() => void respond(toast, true)} onReject={() => void respond(toast, false)} />
           : <>
