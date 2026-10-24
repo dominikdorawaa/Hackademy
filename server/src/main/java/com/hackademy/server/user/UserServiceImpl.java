@@ -40,7 +40,6 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.time.LocalDateTime;
 import java.time.LocalDate;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Map;
 import java.util.Set;
@@ -376,21 +375,6 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return user.getId();
-    }
-
-    @Override
-    public void muteUser(Long userId, long durationInSeconds) {
-        User user = userRepository.findById(userId)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-
-        // Use UTC time to ensure consistency across timezones
-        if (durationInSeconds == -1) {
-            // Permanent mute (e.g., 100 years)
-            user.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).plusYears(100));
-        } else {
-            user.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).plusSeconds(durationInSeconds));
-        }
-        userRepository.save(user);
     }
 
     @Override

@@ -37,7 +37,6 @@ import org.springframework.transaction.support.TransactionSynchronizationManager
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.List;
 import java.util.Optional;
 
@@ -269,24 +268,6 @@ class UserServiceImplTest {
         assertEquals("SELF", results.get(0).friendshipStatus());
         assertEquals("FRIENDS", results.get(1).friendshipStatus());
         verify(friendshipService, never()).getFriendshipStatus(1L, "alice");
-    }
-
-    @Test
-    void mutesTemporarilyOrPermanentlyInUtc() {
-        var user = user(1L, "alice");
-        when(userRepository.findById(1L)).thenReturn(Optional.of(user));
-        var now = LocalDateTime.now(ZoneOffset.UTC);
-
-        service.muteUser(1L, 60);
-        assertTrue(user.getMutedUntil().isAfter(now.plusSeconds(59)));
-        assertTrue(user.getMutedUntil().isBefore(now.plusMinutes(5)));
-
-        service.muteUser(1L, -1);
-        assertTrue(user.getMutedUntil().isAfter(now.plusYears(99)));
-        verify(userRepository, times(2)).save(user);
-
-        when(userRepository.findById(2L)).thenReturn(Optional.empty());
-        assertThrows(UserNotFoundException.class, () -> service.muteUser(2L, 60));
     }
 
     @Test

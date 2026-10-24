@@ -7,8 +7,9 @@ import type {
     ArenaQuestionCategory,
     ArenaQuestionDifficulty,
     ArenaQuestionRequest,
+    BugReportAdmin,
+    BugReportStatus,
     ChapterRequest,
-    ChatMessage,
     CreatePathRequest,
     PathAdminDetailDto,
     PathMetaRequest,
@@ -36,9 +37,16 @@ export async function getUsersPage(sessionKey: string | null, page = 0, query = 
     return normalizePage(await request<PageResult<UserAdminView>>('/users?page=' + page + '&size=50&query=' + encodeURIComponent(query), { method: 'GET', sessionKey }), page);
 }
 
-export async function getReportsPage(sessionKey: string | null, page = 0) {
-    return normalizePage(await request<PageResult<ChatMessage>>('/reports?page=' + page + '&size=50', { method: 'GET', sessionKey }), page);
+export async function getBugReportsPage(sessionKey: string | null, page = 0, status: BugReportStatus | '' = '') {
+    const params = new URLSearchParams({ page: String(page), size: '50', status });
+    return normalizePage(await request<PageResult<BugReportAdmin>>('/bug-reports?' + params, { method: 'GET', sessionKey }), page);
 }
+
+export const updateBugReportStatus = (id: ApiId, status: BugReportStatus, sessionKey: string | null) =>
+    request<BugReportAdmin>(`/bug-reports/${id}/status`, { method: 'PUT', sessionKey, body: JSON.stringify({ status }) });
+
+export const deleteBugReport = (id: ApiId, sessionKey: string | null) =>
+    request<void>(`/bug-reports/${id}`, { method: 'DELETE', sessionKey });
 
 export interface ArenaQuestionFilters { query?: string; category?: ArenaQuestionCategory | ''; difficulty?: ArenaQuestionDifficulty | '' }
 
@@ -203,22 +211,3 @@ export const updateRoomTasks = (id: ApiId, revision: number, tasks: RoomTaskRequ
     });
 };
 
-export const getReports = (sessionKey: string | null) => {
-    return request<PageResult<ChatMessage> | ChatMessage[]>('/reports', { method: 'GET', sessionKey }).then(data => normalizePage(data, 0).items);
-};
-
-export const deleteReport = (id: ApiId, sessionKey: string | null) => {
-    return request<void>(`/reports/${id}`, { method: 'DELETE', sessionKey });
-};
-
-export const dismissReport = (id: ApiId, sessionKey: string | null) => {
-    return request<void>(`/reports/${id}/dismiss`, { method: 'POST', sessionKey });
-};
-
-export const muteUser = (id: ApiId, duration: number, sessionKey: string | null) => {
-    return request<void>(`/users/${id}/mute`, {
-        method: 'POST',
-        sessionKey,
-        body: JSON.stringify({ duration }),
-    });
-};

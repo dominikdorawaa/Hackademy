@@ -36,7 +36,7 @@ class RateLimitFilterTest {
     };
 
     private RateLimitFilter filter(boolean enabled) {
-        var rules = new RateLimitProperties.Rules(ONE, ONE, TWO, TWO, ONE, TWO);
+        var rules = new RateLimitProperties.Rules(ONE, ONE, TWO, TWO, ONE, TWO, ONE);
         return new RateLimitFilter(new RateLimitProperties(enabled, 100, rules), new RateLimiter(clock, 100), decoder);
     }
 
@@ -50,6 +50,11 @@ class RateLimitFilterTest {
             "PUT, /api/user/me, true, API_WRITE",
             "PATCH, /api/user/me, true, API_WRITE",
             "DELETE, /api/friends/2, true, API_WRITE",
+            "POST, /api/bug-reports, true, BUG_REPORT",
+            "POST, /api/bug-reports, false, ANONYMOUS",
+            "GET, /api/bug-reports, true, API_READ",
+            "POST, /api/bug-reports/1, true, API_WRITE",
+            "POST, /api/admin/bug-reports, true, API_WRITE",
             "GET, /api/rooms/top3, false, ANONYMOUS",
             "POST, /api/rooms/1/solve, false, ANONYMOUS",
             "GET, /missing, false, ANONYMOUS",
@@ -109,6 +114,26 @@ class RateLimitFilterTest {
 
         assertEquals(200, send(write).response.getStatus());
         assertEquals(429, send(get("/api/rooms", "alice")).response.getStatus());
+    }
+
+    @Test
+    void limitsBugReportsSeparatelyFromOtherWritesOfTheAccount() throws Exception {
+        assertEquals(200, send(post("/api/bug-reports", "alice")).response.getStatus());
+        var again = send(post("/api/bug-reports", "alice"));
+
+        assertNull(again.chain.getRequest());
+        assertEquals(429, again.response.getStatus());
+        assertEquals("60", again.response.getHeader("Retry-After"));
+        assertEquals(200, send(post("/api/rooms/1/solve", "alice")).response.getStatus());
+        assertEquals(200, send(post("/api/bug-reports", "bob")).response.getStatus());
+    }
+
+    @ParameterizedTest
+    @ValueSource(strings = {"/api/%62ug-reports", "/api/bug%2Dreports", "/api/bug-reports;x=1"})
+    void decodesTheAddressBeforeChoosingTheGroup(String path) throws Exception {
+        assertEquals(200, send(post("/api/bug-reports", "alice")).response.getStatus());
+
+        assertEquals(429, send(post(path, "alice")).response.getStatus());
     }
 
     @ParameterizedTest
@@ -212,6 +237,12 @@ class RateLimitFilterTest {
         var chain = new MockFilterChain();
         filter.doFilter(request, response, chain);
         return new Result(response, chain);
+    }
+
+    private static MockHttpServletRequest post(String path, String token) {
+        var request = get(path, token);
+        request.setMethod("POST");
+        return request;
     }
 
     private static MockHttpServletRequest get(String path, String token) {

@@ -25,7 +25,6 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 @Testcontainers
 class SchemaMigrationTest {
     static final int SCHEMA_VERSION = 30;
-    static final int MIGRATION_COUNT = 29;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -61,7 +60,7 @@ class SchemaMigrationTest {
     @Test
     void migratesEmptyDatabaseWithBadgesOnly() throws Exception {
         var flyway = flyway();
-        assertEquals(MIGRATION_COUNT, flyway.migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION, flyway.migrate().migrationsExecuted);
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(0, scalar("SELECT count(*) FROM users"));
         assertEquals(0, scalar("SELECT count(*) FROM rooms"));
@@ -76,7 +75,7 @@ class SchemaMigrationTest {
         insertUser(1, "Alice", "alice@example.com");
         execute("INSERT INTO user_notification_preferences (user_id, sound, friend_online, friend_online_bell) VALUES (1, false, false, false)");
 
-        assertEquals(MIGRATION_COUNT - 20, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 20, flyway().migrate().migrationsExecuted);
         assertEquals(String.valueOf(SCHEMA_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
         assertEquals("clerk identity", text("SELECT description FROM flyway_schema_history WHERE version = '21'"));
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE id = 1 AND username = 'Alice' AND email = 'alice@example.com' AND password = 'p' AND clerk_user_id IS NULL"));
@@ -90,7 +89,7 @@ class SchemaMigrationTest {
     void deletionBlocksSurviveUserRemovalAndIdentityCannotBeReassigned() throws Exception {
         flyway("21").migrate();
         insertUser(1, "Alice", "alice@example.com");
-        assertEquals(MIGRATION_COUNT - 21, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 21, flyway().migrate().migrationsExecuted);
         execute("INSERT INTO account_deletions (user_id, clerk_user_id) VALUES (1, 'user_alice')");
         execute("DELETE FROM users WHERE id = 1");
         assertEquals("user_alice", text("SELECT clerk_user_id FROM account_deletions WHERE user_id = 1"));
@@ -105,7 +104,7 @@ class SchemaMigrationTest {
         execute("INSERT INTO users (id, username, email, password, role, points, streak, bio, created_at, updated_at) VALUES (1, 'Alice', 'alice@example.com', 'p', 'USER', 0, 0, 'Learning Linux', now(), now())");
         assertEquals(11, flyway("16").migrate().migrationsExecuted);
         assertEquals("Alice", text("SELECT avatar_seed FROM users WHERE id = 1"));
-        assertEquals(MIGRATION_COUNT - 16, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 16, flyway().migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT count(*) FROM information_schema.columns WHERE table_name = 'users' AND column_name = 'avatar_seed'"));
         assertEquals("COMPLETED", text("SELECT tour_status FROM users WHERE id = 1"));
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE id = 1 AND avatar_confirmed_at IS NOT NULL"));
@@ -173,11 +172,32 @@ class SchemaMigrationTest {
     }
 
     @Test
+    void replacesChatReportsAndMutingWithBugReports() throws Exception {
+        flyway("28").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        execute("UPDATE users SET muted_until = now() + interval '1 day' WHERE id = 1");
+        execute("INSERT INTO chat_messages (game_id, sender_id, sender_username, content, reported, sent_at) VALUES ('g', 1, 'Alice', 'stara', true, now())");
+        assertEquals(1, flyway("29").migrate().migrationsExecuted);
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema()
+                AND (table_name = 'chat_messages' OR (table_name = 'users' AND column_name = 'muted_until'))
+                """));
+        assertEquals(1, scalar("SELECT count(*) FROM users WHERE username = 'Alice'"));
+        execute("INSERT INTO bug_reports (reporter_id, source, game_id, page_path, description, created_at) VALUES (1, 'ARENA', 'abc', '/arena', 'Mecz się zawiesił', now())");
+        assertEquals("OPEN", text("SELECT status FROM bug_reports"));
+        assertSqlState("23514", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (1, 'CHAT', 'Opis problemu', now())");
+        assertSqlState("23514", "INSERT INTO bug_reports (reporter_id, source, description, status, created_at) VALUES (1, 'ARENA', 'Opis problemu', 'CLOSED', now())");
+        assertSqlState("23514", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (1, 'ARENA', 'za krótko', now())");
+        assertSqlState("23503", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (99, 'ARENA', 'Opis problemu', now())");
+        assertSqlState("23502", "INSERT INTO bug_reports (reporter_id, source, created_at) VALUES (1, 'ARENA', now())");
+    }
+
+    @Test
     void keepsExistingAvatarsAndGivesThemTheFrontPortraitPose() throws Exception {
         flyway("13").migrate();
         insertUser(1, "Alice", "alice@example.com");
         execute("INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color) VALUES (1, 'dres', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy')");
-        assertEquals(MIGRATION_COUNT - 13, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 13, flyway().migrate().migrationsExecuted);
         assertEquals("przod", text("SELECT pose FROM user_avatars WHERE user_id = 1"));
         assertEquals("kucyk", text("SELECT hair FROM user_avatars WHERE user_id = 1"));
         execute("UPDATE user_avatars SET pose = 'profil' WHERE user_id = 1");
@@ -187,7 +207,7 @@ class SchemaMigrationTest {
 
     @Test
     void givesExistingAvatarsTheDefaultFinisherAndVictoryDance() throws Exception {
-        flyway("28").migrate();
+        flyway("29").migrate();
         insertUser(1, "Alice", "alice@example.com");
         execute("INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color) VALUES (1, 'dres', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy')");
         assertEquals(1, flyway().migrate().migrationsExecuted);
@@ -234,7 +254,7 @@ class SchemaMigrationTest {
                 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (3, 1, 0), (4, 1, 1), (9, 1, 2);
                 """);
 
-        assertEquals(MIGRATION_COUNT - 8, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 8, flyway().migrate().migrationsExecuted);
 
         assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms WHERE id <= 4"));
         assertEquals(10, scalar("SELECT points FROM users WHERE id = 1"));
@@ -282,7 +302,7 @@ class SchemaMigrationTest {
             assertEquals(1, scalar("SELECT count(*) FROM users WHERE password IS NULL"));
         }
         try (var ignored = startApplication()) {
-            assertEquals(MIGRATION_COUNT, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
+            assertEquals(SCHEMA_VERSION, scalar("SELECT count(*) FROM flyway_schema_history WHERE success"));
         }
     }
 
@@ -333,7 +353,8 @@ class SchemaMigrationTest {
                 INSERT INTO user_unlocked_hints (user_id, hint_id) VALUES (1, 1), (2, 1);
                 INSERT INTO user_badges (user_id, badge_id, earned_at) SELECT 1, id, now() FROM badges LIMIT 1;
                 INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at) VALUES (1, 2, 'ACCEPTED', 0, 0, now());
-                INSERT INTO chat_messages (game_id, sender_id, sender_username, content, reported, sent_at) VALUES ('g', 1, 'Alice', 'hi', false, now());
+                INSERT INTO bug_reports (reporter_id, source, room_id, task_id, description, created_at) VALUES (1, 'ROOM', 1, 1, 'Nie działa podpowiedź', now());
+                INSERT INTO bug_reports (reporter_id, source, room_id, task_id, description, created_at) VALUES (2, 'ROOM', 1, 1, 'Nie działa zadanie', now());
                 INSERT INTO user_weekly_active_time (user_id, week_key, seconds, updated_at) VALUES (1, '2026-W40', 10, now());
                 """);
         execute("DELETE FROM users WHERE id = 1");
@@ -343,7 +364,7 @@ class SchemaMigrationTest {
                      + (SELECT count(*) FROM user_unlocked_hints WHERE user_id = 1)
                      + (SELECT count(*) FROM user_badges)
                      + (SELECT count(*) FROM friendships)
-                     + (SELECT count(*) FROM chat_messages)
+                     + (SELECT count(*) FROM bug_reports WHERE reporter_id = 1)
                      + (SELECT count(*) FROM user_weekly_active_time)
                      + (SELECT count(*) FROM path_enrollments)
                 """));
@@ -357,6 +378,7 @@ class SchemaMigrationTest {
                      + (SELECT count(*) FROM user_completed_tasks)
                      + (SELECT count(*) FROM user_unlocked_hints)
                 """));
+        assertEquals(1, scalar("SELECT count(*) FROM bug_reports WHERE room_id IS NULL AND task_id IS NULL"));
         assertEquals(1, scalar("SELECT count(*) FROM users"));
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(1, scalar("SELECT count(*) FROM path_chapters"));
@@ -378,7 +400,7 @@ class SchemaMigrationTest {
 
         assertEquals(1, flyway("3").migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
-        assertEquals(MIGRATION_COUNT - 3, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 3, flyway().migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
         assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
         assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));

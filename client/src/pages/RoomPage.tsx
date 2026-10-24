@@ -16,6 +16,7 @@ import RoomFrame from '../components/room/RoomFrame';
 import RoomFooterBar from '../components/room/RoomFooterBar';
 import RoomSplit from '../components/room/RoomSplit';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
+import { BugReportButton } from '../components/bugReport/BugReportButton';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
@@ -257,6 +258,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const completedTasksCount = tasks.filter(t => t.completed).length;
   const backTo = preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : roomReturn.to;
   const nextRoom = preview ? null : roomReturn.next;
+  const reportedTask = tasks.length > 0 ? tasks[Math.min(activeTask, tasks.length - 1)].id : undefined;
 
   const nav = {
     back: {
@@ -269,6 +271,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     progress: tasks.length > 0
       ? { value: completedTasksCount, max: tasks.length, label: 'Postęp pokoju' }
       : { value: isSolved ? 1 : 0, max: 1, label: 'Postęp pokoju' },
+    action: preview ? undefined : <BugReportButton className="room-nav-report" context={{ source: 'ROOM', roomId: room.id, taskId: reportedTask }} />,
   };
 
   const previewBanner = preview && (

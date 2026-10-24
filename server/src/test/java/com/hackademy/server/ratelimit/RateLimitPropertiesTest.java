@@ -28,13 +28,14 @@ class RateLimitPropertiesTest {
 
     @Test
     void requiresEveryGroupAndAKeyTable() {
-        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(null, RULE, RULE, RULE, RULE, RULE));
-        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, null, RULE, RULE, RULE, RULE));
-        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, null, RULE, RULE, RULE));
-        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, RULE, null, RULE, RULE));
-        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, RULE, RULE, null, RULE));
-        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, RULE, RULE, RULE, null));
-        var rules = new RateLimitProperties.Rules(RULE, RULE, RULE, RULE, RULE, RULE);
+        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(null, RULE, RULE, RULE, RULE, RULE, RULE));
+        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, null, RULE, RULE, RULE, RULE, RULE));
+        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, null, RULE, RULE, RULE, RULE));
+        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, RULE, null, RULE, RULE, RULE));
+        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, RULE, RULE, null, RULE, RULE));
+        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, RULE, RULE, RULE, null, RULE));
+        assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties.Rules(RULE, RULE, RULE, RULE, RULE, RULE, null));
+        var rules = new RateLimitProperties.Rules(RULE, RULE, RULE, RULE, RULE, RULE, RULE);
         assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties(true, 0, rules));
         assertThrows(IllegalArgumentException.class, () -> new RateLimitProperties(true, 1, null));
     }
@@ -42,10 +43,11 @@ class RateLimitPropertiesTest {
     @ParameterizedTest
     @EnumSource(RateLimitGroup.class)
     void returnsTheRuleOfEachGroup(RateLimitGroup group) {
-        var rules = new RateLimitProperties.Rules(rule(1), rule(2), rule(3), rule(4), rule(5), rule(6));
+        var rules = new RateLimitProperties.Rules(rule(1), rule(2), rule(3), rule(4), rule(5), rule(6), rule(7));
         var expected = switch (group) {
             case API_READ -> rules.apiRead();
             case API_WRITE -> rules.apiWrite();
+            case BUG_REPORT -> rules.bugReport();
             case ANONYMOUS -> rules.anonymous();
             case PUBLIC_BANNER -> rules.publicBanner();
             case WEBSOCKET_HANDSHAKE -> rules.websocketHandshake();

@@ -54,15 +54,9 @@ export function reactionDance(shown: ShownReaction | null) {
   return { key: shown.key, frames };
 }
 
-const PERMANENT_MUTE_MS = 50 * 365 * 24 * 60 * 60 * 1000;
-export function reactionRefusal(status: number, body: { mutedUntil?: string; retryAfter?: number } | null, now = Date.now()) {
-  if (status === 403 && body?.mutedUntil) {
-    const until = new Date(body.mutedUntil);
-    if (Number.isNaN(until.getTime())) return 'Masz wyciszone reakcje.';
-    if (until.getTime() - now > PERMANENT_MUTE_MS) return 'Masz wyciszone reakcje na stałe.';
-    return `Masz wyciszone reakcje do ${until.toLocaleString('pl-PL', { day: 'numeric', month: 'long', hour: '2-digit', minute: '2-digit' })}.`;
-  }
-  if (status === 429) return `Za szybko. Kolejna reakcja za ${Math.max(1, body?.retryAfter ?? 1)} s.`;
+export function reactionRefusal(status: number, body: Record<string, unknown> | null) {
+  const retryAfter = typeof body?.retryAfter === 'number' ? body.retryAfter : 1;
+  if (status === 429) return `Za szybko. Kolejna reakcja za ${Math.max(1, retryAfter)} s.`;
   if (status === 404) return 'Ta walka nie jest już dostępna.';
   return 'Nie udało się wysłać reakcji.';
 }

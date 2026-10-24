@@ -1,6 +1,6 @@
 import { request } from './http';
 import type { SessionScope } from './http';
-import type { ApiId, PathMetaRequest, CreatePathRequest, ChatMessage, PathSummaryDto, PathAdminDetailDto, RoomAdminSummaryDto, RoomAdminDto, RoomWriteRequest } from '../types/api';
+import type { ApiId, PathMetaRequest, CreatePathRequest, PathSummaryDto, PathAdminDetailDto, RoomAdminSummaryDto, RoomAdminDto, RoomWriteRequest } from '../types/api';
 
 export function getRooms(auth: SessionScope) {
   return request<RoomAdminSummaryDto[]>(`/api/admin/rooms`, {
@@ -53,35 +53,6 @@ export function uploadBanner(id: ApiId, file: File, auth: SessionScope) {
     method: 'PUT',
     auth,
     body: data,
-  });
-}
-
-export function getReports(auth: SessionScope) {
-  return request<ChatMessage[]>(`/api/admin/reports`, {
-    method: 'GET',
-    auth,
-  });
-}
-
-export function deleteReport(id: ApiId, auth: SessionScope) {
-  return request<void>(`/api/admin/reports/${id}`, {
-    method: 'DELETE',
-    auth,
-  });
-}
-
-export function dismissReport(id: ApiId, auth: SessionScope) {
-  return request<void>(`/api/admin/reports/${id}/dismiss`, {
-    method: 'POST',
-    auth,
-  });
-}
-
-export function muteUser(id: ApiId, data: { duration: number }, auth: SessionScope) {
-  return request<void>(`/api/admin/users/${id}/mute`, {
-    method: 'POST',
-    auth,
-    body: JSON.stringify(data),
   });
 }
 
