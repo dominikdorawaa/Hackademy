@@ -256,6 +256,32 @@ class ArenaPauseTest {
     }
 
     @Test
+    void theLastRoundWaitsForTheAbsenceVerdictInsteadOfEndingOnRounds() {
+        when(questions.drawForElo(anyInt(), anyInt(), any())).thenReturn(BattleEngineTest.questions(1));
+        var last = new GameSession();
+        last.setId("last");
+        last.setPlayer1Id(3L);
+        last.setPlayer2Id(4L);
+        arena.addGame(last);
+        offline.add(3L);
+        at(1_000);
+        at(11_000);
+        offline.add(4L);
+        at(21_000);
+        at(31_000);
+        assertEquals(START + BattleEngine.ROUND_MILLIS + 20_000, arena.getGameSession("last").getRoundEndsAt());
+        at(36_000);
+        var waiting = arena.getGameSession("last");
+        assertEquals("ACTIVE", waiting.getStatus());
+        assertEquals("QUESTION", waiting.getPhase());
+        assertNull(waiting.getLastRound());
+        at(51_000);
+        var finished = arena.getGameSession("last");
+        assertEquals("ABANDONED", finished.getFinishReason());
+        assertNull(finished.getWinnerId());
+    }
+
+    @Test
     void theRoundEndingAtTheSameMomentIsResolvedBeforeThePause() {
         arena.answer("game", 1L, 1, 2);
         offline.add(2L);

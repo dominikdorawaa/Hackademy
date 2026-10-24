@@ -46,7 +46,7 @@ public final class BattleEngine {
     }
 
     public static boolean roundOver(GameSession session, long now) {
-        return "QUESTION".equals(session.getPhase()) && session.getPause() == null
+        return "QUESTION".equals(session.getPhase()) && !waiting(session)
                 && (session.getChoices().size() == 2 || now >= session.getRoundEndsAt());
     }
 
@@ -72,12 +72,16 @@ public final class BattleEngine {
     }
 
     public static boolean nextRoundDue(GameSession session, long now) {
-        return "REVEAL".equals(session.getPhase()) && "ACTIVE".equals(session.getStatus()) && session.getPause() == null
+        return "REVEAL".equals(session.getPhase()) && "ACTIVE".equals(session.getStatus()) && !waiting(session)
                 && now >= session.getNextRoundAt();
     }
 
     public static void nextRound(GameSession session, long now) {
         openRound(session, session.getRound() + 1, now);
+    }
+
+    private static boolean waiting(GameSession session) {
+        return session.getPause() != null || !session.getForfeited().isEmpty();
     }
 
     public static void pause(GameSession session, List<Long> players, long now) {
