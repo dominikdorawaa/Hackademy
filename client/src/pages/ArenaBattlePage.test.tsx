@@ -55,6 +55,37 @@ it('shows both fighters, the question and the timer, and sends one answer', asyn
   expect(screen.getByText('Odpowiedź wysłana. Czekamy na rywala.')).toBeInTheDocument();
 });
 
+it('hides the question and freezes the round clock while the duel is paused', async () => {
+  realtime.value = { ...realtime.value, state: live(createGameSession({
+    roundEndsAt: 1_009_000, pause: { players: [2], startedAt: 1_000_000, endsAt: 1_010_000 }, pausesUsed: [2],
+    absences: { 2: { reason: 'LEFT', since: 1_000_000 } },
+  })) };
+  mount();
+  expect(await screen.findByRole('heading', { name: 'Walka wstrzymana' })).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Na którym porcie domyślnie działa SSH?' })).not.toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /22/ })).not.toBeInTheDocument();
+  expect(screen.getByText('Rywal opuścił widok walki.')).toBeInTheDocument();
+  expect(screen.getByRole('timer', { name: 'Czas na odpowiedź' })).toHaveTextContent('9');
+  expect(screen.getByRole('timer', { name: 'Wznowienie najpóźniej za' })).toHaveTextContent(/\d+ s/);
+  expect(screen.getByText(/Twoja: dostępna\. Rywala: wykorzystana\./)).toBeInTheDocument();
+});
+
+it('warns when the rival is away without a pause left', async () => {
+  realtime.value = { ...realtime.value, state: live(createGameSession({
+    pausesUsed: [2], absences: { 2: { reason: 'DISCONNECTED', since: 995_000 } },
+  })) };
+  mount();
+  expect(await screen.findByText(/Rywal stracił połączenie\. Pauza rywala jest już wykorzystana\./)).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Na którym porcie domyślnie działa SSH?' })).toBeInTheDocument();
+});
+
+it('tells the server the player is back in the battle view', async () => {
+  const calls: string[] = [];
+  server.use(http.post(`${API_URL}/api/arena/game/game/return`, () => { calls.push('return'); return new HttpResponse(null, { status: 204 }); }));
+  mount();
+  await waitFor(() => expect(calls).toEqual(['return']));
+});
+
 it('shows a refused answer and lets the player try again', async () => {
   server.use(http.post(`${API_URL}/api/arena/game/game/answer`, () => HttpResponse.json({ message: 'Czas na odpowiedź minął.' }, { status: 400 })));
   realtime.value = { ...realtime.value, state: live(createGameSession({ answeredBy: [2] })) };

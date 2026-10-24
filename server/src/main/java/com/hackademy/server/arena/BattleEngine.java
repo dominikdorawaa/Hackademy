@@ -13,9 +13,10 @@ public final class BattleEngine {
     public static final long ROUND_MILLIS = 15_000;
     public static final long REVEAL_MILLIS = 3_000;
     public static final long DISCONNECT_MILLIS = 30_000;
+    public static final long PAUSE_MILLIS = 10_000;
     public static final int NO_ANSWER = -1;
 
-    public enum AnswerResult { ACCEPTED, NOT_PLAYER, NOT_ACTIVE, WRONG_ROUND, INVALID_ANSWER, ALREADY_ANSWERED, TOO_LATE }
+    public enum AnswerResult { ACCEPTED, NOT_PLAYER, NOT_ACTIVE, WRONG_ROUND, INVALID_ANSWER, ALREADY_ANSWERED, TOO_LATE, PAUSED, FORFEITED }
 
     private BattleEngine() {}
 
@@ -33,6 +34,8 @@ public final class BattleEngine {
         if (!session.includes(userId)) return AnswerResult.NOT_PLAYER;
         if (round != session.getRound()) return AnswerResult.WRONG_ROUND;
         if (!"ACTIVE".equals(session.getStatus()) || !"QUESTION".equals(session.getPhase())) return AnswerResult.NOT_ACTIVE;
+        if (session.getForfeited().contains(userId)) return AnswerResult.FORFEITED;
+        if (session.getPause() != null) return AnswerResult.PAUSED;
         if (answer < 0 || answer >= ANSWERS) return AnswerResult.INVALID_ANSWER;
         if (session.getChoices().containsKey(userId)) return AnswerResult.ALREADY_ANSWERED;
         if (now > session.getRoundEndsAt()) return AnswerResult.TOO_LATE;
@@ -43,7 +46,7 @@ public final class BattleEngine {
     }
 
     public static boolean roundOver(GameSession session, long now) {
-        return "QUESTION".equals(session.getPhase())
+        return "QUESTION".equals(session.getPhase()) && session.getPause() == null
                 && (session.getChoices().size() == 2 || now >= session.getRoundEndsAt());
     }
 
@@ -69,11 +72,25 @@ public final class BattleEngine {
     }
 
     public static boolean nextRoundDue(GameSession session, long now) {
-        return "REVEAL".equals(session.getPhase()) && "ACTIVE".equals(session.getStatus()) && now >= session.getNextRoundAt();
+        return "REVEAL".equals(session.getPhase()) && "ACTIVE".equals(session.getStatus()) && session.getPause() == null
+                && now >= session.getNextRoundAt();
     }
 
     public static void nextRound(GameSession session, long now) {
         openRound(session, session.getRound() + 1, now);
+    }
+
+    public static void pause(GameSession session, List<Long> players, long now) {
+        session.getPausesUsed().addAll(players);
+        session.setPause(new ArenaPause(List.copyOf(players), now, now + PAUSE_MILLIS));
+    }
+
+    public static void resume(GameSession session, long now) {
+        ArenaPause pause = session.getPause();
+        long shift = Math.min(now, pause.endsAt()) - pause.startedAt();
+        if ("QUESTION".equals(session.getPhase())) session.setRoundEndsAt(session.getRoundEndsAt() + shift);
+        else session.setNextRoundAt(session.getNextRoundAt() + shift);
+        session.setPause(null);
     }
 
     public static Long leader(GameSession session) {

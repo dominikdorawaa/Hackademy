@@ -1,7 +1,8 @@
 import { describe, expect, it } from 'vitest';
 import { createGameSession } from '../../../test/fixtures/arena';
 import {
-  animatedRound, CAST_MS, choreography, eloChange, finisher, FINISHER_FRAME_MS, FINISHERS, finishText, IMPACT_MS, impactAt, outcome, outcomeTitle, perspective, roundSummary, secondsLeft,
+  absenceNotice, animatedRound, CAST_MS, choreography, eloChange, finisher, FINISHER_FRAME_MS, FINISHERS, finishText, frozenSecondsLeft, IMPACT_MS, impactAt, outcome, outcomeTitle,
+  pauseNotice, perspective, roundSummary, secondsLeft,
 } from './battleView';
 import type { RoundResult } from '../../../types/api';
 
@@ -36,8 +37,8 @@ describe('battle view', () => {
     expect(finishText(won, 2)).toBe('Twój awatar został znokautowany.');
     expect(finishText({ ...won, finishReason: 'SURRENDER' }, 1)).toBe('Rywal się poddał.');
     expect(finishText({ ...won, finishReason: 'SURRENDER' }, 2)).toBe('Poddałeś walkę.');
-    expect(finishText({ ...won, finishReason: 'DISCONNECT' }, 1)).toContain('Rywal stracił połączenie');
-    expect(finishText({ ...won, finishReason: 'DISCONNECT' }, 2)).toContain('Straciłeś połączenie');
+    expect(finishText({ ...won, finishReason: 'DISCONNECT' }, 1)).toBe('Rywal był nieobecny przez 30 sekund.');
+    expect(finishText({ ...won, finishReason: 'DISCONNECT' }, 2)).toBe('Byłeś nieobecny przez 30 sekund.');
     expect(finishText({ ...won, finishReason: 'ROUNDS' }, 1)).toBe('Po 10 rundach masz więcej HP.');
     expect(finishText({ ...won, finishReason: 'ROUNDS' }, 2)).toBe('Po 10 rundach rywal ma więcej HP.');
     const draw = createGameSession({ status: 'FINISHED', winnerId: null, finishReason: 'ROUNDS' });
@@ -48,7 +49,43 @@ describe('battle view', () => {
     expect(outcomeTitle('cancelled')).toBe('Mecz anulowany');
     expect(finishText(cancelled, 2)).toBe('Serwer został zrestartowany w trakcie walki, więc mecz anulowano. Elo się nie zmienia.');
     expect(eloChange(cancelled, 1)).toBe(0);
+    const abandoned = createGameSession({ status: 'FINISHED', winnerId: null, finishReason: 'ABANDONED', player1EloChange: 0, player2EloChange: 0 });
+    expect(outcome(abandoned, 1)).toBe('cancelled');
+    expect(finishText(abandoned, 1)).toBe('Oboje byliście nieobecni przez 30 sekund, więc mecz anulowano. Elo się nie zmienia.');
     expect(eloChange(draw, 1)).toBe(0);
+  });
+
+  it('explains the pause, its time left and who still has one', () => {
+    const paused = createGameSession({
+      pause: { players: [2], startedAt: 1_005_000, endsAt: 1_015_000 }, pausesUsed: [2],
+      absences: { 2: { reason: 'DISCONNECTED', since: 1_005_000 } },
+    });
+    expect(pauseNotice(paused, 1, 1_008_100)).toEqual({
+      reason: 'Rywal stracił połączenie.', secondsLeft: 7,
+      uses: 'Każdy gracz ma jedną pauzę na mecz. Twoja: dostępna. Rywala: wykorzystana.',
+    });
+    expect(pauseNotice(paused, 2, 1_016_000)).toEqual({
+      reason: 'Straciłeś połączenie.', secondsLeft: 0,
+      uses: 'Każdy gracz ma jedną pauzę na mecz. Twoja: wykorzystana. Rywala: dostępna.',
+    });
+    const both = { ...paused, pause: { players: [2, 1], startedAt: 1_005_000, endsAt: 1_015_000 }, pausesUsed: [2, 1],
+      absences: { 1: { reason: 'LEFT' as const, since: 1_006_000 } } };
+    expect(pauseNotice(both, 1, 1_006_000)?.reason).toBe('Rywal wrócił do walki. Opuściłeś widok walki.');
+    expect(pauseNotice(both, 2, 1_006_000)?.reason).toBe('Rywal opuścił widok walki. Wróciłeś do walki.');
+    expect(pauseNotice(createGameSession(), 1, 1_000_000)).toBeNull();
+    expect(pauseNotice({ ...paused, status: 'FINISHED' }, 1, 1_000_000)).toBeNull();
+    expect(frozenSecondsLeft(paused, paused.roundEndsAt)).toBe(10);
+    expect(frozenSecondsLeft(createGameSession(), 1_015_000)).toBeNull();
+  });
+
+  it('warns how long an absent rival has before losing once their pause is used', () => {
+    const away = createGameSession({ pausesUsed: [2], absences: { 2: { reason: 'LEFT', since: 990_000 } } });
+    expect(absenceNotice(away, 1, 1_000_500)).toBe('Rywal opuścił widok walki. Pauza rywala jest już wykorzystana. Jeśli nie wróci w ciągu 20 s, przegra walkę.');
+    expect(absenceNotice(away, 1, 1_030_000)).toContain('w ciągu 0 s');
+    expect(absenceNotice(away, 2, 1_000_000)).toBeNull();
+    expect(absenceNotice({ ...away, pause: { players: [1], startedAt: 0, endsAt: 1 } }, 1, 1_000_000)).toBeNull();
+    expect(absenceNotice({ ...away, status: 'FINISHED' }, 1, 1_000_000)).toBeNull();
+    expect(absenceNotice(createGameSession(), 1, 1_000_000)).toBeNull();
   });
 
   it('summarises who hit in a round', () => {

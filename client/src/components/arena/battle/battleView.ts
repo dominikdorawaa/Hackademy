@@ -2,7 +2,7 @@ import { DEFAULT_AVATAR, fromAvatarConfig } from '../avatar/avatarModel';
 import type { Avatar } from '../avatar/avatarModel';
 import { danceFrames } from '../avatar/fighters';
 import type { FinisherMove } from '../avatar/fighters';
-import type { GameSession, RoundResult } from '../../../types/api';
+import type { ArenaAbsence, GameSession, RoundResult } from '../../../types/api';
 
 export interface Fighter {
   id: number
@@ -43,7 +43,7 @@ export function perspective(session: GameSession, meId: number) {
 }
 
 export function outcome(session: GameSession, meId: number): Outcome {
-  if (session.finishReason === 'CANCELLED') return 'cancelled';
+  if (session.finishReason === 'CANCELLED' || session.finishReason === 'ABANDONED') return 'cancelled';
   if (session.winnerId == null) return 'draw';
   return session.winnerId === meId ? 'win' : 'loss';
 }
@@ -63,7 +63,8 @@ export function finishText(session: GameSession, meId: number) {
     }
     case 'SURRENDER': return won ? 'Rywal się poddał.' : 'Poddałeś walkę.';
     case 'CANCELLED': return 'Serwer został zrestartowany w trakcie walki, więc mecz anulowano. Elo się nie zmienia.';
-    case 'DISCONNECT': return won ? 'Rywal stracił połączenie na dłużej niż 30 sekund.' : 'Straciłeś połączenie na dłużej niż 30 sekund.';
+    case 'DISCONNECT': return won ? 'Rywal był nieobecny przez 30 sekund.' : 'Byłeś nieobecny przez 30 sekund.';
+    case 'ABANDONED': return 'Oboje byliście nieobecni przez 30 sekund, więc mecz anulowano. Elo się nie zmienia.';
     default: return session.winnerId == null ? 'Po 10 rundach macie tyle samo HP. Elo się nie zmienia.' : won ? 'Po 10 rundach masz więcej HP.' : 'Po 10 rundach rywal ma więcej HP.';
   }
 }
@@ -79,6 +80,44 @@ export function roundSummary(result: RoundResult, meId: number, rivalId: number)
   if (iHit) return `Trafiasz! Rywal traci ${result.damage[rivalId]} HP.`;
   if (rivalHit) return `Rywal trafia. Tracisz ${result.damage[meId]} HP.`;
   return 'Nikt nie trafił w tej rundzie.';
+}
+
+export const ABSENCE_MS = 30_000;
+
+export interface PauseNotice { reason: string; secondsLeft: number; uses: string }
+
+function absenceText(absence: ArenaAbsence | undefined, mine: boolean) {
+  if (!absence) return mine ? 'Wróciłeś do walki.' : 'Rywal wrócił do walki.';
+  if (absence.reason === 'LEFT') return mine ? 'Opuściłeś widok walki.' : 'Rywal opuścił widok walki.';
+  return mine ? 'Straciłeś połączenie.' : 'Rywal stracił połączenie.';
+}
+
+export function pauseNotice(session: GameSession, meId: number, serverNow: number): PauseNotice | null {
+  const pause = session.pause;
+  if (!pause || session.status !== 'ACTIVE') return null;
+  const rivalId = session.player1Id === meId ? session.player2Id : session.player1Id;
+  const absences = session.absences ?? {};
+  const reason = [rivalId, meId].filter(id => pause.players.includes(id))
+    .map(id => absenceText(absences[id], id === meId)).join(' ');
+  const used = (id: number) => session.pausesUsed?.includes(id) ? 'wykorzystana' : 'dostępna';
+  return {
+    reason,
+    secondsLeft: Math.max(0, Math.ceil((pause.endsAt - serverNow) / 1000)),
+    uses: `Każdy gracz ma jedną pauzę na mecz. Twoja: ${used(meId)}. Rywala: ${used(rivalId)}.`,
+  };
+}
+
+export function absenceNotice(session: GameSession, meId: number, serverNow: number) {
+  if (session.pause || session.status !== 'ACTIVE') return null;
+  const rivalId = session.player1Id === meId ? session.player2Id : session.player1Id;
+  const absence = session.absences?.[rivalId];
+  if (!absence) return null;
+  const left = Math.max(0, Math.ceil((absence.since + ABSENCE_MS - serverNow) / 1000));
+  return `${absenceText(absence, false)} Pauza rywala jest już wykorzystana. Jeśli nie wróci w ciągu ${left} s, przegra walkę.`;
+}
+
+export function frozenSecondsLeft(session: GameSession, deadline: number) {
+  return session.pause ? Math.max(0, Math.ceil((deadline - session.pause.startedAt) / 1000)) : null;
 }
 
 export interface Segment { frames: number[]; loop: boolean; frameTime: number; ms?: number }

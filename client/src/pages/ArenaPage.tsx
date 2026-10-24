@@ -342,7 +342,8 @@ const ArenaPage = () => {
                             <li>Twój awatar staje do walki z rywalem z kolejki albo z wyzwanym znajomym. Każdy zaczyna ze 100 HP.</li>
                             <li>W każdej z 10 rund oboje dostajecie to samo pytanie z cyberbezpieczeństwa i wybieracie jedną z czterech odpowiedzi w 15 sekund.</li>
                             <li>Poprawna odpowiedź zadaje 20 HP przed pierwszą sekundą i o 1 HP mniej za każdą pełną sekundę. Zła odpowiedź nie zadaje obrażeń.</li>
-                            <li>Wygrywa nokaut albo więcej HP po 10 rundach. Remis nie zmienia Elo, a poddanie lub zerwane połączenie na 30 sekund to porażka.</li>
+                            <li>Wygrywa nokaut albo więcej HP po 10 rundach. Remis nie zmienia Elo, a poddanie lub 30 sekund nieobecności w walce to porażka.</li>
+                            <li>Gdy ktoś opuści walkę lub straci połączenie, pojedynek staje na maksymalnie 10 sekund. Każdy gracz ma jedną pauzę na mecz, a jej czas wlicza się do tych 30 sekund. Gdy oboje są nieobecni przez 30 sekund, mecz jest anulowany bez zmiany Elo.</li>
                         </ol>
                         <Link className="ud-link" to="/ranking">Pełny ranking</Link>
                     </section>

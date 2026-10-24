@@ -13,6 +13,8 @@ public interface ArenaService {
     BattleEngine.AnswerResult answer(String gameId, Long userId, int round, int answer);
     SurrenderResult surrenderGame(String gameId, Long userId);
     ReactionOutcome react(String gameId, Long userId, String reaction);
+    boolean leaveView(String gameId, Long userId);
+    boolean returnToView(String gameId, Long userId);
 
     Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername);
     GameSession acceptChallenge(String challengeId, Long userId);

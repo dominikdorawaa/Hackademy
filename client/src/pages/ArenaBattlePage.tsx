@@ -3,12 +3,13 @@ import { Link, useParams } from 'react-router-dom';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
-  eloChange, finishText, outcome, outcomeTitle, perspective, roundSummary, secondsLeft,
+  absenceNotice, eloChange, finishText, frozenSecondsLeft, outcome, outcomeTitle, pauseNotice, perspective, roundSummary, secondsLeft,
 } from '../components/arena/battle/battleView';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { useArenaClock } from '../hooks/useArenaClock';
 import { useArenaSession } from '../hooks/useArenaSession';
+import { useBattlePresence } from '../hooks/useBattlePresence';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
 import * as arenaApi from '../services/arenaApi';
@@ -36,6 +37,7 @@ export default function ArenaBattlePage() {
   const reducedMotion = useReducedMotion();
   const serverTime = session?.serverTime ?? 0;
   const clock = useArenaClock(serverTime, session?.status === 'ACTIVE');
+  useBattlePresence(gameId, sessionKey);
 
   useEffect(() => {
     if (!sessionKey) return;
@@ -79,9 +81,9 @@ export default function ArenaBattlePage() {
   const finished = session.status === 'FINISHED';
   const RevealHeading = finished ? 'h2' : 'h1';
   const deadline = session.phase === 'QUESTION' ? session.roundEndsAt : session.nextRoundAt;
-  const left = clock.serverTime === serverTime
+  const left = frozenSecondsLeft(session, deadline) ?? (clock.serverTime === serverTime
     ? secondsLeft(deadline, serverTime, clock.receivedAt, clock.now)
-    : Math.max(0, Math.ceil((deadline - serverTime) / 1000));
+    : Math.max(0, Math.ceil((deadline - serverTime) / 1000)));
   const answered = session.answeredBy.includes(me.id);
   const rivalAnswered = session.answeredBy.includes(rival.id);
   const myPick = picked?.round === session.round ? picked.answer : null;
@@ -91,6 +93,8 @@ export default function ArenaBattlePage() {
   const visibleError = error && (error.round === null || error.round === session.round) ? error.message : null;
   const headers = { sessionKey };
   const serverNow = clock.serverTime === serverTime ? clock.now + (serverTime - clock.receivedAt) : serverTime;
+  const pause = pauseNotice(session, me.id, serverNow);
+  const absence = absenceNotice(session, me.id, serverNow);
 
   const answer = async (choice: number) => {
     const round = session.round;
@@ -133,7 +137,7 @@ export default function ArenaBattlePage() {
             quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>
             <div className="battle-round">
               <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
-              {!finished && <p className="battle-timer" role="timer" aria-label={session.phase === 'QUESTION' ? 'Czas na odpowiedź' : 'Następna runda za'}>{left}</p>}
+              {!finished && <p className={`battle-timer${pause ? ' is-paused' : ''}`} role="timer" aria-label={session.phase === 'QUESTION' ? 'Czas na odpowiedź' : 'Następna runda za'}>{left}</p>}
             </div>
           </BattleScene>
 
@@ -145,7 +149,16 @@ export default function ArenaBattlePage() {
               <Link className="ud-btn ud-btn-solid" to="/arena">Wróć do Areny</Link>
             </section>
           )}
-          {reveal ? (
+          {absence && <p className="battle-absence" role="status">{absence}</p>}
+          {pause ? (
+            <section className="battle-card battle-pause" aria-labelledby="battle-pause-title">
+              <p className="battle-card-meta">Runda {session.round} zatrzymana</p>
+              <h1 id="battle-pause-title" className="battle-question">Walka wstrzymana</h1>
+              <p className="battle-pause-reason" role="status">{pause.reason}</p>
+              <p className="battle-pause-timer" role="timer" aria-label="Wznowienie najpóźniej za">{pause.secondsLeft} s</p>
+              <p className="battle-summary">{pause.uses} Czas rundy stoi, a odpowiedzi poczekają na wznowienie.</p>
+            </section>
+          ) : reveal ? (
             <section className="battle-card" aria-labelledby="battle-question">
               <p className="battle-card-meta">Wynik rundy {reveal.round}</p>
               <RevealHeading id="battle-question" className="battle-question">{reveal.content}</RevealHeading>

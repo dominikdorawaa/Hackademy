@@ -778,6 +778,36 @@ button.battle-answer:disabled {
   font-weight: 600;
 }
 
+.battle-timer.is-paused {
+  opacity: 0.55;
+}
+
+.battle-pause {
+  text-align: center;
+}
+
+.battle-pause-reason {
+  margin-top: 10px;
+  font-weight: 600;
+}
+
+.battle-pause-timer {
+  margin-top: 12px;
+  font-size: var(--ud-display);
+  font-weight: 800;
+  font-stretch: 85%;
+  line-height: 1;
+}
+
+.battle-absence {
+  padding: 10px 16px;
+  border: 1px solid var(--battle-glass-line);
+  border-radius: var(--ud-radius);
+  background: var(--battle-glass);
+  color: var(--battle-glass-ink);
+  font-weight: 600;
+}
+
 .battle-error {
   margin-top: 8px;
   color: var(--ud-hard);
