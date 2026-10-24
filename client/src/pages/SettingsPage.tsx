@@ -44,10 +44,11 @@ function eventOutcome(event: SoundEvent, preferences: NotificationPreferences, s
 
 async function responseError(response: ApiResponse<unknown>, fallback: string) {
   if (response.status === 401) return 'Sesja wygasła. Zaloguj się ponownie.';
+  if (response.status === 409) return 'Ta nazwa jest już zajęta. Wybierz inną.';
   try {
     const body = await response.json() as Record<string, unknown>;
     if (body.message === 'Incorrect current password') return 'Obecne hasło jest nieprawidłowe.';
-    if (body.message === 'Username already taken') return 'Ta nazwa jest już zajęta. Wybierz inną.';
+    if (typeof body.newUsername === 'string') return `${body.newUsername}.`;
   } catch { return fallback; }
   return fallback;
 }

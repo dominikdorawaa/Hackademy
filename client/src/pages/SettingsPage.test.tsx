@@ -125,6 +125,24 @@ describe('settings', () => {
     expect(localStorage.getItem('token')).toBeNull();
   });
 
+  it('explains a taken name and a name with characters the server refuses', async () => {
+    let attempts = 0;
+    server.use(
+      http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(defaultNotificationPreferences)),
+      http.patch(`${API_URL}/api/user/me/username`, () => (++attempts === 1
+        ? HttpResponse.json({ message: 'Ta nazwa jest zajęta' }, { status: 409 })
+        : HttpResponse.json({ message: 'Validation failed', newUsername: 'Nazwa może zawierać tylko litery, cyfry, _ i -' }, { status: 400 }))),
+    );
+    mount();
+    const field = await screen.findByLabelText('Nazwa użytkownika');
+    fireEvent.change(field, { target: { value: 'zajeta' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz nazwę' }));
+    await screen.findByText('Ta nazwa jest już zajęta. Wybierz inną.');
+    fireEvent.change(field, { target: { value: 'zła nazwa' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz nazwę' }));
+    await screen.findByText('Nazwa może zawierać tylko litery, cyfry, _ i -.');
+  });
+
   it('opens Clerk account security for password and connected account changes', () => {
     mount('security');
     fireEvent.click(screen.getByRole('button', { name: 'Zarządzaj dostępem' }));

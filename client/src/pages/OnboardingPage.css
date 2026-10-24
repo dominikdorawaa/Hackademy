@@ -64,6 +64,73 @@
   margin-bottom: 20px;
 }
 
+.onboarding-name {
+  display: grid;
+  gap: 10px;
+  width: min(440px, 100%);
+  padding: 20px;
+  border: 1px solid var(--ud-track);
+  border-radius: 16px;
+  background: var(--ud-surface);
+  text-align: left;
+}
+
+.onboarding-name label {
+  font-weight: 700;
+}
+
+.onboarding-name input {
+  min-height: 46px;
+  padding: 0 14px;
+  border: 1px solid var(--ud-track);
+  border-radius: 10px;
+  background: var(--ud-board);
+  color: inherit;
+  font: inherit;
+  font-size: 1.05rem;
+}
+
+.onboarding-name input[aria-invalid='true'] {
+  border-color: var(--ud-peek-error);
+}
+
+.onboarding-name-help,
+.onboarding-name-status {
+  margin: 0;
+  color: var(--ud-muted);
+  font-size: 0.9rem;
+}
+
+.onboarding-name-status {
+  min-height: 1.4em;
+}
+
+.onboarding-name-status[data-state='available'] {
+  color: var(--ud-easy);
+}
+
+.onboarding-name-status[data-state='invalid'],
+.onboarding-name-status[data-state='taken'],
+.onboarding-name-status[data-state='error'] {
+  color: var(--ud-peek-error);
+}
+
+.onboarding-name button {
+  justify-self: end;
+}
+
+.studio-card-move {
+  display: block;
+  overflow: hidden;
+}
+
+.studio-card-move .avatar-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
 .studio {
   display: grid;
   grid-template-columns: minmax(280px, 400px) minmax(0, 1fr);
@@ -89,7 +156,7 @@
 
 .studio-views {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
+  grid-template-columns: repeat(2, 1fr);
   gap: 4px;
   padding: 4px;
   border-radius: 10px;
