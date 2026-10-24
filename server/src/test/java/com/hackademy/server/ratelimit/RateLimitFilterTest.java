@@ -129,6 +129,14 @@ class RateLimitFilterTest {
     }
 
     @ParameterizedTest
+    @ValueSource(strings = {"/api/%62ug-reports", "/api/bug%2Dreports", "/api/bug-reports;x=1"})
+    void decodesTheAddressBeforeChoosingTheGroup(String path) throws Exception {
+        assertEquals(200, send(post("/api/bug-reports", "alice")).response.getStatus());
+
+        assertEquals(429, send(post(path, "alice")).response.getStatus());
+    }
+
+    @ParameterizedTest
     @ValueSource(strings = {"Bearer forged", "Bearer ", "Basic YWxpY2U6c2VjcmV0", "alice"})
     void countsRequestsWithoutAValidTokenPerAddress(String authorization) throws Exception {
         var request = get("/api/rooms/top3", null);

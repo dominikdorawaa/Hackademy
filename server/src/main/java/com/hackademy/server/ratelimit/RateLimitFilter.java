@@ -15,6 +15,7 @@ import org.springframework.lang.NonNull;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.web.filter.OncePerRequestFilter;
+import org.springframework.web.util.UrlPathHelper;
 
 import java.io.IOException;
 import java.nio.charset.StandardCharsets;
@@ -114,8 +115,6 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
 
     private static String path(HttpServletRequest request) {
-        String uri = request.getRequestURI();
-        String context = request.getContextPath();
-        return context != null && !context.isEmpty() && uri.startsWith(context) ? uri.substring(context.length()) : uri;
+        return UrlPathHelper.defaultInstance.getPathWithinApplication(request);
     }
 }
