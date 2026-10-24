@@ -173,14 +173,17 @@ class RealtimeIntegrationTest {
                 renamed.subscribe();
                 assertEquals(challenge.getId(), JsonPath.read(state(token), "$.outgoingChallenges[0].id"));
                 arena.cancelChallenge(challenge.getId(), a.getId());
-                assertEquals(0, (int) JsonPath.read(RealtimeSocket.body(renamed.receive()), "$.state.outgoingChallenges.length()"));
+                // The rename pushes its own state after commit, which can still list the challenge when it lands after subscribing.
+                assertEquals(0, (int) JsonPath.read(renamed.receiveUntil(body -> (int) JsonPath.read(body, "$.state.outgoingChallenges.length()") == 0),
+                        "$.state.outgoingChallenges.length()"));
                 target.receive();
                 matchmaking.joinQueue(a.getId(), oldName);
-                assertEquals(true, JsonPath.read(RealtimeSocket.body(renamed.receive()), "$.state.queued"));
+                assertEquals(true, JsonPath.read(renamed.receiveUntil(body -> JsonPath.<Boolean>read(body, "$.state.queued")), "$.state.queued"));
                 matchmaking.leaveQueue(a.getId());
-                assertEquals(false, JsonPath.read(RealtimeSocket.body(renamed.receive()), "$.state.queued"));
+                assertEquals(false, JsonPath.read(renamed.receiveUntil(body -> !JsonPath.<Boolean>read(body, "$.state.queued")), "$.state.queued"));
                 friendships.sendFriendRequest(b.getId(), newName);
-                assertEquals(b.getUsername(), JsonPath.read(RealtimeSocket.body(renamed.receive()), "$.state.friendRequests[0].requesterUsername"));
+                assertEquals(b.getUsername(), JsonPath.read(renamed.receiveUntil(body -> (int) JsonPath.read(body, "$.state.friendRequests.length()") > 0),
+                        "$.state.friendRequests[0].requesterUsername"));
                 target.receive();
                 assertNull(reusedName.poll(100));
             }
