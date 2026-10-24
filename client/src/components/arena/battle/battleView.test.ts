@@ -4,7 +4,7 @@ import {
   absenceNotice, animatedRound, CAST_MS, choreography, eloChange, finisher, FINISHER_FRAME_MS, FINISHERS, finishText, frozenSecondsLeft, IMPACT_MS, impactAt, outcome, outcomeTitle,
   pauseNotice, perspective, roundSummary, secondsLeft,
 } from './battleView';
-import { danceFrames } from '../avatar/fighters';
+import { danceFrames, turnedDance, victoryDance } from '../avatar/fighters';
 import type { RoundResult } from '../../../types/api';
 
 const result = (damage: Record<string, number>): RoundResult => ({
@@ -172,6 +172,14 @@ describe('battle view', () => {
     const rounds = createGameSession({ status: 'FINISHED', winnerId: 2, finishReason: 'SURRENDER', lastRound: null, player2Avatar: { ...base, victoryDance: 'sixseven' } });
     expect(choreography(rounds, 2, 1)).toEqual([{ frames: [136, 137, 138, 139], loop: false, frameTime: 110, ms: 440 }, { frames: danceFrames(8), loop: true, frameTime: 110 }]);
     expect(choreography(rounds, 1, 2)).toEqual([{ frames: [46, 47, 48, 49, 50, 51, 52, 53], loop: false, frameTime: 120 }]);
+  });
+
+  it('builds the quick chat dances from the same frames as the victory dances', () => {
+    expect(turnedDance('groove')).toEqual(victoryDance('groove').loop);
+    for (const dance of ['sixseven', 'scuba'] as const) {
+      const { turn, loop } = victoryDance(dance);
+      expect(turnedDance(dance)).toEqual([...turn, ...loop, ...[...turn].reverse(), turnedDance(dance).at(-1)]);
+    }
   });
 
   it('counts down against the server clock', () => {

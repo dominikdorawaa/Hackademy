@@ -65,7 +65,8 @@ async function portraitPixels(avatar: AvatarLook) {
 async function dressHead(pixels: Uint8ClampedArray, width: number, avatar: AvatarLook, anchorFile: string, prefix: string) {
   const anchors = await loadAnchors(anchorFile);
   const views: [HeadView, string][] = [['side', prefix]];
-  for (const view of ['front', 'dance'] as const) if (Object.values(anchors.cells).some(anchor => anchor?.view === view)) views.push([view, view + '/']);
+  const cells = pixels.length / 4 / (64 * 64);
+  for (const view of ['front', 'dance'] as const) if (Object.entries(anchors.cells).some(([key, anchor]) => anchor?.view === view && Number(key) < cells)) views.push([view, view + '/']);
   for (const [view, folder] of views) {
     if (avatar.hair !== 'brak' && avatar.hat === 'brak') compositeOverlay(pixels, width, recolorOverlay(await loadOverlay(folder + HEAD_OVERLAYS[avatar.hair]), rampFor(HAIR_RAMPS, avatar.colors.hair)), anchors, view);
     if (avatar.hat !== 'brak') compositeOverlay(pixels, width, recolorOverlay(await loadOverlay(folder + HEAD_OVERLAYS[avatar.hat]), rampFor(CLOTH_RAMPS, avatar.colors.hat)), anchors, view);

@@ -19,9 +19,12 @@ export function atlasViewBox(index: number) {
 }
 
 export const danceFrames = (row: number) => [row, row + 1].flatMap(line => Array.from({ length: 8 }, (_, column) => line * 9 + column + 1));
-export const TURNS = { sixseven: 15, scuba: 16 };
+export const TURNS: Record<Exclude<VictoryDance, 'groove'>, number> = { sixseven: 15, scuba: 16 };
 const turnFrames = (row: number) => Array.from({ length: 4 }, (_, column) => row * 9 + column + 1);
-export const turnedDance = (dance: number, turn: number) => [...turnFrames(turn), ...danceFrames(dance), ...turnFrames(turn).reverse(), turn * 9];
 export const victoryDance = (dance: VictoryDance) => ({ turn: dance === 'groove' ? [] : turnFrames(TURNS[dance]), loop: danceFrames(DANCES[dance]) });
+export function turnedDance(dance: VictoryDance) {
+  const { turn, loop } = victoryDance(dance);
+  return dance === 'groove' ? loop : [...turn, ...loop, ...[...turn].reverse(), TURNS[dance] * 9];
+}
 export const runFrames = (row: number) => Array.from({ length: 8 }, (_, column) => row * 9 + column + 1);
 export const RUN_FRAME_TIME = 90;
