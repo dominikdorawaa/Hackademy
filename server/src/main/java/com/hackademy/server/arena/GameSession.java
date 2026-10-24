@@ -8,8 +8,10 @@ import lombok.NoArgsConstructor;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
+import java.util.Set;
 
 @Data
 @NoArgsConstructor
@@ -43,6 +45,9 @@ public class GameSession {
     private BattleQuestion question;
     private RoundResult lastRound;
     private List<ArenaReaction> reactions = new ArrayList<>();
+    private ArenaPause pause;
+    private List<Long> pausesUsed = new ArrayList<>();
+    private Map<Long, ArenaAbsence> absences = new HashMap<>();
 
     @JsonIgnore
     private List<QuestionSnapshot> questions = new ArrayList<>();
@@ -51,7 +56,9 @@ public class GameSession {
     @JsonIgnore
     private Map<Long, Long> answerElapsedMillis = new HashMap<>();
     @JsonIgnore
-    private Map<Long, Long> disconnectedSince = new HashMap<>();
+    private Set<Long> leftView = new HashSet<>();
+    @JsonIgnore
+    private Set<Long> forfeited = new HashSet<>();
 
     public boolean includes(Long userId) {
         return player1Id.equals(userId) || player2Id.equals(userId);
@@ -89,6 +96,9 @@ public class GameSession {
         copy.question = question;
         copy.lastRound = lastRound;
         copy.reactions = new ArrayList<>(reactions);
+        copy.pause = pause;
+        copy.pausesUsed = new ArrayList<>(pausesUsed);
+        copy.absences = new HashMap<>(absences);
         return copy;
     }
 }

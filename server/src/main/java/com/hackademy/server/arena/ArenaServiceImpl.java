@@ -217,32 +217,49 @@ public class ArenaServiceImpl implements ArenaService {
         for (GameSession session : activeGames.values()) {
             synchronized (session) {
                 if (!"ACTIVE".equals(session.getStatus())) continue;
-                boolean changed = checkConnections(session, now);
-                if ("ACTIVE".equals(session.getStatus()) && BattleEngine.roundOver(session, now)) {
+                boolean changed = false;
+                if (BattleEngine.roundOver(session, now)) {
                     resolveRound(session, now);
                     changed = true;
                 } else if (BattleEngine.nextRoundDue(session, now)) {
                     BattleEngine.nextRound(session, now);
                     changed = true;
                 }
+                if ("ACTIVE".equals(session.getStatus())) changed |= checkPresence(session, now);
                 if (changed && !"FINISHED".equals(session.getStatus())) realtime.arenaChanged(session.getPlayer1Id(), session.getPlayer2Id());
             }
         }
     }
 
-    private boolean checkConnections(GameSession session, long now) {
+    private boolean checkPresence(GameSession session, long now) {
+        var absent = new HashMap<Long, ArenaAbsence.Reason>();
         for (Long player : List.of(session.getPlayer1Id(), session.getPlayer2Id())) {
-            if (presence.isConnected(player)) {
-                session.getDisconnectedSince().remove(player);
-                continue;
-            }
-            long since = session.getDisconnectedSince().computeIfAbsent(player, ignored -> now);
-            if (now - since >= BattleEngine.DISCONNECT_MILLIS) {
-                finish(session, session.opponentOf(player), "DISCONNECT");
-                return true;
-            }
+            if (!presence.isConnected(player)) absent.put(player, ArenaAbsence.Reason.DISCONNECTED);
+            else if (session.getLeftView().contains(player)) absent.put(player, ArenaAbsence.Reason.LEFT);
         }
-        return false;
+        var verdict = BattlePresence.update(session, absent, now);
+        if (verdict.finished()) finish(session, verdict.winnerId(), verdict.reason());
+        return verdict.changed();
+    }
+
+    @Override
+    public boolean leaveView(String gameId, Long userId) {
+        return markView(gameId, userId, true);
+    }
+
+    @Override
+    public boolean returnToView(String gameId, Long userId) {
+        return markView(gameId, userId, false);
+    }
+
+    private boolean markView(String gameId, Long userId, boolean left) {
+        GameSession session = activeGames.get(gameId);
+        if (session == null || !session.includes(userId)) return false;
+        synchronized (session) {
+            if (left) session.getLeftView().add(userId);
+            else session.getLeftView().remove(userId);
+        }
+        return true;
     }
 
     private void resolveRound(GameSession session, long now) {
@@ -273,6 +290,7 @@ public class ArenaServiceImpl implements ArenaService {
     private void finish(GameSession session, Long winnerId, String reason) {
         if ("FINISHED".equals(session.getStatus())) return;
         session.setStatus("FINISHED");
+        session.setPause(null);
         finishedAt.put(session.getId(), clock.getAsLong());
         synchronized (players) {
             playingIn.remove(session.getPlayer1Id(), session.getId());

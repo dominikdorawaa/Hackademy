@@ -1,10 +1,15 @@
 package com.hackademy.server;
 
+import com.hackademy.server.arena.ArenaPresence;
 import com.hackademy.server.user.Role;
 import com.hackademy.server.user.UserRepository;
 import com.jayway.jsonpath.JsonPath;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.boot.test.context.TestConfiguration;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Import;
+import org.springframework.context.annotation.Primary;
 import org.springframework.boot.webmvc.test.autoconfigure.AutoConfigureMockMvc;
 import org.springframework.http.MediaType;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -26,7 +31,17 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 @SpringBootTest
 @AutoConfigureMockMvc
+@Import(PostgresIntegrationTest.ConnectedPlayers.class)
 abstract class PostgresIntegrationTest {
+    @TestConfiguration
+    static class ConnectedPlayers {
+        @Bean
+        @Primary
+        ArenaPresence connectedPlayers() {
+            return userId -> true;
+        }
+    }
+
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
     static {

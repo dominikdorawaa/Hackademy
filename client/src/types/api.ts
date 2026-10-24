@@ -126,7 +126,7 @@ export interface GameSession {
   startTime: ApiDateTime
   status: 'ACTIVE' | 'FINISHED'
   winnerId: number | null
-  finishReason: 'KNOCKOUT' | 'ROUNDS' | 'SURRENDER' | 'DISCONNECT' | 'CANCELLED' | null
+  finishReason: 'KNOCKOUT' | 'ROUNDS' | 'SURRENDER' | 'DISCONNECT' | 'ABANDONED' | 'CANCELLED' | null
   player1EloChange: number | null
   player2EloChange: number | null
   round: number
@@ -140,6 +140,20 @@ export interface GameSession {
   question: BattleQuestion | null
   lastRound: RoundResult | null
   reactions?: ArenaReaction[]
+  pause?: ArenaPause | null
+  pausesUsed?: number[]
+  absences?: Record<string, ArenaAbsence>
+}
+
+export interface ArenaPause {
+  players: number[]
+  startedAt: number
+  endsAt: number
+}
+
+export interface ArenaAbsence {
+  reason: 'LEFT' | 'DISCONNECTED'
+  since: number
 }
 
 export interface ArenaReaction {

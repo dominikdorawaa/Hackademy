@@ -26,7 +26,9 @@ public class ArenaController {
             BattleEngine.AnswerResult.NOT_ACTIVE, "Ta runda jest już zakończona.",
             BattleEngine.AnswerResult.INVALID_ANSWER, "Wybierz jedną z czterech odpowiedzi.",
             BattleEngine.AnswerResult.ALREADY_ANSWERED, "Odpowiedź w tej rundzie została już wysłana.",
-            BattleEngine.AnswerResult.TOO_LATE, "Czas na odpowiedź minął.");
+            BattleEngine.AnswerResult.TOO_LATE, "Czas na odpowiedź minął.",
+            BattleEngine.AnswerResult.PAUSED, "Walka jest wstrzymana. Odpowiesz po wznowieniu.",
+            BattleEngine.AnswerResult.FORFEITED, "Byłeś nieobecny ponad 30 sekund, więc nie możesz już odpowiadać.");
 
     private final MatchmakingService matchmakingService;
     private final ArenaService arenaService;
@@ -98,6 +100,18 @@ public class ArenaController {
             case NOT_PLAYER -> ResponseEntity.notFound().build();
             case NOT_ACTIVE -> ResponseEntity.status(HttpStatus.CONFLICT).body(Map.of("message", "Ta walka jest już zakończona."));
         };
+    }
+
+    @PostMapping("/game/{gameId}/leave")
+    public ResponseEntity<?> leaveView(@PathVariable String gameId) {
+        return arenaService.leaveView(gameId, currentUser().getId())
+                ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
+    }
+
+    @PostMapping("/game/{gameId}/return")
+    public ResponseEntity<?> returnToView(@PathVariable String gameId) {
+        return arenaService.returnToView(gameId, currentUser().getId())
+                ? ResponseEntity.noContent().build() : ResponseEntity.notFound().build();
     }
 
     @PostMapping("/game/{gameId}/reaction")

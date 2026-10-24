@@ -71,6 +71,14 @@ export function answerQuestion(id: ApiId, round: number, answer: number, auth: S
   });
 }
 
+export function leaveBattle(id: ApiId, auth: SessionScope) {
+  return request<void>(`/api/arena/game/${id}/leave`, { method: 'POST', auth, rateLimitNotice: false });
+}
+
+export function returnToBattle(id: ApiId, auth: SessionScope) {
+  return request<void>(`/api/arena/game/${id}/return`, { method: 'POST', auth, rateLimitNotice: false });
+}
+
 export function sendReaction(id: ApiId, reaction: string, auth: SessionScope) {
   return request<MessageResponse>(`/api/arena/game/${id}/reaction`, {
     method: 'POST',
