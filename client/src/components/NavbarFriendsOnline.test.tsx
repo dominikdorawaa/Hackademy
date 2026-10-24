@@ -62,7 +62,7 @@ describe('friends online in the notification bell', () => {
     comeOnline();
     const user = userEvent.setup();
     await user.click(screen.getByRole('button', { name: 'Powiadomienia' }));
-    expect(screen.getByText('1 nowe')).toBeInTheDocument();
+    expect(screen.getByText(/nowe/)).toHaveTextContent('1 nowe');
     const item = screen.getByText('ola').closest('li')!;
     expect(item).toHaveTextContent('ola jest online');
     expect(item).toHaveTextContent('przed chwilą');

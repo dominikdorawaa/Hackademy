@@ -19,6 +19,8 @@ import NavIconButton from './NavIconButton';
 import NavbarFriends from './NavbarFriends';
 import { Bell } from 'lucide-react';
 import { useRoomChrome } from './room/roomChrome';
+import { useArenaClock } from '../hooks/useArenaClock';
+import { secondsLeft } from './arena/battle/battleView';
 
 type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
@@ -104,6 +106,12 @@ const Navbar = () => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, [isNotificationsOpen]);
+  // Pending duels count down to their expiry on the server clock, like the arena's own list.
+  const serverTime = realtime?.serverTime ?? 0;
+  const clock = useArenaClock(serverTime, isNotificationsOpen && notifications.some(notif => notif.type === 'CHALLENGE'));
+  const challengeSecondsLeft = (expiresAt: number) => clock.serverTime === serverTime
+    ? secondsLeft(expiresAt, serverTime, clock.receivedAt, clock.now)
+    : Math.max(0, Math.ceil((expiresAt - serverTime) / 1000));
   useEffect(() => {
     if (wasNotificationsOpen.current && !isNotificationsOpen) {
       markAllRead();
@@ -302,104 +310,100 @@ const Navbar = () => {
                     </NavIconButton>
 
                     {isNotificationsOpen && (
-                        <div className="notifications-dropdown" style={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)' }}>
-                            <div className="notifications-header" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <h3 style={{ color: 'var(--text-light)' }}>Powiadomienia</h3>
+                        <div className="notifications-dropdown">
+                            <div className="notifications-header">
+                                <h3>Powiadomienia</h3>
                                 {unreadCount > 0 && (
-                                    <span className="notifications-count-badge">{unreadCount} nowe</span>
+                                    <span className="notifications-count-badge"><b>{unreadCount}</b> nowe</span>
                                 )}
                             </div>
-                            
+
                             {notifications.length === 0 && rejectedChallenges.length === 0 && onlineFeed.entries.length === 0 ? (
-                                <div className="notifications-empty" style={{ color: 'var(--text-gray)' }}>
-                                    <i className="far fa-bell-slash"></i>
+                                <div className="notifications-empty">
                                     <span>Brak nowych powiadomień</span>
+                                    <small>Zaproszenia i wyzwania od znajomych pojawią się tutaj.</small>
                                 </div>
                             ) : (
-                                <ul className="notifications-list">
-                                    {notifications.map(notif => {
-                                        const isProcessed = processedNotifications.includes(`${notif.type}-${notif.id}`);
-                                        return (
-                                            <li key={`${notif.type}-${notif.id}`} className="notification-item" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                <div className="notification-content">
-                                                    <div className="notification-avatar">
-                                                        <UserAvatar username={notif.from} avatar={notif.type === 'CHALLENGE' ? notif.data.challengerAvatar : notif.data.avatar}
-                                                            alt="Avatar" 
-                                                            style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} 
-                                                        />
-                                                    </div>
-                                                    <div className="notification-text-wrapper">
-                                                        <p className="notification-message" style={{ color: 'var(--text-light)' }}>
-                                                            <strong>{notif.from}</strong>
-                                                            {notif.type === 'CHALLENGE' ? ' wyzywa Cię na pojedynek!' : ' wysłał zaproszenie.'}
+                                <div className="notifications-scroll">
+                                    {notifications.length > 0 && <>
+                                        <p className="notifications-group">Czekają na odpowiedź</p>
+                                        <ul className="notifications-list">
+                                            {notifications.map(notif => {
+                                                const isProcessed = processedNotifications.includes(`${notif.type}-${notif.id}`);
+                                                const challenge = notif.type === 'CHALLENGE' ? notif.data : null;
+                                                return (
+                                                    <li key={`${notif.type}-${notif.id}`} className="notification-item" data-kind={challenge ? 'challenge' : 'friend'}>
+                                                        <UserAvatar className="notification-portrait" username={notif.from}
+                                                            avatar={challenge ? challenge.challengerAvatar : (notif.data as FriendRequestDto).avatar} alt="" />
+                                                        <div className="notification-body">
+                                                            <p className="notification-message">
+                                                                <strong>{notif.from}</strong>
+                                                                {challenge?.challengerElo != null && <span className="notification-elo"><b>{challenge.challengerElo}</b> Elo</span>}
+                                                            </p>
+                                                            <p className="notification-type">
+                                                                {challenge
+                                                                    ? <>wyzywa Cię na pojedynek · <span className="notification-expiry">wygasa za {challengeSecondsLeft(challenge.expiresAt)} s</span></>
+                                                                    : <>chce dodać Cię do znajomych · {formatRelativeTimePL(Date.parse(notif.timestamp), now)}</>}
+                                                            </p>
+                                                            <div className="notification-actions">
+                                                                <button type="button" disabled={isProcessed}
+                                                                    onClick={() => challenge ? handleAcceptChallenge(challenge.id) : handleAcceptFriend(notif.id as number)}
+                                                                    className="btn-notif btn-notif-accept">
+                                                                    {isProcessed ? 'Zapisywanie…' : challenge ? 'Przyjmij pojedynek' : 'Akceptuj'}
+                                                                </button>
+                                                                <button type="button" disabled={isProcessed}
+                                                                    onClick={() => challenge ? handleRejectChallenge(challenge.id) : handleRejectFriend(notif.id as number)}
+                                                                    className="btn-notif btn-notif-reject">
+                                                                    Odrzuć
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </>}
+                                    {(rejectedChallenges.length > 0 || onlineFeed.entries.length > 0) && <>
+                                        <p className="notifications-group">Wcześniej</p>
+                                        <ul className="notifications-list">
+                                            {rejectedChallenges.map(challenge => (
+                                                <li key={`REJECTED-${challenge.id}`} className="notification-item notification-rejected"
+                                                    data-unread={!readRejections.has(challenge.id)}>
+                                                    <span className="notification-portrait-wrap">
+                                                        <UserAvatar className="notification-portrait" username={challenge.targetUsername} avatar={challenge.targetAvatar} alt="" />
+                                                        <span className="notification-rejected-mark" aria-hidden="true"><i className="fas fa-times"></i></span>
+                                                    </span>
+                                                    <div className="notification-body">
+                                                        <p className="notification-message">
+                                                            <strong>{challenge.targetUsername}</strong> odrzuca Twoje wyzwanie na pojedynek.
                                                         </p>
-                                                        <span className="notification-type" style={{ color: 'var(--text-gray)' }}>
-                                                            {notif.type === 'CHALLENGE' ? 'Tryb Rankingowy' : 'Znajomi'}
-                                                        </span>
+                                                        <p className="notification-type">Tryb Rankingowy</p>
                                                     </div>
-                                                </div>
-                                                <div className="notification-actions">
-                                                    {isProcessed ? (
-                                                        <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem', fontStyle: 'italic' }}>Przetwarzanie...</span>
-                                                    ) : (
-                                                        <>
-                                                            <button 
-                                                                onClick={() => notif.type === 'CHALLENGE' ? handleAcceptChallenge(notif.id) : handleAcceptFriend(notif.id)}
-                                                                className="btn-notif btn-notif-accept"
-                                                            >
-                                                                <i className="fas fa-check"></i> Akceptuj
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => notif.type === 'CHALLENGE' ? handleRejectChallenge(notif.id) : handleRejectFriend(notif.id)}
-                                                                className="btn-notif btn-notif-reject"
-                                                            >
-                                                                <i className="fas fa-times"></i> Odrzuć
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                    {rejectedChallenges.map(challenge => (
-                                        <li key={`REJECTED-${challenge.id}`} className="notification-item notification-rejected"
-                                            data-unread={!readRejections.has(challenge.id)}>
-                                            <div className="notification-content">
-                                                <div className="notification-avatar">
-                                                    <UserAvatar username={challenge.targetUsername} avatar={challenge.targetAvatar} alt=""
-                                                        style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} />
-                                                    <span className="notification-rejected-mark" aria-hidden="true"><i className="fas fa-times"></i></span>
-                                                </div>
-                                                <div className="notification-text-wrapper">
-                                                    <p className="notification-message">
-                                                        <strong>{challenge.targetUsername}</strong> odrzuca Twoje wyzwanie na pojedynek.
-                                                    </p>
-                                                    <span className="notification-type">Tryb Rankingowy</span>
-                                                </div>
-                                                <button type="button" className="notification-online-close"
-                                                    aria-label={`Zamknij powiadomienie: ${challenge.targetUsername} odrzuca Twoje wyzwanie`}
-                                                    disabled={processedNotifications.includes(`REJECTED-${challenge.id}`)}
-                                                    onClick={() => handleDismissRejection(challenge.id)}>
-                                                    <i className="fas fa-times" aria-hidden="true"></i>
-                                                </button>
-                                            </div>
-                                        </li>
-                                    ))}
-                                    {onlineFeed.entries.map(entry => (
-                                        <li key={entry.id} className="notification-online" data-unread={!entry.read}>
-                                            <span className="presence-dot" aria-hidden="true" />
-                                            <span className="notification-online-text">
-                                                <strong>{entry.username}</strong> jest online
-                                            </span>
-                                            <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{formatRelativeTimePL(entry.at, now)}</time>
-                                            <button type="button" className="notification-online-close"
-                                                aria-label={`Zamknij powiadomienie: ${entry.username} jest online`}
-                                                onClick={() => onlineFeed.dismiss(entry.id)}>
-                                                <i className="fas fa-times" aria-hidden="true"></i>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
+                                                    <button type="button" className="notification-online-close"
+                                                        aria-label={`Zamknij powiadomienie: ${challenge.targetUsername} odrzuca Twoje wyzwanie`}
+                                                        disabled={processedNotifications.includes(`REJECTED-${challenge.id}`)}
+                                                        onClick={() => handleDismissRejection(challenge.id)}>
+                                                        <i className="fas fa-times" aria-hidden="true"></i>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                            {onlineFeed.entries.map(entry => (
+                                                <li key={entry.id} className="notification-online" data-unread={!entry.read}>
+                                                    <span className="presence-dot" aria-hidden="true" />
+                                                    <span className="notification-online-text">
+                                                        <strong>{entry.username}</strong> jest online
+                                                    </span>
+                                                    <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{formatRelativeTimePL(entry.at, now)}</time>
+                                                    <button type="button" className="notification-online-close"
+                                                        aria-label={`Zamknij powiadomienie: ${entry.username} jest online`}
+                                                        onClick={() => onlineFeed.dismiss(entry.id)}>
+                                                        <i className="fas fa-times" aria-hidden="true"></i>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </>}
+                                </div>
                             )}
                         </div>
                     )}

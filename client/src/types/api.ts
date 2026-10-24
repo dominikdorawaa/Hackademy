@@ -95,6 +95,8 @@ export interface Challenge {
   targetUsername: string
   createdAt: ApiDateTime
   expiresAt: number
+  challengerElo?: number | null
+  targetElo?: number | null
   status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED'
 }
 
