@@ -1,4 +1,26 @@
 @layer components {
+/* The term that opens the explanation on hover, focus or tap. */
+.ud-term-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--ud-ink);
+  font: inherit;
+  font-weight: 650;
+  cursor: help;
+  text-decoration: underline dotted;
+  text-decoration-color: var(--ud-muted);
+  text-underline-offset: 4px;
+}
+
+.ud-term-btn svg {
+  flex: none;
+  color: var(--ud-link);
+}
+
 .elo-help-tip {
   z-index: 60;
   width: min(18rem, calc(100vw - 32px));
@@ -28,6 +50,10 @@
     opacity: 0;
     transform: translateY(4px);
   }
+}
+
+html[data-reduced-motion='true'] .elo-help-tip {
+  animation: none;
 }
 
 @media (prefers-reduced-motion: reduce) {

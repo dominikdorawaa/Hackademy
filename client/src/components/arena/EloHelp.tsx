@@ -7,6 +7,7 @@ export function EloHelp() {
   const [open, setOpen] = useState(false);
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const trigger = useRef<HTMLButtonElement>(null);
+  const tapped = useRef(false);
   const show = () => { clearTimeout(closeTimer.current); setOpen(true); };
   const leave = () => {
     if (document.activeElement === trigger.current) return;
@@ -17,8 +18,13 @@ export function EloHelp() {
   return <Popover.Root open={open} onOpenChange={setOpen}>
     <Popover.Trigger asChild>
       <button ref={trigger} type="button" className="ud-term-btn" aria-label="Co oznacza Elo?"
+        onPointerDown={event => { tapped.current = event.pointerType === 'touch'; }}
         onPointerEnter={event => { if (event.pointerType !== 'touch') show(); }} onPointerLeave={leave}
-        onFocus={show} onClick={event => { event.preventDefault(); show(); }}>
+        onFocus={show} onClick={event => {
+          event.preventDefault();
+          // A second tap closes it; a mouse click keeps the hover-opened explanation open.
+          if (open && tapped.current) setOpen(false); else show();
+        }}>
         Elo <Info size={14} aria-hidden="true" />
       </button>
     </Popover.Trigger>
