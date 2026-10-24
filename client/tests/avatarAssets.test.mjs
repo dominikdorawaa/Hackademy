@@ -193,3 +193,24 @@ test('the track suit has no see-through gaps in the trousers, shoes or eyes', ()
     }
   }
 });
+
+for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
+  test(`${outfit} keeps the same face in every front dance frame`, () => {
+    const atlas = decode(read(atlasFile)), anchors = JSON.parse(read(anchorFile).toString());
+    for (const [first, rows] of [[73, [8, 9]], [118, [13, 14]]]) {
+      const base = anchors.cells[first];
+      const pixel = (cell, x, y) => {
+        const index = ((Math.floor(cell / 9) * 64 + y) * 576 + (cell % 9) * 64 + x) * 4;
+        return atlas.pixels.readUInt32BE(index);
+      };
+      for (const row of rows) for (let column = 1; column <= 8; column++) {
+        const cell = row * 9 + column, anchor = anchors.cells[cell];
+        const dx = Math.round(anchor.x - base.x), dy = Math.round(anchor.y - base.y);
+        assert.ok(Math.abs(anchor.x - base.x - dx) < 1e-6 && Math.abs(anchor.y - base.y - dy) < 1e-6, `cell ${cell} head moves by part of a pixel`);
+        for (let y = Math.round(base.y) - 8; y <= Math.round(base.y); y++) for (let x = Math.round(base.x) - 6; x <= Math.round(base.x) + 6; x++) {
+          assert.equal(pixel(cell, x + dx, y + dy), pixel(first, x, y), `cell ${cell} draws the face differently at ${x},${y}`);
+        }
+      }
+    }
+  });
+}
