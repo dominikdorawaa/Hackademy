@@ -11,6 +11,7 @@ public record BugReportView(
         Long taskId,
         String taskTitle,
         String gameId,
+        String lessonId,
         String pagePath,
         String description,
         BugReportStatus status,

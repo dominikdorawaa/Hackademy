@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 30;
+    static final int SCHEMA_VERSION = 31;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -169,6 +169,25 @@ class SchemaMigrationTest {
         assertEquals("HARD", text("SELECT difficulty FROM arena_questions WHERE content = 'Dlaczego MD5 nie nadaje się do przechowywania haseł?'"));
         execute("UPDATE arena_questions SET difficulty = 'VERY_EASY' WHERE content = 'Czym jest OSINT?'");
         assertSqlState("23514", "UPDATE arena_questions SET difficulty = 'INSANE' WHERE content = 'Czym jest OSINT?'");
+    }
+
+    @Test
+    void addsLabReportsWithoutChangingExistingReports() throws Exception {
+        flyway("30").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        execute("INSERT INTO bug_reports (reporter_id, source, game_id, page_path, description, created_at) VALUES (1, 'ARENA', 'game', '/arena', 'Mecz się zawiesił', now())");
+        execute("INSERT INTO bug_reports (reporter_id, source, description, status, created_at, resolved_at) VALUES (1, 'ROOM', 'Nie działa podpowiedź', 'RESOLVED', now(), now())");
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(2, scalar("SELECT count(*) FROM bug_reports WHERE lesson_id IS NULL"));
+        assertEquals(1, scalar("SELECT count(*) FROM bug_reports WHERE source = 'ARENA' AND game_id = 'game' AND page_path = '/arena' AND description = 'Mecz się zawiesił' AND status = 'OPEN'"));
+        assertEquals(1, scalar("SELECT count(*) FROM bug_reports WHERE source = 'ROOM' AND description = 'Nie działa podpowiedź' AND status = 'RESOLVED' AND resolved_at IS NOT NULL"));
+        execute("INSERT INTO bug_reports (reporter_id, source, lesson_id, page_path, description, created_at) VALUES (1, 'LAB', 'pwd', '/learn/ukos', 'Terminal nie działa', now())");
+        assertEquals("pwd", text("SELECT lesson_id FROM bug_reports WHERE source = 'LAB'"));
+        assertSqlState("23514", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (1, 'CHAT', 'Nieznane źródło', now())");
+        assertSqlState("23514", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (1, 'LAB', 'Brak kroku laboratorium', now())");
+        assertSqlState("23514", "UPDATE bug_reports SET lesson_id = 'pwd' WHERE source = 'ARENA'");
+        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertTrue(flyway().validateWithResult().validationSuccessful);
     }
 
     @Test

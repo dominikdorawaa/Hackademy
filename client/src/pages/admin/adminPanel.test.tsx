@@ -56,6 +56,7 @@ const bugReport = (overrides: Partial<BugReportAdmin> = {}): BugReportAdmin => (
   taskId: 9,
   taskTitle: 'Logowanie',
   gameId: null,
+  lessonId: null,
   pagePath: '/rooms/4',
   description: 'Flaga nie przechodzi',
   status: 'OPEN',
@@ -342,6 +343,8 @@ describe('admin dashboard', () => {
       bugReport({ id: 2, description: 'arena-report', source: 'ARENA', roomId: null, roomTitle: null, taskId: null, taskTitle: null, gameId: '7f0c2d1e-aaaa', pagePath: null }),
       bugReport({ id: 3, description: 'gone-room', roomId: null, roomTitle: null, taskId: null, taskTitle: null, pagePath: null }),
       bugReport({ id: 4, description: 'foreign-path', source: 'ARENA', roomId: null, roomTitle: null, taskId: null, taskTitle: null, pagePath: '//evil.example/login' }),
+      bugReport({ id: 5, description: 'lab-report', source: 'LAB', roomId: null, roomTitle: null, taskId: null, taskTitle: null, lessonId: 'history', pagePath: '/learn/ukos' }),
+      bugReport({ id: 6, description: 'old-lab-step', source: 'LAB', roomId: null, roomTitle: null, taskId: null, taskTitle: null, lessonId: 'removed-step', pagePath: '//evil.example/learn/ukos' }),
     ], page: 0, size: 50, hasNext: false })));
     mountAdmin('/admin/bug-reports');
     const row = async (text: string) => within((await screen.findByText(text)).closest('tr')!);
@@ -358,6 +361,13 @@ describe('admin dashboard', () => {
     const foreign = await row('foreign-path');
     expect(foreign.getAllByText('//evil.example/login')[0].tagName).toBe('SPAN');
     expect(foreign.queryByRole('link')).toBeNull();
+    const lab = await row('lab-report');
+    expect(lab.getAllByText('Laboratorium: Dyżur Zero')[0]).toBeInTheDocument();
+    expect(lab.getAllByText(/Krok: 15\./)[0]).toBeInTheDocument();
+    expect(lab.getAllByRole('link', { name: '/learn/ukos' })[0]).toHaveAttribute('href', '/learn/ukos');
+    const oldLab = await row('old-lab-step');
+    expect(oldLab.getAllByText('Krok: removed-step')[0]).toBeInTheDocument();
+    expect(oldLab.queryByRole('link')).toBeNull();
   });
 
   it('updates roles and deletes an account from the current page', async () => {

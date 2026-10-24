@@ -108,6 +108,62 @@ class BugReportIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void savesLabContextAndReturnsItToAdmins() throws Exception {
+        var player = account(Role.USER);
+        var admin = account(Role.ADMIN);
+        String lab = """
+                {"source":"LAB","lessonId":"history","pagePath":"/learn/ukos","description":"Terminal nie reaguje na polecenie history."}
+                """;
+        postJson(player, URL, lab).andExpect(status().isCreated());
+        assertEquals("history", jdbcTemplate.queryForObject("SELECT lesson_id FROM bug_reports WHERE reporter_id = ?", String.class, player.id()));
+        getAs(admin, ADMIN_URL)
+                .andExpect(jsonPath("$.items[0].source").value("LAB"))
+                .andExpect(jsonPath("$.items[0].lessonId").value("history"))
+                .andExpect(jsonPath("$.items[0].pagePath").value("/learn/ukos"))
+                .andExpect(jsonPath("$.items[0].roomId").value(nullValue()))
+                .andExpect(jsonPath("$.items[0].taskId").value(nullValue()))
+                .andExpect(jsonPath("$.items[0].gameId").value(nullValue()));
+        long id = jdbcTemplate.queryForObject("SELECT id FROM bug_reports WHERE reporter_id = ?", Long.class, player.id());
+        putJson(admin, ADMIN_URL + "/" + id + "/status", "{\"status\":\"RESOLVED\"}")
+                .andExpect(jsonPath("$.lessonId").value("history"));
+        postJson(player, URL, lab).andExpect(status().isConflict());
+        sentEarlier(player, 4, 5);
+        postJson(player, URL, """
+                {"source":"LAB","lessonId":"pwd","description":"Inny problem w terminalu."}
+                """).andExpect(status().isTooManyRequests()).andExpect(header().exists("Retry-After"));
+    }
+
+    @Test
+    void rejectsLabReportsWithUnknownStepsOrMixedContext() throws Exception {
+        var player = account(Role.USER);
+        for (String lesson : List.of("null", "\"\"", "\"unknown-step\"", "\"" + "a".repeat(65) + "\"")) {
+            postJson(player, URL, """
+                    {"source":"LAB","lessonId":%s,"description":"Problem w terminalu."}
+                    """.formatted(lesson)).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Nieprawidłowy krok laboratorium."));
+        }
+        for (String context : List.of("\"roomId\":1", "\"taskId\":1", "\"gameId\":\"game\"")) {
+            postJson(player, URL, """
+                    {"source":"LAB","lessonId":"pwd",%s,"description":"Problem w terminalu."}
+                    """.formatted(context)).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Zgłoszenie z laboratorium nie może wskazywać pokoju, zadania ani meczu."));
+        }
+        for (String path : List.of("//evil.example/learn/ukos", "/learn/ukos/", "/learn/ukos?token=secret", "/arena", "/rooms/1")) {
+            postJson(player, URL, """
+                    {"source":"LAB","lessonId":"pwd","pagePath":"%s","description":"Problem w terminalu."}
+                    """.formatted(path)).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Nieprawidłowy adres strony."));
+        }
+        for (String source : List.of("ROOM", "ARENA")) {
+            postJson(player, URL, """
+                    {"source":"%s","lessonId":"pwd","description":"Krok poza laboratorium."}
+                    """.formatted(source)).andExpect(status().isBadRequest())
+                    .andExpect(jsonPath("$.message").value("Nieprawidłowy krok laboratorium."));
+        }
+        assertEquals(0, reports(player));
+    }
+
+    @Test
     void rejectsInvalidReportsWithoutSavingThem() throws Exception {
         var admin = account(Role.ADMIN);
         var player = account(Role.USER);
