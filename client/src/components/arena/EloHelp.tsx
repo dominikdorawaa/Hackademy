@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { Popover } from 'radix-ui';
 import { Info } from 'lucide-react';
+import './EloHelp.css';
 
 export function EloHelp() {
   const [open, setOpen] = useState(false);
@@ -22,11 +23,11 @@ export function EloHelp() {
       </button>
     </Popover.Trigger>
     <Popover.Portal>
-      <Popover.Content className="user-dashboard arena-elo-tip" side="top" sideOffset={12} collisionPadding={16}
+      <Popover.Content className="user-dashboard elo-help-tip" side="top" sideOffset={12} collisionPadding={16}
         aria-label="Jak działa Elo" onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()}
         onPointerEnter={() => clearTimeout(closeTimer.current)} onPointerLeave={leave}>
         <strong>Elo to Twoja siła w pojedynkach.</strong>
-        <p>Wygrywasz, to rośnie, przegrywasz, to spada. Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.</p>
+        <p>Grasz w Trybie rankingowym: wygrywasz, to rośnie, przegrywasz, to spada. Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.</p>
       </Popover.Content>
     </Popover.Portal>
   </Popover.Root>;

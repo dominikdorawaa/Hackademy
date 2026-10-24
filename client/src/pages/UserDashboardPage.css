@@ -620,10 +620,6 @@ a.ud-room-row:hover {
 }
 
 /* --- Inline term with an explanation on hover, focus or tap --- */
-.ud-term {
-  display: inline-block;
-}
-
 .ud-term-btn {
   display: inline-flex;
   align-items: center;
@@ -640,44 +636,9 @@ a.ud-room-row:hover {
   text-underline-offset: 4px;
 }
 
-.ud-term-btn i {
-  font-size: 0.8125rem;
+.ud-term-btn svg {
+  flex: none;
   color: var(--ud-link);
-}
-
-.ud-tip {
-  position: absolute;
-  left: 0;
-  top: calc(100% + 10px);
-  z-index: 20;
-  width: min(320px, 100%);
-  padding: 12px 14px;
-  border-radius: var(--ud-radius);
-  background: var(--ud-tip-bg);
-  color: var(--ud-tip-ink);
-  font-size: var(--ud-text-s);
-  font-weight: 400;
-  line-height: 1.5;
-  box-shadow: var(--ud-float-shadow); /* taste-skill-ignore: floating overlay */
-  opacity: 0;
-  visibility: hidden;
-  transform: translateY(-4px);
-  transition: opacity 140ms var(--ud-ease), transform 140ms var(--ud-ease), visibility 0s linear 140ms;
-  pointer-events: none;
-}
-
-.ud-tip strong {
-  display: block;
-  margin-bottom: 4px;
-  font-weight: 700;
-}
-
-.ud-term:hover .ud-tip,
-.ud-term:focus-within .ud-tip {
-  opacity: 1;
-  visibility: visible;
-  transform: none;
-  transition-delay: 0s;
 }
 
 .ud-scale-ends span:last-child {
@@ -1297,7 +1258,6 @@ a.ud-room-row:hover {
     animation: none;
   }
 
-  .ud-tip,
   .ud-peek-card,
   .ud-btn,
   .ud-link,
