@@ -109,7 +109,7 @@ export default function BugReportsPage() {
 
   return (
     <>
-      <PageHeader title="Zgłoszenia błędów" description="Problemy, które gracze zgłosili z pokojów i z areny." />
+      <PageHeader title="Zgłoszenia błędów" description="Problemy, które gracze zgłosili z pokojów, areny i laboratorium." />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <Select value={filter} onValueChange={(value) => { setFilter(value as BugReportStatus | typeof ALL); setPage(0); setSuccess(null); }}>
           <SelectTrigger aria-label="Filtruj według statusu" className="w-full sm:w-48">
