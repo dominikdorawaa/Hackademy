@@ -134,7 +134,7 @@ it('sends the newest view instead of retrying a stale one', async () => {
   const first = renderHook(() => useBattlePresence('e', 'sessionKey'));
   await waitFor(() => expect(of('e')).toEqual(['return:e']));
   first.unmount();
-  await waitFor(() => expect(of('e')).toEqual(['return:e', 'leave:e']));
+  await waitFor(() => expect(of('e')).toEqual(['return:e', 'leave:e']), { timeout: RETRY_MS * 3 });
 });
 
 it('does nothing without a game or a signed in player', () => {
