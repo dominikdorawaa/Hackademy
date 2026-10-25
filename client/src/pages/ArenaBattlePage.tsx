@@ -81,7 +81,6 @@ export default function ArenaBattlePage() {
 
   const { me, rival } = perspective(session, meId);
   const finished = session.status === 'FINISHED';
-  const RevealHeading = finished ? 'h2' : 'h1';
   const deadline = session.phase === 'QUESTION' ? session.roundEndsAt : session.nextRoundAt;
   const left = frozenSecondsLeft(session, deadline) ?? (clock.serverTime === serverTime
     ? secondsLeft(deadline, serverTime, clock.receivedAt, clock.now)
@@ -89,7 +88,7 @@ export default function ArenaBattlePage() {
   const answered = session.answeredBy.includes(me.id);
   const rivalAnswered = session.answeredBy.includes(rival.id);
   const myPick = picked?.round === session.round ? picked.answer : null;
-  const reveal = session.phase === 'REVEAL' ? session.lastRound : null;
+  const reveal = !finished && session.phase === 'REVEAL' ? session.lastRound : null;
   const result = outcome(session, me.id);
   const change = eloChange(session, me.id);
   const visibleError = error && (error.round === null || error.round === session.round) ? error.message : null;
@@ -157,7 +156,7 @@ export default function ArenaBattlePage() {
           ) : reveal ? (
             <section className="battle-card" aria-labelledby="battle-question">
               <p className="battle-card-meta">Wynik rundy {reveal.round}</p>
-              <RevealHeading id="battle-question" className="battle-question">{reveal.content}</RevealHeading>
+              <h1 id="battle-question" className="battle-question">{reveal.content}</h1>
               <ol className="battle-answers is-reveal">
                 {reveal.answers.map((text, index) => {
                   const correct = index === reveal.correctAnswer;

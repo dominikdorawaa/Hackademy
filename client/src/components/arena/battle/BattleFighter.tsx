@@ -4,6 +4,7 @@ import { AvatarSprite } from '../avatar/AvatarSprite';
 import { AVATAR_ATLASES } from '../avatar/fighters';
 import type { AvatarAtlas } from '../avatar/useAvatarAtlas';
 import type { Avatar } from '../avatar/avatarModel';
+import { KNOCKBACK_MS } from './battleView';
 import type { Finisher, Segment } from './battleView';
 import { REACTION_FRAME_MS } from './quickChat';
 
@@ -33,7 +34,7 @@ export function BattleFighter({ look, atlas, segments, reducedMotion, label, sid
   const dance = reaction && idle && index === segments.length - 1 && !reducedMotion ? reaction : null;
   return (
     <div className={`battle-fighter is-${side}`} data-idle={idle && !dance} data-frames={(dance?.frames ?? segment.frames).join(',')} data-finished-by={finishedBy?.move}
-      style={finishedBy ? { '--finish-impact': `${finishedBy.impact}ms` } as CSSProperties : undefined}>
+      style={finishedBy ? { '--finish-impact': `${finishedBy.impact}ms`, '--knockback': `${KNOCKBACK_MS}ms` } as CSSProperties : undefined}>
       {dance ? <AvatarSprite key={`reaction-${dance.key}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
           frames={dance.frames} loop={false} frameTime={REACTION_FRAME_MS} label={label} />
         : <AvatarSprite key={`${motionKey}-${index}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
