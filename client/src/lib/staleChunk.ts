@@ -10,8 +10,10 @@ export function isStaleChunkError(error: unknown) {
   return CHUNK_ERROR.test(message);
 }
 
-export function reloadOnceForStaleChunk(now = Date.now(), storage: Storage = sessionStorage, reload = () => window.location.reload()) {
+export function reloadOnceForStaleChunk(now = Date.now(), getStorage = (): Storage => sessionStorage, reload = () => window.location.reload()) {
   try {
+    // Merely reading `sessionStorage` throws when the browser blocks site data.
+    const storage = getStorage();
     const last = Number(storage.getItem(RELOAD_KEY));
     if (last && now - last < RELOAD_GUARD_MS) return false;
     storage.setItem(RELOAD_KEY, String(now));

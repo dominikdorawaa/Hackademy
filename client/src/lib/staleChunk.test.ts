@@ -28,30 +28,43 @@ describe('isStaleChunkError', () => {
 describe('reloadOnceForStaleChunk', () => {
   it('reloads the first time', () => {
     const reload = vi.fn();
-    expect(reloadOnceForStaleChunk(1_000, memoryStorage(), reload)).toBe(true);
+    expect(reloadOnceForStaleChunk(1_000, memoryStorage, reload)).toBe(true);
     expect(reload).toHaveBeenCalledOnce();
   });
 
   it('does not reload again right after a reload', () => {
     const storage = memoryStorage();
+    const getStorage = () => storage;
     const reload = vi.fn();
-    reloadOnceForStaleChunk(1_000, storage, reload);
-    expect(reloadOnceForStaleChunk(5_000, storage, reload)).toBe(false);
+    reloadOnceForStaleChunk(1_000, getStorage, reload);
+    expect(reloadOnceForStaleChunk(5_000, getStorage, reload)).toBe(false);
     expect(reload).toHaveBeenCalledOnce();
   });
 
   it('reloads again after the guard window', () => {
     const storage = memoryStorage();
+    const getStorage = () => storage;
     const reload = vi.fn();
-    reloadOnceForStaleChunk(1_000, storage, reload);
-    expect(reloadOnceForStaleChunk(20_000, storage, reload)).toBe(true);
+    reloadOnceForStaleChunk(1_000, getStorage, reload);
+    expect(reloadOnceForStaleChunk(20_000, getStorage, reload)).toBe(true);
     expect(reload).toHaveBeenCalledTimes(2);
   });
 
   it('does not reload when storage is unavailable', () => {
     const storage = { getItem: () => { throw new Error('blocked'); } } as unknown as Storage;
     const reload = vi.fn();
-    expect(reloadOnceForStaleChunk(1_000, storage, reload)).toBe(false);
+    expect(reloadOnceForStaleChunk(1_000, () => storage, reload)).toBe(false);
+    expect(reload).not.toHaveBeenCalled();
+  });
+
+  it('does not throw when reading sessionStorage itself is blocked', () => {
+    const reload = vi.fn();
+    const spy = vi.spyOn(window, 'sessionStorage', 'get').mockImplementation(() => { throw new DOMException('denied', 'SecurityError'); });
+    try {
+      expect(reloadOnceForStaleChunk(1_000, undefined, reload)).toBe(false);
+    } finally {
+      spy.mockRestore();
+    }
     expect(reload).not.toHaveBeenCalled();
   });
 });
