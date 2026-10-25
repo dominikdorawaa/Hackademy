@@ -12,24 +12,20 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 10px;
-  background: var(--bg-panel);
-  color: var(--text-light);
+  border: 2px solid var(--px-gold);
+  border-radius: 2px;
+  background: var(--px-surface);
+  color: var(--px-ink);
   font-size: 0.9rem;
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--px-float);
   pointer-events: auto;
-}
-
-[data-theme='light'] .rate-limit-notice {
-  box-shadow: 0 0 0 1px rgba(15, 23, 36, 0.08), 0 12px 28px rgba(15, 23, 36, 0.16);
 }
 
 .rate-limit-notice-dot {
   flex: none;
   width: 8px;
   height: 8px;
-  border-radius: 50%;
-  background: #f1c40f;
+  background: var(--px-gold);
 }
 
 .rate-limit-notice-close {

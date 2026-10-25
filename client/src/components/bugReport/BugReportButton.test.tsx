@@ -79,7 +79,7 @@ describe('bug report button', () => {
     await user.click(field);
     await user.paste('a'.repeat(2001));
     expect(field).toHaveAttribute('aria-invalid', 'true');
-    expect(dialog.getByText('2001 / 2000')).toHaveClass('text-destructive');
+    expect(dialog.getByText('2001 / 2000')).toHaveClass('is-over');
     expect(submit).toBeDisabled();
   });
 

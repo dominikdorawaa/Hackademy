@@ -17,11 +17,9 @@
 }
 
 .arena-page .arena-title {
-  font-size: var(--ud-display);
-  font-weight: 800;
-  font-stretch: 85%;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-size: clamp(3rem, 2.2rem + 2.4vw, 4.5rem);
+  font-weight: 400;
+  line-height: 0.9;
   text-wrap: balance;
 }
 
@@ -31,9 +29,11 @@
 }
 
 .arena-kicker {
-  margin-bottom: 8px;
-  color: var(--ud-hero-muted);
-  font-weight: 600;
+  margin-bottom: 10px;
+  color: var(--ud-link);
+  font-family: var(--ud-pixel);
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .arena-console-copy p:not(.arena-kicker) {
@@ -50,11 +50,16 @@
 }
 
 .arena-hero {
+  --frame: var(--ud-blue-shade);
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
-  border-radius: var(--ud-radius);
-  overflow: hidden;
+  margin: 3px;
   background: var(--ud-hero-bg);
+  box-shadow:
+    0 -3px 0 0 var(--frame),
+    0 3px 0 0 var(--frame),
+    -3px 0 0 0 var(--frame),
+    3px 0 0 0 var(--frame);
   color: var(--ud-hero-ink);
 }
 
@@ -63,6 +68,7 @@
   flex-direction: column;
   align-items: center;
   padding: 22px 24px 24px;
+  border-right: 3px solid var(--frame);
   background: color-mix(in srgb, var(--league) 24%, var(--ud-board));
   color: var(--ud-ink);
   text-align: center;
@@ -80,12 +86,15 @@
   display: inline-flex;
   align-items: center;
   gap: 6px;
-  padding: 3px 10px 3px 4px;
-  border-radius: 4px;
+  padding: 2px 10px 2px 4px;
+  border-radius: 2px;
   background: var(--league);
+  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
   color: #0b111c;
-  font-size: 0.8125rem;
-  font-weight: 800;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  line-height: 1;
+  white-space: nowrap;
 }
 
 .arena-league .league-icon {
@@ -95,15 +104,17 @@
 
 .arena-card-rank {
   color: var(--ud-muted);
-  font-size: var(--ud-text-s);
+  font-size: 0.8125rem;
   font-weight: 600;
+  text-align: right;
 }
 
 .arena-page .arena-card-portrait {
   width: 168px;
   height: 168px;
   margin: 0;
-  border-radius: var(--ud-radius);
+  border-radius: 2px;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--league) 55%, var(--ud-board));
   background: color-mix(in srgb, var(--league) 40%, var(--ud-board));
   image-rendering: pixelated;
   display: block;
@@ -122,8 +133,9 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  font-size: 1.25rem;
-  font-weight: 700;
+  font-family: var(--ud-pixel);
+  font-size: 1.875rem;
+  line-height: 1;
 }
 
 .arena-card-elo {
@@ -136,11 +148,10 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
 }
 
 .arena-card-number {
-  font-size: 4.25rem;
-  font-weight: 800;
-  font-stretch: 70%;
-  line-height: 0.9;
-  letter-spacing: -0.03em;
+  font-family: var(--ud-pixel);
+  font-size: 5rem;
+  font-weight: 400;
+  line-height: 0.8;
 }
 
 .arena-card-elo .ud-term-btn {
@@ -156,8 +167,8 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
 }
 
 .arena-card-next .ud-meter {
-  height: 8px;
-  background: color-mix(in srgb, var(--league) 18%, var(--ud-track));
+  border-color: color-mix(in srgb, var(--league) 45%, var(--ud-line-strong));
+  background: var(--ud-board);
 }
 
 .arena-card-next .ud-meter span {
@@ -209,9 +220,9 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
 }
 
 .arena-ladder-bar {
-  height: 10px;
-  border-radius: 2px;
+  height: 12px;
   background: color-mix(in srgb, var(--ud-hero-muted) 22%, transparent);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
 }
 
 .arena-ladder .is-reached .arena-ladder-bar,
@@ -220,19 +231,18 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
 }
 
 .arena-ladder .is-current .arena-ladder-bar {
-  box-shadow: 0 0 0 2px var(--ud-hero-bg), 0 0 0 4px var(--tier);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel), 0 0 0 2px var(--ud-hero-bg), 0 0 0 4px var(--tier);
 }
 
 .arena-ladder-name {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-  font-weight: 650;
+  font-family: var(--ud-pixel);
+  font-size: 1.375rem;
+  line-height: 0.9;
+  overflow-wrap: anywhere;
 }
 
 .arena-ladder .is-current .arena-ladder-name {
   color: var(--ud-hero-ink);
-  font-weight: 800;
 }
 
 .arena-ladder-min {
@@ -251,16 +261,17 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
 
 .arena-page .arena-go {
   min-height: 56px;
-  padding: 0 36px;
+  padding: 0 32px;
+  border-color: var(--ud-blue-shade);
   background: var(--ud-blue);
+  box-shadow: inset 0 -4px 0 var(--ud-bevel);
   color: var(--ud-blue-ink);
-  font-size: 1.125rem;
-  font-weight: 700;
+  font-size: 1.875rem;
 }
 
-.arena-page .arena-go:hover {
+.arena-page .arena-go:hover:not(:disabled) {
+  border-color: var(--ud-blue-shade);
   background: var(--ud-cta-hover);
-  transform: translateY(-1px);
 }
 
 .arena-page .arena-go:disabled {
@@ -300,7 +311,6 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   padding: 0;
   border: 0;
   background: none;
-  font: inherit;
   cursor: pointer;
 }
 
@@ -313,7 +323,6 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   width: 8px;
   height: 8px;
   flex: none;
-  border-radius: 50%;
   background: var(--ud-muted);
 }
 
@@ -340,23 +349,22 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   align-items: center;
   gap: 12px 14px;
   padding: 12px;
+  border: 2px solid color-mix(in srgb, var(--ud-hard) 45%, transparent);
   border-radius: var(--ud-radius);
   background: rgba(6, 13, 28, 0.42);
-  box-shadow: inset 0 0 0 1px rgba(255, 255, 255, 0.08);
   animation: arena-rejected-in 240ms var(--ud-ease) both;
 }
 
 [data-theme='light'] .arena-rejected-card {
   background: rgba(255, 255, 255, 0.72);
-  box-shadow: inset 0 0 0 1px rgba(11, 31, 68, 0.12);
 }
 
 .arena-rejected-avatar {
   width: 52px;
   height: 52px;
-  border-radius: 4px;
+  border-radius: 2px;
   background: var(--ud-surface-2);
-  object-fit: cover;
+  object-fit: contain;
   image-rendering: pixelated;
 }
 
@@ -474,9 +482,8 @@ html[data-reduced-motion='true'] .arena-rejected-card {
   width: 10px;
   height: 10px;
   flex: none;
-  border-radius: 50%;
   background: var(--ud-link);
-  animation: arena-pulse 1.2s var(--ud-ease) infinite;
+  animation: arena-pulse 1.2s steps(2, jump-none) infinite;
 }
 
 @keyframes arena-pulse {
@@ -498,7 +505,7 @@ html[data-reduced-motion='true'] .arena-rejected-card {
 }
 
 .arena-challenge {
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
 }
 
 .arena-challenge-act {
@@ -515,12 +522,21 @@ html[data-reduced-motion='true'] .arena-rejected-card {
   position: static;
 }
 
+.arena-board .ud-section-head {
+  flex-wrap: wrap;
+  row-gap: 6px;
+}
+
 .arena-board .ud-section-head h2 {
-  font-size: 1.125rem;
+  font-size: 1.625rem;
+}
+
+.arena-board .ud-section-head .ud-link {
+  white-space: nowrap;
 }
 
 .arena-board .ud-friend {
-  grid-template-columns: 40px minmax(0, 1fr) auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto;
   gap: 2px 12px;
 }
 
@@ -535,9 +551,9 @@ html[data-reduced-motion='true'] .arena-rejected-card {
 }
 
 .arena-board-title {
-  font-size: 1.125rem;
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: 1.625rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .arena-report {
@@ -547,7 +563,7 @@ html[data-reduced-motion='true'] .arena-rejected-card {
   gap: 8px 12px;
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 1px solid var(--ud-track);
+  border-top: 2px solid var(--ud-line);
   color: var(--ud-muted);
   font-size: var(--ud-text-s);
 }
@@ -563,8 +579,8 @@ html[data-reduced-motion='true'] .arena-rejected-card {
 .arena-rules li {
   counter-increment: arena-rule;
   display: grid;
-  grid-template-columns: 24px minmax(0, 1fr);
-  gap: 8px;
+  grid-template-columns: 28px minmax(0, 1fr);
+  gap: 10px;
   color: var(--ud-muted);
   font-size: 0.9375rem;
   line-height: 1.45;
@@ -572,16 +588,28 @@ html[data-reduced-motion='true'] .arena-rejected-card {
 
 .arena-rules li::before {
   content: counter(arena-rule);
+  display: grid;
+  place-items: center;
+  width: 26px;
+  height: 26px;
+  border: 2px solid var(--ud-line-strong);
+  border-radius: 2px;
+  background: var(--ud-surface-2);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
   color: var(--ud-ink);
-  font-size: 1.125rem;
-  font-weight: 800;
-  font-stretch: 75%;
-  line-height: 1.3;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 @media (max-width: 1180px) and (min-width: 1081px), (max-width: 720px) {
   .arena-hero {
     grid-template-columns: minmax(0, 1fr);
+  }
+
+  .arena-card {
+    border-right: 0;
+    border-bottom: 3px solid var(--frame);
   }
 }
 
@@ -598,7 +626,7 @@ html[data-reduced-motion='true'] .arena-rejected-card {
 
 
   .arena-challenge {
-    grid-template-columns: 40px minmax(0, 1fr);
+    grid-template-columns: 44px minmax(0, 1fr);
   }
 
   .arena-challenge-act {

@@ -1,21 +1,22 @@
 .invite-card {
-  --invite-ground: #1f2b42;
-  --invite-duel-ground: #0b111c;
-  --invite-raised: #2c3a55;
-  --invite-ink: #e8edf5;
-  --invite-muted: #9eabbf;
-  --invite-blue: #0b63ff;
-  --invite-blue-hover: #4a8dff;
-  --invite-link: #6ea2ff;
-  --invite-error: #ff8a80;
-  --invite-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --invite-ground: var(--px-surface);
+  --invite-duel-ground: var(--px-board);
+  --invite-raised: var(--px-surface-2);
+  --invite-ink: var(--px-ink);
+  --invite-muted: var(--px-muted);
+  --invite-blue: var(--px-blue);
+  --invite-blue-hover: var(--px-blue-hover);
+  --invite-link: var(--px-link);
+  --invite-error: var(--px-error);
+  --invite-ease: var(--px-ease);
   position: relative;
   display: grid;
   grid-template-columns: auto minmax(0, 1fr);
   align-items: center;
   gap: 14px;
   padding: 16px 16px 18px;
-  border-radius: 6px;
+  border: 2px solid var(--px-line-strong);
+  border-radius: 2px;
   background: var(--invite-ground);
   color: var(--invite-ink);
   font-family: 'Archivo', system-ui, sans-serif;
@@ -23,20 +24,10 @@
   text-align: left;
 }
 
-[data-theme='light'] .invite-card {
-  --invite-ground: #ffffff;
-  --invite-duel-ground: #dfe5ee;
-  --invite-raised: #eef1f6;
-  --invite-ink: #111827;
-  --invite-muted: #4b5563;
-  --invite-blue-hover: #0845b8;
-  --invite-link: #0b55db;
-  --invite-error: #c62828;
-}
-
 .invite-card[data-kind='challenge'] {
   grid-template-columns: minmax(0, 1fr);
   justify-items: stretch;
+  border-color: var(--px-blue-shade);
   background: var(--invite-duel-ground);
 }
 
@@ -44,9 +35,10 @@
   display: block;
   width: 48px;
   height: 48px;
-  border-radius: 6px;
+  border-radius: 2px;
   background: var(--invite-raised);
-  object-fit: cover;
+  box-shadow: 0 0 0 2px var(--px-line);
+  object-fit: contain;
 }
 
 .invite-duel {
@@ -70,9 +62,9 @@
 
 .invite-elo b {
   color: var(--invite-ink);
-  font-size: 1rem;
-  font-weight: 800;
-  font-variation-settings: 'wdth' 75;
+  font-family: var(--px-pixel);
+  font-size: 1.25rem;
+  font-weight: 400;
 }
 
 .invite-versus {
@@ -98,10 +90,10 @@
 .invite-name {
   overflow: hidden;
   color: var(--invite-ink);
-  font-size: 1.125rem;
-  font-weight: 800;
-  font-variation-settings: 'wdth' 80;
-  line-height: 1.15;
+  font-family: var(--px-pixel);
+  font-size: 1.625rem;
+  font-weight: 400;
+  line-height: 1;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
@@ -112,22 +104,24 @@
 
 .invite-actions button {
   min-height: 36px;
-  padding: 0 16px;
-  border: 0;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 0.875rem;
-  font-weight: 650;
+  padding: 0 14px;
+  border: 2px solid var(--px-line-strong);
+  border-radius: 4px;
+  box-shadow: inset 0 -3px 0 var(--px-bevel);
+  font-family: var(--px-pixel);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 160ms var(--invite-ease), transform 160ms var(--invite-ease);
+  transition: background-color 160ms var(--invite-ease), border-color 160ms var(--invite-ease), transform 160ms var(--invite-ease);
 }
 
-.invite-accept { background: var(--invite-blue); color: #ffffff; }
-.invite-accept:hover:not(:disabled) { background: var(--invite-blue-hover); transform: translateY(-1px); }
+.invite-actions .invite-accept { border-color: var(--px-blue-shade); background: var(--invite-blue); color: #ffffff; }
+.invite-actions .invite-accept:hover:not(:disabled) { background: var(--invite-blue-hover); }
 .invite-reject { background: var(--invite-raised); color: var(--invite-ink); }
-.invite-reject:hover:not(:disabled) { color: var(--invite-ink); background: color-mix(in srgb, var(--invite-raised) 80%, var(--invite-ink)); }
-.invite-actions button:active:not(:disabled) { transform: translateY(1px); }
+.invite-reject:hover:not(:disabled) { border-color: var(--px-muted); color: var(--invite-ink); background: var(--px-line); }
+.invite-actions button:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 -1px 0 var(--px-bevel); }
 .invite-actions button:disabled { opacity: 0.7; cursor: progress; }
 .invite-actions button:focus-visible { outline: 2px solid var(--invite-link); outline-offset: 3px; }
 

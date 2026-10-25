@@ -25,7 +25,8 @@
   z-index: 60;
   width: min(18rem, calc(100vw - 32px));
   padding: 12px 14px;
-  border-radius: var(--ud-radius);
+  border: 2px solid var(--ud-line-strong);
+  border-radius: 2px;
   background: var(--ud-tip-bg);
   color: var(--ud-tip-ink);
   box-shadow: var(--ud-float-shadow); /* taste-skill-ignore: floating overlay */
@@ -40,9 +41,11 @@
 
 .elo-help-tip strong {
   display: block;
-  margin-bottom: 4px;
-  font-size: inherit;
-  font-weight: 700;
+  margin-bottom: 6px;
+  font-family: var(--ud-pixel);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 @keyframes elo-help-in {
