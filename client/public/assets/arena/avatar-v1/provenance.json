@@ -86,7 +86,7 @@
   "atlasSha256": {
     "fighter.png": "ded7a8ccd149ead16bd389532bdf7c4eac66d946b8b0be1abdcd4e6643cb9a0f",
     "hoodie/fighter.png": "d8a6969bfba1051a6157a26c14fd05c534ff195baa50792f72411803537b8864",
-    "track/fighter.png": "3036743ad8b437e8fec26a110e3f63031a4a94382d08af780e57daa543fcb6b2"
+    "track/fighter.png": "357502b8f0eb8c690398b51b6844f6413c386aaf02649223cc8049e052dbc961"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -379,7 +379,8 @@
         "mask": "clothes and arms, the head and both hands kept",
         "seed": 90301,
         "description": "the same bald man wearing an orange tracksuit jacket with long orange sleeves down to the wrists with white stripes, black track pants with white side stripes and grey sneakers, one orange sleeve bent up to the hand covering his mouth, the other orange sleeve straight forward toward the viewer ending in the flat hand in front of the belly, no bare forearms, same dark outline",
-        "transplant": "the generated outfit frames drew the forward hand differently in every frame, so the upper body above the waist is rebuilt from the matching baza frame: the head down to the chin and the waving hand (the largest piece of the pixels the hand wave moved in that frame) keep their skin, every other skin pixel of the arms is repainted with the light or shadow sleeve colour, and the tank top takes the outfit pixels at the same spot; the legs come from the outfit animation"
+        "transplant": "the generated outfit frames drew the forward hand differently in every frame, so the upper body above the waist is rebuilt from the matching baza frame: the head down to the chin and the waving hand (the largest piece of the pixels the hand wave moved in that frame) keep their skin, every other skin pixel of the arms is repainted with the light or shadow sleeve colour, and the tank top takes the outfit pixels at the same spot; the legs come from the outfit animation",
+        "rebuild": "the generated tracksuit drifted between frames and hid the outfit, so every frame is redrawn on the base outfit frame of the same index: outlines, legs and shoes take the base shape, the T-shirt becomes the orange jacket body with a darker zip down the middle, bare arms become lighter orange sleeves with a white stripe along their top edge, the hands and the head keep the generated tracksuit pixels, the trousers become black with a white stripe down the outer side of each leg, and the shoes turn grey"
       }
     },
     "animation": {
