@@ -176,7 +176,7 @@
 }
 
 .notification-item:hover { background: var(--np-raised); }
-.notification-item[data-kind='challenge'] { background: var(--np-duel); box-shadow: inset 2px 0 0 var(--np-blue); }
+.notification-item[data-kind='challenge'] { background: var(--np-duel); }
 
 .notification-portrait,
 .notification-portrait-wrap {

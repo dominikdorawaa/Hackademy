@@ -15,6 +15,10 @@
   animation: px-toast-in 200ms steps(3, end) both;
 }
 
+body:has(.site-shell--room) .px-toast {
+  bottom: calc(92px + env(safe-area-inset-bottom));
+}
+
 .px-toast[data-type='error'] {
   --toast-accent: var(--px-error);
   --frame: color-mix(in srgb, var(--toast-accent) 40%, var(--px-line));

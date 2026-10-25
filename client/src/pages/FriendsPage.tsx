@@ -15,7 +15,6 @@ import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { levelFromPoints } from '../lib/level';
 import { Check, Mail, Search, Swords, User, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import '../components/room/room.css';
-import '../components/learn/learn.css';
 import './FriendsPage.css';
 
 const FriendsPage = () => {
