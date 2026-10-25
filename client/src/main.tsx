@@ -9,10 +9,13 @@ import { clerkLocalization } from './components/auth/clerkLocalization';
 import './index.css'
 import './styles/landing-experience.css'
 import App from './App'
+import AppErrorPage from './pages/AppErrorPage';
+import { enableStaleChunkReload } from './lib/staleChunk';
 
 enableDeferredStyles();
+enableStaleChunkReload();
 
-const router = createBrowserRouter([{ path: '*', element: <App /> }]);
+const router = createBrowserRouter([{ path: '*', element: <App />, errorElement: <AppErrorPage /> }]);
 
 function ClerkApplication() {
   const { theme, reducedMotion } = useTheme();
