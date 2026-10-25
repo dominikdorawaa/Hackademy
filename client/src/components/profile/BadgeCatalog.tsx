@@ -137,7 +137,7 @@ export default function BadgeCatalog({ badges, initialFilter, own, onClose }: {
           </Button>
           <ol className="profile-badge-pages">{pageSlots(currentPage, pageCount).map((slot, index) => slot === 'gap'
             ? <li key={`gap-${index}`} className="profile-badge-page-gap" aria-hidden="true">…</li>
-            : <li key={slot}><Button variant={slot === currentPage ? 'default' : 'outline'} size="sm"
+            : <li key={slot}><Button variant={slot === currentPage ? 'default' : 'outline'} size="sm" className="min-w-8 px-2 max-sm:min-w-7 max-sm:px-1"
               aria-label={`Strona ${slot + 1} z ${pageCount}`} aria-current={slot === currentPage ? 'page' : undefined}
               onClick={() => setPage(slot)}>{slot + 1}</Button></li>)}</ol>
           <Button variant="outline" size="sm" disabled={currentPage === pageCount - 1} aria-label="Następna strona odznak" onClick={() => step(currentPage + 1)}>

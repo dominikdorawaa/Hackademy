@@ -72,8 +72,6 @@
     .badge-catalog-item-status { grid-column: 2; text-align: left; }
     .badge-catalog .profile-badge-pagination { flex-direction: column; align-items: stretch; }
     .badge-catalog .profile-badge-page-controls { width: 100%; justify-content: space-between; }
-    .profile-badge-pages { gap: 2px; }
-    .profile-badge-pages [data-slot='button'] { min-width: 28px; padding: 0 4px; }
   }
   .profile-achievements { display: grid; gap: 16px; min-width: 0; }
   .profile-achievement-progress p { font-size: 12px; color: var(--text-gray); margin-bottom: 8px; }
@@ -138,6 +136,13 @@
   .profile-badge-pagination { margin-top: 16px; display: grid; gap: 8px; }
   .profile-badge-page-controls { display: flex; align-items: center; gap: 8px; }
   .profile-badge-pages { display: flex; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
-  .profile-badge-pages [data-slot='button'] { min-width: 32px; padding: 0 8px; font-variant-numeric: tabular-nums; }
+  .profile-badge-pages [data-slot='button'] { font-variant-numeric: tabular-nums; }
   .profile-badge-page-gap { min-width: 20px; text-align: center; color: var(--text-gray); }
+  /* Seven page numbers and both arrows do not fit one phone row, so the numbers take their own row above the arrows.
+     The buttons' width and padding are Tailwind classes, because utilities outrank this layer. */
+  @media (max-width: 600px) {
+    .profile-badge-page-controls { flex-wrap: wrap; }
+    .profile-badge-pages { order: -1; flex-basis: 100%; justify-content: center; gap: 2px; }
+    .profile-badge-page-gap { min-width: 14px; }
+  }
 }
