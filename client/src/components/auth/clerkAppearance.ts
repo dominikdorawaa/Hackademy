@@ -173,7 +173,11 @@ export function clerkAppearance(theme: string, reducedMotion = false): ClerkAppe
         '&:disabled, &[data-disabled]': { color: c.muted, opacity: 1 },
         '&:focus-visible': { ...focus, borderRadius: '4px' },
       },
-      otpCodeField: { alignItems: 'flex-start', gap: '16px' },
+      // Clerk positions the OTP feedback absolutely inside an unnamed wrapper, so the field must stretch
+      // to give that wrapper a width, and the text spans it instead of shrinking to min-content.
+      otpCodeField: { alignSelf: 'stretch', alignItems: 'stretch', gap: '16px' },
+      otpCodeFieldErrorText: { left: 0, right: 0 },
+      otpCodeFieldSuccessText: { left: 0, right: 0 },
       otpCodeFieldInputContainer: { alignSelf: 'flex-start' },
       otpCodeFieldInputs: { justifyContent: 'flex-start', gap: '8px' },
       otpCodeFieldInput: {

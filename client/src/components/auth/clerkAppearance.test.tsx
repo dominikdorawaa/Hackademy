@@ -34,6 +34,8 @@ describe('Clerk appearance', () => {
     const elements = clerkAppearance('dark').elements as Record<string, Record<string, unknown>>;
     expect(elements.identityPreview).toMatchObject({ alignSelf: 'flex-start', width: 'auto', justifyContent: 'flex-start' });
     expect(elements.otpCodeFieldInputs).toMatchObject({ justifyContent: 'flex-start' });
+    expect(elements.otpCodeField).toMatchObject({ alignSelf: 'stretch', alignItems: 'stretch' });
+    expect(elements.otpCodeFieldErrorText).toEqual({ left: 0, right: 0 });
     expect(elements.formResendCodeLink['&:disabled, &[data-disabled]']).toEqual({ color: '#9eabbf', opacity: 1 });
     expect(elements.otpCodeFieldInput['&[data-variant="default"][data-focus-within="true"]']).toEqual({ boxShadow: '0 0 0 2px #6ea2ff, 0 0 0 5px rgba(110, 162, 255, 0.35)' });
   });
