@@ -69,7 +69,7 @@
   .profile-rank > div { display: grid; gap: 2px; }
   .profile-rank dt { color: var(--profile-hero-muted); font-size: 11px; font-weight: 600; letter-spacing: .06em; text-transform: uppercase; }
   .profile-rank dd { display: flex; align-items: center; gap: 8px; margin: 0; font-size: 15px; }
-  .profile-rank dd strong { color: var(--profile-hero-ink); font-weight: 700; }
+  .profile-rank dd strong { color: var(--profile-hero-ink); font-family: var(--ud-pixel); font-size: 1.375rem; font-weight: 400; line-height: 1; }
   .profile-rank dd span { color: var(--profile-hero-muted); }
   .profile-rank dd strong + span::before { content: '·'; margin-right: 8px; }
   .profile-rank-league { width: 22px; height: 22px; }
@@ -113,8 +113,8 @@
   .profile-completion { display: grid; gap: 8px; max-width: 520px; margin-top: 14px; }
   .profile-welcome .profile-completion-label { margin: 0; color: var(--text-gray); font-size: 12px; }
   .profile-completion-label strong { color: var(--text-light); font-size: 14px; }
-  .profile-completion-meter { height: 8px; border-radius: 8px; background: var(--bg-panel-lighter); outline: 1px solid var(--border-color); overflow: hidden; }
-  .profile-completion-meter > span { display: block; height: 100%; border-radius: inherit; background: var(--primary-blue); transition: width 240ms ease-out; }
+  .profile-completion-meter { height: 12px; padding: 2px; border: 1px solid var(--ud-line-strong); border-radius: 3px; background: var(--ud-board); overflow: hidden; }
+  .profile-completion-meter > span { display: block; height: 100%; border-radius: 1px; background: var(--primary-blue); transition: width 240ms ease-out; }
   .profile-completion-steps { display: flex; flex-wrap: wrap; gap: 6px 16px; margin: 0; padding: 0; list-style: none; color: var(--text-gray); font-size: 12px; }
   .profile-completion-steps li { display: inline-flex; align-items: center; gap: 5px; }
   .profile-completion-steps li[data-done='true'] { color: var(--profile-green); }
@@ -208,11 +208,11 @@
   .profile-interest-options input:disabled + span { opacity: .45; }
   .profile-interest-options input:focus-visible + span { outline: 2px solid var(--profile-blue); outline-offset: 2px; }
   .profile-pose-options { display: grid; grid-template-columns: repeat(3, minmax(0, 120px)); gap: 10px; margin-top: 12px; }
-  .profile-pose-options label { position: relative; display: grid; justify-items: center; gap: 6px; padding: 8px; border: 1px solid var(--border-color); border-radius: 8px; cursor: pointer; font-size: 12px; }
+  .profile-pose-options label { position: relative; display: grid; justify-items: center; gap: 6px; padding: 8px; border: 1px solid var(--ud-line); border-radius: 3px; cursor: pointer; font-size: 12px; }
   .profile-pose-options input { position: absolute; opacity: 0; inset: 0; width: 100%; height: 100%; margin: 0; cursor: pointer; }
-  .profile-pose-options label:has(input:checked) { border: 2px solid var(--profile-blue); padding: 7px; background: color-mix(in srgb, var(--profile-blue) 8%, transparent); font-weight: 650; }
+  .profile-pose-options label:has(input:checked) { border-color: var(--profile-blue); background: color-mix(in srgb, var(--profile-blue) 10%, transparent); font-weight: 650; }
   .profile-pose-options label:has(input:focus-visible) { outline: 2px solid var(--profile-blue); outline-offset: 2px; }
-  .profile-pose-portrait { width: 100%; aspect-ratio: 1; border-radius: 6px; background: var(--ud-board); }
+  .profile-pose-portrait { width: 100%; aspect-ratio: 1; border-radius: 2px; background: var(--ud-board); }
   .profile-editor-avatar > .profile-muted { margin: 10px 0 0; }
   .profile-editor-studio { padding-left: 0; }
   .profile-badge-options { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-top: 12px; }
