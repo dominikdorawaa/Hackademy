@@ -53,6 +53,7 @@ export const TOAST_DURATION_MS = 5000;
 /** A duel needs a decision, so its toast stays three times longer than the rest. */
 export const CHALLENGE_TOAST_DURATION_MS = 15000;
 const ONLINE_EVENT_PREFIX = 'online:';
+const ACCEPTED_EVENT_PREFIX = 'accepted:';
 
 export function describeFriendsOnline(usernames: string[]) {
   if (usernames.length === 1) return `${usernames[0]} jest online`;
@@ -79,6 +80,7 @@ export default function RealtimeNotifications() {
   const { state, connected, synchronize } = useRealtime();
   const { preferences, loaded } = useNotificationPreferences();
   const seen = useRef<{ sessionKey: string | null; stream: string; ids: Set<string>; offlineFriends: Set<number>;
+    friends: Set<number>; requesters: Set<string>;
     pending: Map<string, Alert>; expired: Set<string>; staleState: RealtimeState | null } | null>(null);
   const lastOnlineToast = useRef(new Map<number, number>());
   const nextToastId = useRef(0);
@@ -173,9 +175,11 @@ export default function RealtimeNotifications() {
         friendId: friend.id, username: friend.username })),
     ];
     const offlineFriends = new Set(state.friends.filter(friend => !friend.online).map(friend => friend.id));
+    const friends = new Set(state.friends.map(friend => friend.id));
+    const requesters = new Set(state.friendRequests.map(request => request.requesterUsername));
     if (!seen.current || seen.current.sessionKey !== sessionKey || seen.current.stream !== state.streamId) {
-      seen.current = { sessionKey, stream: state.streamId, ids: new Set(events.map(event => event.id)), offlineFriends, pending: new Map(),
-        expired: new Set(state.expiredChallenges.map(challenge => challenge.id)), staleState: null };
+      seen.current = { sessionKey, stream: state.streamId, ids: new Set(events.map(event => event.id)), offlineFriends, friends, requesters,
+        pending: new Map(), expired: new Set(state.expiredChallenges.map(challenge => challenge.id)), staleState: null };
       return;
     }
     const history = seen.current;
@@ -186,8 +190,14 @@ export default function RealtimeNotifications() {
     });
     history.offlineFriends = offlineFriends;
     const activeIds = new Set(events.map(event => event.id));
-    history.pending.forEach((_event, id) => { if (!activeIds.has(id)) history.pending.delete(id); });
+    history.pending.forEach((_event, id) => { if (!activeIds.has(id) && !id.startsWith(ACCEPTED_EVENT_PREFIX)) history.pending.delete(id); });
     history.ids.forEach(id => { if (id.startsWith(ONLINE_EVENT_PREFIX) && !activeIds.has(id)) history.ids.delete(id); });
+    // A new friend who had not invited the viewer accepted the viewer's own invitation.
+    state.friends.filter(friend => !history.friends.has(friend.id) && !history.requesters.has(friend.username)).forEach(friend =>
+      history.pending.set(`${ACCEPTED_EVENT_PREFIX}${friend.id}`, { id: `${ACCEPTED_EVENT_PREFIX}${friend.id}`, category: 'friendRequests',
+        title: 'Zaproszenie przyjęte', body: `${friend.username} przyjmuje Twoje zaproszenie do znajomych.` }));
+    history.friends = friends;
+    history.requesters = requesters;
     if (!loaded) return;
     const missed = history.staleState !== null;
     const expired = missed ? [] : state.expiredChallenges.filter(challenge => !history.expired.has(challenge.id));
@@ -204,7 +214,8 @@ export default function RealtimeNotifications() {
     online.forEach(event => lastOnlineToast.current.set(event.friendId!, now));
     const onlineSummary = online.length ? describeFriendsOnline(online.map(event => event.username!)) : null;
     if (onlineSummary) showToast(onlineSummary);
-    const invitations = eligible.filter(event => event.category === 'friendRequests' || event.category === 'challenges');
+    eligible.filter(event => event.id.startsWith(ACCEPTED_EVENT_PREFIX)).forEach(event => showToast(event.body));
+    const invitations = eligible.filter(event => (event.category === 'friendRequests' || event.category === 'challenges') && event.targetId !== undefined);
     // The threshold covers invitation cards already on screen too, so a slow trickle still folds into one summary.
     const shownInvitations = visibleToasts.current.filter(toast => (toast.kind === 'friend' || toast.kind === 'challenge' || toast.kind === 'summary')
       && !answering.current.has(toast.id));
