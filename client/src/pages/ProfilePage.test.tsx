@@ -19,6 +19,7 @@ import {
   recentSolved,
 } from '../test/fixtures/profile';
 import { server } from '../test/mocks/server';
+import { DEFAULT_AVATAR, toAvatarConfig } from '../components/arena/avatar/avatarModel';
 import { renderWithAuth } from '../test/renderWithAuth';
 import type {
   ActivityDto,
@@ -178,7 +179,6 @@ describe('user profile integration', () => {
     await user.type(editor.getByRole('textbox', { name: 'O mnie' }), 'Odkrywam cyberbezpieczeństwo');
     await user.click(editor.getByRole('checkbox', { name: 'Linux' }));
     await user.click(editor.getByRole('checkbox', { name: 'Sieci' }));
-    expect(editor.queryByRole('radio')).not.toBeInTheDocument();
     expect(editor.queryByRole('button', { name: 'Losuj kolejne' })).not.toBeInTheDocument();
     await user.click(editor.getByRole('checkbox', { name: 'Odznaka 6' }));
     await user.click(editor.getByRole('checkbox', { name: 'Odznaka 7' }));
@@ -226,6 +226,45 @@ describe('user profile integration', () => {
     expect(await screen.findByText('0/8')).toBeInTheDocument();
   });
 
+  it('shows the learning rank and the arena league as separate header facts', async () => {
+    mount();
+    const header = within((await screen.findByRole('heading', { name: 'tester' })).closest('header')!);
+    expect(header.getByText('Ranga nauki').nextElementSibling).toHaveTextContent('DeveloperPoziom 13');
+    expect(header.getByText('Liga areny').nextElementSibling).toHaveTextContent('Skaner610 Elo');
+    expect(header.getByRole('link', { name: 'Zmień swój awatar' })).toHaveTextContent('Edytuj awatar');
+    const stats = within(await screen.findByRole('region', { name: 'Statystyki nauki' }));
+    expect(stats.queryByText(/Poziom|Elo|Developer|Skaner/)).not.toBeInTheDocument();
+  });
+
+  it('shows the rank of another user without an avatar editing hint', async () => {
+    mount('/profile/friend');
+    const header = within((await screen.findByRole('heading', { name: 'friend' })).closest('header')!);
+    expect(header.getByText('Ranga nauki').nextElementSibling).toHaveTextContent('FreshmanPoziom 3');
+    expect(header.getByText('Liga areny').nextElementSibling).toHaveTextContent('Exploit842 Elo');
+    expect(header.queryByText('Edytuj awatar')).not.toBeInTheDocument();
+    expect(screen.queryByRole('progressbar', { name: 'Uzupełnienie profilu' })).not.toBeInTheDocument();
+  });
+
+  it('tracks profile completion in the setup prompt until every element is filled', async () => {
+    mount();
+    const meter = await screen.findByRole('progressbar', { name: 'Uzupełnienie profilu' });
+    expect(meter).toHaveAttribute('aria-valuenow', '25');
+    expect(screen.getByText('25%')).toBeInTheDocument();
+    const steps = within(screen.getByRole('list', { name: 'Elementy profilu' }));
+    expect(steps.getAllByRole('listitem').map(step => step.textContent)).toEqual([
+      'Awatar - do uzupełnienia', 'Opis - gotowe', 'Zainteresowania - do uzupełnienia', 'Gablota odznak - do uzupełnienia',
+    ]);
+  });
+
+  it('hides the setup prompt once the profile is complete', async () => {
+    server.use(http.get(url('/user/me'), () => HttpResponse.json({
+      ...profileUser, avatar: toAvatarConfig(DEFAULT_AVATAR), interests: ['WEB'], featuredBadgeIds: [1],
+    })));
+    mount();
+    expect(await screen.findByRole('region', { name: 'Wyróżnione osiągnięcia' })).toBeInTheDocument();
+    expect(screen.queryByRole('heading', { name: 'Nadaj profilowi swój charakter' })).not.toBeInTheDocument();
+  });
+
   it('replaces experience with learning statistics without requesting the portfolio', async () => {
     const request = vi.fn(() => HttpResponse.json({ practiceAreas: [], completedPaths: [] }));
     server.use(http.get(url('/user/me/portfolio'), request));
@@ -250,12 +289,12 @@ describe('user profile integration', () => {
     expect(within(list).getAllByRole('listitem')).toHaveLength(6);
     expect(screen.getByText('1–6 z 1000 odznak')).toBeInTheDocument();
     await userEvent.setup().click(within(list).getByText('Duża kolekcja 1'));
-    fireEvent.change(screen.getByRole('combobox', { name: 'Strona odznak' }), { target: { value: '166' } });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Strona 167 z 167' }));
     expect(within(list).getAllByRole('listitem')).toHaveLength(4);
     expect(screen.getByText('997–1000 z 1000 odznak')).toBeInTheDocument();
     expect(screen.getByText('Duża kolekcja 1000')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Następna strona odznak' })).toBeDisabled();
-    fireEvent.change(screen.getByRole('combobox', { name: 'Strona odznak' }), { target: { value: '0' } });
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Strona 1 z 167' }));
     expect(within(list).getAllByRole('listitem')).toHaveLength(6);
     expect(within(list).getByText('Duża kolekcja 1')).toBeInTheDocument();
   });
@@ -638,7 +677,7 @@ describe('user profile integration', () => {
     await user.click(screen.getByRole('link', { name: 'Drugi profil' }));
     expect(await screen.findByRole('heading', { name: 'second' })).toBeInTheDocument();
     await user.click(await screen.findByRole('button', { name: 'Zobacz wszystkie odznaki' }));
-    expect(screen.getByRole('combobox', { name: 'Strona odznak' })).toHaveValue('0');
+    expect(screen.getByRole('button', { name: 'Strona 1 z 2' })).toHaveAttribute('aria-current', 'page');
     expect(screen.getByRole('button', { name: 'Poprzednia strona odznak' })).toBeDisabled();
     expect(document.querySelectorAll('[data-slot="activity-day"]')).toHaveLength(84);
   });

@@ -5,6 +5,7 @@ import { createUser } from './auth';
 export const profileUser = {
   ...createUser(),
   points: 1250,
+  elo: 610,
   streak: 4,
   bio: 'Uczę się bezpieczeństwa aplikacji webowych.',
 };
@@ -20,6 +21,7 @@ export const profileBadges: BadgeDto[] = Array.from({ length: 8 }, (_, index) =>
 export const publicProfile: UserProfileDto = {
   username: 'friend',
   points: 250,
+  elo: 842,
   role: 'USER',
   createdAt: profileUser.createdAt,
   streak: 2,

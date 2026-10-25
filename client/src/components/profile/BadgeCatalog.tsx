@@ -8,6 +8,14 @@ import type { BadgeFilter } from './ProfileBadges';
 
 const PAGE_SIZE = 6;
 
+// Up to seven slots: every page when they fit, otherwise the first, the last and the current page's neighbours.
+export function pageSlots(current: number, count: number): (number | 'gap')[] {
+  if (count <= 7) return Array.from({ length: count }, (_, index) => index);
+  if (current < 4) return [0, 1, 2, 3, 4, 'gap', count - 1];
+  if (current > count - 5) return [0, 'gap', count - 5, count - 4, count - 3, count - 2, count - 1];
+  return [0, 'gap', current - 1, current, current + 1, 'gap', count - 1];
+}
+
 export default function BadgeCatalog({ badges, initialFilter, own, onClose }: {
   badges: BadgeDto[];
   initialFilter: BadgeFilter;
@@ -15,6 +23,8 @@ export default function BadgeCatalog({ badges, initialFilter, own, onClose }: {
   onClose: () => void;
 }) {
   const dialog = useRef<HTMLDialogElement>(null);
+  const pagination = useRef<HTMLElement>(null);
+  const focusCurrentPage = useRef(false);
   const [view, setView] = useState<'personal' | 'global'>('personal');
   const [filter, setFilter] = useState(initialFilter);
   const [search, setSearch] = useState('');
@@ -44,8 +54,20 @@ export default function BadgeCatalog({ badges, initialFilter, own, onClose }: {
     };
   }, []);
 
+  useEffect(() => {
+    if (!focusCurrentPage.current) return;
+    focusCurrentPage.current = false;
+    pagination.current?.querySelector<HTMLButtonElement>('[aria-current="page"]')?.focus();
+  }, [currentPage]);
+
   function switchView(next: 'personal' | 'global') {
     setView(next); setPage(0);
+  }
+
+  // An arrow that becomes disabled would drop focus to the page body, so it moves to the current page instead.
+  function step(next: number) {
+    focusCurrentPage.current = next === 0 || next === pageCount - 1;
+    setPage(next);
   }
 
   return <dialog ref={dialog} className="badge-catalog" aria-labelledby="badge-catalog-title"
@@ -107,16 +129,18 @@ export default function BadgeCatalog({ badges, initialFilter, own, onClose }: {
           </div>
         </li>)}
       </ul> : <p role="status" className="profile-muted">Brak osiągnięć pasujących do wyszukiwania i filtra.</p>}
-      {pageCount > 1 && <nav className="profile-badge-pagination" aria-label="Strony odznak">
+      {pageCount > 1 && <nav ref={pagination} className="profile-badge-pagination" aria-label="Strony odznak">
         <p className="profile-muted" aria-live="polite">{start + 1}–{Math.min(start + PAGE_SIZE, filtered.length)} z {filtered.length} odznak</p>
         <div className="profile-badge-page-controls">
-          <Button variant="outline" size="sm" disabled={currentPage === 0} aria-label="Poprzednia strona odznak" onClick={() => setPage(currentPage - 1)}>
+          <Button variant="outline" size="sm" disabled={currentPage === 0} aria-label="Poprzednia strona odznak" onClick={() => step(currentPage - 1)}>
             <ProfileIcon kind="left" weight="bold" />
           </Button>
-          <select aria-label="Strona odznak" value={currentPage} onChange={event => setPage(Number(event.target.value))}>
-            {Array.from({ length: pageCount }, (_, index) => <option key={index} value={index}>Strona {index + 1} z {pageCount}</option>)}
-          </select>
-          <Button variant="outline" size="sm" disabled={currentPage === pageCount - 1} aria-label="Następna strona odznak" onClick={() => setPage(currentPage + 1)}>
+          <ol className="profile-badge-pages">{pageSlots(currentPage, pageCount).map((slot, index) => slot === 'gap'
+            ? <li key={`gap-${index}`} className="profile-badge-page-gap" aria-hidden="true">…</li>
+            : <li key={slot}><Button variant={slot === currentPage ? 'default' : 'outline'} size="sm"
+              aria-label={`Strona ${slot + 1} z ${pageCount}`} aria-current={slot === currentPage ? 'page' : undefined}
+              onClick={() => setPage(slot)}>{slot + 1}</Button></li>)}</ol>
+          <Button variant="outline" size="sm" disabled={currentPage === pageCount - 1} aria-label="Następna strona odznak" onClick={() => step(currentPage + 1)}>
             <ProfileIcon kind="right" weight="bold" />
           </Button>
         </div>
