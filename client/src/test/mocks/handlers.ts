@@ -20,6 +20,9 @@ export const handlers = [
   http.get(`${API_URL}/api/ranking/me`, () => HttpResponse.json(null)),
   http.get(`${API_URL}/api/ranking/summary`, () => HttpResponse.json({ ranking: [], user: null, myRank: null })),
   http.get(`${API_URL}/api/friends`, () => HttpResponse.json([])),
+  http.put(`${API_URL}/api/presence/room/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.delete(`${API_URL}/api/presence/room/:id`, () => new HttpResponse(null, { status: 204 })),
+  http.get(`${API_URL}/api/presence/sharing`, () => HttpResponse.json({ enabled: true })),
   http.post(`${API_URL}/api/arena/game/:id/return`, () => new HttpResponse(null, { status: 204 })),
   http.post(`${API_URL}/api/arena/game/:id/leave`, () => new HttpResponse(null, { status: 204 })),
 ];

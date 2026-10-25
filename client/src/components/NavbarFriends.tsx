@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { friendActivity } from '../lib/friendStatus';
+import { useMinuteClock } from '../hooks/useMinuteClock';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronDown, Search, Undo2, UserPlus, Users, X } from 'lucide-react';
@@ -60,6 +61,7 @@ export default function NavbarFriends() {
   const { sessionKey, user } = useAuth();
   const { state, synchronize } = useRealtime();
   const [open, setOpen] = useState(false);
+  const now = useMinuteClock(open);
   const [query, setQuery] = useState('');
   const [offlineOpen, setOfflineOpen] = useState(false);
   const [players, setPlayers] = useState<{ query: string; results: UserSearchDto[] } | null>(null);
@@ -239,7 +241,7 @@ export default function NavbarFriends() {
               ) : (
                 <ul className="nav-friends-list">
                   {online.map(friend => (
-                    <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online status={friendActivity(friend)} onNavigate={close}>
+                    <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online status={friendActivity(friend, now)} onNavigate={close}>
                       {challenged.has(friend.username) ? (
                         sentChallenge(friend.username)
                       ) : challengeBlocked ? null : (
@@ -270,7 +272,7 @@ export default function NavbarFriends() {
                 {showOffline && (
                   <ul className="nav-friends-list">
                     {offline.map(friend => (
-                      <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online={false} status={friendActivity(friend)} onNavigate={close}>
+                      <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online={false} status={friendActivity(friend, now)} onNavigate={close}>
                         {challenged.has(friend.username) && sentChallenge(friend.username)}
                       </PersonRow>
                     ))}

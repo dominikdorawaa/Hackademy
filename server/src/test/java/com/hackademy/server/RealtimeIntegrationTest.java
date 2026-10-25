@@ -502,7 +502,7 @@ class RealtimeIntegrationTest {
         try (var watcher = connected(friend)) {
             var tab = connected(me);
             assertEquals(true, friendField(watcher, "online"));
-            presence(me, "PUT", "room/" + room.getId(), null);
+            presence(me, "PUT", "room/" + room.getId() + "?tab=t1", null);
             assertEquals(room.getTitle(), friendField(watcher, "activityRoom"));
             assertEquals("ROOM", JsonPath.read(friendsOf(friend), "$[0].activity"));
             presence(me, "PUT", "sharing", "{\"enabled\":false}");
@@ -510,7 +510,7 @@ class RealtimeIntegrationTest {
             assertNull(JsonPath.read(friendsOf(friend), "$[0].activityRoom"));
             presence(me, "PUT", "sharing", "{\"enabled\":true}");
             assertEquals("ROOM", friendField(watcher, "activity"));
-            presence(me, "DELETE", "room/" + room.getId(), null);
+            presence(me, "DELETE", "room/" + room.getId() + "?tab=t1", null);
             assertNull(friendField(watcher, "activity"));
             tab.close();
             var frame = JsonPath.parse(RealtimeSocket.body(watcher.receive()));

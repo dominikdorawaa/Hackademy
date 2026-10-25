@@ -17,6 +17,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import java.security.Principal;
 import java.time.Duration;
 import java.time.Instant;
+import java.util.List;
 import java.util.concurrent.ScheduledFuture;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -55,7 +56,7 @@ class FriendPresenceTest {
         presence.connected(1L, "b");
 
         assertTrue(presence.isOnline(1L));
-        verify(announcer, times(1)).announce(1L);
+        verify(announcer, times(1)).cameOnline(1L);
     }
 
     @Test
@@ -66,6 +67,7 @@ class FriendPresenceTest {
         Runnable callback = scheduledOffline();
         presence.stop();
         verify(future).cancel(false);
+        verify(announcer).stillOnlineAtShutdown(List.of(1L));
         clearInvocations(scheduler, announcer);
         presence.connected(1L, "b");
         presence.disconnected(1L, "b");
@@ -82,7 +84,7 @@ class FriendPresenceTest {
 
         assertTrue(presence.isOnline(1L));
         verifyNoInteractions(scheduler);
-        verify(announcer, times(1)).announce(1L);
+        verify(announcer, times(1)).cameOnline(1L);
     }
 
     @Test
@@ -97,7 +99,8 @@ class FriendPresenceTest {
         scheduledOffline().run();
 
         assertFalse(presence.isOnline(1L));
-        verify(announcer, times(2)).announce(1L);
+        verify(announcer).cameOnline(1L);
+        verify(announcer).wentOffline(1L);
     }
 
     @Test
@@ -109,7 +112,7 @@ class FriendPresenceTest {
 
         verify(future).cancel(false);
         assertTrue(presence.isOnline(1L));
-        verify(announcer, times(1)).announce(1L);
+        verify(announcer, times(1)).cameOnline(1L);
     }
 
     @Test
@@ -123,7 +126,7 @@ class FriendPresenceTest {
         check.run();
 
         assertTrue(presence.isOnline(1L));
-        verify(announcer, times(1)).announce(1L);
+        verify(announcer, times(1)).cameOnline(1L);
     }
 
     @Test
@@ -134,28 +137,44 @@ class FriendPresenceTest {
 
         assertFalse(presence.isOnline(1L));
         verifyNoInteractions(scheduler);
-        verify(announcer, times(2)).announce(1L);
+        verify(announcer).cameOnline(1L);
+        verify(announcer).wentOffline(1L);
     }
 
     @Test
-    void tracksTheOpenRoomUntilTheUserLeavesItOrGoesOffline() {
+    void tracksTheOpenRoomOfEachTabUntilItClosesOrTheUserGoesOffline() {
         presence = new FriendPresence(scheduler, announcer, Duration.ZERO);
-        presence.connected(1L, "a");
-        presence.openRoom(1L, 5L);
-        presence.openRoom(1L, 5L);
-        assertEquals(5L, presence.roomOf(1L));
-        presence.closeRoom(1L, 6L);
-        assertEquals(5L, presence.roomOf(1L));
-        presence.closeRoom(1L, 5L);
+        presence.openRoom(1L, "tab1", 5L);
         assertNull(presence.roomOf(1L));
-        verify(announcer, times(3)).announce(1L);
+        presence.connected(1L, "a");
+        presence.openRoom(1L, "tab1", 5L);
+        presence.openRoom(1L, "tab1", 5L);
+        presence.openRoom(1L, "tab2", 6L);
+        assertEquals(6L, presence.roomOf(1L));
+        presence.closeRoom(1L, "tab2", 6L);
+        assertEquals(5L, presence.roomOf(1L));
+        presence.closeRoom(1L, "tab1", 6L);
+        assertEquals(5L, presence.roomOf(1L));
+        presence.closeRoom(1L, "tab1", 5L);
+        assertNull(presence.roomOf(1L));
+        verify(announcer, times(4)).announce(1L);
 
-        presence.openRoom(1L, 7L);
+        presence.openRoom(1L, "tab1", 7L);
         assertNull(presence.lastSeen(1L));
         presence.disconnected(1L, "a");
         assertNull(presence.roomOf(1L));
         assertNotNull(presence.lastSeen(1L));
         presence.connected(1L, "b");
+        assertNull(presence.roomOf(1L));
+        assertNull(presence.lastSeen(1L));
+    }
+
+    @Test
+    void keepsOnlyTheNewestTabsOfOneUser() {
+        presence = new FriendPresence(scheduler, announcer, Duration.ZERO);
+        presence.connected(1L, "a");
+        for (int tab = 0; tab < 20; tab++) presence.openRoom(1L, "tab" + tab, 100L + tab);
+        for (int tab = 19; tab >= 4; tab--) presence.closeRoom(1L, "tab" + tab, 100L + tab);
         assertNull(presence.roomOf(1L));
     }
 
@@ -175,7 +194,7 @@ class FriendPresenceTest {
 
         assertTrue(presence.isOnline(1L));
         assertFalse(presence.isOnline(2L));
-        verify(announcer, never()).announce(2L);
+        verify(announcer, never()).cameOnline(2L);
     }
 
     @Test

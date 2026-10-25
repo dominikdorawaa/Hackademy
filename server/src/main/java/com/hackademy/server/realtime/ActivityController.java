@@ -14,6 +14,7 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import java.util.Map;
@@ -30,15 +31,17 @@ public class ActivityController {
     public record SharingRequest(boolean enabled) {}
 
     @PutMapping("/room/{roomId}")
-    public ResponseEntity<Void> openRoom(Authentication authentication, @PathVariable Long roomId) {
+    public ResponseEntity<Void> openRoom(Authentication authentication, @PathVariable Long roomId, @RequestParam String tab) {
+        if (!validTab(tab)) return ResponseEntity.badRequest().build();
         if (!rooms.existsById(roomId)) return ResponseEntity.notFound().build();
-        presence.openRoom(userId(authentication), roomId);
+        presence.openRoom(userId(authentication), tab, roomId);
         return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/room/{roomId}")
-    public ResponseEntity<Void> closeRoom(Authentication authentication, @PathVariable Long roomId) {
-        presence.closeRoom(userId(authentication), roomId);
+    public ResponseEntity<Void> closeRoom(Authentication authentication, @PathVariable Long roomId, @RequestParam String tab) {
+        if (!validTab(tab)) return ResponseEntity.badRequest().build();
+        presence.closeRoom(userId(authentication), tab, roomId);
         return ResponseEntity.noContent().build();
     }
 
@@ -55,6 +58,10 @@ public class ActivityController {
         users.save(user);
         friendships.invalidateProfileCaches(user.getId());
         return Map.of("enabled", user.isShareActivity());
+    }
+
+    private static boolean validTab(String tab) {
+        return tab.matches("[A-Za-z0-9-]{1,64}");
     }
 
     private static Long userId(Authentication authentication) {

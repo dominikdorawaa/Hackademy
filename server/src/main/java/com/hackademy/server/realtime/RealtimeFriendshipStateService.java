@@ -40,12 +40,12 @@ public class RealtimeFriendshipStateService {
         var friends = accepted.stream().map(f -> {
             boolean requester = f.getRequester().getId().equals(userId);
             var friend = requester ? f.getReceiver() : f.getRequester();
-            return activity.describe(new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(),
+            return new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(),
                     avatarsById.get(friend.getId()), false,
                     requester ? f.getRequesterWins() : f.getReceiverWins(),
                     requester ? f.getReceiverWins() : f.getRequesterWins())
-                    .withSharing(friend.isShareActivity(), friend.getLastSeenAt()));
+                    .withSharing(friend.isShareActivity(), friend.getLastSeenAt());
         }).toList();
-        return new State(user.getId(), requests, friends);
+        return new State(user.getId(), requests, activity.describe(friends));
     }
 }

@@ -180,7 +180,7 @@ public class FriendshipServiceImpl implements FriendshipService {
     }
 
     private List<FriendDto> withPresence(List<FriendDto> friends) {
-        return friends.stream().map(activity::describe).toList();
+        return activity.describe(friends);
     }
 
     @Override

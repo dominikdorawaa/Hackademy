@@ -86,6 +86,21 @@ describe('settings', () => {
     expect(screen.getByRole('switch', { name: 'Pokazuj znajomym, co robię' })).toHaveAttribute('aria-checked', 'false');
   });
 
+  it('offers a retry when the privacy setting cannot be read', async () => {
+    let attempts = 0;
+    server.use(http.get(`${API_URL}/api/presence/sharing`, () => {
+      attempts += 1;
+      return attempts === 1 ? new HttpResponse(null, { status: 500 }) : HttpResponse.json({ enabled: false });
+    }));
+    mount();
+    expect(await screen.findByText('Nie udało się wczytać ustawienia prywatności.')).toBeInTheDocument();
+    expect(screen.getByRole('switch', { name: 'Pokazuj znajomym, co robię' })).toBeDisabled();
+    fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
+    await waitFor(() => expect(screen.getByRole('switch', { name: 'Pokazuj znajomym, co robię' })).toHaveAttribute('aria-checked', 'false'));
+    expect(screen.getByRole('switch', { name: 'Pokazuj znajomym, co robię' })).toBeEnabled();
+    expect(screen.queryByText('Nie udało się wczytać ustawienia prywatności.')).toBeNull();
+  });
+
   it('saves the friend online preference', async () => {
     let saved = { ...defaultNotificationPreferences };
     server.use(

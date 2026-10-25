@@ -123,16 +123,22 @@ export default function SettingsPage() {
   const matchFoundSilent = !preferences.sound && !(preferences.browserNotifications && systemAllowed);
   const [sharing, setSharing] = useState<boolean | null>(null);
   const [savingSharing, setSavingSharing] = useState(false);
+  const [sharingFailed, setSharingFailed] = useState(false);
+  const [sharingAttempt, setSharingAttempt] = useState(0);
   const [variants, setVariants] = useState(() => Object.fromEntries(soundEvents.map(event => [event, selectedVariant(event).id])) as Record<SoundEvent, string>);
 
   useEffect(() => {
     if (!sessionKey) return;
     const controller = new AbortController();
+    setSharingFailed(false);
     getActivitySharing({ sessionKey }, controller.signal)
-      .then(async response => { if (response.ok) setSharing((await response.json()).enabled); })
-      .catch(() => undefined);
+      .then(async response => {
+        if (!response.ok) throw new Error();
+        setSharing((await response.json()).enabled);
+      })
+      .catch(() => { if (!controller.signal.aborted) setSharingFailed(true); });
     return () => controller.abort();
-  }, [sessionKey]);
+  }, [sessionKey, sharingAttempt]);
 
   const changeSharing = async (enabled: boolean) => {
     if (!sessionKey) return;
@@ -288,6 +294,8 @@ export default function SettingsPage() {
             <SettingRow title="Avatar, bio i zainteresowania" description="Personalizacja profilu w jednym miejscu."><Link className="settings-button" to="/profile">Edytuj profil</Link></SettingRow>
           </SettingsGroup>
           <SettingsGroup id="privacy" title="Prywatność">
+            {sharingFailed && <div className="settings-error"><p role="alert">Nie udało się wczytać ustawienia prywatności.</p>
+              <button className="settings-button" onClick={() => setSharingAttempt(value => value + 1)}>Spróbuj ponownie</button></div>}
             <SettingRow title="Pokazuj znajomym, co robię" description={sharing === false
               ? 'Wyłączone: znajomi widzą tylko, czy jesteś online.'
               : 'Znajomi zobaczą, czy jesteś w pojedynku, w kolejce Areny albo w którym pokoju, a po wyjściu czas ostatniej wizyty.'}>

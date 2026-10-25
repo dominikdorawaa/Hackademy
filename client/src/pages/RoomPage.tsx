@@ -5,6 +5,7 @@ import React, { useState, useEffect, useId, useRef } from 'react';
 import { BookOpen, Check, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useRealtime } from '../context/RealtimeContext';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
@@ -175,12 +176,13 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   }, [id, sessionKey, preview]);
 
   const roomId = room?.id;
+  const { connected } = useRealtime();
   useEffect(() => {
-    if (preview || !roomId || !sessionKey) return;
+    if (preview || !roomId || !sessionKey || !connected) return;
     const auth = { sessionKey };
     void openRoomActivity(roomId, auth).catch(() => undefined);
     return () => { void closeRoomActivity(roomId, auth).catch(() => undefined); };
-  }, [preview, roomId, sessionKey]);
+  }, [preview, roomId, sessionKey, connected]);
 
   useEffect(() => {
     readerRef.current?.scrollTo?.({ top: 0 });
