@@ -16,6 +16,10 @@ public class RealtimeNotifier {
         events.publishEvent(new RealtimeChange(Set.copyOf(Arrays.asList(userIds)), false));
     }
 
+    public void activityChanged(Long... userIds) {
+        events.publishEvent(new ActivityChange(Set.copyOf(Arrays.asList(userIds))));
+    }
+
     public void changed(Long... userIds) {
         events.publishEvent(new RealtimeChange(Set.copyOf(Arrays.asList(userIds))));
     }

@@ -1,4 +1,6 @@
 import UserAvatar from '../components/UserAvatar';
+import { friendStatus } from '../lib/friendStatus';
+import { useMinuteClock } from '../hooks/useMinuteClock';
 import * as friendApi from '../services/friendApi';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
@@ -19,6 +21,7 @@ import './FriendsPage.css';
 const FriendsPage = () => {
     const { sessionKey } = useAuth();
     const { state, error, synchronize } = useRealtime();
+    const now = useMinuteClock();
     const friends = state?.friends ?? [];
     const requests = state?.friendRequests ?? [];
     const loading = !state;
@@ -233,7 +236,7 @@ const FriendsPage = () => {
                                         <Link to={`/profile/${friend.username}`} className="friends-card-name">{friend.username}</Link>
                                         <span className={friend.online ? 'friends-presence is-online' : 'friends-presence'}>
                                             <span className="friends-presence-dot" aria-hidden="true" />
-                                            {friend.online ? 'Online' : 'Offline'}
+                                            <span className="friends-presence-text">{friendStatus(friend, now).replace(/^./, letter => letter.toUpperCase())}</span>
                                         </span>
                                     </div>
                                     <p className="friends-card-stats">

@@ -46,8 +46,9 @@
 .friends-card-body { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 16px 0; text-align: center; }
 .friends-card-name { max-width: 100%; overflow: hidden; color: var(--rm-ink); font: 400 2rem/0.95 var(--rm-pixel); text-overflow: ellipsis; white-space: nowrap; }
 .friends-card-name:hover { color: var(--rm-link); }
-.friends-presence { display: inline-flex; align-items: center; gap: 6px; color: var(--rm-muted); font-size: 0.8125rem; font-weight: 600; }
-.friends-presence-dot { width: 8px; height: 8px; background: var(--presence-offline); opacity: 0.6; }
+.friends-presence { display: inline-flex; align-items: center; gap: 6px; max-width: 100%; color: var(--rm-muted); font-size: 0.8125rem; font-weight: 600; }
+.friends-presence-text { min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.friends-presence-dot { flex: none; width: 8px; height: 8px; background: var(--presence-offline); opacity: 0.6; }
 .friends-presence.is-online { color: var(--rm-teal); }
 .friends-presence.is-online .friends-presence-dot { background: var(--rm-teal); opacity: 1; animation: friends-presence 1.6s steps(2, jump-none) infinite alternate; }
 .friends-card-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 14px 16px 0; }

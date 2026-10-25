@@ -190,6 +190,7 @@ public class ArenaServiceImpl implements ArenaService {
         }
         for (Long person : session.people()) matchmaking.leaveQueue(person);
         realtime.arenaChanged(session.people());
+        realtime.activityChanged(session.people());
         var others = new TreeSet<Long>();
         dropped.forEach(challenge -> {
             others.add(challenge.getChallengerId());
@@ -355,6 +356,7 @@ public class ArenaServiceImpl implements ArenaService {
         if (winnerId != null && session.getBotId() != null) recordBotGame(session, winnerId);
         else if (winnerId != null) recordWin(session, winnerId);
         realtime.changed(session.people());
+        realtime.activityChanged(session.people());
     }
 
     private void recordBotGame(GameSession session, Long winnerId) {
