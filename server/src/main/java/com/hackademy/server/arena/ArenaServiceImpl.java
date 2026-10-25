@@ -3,6 +3,7 @@ package com.hackademy.server.arena;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
+import com.hackademy.server.user.AvatarChangedEvent;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserAvatarRepository;
 import com.hackademy.server.user.UserRepository;
@@ -34,6 +35,7 @@ import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 @Service
 @RequiredArgsConstructor
@@ -471,6 +473,10 @@ public class ArenaServiceImpl implements ArenaService {
         var avatars = avatarRepository.findDtosByUserIds(List.of(challengerId, targetId));
         challenge.setChallengerAvatar(avatars.get(challengerId));
         challenge.setTargetAvatar(avatars.get(targetId));
+        userRepository.findAllById(List.of(challengerId, targetId)).forEach(user -> {
+            if (user.getId().equals(challengerId)) challenge.setChallengerElo(user.getElo());
+            else challenge.setTargetElo(user.getElo());
+        });
         // Checked and stored under the players lock, so a game starting meanwhile either sees it or blocks it.
         synchronized (players) {
             if (isPlaying(challengerId)) throw new IllegalStateException(YOU_ARE_PLAYING);
@@ -555,15 +561,15 @@ public class ArenaServiceImpl implements ArenaService {
 
     @Override
     public List<Challenge> getPendingChallenges(Long userId) {
-        return challenges.values().stream()
+        return withCurrentAvatars(challenges.values().stream()
                 .filter(challenge -> challenge.getTargetId().equals(userId) && "PENDING".equals(challenge.getStatus()))
-                .collect(Collectors.toList());
+                .toList());
     }
 
     public List<Challenge> getOutgoingChallenges(Long userId) {
-        return challenges.values().stream()
+        return withCurrentAvatars(challenges.values().stream()
                 .filter(challenge -> challenge.getChallengerId().equals(userId) && "PENDING".equals(challenge.getStatus()))
-                .toList();
+                .toList());
     }
 
     public List<Challenge> getExpiredChallenges(Long userId) {
@@ -575,11 +581,28 @@ public class ArenaServiceImpl implements ArenaService {
     }
 
     private List<Challenge> closedChallenges(Long challengerId, String status) {
-        return notices.values().stream()
+        return withCurrentAvatars(notices.values().stream()
                 .filter(notice -> notice.challenge().getChallengerId().equals(challengerId) && status.equals(notice.challenge().getStatus()))
                 .sorted(Comparator.comparingLong(Notice::at).thenComparing(notice -> notice.challenge().getId()))
                 .map(Notice::challenge)
-                .toList();
+                .toList());
+    }
+
+    private List<Challenge> withCurrentAvatars(List<Challenge> found) {
+        if (found.isEmpty()) return found;
+        var avatars = avatarRepository.findDtosByUserIds(found.stream()
+                .flatMap(challenge -> Stream.of(challenge.getChallengerId(), challenge.getTargetId())).distinct().toList());
+        return found.stream().map(challenge -> challenge.withAvatars(avatars)).toList();
+    }
+
+    @EventListener
+    public void avatarChanged(AvatarChangedEvent event) {
+        Long userId = event.userId();
+        var involved = Stream.concat(challenges.values().stream(), notices.values().stream().map(Notice::challenge))
+                .filter(challenge -> challenge.getChallengerId().equals(userId) || challenge.getTargetId().equals(userId))
+                .flatMap(challenge -> Stream.of(challenge.getChallengerId(), challenge.getTargetId()))
+                .collect(Collectors.toSet());
+        if (!involved.isEmpty()) realtime.arenaChanged(involved.toArray(Long[]::new));
     }
 
     @Override

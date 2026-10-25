@@ -1,0 +1,136 @@
+.invite-card {
+  --invite-ground: #1f2b42;
+  --invite-duel-ground: #0b111c;
+  --invite-raised: #2c3a55;
+  --invite-ink: #e8edf5;
+  --invite-muted: #9eabbf;
+  --invite-blue: #0b63ff;
+  --invite-blue-hover: #4a8dff;
+  --invite-link: #6ea2ff;
+  --invite-error: #ff8a80;
+  --invite-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 14px;
+  padding: 16px 16px 18px;
+  border-radius: 6px;
+  background: var(--invite-ground);
+  color: var(--invite-ink);
+  font-family: 'Archivo', system-ui, sans-serif;
+  font-variant-numeric: tabular-nums;
+  text-align: left;
+}
+
+[data-theme='light'] .invite-card {
+  --invite-ground: #ffffff;
+  --invite-duel-ground: #dfe5ee;
+  --invite-raised: #eef1f6;
+  --invite-ink: #111827;
+  --invite-muted: #4b5563;
+  --invite-blue-hover: #0845b8;
+  --invite-link: #0b55db;
+  --invite-error: #c62828;
+}
+
+.invite-card[data-kind='challenge'] {
+  grid-template-columns: minmax(0, 1fr);
+  justify-items: stretch;
+  background: var(--invite-duel-ground);
+}
+
+.invite-portrait {
+  display: block;
+  width: 48px;
+  height: 48px;
+  border-radius: 6px;
+  background: var(--invite-raised);
+  object-fit: cover;
+}
+
+.invite-duel {
+  display: flex;
+  align-items: flex-start;
+  justify-content: center;
+  gap: 12px;
+}
+
+.invite-duel .invite-portrait { width: 56px; height: 56px; }
+.invite-duel .invite-portrait-own:not([data-avatar='loading']) { transform: scaleX(-1); }
+
+.invite-fighter { display: grid; justify-items: center; gap: 6px; }
+
+.invite-elo {
+  color: var(--invite-muted);
+  font-size: 0.75rem;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.invite-elo b {
+  color: var(--invite-ink);
+  font-size: 1rem;
+  font-weight: 800;
+  font-variation-settings: 'wdth' 75;
+}
+
+.invite-versus {
+  font-family: var(--font-heading);
+  margin-top: 12px;
+  font-size: 2rem;
+  line-height: 1;
+  color: var(--invite-link);
+}
+
+.invite-copy { display: grid; gap: 10px; min-width: 0; }
+.invite-card[data-kind='challenge'] .invite-copy { justify-items: center; text-align: center; }
+
+.invite-line {
+  display: grid;
+  gap: 2px;
+  margin: 0;
+  color: var(--invite-muted);
+  font-size: 0.875rem;
+  line-height: 1.4;
+}
+
+.invite-name {
+  overflow: hidden;
+  color: var(--invite-ink);
+  font-size: 1.125rem;
+  font-weight: 800;
+  font-variation-settings: 'wdth' 80;
+  line-height: 1.15;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invite-error { margin: 0; color: var(--invite-error); font-size: 0.8125rem; }
+
+.invite-actions { display: flex; flex-wrap: wrap; gap: 8px; }
+
+.invite-actions button {
+  min-height: 36px;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 6px;
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 650;
+  white-space: nowrap;
+  cursor: pointer;
+  transition: background-color 160ms var(--invite-ease), transform 160ms var(--invite-ease);
+}
+
+.invite-accept { background: var(--invite-blue); color: #ffffff; }
+.invite-accept:hover:not(:disabled) { background: var(--invite-blue-hover); transform: translateY(-1px); }
+.invite-reject { background: var(--invite-raised); color: var(--invite-ink); }
+.invite-reject:hover:not(:disabled) { color: var(--invite-ink); background: color-mix(in srgb, var(--invite-raised) 80%, var(--invite-ink)); }
+.invite-actions button:active:not(:disabled) { transform: translateY(1px); }
+.invite-actions button:disabled { opacity: 0.7; cursor: progress; }
+.invite-actions button:focus-visible { outline: 2px solid var(--invite-link); outline-offset: 3px; }
+
+@media (prefers-reduced-motion: reduce) {
+  .invite-actions button { transition: none; }
+}

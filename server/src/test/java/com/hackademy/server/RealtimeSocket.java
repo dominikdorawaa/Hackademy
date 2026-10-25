@@ -49,6 +49,17 @@ final class RealtimeSocket implements WebSocket.Listener, AutoCloseable {
 
     Frame poll(long milliseconds) throws InterruptedException { return messages.poll(milliseconds, TimeUnit.MILLISECONDS); }
 
+    /** Skips state frames that were already on their way until one matches, so a late push cannot fail a check. */
+    String receiveUntil(java.util.function.Predicate<String> matches) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(30);
+        while (true) {
+            var frame = messages.poll(Math.max(0, deadline - System.nanoTime()), TimeUnit.NANOSECONDS);
+            assertNotNull(frame, "Expected a matching STOMP frame");
+            String body = body(frame);
+            if (matches.test(body)) return body;
+        }
+    }
+
     boolean closedByServer() { return closedByServer.isDone(); }
 
     int awaitServerClose() throws Exception { return closedByServer.get(30, TimeUnit.SECONDS); }

@@ -201,13 +201,13 @@ describe('shared realtime state', () => {
     }] };
     act(() => connections[0].callbacks.state(incoming));
     fireEvent.click(screen.getByRole('button', { name: 'Powiadomienia' }));
-    expect(screen.getByText('1 nowe')).toBeInTheDocument();
+    expect(document.querySelector('.notifications-count-badge')).toHaveTextContent('1 nowe');
     expect(screen.getByText('Otrzymane wyzwania (1)')).toBeInTheDocument();
     act(() => connections[0].callbacks.state(incoming));
     expect(document.querySelectorAll('.notification-item')).toHaveLength(1);
     act(() => connections[0].callbacks.state(snapshot(4)));
     expect(screen.queryByText('Otrzymane wyzwania (1)')).not.toBeInTheDocument();
-    expect(screen.queryByText('1 nowe')).not.toBeInTheDocument();
+    expect(document.querySelector('.notifications-count-badge')).toBeNull();
     act(() => connections[0].callbacks.state({ ...snapshot(5), gameSession: game() }));
     expect(screen.getByTestId('game-location')).toHaveTextContent('/arena/battle/game');
     vi.useFakeTimers();

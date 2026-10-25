@@ -20,7 +20,7 @@ it.each(['/login', '/register', '/ranking'])('offers a theme selector to visitor
   expect(document.documentElement).toHaveAttribute('data-theme', 'light');
 });
 
-it('opens navigation, closes it with Escape and restores focus, then closes after following a link', async () => {
+it('lets a signed-in user use the bell and account menu without a phone Menu toggle', async () => {
   setClerkSession(createToken());
   server.use(
     http.get(`${API_URL}/api/friends/requests`, () => HttpResponse.json<FriendRequestDto[]>([])),
@@ -29,14 +29,26 @@ it('opens navigation, closes it with Escape and restores focus, then closes afte
   renderWithAuth(<Route path="*" element={<Navbar />} />, '/profile');
   await screen.findByRole('button', { name: 'Menu konta' });
   expect(screen.getByRole('button', { name: 'Włącz jasny motyw' })).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: /^Menu$/ })).not.toBeInTheDocument();
   const user = userEvent.setup();
-  const menu = screen.getByRole('button', { name: /^Menu$/ });
   const notifications = screen.getByRole('button', { name: 'Powiadomienia' });
   await user.click(notifications);
   expect(notifications).toHaveAttribute('aria-expanded', 'true');
   expect(screen.getByRole('heading', { name: 'Powiadomienia' })).toBeInTheDocument();
   await user.keyboard('{Escape}');
   expect(notifications).toHaveAttribute('aria-expanded', 'false');
+  await user.click(screen.getByRole('button', { name: 'Menu konta' }));
+  expect(screen.getByRole('link', { name: 'Profil' })).toBeInTheDocument();
+  await user.keyboard('{Escape}');
+  await waitFor(() =>
+    expect(screen.queryByRole('link', { name: 'Profil' })).not.toBeInTheDocument(),
+  );
+});
+
+it('opens the visitor menu, closes it with Escape and restores focus, then closes after following a link', async () => {
+  renderWithAuth(<Route path="*" element={<Navbar />} />, '/');
+  const user = userEvent.setup();
+  const menu = await screen.findByRole('button', { name: /^Menu$/ });
   expect(menu).toHaveAttribute('aria-expanded', 'false');
   await user.click(menu);
   expect(menu).toHaveAttribute('aria-expanded', 'true');
@@ -45,15 +57,8 @@ it('opens navigation, closes it with Escape and restores focus, then closes afte
   expect(menu).toHaveAttribute('aria-expanded', 'false');
   expect(menu).toHaveFocus();
   await user.click(menu);
-  await user.click(screen.getByRole('link', { name: 'Ucz się' }));
-  expect(screen.getByTestId('location')).toHaveTextContent('/learn:PUSH');
+  await user.click(screen.getByRole('link', { name: 'Pokoje' }));
   expect(menu).toHaveAttribute('aria-expanded', 'false');
-  await user.click(screen.getByRole('button', { name: 'Menu konta' }));
-  expect(screen.getByRole('link', { name: 'Profil' })).toBeInTheDocument();
-  await user.keyboard('{Escape}');
-  await waitFor(() =>
-    expect(screen.queryByRole('link', { name: 'Profil' })).not.toBeInTheDocument(),
-  );
 });
 
 it.each([[0, true], [3, false]])('shows a pixel flame for a %i day streak, lit only while the streak lasts', async (streak, out) => {

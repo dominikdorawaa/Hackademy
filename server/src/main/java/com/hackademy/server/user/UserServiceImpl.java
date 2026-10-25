@@ -29,6 +29,7 @@ import com.hackademy.server.room.UserSolvedRoomRepository;
 import com.hackademy.server.room.RecentSolvedRoomView;
 import com.hackademy.server.dashboard.UserWeeklyActiveTimeRepository;
 import lombok.RequiredArgsConstructor;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.data.domain.PageRequest;
 import org.springframework.http.HttpStatus;
@@ -114,6 +115,7 @@ public class UserServiceImpl implements UserService {
     private final PathRepository pathRepository;
     private final UserAvatarRepository userAvatarRepository;
     private final com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
+    private final ApplicationEventPublisher events;
 
     @Override
     @Transactional(readOnly = true)
@@ -251,7 +253,7 @@ public class UserServiceImpl implements UserService {
         UserAvatar entity = userAvatarRepository.findById(userId).orElseGet(() -> UserAvatar.of(userId, avatar));
         entity.apply(avatar);
         UserAvatarDto saved = userAvatarRepository.save(entity).toDto();
-        refreshProfileCaches(userId);
+        refreshAvatarViews(userId);
         return saved;
     }
 
@@ -259,16 +261,28 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public void deleteAvatar(Long userId) {
         userAvatarRepository.findById(userId).ifPresent(userAvatarRepository::delete);
-        refreshProfileCaches(userId);
+        refreshAvatarViews(userId);
+    }
+
+    private void refreshAvatarViews(Long userId) {
+        afterCommit(() -> {
+            refreshCaches(userId);
+            events.publishEvent(new AvatarChangedEvent(userId));
+        });
     }
 
     private void refreshProfileCaches(Long userId) {
-        Runnable refresh = () -> {
-            invalidateUserComputedCaches(userId);
-            invalidateGlobalRankingCache();
-            friendshipService.invalidateProfileCaches(userId);
-            dashboardSummaryCache.invalidateUser(userId);
-        };
+        afterCommit(() -> refreshCaches(userId));
+    }
+
+    private void refreshCaches(Long userId) {
+        invalidateUserComputedCaches(userId);
+        invalidateGlobalRankingCache();
+        friendshipService.invalidateProfileCaches(userId);
+        dashboardSummaryCache.invalidateUser(userId);
+    }
+
+    private void afterCommit(Runnable refresh) {
         if (!TransactionSynchronizationManager.isSynchronizationActive()) {
             refresh.run();
             return;

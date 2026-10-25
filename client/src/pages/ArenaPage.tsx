@@ -328,7 +328,7 @@ const ArenaPage = () => {
                                             <UserAvatar className="ud-friend-avatar" username={challenge.challengerUsername} avatar={challenge.challengerAvatar} alt="" />
                                             <span className="ud-friend-who">
                                                 <ProfilePeek className="ud-friend-name" username={challenge.challengerUsername} sessionKey={sessionKey} />
-                                                <span className="ud-friend-xp">Wyzywa Cię na pojedynek, wygasa za {timeLeft(challenge.expiresAt)} s</span>
+                                                <span className="ud-friend-xp">{challenge.challengerElo != null && <><b>{challenge.challengerElo} Elo</b> · </>}Wyzywa Cię na pojedynek, wygasa za {timeLeft(challenge.expiresAt)} s</span>
                                             </span>
                                             <span className="ud-friend-act arena-challenge-act">
                                                 {!accepted && (

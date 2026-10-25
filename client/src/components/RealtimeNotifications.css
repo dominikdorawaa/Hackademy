@@ -15,7 +15,7 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border-radius: 10px;
+  border-radius: 6px;
   background: var(--bg-panel);
   color: var(--text-light);
   font-size: 0.9rem;
@@ -48,3 +48,54 @@
 .realtime-toast-close:focus-visible {
   color: var(--text-light);
 }
+
+.realtime-toast {
+  position: relative;
+  overflow: hidden;
+  text-align: left;
+}
+
+.realtime-toast[data-kind='friend'],
+.realtime-toast[data-kind='challenge'] {
+  display: block;
+  padding: 0;
+  background: none;
+  border-radius: 6px;
+}
+
+.realtime-toast[data-kind='friend'] .realtime-toast-close,
+.realtime-toast[data-kind='challenge'] .realtime-toast-close {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  margin: 0;
+}
+
+.realtime-toast[data-kind='friend'] .invite-card { padding-right: 36px; }
+
+.realtime-toast-mark { flex: none; color: #6ea2ff; }
+[data-theme='light'] .realtime-toast-mark { color: #0b55db; }
+
+.realtime-toast-timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--primary-blue);
+  transform-origin: left;
+  animation: realtime-toast-countdown var(--toast-duration, 5s) linear forwards;
+}
+
+.realtime-toast[data-paused] .realtime-toast-timer { animation-play-state: paused; }
+
+@keyframes realtime-toast-countdown {
+  from { transform: scaleX(1); }
+  to { transform: scaleX(0); }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .realtime-toast-timer { display: none; }
+}
+
+:root[data-reduced-motion='true'] .realtime-toast-timer { display: none; }

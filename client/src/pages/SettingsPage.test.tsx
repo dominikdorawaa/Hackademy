@@ -1,5 +1,5 @@
 import { setClerkSession, openUserProfile } from '../test/clerk';
-import { fireEvent, render, screen, waitFor } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
 import { MemoryRouter } from 'react-router-dom';
@@ -22,15 +22,29 @@ function mount(section = 'account') {
 }
 
 describe('settings', () => {
-  it('keeps reduced motion in settings without duplicating the theme selector', async () => {
+  it('switches the theme and reduced motion from the appearance section', async () => {
     mount('appearance');
-    expect(screen.getByRole('switch', { name: 'Ogranicz animacje' })).toBeInTheDocument();
-    expect(screen.queryByRole('group', { name: 'Motyw aplikacji' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('button', { name: /Jasny|Ciemny|Systemowy|Włącz .* motyw/ })).not.toBeInTheDocument();
+    const theme = screen.getByRole('radiogroup', { name: 'Motyw interfejsu' });
+    expect(screen.getByRole('radio', { name: 'Ciemny' })).toBeChecked();
+    fireEvent.click(screen.getByRole('radio', { name: 'Jasny' }));
+    expect(theme).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Jasny' })).toBeChecked();
+    expect(document.documentElement).toHaveAttribute('data-theme', 'light');
+    expect(localStorage.getItem('app-theme')).toBe('light');
     fireEvent.click(screen.getByRole('switch', { name: 'Ogranicz animacje' }));
     expect(document.documentElement).toHaveAttribute('data-reduced-motion', 'true');
     expect(localStorage.getItem('app-reduced-motion')).toBe('true');
+    expect(screen.getByText('Awatary i maskotki stoją w miejscu')).toBeInTheDocument();
+    expect(screen.getByText('Podgląd: stoi')).toBeInTheDocument();
   });
+
+  it('groups every section into labelled panels', () => {
+    mount('security');
+    expect(screen.getByRole('region', { name: 'Hasło i logowanie' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Bieżąca sesja' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Bezpieczeństwo' })).toHaveAttribute('aria-current', 'page');
+  });
+
   it('saves notification preferences and restores them after switching sections', async () => {
     let saved = { ...defaultNotificationPreferences };
     server.use(
@@ -123,6 +137,40 @@ describe('settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zapisz nazwę' }));
     await screen.findByText('Nazwa użytkownika została zmieniona.');
     expect(localStorage.getItem('token')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Zapisz nazwę' })).toBeDisabled();
+  });
+
+  it('explains how to change the e-mail and opens Clerk to do it', async () => {
+    mount();
+    expect(await screen.findByText(/potwierdź go kodem i ustaw jako główny/)).toBeInTheDocument();
+    openUserProfile.mockClear();
+    fireEvent.click(screen.getByRole('button', { name: 'Zmień adres' }));
+    expect(openUserProfile).toHaveBeenCalledOnce();
+  });
+
+  it('keeps the naming rules hidden until the typed name breaks them', async () => {
+    mount();
+    const field = await screen.findByLabelText('Nazwa użytkownika');
+    expect(screen.queryByText(/litery, cyfry/)).not.toBeInTheDocument();
+    fireEvent.change(field, { target: { value: 'ab' } });
+    expect(screen.getByRole('alert')).toHaveTextContent('od 3 do 20 znaków');
+    expect(field).toHaveAttribute('aria-invalid', 'true');
+    expect(screen.getByRole('button', { name: 'Zapisz nazwę' })).toBeDisabled();
+    fireEvent.change(field, { target: { value: 'zła nazwa' } });
+    expect(screen.getByRole('alert')).toHaveTextContent('litery, cyfry, _ i -');
+    fireEvent.change(field, { target: { value: 'dobra_nazwa' } });
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zapisz nazwę' })).toBeEnabled();
+  });
+
+  it('shows a taken username as an error and keeps the typed name', async () => {
+    server.use(http.patch(`${API_URL}/api/user/me/username`, () => HttpResponse.json({ message: 'Username already taken' }, { status: 409 })));
+    mount();
+    const field = await screen.findByLabelText('Nazwa użytkownika');
+    fireEvent.change(field, { target: { value: 'taken' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Zapisz nazwę' }));
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ta nazwa jest już zajęta. Wybierz inną.');
+    expect(field).toHaveValue('taken');
   });
 
   it('explains a taken name and checks the allowed characters before and after sending', async () => {
@@ -166,22 +214,24 @@ describe('settings', () => {
       }),
     );
     mount('notifications');
-    const summary = await screen.findByText('Zaproszenie do znajomych', { selector: 'dt' });
-    const outcome = (name: string) => screen.getByText(name, { selector: 'dt' }).nextElementSibling;
-    await waitFor(() => expect(outcome('Zaproszenie do znajomych')).toHaveTextContent('dzwonek w górnym pasku, dźwięk'));
-    expect(summary).toBeInTheDocument();
-    expect(outcome('Znaleziony mecz')).toHaveTextContent('dźwięk');
-    expect(screen.getAllByText(/dzwonku w górnym pasku/)).toHaveLength(3);
+    const channels = (row: string) => {
+      const list = screen.getByRole('switch', { name: row }).closest('.settings-row')!.querySelector('ul')!;
+      return within(list).getAllByRole('listitem').map(item => item.textContent);
+    };
+    await waitFor(() => expect(channels('Zaproszenia do znajomych')).toEqual(['Dzwonek', 'Komunikat', 'Dźwięk', 'Systemowe (wyłączone)']));
+    expect(channels('Znaleziony mecz')).toEqual(['Dźwięk', 'Systemowe (wyłączone)']);
+    expect(channels('Komunikat o znajomych online')).toEqual(['Komunikat', 'Dźwięk', 'Systemowe (wyłączone)']);
+    expect(screen.getByRole('region', { name: 'Tak to wygląda' })).toHaveTextContent('ola_secchce dodać Cię do znajomych');
 
     fireEvent.click(screen.getByRole('switch', { name: 'Dźwięk powiadomień' }));
     await screen.findByText('Preferencje zostały zapisane.');
-    expect(outcome('Zaproszenie do znajomych')).toHaveTextContent(/^dzwonek w górnym pasku$/);
-    expect(outcome('Znaleziony mecz')).toHaveTextContent('mecz otworzy się bez sygnału');
+    expect(channels('Zaproszenia do znajomych')).toEqual(['Dzwonek', 'Komunikat', 'Dźwięk (wyłączone)', 'Systemowe (wyłączone)']);
     expect(screen.getByRole('switch', { name: 'Znaleziony mecz' })).toBeDisabled();
     expect(screen.getByText(/aby ta opcja miała efekt/)).toBeInTheDocument();
 
     fireEvent.click(screen.getByRole('switch', { name: 'Zaproszenia do znajomych' }));
-    await waitFor(() => expect(outcome('Zaproszenie do znajomych')).toHaveTextContent('tylko na stronie Znajomi'));
+    await screen.findByText('Wyłączone: zobaczysz je tylko na stronie Znajomi.');
+    expect(channels('Zaproszenia do znajomych')).toEqual(['Dzwonek (wyłączone)', 'Komunikat (wyłączone)', 'Dźwięk (wyłączone)', 'Systemowe (wyłączone)']);
   });
 
   it('previews every sound right away, even with sound switched off', async () => {
@@ -205,10 +255,12 @@ describe('settings', () => {
   it('sends a test system notification or says what is missing', async () => {
     const shown = vi.fn();
     const permission = vi.fn(async () => 'granted');
+    const created: FakeNotification[] = [];
     class FakeNotification {
       static permission = 'default';
       static requestPermission = permission;
-      constructor(title: string) { shown(title); }
+      onerror: (() => void) | null = null;
+      constructor(title: string, options?: NotificationOptions) { shown(title, options?.tag); created.push(this); }
     }
     vi.stubGlobal('isSecureContext', true);
     vi.stubGlobal('Notification', FakeNotification);
@@ -219,7 +271,9 @@ describe('settings', () => {
       fireEvent.click(preview);
       await screen.findByText(/Wysłano próbne powiadomienie/);
       expect(permission).toHaveBeenCalledTimes(1);
-      expect(shown).toHaveBeenCalledWith('Próbne powiadomienie Hackademy');
+      expect(shown).toHaveBeenCalledWith('Próbne powiadomienie Hackademy', undefined);
+      act(() => created[0].onerror?.());
+      expect(await screen.findByText(/System nie wyświetlił powiadomienia/)).toBeInTheDocument();
 
       FakeNotification.permission = 'denied';
       fireEvent.click(preview);
