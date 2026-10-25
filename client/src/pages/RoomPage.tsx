@@ -17,6 +17,7 @@ import RoomFooterBar from '../components/room/RoomFooterBar';
 import RoomSplit from '../components/room/RoomSplit';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
+import { closeRoomActivity, openRoomActivity } from '../services/presenceApi';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
@@ -172,6 +173,14 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     };
     if (sessionKey) fetchRoom();
   }, [id, sessionKey, preview]);
+
+  const roomId = room?.id;
+  useEffect(() => {
+    if (preview || !roomId || !sessionKey) return;
+    const auth = { sessionKey };
+    void openRoomActivity(roomId, auth).catch(() => undefined);
+    return () => { void closeRoomActivity(roomId, auth).catch(() => undefined); };
+  }, [preview, roomId, sessionKey]);
 
   useEffect(() => {
     readerRef.current?.scrollTo?.({ top: 0 });

@@ -225,6 +225,9 @@ export interface FriendDto {
   points: number
   streak: number
   online: boolean
+  activity?: 'DUEL' | 'ARENA_QUEUE' | 'ROOM' | null
+  activityRoom?: string | null
+  lastSeenAt?: number | null
   winsAgainst?: number
   lossesAgainst?: number
 }

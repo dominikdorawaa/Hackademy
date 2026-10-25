@@ -19,7 +19,10 @@ import java.time.Duration;
 import java.time.Instant;
 import java.util.concurrent.ScheduledFuture;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
+import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.*;
@@ -132,6 +135,28 @@ class FriendPresenceTest {
         assertFalse(presence.isOnline(1L));
         verifyNoInteractions(scheduler);
         verify(announcer, times(2)).announce(1L);
+    }
+
+    @Test
+    void tracksTheOpenRoomUntilTheUserLeavesItOrGoesOffline() {
+        presence = new FriendPresence(scheduler, announcer, Duration.ZERO);
+        presence.connected(1L, "a");
+        presence.openRoom(1L, 5L);
+        presence.openRoom(1L, 5L);
+        assertEquals(5L, presence.roomOf(1L));
+        presence.closeRoom(1L, 6L);
+        assertEquals(5L, presence.roomOf(1L));
+        presence.closeRoom(1L, 5L);
+        assertNull(presence.roomOf(1L));
+        verify(announcer, times(3)).announce(1L);
+
+        presence.openRoom(1L, 7L);
+        assertNull(presence.lastSeen(1L));
+        presence.disconnected(1L, "a");
+        assertNull(presence.roomOf(1L));
+        assertNotNull(presence.lastSeen(1L));
+        presence.connected(1L, "b");
+        assertNull(presence.roomOf(1L));
     }
 
     @Test

@@ -1,7 +1,7 @@
 import { setClerkSession } from '../test/clerk';
 import { screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Route } from 'react-router-dom';
+import { Route, useNavigate } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it } from 'vitest';
 import { mockRoomViewport } from '../test/roomViewport';
@@ -27,6 +27,31 @@ function mount(tasks: RoomTaskDto[]) {
 
 const completedRoom = { success: true, message: 'Poprawna odpowiedź! Pokój ukończony!', pointsEarned: 50, newBadges: [] };
 const bit = () => document.querySelector('.room-mascot-zone');
+
+describe('room activity for friends', () => {
+  it('tells the server which room is open and when the player leaves it', async () => {
+    const calls: string[] = [];
+    server.use(
+      http.put(`${API_URL}/api/presence/room/7`, () => { calls.push('open'); return new HttpResponse(null, { status: 204 }); }),
+      http.delete(`${API_URL}/api/presence/room/7`, () => { calls.push('close'); return new HttpResponse(null, { status: 204 }); }),
+    );
+    const room: RoomDetailDto = {
+      id: 7, title: 'HTTP', description: 'Opis', shortDescription: '', difficulty: 'EASY', points: 50, solutionsCount: 0,
+      createdAt: '2026-10-01T00:00:00', solved: false, requiresVpn: false, hints: [], unlockedHintIds: [], fileName: null,
+      tasks: [{ id: 1, title: 'Zadanie', content: 'Treść', question: 'Pytanie?', completed: false }],
+    };
+    server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
+    setClerkSession(createToken('USER'));
+    function Leave() { const navigate = useNavigate(); return <button type="button" onClick={() => navigate('/away')}>Wyjdź z testu</button>; }
+    renderWithAuth(<>
+      <Route path="/rooms/:id" element={<><RoomPage /><Leave /></>} />
+      <Route path="/away" element={<p>Poza pokojem</p>} />
+    </>, '/rooms/7');
+    await waitFor(() => expect(calls).toEqual(['open']));
+    await userEvent.click(screen.getByRole('button', { name: 'Wyjdź z testu' }));
+    await waitFor(() => expect(calls).toEqual(['open', 'close']));
+  });
+});
 
 describe('task room completion', () => {
   it('strips active HTML from legacy task content while retaining formatting and newlines', async () => {

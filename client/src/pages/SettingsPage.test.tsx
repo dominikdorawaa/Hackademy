@@ -67,6 +67,25 @@ describe('settings', () => {
     expect(screen.getByRole('switch', { name: 'Zaproszenia do znajomych' })).toHaveAttribute('aria-checked', 'false');
   });
 
+  it('lets the player hide their activity from friends', async () => {
+    let shared = true;
+    server.use(
+      http.get(`${API_URL}/api/presence/sharing`, () => HttpResponse.json({ enabled: shared })),
+      http.put(`${API_URL}/api/presence/sharing`, async ({ request }) => {
+        shared = (await request.json() as { enabled: boolean }).enabled;
+        return HttpResponse.json({ enabled: shared });
+      }),
+    );
+    mount();
+    const toggle = await screen.findByRole('switch', { name: 'Pokazuj znajomym, co robię' });
+    await waitFor(() => expect(toggle).toBeEnabled());
+    expect(toggle).toHaveAttribute('aria-checked', 'true');
+    fireEvent.click(toggle);
+    await screen.findByText('Znajomi widzą już tylko, czy jesteś online.');
+    expect(shared).toBe(false);
+    expect(screen.getByRole('switch', { name: 'Pokazuj znajomym, co robię' })).toHaveAttribute('aria-checked', 'false');
+  });
+
   it('saves the friend online preference', async () => {
     let saved = { ...defaultNotificationPreferences };
     server.use(

@@ -12,6 +12,7 @@ import org.springframework.web.socket.messaging.SessionDisconnectEvent;
 import java.security.Principal;
 import java.time.Duration;
 import java.time.Instant;
+import java.time.LocalDateTime;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.Map;
@@ -26,6 +27,8 @@ public class FriendPresence {
     private final Map<Long, Set<String>> sessions = new HashMap<>();
     private final Set<Long> online = new HashSet<>();
     private final Map<Long, ScheduledFuture<?>> pendingOffline = new HashMap<>();
+    private final Map<Long, Long> rooms = new HashMap<>();
+    private final Map<Long, LocalDateTime> lastSeen = new HashMap<>();
     private boolean closing;
 
     @EventListener(org.springframework.context.event.ContextClosedEvent.class)
@@ -35,6 +38,7 @@ public class FriendPresence {
         pendingOffline.clear();
         sessions.clear();
         online.clear();
+        rooms.clear();
     }
 
     public FriendPresence(@Qualifier("taskScheduler") TaskScheduler scheduler, PresenceAnnouncer announcer,
@@ -61,6 +65,26 @@ public class FriendPresence {
         return online.contains(userId);
     }
 
+    public synchronized LocalDateTime lastSeen(Long userId) {
+        return lastSeen.get(userId);
+    }
+
+    public synchronized Long roomOf(Long userId) {
+        return online.contains(userId) ? rooms.get(userId) : null;
+    }
+
+    public void openRoom(Long userId, Long roomId) {
+        boolean changed;
+        synchronized (this) { changed = !roomId.equals(rooms.put(userId, roomId)); }
+        if (changed) announcer.announce(userId);
+    }
+
+    public void closeRoom(Long userId, Long roomId) {
+        boolean changed;
+        synchronized (this) { changed = rooms.remove(userId, roomId); }
+        if (changed) announcer.announce(userId);
+    }
+
     synchronized void connected(Long userId, String sessionId) {
         if (closing) return;
         sessions.computeIfAbsent(userId, ignored -> new HashSet<>()).add(sessionId);
@@ -84,7 +108,11 @@ public class FriendPresence {
     synchronized void wentOffline(Long userId) {
         if (closing) return;
         pendingOffline.remove(userId);
-        if (!sessions.containsKey(userId) && online.remove(userId)) announcer.announce(userId);
+        if (sessions.containsKey(userId)) return;
+        rooms.remove(userId);
+        if (!online.remove(userId)) return;
+        lastSeen.put(userId, LocalDateTime.now());
+        announcer.announce(userId);
     }
 
     private static Long userId(Principal principal) {

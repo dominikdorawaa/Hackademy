@@ -56,6 +56,7 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             long wait = random.nextLong(BOT_WAIT_MIN_MILLIS, BOT_WAIT_MAX_MILLIS + 1);
             queue.add(new PlayerInfo(userId, username, tickets.incrementAndGet(), clock.getAsLong() + wait));
             realtime.arenaChanged(userId);
+            realtime.activityChanged(userId);
         }
         }
     }
@@ -64,7 +65,10 @@ public class MatchmakingServiceImpl implements MatchmakingService {
     public void leaveQueue(Long userId) {
         boolean left;
         synchronized (queue) { left = queue.removeIf(player -> player.id().equals(userId)); }
-        if (left) realtime.arenaChanged(userId);
+        if (left) {
+            realtime.arenaChanged(userId);
+            realtime.activityChanged(userId);
+        }
     }
 
     @Override

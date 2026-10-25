@@ -153,8 +153,10 @@
   box-sizing: content-box;
 }
 
+.nav-friends-who { display: flex; min-width: 0; flex-direction: column; }
 .nav-friends-name { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.nav-friends-avatar[data-online='false'] + .nav-friends-name { color: var(--text-gray); }
+.nav-friends-avatar[data-online='false'] + .nav-friends-who .nav-friends-name { color: var(--text-gray); }
+.nav-friends-status { overflow: hidden; color: var(--text-gray); font-size: 0.78rem; text-overflow: ellipsis; white-space: nowrap; }
 
 .nav-friends-row-actions { display: flex; flex: none; align-items: center; gap: 4px; }
 

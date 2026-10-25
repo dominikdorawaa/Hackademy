@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
+import { friendActivity } from '../lib/friendStatus';
 import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, ChevronDown, Search, Undo2, UserPlus, Users, X } from 'lucide-react';
@@ -31,11 +32,12 @@ interface PersonRowProps {
   username: string;
   avatar?: AvatarConfig | null;
   online?: boolean;
+  status?: string | null;
   onNavigate: () => void;
   children?: ReactNode;
 }
 
-function PersonRow({ username, avatar, online, onNavigate, children }: PersonRowProps) {
+function PersonRow({ username, avatar, online, status, onNavigate, children }: PersonRowProps) {
   return (
     <li className="nav-friends-row">
       <Link className="nav-friends-person" to={`/profile/${encodeURIComponent(username)}`} onClick={onNavigate}>
@@ -43,7 +45,10 @@ function PersonRow({ username, avatar, online, onNavigate, children }: PersonRow
           <UserAvatar username={username} avatar={avatar} alt="" />
           {online && <span className="presence-dot" aria-hidden="true" />}
         </span>
-        <span className="nav-friends-name">{username}</span>
+        <span className="nav-friends-who">
+          <span className="nav-friends-name">{username}</span>
+          {status && <>{' '}<span className="nav-friends-status">{status}</span></>}
+        </span>
       </Link>
       {children && <span className="nav-friends-row-actions">{children}</span>}
     </li>
@@ -234,7 +239,7 @@ export default function NavbarFriends() {
               ) : (
                 <ul className="nav-friends-list">
                   {online.map(friend => (
-                    <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online onNavigate={close}>
+                    <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online status={friendActivity(friend)} onNavigate={close}>
                       {challenged.has(friend.username) ? (
                         sentChallenge(friend.username)
                       ) : challengeBlocked ? null : (
@@ -265,7 +270,7 @@ export default function NavbarFriends() {
                 {showOffline && (
                   <ul className="nav-friends-list">
                     {offline.map(friend => (
-                      <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online={false} onNavigate={close}>
+                      <PersonRow key={friend.id} username={friend.username} avatar={friend.avatar} online={false} status={friendActivity(friend)} onNavigate={close}>
                         {challenged.has(friend.username) && sentChallenge(friend.username)}
                       </PersonRow>
                     ))}
