@@ -135,6 +135,7 @@ export interface GameSession {
   player2EloChange: number | null
   round: number
   totalRounds: number
+  roundMillis?: number
   phase: 'QUESTION' | 'REVEAL'
   roundEndsAt: number
   nextRoundAt: number
@@ -508,6 +509,7 @@ export interface RankingSummaryDto {
 }
 
 export interface DashboardUser extends RankingUser {
+  elo?: number
   hasVpnAccess: boolean
   onboarding?: OnboardingState
   notificationPreferences?: import('../services/userApi').NotificationPreferences
@@ -547,6 +549,7 @@ export interface UserProfileDto {
   featuredBadgeIds?: number[]
   username: string
   points: number
+  elo: number
   role: Role
   createdAt: ApiDateTime
   streak: number

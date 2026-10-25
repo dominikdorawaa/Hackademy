@@ -11,6 +11,8 @@ import { createToken } from '../../test/fixtures/auth';
 import { profileBadges } from '../../test/fixtures/profile';
 import { server } from '../../test/mocks/server';
 import ProfileEditor from './ProfileEditor';
+import type { AvatarConfig } from '../../types/api';
+import { DEFAULT_AVATAR, toAvatarConfig } from '../arena/avatar/avatarModel';
 
 const endpoint = `${API_URL}/api/user/me/profile`;
 const original: ProfilePersonalization = { bio: 'Original bio', tagline: '', interests: [], featuredBadgeIds: [] };
@@ -26,24 +28,27 @@ beforeEach(() => {
   }));
 });
 
-async function mountEditor(initial = original) {
+async function mountEditor(initial = original, avatar: AvatarConfig | null = null) {
   const closed = vi.fn();
   const saved = vi.fn();
   const unauthorized = vi.fn();
   const renamed = vi.fn();
+  const avatarSaved = vi.fn();
+  const studio = vi.fn();
   function Host() {
     const [open, setOpen] = useState(false);
     return <>
       <button onClick={() => setOpen(true)}>Edytuj profil</button>
-      {open && <ProfileEditor username="tester" initial={initial} badges={profileBadges}
-        onSaved={saved} onRenamed={renamed} onUnauthorized={unauthorized} onClose={() => { closed(); setOpen(false); }} />}
+      {open && <ProfileEditor username="tester" initial={initial} badges={profileBadges} avatar={avatar}
+        onSaved={saved} onRenamed={renamed} onUnauthorized={unauthorized} onClose={() => { closed(); setOpen(false); }}
+        onAvatarSaved={avatarSaved} onOpenAvatarStudio={() => { studio(); setOpen(false); }} />}
     </>;
   }
   const view = render(<AuthProvider><Host /></AuthProvider>);
   const user = userEvent.setup();
   await user.click(screen.getByRole('button', { name: 'Edytuj profil' }));
   const editor = screen.getByRole('dialog', { name: 'Edytuj profil' });
-  return { ...view, user, editor, closed, saved, unauthorized, renamed };
+  return { ...view, user, editor, closed, saved, unauthorized, renamed, avatarSaved, studio };
 }
 
 async function requestClose(action: string, user: ReturnType<typeof userEvent.setup>, editor: HTMLElement) {
@@ -267,5 +272,70 @@ describe('profile editor username', () => {
     await user.clear(field);
     await user.type(field, 'ab');
     expect(within(editor).getByRole('button', { name: 'Zapisz profil' })).toBeDisabled();
+  });
+});
+
+describe('profile editor avatar', () => {
+  const avatarEndpoint = `${API_URL}/api/user/me/avatar`;
+  const custom = toAvatarConfig({ ...DEFAULT_AVATAR, outfit: 'bluza' });
+  let avatarWrites: AvatarConfig[];
+  beforeEach(() => {
+    avatarWrites = [];
+    server.use(http.put(avatarEndpoint, async ({ request }) => {
+      const avatar = await request.json() as AvatarConfig;
+      avatarWrites.push(avatar);
+      return HttpResponse.json(avatar);
+    }));
+  });
+
+  it('saves only the new pose of the current look when nothing else changed', async () => {
+    const { user, editor, avatarSaved, saved, closed } = await mountEditor(original, custom);
+    const poses = within(editor).getByRole('radiogroup', { name: 'Awatar' });
+    expect(within(poses).getAllByRole('radio').map(radio => radio.getAttribute('value'))).toEqual(['przod', 'postawa', 'profil']);
+    expect(within(poses).getByRole('radio', { name: 'Przód' })).toBeChecked();
+    await user.click(within(poses).getByRole('radio', { name: 'Profil' }));
+    await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
+    await waitFor(() => expect(closed).toHaveBeenCalledOnce());
+    expect(avatarWrites).toEqual([{ ...custom, pose: 'profil' }]);
+    expect(avatarSaved).toHaveBeenCalledWith({ ...custom, pose: 'profil' });
+    expect(saved).toHaveBeenCalledWith(original, 'tester');
+    expect(writes).toEqual([]);
+  });
+
+  it('keeps the form open after a failed pose save and does not resend a saved pose', async () => {
+    server.use(http.put(avatarEndpoint, () => new HttpResponse(null, { status: 500 })));
+    const { user, editor, closed } = await mountEditor();
+    await user.click(within(editor).getByRole('radio', { name: 'Postawa' }));
+    await user.type(within(editor).getByRole('textbox', { name: 'O mnie' }), ' updated');
+    await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
+    expect(await within(editor).findByRole('alert')).toHaveTextContent('pozy awatara');
+    expect(writes).toEqual([]);
+    expect(closed).not.toHaveBeenCalled();
+    server.use(http.put(avatarEndpoint, async ({ request }) => {
+      avatarWrites.push(await request.json() as AvatarConfig);
+      return HttpResponse.json({});
+    }));
+    server.use(http.patch(endpoint, () => new HttpResponse(null, { status: 500 })));
+    await user.click(within(editor).getByRole('button', { name: 'Zapisz profil' }));
+    expect(await within(editor).findByRole('alert')).toHaveTextContent('Nie udało się zapisać profilu');
+    expect(avatarWrites).toHaveLength(1);
+    expect(avatarWrites[0].pose).toBe('postawa');
+    expect(within(editor).getByRole('radio', { name: 'Postawa' })).toBeChecked();
+  });
+
+  it('opens the avatar studio at once or after confirming that changes are dropped', async () => {
+    const first = await mountEditor();
+    await first.user.click(within(first.editor).getByRole('button', { name: 'Zmień wygląd szczegółowo' }));
+    expect(first.studio).toHaveBeenCalledOnce();
+    first.unmount();
+    const { user, editor, studio, closed } = await mountEditor();
+    await user.click(within(editor).getByRole('radio', { name: 'Profil' }));
+    await user.click(within(editor).getByRole('button', { name: 'Zmień wygląd szczegółowo' }));
+    const confirmation = screen.getByRole('alertdialog', { name: 'Niezapisane zmiany' });
+    expect(confirmation).toHaveTextContent('Jeśli przejdziesz do kreatora awatara');
+    await user.click(within(confirmation).getByRole('button', { name: 'Odrzuć zmiany' }));
+    expect(studio).toHaveBeenCalledOnce();
+    expect(closed).not.toHaveBeenCalled();
+    expect(avatarWrites).toEqual([]);
   });
 });

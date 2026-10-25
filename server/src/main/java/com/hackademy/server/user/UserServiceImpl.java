@@ -329,6 +329,7 @@ public class UserServiceImpl implements UserService {
         return UserProfileDto.builder()
                 .username(user.getUsername())
                 .points(user.getPoints())
+                .elo(user.getElo())
                 .role(user.getRole())
                 .createdAt(user.getCreatedAt())
                 .streak(effectiveStreak)

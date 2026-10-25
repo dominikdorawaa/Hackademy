@@ -217,7 +217,7 @@ it('waits for the battle before showing it', async () => {
   expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
 });
 
-it.each(['KNOCKOUT', 'ROUNDS'] as const)('keeps the deciding answer and both choices visible after %s', async finishReason => {
+it.each(['KNOCKOUT', 'ROUNDS'] as const)('shows the result in place of the last question after %s', async finishReason => {
   realtime.value = { ...realtime.value, state: live(createGameSession({
     status: 'FINISHED', phase: 'REVEAL', question: null, winnerId: 1, finishReason,
     lastRound: { round: 10, questionId: 11, content: 'Pytanie rozstrzygające', answers: ['A', 'B', 'C', 'D'],
@@ -225,11 +225,9 @@ it.each(['KNOCKOUT', 'ROUNDS'] as const)('keeps the deciding answer and both cho
   })) };
   mount();
   expect(await screen.findByRole('heading', { name: 'Zwycięstwo', level: 1 })).toBeInTheDocument();
-  expect(screen.getByRole('heading', { name: 'Pytanie rozstrzygające', level: 2 })).toBeInTheDocument();
-  const answers = screen.getAllByRole('listitem');
-  expect(within(answers[1]).getByText('Poprawna')).toBeInTheDocument();
-  expect(within(answers[1]).getByText('Ty')).toBeInTheDocument();
-  expect(within(answers[3]).getByText('opponent')).toBeInTheDocument();
+  expect(screen.queryByRole('heading', { name: 'Pytanie rozstrzygające' })).not.toBeInTheDocument();
+  expect(screen.queryByText('Poprawna')).not.toBeInTheDocument();
+  expect(document.querySelector('.battle-card')).toBeNull();
   expect(screen.queryByRole('group', { name: 'Odpowiedzi' })).not.toBeInTheDocument();
 });
 

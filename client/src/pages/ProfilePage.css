@@ -12,6 +12,12 @@
     overflow-y: auto; scrollbar-width: none;
   }
   .badge-catalog::-webkit-scrollbar { display: none; }
+  /* A fixed height keeps the dialog still when a filter leaves one card or none; the body scrolls instead. */
+  .badge-catalog[open] { display: flex; flex-direction: column; height: min(940px, calc(100dvh - 32px)); max-height: none; overflow: hidden; }
+  .badge-catalog-header { flex: none; }
+  .badge-catalog-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--profile-divider) transparent; }
+  .badge-catalog-body > .badge-catalog-list, .badge-catalog-body > [role='status'] { flex: 1 0 auto; align-content: start; }
+  .badge-catalog-body > .profile-badge-pagination { flex: none; }
   .badge-catalog::backdrop { background: rgb(0 0 0 / 65%); }
   .badge-catalog-header {
     padding: 24px 28px 0;
@@ -51,7 +57,7 @@
   .badge-catalog input { caret-color: var(--profile-blue); }
   .badge-catalog-tabs button[aria-selected='true'] { font-weight: 700; }
   .badge-catalog .profile-badge-pagination { display: flex; justify-content: space-between; gap: 16px; align-items: center; }
-  .badge-catalog .profile-badge-page-controls { width: 250px; }
+  .badge-catalog .profile-badge-page-controls { width: auto; }
   @media (max-width: 600px) {
     .badge-catalog-header { padding: 16px 16px 0; }
     .badge-catalog-title-row h2 { font-size: 18px; }
@@ -64,7 +70,7 @@
     .badge-catalog-item > .profile-achievement-icon { width: 40px; height: 40px; font-size: 19px; }
     .badge-catalog-item-status { grid-column: 2; text-align: left; }
     .badge-catalog .profile-badge-pagination { flex-direction: column; align-items: stretch; }
-    .badge-catalog .profile-badge-page-controls { width: 100%; }
+    .badge-catalog .profile-badge-page-controls { width: 100%; justify-content: space-between; }
   }
   .profile-achievements { display: grid; gap: 16px; min-width: 0; }
   .profile-achievement-progress p { font-size: 12px; color: var(--text-gray); margin-bottom: 8px; }
@@ -129,16 +135,14 @@
   .profile-achievement-catalog-toolbar select { width: 100%; padding: 8px; background: var(--bg-panel); color: var(--text-light); border: 1px solid var(--border-color); border-radius: 6px; font-size: 12px; }
   .profile-badge-pagination { margin-top: 16px; display: grid; gap: 8px; }
   .profile-badge-page-controls { display: flex; align-items: center; gap: 8px; }
-  .profile-badge-page-controls select {
-    flex: 1;
-    min-width: 0;
-    height: 32px;
-    padding: 0 8px;
-    color: var(--text-light);
-    background: var(--bg-panel);
-    border: 1px solid var(--border-color);
-    border-radius: 6px;
-    font: inherit;
-    font-size: 12px;
+  .profile-badge-pages { display: flex; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
+  .profile-badge-pages [data-slot='button'] { font-variant-numeric: tabular-nums; }
+  .profile-badge-page-gap { min-width: 20px; text-align: center; color: var(--text-gray); }
+  /* Seven page numbers and both arrows do not fit one phone row, so the numbers take their own row above the arrows.
+     The buttons' width and padding are Tailwind classes, because utilities outrank this layer. */
+  @media (max-width: 600px) {
+    .profile-badge-page-controls { flex-wrap: wrap; }
+    .profile-badge-pages { order: -1; flex-basis: 100%; justify-content: center; gap: 2px; }
+    .profile-badge-page-gap { min-width: 14px; }
   }
 }

@@ -1,0 +1,61 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-10-24",
+  "sources": "local-prototype-backups/arena-referee-v1",
+  "base": {
+    "endpoint": "edit-image-pixen",
+    "from": "mascot base penguin-99602 (Bit)",
+    "seed": 94004,
+    "image": 1,
+    "description": "Same cute chibi penguin mascot Bit, same size, pose, face, big eyes, orange beak and feet. Dress him as a sports referee: replace the teal hoodie with a black and white vertically striped referee shirt with short sleeves and a black collar, a silver whistle on a black cord around the neck, remove the headphones. Keep the white belly visible under the shirt."
+  },
+  "pointPose": {
+    "endpoint": "edit-image-pixen",
+    "from": "base",
+    "seed": 94204,
+    "image": 1,
+    "description": "Same referee penguin; the flipper on the right side of the image is stretched straight out sideways and slightly up, pointing to the right edge like a referee announcing the winner, the other flipper hangs down, the body leans a little to the right."
+  },
+  "animations": {
+    "start": {
+      "endpoint": "animate-with-text-v3",
+      "seed": 94101,
+      "frameCount": 12,
+      "firstAndLastFrame": "base",
+      "action": "the referee penguin lifts the whistle to the beak and blows it hard with puffed cheeks, then swings one flipper sharply down in front of the body like a referee signalling the start of a fight, then returns to the starting pose, same size and position, feet stay planted"
+    },
+    "winner": {
+      "endpoint": "animate-with-text-v3",
+      "seed": 94401,
+      "frameCount": 8,
+      "firstFrame": "base",
+      "lastFrame": "pointPose",
+      "action": "the referee penguin lowers the left flipper and swings the right flipper out to point firmly at the right side of the image, leaning slightly toward it, feet stay planted, same size",
+      "endsOn": "the point pose itself as the held last frame"
+    }
+  },
+  "processing": "Alpha cut at 128, every pixel snapped to the base image palette, every frame of every sheet cropped to the same 56x57 bounds so the referee stays in place between animations, packed side by side. The idle pose is the base image alone; it breathes with a one-pixel CSS bob like the fighters.",
+  "sprites": [
+    {
+      "file": "referee-idle.png",
+      "frames": 1,
+      "frameWidth": 56,
+      "frameHeight": 57,
+      "sha256": "0fc33c625c80eaf3813adcefee8d6d7a4d6888bfae1e4756f9637bf9fed46bc4"
+    },
+    {
+      "file": "referee-start.png",
+      "frames": 13,
+      "frameWidth": 56,
+      "frameHeight": 57,
+      "sha256": "b6d70536c1954c93a9bd064bf8934bd024fb4c392774a641b1ef7408e3cefc3f"
+    },
+    {
+      "file": "referee-winner.png",
+      "frames": 10,
+      "frameWidth": 56,
+      "frameHeight": 57,
+      "sha256": "e02e345499b48d3b18cf827fe591c790f00782e7de5a2e7bb801f15492736aa3"
+    }
+  ]
+}

@@ -241,8 +241,8 @@ describe('friend online toasts', () => {
     rerender(<RealtimeNotifications />);
     environment.state = withFriends(4, friend(2, 'ola', true));
     rerender(<RealtimeNotifications />);
-    expect(screen.getByRole('status')).toBeEmptyDOMElement();
-    expect(delivered).not.toHaveBeenCalled();
+    expect(screen.queryByText(/jest online/)).not.toBeInTheDocument();
+    expect(delivered).not.toHaveBeenCalledWith('Znajomy online', expect.anything());
   });
 
   it('announces the same friend at most once per cooldown', () => {
@@ -298,6 +298,46 @@ describe('friend online toasts', () => {
     rerender(<RealtimeNotifications />);
     expect(sounds.play).toHaveBeenCalledTimes(1);
     expect(sounds.play).toHaveBeenCalledWith('friendOnline');
+  });
+});
+
+describe('accepted invitation toasts', () => {
+  const friend = (id: number, username: string) => ({ id, username, points: 0, streak: 0, online: true });
+
+  it('tells the inviter that their invitation was accepted', () => {
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friends: [friend(2, 'ola')] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('ola przyjmuje Twoje zaproszenie do znajomych.');
+    expect(delivered).toHaveBeenCalledWith('Zaproszenie przyjęte', expect.objectContaining({ tag: 'accepted:2' }));
+    environment.state = { ...snapshot(), revision: 3, friends: [friend(2, 'ola')] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getAllByText(/przyjmuje Twoje zaproszenie/)).toHaveLength(1);
+  });
+
+  it('stays quiet when the viewer accepts an invitation, or friends were there from the start', () => {
+    environment.state = { ...snapshot(), friends: [friend(3, 'kuba')], friendRequests: [request] };
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friends: [friend(3, 'kuba'), friend(7, 'friend')] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.queryByText(/przyjmuje Twoje zaproszenie/)).not.toBeInTheDocument();
+    expect(delivered).not.toHaveBeenCalled();
+  });
+
+  it('follows the friend request switch and waits for loaded preferences', () => {
+    environment.loaded = false;
+    const { rerender } = render(<RealtimeNotifications />);
+    environment.state = { ...snapshot(), revision: 2, friends: [friend(2, 'ola')] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toBeEmptyDOMElement();
+    environment.loaded = true;
+    environment.state = { ...environment.state, revision: 3 };
+    rerender(<RealtimeNotifications />);
+    expect(screen.getByRole('status')).toHaveTextContent('ola przyjmuje');
+    environment.preferences = { ...environment.preferences, friendRequests: false };
+    environment.state = { ...snapshot(), revision: 4, friends: [friend(2, 'ola'), friend(4, 'ewa')] };
+    rerender(<RealtimeNotifications />);
+    expect(screen.queryByText(/ewa przyjmuje/)).not.toBeInTheDocument();
   });
 });
 

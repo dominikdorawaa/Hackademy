@@ -70,7 +70,8 @@ it('opens the account configuration from the own portrait using the keyboard and
   const user = userEvent.setup();
   const edit = await screen.findByRole('link', { name: 'Zmień swój awatar' });
   expect(edit).toHaveAttribute('href', '/arena/avatar?from=profile');
-  expect(edit.textContent).toBe('');
+  expect(edit.textContent).toBe('Edytuj awatar');
+  expect(edit).toHaveAccessibleName('Zmień swój awatar');
   expect(within(edit).getByRole('img', { name: 'Avatar tester' })).toBeVisible();
   edit.focus();
   expect(edit).toHaveFocus();

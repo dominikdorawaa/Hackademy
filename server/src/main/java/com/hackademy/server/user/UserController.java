@@ -96,6 +96,7 @@ public class UserController {
         userInfo.put("tagline", appearance.tagline());
         userInfo.put("interests", appearance.interests());
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
+        userInfo.put("elo", userDetails.getElo());
         userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
         userInfo.put("onboarding", new com.hackademy.server.user.dto.OnboardingDto(userDetails.getAvatarConfirmedAt() != null, userDetails.getTourStatus()));
         userInfo.put("notificationPreferences", getNotificationPreferences(authentication));
