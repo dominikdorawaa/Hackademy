@@ -68,6 +68,7 @@
 .ud-board-head .ud-today {
   margin-top: 16px;
   padding: 12px 14px;
+  border: 1px solid var(--ud-line);
   border-radius: var(--ud-radius);
   background: var(--ud-surface);
 }
@@ -78,9 +79,10 @@
 
 .ud-today-xp {
   color: var(--ud-xp);
-  font-size: 1.25rem;
-  font-weight: 800;
-  font-stretch: 85%;
+  font-family: var(--ud-pixel);
+  font-size: 1.625rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .ud-today-flags {
@@ -92,6 +94,7 @@
 .ud-next {
   background: var(--ud-hero-bg);
   color: var(--ud-hero-ink);
+  border: 1px solid var(--ud-blue-shade);
   border-radius: var(--ud-radius);
   padding: 32px 36px;
   display: flex;
@@ -101,27 +104,26 @@
   flex-wrap: wrap;
 }
 
+
 .ud-next-copy {
   min-width: 0;
   flex: 1 1 360px;
 }
 
 .ud-greet {
-  font-family: inherit;
-  color: var(--ud-hero-muted);
-  font-size: 1.0625rem;
-  font-weight: 600;
-  line-height: 1.4;
-  margin-bottom: 10px;
+  color: var(--ud-link);
+  font-family: var(--ud-pixel);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+  margin-bottom: 12px;
   max-width: 60ch;
 }
 
 .ud-next h2 {
-  font-size: var(--ud-display);
-  font-weight: 800;
-  font-stretch: 85%;
-  line-height: 1;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.75rem, 2rem + 2.2vw, 4.25rem);
+  font-weight: 400;
+  line-height: 0.9;
   text-wrap: balance;
 }
 
@@ -132,13 +134,13 @@
 }
 
 .ud-next .ud-btn-inverse {
+  border-color: var(--ud-blue-shade);
   background: var(--ud-blue);
   color: var(--ud-blue-ink);
 }
 
 .ud-next .ud-btn-inverse:hover {
   background: var(--ud-cta-hover);
-  transform: translateY(-1px);
 }
 
 /* --- Buttons --- */
@@ -146,22 +148,31 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 48px;
-  padding: 0 24px;
-  border: 0;
-  border-radius: var(--ud-radius);
-  font: inherit;
-  font-weight: 650;
+  gap: 6px;
+  min-height: 46px;
+  padding: 0 22px;
+  border: 1px solid var(--ud-line-strong);
+  border-radius: 3px;
+  background: var(--ud-surface);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
+  color: var(--ud-ink);
+  font-family: var(--ud-pixel);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
+  letter-spacing: 0.02em;
   cursor: pointer;
-  transition: transform 160ms var(--ud-ease), background-color 160ms var(--ud-ease);
+  transition: transform 160ms var(--ud-ease), background-color 160ms var(--ud-ease), border-color 160ms var(--ud-ease);
   white-space: nowrap;
 }
 
-.ud-btn:active {
+.ud-btn:active:not(:disabled) {
   transform: translateY(1px);
+  box-shadow: none;
 }
 
 .ud-btn-inverse {
+  border-color: #c3d3ef;
   background: #ffffff;
   color: #0a2f7a;
 }
@@ -175,11 +186,13 @@
 }
 
 .ud-btn-solid {
+  border-color: var(--ud-blue-shade);
   background: var(--ud-blue);
   color: var(--ud-blue-ink);
 }
 
-.ud-btn-solid:hover {
+.ud-btn-solid:hover:not(:disabled) {
+  border-color: var(--ud-blue-shade);
   background: var(--ud-cta-hover);
 }
 
@@ -188,13 +201,17 @@
   color: var(--ud-ink);
 }
 
-.ud-btn-quiet:hover {
+.ud-btn-quiet:hover:not(:disabled) {
+  border-color: var(--ud-muted);
   background: var(--ud-track);
 }
 
 .ud-link {
   color: var(--ud-link);
-  font-weight: 600;
+  font-family: var(--ud-pixel);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1;
   text-decoration: underline;
   text-decoration-thickness: 1px;
   text-underline-offset: 4px;
@@ -209,6 +226,7 @@
 /* --- Current path --- */
 .ud-path {
   background: var(--ud-surface);
+  border: 1px solid var(--ud-line);
   border-radius: var(--ud-radius);
   padding: 24px 28px 20px;
 }
@@ -222,9 +240,9 @@
 
 .ud-section-head h2,
 .ud-panel h2 {
-  font-size: var(--ud-text-l);
-  font-weight: 700;
-  line-height: 1.2;
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .ud-path-count {
@@ -234,20 +252,23 @@
 
 .ud-path-count strong {
   color: var(--ud-ink);
+  font-family: var(--ud-pixel);
+  font-size: 1.375rem;
+  font-weight: 400;
 }
 
 .ud-rail {
   display: grid;
   grid-auto-flow: column;
-  grid-auto-columns: 1fr;
-  gap: 4px;
+  grid-auto-columns: minmax(0, 1fr);
+  gap: 3px;
   margin: 16px 0 12px;
 }
 
 .ud-rail span {
-  height: 10px;
-  border-radius: 2px;
+  height: 12px;
   background: var(--ud-track);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
 }
 
 .ud-rail span.is-done {
@@ -256,12 +277,20 @@
 
 .ud-rail span.is-current {
   background: var(--ud-blue);
+  animation: ud-rail-current 1.2s steps(2, jump-none) infinite alternate;
+}
+
+@keyframes ud-rail-current {
+  from { opacity: 1; }
+  to { opacity: 0.45; }
 }
 
 .ud-meter {
-  height: 10px;
-  border-radius: 5px;
-  background: var(--ud-track);
+  height: 14px;
+  padding: 2px;
+  border: 1px solid var(--ud-line-strong);
+  border-radius: 3px;
+  background: var(--ud-board);
   overflow: hidden;
 }
 
@@ -273,6 +302,7 @@
   display: block;
   height: 100%;
   width: 100%;
+  border-radius: 1px;
   background: var(--ud-blue);
   transform-origin: left center;
   transform: scaleX(var(--ud-fill, 0));
@@ -286,7 +316,7 @@
 
 .ud-room-row {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr) auto;
+  grid-template-columns: 24px minmax(0, 1fr) auto;
   align-items: center;
   gap: 14px;
   padding: 10px 12px;
@@ -299,17 +329,35 @@ a.ud-room-row:hover {
   background: var(--ud-surface-2);
 }
 
-.ud-room i {
-  font-size: 0.8125rem;
-  text-align: center;
+.ud-room-icon {
+  display: block;
+  transition: transform 160ms var(--ud-ease);
+  --ud-icon-frame: var(--ud-line-strong);
+  --ud-icon-fill: var(--ud-surface-2);
+  --ud-icon-bevel: var(--ud-bevel);
+  --ud-icon-glyph: var(--ud-muted);
 }
 
-.ud-room.is-done i {
-  color: var(--ud-xp);
+.ud-room-icon-frame { fill: var(--ud-icon-frame); }
+.ud-room-icon-fill { fill: var(--ud-icon-fill); }
+.ud-room-icon-bevel { fill: var(--ud-icon-bevel); }
+.ud-room-icon-glyph { fill: var(--ud-icon-glyph); }
+
+.ud-room.is-open .ud-room-icon {
+  --ud-icon-frame: var(--ud-blue-shade);
+  --ud-icon-fill: var(--ud-blue);
+  --ud-icon-bevel: var(--ud-blue-shade);
+  --ud-icon-glyph: var(--ud-blue-ink);
 }
 
-.ud-room.is-open i {
-  color: var(--ud-link);
+.ud-room.is-done .ud-room-icon {
+  --ud-icon-frame: var(--ud-xp);
+  --ud-icon-fill: color-mix(in srgb, var(--ud-xp) 16%, var(--ud-surface));
+  --ud-icon-glyph: var(--ud-xp);
+}
+
+a.ud-room-row:hover .ud-room-icon {
+  transform: translateY(-1px);
 }
 
 .ud-room.is-locked {
@@ -331,6 +379,10 @@ a.ud-room-row:hover {
   font-size: var(--ud-text-s);
 }
 
+.ud-room.is-done .ud-room-status {
+  color: var(--ud-xp);
+}
+
 /* --- Level and recent flags --- */
 .ud-pair {
   display: grid;
@@ -340,6 +392,7 @@ a.ud-room-row:hover {
 
 .ud-panel {
   background: var(--ud-surface);
+  border: 1px solid var(--ud-line);
   border-radius: var(--ud-radius);
   padding: 24px 28px;
 }
@@ -347,15 +400,17 @@ a.ud-room-row:hover {
 .ud-level-xp {
   margin: 18px 0 12px;
   color: var(--ud-muted);
+  font-family: var(--ud-pixel);
+  font-size: 1.5rem;
+  line-height: 1;
 }
 
 .ud-level-xp strong {
-  font-size: 2.75rem;
-  font-weight: 800;
-  font-stretch: 80%;
-  line-height: 1;
+  font-size: 4rem;
+  font-weight: 400;
+  line-height: 0.85;
   color: var(--ud-ink);
-  margin-right: 2px;
+  margin-right: 4px;
 }
 
 .ud-muted {
@@ -377,9 +432,10 @@ a.ud-room-row:hover {
 
 .ud-facts dd,
 .ud-counts dd {
-  font-size: var(--ud-text-l);
-  font-weight: 750;
-  font-stretch: 85%;
+  font-family: var(--ud-pixel);
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .ud-flag-list {
@@ -417,7 +473,10 @@ a.ud-room-row:hover {
 .ud-flag-xp {
   grid-area: xp;
   color: var(--ud-xp);
-  font-weight: 700;
+  font-family: var(--ud-pixel);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1;
   text-align: right;
 }
 
@@ -461,6 +520,7 @@ a.ud-room-row:hover {
   position: sticky;
   top: 24px;
   background: var(--ud-board);
+  border: 1px solid var(--ud-line);
   border-radius: var(--ud-radius);
   padding: 28px 24px 20px;
   display: flex;
@@ -484,11 +544,10 @@ a.ud-room-row:hover {
 }
 
 .ud-rank {
-  font-size: var(--ud-rank);
-  font-weight: 800;
-  font-stretch: 70%;
-  line-height: 0.9;
-  letter-spacing: -0.04em;
+  font-family: var(--ud-pixel);
+  font-size: clamp(6rem, 4.5rem + 5vw, 8.5rem);
+  font-weight: 400;
+  line-height: 0.8;
 }
 
 .ud-elo {
@@ -500,8 +559,9 @@ a.ud-room-row:hover {
 .ud-gap {
   margin-top: 24px;
   max-width: 34ch;
-  font-size: 1.0625rem;
+  font-size: 1rem;
   font-weight: 600;
+  line-height: 1.45;
 }
 
 .ud-scale {
@@ -509,16 +569,18 @@ a.ud-room-row:hover {
 }
 
 .ud-scale-track {
-  height: 8px;
-  border-radius: 4px;
-  background: var(--ud-track);
+  height: 14px;
+  padding: 2px;
+  border: 1px solid var(--ud-line-strong);
+  border-radius: 3px;
+  background: var(--ud-surface);
   overflow: hidden;
 }
 
 .ud-scale-fill {
   display: block;
   height: 100%;
-  border-radius: 4px;
+  border-radius: 1px;
   background: var(--ud-blue);
   transform-origin: left center;
   transform: scaleX(var(--ud-fill, 0));
@@ -548,11 +610,14 @@ a.ud-room-row:hover {
 
 .ud-place {
   padding: 2px 8px;
-  border-radius: 4px;
+  border-radius: 2px;
   background: var(--ud-surface-2);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
   color: var(--ud-ink);
-  font-weight: 750;
-  font-stretch: 85%;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1.1;
 }
 
 /* --- Arena: league, Elo and the place in the Elo ranking --- */
@@ -611,8 +676,9 @@ a.ud-room-row:hover {
 
 .ud-arena-ends b {
   color: var(--ud-ink);
-  font-weight: 750;
-  font-stretch: 85%;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  font-weight: 400;
 }
 
 .ud-arena .ud-facts {
@@ -641,10 +707,8 @@ a.ud-room-row:hover {
 }
 
 .ud-counts dd {
-  font-size: 1.75rem;
-  font-weight: 800;
-  font-stretch: 75%;
-  line-height: 1.1;
+  font-size: 2.25rem;
+  line-height: 1;
 }
 
 .ud-profile {
@@ -665,8 +729,11 @@ a.ud-room-row:hover {
 .ud-avatar {
   width: 44px;
   height: 44px;
-  border-radius: 50%;
-  object-fit: cover;
+  border-radius: 2px;
+  background: var(--ud-surface-2);
+  box-shadow: 0 0 0 1px var(--ud-line);
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .ud-profile-name {
@@ -689,7 +756,9 @@ a.ud-room-row:hover {
 
 .ud-profile-cta {
   color: var(--ud-link);
-  font-weight: 600;
+  font-family: var(--ud-pixel);
+  font-size: 1.375rem;
+  line-height: 1;
 }
 
 .ud-standings {
@@ -702,24 +771,26 @@ a.ud-room-row:hover {
 .ud-standings li {
   position: relative;
   display: grid;
-  grid-template-columns: 36px minmax(0, 1fr) auto;
-  align-items: baseline;
+  grid-template-columns: 40px minmax(0, 1fr) auto;
+  align-items: center;
   gap: 8px;
-  padding: 9px 12px;
-  border-radius: var(--ud-radius);
+  padding: 8px 12px;
+  border-radius: 2px;
 }
 
 .ud-standings li.is-me {
   background: var(--ud-blue);
+  box-shadow: inset 0 -2px 0 var(--ud-blue-shade);
   color: var(--ud-blue-ink);
   font-weight: 700;
 }
 
 .ud-pos,
 .ud-pts {
-  font-size: 1.125rem;
-  font-weight: 750;
-  font-stretch: 75%;
+  font-family: var(--ud-pixel);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .ud-pos {
@@ -745,11 +816,16 @@ a.ud-room-row:hover {
 .ud-reco {
   display: flex;
   flex-direction: column;
-  gap: 6px;
+  gap: 8px;
   padding: 20px;
+  border: 1px solid var(--ud-blue-shade);
   border-radius: var(--ud-radius);
-  background: var(--ud-blue-soft);
-  transition: background-color 160ms var(--ud-ease);
+  background: var(--ud-hero-bg);
+  transition: background-color 160ms var(--ud-ease), border-color 160ms var(--ud-ease);
+}
+
+.ud-reco:hover {
+  border-color: var(--ud-link);
 }
 
 
@@ -770,30 +846,33 @@ a.ud-room-row:hover {
 
 .ud-reco-cta {
   flex: none;
-  transition: background-color 160ms var(--ud-ease), transform 160ms var(--ud-ease);
-  padding: 7px 14px;
+  transition: background-color 160ms var(--ud-ease);
+  padding: 6px 12px;
+  border: 1px solid var(--ud-blue-shade);
   border-radius: var(--ud-radius);
   background: var(--ud-blue);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
   color: var(--ud-blue-ink);
-  font-size: var(--ud-text-s);
-  font-weight: 650;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .ud-reco-cta:hover,
 .ud-reco:focus-visible .ud-reco-cta {
   background: var(--ud-cta-hover);
-  transform: translateY(-1px);
 }
 
 .ud-reco-title {
-  font-size: var(--ud-text-l);
-  font-weight: 800;
-  font-stretch: 85%;
-  line-height: 1.15;
+  color: var(--ud-hero-ink);
+  font-family: var(--ud-pixel);
+  font-size: 2rem;
+  font-weight: 400;
+  line-height: 0.95;
 }
 
 .ud-reco-desc {
-  color: var(--ud-muted);
+  color: var(--ud-hero-muted);
 }
 
 .ud-rank-strip {
@@ -831,6 +910,7 @@ a.ud-room-row:hover {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
+  border: 1px solid var(--ud-line-strong);
   border-radius: var(--ud-radius);
   background: var(--ud-tip-bg);
   color: var(--ud-tip-ink);
@@ -858,7 +938,10 @@ a.ud-room-row:hover {
 .ud-peek-avatar {
   width: 40px;
   height: 40px;
-  border-radius: 50%;
+  border-radius: 2px;
+  background: var(--ud-surface-2);
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .ud-peek-who {
@@ -875,8 +958,10 @@ a.ud-room-row:hover {
 }
 
 .ud-peek-name {
-  font-size: var(--ud-text);
-  font-weight: 700;
+  font-family: var(--ud-pixel);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -999,13 +1084,15 @@ a.ud-room-row:hover {
 
 .ud-peek-action {
   align-self: flex-start;
-  padding: 8px 14px;
-  border: 0;
+  padding: 6px 12px;
+  border: 1px solid var(--ud-blue-shade);
   border-radius: var(--ud-radius);
   background: var(--ud-blue);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
   color: var(--ud-blue-ink);
-  font: inherit;
-  font-weight: 650;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  line-height: 1;
   cursor: pointer;
 }
 
@@ -1038,12 +1125,13 @@ a.ud-room-row:hover {
 .ud-friend {
   position: relative;
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto auto;
+  grid-template-columns: 44px minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 16px;
   padding: 10px 12px;
   margin: 0 -12px;
-  border-radius: var(--ud-radius);
+  border-radius: 2px;
+  transition: background-color 160ms var(--ud-ease);
 }
 
 .ud-friend:hover {
@@ -1051,9 +1139,13 @@ a.ud-room-row:hover {
 }
 
 .ud-friend-avatar {
-  width: 40px;
-  height: 40px;
-  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  border-radius: 2px;
+  background: var(--ud-surface-2);
+  box-shadow: 0 0 0 1px var(--ud-line);
+  object-fit: contain;
+  image-rendering: pixelated;
 }
 
 .ud-friend-who {
@@ -1074,21 +1166,23 @@ a.ud-room-row:hover {
 
 .ud-friend-h2h strong {
   color: var(--ud-ink);
-  font-size: 1.125rem;
-  font-weight: 800;
-  font-stretch: 80%;
+  font-family: var(--ud-pixel);
+  font-size: 1.625rem;
+  font-weight: 400;
+  line-height: 1;
   margin-left: 4px;
 }
 
 .ud-btn-small {
-  min-height: 36px;
-  padding: 0 16px;
+  min-height: 34px;
+  padding: 0 12px;
   background: var(--ud-surface-2);
   color: var(--ud-ink);
-  font-size: var(--ud-text-s);
+  font-size: 1.25rem;
 }
 
-.ud-btn-small:hover {
+.ud-btn-small:hover:not(:disabled) {
+  border-color: var(--ud-blue-shade);
   background: var(--ud-blue);
   color: var(--ud-blue-ink);
 }
@@ -1100,8 +1194,9 @@ a.ud-room-row:hover {
 
 .ud-friend-sent {
   color: var(--ud-xp);
-  font-size: var(--ud-text-s);
-  font-weight: 650;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .ud-friend-error {
@@ -1122,11 +1217,9 @@ a.ud-room-row:hover {
 }
 
 .ud-state h1 {
-  font-size: var(--ud-display);
-  font-weight: 800;
-  font-stretch: 85%;
-  line-height: 1.05;
-  letter-spacing: -0.02em;
+  font-size: clamp(2.75rem, 2rem + 2.2vw, 4rem);
+  font-weight: 400;
+  line-height: 0.95;
 }
 
 .ud-state p {
@@ -1165,15 +1258,16 @@ a.ud-room-row:hover {
   .ud-rank-strip {
     display: block;
     padding: 14px 18px;
+    border: 1px solid var(--ud-line);
     border-radius: var(--ud-radius);
     background: var(--ud-board);
     color: var(--ud-ink);
   }
 
   .ud-rank-strip strong {
-    font-size: 1.25rem;
-    font-weight: 800;
-    font-stretch: 75%;
+    font-family: var(--ud-pixel);
+    font-size: 1.5rem;
+    font-weight: 400;
   }
 }
 
@@ -1232,6 +1326,7 @@ a.ud-room-row:hover {
 
 @media (prefers-reduced-motion: reduce) {
   .ud-scale-fill,
+  .ud-rail span.is-current,
   .ud-peek-card {
     animation: none;
   }
@@ -1240,9 +1335,11 @@ a.ud-room-row:hover {
   .ud-btn,
   .ud-link,
   .ud-room-row,
+  .ud-room-icon,
   .ud-flag,
   .ud-profile,
   .ud-reco,
+  .ud-friend,
   .ud-peek-open {
     transition: none;
   }

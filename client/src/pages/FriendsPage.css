@@ -1,0 +1,90 @@
+.friends-page { min-height: 70vh; }
+.friends-shell { max-width: 1240px; margin: 0 auto; padding: 48px 24px 72px; }
+.friends-title { margin: 0 0 32px; color: var(--rm-ink); font: 400 clamp(3.5rem, 2.5rem + 3vw, 5rem)/0.95 var(--rm-pixel); }
+.friends-error { margin: 0 0 16px; color: var(--rm-error); font-weight: 600; }
+
+.friends-heading { display: flex; align-items: center; gap: 10px; margin: 0 0 18px; color: var(--rm-ink); font: 400 2.25rem/1 var(--rm-pixel); }
+.friends-heading svg { flex: none; width: 24px; height: 24px; color: var(--rm-link); }
+.friends-heading:focus-visible { outline: 2px solid var(--rm-link); outline-offset: 4px; }
+.friends-heading.is-requests svg { color: var(--rm-gold); }
+
+.friends-search { margin-bottom: 44px; padding: 24px 24px 22px; background: var(--rm-surface); border: 1px solid var(--rm-line); border-radius: 4px; }
+.friends-search .friends-heading { font-size: 1.875rem; }
+.friends-search-field { position: relative; display: flex; flex: 1 1 auto; min-width: 0; }
+.friends-search-field svg { position: absolute; top: 50%; left: 14px; width: 18px; height: 18px; color: var(--rm-muted); transform: translateY(-50%); pointer-events: none; }
+.friends-search-field .room-input { padding-left: 42px; }
+.friends-search .room-btn { height: 46px; }
+
+.friends-results { display: grid; gap: 4px; margin: 18px 0 0; padding: 0; list-style: none; }
+.friends-result { display: grid; grid-template-columns: 40px minmax(0, 1fr) auto; align-items: center; gap: 12px; padding: 8px 12px; border-radius: 2px; background: var(--rm-board); }
+.friends-portrait { display: block; width: 40px; height: 40px; border-radius: 2px; background: var(--rm-surface-2); box-shadow: 0 0 0 1px var(--rm-line); object-fit: contain; }
+.friends-name { min-width: 0; overflow: hidden; color: var(--rm-ink); font: 400 1.5rem/1 var(--rm-pixel); text-overflow: ellipsis; white-space: nowrap; }
+.friends-name:hover { color: var(--rm-link); }
+.friends-state { color: var(--rm-muted); font: 400 1.25rem/1 var(--rm-pixel); }
+.friends-state.is-friends { color: var(--rm-teal); }
+.friends-state.is-waiting { color: var(--rm-gold); }
+.friends-muted { color: var(--rm-muted); font-size: 0.8125rem; }
+
+.friends-group + .friends-group { margin-top: 44px; }
+
+.friends-requests { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(320px, 100%), 1fr)); gap: 22px; margin: 0; padding: 0; list-style: none; }
+.friends-request { --frame: var(--rm-gold); display: grid; grid-template-columns: 52px minmax(0, 1fr) auto; align-items: center; gap: 14px; padding: 16px; border: 1px solid color-mix(in srgb, var(--rm-gold) 60%, var(--rm-line)); border-radius: 4px; background: color-mix(in srgb, var(--rm-gold) 8%, var(--rm-surface)); }
+.friends-request .friends-portrait { width: 52px; height: 52px; }
+.friends-request-who { display: grid; gap: 6px; min-width: 0; }
+.friends-request-actions { display: flex; gap: 8px; }
+
+.friends-grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(min(250px, 100%), 1fr)); gap: 28px; margin: 0; padding: 0; list-style: none; }
+.friends-card { --frame: var(--rm-line); display: flex; flex-direction: column; min-width: 0; overflow: hidden; border: 1px solid var(--frame); border-radius: 4px; background: var(--rm-surface); transition: border-color 160ms var(--rm-ease), background-color 160ms var(--rm-ease); }
+.friends-card:hover, .friends-card:focus-within { --frame: var(--rm-link); background: var(--rm-surface-2); }
+.friends-card-stage { display: grid; place-items: center; padding: 26px 16px 22px; border-bottom: 1px solid var(--frame); background: var(--rm-board); transition: border-color 160ms var(--rm-ease); }
+.friends-card-portrait { --tier: var(--rm-easy); display: block; width: 88px; height: 88px; background: color-mix(in srgb, var(--tier) 14%, var(--rm-surface-2)); outline: 2px solid var(--tier); outline-offset: 4px; object-fit: contain; }
+.friends-card-portrait[data-tier='blue'] { --tier: var(--rm-link); }
+.friends-card-portrait[data-tier='violet'] { --tier: var(--rm-insane); }
+.friends-card-portrait[data-tier='orange'] { --tier: #ff9f43; }
+.friends-card-portrait[data-tier='red'] { --tier: var(--rm-hard); }
+.friends-card-portrait[data-tier='legend'] { --tier: var(--rm-gold); }
+.friends-card-body { display: flex; flex-direction: column; align-items: center; gap: 8px; padding: 16px 16px 0; text-align: center; }
+.friends-card-name { max-width: 100%; overflow: hidden; color: var(--rm-ink); font: 400 2rem/0.95 var(--rm-pixel); text-overflow: ellipsis; white-space: nowrap; }
+.friends-card-name:hover { color: var(--rm-link); }
+.friends-presence { display: inline-flex; align-items: flex-start; gap: 6px; max-width: 100%; color: var(--rm-muted); font-size: 0.8125rem; font-weight: 600; }
+.friends-presence-text { min-width: 0; line-height: 1.35; overflow-wrap: anywhere; text-wrap: balance; }
+.friends-presence-dot { flex: none; width: 8px; height: 8px; margin-top: 0.3em; background: var(--presence-offline); opacity: 0.6; }
+.friends-presence.is-online { color: var(--rm-teal); }
+.friends-presence.is-online .friends-presence-dot { background: var(--rm-teal); opacity: 1; animation: friends-presence 1.6s steps(2, jump-none) infinite alternate; }
+.friends-card-stats { display: flex; flex-wrap: wrap; justify-content: center; gap: 6px; margin: 14px 16px 0; }
+.friends-card-stats .room-chip { gap: 4px; }
+.friends-flame { margin: -8px -2px -8px -6px; }
+.friends-flame[data-still='true'] { opacity: 0.55; filter: grayscale(1); }
+.friends-card-actions { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto; gap: 8px; margin-top: auto; padding: 18px 16px 16px; }
+.friends-card-actions .room-btn { min-width: 0; padding: 0 10px; }
+.friends-card-actions .room-btn--icon { width: 34px; padding: 0; }
+.friends-challenge:hover:not(:disabled) { border-color: var(--rm-blue-shade); background: var(--rm-blue); color: #fff; }
+.friends-challenge:disabled { opacity: 1; border-color: var(--rm-teal); background: var(--rm-teal-soft); color: var(--rm-teal); }
+.friends-danger { color: var(--rm-error); }
+.friends-danger:hover:not(:disabled) { border-color: var(--rm-error); background: var(--rm-error-soft); }
+.friends-accept { border-color: var(--rm-teal); color: var(--rm-teal); }
+.friends-accept:hover:not(:disabled) { border-color: var(--rm-teal); background: var(--rm-teal-soft); }
+
+.friends-empty { padding: 40px 24px; background: var(--rm-surface); border: 1px dashed var(--rm-line-strong); border-radius: 4px; color: var(--rm-muted); text-align: center; }
+.friends-empty p { margin: 0; }
+
+.friends-page ::selection { color: #fff; background: var(--rm-blue); }
+.friends-page a:focus-visible { outline: 2px solid var(--rm-link); outline-offset: 3px; }
+
+@keyframes friends-presence { to { opacity: 0.45; } }
+
+@media (max-width: 600px) {
+  .friends-shell { padding: 28px 16px 48px; }
+  .friends-title { margin-bottom: 24px; }
+  .friends-search { padding: 18px 16px; }
+  .friends-heading { font-size: 1.875rem; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .friends-card, .friends-card-stage { transition: none; }
+  .friends-presence.is-online .friends-presence-dot { animation: none; }
+}
+
+.friends-page :is(.room-btn, .room-input) { border-width: 1px; border-radius: 3px; }
+.friends-page .room-btn { box-shadow: inset 0 -2px 0 var(--rm-bevel); }
+.friends-page .room-btn:active:not(:disabled) { box-shadow: none; }

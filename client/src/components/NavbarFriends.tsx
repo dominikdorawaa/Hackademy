@@ -200,7 +200,7 @@ export default function NavbarFriends() {
         )}
       </NavIconButton>
       {open && (
-        <div className="nav-friends-dropdown" role="dialog" aria-label="Znajomi">
+        <div className="nav-friends-dropdown px-panel" role="dialog" aria-label="Znajomi">
           <label className="nav-friends-search">
             <Search aria-hidden="true" />
             <input type="search" value={query} onChange={event => setQuery(event.target.value)}

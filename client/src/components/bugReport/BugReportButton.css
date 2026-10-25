@@ -15,3 +15,14 @@
   width: 36px;
   padding: 0;
 }
+
+.bug-report-count {
+  color: var(--px-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.bug-report-count.is-over {
+  color: var(--px-error);
+}

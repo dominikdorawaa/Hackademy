@@ -11,13 +11,16 @@
     top: 55px;
     right: 0;
     z-index: 100;
-    width: 220px;
+    width: 260px;
     padding: 8px;
-    border: 1px solid var(--border-color);
-    border-radius: 8px;
-    background-color: var(--bg-panel);
-    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+    border: 1px solid var(--px-line-strong);
+    border-radius: 4px;
+    background-color: var(--px-surface);
+    box-shadow: var(--px-float);
   }
+  .profile-dropdown .dropdown-header p { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .profile-dropdown .dropdown-header p:first-child { font-family: var(--px-pixel); font-weight: 400 !important; font-size: 1.125rem; }
+  .profile-dropdown .dropdown-item { border-radius: 3px; }
   @media (min-width: 768px) and (max-width: 1100px) {
     .navbar .hackademy-container { padding: 0 24px; }
     .navbar .nav-content { gap: 16px; }
@@ -77,24 +80,26 @@
 
 /* --- Notifications panel: the Scoreboard's floating card --- */
 .notifications-dropdown {
-  --np-ground: #151f30;
-  --np-duel: #0b111c;
-  --np-raised: #1c2840;
-  --np-ink: #e8edf5;
-  --np-muted: #9eabbf;
-  --np-link: #6ea2ff;
-  --np-blue: #0b63ff;
-  --np-blue-hover: #4a8dff;
-  --np-alert: #ff8a80;
-  --np-online: #2fd0b0;
-  --np-ease: cubic-bezier(0.16, 1, 0.3, 1);
+  --np-ground: var(--px-surface);
+  --np-duel: var(--px-board);
+  --np-raised: var(--px-surface-2);
+  --np-ink: var(--px-ink);
+  --np-muted: var(--px-muted);
+  --np-link: var(--px-link);
+  --np-blue: var(--px-blue);
+  --np-blue-hover: var(--px-blue-hover);
+  --np-alert: var(--px-error);
+  --np-online: var(--px-teal);
+  --np-ease: var(--px-ease);
+  --frame: var(--px-line-strong);
   position: absolute;
-  top: 50px;
-  right: -10px;
+  top: 53px;
+  right: -7px;
   width: 380px;
-  border-radius: 6px;
+  border: 1px solid var(--frame);
+  border-radius: 4px;
   background: var(--np-ground);
-  box-shadow: 0 0 0 1px rgba(255, 255, 255, 0.08), 0 12px 32px rgba(0, 0, 0, 0.45);
+  box-shadow: var(--px-float);
   color: var(--np-ink);
   font-family: 'Archivo', system-ui, sans-serif;
   font-variant-numeric: tabular-nums;
@@ -103,19 +108,6 @@
   overflow: hidden;
   animation: notifications-settle 140ms var(--np-ease);
   transform-origin: top right;
-}
-
-[data-theme='light'] .notifications-dropdown {
-  --np-ground: #f9fafb;
-  --np-duel: #dfe5ee;
-  --np-raised: #eef1f6;
-  --np-ink: #111827;
-  --np-muted: #4b5563;
-  --np-link: #0b55db;
-  --np-blue-hover: #0845b8;
-  --np-alert: #c62828;
-  --np-online: #0a7d68;
-  box-shadow: 0 0 0 1px rgba(15, 23, 36, 0.08), 0 12px 28px rgba(15, 23, 36, 0.16);
 }
 
 .notifications-header {
@@ -130,7 +122,7 @@
   margin: 0;
   color: var(--np-ink);
   font-family: var(--font-heading);
-  font-size: 1.625rem;
+  font-size: 2rem;
   font-weight: 400;
   line-height: 1;
   letter-spacing: normal;
@@ -143,7 +135,9 @@
 
 .notifications-count-badge b {
   color: var(--np-link);
-  font-weight: 800;
+  font-family: var(--px-pixel);
+  font-size: 1.25rem;
+  font-weight: 400;
 }
 
 .notifications-scroll {
@@ -155,10 +149,12 @@
 }
 
 .notifications-group {
-  margin: 12px 12px 6px;
+  margin: 14px 12px 6px;
   color: var(--np-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  font-family: var(--px-pixel);
+  font-size: 1.375rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .notifications-list {
@@ -175,7 +171,7 @@
   align-items: start;
   gap: 12px;
   padding: 12px;
-  border-radius: 6px;
+  border-radius: 2px;
   transition: background-color 160ms var(--np-ease);
 }
 
@@ -187,12 +183,13 @@
   display: block;
   width: 44px;
   height: 44px;
-  border-radius: 6px;
+  border-radius: 2px;
 }
 
 .notification-portrait {
   background: var(--np-raised);
-  object-fit: cover;
+  box-shadow: 0 0 0 1px var(--px-line);
+  object-fit: contain;
   image-rendering: pixelated;
 }
 
@@ -220,13 +217,14 @@
 
 .notification-message strong {
   color: var(--np-ink);
-  font-size: 1.0625rem;
-  font-weight: 800;
-  font-variation-settings: 'wdth' 80;
+  font-family: var(--px-pixel);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .notification-elo { color: var(--np-muted); font-size: 0.8125rem; }
-.notification-elo b { color: var(--np-ink); font-weight: 800; font-variation-settings: 'wdth' 75; }
+.notification-elo b { color: var(--np-ink); font-family: var(--px-pixel); font-size: 1.25rem; font-weight: 400; }
 
 .notification-type {
   margin: 0;
@@ -246,38 +244,45 @@
 
 .btn-notif {
   min-height: 34px;
-  padding: 0 14px;
-  border: 0;
-  border-radius: 6px;
-  font-family: inherit;
-  font-size: 0.8125rem;
-  font-weight: 650;
+  padding: 0 12px;
+  border: 1px solid var(--px-line-strong);
+  border-radius: 3px;
+  box-shadow: inset 0 -2px 0 var(--px-bevel);
+  font-family: var(--px-pixel);
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
   white-space: nowrap;
   cursor: pointer;
-  transition: background-color 160ms var(--np-ease), transform 160ms var(--np-ease);
+  transition: background-color 160ms var(--np-ease), border-color 160ms var(--np-ease), transform 160ms var(--np-ease);
 }
 
-.btn-notif-accept { background: var(--np-blue); color: #ffffff; }
-.btn-notif-accept:hover:not(:disabled) { background: var(--np-blue-hover); transform: translateY(-1px); }
+.btn-notif-accept { border-color: var(--px-blue-shade); background: var(--np-blue); color: #ffffff; }
+.btn-notif-accept:hover:not(:disabled) { background: var(--np-blue-hover); }
 .btn-notif-reject { background: var(--np-raised); color: var(--np-ink); }
+.btn-notif-reject:hover:not(:disabled) { border-color: var(--np-muted); }
 .notification-item:hover .btn-notif-reject { background: var(--np-ground); }
-.btn-notif:active:not(:disabled) { transform: translateY(1px); }
+.btn-notif:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
 .btn-notif:disabled { opacity: 0.7; cursor: progress; }
 .btn-notif:focus-visible { outline: 2px solid var(--np-link); outline-offset: 3px; }
 
 .notifications-empty {
   display: grid;
-  gap: 4px;
+  gap: 6px;
   padding: 20px 20px 24px;
   color: var(--np-ink);
-  font-size: 0.9375rem;
-  font-weight: 600;
+  font-family: var(--px-pixel);
+  font-size: 1.5rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .notifications-empty small {
   color: var(--np-muted);
+  font-family: 'Archivo', system-ui, sans-serif;
   font-size: 0.8125rem;
   font-weight: 400;
+  line-height: 1.45;
 }
 
 .notification-badge {

@@ -22,9 +22,9 @@
 
 .tour-spotlight {
   position: absolute;
-  border: 3px solid var(--ud-link);
-  border-radius: 12px;
-  box-shadow: 0 0 0 200vmax rgb(5 10 20 / 0.62), 0 0 0 6px rgb(110 162 255 / 0.25);
+  border: 2px solid var(--ud-link);
+  border-radius: var(--ud-radius);
+  box-shadow: 0 0 0 200vmax rgb(5 10 20 / 0.62), 0 0 0 4px rgb(110 162 255 / 0.2);
   transition: top 280ms var(--ud-ease), left 280ms var(--ud-ease), width 280ms var(--ud-ease), height 280ms var(--ud-ease);
   pointer-events: none;
 }
@@ -55,11 +55,13 @@
 }
 
 .tour-overall {
-  height: 4px;
+  height: 12px;
   margin-top: 12px;
+  padding: 2px;
   overflow: hidden;
-  border-radius: 2px;
-  background: var(--ud-track);
+  border: 1px solid var(--ud-line-strong);
+  border-radius: 3px;
+  background: var(--ud-board);
 }
 
 .tour-overall span {
@@ -84,8 +86,9 @@
 .tour-progress {
   flex-basis: 100%;
   color: var(--ud-muted);
-  font-size: var(--ud-text-s);
-  font-weight: 700;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  line-height: 1;
 }
 
 .tour-skip {

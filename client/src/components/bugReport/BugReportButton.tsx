@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useId, useState } from 'react';
 import { Bug } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
-import { Button } from '@/components/ui/button';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
@@ -94,7 +93,7 @@ export function BugReportButton({ context, className, labelled = false }: { cont
             </button>
           )}
         </DialogTrigger>
-        <DialogContent>
+        <DialogContent className="px-dialog px-panel">
           <form className="grid gap-4" onSubmit={(event) => { event.preventDefault(); void send(); }}>
             <DialogHeader>
               <DialogTitle>Zgłoś błąd</DialogTitle>
@@ -106,17 +105,17 @@ export function BugReportButton({ context, className, labelled = false }: { cont
                 aria-describedby={`${fieldId}-count`} className="max-h-72"
                 placeholder="Na przykład: po wpisaniu poprawnej flagi strona pokazała błąd."
                 onChange={(event) => setText(event.target.value)} />
-              <p id={`${fieldId}-count`} className={`text-right text-xs tabular-nums ${tooLong ? 'text-destructive' : 'text-muted-foreground'}`}>
+              <p id={`${fieldId}-count`} className={`bug-report-count${tooLong ? ' is-over' : ''}`}>
                 {length < MIN_LENGTH ? `Jeszcze co najmniej ${MIN_LENGTH - length} zn. · ` : ''}{length} / {MAX_LENGTH}
               </p>
             </div>
             {blockedUntil !== null && <StatusMessage kind="warning">Kolejne zgłoszenie możesz wysłać za {waitText(wait)}.</StatusMessage>}
             {error && <StatusMessage kind="error">{error}</StatusMessage>}
             <DialogFooter>
-              <Button type="button" variant="outline" disabled={sending} onClick={() => setOpen(false)}>Anuluj</Button>
-              <Button type="submit" disabled={sending || tooShort || tooLong || blockedUntil !== null}>
+              <button type="button" className="px-button" disabled={sending} onClick={() => setOpen(false)}>Anuluj</button>
+              <button type="submit" className="px-button px-button--primary" disabled={sending || tooShort || tooLong || blockedUntil !== null}>
                 {sending ? 'Wysyłanie…' : 'Wyślij zgłoszenie'}
-              </Button>
+              </button>
             </DialogFooter>
           </form>
         </DialogContent>

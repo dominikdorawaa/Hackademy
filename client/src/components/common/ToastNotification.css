@@ -1,0 +1,101 @@
+.px-toast {
+  --toast-accent: var(--px-teal);
+  --frame: color-mix(in srgb, var(--toast-accent) 40%, var(--px-line));
+  position: fixed;
+  right: max(23px, env(safe-area-inset-right));
+  bottom: max(23px, env(safe-area-inset-bottom));
+  z-index: 2000;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 14px;
+  width: min(380px, calc(100vw - 46px));
+  padding: 16px 12px 18px 16px;
+  overflow: hidden;
+  animation: px-toast-in 200ms steps(3, end) both;
+}
+
+body:has(.site-shell--room) .px-toast {
+  bottom: calc(92px + env(safe-area-inset-bottom));
+}
+
+.px-toast[data-type='error'] {
+  --toast-accent: var(--px-error);
+  --frame: color-mix(in srgb, var(--toast-accent) 40%, var(--px-line));
+}
+
+.px-toast-icon {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid var(--toast-accent);
+  border-radius: 3px;
+  background: color-mix(in srgb, var(--toast-accent) 14%, var(--px-board));
+  box-shadow: inset 0 -2px 0 var(--px-bevel);
+  color: var(--toast-accent);
+}
+
+.px-toast-icon svg { width: 20px; height: 20px; }
+
+.px-toast-copy { min-width: 0; padding-top: 2px; }
+
+.px-toast-title {
+  margin: 0 0 4px;
+  color: var(--px-ink);
+  font-family: var(--px-pixel);
+  font-size: 1.625rem;
+  font-weight: 400;
+  line-height: 1;
+}
+
+.px-toast-message {
+  margin: 0;
+  color: var(--px-ink-soft);
+  font-size: 0.875rem;
+  line-height: 1.45;
+}
+
+.px-toast-close {
+  display: grid;
+  place-items: center;
+  width: 30px;
+  height: 30px;
+  padding: 0;
+  border: 0;
+  border-radius: 2px;
+  background: none;
+  color: var(--px-muted);
+  cursor: pointer;
+}
+
+.px-toast-close svg { width: 16px; height: 16px; }
+.px-toast-close:hover { background: var(--px-surface-2); color: var(--px-ink); }
+.px-toast-close:focus-visible { outline: 2px solid var(--px-link); outline-offset: 1px; }
+
+.px-toast-timer {
+  position: absolute;
+  left: 0;
+  bottom: 0;
+  width: 100%;
+  height: 3px;
+  background: var(--toast-accent);
+  transform-origin: left;
+  animation: px-toast-countdown 5s steps(20, end) forwards;
+}
+
+@keyframes px-toast-in {
+  from { opacity: 0; transform: translateX(24px); }
+}
+
+@keyframes px-toast-countdown {
+  to { transform: scaleX(0); }
+}
+
+html[data-reduced-motion='true'] .px-toast { animation: none; }
+html[data-reduced-motion='true'] .px-toast-timer { display: none; }
+
+@media (prefers-reduced-motion: reduce) {
+  .px-toast { animation: none; }
+  .px-toast-timer { display: none; }
+}

@@ -7,6 +7,7 @@ import { ThemeProvider, useTheme } from './context/ThemeContext';
 import { clerkAppearance } from './components/auth/clerkAppearance';
 import { clerkLocalization } from './components/auth/clerkLocalization';
 import './index.css'
+import './styles/pixel.css'
 import './styles/landing-experience.css'
 import App from './App'
 

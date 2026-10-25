@@ -4,7 +4,7 @@
 .ranking-heading h1 { margin: 0; color: var(--rm-ink); font: 400 clamp(3.5rem, 2.5rem + 3vw, 5rem)/.95 var(--rm-pixel); }
 .ranking-heading p { max-width: 60ch; margin: 16px 0 0; color: var(--rm-muted); font-size: 1rem; line-height: 1.6; }
 .ranking-actions { display: flex; flex: none; gap: 8px; }
-.ranking-actions a { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 10px 16px; border-radius: 4px; background: var(--rm-surface-2); color: var(--rm-ink); font-weight: 600; }
+.ranking-actions a { display: inline-flex; align-items: center; justify-content: center; gap: 8px; min-height: 44px; padding: 0 18px; border: 1px solid var(--rm-line-strong); border-radius: 3px; background: var(--rm-surface-2); box-shadow: inset 0 -2px 0 var(--rm-bevel); color: var(--rm-ink); font: 400 1.375rem/1 var(--rm-pixel); letter-spacing: 0.02em; }
 .ranking-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 28px; align-items: start; }
 .ranking-board { min-width: 0; background: var(--rm-surface); border: 1px solid var(--rm-line); border-radius: 4px; overflow: hidden; }
 .ranking-board-head { padding: 24px 24px 20px; background: var(--rm-board); }
@@ -53,8 +53,9 @@
 .ranking-guest a { color: var(--rm-link); text-decoration: underline; text-underline-offset: 4px; }
 .ranking-page :is(a, button):focus-visible { outline: 2px solid var(--rm-link); outline-offset: 3px; border-radius: 3px; }
 .ranking-row.is-me :is(a, button):focus-visible { outline-color: #fff; }
-.ranking-actions a { transition: background-color 160ms var(--rm-ease); }
-.ranking-actions a:hover { background: var(--rm-field); }
+.ranking-actions a { transition: background-color 160ms var(--rm-ease), border-color 160ms var(--rm-ease), transform 160ms var(--rm-ease); }
+.ranking-actions a:hover { border-color: var(--rm-muted); background: var(--rm-line); }
+.ranking-actions a:active { transform: translateY(1px); box-shadow: none; }
 .ranking-page ::selection { color: #fff; background: var(--rm-blue); }
 .ranking-sr { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
 .ranking-podium { display: flex; align-items: flex-end; justify-content: center; gap: 8px; margin: 0; padding: 52px 24px 0; list-style: none; background: var(--rm-board); }
@@ -84,7 +85,8 @@
 .ranking-goal-copy > strong { display: block; margin-top: 4px; color: var(--rm-ink); font-weight: 650; overflow-wrap: anywhere; }
 .ranking-goal p { margin: 8px 0 0; color: var(--rm-ink-soft); font-size: .8125rem; line-height: 1.5; }
 .ranking-goal p b { color: var(--rm-ink); white-space: nowrap; }
-.ranking-goal-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 8px 12px; background: var(--rm-blue); border-radius: 3px; color: #fff; font-size: .8125rem; font-weight: 600; }
+.ranking-goal-action { display: inline-flex; align-items: center; justify-content: center; gap: 6px; min-height: 40px; padding: 0 16px; border: 1px solid var(--rm-blue-shade); border-radius: 3px; background: var(--rm-blue); box-shadow: inset 0 -2px 0 var(--rm-bevel); color: #fff; font: 400 1.375rem/1 var(--rm-pixel); letter-spacing: 0.02em; white-space: nowrap; }
+.ranking-goal-action:active { transform: translateY(1px); box-shadow: none; }
 .ranking-goal-action:hover { background: var(--rm-blue-hover); }
 .ranking-goal-progress { display: block; flex-basis: 100%; width: 100%; height: 8px; border: 0; background: var(--rm-board); color: var(--rm-blue); appearance: none; }
 .ranking-goal-progress::-webkit-progress-bar { background: var(--rm-board); }

@@ -94,6 +94,26 @@ const ROOMS_SHOWN = 5;
 // Above this many rooms the path rail switches from one segment per room to a continuous bar.
 const MAX_RAIL_SEGMENTS = 24;
 
+type RoomStatus = 'open' | 'done' | 'locked';
+
+const ROOM_GLYPHS: Record<RoomStatus, [number, number, number, number][]> = {
+  open: [[4, 2, 1, 7], [5, 3, 1, 5], [6, 4, 1, 3], [7, 5, 1, 1]],
+  done: [[2, 4, 1, 2], [3, 5, 1, 2], [4, 6, 1, 2], [5, 5, 1, 2], [6, 4, 1, 2], [7, 3, 1, 2], [8, 2, 1, 2]],
+  locked: [[5, 2, 2, 1], [4, 3, 1, 2], [7, 3, 1, 2], [3, 5, 6, 4]],
+};
+
+const RoomStatusIcon = ({ status }: { status: RoomStatus }) => (
+  <svg className="ud-room-icon" viewBox="0 0 12 12" width="24" height="24" shapeRendering="crispEdges" aria-hidden="true">
+    <path className="ud-room-icon-frame" d="M1 0h10v1h1v10h-1v1H1v-1H0V1h1z" />
+    <rect className="ud-room-icon-fill" x="1" y="1" width="10" height="10" />
+    <rect className="ud-room-icon-bevel" x="1" y="10" width="10" height="1" />
+    {ROOM_GLYPHS[status].map(([x, y, w, h]) => (
+      <rect key={`${x}-${y}`} className="ud-room-icon-glyph" x={x} y={y} width={w} height={h} />
+    ))}
+    {status === 'locked' && <rect className="ud-room-icon-fill" x="5" y="6" width="2" height="1" />}
+  </svg>
+);
+
 const DashboardSkeleton = () => (
   <div className="user-dashboard">
     <LoadingSkeleton label="Ładowanie dashboardu" className="ud-shell">
@@ -482,10 +502,9 @@ const UserDashboardPage = () => {
                   {roomsShown.map((r) => {
                     const status = r.locked ? 'locked' : r.solved ? 'done' : 'open';
                     const statusLabel = r.locked ? 'Zablokowany' : r.solved ? 'Ukończony' : 'Dostępny';
-                    const icon = r.locked ? 'fa-lock' : r.solved ? 'fa-check' : 'fa-play';
                     const content = (
                       <>
-                        <i className={`fas ${icon}`} aria-hidden="true" />
+                        <RoomStatusIcon status={status} />
                         <span className="ud-room-title">{r.title}</span>
                         <span className="ud-room-status">{statusLabel}</span>
                       </>

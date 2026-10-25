@@ -119,6 +119,9 @@
   .site-shell--tabbar :is(.realtime-toasts, .profile-save-notification, .rate-limit-notices, .tour-bubble.is-dock) {
     bottom: var(--tabbar-clearance);
   }
+  body:has(.site-shell--tabbar) .px-toast {
+    bottom: calc(84px + max(12px, env(safe-area-inset-bottom)));
+  }
 }
 
 @media (max-width: 767px) and (prefers-reduced-motion: reduce) {
