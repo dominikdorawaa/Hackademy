@@ -50,14 +50,24 @@
   display: none;
 }
 
-.onboarding-welcome .mascot-bubble-box::before {
+.onboarding-welcome .mascot-bubble-box::before,
+.onboarding-welcome .mascot-bubble-box::after {
   left: 50%;
-  top: -9px;
   bottom: auto;
-  border: 0;
-  border-left: 1px solid var(--ud-track);
-  border-top: 1px solid var(--ud-track);
+  clip-path: polygon(50% 0, 100% 100%, 0 100%);
   translate: -50% 0;
+}
+
+.onboarding-welcome .mascot-bubble-box::before {
+  top: -9px;
+  width: 14px;
+  height: 9px;
+}
+
+.onboarding-welcome .mascot-bubble-box::after {
+  top: -7px;
+  width: 12px;
+  height: 8px;
 }
 
 .onboarding-header {

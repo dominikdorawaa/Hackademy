@@ -13,8 +13,8 @@
   flex: 1;
   min-width: 0;
   padding: 16px 18px;
-  border: 2px solid var(--ud-line-strong);
-  border-radius: 2px;
+  border: 1px solid var(--ud-line-strong);
+  border-radius: var(--ud-radius);
   background: var(--ud-surface);
   color: var(--ud-ink);
   box-shadow: var(--ud-float-shadow);
@@ -24,9 +24,9 @@
 .mascot-bubble-box::before {
   content: '';
   position: absolute;
-  left: -10px;
+  left: -9px;
   bottom: 22px;
-  width: 10px;
+  width: 9px;
   height: 14px;
   background: var(--ud-line-strong);
   clip-path: polygon(0 50%, 100% 0, 100% 100%);
@@ -35,10 +35,10 @@
 .mascot-bubble-box::after {
   content: '';
   position: absolute;
-  left: -6px;
-  bottom: 25px;
-  width: 6px;
-  height: 8px;
+  left: -7px;
+  bottom: 23px;
+  width: 8px;
+  height: 12px;
   background: var(--ud-surface);
   clip-path: polygon(0 50%, 100% 0, 100% 100%);
 }

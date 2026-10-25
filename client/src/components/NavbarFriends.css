@@ -41,8 +41,8 @@
   gap: 8px;
   margin: 14px 14px 6px;
   padding: 0 12px;
-  border: 2px solid var(--px-line-strong);
-  border-radius: 4px;
+  border: 1px solid var(--px-line-strong);
+  border-radius: 3px;
   background: var(--px-board);
   color: var(--px-muted);
   transition: border-color 160ms var(--px-ease);
@@ -140,7 +140,7 @@
 
 .nav-friends-avatar { position: relative; flex: none; width: 34px; height: 34px; }
 .nav-friends-avatar img,
-.nav-friends-avatar > :first-child { width: 34px; height: 34px; border-radius: 2px; background: var(--px-surface-2); box-shadow: 0 0 0 2px var(--px-line); object-fit: contain; }
+.nav-friends-avatar > :first-child { width: 34px; height: 34px; border-radius: 2px; background: var(--px-surface-2); box-shadow: 0 0 0 1px var(--px-line); object-fit: contain; }
 .nav-friends-avatar[data-online='false'] > :first-child { opacity: 0.55; filter: grayscale(0.6); }
 
 .nav-friends-avatar .presence-dot {
@@ -169,10 +169,10 @@
   width: 32px;
   height: 32px;
   padding: 0;
-  border: 2px solid var(--px-line-strong);
-  border-radius: 4px;
+  border: 1px solid var(--px-line-strong);
+  border-radius: 3px;
   background: var(--px-surface-2);
-  box-shadow: inset 0 -3px 0 var(--px-bevel);
+  box-shadow: inset 0 -2px 0 var(--px-bevel);
   color: var(--px-ink);
   cursor: pointer;
   transition: color 120ms ease-out, border-color 120ms ease-out, background-color 120ms ease-out;
@@ -193,7 +193,7 @@
 .nav-friends-icon:hover:not(:disabled),
 .nav-friends-action:hover:not(:disabled) { border-color: var(--px-muted); background: var(--px-line); }
 .nav-friends-action:active:not(:disabled),
-.nav-friends-icon:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 -1px 0 var(--px-bevel); }
+.nav-friends-icon:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
 .nav-friends-action.is-challenge:hover:not(:disabled) { border-color: var(--px-blue-shade); background: var(--px-blue); color: #fff; }
 .nav-friends-action.is-accept { border-color: var(--px-teal); color: var(--px-teal); }
 .nav-friends-action.is-accept:hover:not(:disabled) { border-color: var(--px-teal); background: var(--px-teal-soft); }
@@ -210,7 +210,7 @@
   flex: none;
   min-height: 44px;
   padding: 10px 16px;
-  border-top: 2px solid var(--px-line);
+  border-top: 1px solid var(--px-line);
   background: var(--px-board);
   color: var(--px-link);
   font-family: var(--px-pixel);

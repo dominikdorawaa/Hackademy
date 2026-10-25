@@ -190,7 +190,7 @@ const FriendsPage = () => {
                     </h2>
                     <ul className="friends-requests">
                         {requests.map(req => (
-                            <li key={req.id} className="friends-request px-frame">
+                            <li key={req.id} className="friends-request">
                                 <UserAvatar className="friends-portrait" username={req.requesterUsername} avatar={req.avatar} alt="" />
                                 <div className="friends-request-who">
                                     <Link to={`/profile/${req.requesterUsername}`} className="friends-name">{req.requesterUsername}</Link>
@@ -225,7 +225,7 @@ const FriendsPage = () => {
                         {friends.map(friend => {
                             const challenged = challengedFriends.includes(friend.username);
                             return (
-                                <li key={friend.id} className="friends-card px-frame">
+                                <li key={friend.id} className="friends-card">
                                     <div className="friends-card-stage">
                                         <UserAvatar className="friends-card-portrait" data-tier={rankTier(friend.points)} username={friend.username} avatar={friend.avatar} alt="" />
                                     </div>

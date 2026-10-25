@@ -68,7 +68,7 @@
 .ud-board-head .ud-today {
   margin-top: 16px;
   padding: 12px 14px;
-  border: 2px solid var(--ud-line);
+  border: 1px solid var(--ud-line);
   border-radius: var(--ud-radius);
   background: var(--ud-surface);
 }
@@ -92,15 +92,10 @@
 
 /* --- Next room: a blue-tinted field; brand blue is kept for the action --- */
 .ud-next {
-  --frame: var(--ud-blue-shade);
-  margin: 3px;
   background: var(--ud-hero-bg);
   color: var(--ud-hero-ink);
-  box-shadow:
-    0 -3px 0 0 var(--frame),
-    0 3px 0 0 var(--frame),
-    -3px 0 0 0 var(--frame),
-    3px 0 0 0 var(--frame);
+  border: 1px solid var(--ud-blue-shade);
+  border-radius: var(--ud-radius);
   padding: 32px 36px;
   display: flex;
   align-items: flex-end;
@@ -108,6 +103,7 @@
   gap: 24px 40px;
   flex-wrap: wrap;
 }
+
 
 .ud-next-copy {
   min-width: 0;
@@ -155,10 +151,10 @@
   gap: 6px;
   min-height: 46px;
   padding: 0 22px;
-  border: 2px solid var(--ud-line-strong);
-  border-radius: var(--ud-radius);
+  border: 1px solid var(--ud-line-strong);
+  border-radius: 3px;
   background: var(--ud-surface);
-  box-shadow: inset 0 -3px 0 var(--ud-bevel);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
   color: var(--ud-ink);
   font-family: var(--ud-pixel);
   font-size: 1.5rem;
@@ -172,7 +168,7 @@
 
 .ud-btn:active:not(:disabled) {
   transform: translateY(1px);
-  box-shadow: inset 0 -1px 0 var(--ud-bevel);
+  box-shadow: none;
 }
 
 .ud-btn-inverse {
@@ -230,7 +226,7 @@
 /* --- Current path --- */
 .ud-path {
   background: var(--ud-surface);
-  border: 2px solid var(--ud-line);
+  border: 1px solid var(--ud-line);
   border-radius: var(--ud-radius);
   padding: 24px 28px 20px;
 }
@@ -292,7 +288,7 @@
 .ud-meter {
   height: 14px;
   padding: 2px;
-  border: 2px solid var(--ud-line-strong);
+  border: 1px solid var(--ud-line-strong);
   border-radius: 3px;
   background: var(--ud-board);
   overflow: hidden;
@@ -396,7 +392,7 @@ a.ud-room-row:hover .ud-room-icon {
 
 .ud-panel {
   background: var(--ud-surface);
-  border: 2px solid var(--ud-line);
+  border: 1px solid var(--ud-line);
   border-radius: var(--ud-radius);
   padding: 24px 28px;
 }
@@ -521,16 +517,11 @@ a.ud-room-row:hover .ud-room-icon {
 
 /* --- Standings: the competition column --- */
 .ud-board {
-  --frame: var(--ud-line);
   position: sticky;
   top: 24px;
-  margin: 3px;
   background: var(--ud-board);
-  box-shadow:
-    0 -3px 0 0 var(--frame),
-    0 3px 0 0 var(--frame),
-    -3px 0 0 0 var(--frame),
-    3px 0 0 0 var(--frame);
+  border: 1px solid var(--ud-line);
+  border-radius: var(--ud-radius);
   padding: 28px 24px 20px;
   display: flex;
   flex-direction: column;
@@ -580,7 +571,7 @@ a.ud-room-row:hover .ud-room-icon {
 .ud-scale-track {
   height: 14px;
   padding: 2px;
-  border: 2px solid var(--ud-line-strong);
+  border: 1px solid var(--ud-line-strong);
   border-radius: 3px;
   background: var(--ud-surface);
   overflow: hidden;
@@ -740,7 +731,7 @@ a.ud-room-row:hover .ud-room-icon {
   height: 44px;
   border-radius: 2px;
   background: var(--ud-surface-2);
-  box-shadow: 0 0 0 2px var(--ud-line);
+  box-shadow: 0 0 0 1px var(--ud-line);
   object-fit: contain;
   image-rendering: pixelated;
 }
@@ -789,7 +780,7 @@ a.ud-room-row:hover .ud-room-icon {
 
 .ud-standings li.is-me {
   background: var(--ud-blue);
-  box-shadow: inset 0 -3px 0 var(--ud-blue-shade);
+  box-shadow: inset 0 -2px 0 var(--ud-blue-shade);
   color: var(--ud-blue-ink);
   font-weight: 700;
 }
@@ -827,7 +818,7 @@ a.ud-room-row:hover .ud-room-icon {
   flex-direction: column;
   gap: 8px;
   padding: 20px;
-  border: 2px solid var(--ud-blue-shade);
+  border: 1px solid var(--ud-blue-shade);
   border-radius: var(--ud-radius);
   background: var(--ud-hero-bg);
   transition: background-color 160ms var(--ud-ease), border-color 160ms var(--ud-ease);
@@ -857,10 +848,10 @@ a.ud-room-row:hover .ud-room-icon {
   flex: none;
   transition: background-color 160ms var(--ud-ease);
   padding: 6px 12px;
-  border: 2px solid var(--ud-blue-shade);
+  border: 1px solid var(--ud-blue-shade);
   border-radius: var(--ud-radius);
   background: var(--ud-blue);
-  box-shadow: inset 0 -3px 0 var(--ud-bevel);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
   color: var(--ud-blue-ink);
   font-family: var(--ud-pixel);
   font-size: 1.25rem;
@@ -919,7 +910,7 @@ a.ud-room-row:hover .ud-room-icon {
   flex-direction: column;
   gap: 12px;
   padding: 16px;
-  border: 2px solid var(--ud-line-strong);
+  border: 1px solid var(--ud-line-strong);
   border-radius: var(--ud-radius);
   background: var(--ud-tip-bg);
   color: var(--ud-tip-ink);
@@ -1094,10 +1085,10 @@ a.ud-room-row:hover .ud-room-icon {
 .ud-peek-action {
   align-self: flex-start;
   padding: 6px 12px;
-  border: 2px solid var(--ud-blue-shade);
+  border: 1px solid var(--ud-blue-shade);
   border-radius: var(--ud-radius);
   background: var(--ud-blue);
-  box-shadow: inset 0 -3px 0 var(--ud-bevel);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel);
   color: var(--ud-blue-ink);
   font-family: var(--ud-pixel);
   font-size: 1.25rem;
@@ -1152,7 +1143,7 @@ a.ud-room-row:hover .ud-room-icon {
   height: 44px;
   border-radius: 2px;
   background: var(--ud-surface-2);
-  box-shadow: 0 0 0 2px var(--ud-line);
+  box-shadow: 0 0 0 1px var(--ud-line);
   object-fit: contain;
   image-rendering: pixelated;
 }
@@ -1267,7 +1258,7 @@ a.ud-room-row:hover .ud-room-icon {
   .ud-rank-strip {
     display: block;
     padding: 14px 18px;
-    border: 2px solid var(--ud-line);
+    border: 1px solid var(--ud-line);
     border-radius: var(--ud-radius);
     background: var(--ud-board);
     color: var(--ud-ink);

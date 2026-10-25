@@ -10,12 +10,13 @@
 }
 
 .modal-content {
-  --frame: var(--px-gold);
+  --frame: color-mix(in srgb, var(--px-gold) 60%, var(--px-line));
   width: min(420px, 100%);
   padding: 26px 26px 22px;
   text-align: left;
   animation: px-settle 160ms var(--px-ease);
 }
+
 
 .modal-content p {
   margin: 0 0 22px;

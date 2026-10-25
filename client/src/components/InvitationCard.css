@@ -15,8 +15,8 @@
   align-items: center;
   gap: 14px;
   padding: 16px 16px 18px;
-  border: 2px solid var(--px-line-strong);
-  border-radius: 2px;
+  border: 1px solid var(--px-line-strong);
+  border-radius: 4px;
   background: var(--invite-ground);
   color: var(--invite-ink);
   font-family: 'Archivo', system-ui, sans-serif;
@@ -37,7 +37,7 @@
   height: 48px;
   border-radius: 2px;
   background: var(--invite-raised);
-  box-shadow: 0 0 0 2px var(--px-line);
+  box-shadow: 0 0 0 1px var(--px-line);
   object-fit: contain;
 }
 
@@ -105,9 +105,9 @@
 .invite-actions button {
   min-height: 36px;
   padding: 0 14px;
-  border: 2px solid var(--px-line-strong);
-  border-radius: 4px;
-  box-shadow: inset 0 -3px 0 var(--px-bevel);
+  border: 1px solid var(--px-line-strong);
+  border-radius: 3px;
+  box-shadow: inset 0 -2px 0 var(--px-bevel);
   font-family: var(--px-pixel);
   font-size: 1.25rem;
   font-weight: 400;
@@ -121,7 +121,7 @@
 .invite-actions .invite-accept:hover:not(:disabled) { background: var(--invite-blue-hover); }
 .invite-reject { background: var(--invite-raised); color: var(--invite-ink); }
 .invite-reject:hover:not(:disabled) { border-color: var(--px-muted); color: var(--invite-ink); background: var(--px-line); }
-.invite-actions button:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 -1px 0 var(--px-bevel); }
+.invite-actions button:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
 .invite-actions button:disabled { opacity: 0.7; cursor: progress; }
 .invite-actions button:focus-visible { outline: 2px solid var(--invite-link); outline-offset: 3px; }
 

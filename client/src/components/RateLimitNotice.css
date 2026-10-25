@@ -12,14 +12,15 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border: 2px solid var(--px-gold);
-  border-radius: 2px;
+  border: 1px solid color-mix(in srgb, var(--px-gold) 60%, var(--px-line));
+  border-radius: 4px;
   background: var(--px-surface);
   color: var(--px-ink);
   font-size: 0.9rem;
   box-shadow: var(--px-float);
   pointer-events: auto;
 }
+
 
 .rate-limit-notice-dot {
   flex: none;

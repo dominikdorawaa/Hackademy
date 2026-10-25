@@ -50,25 +50,23 @@
 }
 
 .arena-hero {
-  --frame: var(--ud-blue-shade);
+  --frame: var(--ud-line);
   display: grid;
   grid-template-columns: 300px minmax(0, 1fr);
-  margin: 3px;
   background: var(--ud-hero-bg);
-  box-shadow:
-    0 -3px 0 0 var(--frame),
-    0 3px 0 0 var(--frame),
-    -3px 0 0 0 var(--frame),
-    3px 0 0 0 var(--frame);
+  border: 1px solid var(--ud-line);
+  border-radius: var(--ud-radius);
   color: var(--ud-hero-ink);
 }
+
 
 .arena-card {
   display: flex;
   flex-direction: column;
   align-items: center;
   padding: 22px 24px 24px;
-  border-right: 3px solid var(--frame);
+  border-right: 1px solid var(--frame);
+  border-radius: 3px 0 0 3px;
   background: color-mix(in srgb, var(--league) 24%, var(--ud-board));
   color: var(--ud-ink);
   text-align: center;
@@ -89,7 +87,7 @@
   padding: 2px 10px 2px 4px;
   border-radius: 2px;
   background: var(--league);
-  box-shadow: inset 0 -3px 0 rgba(0, 0, 0, 0.25);
+  box-shadow: inset 0 -2px 0 rgba(0, 0, 0, 0.25);
   color: #0b111c;
   font-family: var(--ud-pixel);
   font-size: 1.25rem;
@@ -114,7 +112,8 @@
   height: 168px;
   margin: 0;
   border-radius: 2px;
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--league) 55%, var(--ud-board));
+  outline: 2px solid color-mix(in srgb, var(--league) 70%, var(--ud-board));
+  outline-offset: 4px;
   background: color-mix(in srgb, var(--league) 40%, var(--ud-board));
   image-rendering: pixelated;
   display: block;
@@ -123,8 +122,8 @@
 
 .arena-card-portrait-edit { display: inline-flex; margin: 22px 0 14px; border-radius: var(--ud-radius); }
 .arena-card-portrait-edit:is(:hover, :focus-visible) .arena-card-portrait { filter: brightness(1.18); }
-.arena-card-portrait-edit:hover { outline: 2px solid var(--ud-link); outline-offset: 2px; }
-.arena-card-portrait-edit:focus-visible { outline: 2px solid var(--ud-link); outline-offset: 4px; }
+.arena-card-portrait-edit:focus-visible { outline: none; }
+.arena-card-portrait-edit:is(:hover, :focus-visible) .arena-card-portrait { outline-color: var(--ud-link); }
 @media (prefers-reduced-motion: reduce) { .arena-page .arena-card-portrait { transition: none; } }
 html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
 
@@ -231,7 +230,7 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
 }
 
 .arena-ladder .is-current .arena-ladder-bar {
-  box-shadow: inset 0 -2px 0 var(--ud-bevel), 0 0 0 2px var(--ud-hero-bg), 0 0 0 4px var(--tier);
+  box-shadow: inset 0 -2px 0 var(--ud-bevel), 0 0 0 2px var(--ud-hero-bg), 0 0 0 3px var(--tier);
 }
 
 .arena-ladder-name {
@@ -264,7 +263,7 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   padding: 0 32px;
   border-color: var(--ud-blue-shade);
   background: var(--ud-blue);
-  box-shadow: inset 0 -4px 0 var(--ud-bevel);
+  box-shadow: inset 0 -3px 0 var(--ud-bevel);
   color: var(--ud-blue-ink);
   font-size: 1.875rem;
 }
@@ -349,11 +348,12 @@ html[data-reduced-motion='true'] .arena-card-portrait { transition: none; }
   align-items: center;
   gap: 12px 14px;
   padding: 12px;
-  border: 2px solid color-mix(in srgb, var(--ud-hard) 45%, transparent);
+  border: 1px solid color-mix(in srgb, var(--ud-hard) 55%, transparent);
   border-radius: var(--ud-radius);
   background: rgba(6, 13, 28, 0.42);
   animation: arena-rejected-in 240ms var(--ud-ease) both;
 }
+
 
 [data-theme='light'] .arena-rejected-card {
   background: rgba(255, 255, 255, 0.72);
@@ -563,7 +563,7 @@ html[data-reduced-motion='true'] .arena-rejected-card {
   gap: 8px 12px;
   margin-top: 24px;
   padding-top: 16px;
-  border-top: 2px solid var(--ud-line);
+  border-top: 1px solid var(--ud-line);
   color: var(--ud-muted);
   font-size: var(--ud-text-s);
 }
@@ -592,7 +592,7 @@ html[data-reduced-motion='true'] .arena-rejected-card {
   place-items: center;
   width: 26px;
   height: 26px;
-  border: 2px solid var(--ud-line-strong);
+  border: 1px solid var(--ud-line-strong);
   border-radius: 2px;
   background: var(--ud-surface-2);
   box-shadow: inset 0 -2px 0 var(--ud-bevel);
@@ -609,7 +609,8 @@ html[data-reduced-motion='true'] .arena-rejected-card {
 
   .arena-card {
     border-right: 0;
-    border-bottom: 3px solid var(--frame);
+    border-bottom: 1px solid var(--frame);
+    border-radius: 3px 3px 0 0;
   }
 }
 

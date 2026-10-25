@@ -52,15 +52,11 @@
 }
 
 .px-panel {
-  --frame: var(--px-line-strong);
-  border-radius: 0;
+  --frame: var(--px-line);
+  border: 1px solid var(--frame);
+  border-radius: 4px;
   background: var(--px-surface);
-  box-shadow:
-    0 -3px 0 0 var(--frame),
-    0 3px 0 0 var(--frame),
-    -3px 0 0 0 var(--frame),
-    3px 0 0 0 var(--frame),
-    var(--px-float);
+  box-shadow: var(--px-float);
   color: var(--px-ink);
   font-family: var(--px-text);
   font-variant-numeric: tabular-nums;
@@ -83,10 +79,10 @@
   gap: 6px;
   min-height: 40px;
   padding: 0 16px;
-  border: 2px solid var(--px-line-strong);
-  border-radius: 4px;
+  border: 1px solid var(--px-line-strong);
+  border-radius: 3px;
   background: var(--px-surface-2);
-  box-shadow: inset 0 -3px 0 var(--px-bevel);
+  box-shadow: inset 0 -2px 0 var(--px-bevel);
   color: var(--px-ink);
   font-family: var(--px-pixel);
   font-size: 1.375rem;
@@ -100,7 +96,7 @@
 
 .px-button svg { flex: none; width: 16px; height: 16px; }
 .px-button:hover:not(:disabled) { border-color: var(--px-muted); background: var(--px-line); }
-.px-button:active:not(:disabled) { transform: translateY(1px); box-shadow: inset 0 -1px 0 var(--px-bevel); }
+.px-button:active:not(:disabled) { transform: translateY(1px); box-shadow: none; }
 .px-button:disabled { opacity: 0.5; cursor: not-allowed; }
 .px-button:focus-visible { outline: 2px solid var(--px-link); outline-offset: 3px; }
 .px-button--primary { border-color: var(--px-blue-shade); background: var(--px-blue); color: #ffffff; }
@@ -111,8 +107,8 @@
 .px-dialog.px-panel {
   gap: 20px;
   padding: 26px 26px 22px;
-  border: 0;
-  border-radius: 0;
+  border: 1px solid var(--px-line);
+  border-radius: 4px;
   background: var(--px-surface);
   color: var(--px-ink);
 }
@@ -140,7 +136,7 @@
 }
 
 .px-dialog textarea {
-  border: 2px solid var(--px-line-strong);
+  border: 1px solid var(--px-line-strong);
   border-radius: 4px;
   background: var(--px-board);
   box-shadow: none;
@@ -160,5 +156,5 @@
   from { opacity: 0; transform: translateY(6px); }
 }
 
-.px-dialog :is([role='alert'], [role='status']) { border-width: 2px; border-radius: 2px; }
+.px-dialog :is([role='alert'], [role='status']) { border-width: 1px; border-radius: 3px; }
 .px-dialog strong { color: var(--px-ink); font-weight: 700; }

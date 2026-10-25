@@ -11,13 +11,14 @@
 }
 
 .success-modal-container {
-  --frame: var(--px-teal);
+  --frame: color-mix(in srgb, var(--px-teal) 60%, var(--px-line));
   position: relative;
   width: min(420px, 100%);
   padding: 32px 32px 28px;
   text-align: center;
   animation: success-pop 320ms steps(4, end) both;
 }
+
 
 .success-flag {
   display: flex;
@@ -53,7 +54,7 @@
 .points-display {
   margin-bottom: 24px;
   padding: 14px 16px 16px;
-  border: 2px solid var(--px-line);
+  border: 1px solid var(--px-line);
   border-radius: 4px;
   background: var(--px-board);
 }

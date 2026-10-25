@@ -25,8 +25,8 @@
   z-index: 60;
   width: min(18rem, calc(100vw - 32px));
   padding: 12px 14px;
-  border: 2px solid var(--ud-line-strong);
-  border-radius: 2px;
+  border: 1px solid var(--ud-line-strong);
+  border-radius: var(--ud-radius);
   background: var(--ud-tip-bg);
   color: var(--ud-tip-ink);
   box-shadow: var(--ud-float-shadow); /* taste-skill-ignore: floating overlay */

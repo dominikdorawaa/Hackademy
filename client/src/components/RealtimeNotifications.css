@@ -15,8 +15,8 @@
   align-items: center;
   gap: 10px;
   padding: 12px 14px;
-  border: 2px solid var(--px-line-strong);
-  border-radius: 2px;
+  border: 1px solid var(--px-line-strong);
+  border-radius: 4px;
   background: var(--px-surface);
   color: var(--px-ink);
   font-size: 0.9rem;
@@ -58,7 +58,7 @@
   padding: 0;
   border: 0;
   background: none;
-  border-radius: 2px;
+  border-radius: 4px;
 }
 
 .realtime-toast[data-kind='friend'] .realtime-toast-close,
@@ -78,7 +78,7 @@
   left: 0;
   bottom: 0;
   width: 100%;
-  height: 4px;
+  height: 3px;
   background: var(--px-blue);
   transform-origin: left;
   animation: realtime-toast-countdown var(--toast-duration, 5s) steps(20, end) forwards;
