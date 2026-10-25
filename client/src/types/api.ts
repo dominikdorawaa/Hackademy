@@ -133,6 +133,7 @@ export interface GameSession {
   player2EloChange: number | null
   round: number
   totalRounds: number
+  roundMillis?: number
   phase: 'QUESTION' | 'REVEAL'
   roundEndsAt: number
   nextRoundAt: number

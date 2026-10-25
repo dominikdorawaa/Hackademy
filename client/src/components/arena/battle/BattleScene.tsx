@@ -74,7 +74,7 @@ export function BattleScene({ session, me, rival, reducedMotion, serverNow, quic
     </header>
     <section className="battle-stage" aria-label="Arena walki" aria-busy={!ready}>
       {meAtlas && rivalAtlas ? <>
-        <BattleReferee session={session} meId={me.id} serverNow={serverNow} reducedMotion={reducedMotion} />
+        <BattleReferee session={session} meId={me.id} serverNow={serverNow} reducedMotion={reducedMotion} finish={finish} />
         <BattleFighter key={`me-${motionKey}`} look={me.look} atlas={meAtlas} segments={choreography(session, me.id, rival.id)} reducedMotion={reducedMotion}
           label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} finishedBy={finishedBy(me)} reaction={reactionDance(meReaction)} />
         <BattleFighter key={`rival-${motionKey}`} look={rival.look} atlas={rivalAtlas} segments={choreography(session, rival.id, me.id)} reducedMotion={reducedMotion}

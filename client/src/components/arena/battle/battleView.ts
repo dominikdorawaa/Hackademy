@@ -139,6 +139,7 @@ export const CAST_MS = ATTACK.length * ATTACK_FRAME_MS;
 export const HURT_MS = HURT.length * HURT_FRAME_MS;
 export const LAUNCH_MS = 380;
 export const IMPACT_MS = 900;
+export const KNOCKBACK_MS = 620;
 
 const IDLE: Segment = { frames: [0], loop: true, frameTime: 110 };
 
