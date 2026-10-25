@@ -10,6 +10,7 @@ import java.util.List;
 public record UserProfileDto(
     String username,
     int points,
+    int elo,
     Role role,
     LocalDateTime createdAt,
     int streak,
