@@ -11,6 +11,8 @@ import { createToken } from '../../test/fixtures/auth';
 import { renderWithAuth } from '../../test/renderWithAuth';
 import type {
   AdminStatsDto,
+  BugReportAdmin,
+  BugReportStatus,
   Role,
   RoomAdminSummaryDto,
 } from '../../types/api';
@@ -45,6 +47,24 @@ beforeAll(() => {
   })) as unknown as typeof window.matchMedia;
 });
 
+const bugReport = (overrides: Partial<BugReportAdmin> = {}): BugReportAdmin => ({
+  id: 1,
+  reporterUsername: 'gracz1',
+  source: 'ROOM',
+  roomId: 4,
+  roomTitle: 'SQL Injection 101',
+  taskId: 9,
+  taskTitle: 'Logowanie',
+  gameId: null,
+  lessonId: null,
+  pagePath: '/rooms/4',
+  description: 'Flaga nie przechodzi',
+  status: 'OPEN',
+  createdAt: '2026-10-24T12:00:00',
+  resolvedAt: null,
+  ...overrides,
+});
+
 const room = (id: number, title: string, overrides: Partial<RoomAdminSummaryDto> = {}): RoomAdminSummaryDto => ({
   id,
   title,
@@ -59,7 +79,7 @@ const room = (id: number, title: string, overrides: Partial<RoomAdminSummaryDto>
 });
 
 const stats: AdminStatsDto = {
-  totals: { users: 12345, solves: 58, activeThisWeek: 6, pendingReports: 2 },
+  totals: { users: 12345, solves: 58, activeThisWeek: 6, openBugReports: 2 },
   rangeDays: 30,
   timeline: [
     { date: '2026-10-09', registrations: 1, solves: 3 },
@@ -111,7 +131,7 @@ describe('admin panel layout', () => {
     mountAdmin('/admin/users');
 
     expect(await screen.findByRole('heading', { name: 'Użytkownicy', level: 1 })).toBeInTheDocument();
-    for (const name of ['Pulpit', 'Ścieżki', 'Pokoje ścieżek', 'Pokoje CTF', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia']) {
+    for (const name of ['Pulpit', 'Ścieżki', 'Pokoje ścieżek', 'Pokoje CTF', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia błędów']) {
       expect(navigation().getByRole('link', { name })).toBeInTheDocument();
     }
     expect(navigation().getByRole('link', { name: 'Wróć do aplikacji' })).toHaveAttribute('href', '/dashboard');
@@ -128,7 +148,7 @@ describe('admin panel layout', () => {
     expect(await screen.findByRole('heading', { name: 'Ścieżki', level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId('location').textContent).toBe('/admin/paths:REPLACE');
     expect(navigation().getByRole('link', { name: 'Pokoje CTF' })).toBeInTheDocument();
-    for (const name of ['Pulpit', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia']) {
+    for (const name of ['Pulpit', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia błędów']) {
       expect(navigation().queryByRole('link', { name })).toBeNull();
     }
     expect(navigation().getByRole('link', { name: 'Hackademy, panel eksperta' })).toHaveAttribute('href', '/admin/paths');
@@ -243,7 +263,7 @@ describe('admin dashboard', () => {
     expect(await screen.findByText('Aktywni w tym tygodniu')).toBeInTheDocument();
     expect(screen.getByText(/12\s345/)).toBeInTheDocument();
     expect(screen.getByText('+3 w ostatnich 30 dni')).toBeInTheDocument();
-    expect(screen.getByRole('link', { name: /Zgłoszenia czatu/ })).toHaveAttribute('href', '/admin/reports');
+    expect(screen.getByRole('link', { name: /Czekają na sprawdzenie/ })).toHaveAttribute('href', '/admin/bug-reports');
     const sources = within(screen.getByRole('list', { name: 'Rozwiązania według źródła' }));
     expect(sources.getByText('Web')).toBeInTheDocument();
     expect(sources.getByText('75%')).toBeInTheDocument();
@@ -283,19 +303,71 @@ describe('admin dashboard', () => {
     expect(requests.at(-1)).toEqual({ page: '0', query: 'selected' });
   });
 
-  it('pages moderation reports without fetching the entire list', async () => {
+  it('pages bug reports by status without fetching the entire list', async () => {
     signIn('ADMIN');
-    server.use(http.get(`${API_URL}/api/admin/reports`, ({ request }) => {
-      const page = Number(new URL(request.url).searchParams.get('page'));
-      return HttpResponse.json({ items: [{ id: page + 1, senderId: 1, senderUsername: 'reported', content: `report-page-${page}`, timestamp: '2026-10-01T00:00:00', reported: true }], page, size: 50, hasNext: page === 0 });
+    const requests: { page: string; status: string }[] = [];
+    server.use(http.get(`${API_URL}/api/admin/bug-reports`, ({ request }) => {
+      const url = new URL(request.url);
+      const page = Number(url.searchParams.get('page'));
+      const status = url.searchParams.get('status') ?? '';
+      requests.push({ page: String(page), status });
+      if (status === 'RESOLVED') return HttpResponse.json({ items: [], page, size: 50, hasNext: false });
+      return HttpResponse.json({ items: [bugReport({ id: page + 1, description: `report-${status || 'all'}-${page}` })], page, size: 50, hasNext: page === 0 });
     }));
-    mountAdmin('/admin/reports');
-    await screen.findByText('report-page-0');
-    await userEvent.click(screen.getByRole('button', { name: 'Następna' }));
-    await screen.findByText('report-page-1');
+    mountAdmin('/admin/bug-reports');
+    const user = userEvent.setup();
+    await screen.findByText('report-OPEN-0');
+    await user.click(screen.getByRole('button', { name: 'Następna' }));
+    await screen.findByText('report-OPEN-1');
     expect(screen.getByRole('button', { name: 'Następna' })).toBeDisabled();
-    await userEvent.click(screen.getByRole('button', { name: 'Poprzednia' }));
-    await screen.findByText('report-page-0');
+    await user.click(screen.getByRole('combobox', { name: 'Filtruj według statusu' }));
+    await user.click(screen.getByRole('option', { name: 'Wszystkie' }));
+    await screen.findByText('report-all-0');
+    await user.click(screen.getByRole('combobox', { name: 'Filtruj według statusu' }));
+    await user.click(screen.getByRole('option', { name: 'Rozwiązane' }));
+    expect(await screen.findByText('Nie ma jeszcze rozwiązanych zgłoszeń.')).toBeInTheDocument();
+    expect(requests).toEqual([{ page: '0', status: 'OPEN' }, { page: '1', status: 'OPEN' }, { page: '0', status: '' }, { page: '0', status: 'RESOLVED' }]);
+  });
+
+  it('explains when the bug reports cannot be loaded', async () => {
+    signIn('ADMIN');
+    server.use(http.get(`${API_URL}/api/admin/bug-reports`, () => HttpResponse.json({ message: 'Baza niedostępna' }, { status: 503 })));
+    mountAdmin('/admin/bug-reports');
+    expect(await screen.findByText('Baza niedostępna')).toBeInTheDocument();
+  });
+
+  it('shows where each bug report came from', async () => {
+    signIn('ADMIN');
+    server.use(http.get(`${API_URL}/api/admin/bug-reports`, () => HttpResponse.json({ items: [
+      bugReport({ id: 1, description: 'room-report', pagePath: '/rooms/4' }),
+      bugReport({ id: 2, description: 'arena-report', source: 'ARENA', roomId: null, roomTitle: null, taskId: null, taskTitle: null, gameId: '7f0c2d1e-aaaa', pagePath: null }),
+      bugReport({ id: 3, description: 'gone-room', roomId: null, roomTitle: null, taskId: null, taskTitle: null, pagePath: null }),
+      bugReport({ id: 4, description: 'foreign-path', source: 'ARENA', roomId: null, roomTitle: null, taskId: null, taskTitle: null, pagePath: '//evil.example/login' }),
+      bugReport({ id: 5, description: 'lab-report', source: 'LAB', roomId: null, roomTitle: null, taskId: null, taskTitle: null, lessonId: 'history', pagePath: '/learn/ukos' }),
+      bugReport({ id: 6, description: 'old-lab-step', source: 'LAB', roomId: null, roomTitle: null, taskId: null, taskTitle: null, lessonId: 'removed-step', pagePath: '//evil.example/learn/ukos' }),
+    ], page: 0, size: 50, hasNext: false })));
+    mountAdmin('/admin/bug-reports');
+    const row = async (text: string) => within((await screen.findByText(text)).closest('tr')!);
+    const room = await row('room-report');
+    expect(room.getAllByText('Pokój: SQL Injection 101')[0]).toBeInTheDocument();
+    expect(room.getAllByText('Zadanie: Logowanie')[0]).toBeInTheDocument();
+    expect(room.getAllByRole('link', { name: '/rooms/4' })[0]).toHaveAttribute('href', '/rooms/4');
+    expect(room.getByText(/gracz1, /)).toBeInTheDocument();
+    expect(room.getByText('Otwarte')).toBeInTheDocument();
+    const arena = await row('arena-report');
+    expect(arena.getAllByText('Arena')[0]).toBeInTheDocument();
+    expect(arena.getAllByText('Mecz 7f0c2d1e')[0]).toHaveAttribute('title', '7f0c2d1e-aaaa');
+    expect((await row('gone-room')).getAllByText('Pokój: usunięty')[0]).toBeInTheDocument();
+    const foreign = await row('foreign-path');
+    expect(foreign.getAllByText('//evil.example/login')[0].tagName).toBe('SPAN');
+    expect(foreign.queryByRole('link')).toBeNull();
+    const lab = await row('lab-report');
+    expect(lab.getAllByText('Laboratorium: Dyżur Zero')[0]).toBeInTheDocument();
+    expect(lab.getAllByText(/Krok: 15\./)[0]).toBeInTheDocument();
+    expect(lab.getAllByRole('link', { name: '/learn/ukos' })[0]).toHaveAttribute('href', '/learn/ukos');
+    const oldLab = await row('old-lab-step');
+    expect(oldLab.getAllByText('Krok: removed-step')[0]).toBeInTheDocument();
+    expect(oldLab.queryByRole('link')).toBeNull();
   });
 
   it('updates roles and deletes an account from the current page', async () => {
@@ -327,34 +399,54 @@ describe('admin dashboard', () => {
     await screen.findByText('Nie znaleziono użytkowników');
   });
 
-  it('moderates reports from the loaded page and keeps failed actions available to retry', async () => {
+  it('resolves, reopens and deletes bug reports and keeps failed actions available to retry', async () => {
     signIn('ADMIN');
-    const reports = ['dismiss-me', 'delete-me', 'mute-me'].map((content, index) => ({ id: index + 10, senderId: 2, senderUsername: 'reported-user', content, timestamp: '2026-10-01T00:00:00', reported: true }));
+    let reports = [bugReport({ id: 10, description: 'resolve-me' }), bugReport({ id: 11, description: 'delete-me' })];
+    let statusFails = true;
     let deleteFails = true;
-    let muted = false;
     server.use(
-      http.get(`${API_URL}/api/admin/reports`, () => HttpResponse.json({ items: reports, page: 0, size: 50, hasNext: false })),
-      http.post(`${API_URL}/api/admin/reports/10/dismiss`, () => new HttpResponse(null, { status: 204 })),
-      http.delete(`${API_URL}/api/admin/reports/11`, () => deleteFails ? HttpResponse.json({ message: 'delete refused' }, { status: 500 }) : new HttpResponse(null, { status: 204 })),
-      http.post(`${API_URL}/api/admin/users/2/mute`, () => { muted = true; return new HttpResponse(null, { status: 204 }); }),
+      http.get(`${API_URL}/api/admin/bug-reports`, ({ request }) => {
+        const status = new URL(request.url).searchParams.get('status');
+        return HttpResponse.json({ items: reports.filter(report => !status || report.status === status), page: 0, size: 50, hasNext: false });
+      }),
+      http.put(`${API_URL}/api/admin/bug-reports/:id/status`, async ({ params, request }) => {
+        if (statusFails) return HttpResponse.json({ message: 'status refused' }, { status: 500 });
+        const { status } = await request.json() as { status: BugReportStatus };
+        reports = reports.map(report => report.id === Number(params.id) ? { ...report, status } : report);
+        return HttpResponse.json(reports.find(report => report.id === Number(params.id)));
+      }),
+      http.delete(`${API_URL}/api/admin/bug-reports/11`, () => {
+        if (deleteFails) return HttpResponse.json({ message: 'delete refused' }, { status: 500 });
+        reports = reports.filter(report => report.id !== 11);
+        return new HttpResponse(null, { status: 204 });
+      }),
     );
-    mountAdmin('/admin/reports');
+    mountAdmin('/admin/bug-reports');
     const user = userEvent.setup();
-    const row = (content: string) => within(screen.getByText(content).closest('tr')!);
-    await screen.findByText('dismiss-me');
-    await user.click(row('dismiss-me').getByRole('button', { name: 'Odrzuć' }));
-    await waitFor(() => expect(screen.queryByText('dismiss-me')).toBeNull());
+    const row = (text: string) => within(screen.getByText(text).closest('tr')!);
+    await screen.findByText('resolve-me');
+    await user.click(row('resolve-me').getByRole('button', { name: 'Oznacz jako rozwiązane' }));
+    expect(await screen.findByText('status refused')).toBeInTheDocument();
+    statusFails = false;
+    await user.click(row('resolve-me').getByRole('button', { name: 'Oznacz jako rozwiązane' }));
+    await waitFor(() => expect(screen.queryByText('resolve-me')).toBeNull());
+    expect(screen.getByText('Zgłoszenie oznaczone jako rozwiązane.')).toBeInTheDocument();
+
     await user.click(row('delete-me').getByRole('button', { name: 'Usuń' }));
-    await user.click(await screen.findByRole('button', { name: 'Usuń wiadomość' }));
-    await screen.findByText('delete refused');
+    await user.click(await screen.findByRole('button', { name: 'Usuń zgłoszenie' }));
+    expect(await within(screen.getByRole('alertdialog')).findByText('delete refused')).toBeInTheDocument();
     deleteFails = false;
-    await user.click(row('delete-me').getByRole('button', { name: 'Usuń' }));
-    await user.click(await screen.findByRole('button', { name: 'Usuń wiadomość' }));
+    await user.click(screen.getByRole('button', { name: 'Usuń zgłoszenie' }));
     await waitFor(() => expect(screen.queryByText('delete-me')).toBeNull());
-    await user.click(row('mute-me').getByRole('button', { name: 'Wycisz' }));
-    const dialog = within(await screen.findByRole('dialog'));
-    await user.click(dialog.getByRole('button', { name: 'Wycisz' }));
-    await waitFor(() => expect(muted).toBe(true));
-    await waitFor(() => expect(screen.queryByText('mute-me')).toBeNull());
+    expect(screen.getByText('Zgłoszenie usunięte.')).toBeInTheDocument();
+
+    await user.click(screen.getByRole('combobox', { name: 'Filtruj według statusu' }));
+    await user.click(screen.getByRole('option', { name: 'Wszystkie' }));
+    await screen.findByText('resolve-me');
+    expect(row('resolve-me').getByText('Rozwiązane')).toBeInTheDocument();
+    await user.click(row('resolve-me').getByRole('button', { name: 'Otwórz ponownie' }));
+    expect(await screen.findByText('Zgłoszenie jest znowu otwarte.')).toBeInTheDocument();
+    expect(row('resolve-me').getByText('Otwarte')).toBeInTheDocument();
+    expect(reports[0].status).toBe('OPEN');
   });
 });

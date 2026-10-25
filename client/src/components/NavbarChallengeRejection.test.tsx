@@ -58,7 +58,7 @@ describe('rejected challenges in the notification bell', () => {
     const user = userEvent.setup();
     const bell = screen.getByRole('button', { name: 'Powiadomienia' });
     await user.click(bell);
-    expect(screen.getByText('1 nowe')).toBeInTheDocument();
+    expect(screen.getByText(/nowe/)).toHaveTextContent('1 nowe');
     const item = screen.getByText('ola').closest('li')!;
     expect(item).toHaveTextContent('ola odrzuca Twoje wyzwanie na pojedynek.');
     expect(item).toHaveTextContent('Tryb Rankingowy');
@@ -67,7 +67,7 @@ describe('rejected challenges in the notification bell', () => {
     await user.click(bell);
     act(() => environment.publish(snapshot(3, [rejected('no', 'ola')])));
     await user.click(bell);
-    expect(screen.queryByText('1 nowe')).not.toBeInTheDocument();
+    expect(screen.queryByText(/nowe/)).not.toBeInTheDocument();
     expect(screen.getByText('ola').closest('li')).toHaveAttribute('data-unread', 'false');
   });
 
@@ -109,5 +109,21 @@ describe('rejected challenges in the notification bell', () => {
     await userEvent.setup().click(screen.getByRole('button', { name: 'Powiadomienia' }));
     expect(screen.getByText('Brak nowych powiadomień')).toBeInTheDocument();
     expect(screen.queryByText('ola')).not.toBeInTheDocument();
+  });
+
+  it('groups a pending duel with its Elo and time left above earlier entries', async () => {
+    await renderNavbar();
+    const pending: Challenge = { id: 'duel', challengerId: 3, challengerUsername: 'kuba', targetId: 1, targetUsername: 'tester',
+      createdAt: '2026-10-24T12:00:00', status: 'PENDING', expiresAt: 1_042_000, challengerElo: 812, targetElo: 484 };
+    act(() => environment.publish({ ...snapshot(2, [rejected('no', 'ola')]), challenges: [pending], serverTime: 1_000_000 }));
+    await userEvent.setup().click(screen.getByRole('button', { name: 'Powiadomienia' }));
+    const waiting = screen.getByText('Czekają na odpowiedź');
+    const earlier = screen.getByText('Wcześniej');
+    expect(waiting.compareDocumentPosition(earlier) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    const duel = screen.getByText('kuba').closest('li')!;
+    expect(duel).toHaveAttribute('data-kind', 'challenge');
+    expect(duel).toHaveTextContent('812 Elo');
+    expect(duel).toHaveTextContent('wyzywa Cię na pojedynek · wygasa za 42 s');
+    expect(within(duel).getByRole('button', { name: 'Przyjmij pojedynek' })).toBeEnabled();
   });
 });

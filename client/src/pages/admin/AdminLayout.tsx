@@ -1,9 +1,9 @@
 import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom';
 import {
   ArrowLeft,
+  Bug,
   Flag,
   LayoutDashboard,
-  MessageSquareWarning,
   Route as RouteIcon,
   Swords,
   Users,
@@ -79,7 +79,7 @@ const navigation: NavGroup[] = [
     label: 'Społeczność',
     items: [
       { title: 'Użytkownicy', to: '/admin/users', icon: Users, match: ['/admin/users'], adminOnly: true },
-      { title: 'Zgłoszenia', to: '/admin/reports', icon: MessageSquareWarning, match: ['/admin/reports'], adminOnly: true },
+      { title: 'Zgłoszenia błędów', to: '/admin/bug-reports', icon: Bug, match: ['/admin/bug-reports'], adminOnly: true },
     ],
   },
 ];

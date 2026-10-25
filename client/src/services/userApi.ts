@@ -50,6 +50,12 @@ export function changeUsername(newUsername: string, auth: SessionScope) {
   });
 }
 
+export function checkUsername(name: string, auth: SessionScope, signal?: AbortSignal) {
+  return request<{ available: boolean; reason: 'length' | 'characters' | 'taken' | null; message: string | null }>(`/api/user/me/username/availability?name=${encodeURIComponent(name)}`, {
+    method: 'GET', auth, signal,
+  });
+}
+
 export function updateProfile(profile: ProfilePersonalization, auth: SessionScope, signal?: AbortSignal) {
   return request<ProfilePersonalization>('/api/user/me/profile', {
     method: 'PATCH', auth, headers: { 'Content-Type': 'application/json' },

@@ -1,0 +1,28 @@
+.bug-report-trigger {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+}
+
+.bug-report-trigger svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+}
+
+.bug-report-trigger.is-icon.ud-btn-small {
+  width: 36px;
+  padding: 0;
+}
+
+.bug-report-count {
+  color: var(--px-muted);
+  font-size: 0.75rem;
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+}
+
+.bug-report-count.is-over {
+  color: var(--px-error);
+}

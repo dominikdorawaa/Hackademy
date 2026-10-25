@@ -258,6 +258,7 @@ describe('administrative preview', () => {
     expect(await screen.findByRole('heading', { name: 'Pokój', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Treść HTML').tagName).toBe('STRONG');
     expect(screen.getByText('Tajna podpowiedź')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Zgłoś błąd' })).toBeNull();
     await user.click(screen.getByRole('button', { name: /Przeczytane|Ukończ zadanie|Oznacz/i }));
     await user.click(screen.getByRole('button', { name: /Ukończ pokój/ }));
     expect(await screen.findByText('Podgląd: postęp i punkty nie są zapisywane.')).toBeInTheDocument();

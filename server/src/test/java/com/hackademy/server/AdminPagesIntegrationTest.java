@@ -28,17 +28,18 @@ class AdminPagesIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void reportsHaveBoundedPagesAndRemainRestrictedToAdministrators() throws Exception {
+    void bugReportsHaveBoundedPagesAndRemainRestrictedToAdministrators() throws Exception {
         var admin = account(Role.ADMIN);
         jdbcTemplate.update("""
-                INSERT INTO chat_messages(game_id, sender_id, sender_username, content, reported, sent_at)
-                SELECT 'page-fixture', ?, 'fixture', 'reported test message', true, LOCALTIMESTAMP
-                FROM generate_series(1, 53)
+                INSERT INTO bug_reports (reporter_id, source, description, status, created_at)
+                SELECT ?, 'ARENA', 'Zgłoszenie testowe ' || n, 'OPEN', LOCALTIMESTAMP
+                FROM generate_series(1, 53) AS n
                 """, admin.id());
-        getAs(admin, "/api/admin/reports?size=20").andExpect(status().isOk())
+        getAs(admin, "/api/admin/bug-reports?size=20").andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(20)).andExpect(jsonPath("$.hasNext").value(true));
-        getAs(admin, "/api/admin/reports?size=20&page=1").andExpect(status().isOk())
+        getAs(admin, "/api/admin/bug-reports?size=20&page=1").andExpect(status().isOk())
                 .andExpect(jsonPath("$.items.length()").value(20)).andExpect(jsonPath("$.page").value(1));
-        getAs(account(Role.USER), "/api/admin/reports").andExpect(status().isForbidden());
+        getAs(account(Role.EXPERT), "/api/admin/bug-reports").andExpect(status().isForbidden());
+        getAs(account(Role.USER), "/api/admin/bug-reports").andExpect(status().isForbidden());
     }
 }

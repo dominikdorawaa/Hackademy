@@ -17,7 +17,7 @@ const SuccessModal = ({ isOpen, onClose, points, message }: { isOpen: boolean; o
 
   return (
     <div className="success-modal-overlay" onClick={onClose}>
-      <div className="success-modal-container" onClick={(e) => e.stopPropagation()}>
+      <div className="success-modal-container px-panel" onClick={(e) => e.stopPropagation()}>
         <div className="success-flag">
           <PixelSprite sprite={SPRITES.flag} scale={3} duration={900} />
         </div>
@@ -30,7 +30,7 @@ const SuccessModal = ({ isOpen, onClose, points, message }: { isOpen: boolean; o
           <div className="points-value">+{points}</div>
         </div>
 
-        <button className="success-btn" onClick={onClose}>
+        <button type="button" className="success-btn px-button px-button--primary" onClick={onClose}>
           Kontynuuj
         </button>
       </div>

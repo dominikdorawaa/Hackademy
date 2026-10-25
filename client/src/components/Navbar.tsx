@@ -19,6 +19,8 @@ import NavIconButton from './NavIconButton';
 import NavbarFriends from './NavbarFriends';
 import { Bell } from 'lucide-react';
 import { useRoomChrome } from './room/roomChrome';
+import { useArenaClock } from '../hooks/useArenaClock';
+import { secondsLeft } from './arena/battle/battleView';
 
 type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
@@ -34,8 +36,8 @@ const Navbar = () => {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
   const [mobileMenuPath, setMobileMenuPath] = useState<string | null>(null);
   const mobileMenuOpen = mobileMenuPath === location.pathname;
-  const navRef = useRef<HTMLElement | null>(null);
   const mobileToggleRef = useRef<HTMLButtonElement | null>(null);
+  const mobileLinksRef = useRef<HTMLDivElement | null>(null);
   const [isNotificationsOpen, setIsNotificationsOpen] = useState(false);
   const { state: realtime, synchronize } = useRealtime();
   const { preferences } = useNotificationPreferences();
@@ -68,8 +70,11 @@ const Navbar = () => {
       setIsNotificationsOpen(false);
       if (mobileMenuOpen) mobileToggleRef.current?.focus();
     };
+    // Any press outside the menu and its toggle closes it, the navbar's own panels included,
+    // so a panel never opens below the expanded links and runs off the screen.
     const closeMobileOutside = (event: MouseEvent) => {
-      if (!navRef.current?.contains(event.target as Node)) setMobileMenuPath(null);
+      const target = event.target as Node;
+      if (!mobileLinksRef.current?.contains(target) && !mobileToggleRef.current?.contains(target)) setMobileMenuPath(null);
     };
     document.addEventListener('keydown', closeMenus);
     document.addEventListener('mousedown', closeMobileOutside);
@@ -104,6 +109,12 @@ const Navbar = () => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, [isNotificationsOpen]);
+  // Pending duels count down to their expiry on the server clock, like the arena's own list.
+  const serverTime = realtime?.serverTime ?? 0;
+  const clock = useArenaClock(serverTime, isNotificationsOpen && notifications.some(notif => notif.type === 'CHALLENGE'));
+  const challengeSecondsLeft = (expiresAt: number) => clock.serverTime === serverTime
+    ? secondsLeft(expiresAt, serverTime, clock.receivedAt, clock.now)
+    : Math.max(0, Math.ceil((expiresAt - serverTime) / 1000));
   useEffect(() => {
     if (wasNotificationsOpen.current && !isNotificationsOpen) {
       markAllRead();
@@ -209,7 +220,7 @@ const Navbar = () => {
   );
 
   return (
-    <nav className={roomMode ? 'navbar navbar--room' : 'navbar'} ref={navRef} aria-label="Nawigacja główna">
+    <nav className={roomMode ? 'navbar navbar--room' : 'navbar'} aria-label="Nawigacja główna">
       <div className="hackademy-container">
         <div className="nav-content">
           <Link
@@ -227,16 +238,17 @@ const Navbar = () => {
               src="/brand-pixel/hackademy-logo-white.png"
               alt="Hackademy Logo"
             />
-            {roomMode && <img className="logo-mark" src="/brand-pixel/hackademy-mark-white-web.png" alt="" aria-hidden="true" />}
+            <img className="logo-mark" src="/brand-pixel/hackademy-mark-white-web.png" alt="Hackademy Logo" />
           </Link>
           {roomMode && <div className="navbar-room-slot" ref={roomChrome?.setSlot} />}
-          {!isAuthPage && !roomMode && (
+          {/* Signed-in phones navigate with the bottom tab bar; the Menu toggle stays for the public landing page. */}
+          {!isAuthPage && !roomMode && !isAuthenticated && (
             <Button type="button" variant="outline" size="sm" className="mobile-nav-toggle md:hidden" ref={mobileToggleRef}
               aria-expanded={mobileMenuOpen} aria-controls="main-nav-links"
               onClick={() => setMobileMenuPath(mobileMenuOpen ? null : location.pathname)}>Menu</Button>
           )}
           {!isAuthPage && !roomMode && (
-            <div id="main-nav-links" className={`nav-links ${mobileMenuOpen ? 'mobile-nav-open' : ''}`}
+            <div id="main-nav-links" ref={mobileLinksRef} className={`nav-links ${mobileMenuOpen ? 'mobile-nav-open' : ''}`}
               onClick={event => { if ((event.target as HTMLElement).closest('a')) setMobileMenuPath(null); }}>
               {isAuthenticated ? (
                 <>
@@ -302,104 +314,100 @@ const Navbar = () => {
                     </NavIconButton>
 
                     {isNotificationsOpen && (
-                        <div className="notifications-dropdown" style={{ backgroundColor: 'var(--bg-panel)', border: '1px solid var(--border-color)' }}>
-                            <div className="notifications-header" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                <h3 style={{ color: 'var(--text-light)' }}>Powiadomienia</h3>
+                        <div className="notifications-dropdown">
+                            <div className="notifications-header">
+                                <h3>Powiadomienia</h3>
                                 {unreadCount > 0 && (
-                                    <span className="notifications-count-badge">{unreadCount} nowe</span>
+                                    <span className="notifications-count-badge"><b>{unreadCount}</b> nowe</span>
                                 )}
                             </div>
-                            
+
                             {notifications.length === 0 && rejectedChallenges.length === 0 && onlineFeed.entries.length === 0 ? (
-                                <div className="notifications-empty" style={{ color: 'var(--text-gray)' }}>
-                                    <i className="far fa-bell-slash"></i>
+                                <div className="notifications-empty">
                                     <span>Brak nowych powiadomień</span>
+                                    <small>Zaproszenia i wyzwania od znajomych pojawią się tutaj.</small>
                                 </div>
                             ) : (
-                                <ul className="notifications-list">
-                                    {notifications.map(notif => {
-                                        const isProcessed = processedNotifications.includes(`${notif.type}-${notif.id}`);
-                                        return (
-                                            <li key={`${notif.type}-${notif.id}`} className="notification-item" style={{ borderBottom: '1px solid var(--border-color)' }}>
-                                                <div className="notification-content">
-                                                    <div className="notification-avatar">
-                                                        <UserAvatar username={notif.from} avatar={notif.type === 'CHALLENGE' ? notif.data.challengerAvatar : notif.data.avatar}
-                                                            alt="Avatar" 
-                                                            style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} 
-                                                        />
-                                                    </div>
-                                                    <div className="notification-text-wrapper">
-                                                        <p className="notification-message" style={{ color: 'var(--text-light)' }}>
-                                                            <strong>{notif.from}</strong>
-                                                            {notif.type === 'CHALLENGE' ? ' wyzywa Cię na pojedynek!' : ' wysłał zaproszenie.'}
+                                <div className="notifications-scroll">
+                                    {notifications.length > 0 && <>
+                                        <p className="notifications-group">Czekają na odpowiedź</p>
+                                        <ul className="notifications-list">
+                                            {notifications.map(notif => {
+                                                const isProcessed = processedNotifications.includes(`${notif.type}-${notif.id}`);
+                                                const challenge = notif.type === 'CHALLENGE' ? notif.data : null;
+                                                return (
+                                                    <li key={`${notif.type}-${notif.id}`} className="notification-item" data-kind={challenge ? 'challenge' : 'friend'}>
+                                                        <UserAvatar className="notification-portrait" username={notif.from}
+                                                            avatar={challenge ? challenge.challengerAvatar : (notif.data as FriendRequestDto).avatar} alt="" />
+                                                        <div className="notification-body">
+                                                            <p className="notification-message">
+                                                                <strong>{notif.from}</strong>
+                                                                {challenge?.challengerElo != null && <span className="notification-elo"><b>{challenge.challengerElo}</b> Elo</span>}
+                                                            </p>
+                                                            <p className="notification-type">
+                                                                {challenge
+                                                                    ? <>wyzywa Cię na pojedynek · <span className="notification-expiry">wygasa za {challengeSecondsLeft(challenge.expiresAt)} s</span></>
+                                                                    : <>chce dodać Cię do znajomych · {formatRelativeTimePL(Date.parse(notif.timestamp), now)}</>}
+                                                            </p>
+                                                            <div className="notification-actions">
+                                                                <button type="button" disabled={isProcessed}
+                                                                    onClick={() => challenge ? handleAcceptChallenge(challenge.id) : handleAcceptFriend(notif.id as number)}
+                                                                    className="btn-notif btn-notif-accept">
+                                                                    {isProcessed ? 'Zapisywanie…' : challenge ? 'Przyjmij pojedynek' : 'Akceptuj'}
+                                                                </button>
+                                                                <button type="button" disabled={isProcessed}
+                                                                    onClick={() => challenge ? handleRejectChallenge(challenge.id) : handleRejectFriend(notif.id as number)}
+                                                                    className="btn-notif btn-notif-reject">
+                                                                    Odrzuć
+                                                                </button>
+                                                            </div>
+                                                        </div>
+                                                    </li>
+                                                );
+                                            })}
+                                        </ul>
+                                    </>}
+                                    {(rejectedChallenges.length > 0 || onlineFeed.entries.length > 0) && <>
+                                        <p className="notifications-group">Wcześniej</p>
+                                        <ul className="notifications-list">
+                                            {rejectedChallenges.map(challenge => (
+                                                <li key={`REJECTED-${challenge.id}`} className="notification-item notification-rejected"
+                                                    data-unread={!readRejections.has(challenge.id)}>
+                                                    <span className="notification-portrait-wrap">
+                                                        <UserAvatar className="notification-portrait" username={challenge.targetUsername} avatar={challenge.targetAvatar} alt="" />
+                                                        <span className="notification-rejected-mark" aria-hidden="true"><i className="fas fa-times"></i></span>
+                                                    </span>
+                                                    <div className="notification-body">
+                                                        <p className="notification-message">
+                                                            <strong>{challenge.targetUsername}</strong> odrzuca Twoje wyzwanie na pojedynek.
                                                         </p>
-                                                        <span className="notification-type" style={{ color: 'var(--text-gray)' }}>
-                                                            {notif.type === 'CHALLENGE' ? 'Tryb Rankingowy' : 'Znajomi'}
-                                                        </span>
+                                                        <p className="notification-type">Tryb Rankingowy</p>
                                                     </div>
-                                                </div>
-                                                <div className="notification-actions">
-                                                    {isProcessed ? (
-                                                        <span style={{ color: 'var(--text-gray)', fontSize: '0.9rem', fontStyle: 'italic' }}>Przetwarzanie...</span>
-                                                    ) : (
-                                                        <>
-                                                            <button 
-                                                                onClick={() => notif.type === 'CHALLENGE' ? handleAcceptChallenge(notif.id) : handleAcceptFriend(notif.id)}
-                                                                className="btn-notif btn-notif-accept"
-                                                            >
-                                                                <i className="fas fa-check"></i> Akceptuj
-                                                            </button>
-                                                            <button 
-                                                                onClick={() => notif.type === 'CHALLENGE' ? handleRejectChallenge(notif.id) : handleRejectFriend(notif.id)}
-                                                                className="btn-notif btn-notif-reject"
-                                                            >
-                                                                <i className="fas fa-times"></i> Odrzuć
-                                                            </button>
-                                                        </>
-                                                    )}
-                                                </div>
-                                            </li>
-                                        );
-                                    })}
-                                    {rejectedChallenges.map(challenge => (
-                                        <li key={`REJECTED-${challenge.id}`} className="notification-item notification-rejected"
-                                            data-unread={!readRejections.has(challenge.id)}>
-                                            <div className="notification-content">
-                                                <div className="notification-avatar">
-                                                    <UserAvatar username={challenge.targetUsername} avatar={challenge.targetAvatar} alt=""
-                                                        style={{ width: '40px', height: '40px', borderRadius: '50%', border: '2px solid var(--border-color)' }} />
-                                                    <span className="notification-rejected-mark" aria-hidden="true"><i className="fas fa-times"></i></span>
-                                                </div>
-                                                <div className="notification-text-wrapper">
-                                                    <p className="notification-message">
-                                                        <strong>{challenge.targetUsername}</strong> odrzuca Twoje wyzwanie na pojedynek.
-                                                    </p>
-                                                    <span className="notification-type">Tryb Rankingowy</span>
-                                                </div>
-                                                <button type="button" className="notification-online-close"
-                                                    aria-label={`Zamknij powiadomienie: ${challenge.targetUsername} odrzuca Twoje wyzwanie`}
-                                                    disabled={processedNotifications.includes(`REJECTED-${challenge.id}`)}
-                                                    onClick={() => handleDismissRejection(challenge.id)}>
-                                                    <i className="fas fa-times" aria-hidden="true"></i>
-                                                </button>
-                                            </div>
-                                        </li>
-                                    ))}
-                                    {onlineFeed.entries.map(entry => (
-                                        <li key={entry.id} className="notification-online" data-unread={!entry.read}>
-                                            <span className="presence-dot" aria-hidden="true" />
-                                            <span className="notification-online-text">
-                                                <strong>{entry.username}</strong> jest online
-                                            </span>
-                                            <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{formatRelativeTimePL(entry.at, now)}</time>
-                                            <button type="button" className="notification-online-close"
-                                                aria-label={`Zamknij powiadomienie: ${entry.username} jest online`}
-                                                onClick={() => onlineFeed.dismiss(entry.id)}>
-                                                <i className="fas fa-times" aria-hidden="true"></i>
-                                            </button>
-                                        </li>
-                                    ))}
-                                </ul>
+                                                    <button type="button" className="notification-online-close"
+                                                        aria-label={`Zamknij powiadomienie: ${challenge.targetUsername} odrzuca Twoje wyzwanie`}
+                                                        disabled={processedNotifications.includes(`REJECTED-${challenge.id}`)}
+                                                        onClick={() => handleDismissRejection(challenge.id)}>
+                                                        <i className="fas fa-times" aria-hidden="true"></i>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                            {onlineFeed.entries.map(entry => (
+                                                <li key={entry.id} className="notification-online" data-unread={!entry.read}>
+                                                    <span className="presence-dot" aria-hidden="true" />
+                                                    <span className="notification-online-text">
+                                                        <strong>{entry.username}</strong> jest online
+                                                    </span>
+                                                    <time className="notification-online-time" dateTime={new Date(entry.at).toISOString()}>{formatRelativeTimePL(entry.at, now)}</time>
+                                                    <button type="button" className="notification-online-close"
+                                                        aria-label={`Zamknij powiadomienie: ${entry.username} jest online`}
+                                                        onClick={() => onlineFeed.dismiss(entry.id)}>
+                                                        <i className="fas fa-times" aria-hidden="true"></i>
+                                                    </button>
+                                                </li>
+                                            ))}
+                                        </ul>
+                                    </>}
+                                </div>
                             )}
                         </div>
                     )}
@@ -421,7 +429,7 @@ const Navbar = () => {
                     <span>{userData.streak || 0}</span>
                 </div>
 
-                <div ref={menuRef} style={{ position: 'relative' }}>
+                <div ref={menuRef} className="nav-account">
                   <button type="button" className="nav-account-toggle" data-slot="nav-account"
                     aria-label="Menu konta" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(!isMenuOpen)}>
                   <UserAvatar username={userData.username} avatar={userData.avatar}
@@ -437,18 +445,7 @@ const Navbar = () => {
                   />
                   </button>
                   {isMenuOpen && (
-                    <div className="profile-dropdown" style={{
-                      position: 'absolute',
-                      top: '55px',
-                      right: 0,
-                      backgroundColor: 'var(--bg-panel)',
-                      border: '1px solid var(--border-color)',
-                      borderRadius: '8px',
-                      width: '220px',
-                      padding: '8px',
-                      zIndex: 100,
-                      boxShadow: '0 10px 30px rgba(0,0,0,0.5)'
-                    }}>
+                    <div className="profile-dropdown">
                       <div className="dropdown-header" style={{ padding: '8px 12px', borderBottom: '1px solid var(--border-color)' }}>
                         <p style={{ margin: 0, fontWeight: 'bold', color: 'var(--text-light)' }}>{userData.username}</p>
                         <p style={{ margin: 0, fontSize: '0.8rem', color: 'var(--text-gray)' }}>{userData.email}</p>
@@ -506,8 +503,7 @@ const Navbar = () => {
                 <Link to="/login" className="btn btn-text">Zaloguj</Link>
                 <Link
                   to="/register"
-                  className="btn btn-primary"
-                  style={{ padding: '8px 20px', fontSize: '0.9rem' }}
+                  className="btn btn-primary nav-join"
                 >
                   Dołącz
                 </Link>

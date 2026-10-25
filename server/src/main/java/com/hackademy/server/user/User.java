@@ -83,6 +83,13 @@ public class User implements UserDetails {
     @Column(name = "updated_at", nullable = false)
     private LocalDateTime updatedAt;
 
+    @Column(name = "last_seen_at")
+    private LocalDateTime lastSeenAt;
+
+    @Builder.Default
+    @Column(name = "share_activity", nullable = false)
+    private boolean shareActivity = true;
+
     @Builder.Default
     @Column(nullable = false)
     private Integer points = 0;
@@ -102,9 +109,6 @@ public class User implements UserDetails {
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private Role role = Role.USER;
-
-    @Column(name = "muted_until")
-    private LocalDateTime mutedUntil;
 
     @Override
     public String getUsername() {

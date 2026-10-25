@@ -96,6 +96,20 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void savesTheFinisherAndVictoryDanceAndKeepsThemForOlderClients() throws Exception {
+        var owner = account(Role.USER);
+        putJson(owner, URL, AVATAR).andExpect(status().isOk())
+                .andExpect(jsonPath("$.finisher").value("beam")).andExpect(jsonPath("$.victoryDance").value("groove"));
+        putJson(owner, URL, AVATAR.replace("}", ",\"finisher\":\"combo\",\"victoryDance\":\"scuba\"}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.finisher").value("combo")).andExpect(jsonPath("$.victoryDance").value("scuba"));
+        putJson(owner, URL, AVATAR).andExpect(status().isOk()).andExpect(jsonPath("$.finisher").value("combo"));
+        putJson(owner, URL, AVATAR.replace("}", ",\"finisher\":\"kopniak\"}")).andExpect(status().isBadRequest());
+        putJson(owner, URL, AVATAR.replace("}", ",\"victoryDance\":\"walc\"}")).andExpect(status().isBadRequest());
+        getAs(owner, "/api/user/me").andExpect(jsonPath("$.avatar.victoryDance").value("scuba"));
+        assertEquals("combo", jdbcTemplate.queryForObject("SELECT finisher FROM user_avatars WHERE user_id = ?", String.class, owner.id()));
+    }
+
+    @Test
     void deletingTheAvatarFallsBackToTheGeneratedPortrait() throws Exception {
         var owner = account(Role.USER);
         putJson(owner, URL, AVATAR).andExpect(status().isOk());

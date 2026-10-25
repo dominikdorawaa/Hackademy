@@ -245,6 +245,10 @@ class AuthAndAdminIntegrationTest {
                 .andExpect(jsonPath("$.completedPaths", hasSize(0)));
         owner.setElo(610);
         userRepository.saveAndFlush(owner);
+        mockMvc.perform(get("/api/user/me").header("Authorization", "Bearer " + token))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.elo").value(610));
+        mockMvc.perform(get("/api/user/" + username).header("Authorization", "Bearer " + tokenFor(Role.USER)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.elo").value(610));
         var room = roomRepository.saveAndFlush(Room.builder().title(username + " facts")
                 .description("Example room").difficulty(DifficultyLevel.EASY).category("Test")
                 .points(50).flag("example-flag").build());

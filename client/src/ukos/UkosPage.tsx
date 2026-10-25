@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { BookOpen, Check, ChevronLeft, ChevronRight, Lightbulb, Lock, TerminalSquare } from "lucide-react";
 import RoomFrame from "../components/room/RoomFrame";
+import { BugReportButton } from "../components/bugReport/BugReportButton";
 import RoomFooterBar from "../components/room/RoomFooterBar";
 import RoomSplit from "../components/room/RoomSplit";
 import "../components/room/room.css";
@@ -376,6 +377,7 @@ function Workshop({
           disabled: exiting,
         },
         title: "Laboratorium 1: Odnajdź się w terminalu",
+        action: <BugReportButton className="room-nav-report" context={{ source: "LAB", lessonId: lesson.id }} />,
         progress: {
           value: Math.min(current, lessons.length),
           max: lessons.length,

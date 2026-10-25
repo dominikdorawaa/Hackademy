@@ -1,17 +1,33 @@
 import ProfileIcon from './ProfileIcon';
 import { useEffect, useId, useRef, useState } from 'react';
 import type { FormEvent } from 'react';
-import type { BadgeDto } from '../../types/api';
+import type { AvatarConfig, BadgeDto } from '../../types/api';
 import { PROFILE_INTERESTS, PROFILE_UPDATED } from '../../lib/profile';
 import type { ProfilePersonalization } from '../../lib/profile';
-import { updateProfile } from '../../services/userApi';
+import { saveAvatar, updateProfile } from '../../services/userApi';
 import { useAuth } from '../../context/AuthContext';
 import { Button } from '../ui/button';
 import BadgeIcon from './BadgeIcon';
+import { useUsernameChange, validateUsername } from '../../hooks/useUsernameChange';
+import { USERNAME_MAX } from '../../lib/username';
+import UserAvatar from '../UserAvatar';
+import { AVATAR_POSES, avatarFromUsername, fromAvatarConfig, saveAvatar as saveLocalAvatar, toAvatarConfig } from '../arena/avatar/avatarModel';
+import { POSE_NAMES } from '../arena/avatar/avatarOptions';
 
-export default function ProfileEditor({ username, initial, badges, onSaved, onClose, onUnauthorized }: {
-  username: string; initial: ProfilePersonalization; badges: BadgeDto[];
-  onSaved: (profile: ProfilePersonalization) => void; onClose: () => void; onUnauthorized: () => void;
+// Without a saved avatar the profile shows the look generated from the username, so that is the one to pose.
+function shownAvatar(avatar: AvatarConfig | null | undefined, username: string): AvatarConfig {
+  const custom = fromAvatarConfig(avatar);
+  return toAvatarConfig(custom ?? avatarFromUsername(username));
+}
+
+export default function ProfileEditor({ username, initial, badges, avatar, onSaved, onRenamed, onAvatarSaved, onOpenAvatarStudio, onClose, onUnauthorized }: {
+  username: string; initial: ProfilePersonalization; badges: BadgeDto[]; avatar?: AvatarConfig | null;
+  onSaved: (profile: ProfilePersonalization, username: string) => void; onClose: () => void; onUnauthorized: () => void;
+  /** The rename is saved on its own, so the page learns about it even if the other fields then fail. */
+  onRenamed?: (username: string) => void;
+  /** Like the rename, a new pose is saved on its own before the other fields. */
+  onAvatarSaved?: (avatar: AvatarConfig) => void;
+  onOpenAvatarStudio?: () => void;
 }) {
   const { sessionKey } = useAuth();
   const id = useId();
@@ -24,15 +40,27 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
   const [original] = useState(initial);
   const [draft, setDraft] = useState(initial);
   const [confirmDiscard, setConfirmDiscard] = useState(false);
+  const [leaveToStudio, setLeaveToStudio] = useState(false);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState('');
   const [badgePage, setBadgePage] = useState(0);
+  const [savedName, setSavedName] = useState(username);
+  const [name, setName] = useState(username);
+  const [nameError, setNameError] = useState('');
+  const [savedAvatar, setSavedAvatar] = useState(() => shownAvatar(avatar, username));
+  const [pose, setPose] = useState(() => fromAvatarConfig(savedAvatar)!.pose);
+  const { change: changeUsername } = useUsernameChange();
   const earned = badges.filter(badge => badge.earned).sort((a, b) => (b.earnedAt ?? '').localeCompare(a.earnedAt ?? '') || a.id - b.id);
   const pages = Math.ceil(earned.length / 6);
-  const invalid = draft.bio.length > 500;
-  const changed = draft.bio !== original.bio || draft.tagline !== original.tagline
+  const nameChanged = name.trim() !== savedName;
+  const typedNameProblem = name.trim() === savedName ? null : validateUsername(name);
+  const nameProblem = nameError || typedNameProblem;
+  const invalid = draft.bio.length > 500 || !!typedNameProblem;
+  const profileChanged = draft.bio !== original.bio || draft.tagline !== original.tagline
     || JSON.stringify(draft.interests) !== JSON.stringify(original.interests)
     || JSON.stringify(draft.featuredBadgeIds) !== JSON.stringify(original.featuredBadgeIds);
+  const avatarChanged = pose !== fromAvatarConfig(savedAvatar)!.pose;
+  const changed = nameChanged || profileChanged || avatarChanged;
 
   useEffect(() => {
     const element = dialog.current!;
@@ -60,9 +88,11 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     };
   }, [confirmDiscard]);
 
-  function requestClose() {
+  function requestClose(toStudio = false) {
     if (saving || pending.current || confirmDiscard) return;
-    if (!changed) { onClose(); return; }
+    const leave = toStudio ? onOpenAvatarStudio! : onClose;
+    if (!changed) { leave(); return; }
+    setLeaveToStudio(toStudio);
     closeOrigin.current = document.activeElement as HTMLElement | null;
     setConfirmDiscard(true);
   }
@@ -79,8 +109,32 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     if (saving || pending.current || invalid || confirmDiscard) return;
     const controller = new AbortController();
     pending.current = controller;
-    setSaving(true); setError('');
+    setSaving(true); setError(''); setNameError('');
     try {
+      let current = savedName;
+      if (nameChanged) {
+        const renamed = await changeUsername(name);
+        if (controller.signal.aborted || !renamed) return;
+        if (!renamed.ok) {
+          if (renamed.unauthorized) onUnauthorized(); else setNameError(renamed.error);
+          return;
+        }
+        current = renamed.username;
+        setSavedName(current);
+        onRenamed?.(current);
+      }
+      if (avatarChanged) {
+        const posed = { ...savedAvatar, pose };
+        const saved = await saveAvatar(posed, { sessionKey }, controller.signal);
+        if (controller.signal.aborted) return;
+        if (saved.status === 401) { onUnauthorized(); return; }
+        if (!saved.ok) { setError('Nie udało się zapisać pozy awatara. Pozostałe zmiany czekają w formularzu.'); return; }
+        setSavedAvatar(posed);
+        saveLocalAvatar(fromAvatarConfig(posed)!);
+        onAvatarSaved?.(posed);
+        window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username: current, avatar: posed } }));
+      }
+      if ((nameChanged || avatarChanged) && !profileChanged) { onSaved(original, current); onClose(); return; }
       const response = await updateProfile(draft, { sessionKey }, controller.signal);
       if (controller.signal.aborted) return;
       if (response.status === 401) { onUnauthorized(); return; }
@@ -90,8 +144,8 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
       }
       const profile = await response.json();
       if (controller.signal.aborted) return;
-      onSaved(profile);
-      window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username, ...profile } }));
+      onSaved(profile, current);
+      window.dispatchEvent(new CustomEvent(PROFILE_UPDATED, { detail: { username: current, ...profile } }));
       onClose();
     } catch {
       if (!controller.signal.aborted) setError('Nie udało się połączyć z serwerem. Twoje zmiany pozostają w formularzu.');
@@ -105,10 +159,26 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
     onCancel={event => { event.preventDefault(); requestClose(); }}>
     <header className="profile-editor-header">
       <h2 id={`${id}-title`}>Edytuj profil</h2>
-      <Button variant="ghost" size="sm" disabled={saving} aria-label="Zamknij edycję profilu" onClick={requestClose}><ProfileIcon kind="close" weight="bold" /></Button>
+      <Button variant="ghost" size="sm" disabled={saving} aria-label="Zamknij edycję profilu" onClick={() => requestClose()}><ProfileIcon kind="close" weight="bold" /></Button>
     </header>
     <form onSubmit={event => void save(event)}>
       <fieldset disabled={saving} className="profile-editor-fields">
+        <section aria-labelledby={`${id}-avatar`} className="profile-editor-avatar">
+          <div className="profile-editor-label-row"><h3 id={`${id}-avatar`}>Awatar</h3></div>
+          <div className="profile-pose-options" role="radiogroup" aria-labelledby={`${id}-avatar`}>{AVATAR_POSES.map(option =>
+            <label key={option}><input type="radio" name={`${id}-pose`} value={option} checked={pose === option} onChange={() => setPose(option)} />
+              <UserAvatar className="profile-pose-portrait" username={username} avatar={{ ...savedAvatar, pose: option }} alt="" />
+              <span>{POSE_NAMES[option]}</span></label>)}</div>
+          <p className="profile-muted">Szybko zmień pozę portretu. Strój, fryzurę i kolory zmienisz w kreatorze awatara.</p>
+          {onOpenAvatarStudio && <Button type="button" variant="link" size="sm" className="profile-editor-studio" onClick={() => requestClose(true)}>
+            Zmień wygląd szczegółowo</Button>}
+        </section>
+        <div className="profile-editor-field"><label htmlFor={`${id}-username`}>Nazwa użytkownika</label>
+          <input id={`${id}-username`} autoComplete="username" value={name} maxLength={USERNAME_MAX}
+            aria-invalid={!!nameProblem} aria-describedby={`${id}-username-help`}
+            onChange={event => { setName(event.target.value); setNameError(''); }} />
+          <span id={`${id}-username-help`} className={nameProblem ? 'profile-error' : 'profile-muted'} role={nameProblem ? 'alert' : undefined}>
+            {nameProblem || 'Tak zobaczą Cię inni użytkownicy.'}</span></div>
         <div className="profile-editor-field"><label htmlFor={`${id}-bio`}>O mnie</label>
           <textarea id={`${id}-bio`} value={draft.bio} maxLength={500} rows={4} placeholder="Co Cię interesuje? Czego chcesz się nauczyć?"
             aria-describedby={`${id}-bio-count`} onChange={event => setDraft({ ...draft, bio: event.target.value })} />
@@ -141,7 +211,7 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
       </fieldset>
       <footer className="profile-editor-footer">
         {error && <p role="alert" className="profile-error">{error}</p>}
-        <Button type="button" variant="ghost" disabled={saving} onClick={requestClose}>Anuluj</Button>
+        <Button type="button" variant="ghost" disabled={saving} onClick={() => requestClose()}>Anuluj</Button>
         <Button type="submit" disabled={saving || invalid}>{saving ? 'Zapisywanie…' : 'Zapisz profil'}</Button>
       </footer>
     </form>
@@ -157,10 +227,10 @@ export default function ProfileEditor({ username, initial, badges, onSaved, onCl
       }}
       onCancel={event => { event.preventDefault(); event.stopPropagation(); setConfirmDiscard(false); }}>
       <h2 id={`${id}-discard-title`}>Niezapisane zmiany</h2>
-      <p id={`${id}-discard-description`}>Jeśli zamkniesz edytor, wprowadzone zmiany zostaną odrzucone.</p>
+      <p id={`${id}-discard-description`}>{leaveToStudio ? 'Jeśli przejdziesz do kreatora awatara' : 'Jeśli zamkniesz edytor'}, wprowadzone zmiany zostaną odrzucone.</p>
       <div className="profile-discard-actions">
         <Button type="button" ref={continueButton} onClick={() => setConfirmDiscard(false)}>Kontynuuj edycję</Button>
-        <Button type="button" ref={discardButton} variant="outline" onClick={onClose}>Odrzuć zmiany</Button>
+        <Button type="button" ref={discardButton} variant="outline" onClick={leaveToStudio ? onOpenAvatarStudio : onClose}>Odrzuć zmiany</Button>
       </div>
     </dialog>}
   </dialog>;

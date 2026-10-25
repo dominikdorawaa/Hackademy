@@ -43,6 +43,11 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     @Modifying
     @Transactional
+    @Query("UPDATE User u SET u.lastSeenAt = :at WHERE u.id = :id")
+    int markSeen(Long id, java.time.LocalDateTime at);
+
+    @Modifying
+    @Transactional
     @Query("UPDATE User u SET u.email = :email WHERE u.id = :id AND u.clerkUserId = :clerkUserId")
     int updateClerkEmail(Long id, String clerkUserId, String email);
 
