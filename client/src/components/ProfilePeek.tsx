@@ -1,4 +1,6 @@
 import { useEffect, useId, useRef, useState } from 'react';
+import { friendStatus } from '../lib/friendStatus';
+import { useMinuteClock } from '../hooks/useMinuteClock';
 import { Link } from 'react-router-dom';
 import UserAvatar from './UserAvatar';
 import ProfileIcon from './profile/ProfileIcon';
@@ -61,12 +63,14 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
   const [sendError, setSendError] = useState<string | null>(null);
   // Once the visitor acts inside the card it stays open until they click elsewhere or press Escape.
   const [pinned, setPinned] = useState(false);
+  const now = useMinuteClock(open);
   const timer = useRef<number | undefined>(undefined);
   const rootRef = useRef<HTMLSpanElement>(null);
   const cardId = useId();
   const { state: realtime } = useRealtime();
   // Presence is only known for friends; for everyone else the card stays silent about it.
-  const presence = isMe ? undefined : realtime?.friends.find((f) => f.username === username)?.online;
+  const friend = isMe ? undefined : realtime?.friends.find((f) => f.username === username);
+  const presence = friend?.online;
 
   useEffect(() => () => window.clearTimeout(timer.current), []);
 
@@ -234,7 +238,7 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
                   </span>
                   <span className="ud-peek-level">
                     Poziom {levelFromPoints(profile.points)}, {rankTitleFromPoints(profile.points)}
-                    {presence !== undefined && <> · {presence ? 'online' : 'offline'}</>}
+                    {friend && <> · {friendStatus(friend, now)}</>}
                   </span>
                 </span>
               </span>

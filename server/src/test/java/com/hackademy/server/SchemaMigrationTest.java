@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 31;
+    static final int SCHEMA_VERSION = 32;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -172,12 +172,25 @@ class SchemaMigrationTest {
     }
 
     @Test
+    void sharesActivityOfExistingUsersUntilTheyHideIt() throws Exception {
+        flyway("31").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, scalar("SELECT count(*) FROM users WHERE share_activity AND last_seen_at IS NULL"));
+        execute("UPDATE users SET share_activity = false, last_seen_at = now() WHERE id = 1");
+        assertEquals(1, scalar("SELECT count(*) FROM users WHERE NOT share_activity AND last_seen_at IS NOT NULL"));
+        assertSqlState("23502", "UPDATE users SET share_activity = NULL WHERE id = 1");
+        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertTrue(flyway().validateWithResult().validationSuccessful);
+    }
+
+    @Test
     void addsLabReportsWithoutChangingExistingReports() throws Exception {
         flyway("30").migrate();
         insertUser(1, "Alice", "alice@example.com");
         execute("INSERT INTO bug_reports (reporter_id, source, game_id, page_path, description, created_at) VALUES (1, 'ARENA', 'game', '/arena', 'Mecz się zawiesił', now())");
         execute("INSERT INTO bug_reports (reporter_id, source, description, status, created_at, resolved_at) VALUES (1, 'ROOM', 'Nie działa podpowiedź', 'RESOLVED', now(), now())");
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("31").migrate().migrationsExecuted);
         assertEquals(2, scalar("SELECT count(*) FROM bug_reports WHERE lesson_id IS NULL"));
         assertEquals(1, scalar("SELECT count(*) FROM bug_reports WHERE source = 'ARENA' AND game_id = 'game' AND page_path = '/arena' AND description = 'Mecz się zawiesił' AND status = 'OPEN'"));
         assertEquals(1, scalar("SELECT count(*) FROM bug_reports WHERE source = 'ROOM' AND description = 'Nie działa podpowiedź' AND status = 'RESOLVED' AND resolved_at IS NOT NULL"));
@@ -186,8 +199,8 @@ class SchemaMigrationTest {
         assertSqlState("23514", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (1, 'CHAT', 'Nieznane źródło', now())");
         assertSqlState("23514", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (1, 'LAB', 'Brak kroku laboratorium', now())");
         assertSqlState("23514", "UPDATE bug_reports SET lesson_id = 'pwd' WHERE source = 'ARENA'");
-        assertEquals(0, flyway().migrate().migrationsExecuted);
-        assertTrue(flyway().validateWithResult().validationSuccessful);
+        assertEquals(0, flyway("31").migrate().migrationsExecuted);
+        assertTrue(flyway("31").validateWithResult().validationSuccessful);
     }
 
     @Test

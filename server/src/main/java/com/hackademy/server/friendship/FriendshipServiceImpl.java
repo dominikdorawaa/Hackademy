@@ -2,7 +2,7 @@ package com.hackademy.server.friendship;
 
 import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
-import com.hackademy.server.realtime.FriendPresence;
+import com.hackademy.server.realtime.FriendActivity;
 import com.hackademy.server.realtime.RealtimeNotifier;
 
 import com.hackademy.server.user.dto.UserSearchDto;
@@ -51,7 +51,7 @@ public class FriendshipServiceImpl implements FriendshipService {
     private final DashboardSummaryCache dashboardSummaryCache;
     private final RealtimeNotifier realtime;
     private final UserAvatarRepository userAvatarRepository;
-    private final FriendPresence presence;
+    private final FriendActivity activity;
 
     private static final long CACHE_MS = 30_000; // 30 seconds
     private static final class CacheEntry<T> {
@@ -170,7 +170,8 @@ public class FriendshipServiceImpl implements FriendshipService {
                     .toList();
             Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(friends.stream().map(User::getId).toList());
             List<FriendDto> out = friends.stream()
-                    .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), avatars.get(friend.getId())))
+                    .map(friend -> new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(), avatars.get(friend.getId()))
+                            .withSharing(friend.isShareActivity(), friend.getLastSeenAt()))
                     .collect(Collectors.toList());
 
             return new CacheEntry<>(System.currentTimeMillis(), out);
@@ -179,7 +180,7 @@ public class FriendshipServiceImpl implements FriendshipService {
     }
 
     private List<FriendDto> withPresence(List<FriendDto> friends) {
-        return friends.stream().map(friend -> friend.withOnline(presence.isOnline(friend.id()))).toList();
+        return activity.describe(friends);
     }
 
     @Override

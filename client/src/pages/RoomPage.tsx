@@ -5,6 +5,7 @@ import React, { useState, useEffect, useId, useRef } from 'react';
 import { BookOpen, Check, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useRealtime } from '../context/RealtimeContext';
 import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
@@ -17,6 +18,7 @@ import RoomFooterBar from '../components/room/RoomFooterBar';
 import RoomSplit from '../components/room/RoomSplit';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
+import { closeRoomActivity, openRoomActivity } from '../services/presenceApi';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
@@ -172,6 +174,15 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     };
     if (sessionKey) fetchRoom();
   }, [id, sessionKey, preview]);
+
+  const roomId = room?.id;
+  const { connected } = useRealtime();
+  useEffect(() => {
+    if (preview || !roomId || !sessionKey || !connected) return;
+    const auth = { sessionKey };
+    void openRoomActivity(roomId, auth).catch(() => undefined);
+    return () => { void closeRoomActivity(roomId, auth).catch(() => undefined); };
+  }, [preview, roomId, sessionKey, connected]);
 
   useEffect(() => {
     readerRef.current?.scrollTo?.({ top: 0 });

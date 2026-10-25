@@ -479,6 +479,47 @@ class RealtimeIntegrationTest {
         }
     }
 
+    private void presence(User user, String method, String path, String body) throws Exception {
+        var response = client.send(HttpRequest.newBuilder(URI.create("http://localhost:" + port + "/api/presence/" + path))
+                .header("Authorization", "Bearer " + ClerkTestTokens.tokenFor(user, ORIGIN))
+                .header("Content-Type", "application/json")
+                .method(method, body == null ? HttpRequest.BodyPublishers.noBody() : HttpRequest.BodyPublishers.ofString(body))
+                .build(), HttpResponse.BodyHandlers.ofString());
+        assertTrue(response.statusCode() < 300, response.body());
+    }
+
+    private Object friendField(RealtimeSocket socket, String field) throws Exception {
+        return JsonPath.read(RealtimeSocket.body(socket.receive()), "$.state.friends[0]." + field);
+    }
+
+    @Test
+    void friendsSeeTheOpenRoomAndTheLastVisitUnlessActivityIsHidden() throws Exception {
+        var me = user();
+        var friend = user();
+        befriend(me, friend);
+        var room = rooms.saveAndFlush(Room.builder().title("Ukryty skarb " + UUID.randomUUID()).description("test").difficulty(DifficultyLevel.EASY)
+                .category("test").points(10).flag("test").requiresVpn(false).build());
+        try (var watcher = connected(friend)) {
+            var tab = connected(me);
+            assertEquals(true, friendField(watcher, "online"));
+            presence(me, "PUT", "room/" + room.getId() + "?tab=t1", null);
+            assertEquals(room.getTitle(), friendField(watcher, "activityRoom"));
+            assertEquals("ROOM", JsonPath.read(friendsOf(friend), "$[0].activity"));
+            presence(me, "PUT", "sharing", "{\"enabled\":false}");
+            assertNull(friendField(watcher, "activity"));
+            assertNull(JsonPath.read(friendsOf(friend), "$[0].activityRoom"));
+            presence(me, "PUT", "sharing", "{\"enabled\":true}");
+            assertEquals("ROOM", friendField(watcher, "activity"));
+            presence(me, "DELETE", "room/" + room.getId() + "?tab=t1", null);
+            assertNull(friendField(watcher, "activity"));
+            tab.close();
+            var frame = JsonPath.parse(RealtimeSocket.body(watcher.receive()));
+            assertEquals(false, frame.read("$.state.friends[0].online"));
+            assertTrue(frame.read("$.state.friends[0].lastSeenAt", Long.class) > System.currentTimeMillis() - 60_000);
+            assertFalse(frame.jsonString().contains("sharesActivity"));
+        }
+    }
+
     @Test
     void acceptingWhileBothAreOnlineShowsEachOtherOnline() throws Exception {
         var sender = user();

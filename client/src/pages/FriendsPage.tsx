@@ -1,4 +1,6 @@
 import UserAvatar from '../components/UserAvatar';
+import { friendStatus } from '../lib/friendStatus';
+import { useMinuteClock } from '../hooks/useMinuteClock';
 import * as friendApi from '../services/friendApi';
 import * as userApi from '../services/userApi';
 import * as arenaApi from '../services/arenaApi';
@@ -13,6 +15,7 @@ import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 const FriendsPage = () => {
     const { sessionKey } = useAuth();
     const { state, error, synchronize } = useRealtime();
+    const now = useMinuteClock();
     const friends = state?.friends ?? [];
     const requests = state?.friendRequests ?? [];
     const loading = !state;
@@ -284,7 +287,7 @@ const FriendsPage = () => {
                                     </Link>
                                     <div style={{ display: 'flex', alignItems: 'center', gap: '6px', fontSize: '0.85rem', color: 'var(--text-gray)', marginBottom: '5px' }}>
                                         <span aria-hidden="true" style={{ width: '8px', height: '8px', borderRadius: '50%', backgroundColor: friend.online ? '#2ecc71' : 'var(--text-gray)', opacity: friend.online ? 1 : 0.5 }} />
-                                        {friend.online ? 'Online' : 'Offline'}
+                                        {friendStatus(friend, now).replace(/^./, letter => letter.toUpperCase())}
                                     </div>
                                     <div style={{ fontSize: '0.9rem', color: 'var(--text-gray)', marginBottom: '15px' }}>
                                         {friend.points} XP • {friend.streak} dni 🔥

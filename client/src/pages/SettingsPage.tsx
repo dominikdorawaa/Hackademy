@@ -21,6 +21,7 @@ import { useUsernameChange, validateUsername } from '../hooks/useUsernameChange'
 import { chooseVariant, playSound, selectedVariant, soundVariants, unlockAudio } from '../lib/notificationSounds';
 import type { SoundEvent } from '../lib/notificationSounds';
 import { USERNAME_MAX } from '../lib/username';
+import { getActivitySharing, saveActivitySharing } from '../services/presenceApi';
 
 const sections: Record<'account' | 'notifications' | 'appearance' | 'security', { title: string; description: string; icon: Icon }> = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.', icon: UserCircle },
@@ -120,7 +121,39 @@ export default function SettingsPage() {
   const notificationsSupported = 'Notification' in window && window.isSecureContext;
   const systemAllowed = notificationsSupported && Notification.permission === 'granted';
   const matchFoundSilent = !preferences.sound && !(preferences.browserNotifications && systemAllowed);
+  const [sharing, setSharing] = useState<boolean | null>(null);
+  const [savingSharing, setSavingSharing] = useState(false);
+  const [sharingFailed, setSharingFailed] = useState(false);
+  const [sharingAttempt, setSharingAttempt] = useState(0);
   const [variants, setVariants] = useState(() => Object.fromEntries(soundEvents.map(event => [event, selectedVariant(event).id])) as Record<SoundEvent, string>);
+
+  useEffect(() => {
+    if (!sessionKey) return;
+    const controller = new AbortController();
+    setSharingFailed(false);
+    getActivitySharing({ sessionKey }, controller.signal)
+      .then(async response => {
+        if (!response.ok) throw new Error();
+        setSharing((await response.json()).enabled);
+      })
+      .catch(() => { if (!controller.signal.aborted) setSharingFailed(true); });
+    return () => controller.abort();
+  }, [sessionKey, sharingAttempt]);
+
+  const changeSharing = async (enabled: boolean) => {
+    if (!sessionKey) return;
+    setSavingSharing(true);
+    try {
+      const response = await saveActivitySharing(enabled, { sessionKey });
+      if (!response.ok) throw new Error();
+      setSharing((await response.json()).enabled);
+      setFeedback({ message: enabled ? 'Znajomi znów widzą, co robisz.' : 'Znajomi widzą już tylko, czy jesteś online.', error: false });
+    } catch {
+      setFeedback({ message: 'Nie udało się zapisać ustawienia prywatności.', error: true });
+    } finally {
+      setSavingSharing(false);
+    }
+  };
 
   useEffect(() => {
     if (!sessionKey) return;
@@ -259,6 +292,15 @@ export default function SettingsPage() {
           </SettingsGroup>
           <SettingsGroup id="profile" title="Profil publiczny">
             <SettingRow title="Avatar, bio i zainteresowania" description="Personalizacja profilu w jednym miejscu."><Link className="settings-button" to="/profile">Edytuj profil</Link></SettingRow>
+          </SettingsGroup>
+          <SettingsGroup id="privacy" title="Prywatność">
+            {sharingFailed && <div className="settings-error"><p role="alert">Nie udało się wczytać ustawienia prywatności.</p>
+              <button className="settings-button" onClick={() => setSharingAttempt(value => value + 1)}>Spróbuj ponownie</button></div>}
+            <SettingRow title="Pokazuj znajomym, co robię" description={sharing === false
+              ? 'Wyłączone: znajomi widzą tylko, czy jesteś online.'
+              : 'Znajomi zobaczą, czy jesteś w pojedynku, w kolejce Areny albo w którym pokoju, a po wyjściu czas ostatniej wizyty.'}>
+              <Switch label="Pokazuj znajomym, co robię" checked={sharing ?? true} disabled={sharing === null || savingSharing}
+                onChange={value => void changeSharing(value)} /></SettingRow>
           </SettingsGroup>
         </>}
         {section === 'notifications' && <>

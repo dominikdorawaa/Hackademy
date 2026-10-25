@@ -38,6 +38,13 @@ describe('friends page', () => {
     expect(within(kuba).getByText('Offline')).toBeInTheDocument();
   });
 
+  it('shows what an online friend is doing', () => {
+    environment.state = snapshot([{ ...friend(2, 'ola', true), activity: 'ARENA_QUEUE' }]);
+    mount();
+    const ola = screen.getByRole('link', { name: 'ola' }).parentElement!;
+    expect(within(ola).getByText('W kolejce Areny')).toBeInTheDocument();
+  });
+
   it('asks for confirmation instead of the browser dialog and cancels without removing', async () => {
     const confirm = vi.spyOn(window, 'confirm');
     const removed = vi.fn();

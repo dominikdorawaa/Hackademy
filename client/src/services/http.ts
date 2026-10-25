@@ -93,7 +93,7 @@ export async function request<T, E = ApiError>(path: string, options: RequestOpt
   }
   if (response.status === TOO_MANY_REQUESTS && rateLimitNotice) reportRateLimit(await readRetryAfter(response));
   if (auth?.sessionKey && session !== current) throw new DOMException('Sesja została zmieniona.', 'AbortError');
-  if (response.ok && !['GET', 'HEAD'].includes(init.method ?? 'GET') && !url.pathname.endsWith('/active-time')) {
+  if (response.ok && !['GET', 'HEAD'].includes(init.method ?? 'GET') && !url.pathname.endsWith('/active-time') && !url.pathname.startsWith('/api/presence/room/')) {
     invalidateReads();
     if (url.pathname.startsWith('/api/rooms/') && (url.pathname.endsWith('/solve') || url.pathname.endsWith('/complete'))) {
       const result = await response.clone().json().catch(() => null);
