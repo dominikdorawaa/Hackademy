@@ -7,7 +7,10 @@
 - **Activity:** daily solved-room counts in the last eighty-four days shown in the profile calendar.
 - **Earned badge:** an awarded achievement with its name, description, acquisition date and percentage of users who earned it.
 - **Member profile:** another user's profile available to authenticated members. Copying its URL does not enable anonymous access.
-- **Dashboard metrics:** XP, level, progression, Elo and recent solutions remain on the dashboard rather than being repeated in the profile.
+- **Dashboard metrics:** raw XP, progression and recent solutions remain on the dashboard rather than being repeated in the profile.
+- **Learning rank:** the title (Freshman to Architect) and level derived from XP, shown in the profile header.
+- **Arena league:** the league derived from arena Elo (Script Kiddie to Zero-day), shown in the profile header next to the Elo value and kept distinct from the learning rank.
+- **Profile completion:** the share of filled profile elements (avatar, bio, interests and, once a badge has been earned, the badge showcase) shown in the owner's setup prompt.
 
 ## Kurs UKOS
 

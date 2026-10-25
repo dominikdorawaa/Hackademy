@@ -23,6 +23,7 @@ export function ConfirmAction({
   confirmLabel,
   onConfirm,
   returnFocus,
+  pixel = false,
 }: {
   trigger?: ReactNode;
   open?: boolean;
@@ -32,6 +33,7 @@ export function ConfirmAction({
   confirmLabel: string;
   onConfirm: () => void | Promise<void>;
   returnFocus?: (confirmed: boolean) => HTMLElement | null | undefined;
+  pixel?: boolean;
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -68,7 +70,7 @@ export function ConfirmAction({
       }
     }}>
       {trigger && <AlertDialogTrigger asChild disabled={pending}>{trigger}</AlertDialogTrigger>}
-      <AlertDialogContent onCloseAutoFocus={(event) => {
+      <AlertDialogContent className={pixel ? 'px-dialog px-panel' : undefined} onCloseAutoFocus={(event) => {
         const target = returnFocus?.(confirmed.current);
         confirmed.current = false;
         if (target) {
@@ -82,8 +84,9 @@ export function ConfirmAction({
         </AlertDialogHeader>
         {error && <StatusMessage kind="error">{error}</StatusMessage>}
         <AlertDialogFooter>
-          <AlertDialogCancel disabled={pending}>Anuluj</AlertDialogCancel>
+          <AlertDialogCancel className={pixel ? 'px-button' : undefined} disabled={pending}>Anuluj</AlertDialogCancel>
           <AlertDialogAction
+            className={pixel ? 'px-button px-button--danger' : undefined}
             variant="destructive"
             disabled={pending}
             onClick={(event) => {

@@ -1,6 +1,7 @@
 import type { CSSProperties } from 'react';
 import { Link } from 'react-router-dom';
 import type { RankingEntry } from '../../types/api';
+import { EloHelp } from '../arena/EloHelp';
 import { LeagueIcon } from '../arena/LeagueIcon';
 import { leagueFor, leagueProgress } from '../arena/leagues';
 
@@ -33,16 +34,7 @@ function ArenaRank({ rank }: { rank: RankingEntry }) {
           <span>Liga {league.name}</span>
           <p className="ud-level-xp">
             <strong>{formatNumberPL(elo)}</strong>{' '}
-            <span className="ud-term">
-              <button type="button" className="ud-term-btn" aria-describedby="ud-elo-tip">
-                Elo
-                <i className="fas fa-circle-info" aria-hidden="true" />
-              </button>
-              <span role="tooltip" id="ud-elo-tip" className="ud-tip">
-                <strong>Elo to Twoja siła w pojedynkach.</strong> Grasz w Trybie rankingowym: wygrywasz, to rośnie,
-                przegrywasz, to spada. Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.
-              </span>
-            </span>
+            <EloHelp />
           </p>
         </div>
       </div>

@@ -13,9 +13,7 @@ import com.hackademy.server.room.dto.RoomTasksAdminDto;
 import com.hackademy.server.room.dto.UpdateRoomTasksRequest;
 import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
-import com.hackademy.server.chat.ChatMessage;
 import com.hackademy.server.room.Room;
-import com.hackademy.server.chat.ChatService;
 import com.hackademy.server.path.PathService;
 import com.hackademy.server.room.RoomService;
 import com.hackademy.server.user.UserService;
@@ -30,7 +28,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.Map;
 import java.util.stream.Collectors;
 
 @RestController
@@ -43,7 +40,6 @@ public class AdminController {
     private final RoomService roomService;
     private final PathService pathService;
     private final UserService userService;
-    private final ChatService chatService;
 
     @PostMapping(value = "/rooms", consumes = { MediaType.MULTIPART_FORM_DATA_VALUE })
     @ResponseStatus(HttpStatus.CREATED)
@@ -110,33 +106,6 @@ public class AdminController {
     @PreAuthorize("hasRole('ADMIN')")
     public UserAdminView updateUserRole(@PathVariable Long id, @Valid @RequestBody UpdateUserRoleRequest request) {
         return userService.updateUserRole(id, request.role());
-    }
-
-    @PostMapping("/users/{id}/mute")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void muteUser(@PathVariable Long id, @RequestBody Map<String, Long> payload) {
-        Long duration = payload.get("duration"); // in seconds
-        userService.muteUser(id, duration);
-    }
-
-    // Chat Reports Endpoints
-
-    @GetMapping("/reports")
-    @PreAuthorize("hasRole('ADMIN')")
-    public PageResult<ChatMessage> getReportedMessages(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size) {
-        return PageResult.from(chatService.getReportsPage(page, size));
-    }
-
-    @DeleteMapping("/reports/{messageId}")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void deleteReportedMessage(@PathVariable Long messageId) {
-        chatService.deleteMessage(messageId);
-    }
-
-    @PostMapping("/reports/{messageId}/dismiss")
-    @PreAuthorize("hasRole('ADMIN')")
-    public void dismissReport(@PathVariable Long messageId) {
-        chatService.dismissReport(messageId);
     }
 
     @PostMapping("/paths")

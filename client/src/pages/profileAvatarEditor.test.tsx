@@ -22,7 +22,7 @@ vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
   useAvatarPortrait: (config: AvatarConfig | null) => config ? `/portrait-${config.hat}-${config.pose}.png` : null,
 }));
 
-const initialAvatar: AvatarConfig = { outfit: 'dres', hair: 'kucyk', hat: 'brak', skin: 'ciemna', hairColor: 'rude', topColor: 'czerwony', bottomColor: 'bialy', shoesColor: 'granatowy', hatColor: 'turkusowy', pose: 'profil' };
+const initialAvatar: AvatarConfig = { outfit: 'dres', hair: 'kucyk', hat: 'brak', skin: 'ciemna', hairColor: 'rude', topColor: 'czerwony', bottomColor: 'bialy', shoesColor: 'granatowy', hatColor: 'turkusowy', pose: 'profil', finisher: 'combo', victoryDance: 'scuba' };
 let avatar: AvatarConfig;
 let writes: AvatarConfig[];
 let fail: boolean;
@@ -60,18 +60,25 @@ function mount(path = '/profile') {
   </Route>, path);
 }
 
+const openHead = async () => {
+  fireEvent.click(await screen.findByRole('tab', { name: 'Fryzura i czapka' }));
+  await waitFor(() => expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked());
+};
+
 it('opens the account configuration from the own portrait using the keyboard and updates navigation and profile after saving', async () => {
   mount();
   const user = userEvent.setup();
   const edit = await screen.findByRole('link', { name: 'Zmień swój awatar' });
   expect(edit).toHaveAttribute('href', '/arena/avatar?from=profile');
-  expect(edit.textContent).toBe('');
+  expect(edit.textContent).toBe('Edytuj awatar');
+  expect(edit).toHaveAccessibleName('Zmień swój awatar');
   expect(within(edit).getByRole('img', { name: 'Avatar tester' })).toBeVisible();
   edit.focus();
   expect(edit).toHaveFocus();
   await user.keyboard('{Enter}');
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked());
-  expect(screen.getByRole('radio', { name: 'Profil' })).toBeChecked();
+  fireEvent.click(await screen.findByRole('tab', { name: 'Ikona profilu' }));
+  await waitFor(() => expect(screen.getByRole('radio', { name: 'Profil' })).toBeChecked());
+  await openHead();
   await user.click(screen.getByRole('radio', { name: 'Daszek' }));
   await user.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled());
@@ -87,7 +94,7 @@ it('supports pointer navigation and keeps the selected configuration ready for r
   mount();
   const user = userEvent.setup();
   await user.click(await screen.findByRole('link', { name: 'Zmień swój awatar' }));
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked());
+  await openHead();
   await user.click(screen.getByRole('radio', { name: 'Daszek' }));
   fail = true;
   await user.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
@@ -114,7 +121,7 @@ it('keeps another person’s portrait noninteractive and never offers saving the
 
 it('ignores another username and an external return URL when entering the account editor directly', async () => {
   mount('/arena/avatar?username=friend&from=https://example.com');
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked());
+  await openHead();
   expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
   fireEvent.click(screen.getByRole('radio', { name: 'Daszek' }));
   fireEvent.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
@@ -128,7 +135,7 @@ it('opens the editor by touch and treats the public address of the signed-in pla
   expect(screen.getByTestId('location')).toHaveTextContent('/profile:REPLACE');
   const user = userEvent.setup();
   await user.pointer([{ keys: '[TouchA>]', target: edit }, { keys: '[/TouchA]' }]);
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked());
+  await openHead();
   expect(screen.getByRole('link', { name: 'Wróć do profilu' })).toHaveAttribute('href', '/profile');
 });
 
@@ -144,7 +151,7 @@ it.each(['keyboard', 'touch'] as const)('opens the ranked Arena portrait with %s
     edit.focus();
     await user.keyboard('{Enter}');
   } else await user.pointer([{ keys: '[TouchA>]', target: edit }, { keys: '[/TouchA]' }]);
-  await waitFor(() => expect(screen.getByRole('radio', { name: 'Kucyk' })).toBeChecked());
+  await openHead();
   await user.click(screen.getByRole('radio', { name: 'Daszek' }));
   await user.click(screen.getByRole('button', { name: 'Zapisz awatar' }));
   await waitFor(() => expect(screen.getByRole('button', { name: 'Zapisano' })).toBeDisabled());

@@ -5,6 +5,7 @@ import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
 import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateUsernameRequest;
+import com.hackademy.server.user.dto.UsernameAvailabilityDto;
 import com.hackademy.server.user.dto.UserProfileDto;
 import com.hackademy.server.user.dto.ProfilePortfolioDto;
 import com.hackademy.server.user.dto.ProfileStatsDto;
@@ -95,6 +96,7 @@ public class UserController {
         userInfo.put("tagline", appearance.tagline());
         userInfo.put("interests", appearance.interests());
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
+        userInfo.put("elo", userDetails.getElo());
         userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
         userInfo.put("onboarding", new com.hackademy.server.user.dto.OnboardingDto(userDetails.getAvatarConfirmedAt() != null, userDetails.getTourStatus()));
         userInfo.put("notificationPreferences", getNotificationPreferences(authentication));
@@ -117,6 +119,12 @@ public class UserController {
     public ResponseEntity<Map<String, String>> updateUsername(@Valid @RequestBody UpdateUsernameRequest request) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return ResponseEntity.ok(Map.of("username", userService.updateUsername(user.getId(), request)));
+    }
+
+    @GetMapping("/me/username/availability")
+    public ResponseEntity<UsernameAvailabilityDto> usernameAvailability(@RequestParam String name) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        return ResponseEntity.ok(userService.usernameAvailability(user.getId(), name));
     }
 
     @PatchMapping("/me/bio")

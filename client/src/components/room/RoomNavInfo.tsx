@@ -1,3 +1,4 @@
+import type { ReactNode } from 'react';
 import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 
@@ -19,9 +20,10 @@ export interface RoomNavProps {
   back: RoomNavBack;
   title: string;
   progress: RoomNavProgress;
+  action?: ReactNode;
 }
 
-export default function RoomNavInfo({ back, title, progress }: RoomNavProps) {
+export default function RoomNavInfo({ back, title, progress, action }: RoomNavProps) {
   const ratio = progress.max > 0 ? Math.min(1, Math.max(0, progress.value / progress.max)) : 0;
   const percent = Math.round(ratio * 100);
   const backContent = <><ChevronLeft aria-hidden="true" /><span>{back.title}</span></>;
@@ -44,6 +46,7 @@ export default function RoomNavInfo({ back, title, progress }: RoomNavProps) {
         </div>
         <span className="room-nav-percent">{percent}%</span>
       </div>
+      {action}
     </div>
   );
 }

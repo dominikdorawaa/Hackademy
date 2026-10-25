@@ -13,6 +13,7 @@ import { useArenaSession } from '../hooks/useArenaSession';
 import { useBattlePresence } from '../hooks/useBattlePresence';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
+import { BugReportButton } from '../components/bugReport/BugReportButton';
 import * as arenaApi from '../services/arenaApi';
 import * as userApi from '../services/userApi';
 import type { AvatarConfig } from '../types/api';
@@ -80,7 +81,6 @@ export default function ArenaBattlePage() {
 
   const { me, rival } = perspective(session, meId);
   const finished = session.status === 'FINISHED';
-  const RevealHeading = finished ? 'h2' : 'h1';
   const deadline = session.phase === 'QUESTION' ? session.roundEndsAt : session.nextRoundAt;
   const left = frozenSecondsLeft(session, deadline) ?? (clock.serverTime === serverTime
     ? secondsLeft(deadline, serverTime, clock.receivedAt, clock.now)
@@ -88,7 +88,7 @@ export default function ArenaBattlePage() {
   const answered = session.answeredBy.includes(me.id);
   const rivalAnswered = session.answeredBy.includes(rival.id);
   const myPick = picked?.round === session.round ? picked.answer : null;
-  const reveal = session.phase === 'REVEAL' ? session.lastRound : null;
+  const reveal = !finished && session.phase === 'REVEAL' ? session.lastRound : null;
   const result = outcome(session, me.id);
   const change = eloChange(session, me.id);
   const visibleError = error && (error.round === null || error.round === session.round) ? error.message : null;
@@ -156,7 +156,7 @@ export default function ArenaBattlePage() {
           ) : reveal ? (
             <section className="battle-card" aria-labelledby="battle-question">
               <p className="battle-card-meta">Wynik rundy {reveal.round}</p>
-              <RevealHeading id="battle-question" className="battle-question">{reveal.content}</RevealHeading>
+              <h1 id="battle-question" className="battle-question">{reveal.content}</h1>
               <ol className="battle-answers is-reveal">
                 {reveal.answers.map((text, index) => {
                   const correct = index === reveal.correctAnswer;
@@ -200,19 +200,18 @@ export default function ArenaBattlePage() {
           ) : null}
         </div>
 
-        {!finished && (
-          <div className="battle-actions">
-            {confirmSurrender ? (
-              <>
-                <span>Poddanie oznacza porażkę.</span>
-                <button type="button" className="ud-btn ud-btn-small battle-surrender" onClick={() => void surrender()}>Tak, poddaję walkę</button>
-                <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(false)}>Walczę dalej</button>
-              </>
-            ) : (
-              <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(true)}>Poddaj walkę</button>
-            )}
-          </div>
-        )}
+        <div className="battle-actions">
+          <BugReportButton labelled className="ud-btn ud-btn-small battle-report" context={{ source: 'ARENA', gameId: session.id }} />
+          {!finished && (confirmSurrender ? (
+            <>
+              <span>Poddanie oznacza porażkę.</span>
+              <button type="button" className="ud-btn ud-btn-small battle-surrender" onClick={() => void surrender()}>Tak, poddaję walkę</button>
+              <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(false)}>Walczę dalej</button>
+            </>
+          ) : (
+            <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(true)}>Poddaj walkę</button>
+          ))}
+        </div>
       </div>
     </div>
   );

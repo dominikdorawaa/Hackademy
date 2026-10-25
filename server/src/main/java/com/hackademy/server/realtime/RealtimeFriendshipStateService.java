@@ -21,7 +21,7 @@ public class RealtimeFriendshipStateService {
     private final UserRepository users;
     private final FriendshipRepository friendships;
     private final UserAvatarRepository avatars;
-    private final FriendPresence presence;
+    private final FriendActivity activity;
 
     public record State(Long userId, List<FriendRequestDto> requests, List<FriendDto> friends) {}
 
@@ -41,10 +41,11 @@ public class RealtimeFriendshipStateService {
             boolean requester = f.getRequester().getId().equals(userId);
             var friend = requester ? f.getReceiver() : f.getRequester();
             return new FriendDto(friend.getId(), friend.getUsername(), friend.getPoints(), friend.getStreak(),
-                    avatarsById.get(friend.getId()), presence.isOnline(friend.getId()),
+                    avatarsById.get(friend.getId()), false,
                     requester ? f.getRequesterWins() : f.getReceiverWins(),
-                    requester ? f.getReceiverWins() : f.getRequesterWins());
+                    requester ? f.getReceiverWins() : f.getRequesterWins())
+                    .withSharing(friend.isShareActivity(), friend.getLastSeenAt());
         }).toList();
-        return new State(user.getId(), requests, friends);
+        return new State(user.getId(), requests, activity.describe(friends));
     }
 }

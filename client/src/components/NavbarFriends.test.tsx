@@ -50,6 +50,16 @@ describe('friends panel in the top bar', () => {
     expect(within(panel).getByRole('link', { name: 'Zarządzaj znajomymi' })).toHaveAttribute('href', '/friends');
   });
 
+  it('shows what friends are doing and when offline ones were last seen', async () => {
+    environment.state!.friends = [{ ...friend(2, 'ola', true), activity: 'ROOM', activityRoom: 'Ukryty skarb' },
+      { ...friend(3, 'kuba', true), activity: 'DUEL' }, { ...friend(4, 'zenek', false), lastSeenAt: Date.now() - 2 * 3_600_000 }];
+    const { user, panel } = await openPanel();
+    expect(within(panel).getByRole('link', { name: 'ola rozwiązuje pokój Ukryty skarb' })).toBeInTheDocument();
+    expect(within(panel).getByRole('link', { name: 'kuba w pojedynku' })).toBeInTheDocument();
+    await user.click(within(panel).getByRole('button', { name: 'Offline (1)' }));
+    expect(within(panel).getByRole('link', { name: 'zenek ostatnio online 2h temu' })).toBeInTheDocument();
+  });
+
   it('challenges an online friend and shows a challenge already sent', async () => {
     const created = vi.fn();
     server.use(http.post(`${API_URL}/api/arena/challenge/create`, async ({ request }) => {

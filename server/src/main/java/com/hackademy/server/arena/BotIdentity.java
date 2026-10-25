@@ -40,7 +40,8 @@ public final class BotIdentity {
                 choice(UserAvatarDto.HAT_STYLES, random), choice(UserAvatarDto.SKIN_TONES, random),
                 choice(UserAvatarDto.HAIR_COLORS, random), choice(UserAvatarDto.CLOTH_COLORS, random),
                 choice(UserAvatarDto.CLOTH_COLORS, random), choice(UserAvatarDto.CLOTH_COLORS, random),
-                choice(UserAvatarDto.CLOTH_COLORS, random), UserAvatarDto.DEFAULT_POSE);
+                choice(UserAvatarDto.CLOTH_COLORS, random), UserAvatarDto.DEFAULT_POSE,
+                choice(UserAvatarDto.FINISHERS, random), choice(UserAvatarDto.VICTORY_DANCES, random));
     }
 
     private static String choice(String pattern, RandomGenerator random) {

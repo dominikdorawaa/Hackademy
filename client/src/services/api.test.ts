@@ -33,11 +33,11 @@ describe('HTTP compatibility', () => {
     expect(await response.text()).toBe('original error');
   });
 
-  it('keeps a reaction mute error as JSON, including its timestamp', async () => {
-    const error = { message: 'Masz wyciszone reakcje.', mutedUntil: '2026-10-06T18:00:00Z' };
-    fetchMock.mockResolvedValue(Response.json(error, { status: 403 }));
+  it('keeps a refused reaction as JSON, including its retry time', async () => {
+    const error = { message: 'Za szybko.', retryAfter: 2 };
+    fetchMock.mockResolvedValue(Response.json(error, { status: 429 }));
     const response = await arena.sendReaction('abc', 'ez', jsonHeaders);
-    expect(response.status).toBe(403);
+    expect(response.status).toBe(429);
     expect(await response.json()).toEqual(error);
   });
 

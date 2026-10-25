@@ -20,6 +20,7 @@ public record RateLimitProperties(boolean enabled, int maxKeys, Rules rules) {
         return switch (group) {
             case API_READ -> rules.apiRead();
             case API_WRITE -> rules.apiWrite();
+            case BUG_REPORT -> rules.bugReport();
             case ANONYMOUS -> rules.anonymous();
             case PUBLIC_BANNER -> rules.publicBanner();
             case WEBSOCKET_HANDSHAKE -> rules.websocketHandshake();
@@ -28,11 +29,11 @@ public record RateLimitProperties(boolean enabled, int maxKeys, Rules rules) {
     }
 
     public record Rules(Rule apiRead, Rule apiWrite, Rule anonymous, Rule publicBanner, Rule websocketHandshake,
-                        Rule websocketTransport) {
+                        Rule websocketTransport, Rule bugReport) {
 
         public Rules {
             if (apiRead == null || apiWrite == null || anonymous == null || publicBanner == null || websocketHandshake == null
-                    || websocketTransport == null) {
+                    || websocketTransport == null || bugReport == null) {
                 throw new IllegalArgumentException("application.rate-limit.rules must define every group");
             }
         }

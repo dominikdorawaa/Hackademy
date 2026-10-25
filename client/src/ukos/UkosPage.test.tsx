@@ -1,9 +1,10 @@
-import { act, fireEvent, render, screen } from "@testing-library/react";
+import { act, fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import { MemoryRouter } from "react-router-dom";
 import { afterEach, beforeEach, expect, it, vi } from "vitest";
 import UkosPage from "./UkosPage";
 import { mockRoomViewport } from '../test/roomViewport';
 import { useCourse } from "./useCourse";
+import { submitBugReport } from "../services/bugReportApi";
 import {
   useWorkshop,
   type WorkshopOptions,
@@ -12,6 +13,7 @@ vi.mock("../context/AuthContext", () => ({
   useAuth: () => ({ user: { username: "alice" }, sessionKey: "sessionKey" }),
 }));
 vi.mock("./useCourse", () => ({ useCourse: vi.fn() }));
+vi.mock("../services/bugReportApi", () => ({ submitBugReport: vi.fn() }));
 vi.mock("../prototypes/ukos/useWorkshop", () => ({ useWorkshop: vi.fn() }));
 let course: ReturnType<typeof useCourse>;
 let workshop: ReturnType<typeof useWorkshop>;
@@ -19,11 +21,12 @@ let options: WorkshopOptions | undefined;
 let desktop = true;
 const draw = () =>
   render(
-    <MemoryRouter>
+    <MemoryRouter initialEntries={['/learn/ukos?view=lab']}>
       <UkosPage />
     </MemoryRouter>,
   );
 beforeEach(() => {
+  vi.mocked(submitBugReport).mockResolvedValue({ ok: true } as Response);
   mockRoomViewport();
   desktop = true;
   vi.stubGlobal("matchMedia", (query: string) => ({
@@ -61,6 +64,29 @@ beforeEach(() => {
     options = config;
     return workshop;
   });
+});
+it.each([
+  [0, false, 'pwd'],
+  [5, false, 'lab-directory'],
+  [5, true, 'lab-read-message'],
+  [15, false, 'history'],
+] as const)("reports the displayed lab step at progress %i, review %s", async (completed, review, lessonId) => {
+  course.completed = completed;
+  workshop.step = completed;
+  draw();
+  fireEvent.click(screen.getByRole('button', { name: completed === 15 ? 'Wróć do ćwiczeń' : completed ? 'Kontynuuj ćwiczenia' : 'Rozpocznij dyżur' }));
+  if (review) fireEvent.click(screen.getByRole('button', { name: 'Wstecz' }));
+  const button = screen.getByRole('button', { name: 'Zgłoś błąd' });
+  expect(button).toHaveClass('room-nav-report', 'is-icon');
+  expect(button.closest('.room-nav')).not.toBeNull();
+  fireEvent.click(button);
+  const dialog = within(await screen.findByRole('dialog', { name: 'Zgłoś błąd' }));
+  fireEvent.change(dialog.getByLabelText('Opis problemu'), { target: { value: 'Terminal nie reaguje na polecenie.' } });
+  fireEvent.click(dialog.getByRole('button', { name: 'Wyślij zgłoszenie' }));
+  await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
+  expect(submitBugReport).toHaveBeenLastCalledWith({
+    source: 'LAB', lessonId, pagePath: '/learn/ukos', description: 'Terminal nie reaguje na polecenie.',
+  }, { sessionKey: 'sessionKey' });
 });
 afterEach(() => {
   vi.useRealTimers();

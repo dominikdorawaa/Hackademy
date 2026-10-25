@@ -41,6 +41,9 @@ application:
     presence-offline-grace: ${PRESENCE_OFFLINE_GRACE:5s}
   arena:
     challenge-expiry: ${ARENA_CHALLENGE_EXPIRY:60s}
+  bug-reports:
+    hourly-limit: 5
+    daily-limit: 20
   origin-guard:
     secrets: ${ORIGIN_GUARD_SECRETS:}
   rate-limit:
@@ -71,6 +74,10 @@ application:
         burst: 600
         limit: 3600
         window: 1m
+      bug-report:
+        burst: 1
+        limit: 1
+        window: 30s
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:${FRONTEND_URL:http://localhost:5173}}
   clerk:

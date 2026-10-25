@@ -39,7 +39,7 @@ it('shows the arena panel next to the recent flags and keeps Elo out of the XP r
   expect(screen.getByRole('heading', { name: 'Ostatnio zdobyte flagi' })).toBeInTheDocument();
   expect(screen.getByText('w rankingu XP')).toBeInTheDocument();
   expect(document.querySelector('.ud-rank')).toHaveTextContent('#4');
-  expect(screen.getAllByRole('tooltip')).toHaveLength(1);
+  expect(screen.getAllByRole('button', { name: 'Co oznacza Elo?' })).toHaveLength(1);
 });
 
 it('keeps the dashboard working when the arena rank is missing', async () => {

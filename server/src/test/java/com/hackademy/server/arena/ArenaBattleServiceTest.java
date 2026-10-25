@@ -12,8 +12,6 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.springframework.context.annotation.AnnotationConfigApplicationContext;
 
-import java.time.LocalDateTime;
-import java.time.ZoneOffset;
 import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
@@ -37,7 +35,7 @@ class ArenaBattleServiceTest {
             mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence, mock(MatchmakingService.class));
     private final AtomicLong now = new AtomicLong(10_000);
     private final Map<Long, User> players = new HashMap<>();
-    private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod");
+    private final UserAvatarDto avatar = new UserAvatarDto("dres", "kucyk", "brak", "jasna", "rude", "bialy", "granatowy", "czerwony", "bialy", "przod", "beam", "groove");
 
     @BeforeEach
     void setUp() {
@@ -279,18 +277,6 @@ class ArenaBattleServiceTest {
         var reactions = state().getReactions();
         assertEquals(ArenaServiceImpl.REACTIONS_KEPT, reactions.size());
         assertTrue(reactions.get(0).id() < reactions.get(reactions.size() - 1).id());
-    }
-
-    @Test
-    void mutedPlayersCannotReactUntilTheMuteEnds() {
-        var muted = users.findById(1L).orElseThrow();
-        muted.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).plusMinutes(5));
-        var outcome = arena.react("game", 1L, "ez");
-        assertEquals(ReactionOutcome.Status.MUTED, outcome.status());
-        assertEquals(muted.getMutedUntil(), outcome.mutedUntil());
-        assertTrue(state().getReactions().isEmpty());
-        muted.setMutedUntil(LocalDateTime.now(ZoneOffset.UTC).minusMinutes(1));
-        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "ez").status());
     }
 
     @Test

@@ -4,7 +4,11 @@ import com.hackademy.server.badge.BadgeService;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.dashboard.DashboardSummaryDto;
 import com.hackademy.server.exception.UserNotFoundException;
+import com.hackademy.server.arena.ArenaService;
+import com.hackademy.server.arena.MatchmakingService;
+import com.hackademy.server.realtime.FriendActivity;
 import com.hackademy.server.realtime.FriendPresence;
+import com.hackademy.server.room.RoomRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserRepository;
@@ -13,6 +17,7 @@ import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.ArgumentCaptor;
+import org.springframework.beans.factory.ObjectProvider;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
 
@@ -33,6 +38,9 @@ class FriendshipServiceImplTest {
     @Mock RealtimeNotifier realtime;
     @Mock UserAvatarRepository userAvatarRepository;
     @Mock FriendPresence presence;
+    @Mock ArenaService arena;
+    @Mock MatchmakingService matchmaking;
+    @Mock RoomRepository rooms;
     final DashboardSummaryCache dashboards = new DashboardSummaryCache();
     FriendshipServiceImpl service;
 
@@ -40,8 +48,14 @@ class FriendshipServiceImplTest {
     User bob;
 
     @BeforeEach
+    @SuppressWarnings("unchecked")
     void setUp() {
-        service = new FriendshipServiceImpl(friendshipRepository, userRepository, badgeService, dashboards, realtime, userAvatarRepository, presence);
+        ObjectProvider<ArenaService> arenas = mock(ObjectProvider.class);
+        ObjectProvider<MatchmakingService> queues = mock(ObjectProvider.class);
+        lenient().when(arenas.getObject()).thenReturn(arena);
+        lenient().when(queues.getObject()).thenReturn(matchmaking);
+        service = new FriendshipServiceImpl(friendshipRepository, userRepository, badgeService, dashboards, realtime, userAvatarRepository,
+                new FriendActivity(presence, arenas, queues, rooms));
         alice = user(1L, "alice");
         bob = user(2L, "bob");
         dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());

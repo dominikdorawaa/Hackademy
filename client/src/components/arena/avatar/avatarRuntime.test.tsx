@@ -5,6 +5,7 @@ import { DEFAULT_AVATAR, toAvatarConfig } from './avatarModel';
 import { useAvatarAtlas, useAvatarPortrait } from './useAvatarAtlas';
 import { atlasViewBox } from './fighters';
 
+const RealURL = URL;
 let decode: () => Promise<void>;
 beforeEach(() => {
   decode = () => Promise.resolve();
@@ -62,6 +63,25 @@ it('ignores a result that arrives after unmount', async () => {
   decode = () => Promise.resolve();
   await act(async () => { release(); await new Promise(resolve => setTimeout(resolve, 0)); });
   expect(URL.revokeObjectURL).toHaveBeenCalled();
+});
+
+it('loads only the head overlays a portrait can show', async () => {
+  vi.stubGlobal('fetch', vi.fn(async () => ({ json: async () => ({ center: [0, 0], danceCenter: [0, 0], cells: { 0: { angle: 0, x: 0, y: 0 }, 135: { angle: 0, x: 0, y: 0, view: 'dance' } } }) })));
+  const sources: string[] = [];
+  const descriptor = Object.getOwnPropertyDescriptor(HTMLImageElement.prototype, 'src')!;
+  Object.defineProperty(HTMLImageElement.prototype, 'src', { configurable: true, get() { return descriptor.get!.call(this); }, set(value: string) { sources.push(value); descriptor.set!.call(this, value); } });
+  try {
+    vi.stubGlobal('URL', Object.assign(class extends RealURL {}, { createObjectURL: vi.fn(() => 'blob:fresh'), revokeObjectURL: vi.fn() }));
+    vi.resetModules();
+    const fresh = await import('./useAvatarAtlas');
+    const look = { ...DEFAULT_AVATAR, outfit: 'bluza' as const, hair: 'irokez' as const, pose: 'postawa' as const, colors: { ...DEFAULT_AVATAR.colors, top: 'oliwkowy' } };
+    const { result } = renderHook(() => fresh.useAvatarPortrait(toAvatarConfig(look)));
+    await waitFor(() => expect(result.current).toMatch(/^blob:/));
+    expect(sources).toContain('/assets/arena/avatar-v1/hair-mohawk.png');
+    expect(sources.filter(source => source.includes('/dance/'))).toEqual([]);
+  } finally {
+    Object.defineProperty(HTMLImageElement.prototype, 'src', descriptor);
+  }
 });
 
 it('plays looping and one-shot frame sequences and shows a still frame with reduced motion', () => {

@@ -13,8 +13,8 @@
   flex: 1;
   min-width: 0;
   padding: 16px 18px;
-  border: 1px solid var(--ud-track);
-  border-radius: 16px;
+  border: 1px solid var(--ud-line-strong);
+  border-radius: var(--ud-radius);
   background: var(--ud-surface);
   color: var(--ud-ink);
   box-shadow: var(--ud-float-shadow);
@@ -26,27 +26,38 @@
   position: absolute;
   left: -9px;
   bottom: 22px;
-  width: 16px;
-  height: 16px;
-  border-left: 1px solid var(--ud-track);
-  border-bottom: 1px solid var(--ud-track);
-  background: inherit;
-  rotate: 45deg;
+  width: 9px;
+  height: 14px;
+  background: var(--ud-line-strong);
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
+}
+
+.mascot-bubble-box::after {
+  content: '';
+  position: absolute;
+  left: -7px;
+  bottom: 23px;
+  width: 8px;
+  height: 12px;
+  background: var(--ud-surface);
+  clip-path: polygon(0 50%, 100% 0, 100% 100%);
 }
 
 .mascot-bubble-name {
   margin: 0 0 2px;
   color: var(--ud-link);
   font-family: var(--font-pixel);
-  font-size: var(--ud-text-s);
-  font-weight: 600;
+  font-size: 1.25rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .mascot-bubble-title {
-  margin: 0 0 6px;
+  margin: 0 0 8px;
   font-family: var(--font-pixel);
-  font-size: 1.25rem;
-  font-weight: 600;
+  font-size: 1.75rem;
+  font-weight: 400;
+  line-height: 1;
 }
 
 .mascot-bubble-text,

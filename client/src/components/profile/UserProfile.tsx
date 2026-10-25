@@ -8,17 +8,19 @@ import * as userApi from '../../services/userApi';
 import * as friendApi from '../../services/friendApi';
 import * as badgeApi from '../../services/badgeApi';
 import type { ApiResponse } from '../../services/http';
-import type { DashboardUser, UserProfileDto } from '../../types/api';
+import type { AvatarConfig, DashboardUser, UserProfileDto } from '../../types/api';
 import ActivityCalendar from '../ActivityCalendar';
 import BioText from './BioText';
 import UserAvatar from '../UserAvatar';
 import ProfileEditor from './ProfileEditor';
 import ProfileSaveNotification from './ProfileSaveNotification';
 import BadgeShowcase from './BadgeShowcase';
-import { PROFILE_INTERESTS } from '../../lib/profile';
+import { PROFILE_INTERESTS, profileCompletion } from '../../lib/profile';
 import type { ProfilePersonalization } from '../../lib/profile';
 import ProfileLearningStats from './ProfileLearningStats';
 import ProfileBadges from './ProfileBadges';
+import ProfileRank from './ProfileRank';
+import { fromAvatarConfig } from '../arena/avatar/avatarModel';
 import { Button } from '../ui/button';
 import { LoadingSkeleton, Skeleton, SkeletonText } from '../common/Skeleton';
 import '../../pages/ProfilePage.css';
@@ -148,6 +150,8 @@ export default function UserProfile({ username }: { username?: string }) {
   );
   const [personalization, setPersonalization] = useState<ProfilePersonalization | null>(null);
   const [editing, setEditing] = useState(false);
+  const [renamed, setRenamed] = useState<string | null>(null);
+  const [savedAvatar, setSavedAvatar] = useState<AvatarConfig | null>(null);
   const [saved, setSaved] = useState(false);
   const dismissSaved = useCallback(() => setSaved(false), []);
   const [sending, setSending] = useState(false);
@@ -195,7 +199,7 @@ export default function UserProfile({ username }: { username?: string }) {
       </div>
     );
 
-  const person = profile.data;
+  const person = { ...profile.data, ...(renamed && { username: renamed }), ...(savedAvatar && { avatar: savedAvatar }) };
   const friendshipStatus = requestSent
     ? 'REQUEST_SENT'
     : friendship.data?.status;
@@ -208,7 +212,11 @@ export default function UserProfile({ username }: { username?: string }) {
     bio: person.bio ?? '', tagline: person.tagline ?? '',
     interests: person.interests ?? [], featuredBadgeIds: person.featuredBadgeIds ?? [],
   };
-  const beginner = own && !appearance.bio && !appearance.interests.length;
+  const completion = profileCompletion({
+    customAvatar: fromAvatarConfig(person.avatar) !== null, profile: appearance,
+    canFeature: profileBadges.some(badge => badge.earned),
+  });
+  const incomplete = own && completion.percent < 100;
   const edit = () => { setSaved(false); setEditing(true); };
 
   return (
@@ -223,6 +231,8 @@ export default function UserProfile({ username }: { username?: string }) {
       <header className="profile-header" data-tour={own ? 'profile' : undefined}>
         {own ? <Link className="profile-avatar-edit" to="/arena/avatar?from=profile" aria-label="Zmień swój awatar">
           <UserAvatar className="profile-avatar" username={person.username} avatar={person.avatar} alt={`Avatar ${person.username}`} />
+          <span className="profile-avatar-edit-label" aria-hidden="true">Edytuj awatar</span>
+          <span className="profile-avatar-edit-mark" aria-hidden="true"><ProfileIcon kind="edit" weight="bold" size={16} /></span>
         </Link> : <UserAvatar
           className="profile-avatar"
           username={person.username} avatar={person.avatar}
@@ -230,6 +240,7 @@ export default function UserProfile({ username }: { username?: string }) {
         />}
         <div className="profile-identity">
           <h1>{person.username}</h1>
+          <ProfileRank points={person.points} elo={person.elo} />
           {appearance.bio && <PublicBio bio={appearance.bio} />}
           {appearance.interests.length > 0 && <ul className="profile-interest-tags" aria-label="Zainteresowania">
             {appearance.interests.map(interest => <li key={interest}>{PROFILE_INTERESTS[interest] ?? interest}</li>)}
@@ -282,8 +293,17 @@ export default function UserProfile({ username }: { username?: string }) {
         </div>
       </header>
       {saved && <ProfileSaveNotification onClose={dismissSaved} />}
-      {beginner && <section className="profile-welcome"><div>
-        <h2>Nadaj profilowi swój charakter</h2><p>Dodaj opis i zainteresowania, a potem wybierz odznaki do gabloty.</p></div>
+      {incomplete && <section className="profile-welcome" aria-labelledby="profile-welcome-title"><div className="profile-welcome-copy">
+        <h2 id="profile-welcome-title">Nadaj profilowi swój charakter</h2><p>Dodaj opis i zainteresowania, a potem wybierz odznaki do gabloty.</p>
+        <div className="profile-completion">
+          <p className="profile-completion-label">Profil uzupełniony w <strong>{completion.percent}%</strong></p>
+          <div className="profile-completion-meter" role="progressbar" aria-label="Uzupełnienie profilu"
+            aria-valuemin={0} aria-valuemax={100} aria-valuenow={completion.percent} aria-valuetext={`${completion.percent}%`}>
+            <span style={{ width: `${completion.percent}%` }} /></div>
+          <ul className="profile-completion-steps" aria-label="Elementy profilu">{completion.steps.map(step =>
+            <li key={step.label} data-done={step.done}><ProfileIcon kind={step.done ? 'earned' : 'lock'} size={16} />
+              {step.label}<span className="sr-only">{step.done ? ' - gotowe' : ' - do uzupełnienia'}</span></li>)}</ul>
+        </div></div>
         <Button variant="outline" onClick={edit}>Uzupełnij profil</Button></section>}
       <BadgeShowcase badges={profileBadges} selectedIds={appearance.featuredBadgeIds} own={own} onEdit={edit} />
       <section className="profile-section profile-badges" aria-labelledby="profile-badges-title" data-tour={own ? 'profile-badges' : undefined}>
@@ -303,7 +323,8 @@ export default function UserProfile({ username }: { username?: string }) {
         <ProfileLearningStats activity={activity.data} loading={activity.loading} />
       </div>
       {editing && <ProfileEditor username={person.username} initial={appearance} badges={profileBadges} onClose={() => setEditing(false)}
-        onUnauthorized={unauthorized} onSaved={value => { setPersonalization(value); setSaved(true); }} />}
+        avatar={person.avatar} onAvatarSaved={setSavedAvatar} onOpenAvatarStudio={() => navigate('/arena/avatar?from=profile')}
+        onUnauthorized={unauthorized} onRenamed={setRenamed} onSaved={(value, name) => { setPersonalization(value); setRenamed(name); setSaved(true); }} />}
     </div>
   );
 }

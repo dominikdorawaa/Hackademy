@@ -88,6 +88,10 @@ public class GameSession {
         return player1Id.equals(userId) ? player2Id : player1Id;
     }
 
+    public long getRoundMillis() {
+        return BattleEngine.ROUND_MILLIS;
+    }
+
     public synchronized GameSession snapshot() {
         GameSession copy = new GameSession();
         copy.id = id;

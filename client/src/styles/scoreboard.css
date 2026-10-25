@@ -1,6 +1,7 @@
 @layer components {
 .user-dashboard,
-.profile-page {
+.profile-page,
+.settings-page {
   --ud-ground: var(--bg-dark);
   --ud-surface: #151f30;
   --ud-surface-2: #1c2840;
@@ -8,6 +9,11 @@
   --ud-ink: #e8edf5;
   --ud-muted: #9eabbf;
   --ud-track: #26344f;
+  --ud-line: #26344f;
+  --ud-line-strong: #3a4c6d;
+  --ud-bevel: rgba(0, 0, 0, 0.35);
+  --ud-blue-shade: #0845b8;
+  --ud-pixel: var(--font-heading);
   --ud-blue: var(--primary-blue);
   --ud-blue-ink: #ffffff;
   --ud-blue-soft: rgba(11, 99, 255, 0.18);
@@ -27,7 +33,7 @@
   --ud-medium: #e3b341;
   --ud-hard: #ff8a80;
   --ud-insane: #c9a2ff;
-  --ud-radius: 6px;
+  --ud-radius: 4px;
   --ud-ease: cubic-bezier(0.16, 1, 0.3, 1);
 
   --ud-text-s: 0.875rem;
@@ -42,13 +48,17 @@
   font-variant-numeric: tabular-nums;
 }
 
-[data-theme='light'] :is(.user-dashboard, .profile-page) {
+[data-theme='light'] :is(.user-dashboard, .profile-page, .settings-page) {
   --ud-surface: #f9fafb;
   --ud-surface-2: #eef1f6;
   --ud-board: #dfe5ee;
   --ud-ink: #111827;
   --ud-muted: #4b5563;
   --ud-track: #cfd7e3;
+  --ud-line: #cfd7e3;
+  --ud-line-strong: #a9b5c7;
+  --ud-bevel: rgba(15, 23, 36, 0.18);
+  --ud-blue-shade: #063a9b;
   --ud-blue-soft: rgba(11, 99, 255, 0.12);
   --ud-cta-hover: #0845b8;
   --ud-hero-bg: #d9e5fb;

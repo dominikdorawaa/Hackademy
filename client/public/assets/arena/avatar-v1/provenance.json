@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "6dafc7f07abf66d85b8a381d1fd602421c0897452336d41f26803010580ec378",
-    "hoodie/fighter.png": "0f7ac68fe9815c32ba5a833371f7805d60d8c79e38e5ab75a33b54d928d19132",
-    "track/fighter.png": "6c2db956aaa22cbdf322b1587aac00cb3f4341e60b6eed8685027db7eb91bf8d"
+    "fighter.png": "ded7a8ccd149ead16bd389532bdf7c4eac66d946b8b0be1abdcd4e6643cb9a0f",
+    "hoodie/fighter.png": "d8a6969bfba1051a6157a26c14fd05c534ff195baa50792f72411803537b8864",
+    "track/fighter.png": "3036743ad8b437e8fec26a110e3f63031a4a94382d08af780e57daa543fcb6b2"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -391,5 +391,35 @@
       "hand": "the flat hand pixels are cut out with their outline, the uncovered clothing is filled from the same row, and the hand is shifted up to 3 px left and right four times per loop"
     },
     "processing": "Alpha cut at 128, colours snapped to the outfit palette and small holes filled. No material or region fixes, so the track stripes and the hands stay as generated. The front head anchor is found from the top of the head only."
+  },
+  "danceTurn": {
+    "generatedAt": "2026-10-24",
+    "sources": "local-prototype-backups/arena-dance-turn-v1",
+    "shrink": "the front dance rows 8, 9, 13 and 14 are scaled to 0.8 around the feet so the front body matches the side stance size and the feet stand on row 54 like every side frame; each new pixel takes the outline colour when at least 30% of its area is outline, stays transparent when at least half of it is empty and otherwise takes the colour covering most of it, and a light one-pixel detail between dark pixels such as the white of an eye is the eyes are placed back after scaling as the white of the eye with its pupil beside it, so the palette does not change and the eyes stay open; the front hair and hats are scaled the same way into dance/; the head is scaled once in the same pixel grid for every frame: each frame is moved back by its whole-pixel head offset, the head above the eyes comes from the first frame of the dance (cell 73 for Six-seven, 118 for Scuba), the head is scaled with outlines kept only where they cover more than half of a pixel, and it is put back moved by the scaled offset rounded to whole pixels, so the face, eyes, hair and hats stay the same in every frame",
+    "legs": "in the hoodie Scuba rows 13, 14 and 16 the inner jeans pixels used the dark colour 242937 that the recolouring treats as outline, so the trousers kept their dark blue instead of the chosen colour; those pixels take the middle trouser shade 223856 and the outer outline stays",
+    "lying": "the last defeat frame (cell 53) of baza and the hoodie raised the head with the chin on the floor, so the hair stood up; both now take the track suit frame, where the head rests lower at 20 degrees, with every pixel recoloured to the same material and shade of their own outfit (trousers one shade lighter, the white stripes take the colour around them) and the same head anchor",
+    "holes": "the original background removal cut the white out of the track suit: the trouser stripes, the white parts of the shoes and the white of the eye were see-through in most frames; every enclosed see-through gap next to the trousers or shoes, and every one or two pixel gap inside the head, is filled with white (the lightest shoe colour next to the shoes), while the gaps between arms, hands and the body stay open",
+    "tee": "the base outfit wore a T-shirt in the side frames but a tank top in the front view, the front dances and the turns; short sleeves are painted onto those frames before scaling: the arm skin within a few pixels of each shoulder and outside the torso outline takes the shirt colour of the same shade, the edge next to the bare arm takes the darkest shirt shade, and the old armhole outline between shirt pixels becomes that dark shade too; in Scuba the crossed arms make this unstable, so the sleeves there come from fixed shoulder boxes of cell 118 moved by each frame head offset",
+    "frontView": "front/baza.png raises both fists in front of the chest, so painted sleeves landed on the fists; its torso rows 18 to 36 come from edit-image-pixen (seed 93003, second image, description: same bald fighter and pose, only the tank top becomes a short-sleeve crew-neck T-shirt with the forearms and fists bare), snapped to the outfit palette without the shoe colours, with the head, legs and grey wrist wraps kept from the original",
+    "rows": "row 15 turns into Six-seven and row 16 into Scuba: column 0 is the side stance, columns 1 to 4 are generated frames 2 to 5 snapped to the outfit palette and moved onto the stance ground line; clusters of up to 3 skin, trouser or shoe pixels lying mostly inside another material (trouser colour on a wrist, a skin speck on the trousers) take the colour around them",
+    "endpoint": "animate-with-text-v3",
+    "frameCount": 6,
+    "seed": 91001,
+    "firstFrame": "side stance, cell 0 of each outfit atlas",
+    "lastFrame": {
+      "sixseven": "scaled front cell 73",
+      "scuba": "scaled front cell 118"
+    },
+    "action": {
+      "sixseven": "The fighter drops the boxing guard and turns in place from a side view facing right to face the camera, ending standing upright facing the camera with both arms relaxed at the sides. Smooth natural body rotation through a three-quarter view, feet stay planted on the same ground line, the character keeps the same size. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no effects.",
+      "scuba": "The fighter drops the boxing guard and turns in place from a side view facing right to face the camera, ending facing the camera with one hand pinching the nose and the other arm raised across the chest, exactly like the last frame. Smooth natural body rotation through a three-quarter view, feet stay planted on the same ground line, the character keeps the same size. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no effects."
+    },
+    "overlaysSha256": {
+      "hair-short.png": "a4e4b3129729deea261a1bfc1b69a59379ff1838ef01006273647c4bf8b91fb4",
+      "hair-mohawk.png": "8cb7fa1483a2c3fc83a6c002a21ab29a495dbd0f7f811e35caefc293e3f5b70c",
+      "hair-ponytail.png": "548e11a8a99d04c46fb5b3cceea8b62513464b311557752fb492a5e101c5d3ff",
+      "hat-beanie.png": "5774a56d30f16f7c7832d7a96cbb4663c5d5796be75de64354444ffd4db2f3fd",
+      "hat-cap.png": "1c33e733b14bac63210eec5d747a91eac2ea7c350402d9d1ebe7e102122d9283"
+    }
   }
 }
