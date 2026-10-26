@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "ded7a8ccd149ead16bd389532bdf7c4eac66d946b8b0be1abdcd4e6643cb9a0f",
-    "hoodie/fighter.png": "d8a6969bfba1051a6157a26c14fd05c534ff195baa50792f72411803537b8864",
-    "track/fighter.png": "cbd4897922c58b37fae726719b11ce91270a6aceeef02e1c5ab3ec05953ebef2"
+    "fighter.png": "58e40ed4a12f6f4f753c784ab951e25108abba12f3a597220a0166ef319ef2b9",
+    "hoodie/fighter.png": "0620c94d1a0d738eda0651b1affd8026356c0e83cd09c996c5c275cb0d23bfcd",
+    "track/fighter.png": "ec2b6af86fd1d309dd260f6f8a24e892f266b493af69db352ea8d1db892c3718"
   },
   "run": {
     "generatedAt": "2026-10-17",
