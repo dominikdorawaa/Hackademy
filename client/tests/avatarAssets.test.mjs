@@ -15,7 +15,7 @@ const provenance = JSON.parse(read('provenance.json').toString());
 const modelSource = readFileSync(new URL('../src/components/arena/avatar/avatarModel.ts', import.meta.url), 'utf8');
 const model = await import('data:text/javascript,' + encodeURIComponent(ts.transpileModule(modelSource, { compilerOptions: { module: ts.ModuleKind.ESNext, target: ts.ScriptTarget.ES2022 } }).outputText));
 const SIX_CELLS = [72, ...Array.from({ length: 8 }, (_, i) => 73 + i), 81, ...Array.from({ length: 8 }, (_, i) => 82 + i)];
-const lightness = key => (Math.max(key >> 16, (key >> 8) & 255, key & 255) + Math.min(key >> 16, (key >> 8) & 255, key & 255)) / 510;
+const TURN_CELLS = [136, 137, 138, 139, 145, 146, 147, 148];
 
 function decode(file) {
   let offset = 8, width = 0, height = 0;
@@ -124,25 +124,24 @@ test('battle effects and the arena background match their provenance', () => {
 });
 
 for (const [outfit, [atlasFile]] of Object.entries(ATLASES)) {
-  test(`${outfit} Six-seven frames shade like the front view after recolouring`, () => {
+  test(`${outfit} front view, Six-seven and turn frames keep the top in its chosen colour instead of the highlight`, () => {
     const atlas = decode(read(atlasFile)), front = decode(read(`front/${outfit}.png`));
     const atlasMap = model.buildColorMap(atlas.pixels, model.OUTFIT_SPECS[outfit]), frontMap = model.buildColorMap(front.pixels, model.OUTFIT_SPECS[outfit]);
-    const frontRanges = new Map();
-    for (const [key, entry] of frontMap) {
-      const range = frontRanges.get(entry.material) ?? [1, 0];
-      frontRanges.set(entry.material, [Math.min(range[0], lightness(key)), Math.max(range[1], lightness(key))]);
-    }
-    for (const cell of SIX_CELLS) {
-      const top = Math.floor(cell / 9) * 64, left = (cell % 9) * 64;
-      for (let y = 0; y < 64; y++) for (let x = 0; x < 64; x++) {
-        const index = ((top + y) * 576 + left + x) * 4;
-        if (!atlas.pixels[index + 3]) continue;
-        const key = (atlas.pixels[index] << 16) | (atlas.pixels[index + 1] << 8) | atlas.pixels[index + 2], entry = atlasMap.get(key);
-        if (entry.material === 'outline' || entry.material === 'keep' || !frontRanges.has(entry.material)) continue;
-        const [low, high] = frontRanges.get(entry.material);
-        if (frontMap.has(key)) assert.equal(entry.shade, frontMap.get(key).shade, `cell ${cell} pixel ${x},${y} shades differently from the front view`);
-        else assert.ok(Math.abs(entry.shade - Math.min(3, Math.max(0, Math.round(((lightness(key) - low) / (high - low || 1)) * 3)))) <= 1, `cell ${cell} pixel ${x},${y} shades differently from the front view`);
+    const topShades = (image, map, left, top, width, height) => {
+      const shades = [0, 0, 0, 0];
+      for (let y = 0; y < height; y++) for (let x = 0; x < width; x++) {
+        const index = ((top + y) * image.width + left + x) * 4;
+        if (!image.pixels[index + 3]) continue;
+        const entry = map.get((image.pixels[index] << 16) | (image.pixels[index + 1] << 8) | image.pixels[index + 2]);
+        if (entry.material === 'top') shades[entry.shade]++;
       }
+      return shades;
+    };
+    const views = [['front view', topShades(front, frontMap, 0, 0, front.width, front.height)],
+      ...[...SIX_CELLS, ...TURN_CELLS].map(cell => [`cell ${cell}`, topShades(atlas, atlasMap, (cell % 9) * 64, Math.floor(cell / 9) * 64, 64, 64)])];
+    for (const [name, shades] of views) {
+      const total = shades.reduce((sum, count) => sum + count, 0);
+      if (total) assert.ok(shades[3] / total < 0.25 && shades[1] + shades[2] >= total / 2, `${name} shows the top mostly in the wrong shade`);
     }
   });
 }

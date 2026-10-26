@@ -319,16 +319,16 @@
   transform: scaleX(-1);
 }
 
-.battle-fighter[data-idle='true'] .avatar-sprite {
+.battle-fighter[data-idle='true'] .avatar-sprite-body {
   animation: battle-breathe 1.2s steps(1, end) infinite;
 }
 
-.battle-fighter.is-rival[data-idle='true'] .avatar-sprite {
+.battle-fighter.is-rival[data-idle='true'] .avatar-sprite-body {
   animation-delay: -0.6s;
 }
 
 @keyframes battle-breathe {
-  50% { translate: 0 var(--battle-pixel); }
+  50% { transform: translateY(1px); }
 }
 
 .battle-referee {
@@ -353,7 +353,14 @@
   scale: -1 1;
 }
 
-.battle-referee[data-move='idle'] .battle-referee-sprite {
+.battle-referee-sprite.is-legs {
+  clip-path: inset(calc(100% * var(--referee-knee) / var(--referee-height)) 0 0 0);
+}
+
+.battle-referee-sprite.is-body {
+  position: absolute;
+  inset: 0;
+  clip-path: inset(0 0 calc(100% - 100% * var(--referee-knee) / var(--referee-height)) 0);
   animation: battle-referee-breathe 1.6s steps(1, end) infinite;
 }
 
@@ -701,6 +708,7 @@
 }
 
 .battle-page[data-still='true'] .battle-fighter .avatar-sprite,
+.battle-page[data-still='true'] .battle-fighter .avatar-sprite-body,
 .battle-page[data-still='true'] .battle-referee-sprite,
 .battle-page[data-still='true'] .battle-referee-call {
   animation: none;
@@ -1150,6 +1158,7 @@ button.battle-answer:disabled {
   }
 
   .battle-fighter .avatar-sprite,
+  .battle-fighter .avatar-sprite-body,
   .battle-reaction,
   .battle-referee-sprite,
   .battle-referee-call,

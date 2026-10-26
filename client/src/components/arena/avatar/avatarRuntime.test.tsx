@@ -84,6 +84,14 @@ it('loads only the head overlays a portrait can show', async () => {
   }
 });
 
+it('splits a standing frame at the knees so only the body moves while the feet stay put', () => {
+  render(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[10]} knee={45} label="Postawa" />);
+  const rects = [...document.querySelectorAll('rect')].map(rect => ['x', 'y', 'height'].map(name => rect.getAttribute(name)));
+  expect(rects).toEqual([['64', '109', '19'], ['64', '64', '45']]);
+  expect(document.querySelector('.avatar-sprite-body')).toHaveAttribute('clip-path', expect.stringMatching(/-body\)$/));
+  expect(document.querySelectorAll('image')).toHaveLength(2);
+});
+
 it('plays looping and one-shot frame sequences and shows a still frame with reduced motion', () => {
   vi.useFakeTimers();
   const { rerender } = render(<AvatarSprite atlas="a.png" atlasHeight={384} frames={[1, 2, 3]} label="Podgląd" />);

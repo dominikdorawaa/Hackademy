@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "ded7a8ccd149ead16bd389532bdf7c4eac66d946b8b0be1abdcd4e6643cb9a0f",
-    "hoodie/fighter.png": "d8a6969bfba1051a6157a26c14fd05c534ff195baa50792f72411803537b8864",
-    "track/fighter.png": "3036743ad8b437e8fec26a110e3f63031a4a94382d08af780e57daa543fcb6b2"
+    "fighter.png": "688c42037702b7283ac396cab54068390daffffb31c059a8f28023edbe5b3f14",
+    "hoodie/fighter.png": "752e3f12f3b6baa13ed1690595c3cfcb4f50d97c302b88f09d7eb17a8cdb08b2",
+    "track/fighter.png": "e85f76af00dbccd8185ddccc8c097c7ea9fa02d14705d72faa91ba6ac0abb398"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -379,7 +379,8 @@
         "mask": "clothes and arms, the head and both hands kept",
         "seed": 90301,
         "description": "the same bald man wearing an orange tracksuit jacket with long orange sleeves down to the wrists with white stripes, black track pants with white side stripes and grey sneakers, one orange sleeve bent up to the hand covering his mouth, the other orange sleeve straight forward toward the viewer ending in the flat hand in front of the belly, no bare forearms, same dark outline",
-        "transplant": "the generated outfit frames drew the forward hand differently in every frame, so the upper body above the waist is rebuilt from the matching baza frame: the head down to the chin and the waving hand (the largest piece of the pixels the hand wave moved in that frame) keep their skin, every other skin pixel of the arms is repainted with the light or shadow sleeve colour, and the tank top takes the outfit pixels at the same spot; the legs come from the outfit animation"
+        "transplant": "the generated outfit frames drew the forward hand differently in every frame, so the upper body above the waist is rebuilt from the matching baza frame: the head down to the chin and the waving hand (the largest piece of the pixels the hand wave moved in that frame) keep their skin, every other skin pixel of the arms is repainted with the light or shadow sleeve colour, and the tank top takes the outfit pixels at the same spot; the legs come from the outfit animation",
+        "rebuild": "the generated tracksuit drifted between frames and hid the outfit, so every frame is redrawn on the base outfit frame of the same index: outlines, legs and shoes take the base shape, the T-shirt becomes the orange jacket body with a two-pixel grey zip down the middle that keeps its colour whatever jacket colour is chosen, a light zip pull at its top, a dark collar with white tips and a dark hem, bare arms become lighter orange sleeves with a white stripe along their top edge, the hands and the head keep the generated tracksuit pixels apart from stray shoe or trouser colours above the waist, which become sleeve, the trousers become black with a white stripe down the outer side of each leg, and the shoes turn grey"
       }
     },
     "animation": {
@@ -390,7 +391,14 @@
       "keypoints": "procedural, one sway per loop: hips 0.8 px, upper body 2.5 px, a 1.5 px knee bob on every weight shift, flat shoulder rolls 1.8 px forward and back with 40% vertical lift, 0.4 px shoulder tilt, the wrist waving 3 px four times per loop",
       "hand": "the flat hand pixels are cut out with their outline, the uncovered clothing is filled from the same row, and the hand is shifted up to 3 px left and right four times per loop"
     },
-    "processing": "Alpha cut at 128, colours snapped to the outfit palette and small holes filled. No material or region fixes, so the track stripes and the hands stay as generated. The front head anchor is found from the top of the head only."
+    "processing": "Alpha cut at 128, colours snapped to the outfit palette and small holes filled. No material or region fixes, so the track stripes and the hands stay as generated. The front head anchor is found from the top of the head only.",
+    "clean": {
+      "generatedAt": "2026-10-26",
+      "sources": "local-prototype-backups/arena-scuba-native-v1 (build2.cjs, deblip.cjs, finx.cjs)",
+      "steady": "below the chin, a pixel that changes colour for exactly one frame and returns to the colour it had in the frames before and after is put back, so the dance keeps its sway and hand wave without flicker; the track suit jacket body is one colour with a darker line where it meets the sleeves, instead of copying the changing shading of the base tank top",
+      "zip": "the track suit zip is one pixel of b33d21, the darker jacket shade used in the front view",
+      "hand": "the waving hand is cut out and drawn again at the centre of the old hand in every frame, 30% further from the middle of its path: a 3 pixel wide hand hanging down with a cuff (white on the track suit, green on the hoodie, the wrist skin on the base outfit), light skin, a shaded edge and a dark outline, tilted toward the way it moves; on the base outfit the hand hangs two pixels lower and the bare forearm is drawn again as a slanted two pixel skin line with an outline from the elbow down to the wrist, so the arm stays whole; the arm at the nose is found by following its skin from the nose and the elbow and is never cut, shirt pixels enclosed by arm skin become skin, and dark shirt pixels the recolouring read as trousers take the shirt colour"
+    }
   },
   "danceTurn": {
     "generatedAt": "2026-10-24",
@@ -421,5 +429,9 @@
       "hat-beanie.png": "5774a56d30f16f7c7832d7a96cbb4663c5d5796be75de64354444ffd4db2f3fd",
       "hat-cap.png": "1c33e733b14bac63210eec5d747a91eac2ea7c350402d9d1ebe7e102122d9283"
     }
+  },
+  "shoeLeaks": {
+    "generatedAt": "2026-10-26",
+    "rule": "in every frame of every outfit, a group of pixels with a shoe colour that runs along the trousers (at least 1.5 trouser neighbours per pixel and starting more than 6 rows above the lowest pixel) or a group of up to 5 pixels above the hips is not a shoe; the recolouring painted them in the chosen shoe colour, so stripes and light pixels take the nearest kept white and darker pixels take the closest neighbouring colour of another material; a lone one or two pixel speck with a shoe colour anywhere above the shoes is treated the same way"
   }
 }

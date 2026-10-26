@@ -48,8 +48,10 @@ it('plays cast, flight, impact and recovery without restarting on session update
   view.rerender(scene({ ...session, serverTime: session.serverTime + 500 }));
   advance(219);
   expect(fighter()).toHaveAttribute('data-idle', 'false');
+  expect(fighter().querySelector('.avatar-sprite-body')).toBeNull();
   advance(1);
   expect(fighter()).toHaveAttribute('data-idle', 'true');
+  expect(fighter().querySelector('.avatar-sprite-body')).not.toBeNull();
   advance(179);
   expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '100');
   advance(1);

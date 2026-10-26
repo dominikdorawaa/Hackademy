@@ -95,6 +95,7 @@ export interface AvatarColors { hair: string; skin: string; top: string; bottom:
 
 const parse = (hex: string) => [parseInt(hex.slice(1, 3), 16), parseInt(hex.slice(3, 5), 16), parseInt(hex.slice(5, 7), 16)];
 const lightness = ([r, g, b]: number[]) => (Math.max(r, g, b) + Math.min(r, g, b)) / 510;
+const luma = (key: number) => 0.299 * (key >> 16) + 0.587 * ((key >> 8) & 255) + 0.114 * (key & 255);
 
 export interface ColorEntry { material: Material; shade: number }
 export type ColorMap = Map<number, ColorEntry>;
@@ -102,10 +103,11 @@ export type ColorMap = Map<number, ColorEntry>;
 export function buildColorMap(pixels: Uint8ClampedArray, spec: OutfitSpec) {
   const known: { rgb: number[]; material: Material }[] = [];
   for (const [material, list] of Object.entries(spec.colors) as [Material, string[]][]) for (const hex of list) known.push({ rgb: parse(hex), material });
-  const assigned = new Map<number, Material>();
+  const assigned = new Map<number, Material>(), counts = new Map<number, number>();
   for (let index = 0; index < pixels.length; index += 4) {
     if (pixels[index + 3] === 0) continue;
     const key = (pixels[index] << 16) | (pixels[index + 1] << 8) | pixels[index + 2];
+    counts.set(key, (counts.get(key) ?? 0) + 1);
     if (assigned.has(key)) continue;
     const rgb = [pixels[index], pixels[index + 1], pixels[index + 2]];
     let best = known[0], distance = Infinity;
@@ -115,15 +117,17 @@ export function buildColorMap(pixels: Uint8ClampedArray, spec: OutfitSpec) {
     }
     assigned.set(key, best.material);
   }
-  const ranges = new Map<Material, [number, number]>();
-  for (const [key, material] of assigned) {
-    const l = lightness([key >> 16, (key >> 8) & 255, key & 255]), range = ranges.get(material) ?? [1, 0];
-    ranges.set(material, [Math.min(range[0], l), Math.max(range[1], l)]);
+  const bases = new Map<Material, number>();
+  for (const material of new Set(assigned.values())) {
+    const keys = [...assigned].filter(([, owner]) => owner === material).map(([key]) => key).sort((a, b) => luma(a) - luma(b));
+    let left = keys.reduce((sum, key) => sum + counts.get(key)!, 0) / 2;
+    bases.set(material, luma(keys.find(key => (left -= counts.get(key)!) <= 0)!));
   }
   const map: ColorMap = new Map();
   for (const [key, material] of assigned) {
-    const [low, high] = ranges.get(material)!, l = lightness([key >> 16, (key >> 8) & 255, key & 255]);
-    map.set(key, { material, shade: Math.min(3, Math.max(0, Math.round(((l - low) / (high - low || 1)) * 3))) });
+    const base = bases.get(material)!, value = luma(key);
+    const shade = value >= base ? ((value - base) / (255 - base || 1) > 0.19 ? 3 : 2) : value / base < 0.56 ? 0 : value / base < 0.85 ? 1 : 2;
+    map.set(key, { material, shade });
   }
   return map;
 }
