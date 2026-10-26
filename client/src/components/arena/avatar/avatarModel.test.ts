@@ -13,27 +13,36 @@ function atlas(pixels: [number, number, string][], width = 64, height = 64) {
 }
 
 it('assigns listed colors and their nearest neighbours to materials with shade steps', () => {
-  const data = atlas([[0, 0, '#f0c0a0'], [1, 0, '#a06040'], [2, 0, '#e8b898'], [3, 0, '#3050a0'], [4, 0, '#101010']]);
+  const data = atlas([[0, 0, '#f0c0a0'], [1, 0, '#a06040'], [2, 0, '#e8b898'], [3, 0, '#3050a0'], [4, 0, '#101010'], [0, 1, '#f0c0a0'], [1, 1, '#f0c0a0']]);
   const map = buildColorMap(data, spec);
   const entry = (hex: string) => map.get(parseInt(hex.slice(1), 16));
-  expect(entry('#f0c0a0')).toEqual({ material: 'skin', shade: 3 });
+  expect(entry('#f0c0a0')).toEqual({ material: 'skin', shade: 2 });
   expect(entry('#a06040')).toEqual({ material: 'skin', shade: 0 });
   expect(entry('#e8b898')!.material).toBe('skin');
-  expect(entry('#3050a0')).toEqual({ material: 'top', shade: 0 });
+  expect(entry('#3050a0')).toEqual({ material: 'top', shade: 2 });
   expect(entry('#101010')!.material).toBe('outline');
 });
 
+it('shades against the middle tone of each garment so rare highlights do not brighten the whole garment', () => {
+  const pixels: [number, number, string][] = [];
+  for (let x = 0; x < 20; x++) pixels.push([x, 0, '#ef6c16'], [x, 1, '#ce3e13']);
+  pixels.push([0, 2, '#f87b20'], [1, 2, '#ff9f3f'], [2, 2, '#311f27']);
+  const map = buildColorMap(atlas(pixels), { colors: { top: ['#ef6c16', '#ce3e13', '#f87b20', '#ff9f3f', '#311f27'] } });
+  const shade = (hex: string) => map.get(parseInt(hex.slice(1), 16))!.shade;
+  expect([shade('#ef6c16'), shade('#f87b20'), shade('#ce3e13'), shade('#ff9f3f'), shade('#311f27')]).toEqual([2, 2, 1, 3, 0]);
+});
+
 it('recolors materials from the chosen ramps and keeps outline, kept colors and transparency', () => {
-  const data = atlas([[0, 0, '#f0c0a0'], [1, 0, '#a06040'], [2, 0, '#3050a0'], [3, 0, '#101010'], [4, 0, '#402020'], [5, 0, '#ffffff']]);
+  const data = atlas([[0, 0, '#f0c0a0'], [1, 0, '#a06040'], [2, 0, '#3050a0'], [3, 0, '#101010'], [4, 0, '#402020'], [5, 0, '#ffffff'], [0, 1, '#f0c0a0']]);
   const map = buildColorMap(data, spec);
   const colors = { ...DEFAULT_AVATAR.colors, skin: 'heban', top: 'czerwony', hair: 'blond' };
   const out = recolorAtlas(data, 64, map, spec, colors);
   const at = (x: number) => [...out.slice(x * 4, x * 4 + 3)];
-  expect(at(0)).toEqual(rgb(SKIN_RAMPS.heban[3]));
+  expect(at(0)).toEqual(rgb(SKIN_RAMPS.heban[2]));
   expect(at(1)).toEqual(rgb(SKIN_RAMPS.heban[0]));
-  expect(at(2)).toEqual(rgb(CLOTH_RAMPS.czerwony[0]));
+  expect(at(2)).toEqual(rgb(CLOTH_RAMPS.czerwony[2]));
   expect(at(3)).toEqual(rgb('#101010'));
-  expect(at(4)).toEqual(rgb(HAIR_RAMPS.blond[0]));
+  expect(at(4)).toEqual(rgb(HAIR_RAMPS.blond[2]));
   expect(at(5)).toEqual(rgb('#ffffff'));
   expect(out[6 * 4 + 3]).toBe(0);
 });
