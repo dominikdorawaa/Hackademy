@@ -6,7 +6,7 @@ import type { GameSession } from '../../../types/api';
 
 const BASE = '/assets/arena/referee/';
 export const REFEREE_FRAME_MS = 110;
-export const REFEREE_FRAME = { width: 56, height: 57 };
+export const REFEREE_FRAME = { width: 56, height: 57, knee: 50 };
 export const REFEREE_SHEETS = {
   idle: { src: `${BASE}referee-idle.png`, frames: 1 },
   start: { src: `${BASE}referee-start.png`, frames: 13 },
@@ -61,9 +61,12 @@ export function BattleReferee({ session, meId, serverNow, reducedMotion, finish 
     '--referee-src': `url(${sheet.src})`, '--referee-frames': sheet.frames,
     animation: move === 'idle' || reducedMotion ? undefined : `battle-referee-play ${sheet.frames * REFEREE_FRAME_MS}ms steps(${sheet.frames}, jump-none) both`,
   } as CSSProperties;
-  const frame = { '--referee-width': REFEREE_FRAME.width, '--referee-height': REFEREE_FRAME.height, '--referee-call': `${START_MS}ms` } as CSSProperties;
+  const frame = { '--referee-width': REFEREE_FRAME.width, '--referee-height': REFEREE_FRAME.height, '--referee-knee': REFEREE_FRAME.knee, '--referee-call': `${START_MS}ms` } as CSSProperties;
   return <div className="battle-referee" style={frame} data-move={move} data-toward={move === 'winner' ? call.toward : undefined} aria-hidden="true">
     {move === 'start' && <p className="battle-referee-call">Walka!</p>}
-    <span key={`${move}-${current?.key ?? call.key}`} className="battle-referee-sprite" data-still={reducedMotion} style={style} />
+    {move === 'idle' ? <>
+      <span className="battle-referee-sprite is-legs" data-still={reducedMotion} style={style} />
+      <span className="battle-referee-sprite is-body" data-still={reducedMotion} style={style} />
+    </> : <span key={`${move}-${current?.key ?? call.key}`} className="battle-referee-sprite" data-still={reducedMotion} style={style} />}
   </div>;
 }

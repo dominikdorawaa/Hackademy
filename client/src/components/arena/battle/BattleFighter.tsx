@@ -1,6 +1,6 @@
 import { useEffect, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { AvatarSprite } from '../avatar/AvatarSprite';
+import { AvatarSprite, KNEE_ROW } from '../avatar/AvatarSprite';
 import { AVATAR_ATLASES } from '../avatar/fighters';
 import type { AvatarAtlas } from '../avatar/useAvatarAtlas';
 import type { Avatar } from '../avatar/avatarModel';
@@ -38,7 +38,7 @@ export function BattleFighter({ look, atlas, segments, reducedMotion, label, sid
       {dance ? <AvatarSprite key={`reaction-${dance.key}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
           frames={dance.frames} loop={false} frameTime={REACTION_FRAME_MS} label={label} />
         : <AvatarSprite key={`${motionKey}-${index}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
-          frames={segment.frames} loop={segment.loop} frameTime={segment.frameTime} reducedMotion={reducedMotion} label={label} />}
+          frames={segment.frames} loop={segment.loop} frameTime={segment.frameTime} reducedMotion={reducedMotion} knee={idle ? KNEE_ROW : undefined} label={label} />}
     </div>
   );
 }

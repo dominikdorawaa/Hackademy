@@ -68,6 +68,8 @@ describe('referee on the stage', () => {
     advance(START_MS);
     expect(referee()).toHaveAttribute('data-move', 'idle');
     expect(screen.queryByText('Walka!')).toBeNull();
+    expect([...document.querySelectorAll('.battle-referee-sprite')].map(part => part.className)).toEqual(['battle-referee-sprite is-legs', 'battle-referee-sprite is-body']);
+    expect((referee() as HTMLElement).style.getPropertyValue('--referee-knee')).toBe('50');
   });
 
   it('finishes a whistle that began just before the window closed', () => {
