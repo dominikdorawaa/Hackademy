@@ -84,7 +84,7 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "49dbb7a1aff55c2e4d4328bc7dfe6271228e495b5631ca5b4e3b966550073bd3",
+    "fighter.png": "688c42037702b7283ac396cab54068390daffffb31c059a8f28023edbe5b3f14",
     "hoodie/fighter.png": "752e3f12f3b6baa13ed1690595c3cfcb4f50d97c302b88f09d7eb17a8cdb08b2",
     "track/fighter.png": "e85f76af00dbccd8185ddccc8c097c7ea9fa02d14705d72faa91ba6ac0abb398"
   },
@@ -397,7 +397,7 @@
       "sources": "local-prototype-backups/arena-scuba-native-v1 (build2.cjs, deblip.cjs, finx.cjs)",
       "steady": "below the chin, a pixel that changes colour for exactly one frame and returns to the colour it had in the frames before and after is put back, so the dance keeps its sway and hand wave without flicker; the track suit jacket body is one colour with a darker line where it meets the sleeves, instead of copying the changing shading of the base tank top",
       "zip": "the track suit zip is one pixel of b33d21, the darker jacket shade used in the front view",
-      "hand": "the waving hand is cut out and drawn again at the centre of the old hand in every frame, 30% further from the middle of its path: a 3 pixel wide hand hanging down with a cuff (white on the track suit, green on the hoodie, the wrist skin on the base outfit), light skin, a shaded edge and a dark outline, tilted toward the way it moves; on the base outfit the hand hangs two pixels lower and the bare forearm is drawn again as a slanted two pixel skin line with an outline from the elbow down to the wrist, so the arm stays whole"
+      "hand": "the waving hand is cut out and drawn again at the centre of the old hand in every frame, 30% further from the middle of its path: a 3 pixel wide hand hanging down with a cuff (white on the track suit, green on the hoodie, the wrist skin on the base outfit), light skin, a shaded edge and a dark outline, tilted toward the way it moves; on the base outfit the hand hangs two pixels lower and the bare forearm is drawn again as a slanted two pixel skin line with an outline from the elbow down to the wrist, so the arm stays whole; the arm at the nose is found by following its skin from the nose and the elbow and is never cut, shirt pixels enclosed by arm skin become skin, and dark shirt pixels the recolouring read as trousers take the shirt colour"
     }
   },
   "danceTurn": {
