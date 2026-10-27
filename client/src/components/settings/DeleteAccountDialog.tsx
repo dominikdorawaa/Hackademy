@@ -1,16 +1,16 @@
 import { useId, useState } from 'react';
 import type { FormEvent } from 'react';
+import { isReverificationCancelledError } from '@clerk/react/errors';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Input } from '@/components/ui/input';
 import { StatusMessage } from '../common/StatusMessage';
 import { errorText } from '../../lib/errorText';
-import type { AccountDeletionConfirmation } from '../../services/userApi';
 
 export function DeleteAccountDialog({ username, passwordEnabled, onDelete }: {
   username: string;
   passwordEnabled?: boolean;
-  onDelete: (confirmation: AccountDeletionConfirmation) => Promise<void>;
+  onDelete: (password?: string) => Promise<void>;
 }) {
   const fieldId = useId();
   const [open, setOpen] = useState(false);
@@ -27,35 +27,38 @@ export function DeleteAccountDialog({ username, passwordEnabled, onDelete }: {
 
   const submit = async (event: FormEvent) => {
     event.preventDefault();
-    if (!value || deleting) return;
+    if ((passwordEnabled && !value) || deleting) return;
     setDeleting(true);
     setError('');
+    if (!passwordEnabled) setOpen(false);
     try {
-      await onDelete(passwordEnabled ? { password: value } : { confirmation: value });
+      await onDelete(passwordEnabled ? value : undefined);
     } catch (failure) {
-      setError(errorText(failure, 'Nie udało się usunąć konta. Spróbuj ponownie.'));
       setDeleting(false);
+      if (isReverificationCancelledError(failure)) return;
+      setError(errorText(failure, 'Nie udało się usunąć konta. Spróbuj ponownie.'));
+      setOpen(true);
     }
   };
 
   return <Dialog open={open} onOpenChange={change}>
-    <DialogTrigger asChild><button type="button" className="settings-button settings-button-danger" disabled={passwordEnabled === undefined}>Usuń konto</button></DialogTrigger>
+    <DialogTrigger asChild><button type="button" className="settings-button settings-button-danger" disabled={passwordEnabled === undefined || deleting}>Usuń konto</button></DialogTrigger>
     <DialogContent className="px-dialog px-panel" showCloseButton={!deleting}>
       <form className="grid gap-4" onSubmit={event => void submit(event)}>
         <DialogHeader>
           <DialogTitle>Usunąć konto na zawsze?</DialogTitle>
           <DialogDescription>Konto {username} zniknie od razu, razem z postępem, odznakami i znajomymi. Tego nie da się cofnąć.</DialogDescription>
         </DialogHeader>
-        <div className="grid gap-2">
-          <Label htmlFor={fieldId}>{passwordEnabled ? 'Obecne hasło' : `Wpisz nazwę użytkownika: ${username}`}</Label>
-          <Input id={fieldId} type={passwordEnabled ? 'password' : 'text'} autoComplete={passwordEnabled ? 'current-password' : 'off'}
-            value={value} disabled={deleting} aria-invalid={!!error || undefined} maxLength={passwordEnabled ? 256 : 64}
+        {passwordEnabled ? <div className="grid gap-2">
+          <Label htmlFor={fieldId}>Obecne hasło</Label>
+          <Input id={fieldId} type="password" autoComplete="current-password"
+            value={value} disabled={deleting} aria-invalid={!!error || undefined} maxLength={256}
             onChange={event => { setValue(event.target.value); setError(''); }} />
-        </div>
+        </div> : <p>Jeśli ostatnie logowanie było ponad 10 minut temu, wyślemy na Twój adres e-mail kod, którym potwierdzisz usunięcie.</p>}
         {error && <StatusMessage kind="error">{error}</StatusMessage>}
         <DialogFooter>
           <button type="button" className="px-button" disabled={deleting} onClick={() => change(false)}>Anuluj</button>
-          <button type="submit" className="px-button px-button--danger" disabled={deleting || !value}>
+          <button type="submit" className="px-button px-button--danger" disabled={deleting || (passwordEnabled && !value)}>
             {deleting ? 'Usuwanie…' : 'Usuń konto na zawsze'}
           </button>
         </DialogFooter>

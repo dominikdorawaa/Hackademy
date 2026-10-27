@@ -26,7 +26,7 @@ public interface UserService {
     List<UserAdminView> findAllUsers();
     org.springframework.data.domain.Slice<UserAdminView> findUsersPage(int page, int size, String query);
     void deleteUser(Long id);
-    void deleteOwnAccount(Long id, String password, String confirmation);
+    void deleteOwnAccount(Long id, String password, Object factorAges);
     UserAdminView updateUserRole(Long id, Role newRole);
     String updateUsername(Long userId, UpdateUsernameRequest request);
 

@@ -189,8 +189,8 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
-    public void deleteOwnAccount(Long id, String password, String confirmation) {
-        accountDeletionService.confirmOwner(id, password, confirmation);
+    public void deleteOwnAccount(Long id, String password, Object factorAges) {
+        accountDeletionService.confirmOwner(id, password, factorAges);
         deleteUser(id);
     }
 

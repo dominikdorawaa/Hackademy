@@ -5,6 +5,7 @@ import com.hackademy.server.arena.MatchmakingService;
 import com.hackademy.server.config.WebSocketAuthInterceptor;
 import com.hackademy.server.user.AccountAccess;
 import com.hackademy.server.user.Role;
+import com.hackademy.server.user.User;
 import com.sun.net.httpserver.HttpServer;
 import org.junit.jupiter.api.AfterAll;
 import org.junit.jupiter.api.BeforeEach;
@@ -22,6 +23,7 @@ import java.io.IOException;
 import java.net.InetSocketAddress;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Map;
 import java.util.Set;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
@@ -210,14 +212,25 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void accountWithoutPasswordConfirmsWithItsUsername() throws Exception {
+    void accountWithoutPasswordConfirmsThroughAFreshEmailCode() throws Exception {
         var target = account(Role.USER);
-        passwordless.add(userRepository.findById(target.id()).orElseThrow().getClerkUserId());
-        deleteSelf(target, "{\"confirmation\":\"ktos-inny\"}").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Wpisana nazwa nie zgadza się z nazwą Twojego konta."));
+        var user = userRepository.findById(target.id()).orElseThrow();
+        passwordless.add(user.getClerkUserId());
+        deleteSelf(target, "{}").andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.clerk_error.reason").value("reverification-error"))
+                .andExpect(jsonPath("$.clerk_error.metadata.reverification.level").value("first_factor"))
+                .andExpect(jsonPath("$.clerk_error.metadata.reverification.afterMinutes").value(10));
+        var stale = new Account(target.id(), target.username(), verifiedToken(user, 45));
+        deleteSelf(stale, "{}").andExpect(status().isForbidden());
         assertTrue(userRepository.existsById(target.id()));
-        deleteSelf(target, "{\"confirmation\":\"" + target.username() + "\"}").andExpect(status().isNoContent());
+        var fresh = new Account(target.id(), target.username(), verifiedToken(user, 2));
+        deleteSelf(fresh, "{}").andExpect(status().isNoContent());
         assertFalse(userRepository.existsById(target.id()));
+    }
+
+    private static String verifiedToken(User user, int minutesAgo) {
+        return ClerkTestTokens.token(user.getClerkUserId(), ClerkTestTokens.DEFAULT_ORIGIN,
+                Map.of("email", user.getEmail(), "email_verified", true, "fva", List.of(minutesAgo, -1)));
     }
 
     @Test

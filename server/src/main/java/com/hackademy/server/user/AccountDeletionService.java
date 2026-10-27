@@ -20,15 +20,16 @@ import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
 import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
 import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 
 @Service
 public class AccountDeletionService {
 
     static final int PASSWORD_ATTEMPTS = 5;
     static final String WRONG_PASSWORD = "Hasło jest nieprawidłowe.";
-    static final String WRONG_CONFIRMATION = "Wpisana nazwa nie zgadza się z nazwą Twojego konta.";
     static final String NOT_SELF_SERVICE = "Tego konta nie można usunąć samodzielnie. Napisz do administratora.";
     static final String LAST_ADMIN = "Jesteś jedynym administratorem. Nadaj rolę administratora innej osobie, zanim usuniesz to konto.";
 
@@ -55,38 +56,44 @@ public class AccountDeletionService {
         this.transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
-    public void confirmOwner(Long userId, String password, String confirmation) {
+    public void confirmOwner(Long userId, String password, Object factorAges) {
         var user = users.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
         if (user.getClerkUserId() == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, NOT_SELF_SERVICE);
         if (clerk == null) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Usuwanie kont Clerk nie jest skonfigurowane.");
         }
+        if (!identity(() -> clerk.passwordEnabled(user.getClerkUserId()))) {
+            if (!recentlyVerified(factorAges)) throw new ReverificationRequiredException();
+            return;
+        }
+        if (password == null || password.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wpisz obecne hasło.");
         var failures = failedConfirmations.get(userId, ignored -> new AtomicInteger());
         if (failures.incrementAndGet() > PASSWORD_ATTEMPTS) {
             failures.decrementAndGet();
             throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Zbyt wiele nieudanych prób. Spróbuj ponownie za 15 minut.");
         }
-        boolean passwordEnabled;
         boolean confirmed;
         try {
-            passwordEnabled = clerk.passwordEnabled(user.getClerkUserId());
-            var given = passwordEnabled ? password : confirmation;
-            if (given == null || given.isBlank()) {
-                failures.decrementAndGet();
-                throw new ResponseStatusException(HttpStatus.BAD_REQUEST,
-                        passwordEnabled ? "Wpisz obecne hasło." : "Wpisz swoją nazwę użytkownika.");
-            }
-            confirmed = passwordEnabled
-                    ? clerk.verifyPassword(user.getClerkUserId(), password)
-                    : confirmation.trim().equals(user.getUsername());
-        } catch (RestClientException | IllegalStateException exception) {
+            confirmed = identity(() -> clerk.verifyPassword(user.getClerkUserId(), password));
+        } catch (ResponseStatusException exception) {
             failures.decrementAndGet();
+            throw exception;
+        }
+        if (!confirmed) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, WRONG_PASSWORD);
+        failedConfirmations.invalidate(userId);
+    }
+
+    static boolean recentlyVerified(Object factorAges) {
+        if (!(factorAges instanceof List<?> ages) || ages.size() != 2 || !(ages.get(0) instanceof Number age)) return false;
+        return age.longValue() >= 0 && age.longValue() < ReverificationRequiredException.AFTER_MINUTES;
+    }
+
+    private static boolean identity(BooleanSupplier call) {
+        try {
+            return call.getAsBoolean();
+        } catch (RestClientException | IllegalStateException exception) {
             throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Nie udało się potwierdzić tożsamości. Spróbuj ponownie.");
         }
-        if (!confirmed) {
-            throw new ResponseStatusException(HttpStatus.BAD_REQUEST, passwordEnabled ? WRONG_PASSWORD : WRONG_CONFIRMATION);
-        }
-        failedConfirmations.invalidate(userId);
     }
 
     public void delete(Long userId) {

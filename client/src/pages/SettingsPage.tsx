@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useClerk, useUser } from '@clerk/react';
+import { useClerk, useReverification, useUser } from '@clerk/react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
@@ -144,10 +144,22 @@ export default function SettingsPage() {
     return () => controller.abort();
   }, [sessionKey, sharingAttempt]);
 
-  const deleteAccount = async (confirmation: userApi.AccountDeletionConfirmation) => {
+  const reverified = useRef(false);
+  const sendDeletion = useReverification(async (password?: string) => {
+    const response = await userApi.deleteAccount(password, { sessionKey }, reverified.current);
+    if (response.status !== 403) return response;
+    const hint = await response.clone().json().catch(() => null) as { clerk_error?: unknown } | null;
+    if (!hint?.clerk_error || reverified.current) return response;
+    reverified.current = true;
+    return { clerk_error: hint.clerk_error };
+  });
+
+  const deleteAccount = async (password?: string) => {
     if (!sessionKey) throw new Error('Sesja wygasła. Zaloguj się ponownie.');
-    const response = await userApi.deleteAccount(confirmation, { sessionKey });
-    if (!response.ok) throw new Error(await responseError(response, 'Nie udało się usunąć konta. Spróbuj ponownie.', true));
+    reverified.current = false;
+    const result = await sendDeletion(password);
+    if ('clerk_error' in result) throw new Error('Nie udało się potwierdzić tożsamości. Spróbuj ponownie.');
+    if (!result.ok) throw new Error(await responseError(result, 'Nie udało się usunąć konta. Spróbuj ponownie.', true));
     rememberAccountDeleted();
     await logout().catch(() => {});
     navigate('/', { replace: true });

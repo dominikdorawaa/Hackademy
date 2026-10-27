@@ -101,4 +101,14 @@ class AccountDeletionServiceTest {
         service.delete(1L);
         verify(users).delete(any());
     }
+
+    @Test
+    void onlyARecentFirstFactorCountsAsAFreshVerification() {
+        assertTrue(AccountDeletionService.recentlyVerified(List.of(0L, -1L)));
+        assertTrue(AccountDeletionService.recentlyVerified(List.of(9L, 3L)));
+        assertFalse(AccountDeletionService.recentlyVerified(List.of(10L, -1L)));
+        assertFalse(AccountDeletionService.recentlyVerified(List.of(-1L, 2L)));
+        assertFalse(AccountDeletionService.recentlyVerified(List.of(1L)));
+        assertFalse(AccountDeletionService.recentlyVerified(null));
+    }
 }

@@ -43,12 +43,10 @@ export function saveNotificationPreference(preference: keyof NotificationPrefere
   });
 }
 
-export type AccountDeletionConfirmation = { password: string } | { confirmation: string };
-
-export function deleteAccount(confirmation: AccountDeletionConfirmation, auth: SessionScope) {
+export function deleteAccount(password: string | undefined, auth: SessionScope, freshToken = false) {
   return request<void>('/api/user/me', {
-    method: 'DELETE', auth, headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(confirmation),
+    method: 'DELETE', auth, freshToken, headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(password === undefined ? {} : { password }),
   });
 }
 

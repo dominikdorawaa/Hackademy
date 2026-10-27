@@ -21,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -150,8 +151,10 @@ public class UserController {
 
     @DeleteMapping("/me")
     public ResponseEntity<Void> deleteAccount(@Valid @RequestBody DeleteAccountRequest request) {
-        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        userService.deleteOwnAccount(user.getId(), request.password(), request.confirmation());
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        Object factorAges = authentication.getCredentials() instanceof Jwt jwt ? jwt.getClaim("fva") : null;
+        userService.deleteOwnAccount(user.getId(), request.password(), factorAges);
         return ResponseEntity.noContent().build();
     }
 
