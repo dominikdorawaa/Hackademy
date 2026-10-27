@@ -58,7 +58,7 @@ const HomePage = () => {
       <Rooms />
       <Leaderboard players={STATIC_LANDING_LEADERBOARD} guestLanding />
       <Newsletter />
-      {deleted && <ToastNotification message="Konto zostało trwale usunięte. Dziękujemy za wspólną naukę." onClose={hideDeleted} />}
+      {deleted && <ToastNotification message="Konto zostało trwale usunięte. Dziękujemy za wspólną naukę." type="info" onClose={hideDeleted} />}
     </div>
   );
 };

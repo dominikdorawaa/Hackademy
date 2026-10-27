@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { createPortal } from 'react-dom';
-import { CircleAlert, Trophy, X } from 'lucide-react';
+import { CircleAlert, Info, Trophy, X } from 'lucide-react';
 import './ToastNotification.css';
 
 const ToastNotification = ({ message, type = 'success', onClose }: { message: string; type?: string; onClose: () => void }) => {
@@ -13,7 +13,8 @@ const ToastNotification = ({ message, type = 'success', onClose }: { message: st
   }, [onClose]);
 
   const success = type === 'success';
-  const Icon = success ? Trophy : CircleAlert;
+  const info = type === 'info';
+  const Icon = success ? Trophy : info ? Info : CircleAlert;
 
   let title = "Powiadomienie";
   if (message.includes("odznakę")) title = "Nowa Odznaka!";
@@ -21,7 +22,7 @@ const ToastNotification = ({ message, type = 'success', onClose }: { message: st
   else if (type === 'error') title = "Błąd";
 
   return createPortal(
-    <div className="px-toast px-panel" data-type={success ? 'success' : 'error'}>
+    <div className="px-toast px-panel" data-type={success ? 'success' : info ? 'info' : 'error'}>
       <span className="px-toast-icon" aria-hidden="true"><Icon /></span>
       <div className="px-toast-copy">
         <h4 className="px-toast-title">{title}</h4>

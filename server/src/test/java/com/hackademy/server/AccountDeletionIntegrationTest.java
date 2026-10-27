@@ -199,10 +199,11 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
         var target = account(Role.USER);
         deleteSelf(target, "{\"password\":\"zgadywanie\"}").andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message").value("Hasło jest nieprawidłowe."));
-        deleteSelf(target, "{}").andExpect(status().isBadRequest());
+        deleteSelf(target, "{}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Wpisz obecne hasło."));
         assertTrue(access.isActive(target.id()));
         getAs(target, "/api/user/me").andExpect(status().isOk());
-        for (int attempt = 2; attempt < 5; attempt++) deleteSelf(target, "{\"password\":\"zgadywanie\"}").andExpect(status().isBadRequest());
+        for (int attempt = 1; attempt < 5; attempt++) deleteSelf(target, "{\"password\":\"zgadywanie\"}").andExpect(status().isBadRequest());
         deleteSelf(target, "{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isTooManyRequests());
         assertTrue(userRepository.existsById(target.id()));
         assertTrue(deletedIds.isEmpty());

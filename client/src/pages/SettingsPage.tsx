@@ -74,23 +74,15 @@ function NotificationPreview({ ownName, ownAvatar }: { ownName?: string; ownAvat
   </div>;
 }
 
-async function responseError(response: ApiResponse<unknown>, fallback: string) {
+async function responseError(response: ApiResponse<unknown>, fallback: string, passMessage = false) {
   if (response.status === 401) return 'Sesja wygasła. Zaloguj się ponownie.';
   try {
     const body = await response.json() as Record<string, unknown>;
+    if (passMessage && typeof body.message === 'string' && response.status !== 500) return body.message;
     if (body.message === 'Incorrect current password') return 'Obecne hasło jest nieprawidłowe.';
     if (typeof body.newUsername === 'string') return `${body.newUsername}.`;
   } catch { return fallback; }
   return fallback;
-}
-
-async function deletionError(response: ApiResponse<unknown>) {
-  if (response.status === 401) return 'Sesja wygasła. Zaloguj się ponownie.';
-  try {
-    const body = await response.json() as Record<string, unknown>;
-    if (typeof body.message === 'string' && response.status !== 500) return body.message;
-  } catch { return 'Nie udało się usunąć konta. Spróbuj ponownie.'; }
-  return 'Nie udało się usunąć konta. Spróbuj ponownie.';
 }
 
 function SettingRow({ title, description, extra, children }: { title: string; description: string; extra?: ReactNode; children: ReactNode }) {
@@ -123,7 +115,7 @@ export default function SettingsPage() {
   const [accountAttempt, setAccountAttempt] = useState(0);
   const [username, setUsername] = useState(user?.username ?? '');
   const { openUserProfile } = useClerk();
-  const { user: clerkUser } = useUser();
+  const { isLoaded: clerkLoaded, user: clerkUser } = useUser();
   const [busy, setBusy] = useState<'permission' | null>(null);
   const { change: changeUsername, changing: renaming } = useUsernameChange();
   const [nameError, setNameError] = useState('');
@@ -155,7 +147,7 @@ export default function SettingsPage() {
   const deleteAccount = async (confirmation: userApi.AccountDeletionConfirmation) => {
     if (!sessionKey) throw new Error('Sesja wygasła. Zaloguj się ponownie.');
     const response = await userApi.deleteAccount(confirmation, { sessionKey });
-    if (!response.ok) throw new Error(await deletionError(response));
+    if (!response.ok) throw new Error(await responseError(response, 'Nie udało się usunąć konta. Spróbuj ponownie.', true));
     rememberAccountDeleted();
     await logout().catch(() => {});
     navigate('/', { replace: true });
@@ -414,7 +406,7 @@ export default function SettingsPage() {
                 </ul></div>
                 <p>Trwający pojedynek kończy się wygraną rywala, a kolejka i wyzwania w Arenie są anulowane.</p>
               </div>}>
-              <DeleteAccountDialog username={account?.username ?? user?.username ?? ''} passwordEnabled={clerkUser?.passwordEnabled ?? true}
+              <DeleteAccountDialog username={account?.username ?? user?.username ?? ''} passwordEnabled={clerkLoaded ? clerkUser?.passwordEnabled : undefined}
                 onDelete={deleteAccount} /></SettingRow>
           </SettingsGroup>
         </>}

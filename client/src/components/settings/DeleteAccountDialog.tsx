@@ -9,7 +9,7 @@ import type { AccountDeletionConfirmation } from '../../services/userApi';
 
 export function DeleteAccountDialog({ username, passwordEnabled, onDelete }: {
   username: string;
-  passwordEnabled: boolean;
+  passwordEnabled?: boolean;
   onDelete: (confirmation: AccountDeletionConfirmation) => Promise<void>;
 }) {
   const fieldId = useId();
@@ -39,7 +39,7 @@ export function DeleteAccountDialog({ username, passwordEnabled, onDelete }: {
   };
 
   return <Dialog open={open} onOpenChange={change}>
-    <DialogTrigger asChild><button type="button" className="settings-button settings-button-danger">Usuń konto</button></DialogTrigger>
+    <DialogTrigger asChild><button type="button" className="settings-button settings-button-danger" disabled={passwordEnabled === undefined}>Usuń konto</button></DialogTrigger>
     <DialogContent className="px-dialog px-panel" showCloseButton={!deleting}>
       <form className="grid gap-4" onSubmit={event => void submit(event)}>
         <DialogHeader>

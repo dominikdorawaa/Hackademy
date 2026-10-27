@@ -623,10 +623,12 @@ public class ArenaServiceImpl implements ArenaService {
                     session.setPlayer2Username(DELETED_PLAYER);
                     session.setPlayer2Avatar(null);
                 }
-                if ("ACTIVE".equals(session.getStatus())) finish(session, session.opponentOf(userId), "SURRENDER");
-                else realtime.changed(session.people());
+                if (!"ACTIVE".equals(session.getStatus())) realtime.changed(session.people());
+                else if (session.getBotId() != null) finish(session, null, "CANCELLED");
+                else finish(session, session.opponentOf(userId), "SURRENDER");
             }
         }
+        currentGames.remove(userId);
         var others = new TreeSet<Long>();
         for (Challenge challenge : challenges.values()) {
             if (!challenge.getChallengerId().equals(userId) && !challenge.getTargetId().equals(userId)) continue;
