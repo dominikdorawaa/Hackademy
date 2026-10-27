@@ -182,7 +182,8 @@ public class ContentService {
     @Transactional(readOnly = true)
     public RoomDetailDto previewRoom(Long id) {
         var r = roomService.getRoomById(id);
-        var hints = r.getHints().stream().sorted(Comparator.comparing(Hint::getId)).map(h -> new HintDto(h.getId(), h.getDescription())).toList();
+        var sorted = r.getHints().stream().sorted(Comparator.comparing(Hint::getId)).toList();
+        var hints = java.util.stream.IntStream.range(0, sorted.size()).mapToObj(i -> new HintDto(sorted.get(i).getId(), i, sorted.get(i).getDescription())).toList();
         var tasks = r.getTasks().stream().sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).map(t -> RoomTaskDto.builder().id(t.getId()).title(t.getTitle()).content(t.getContent()).question(t.getQuestion()).completed(false).build()).toList();
         return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).hints(hints).unlockedHintIds(List.of()).fileName(roomFiles.findFileNameByRoomId(r.getId())).tasks(tasks).build();
     }

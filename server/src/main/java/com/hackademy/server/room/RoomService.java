@@ -4,6 +4,7 @@ import com.hackademy.server.room.dto.UpdateRoomRequest;
 
 import com.hackademy.server.badge.BadgeDto;
 import com.hackademy.server.room.dto.CreateRoomRequest;
+import com.hackademy.server.room.dto.HintDto;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
@@ -24,7 +25,7 @@ public interface RoomService {
     void deleteRoom(Long id);
     RoomDetailDto getRoomDetail(Long id, String username);
     SolveRoomResponse solveRoom(Long id, String flag, String username);
-    boolean unlockHint(Long roomId, Long hintId, String username);
+    HintDto unlockHint(Long roomId, Long hintId, String username);
     // For admin to get the raw entity including flag
     Room getRoomById(Long id);
     RoomFile getRoomFile(Long roomId, String username);

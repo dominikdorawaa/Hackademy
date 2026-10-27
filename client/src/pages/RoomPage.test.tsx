@@ -210,12 +210,16 @@ describe('return navigation', () => {
   });
 });
 
+const hintTexts: Record<number, string> = { 1: 'Zajrzyj do źródła strony', 2: 'Szukaj komentarza' };
+
 function mountCtf(overrides: Partial<RoomDetailDto> = {}, url = '/rooms/7') {
+  const unlockedHintIds = overrides.unlockedHintIds ?? [];
+  // The API sends a hint's description only once it is unlocked
+  const hints = [1, 2].map((id, order) => unlockedHintIds.includes(id) ? { id, order, description: hintTexts[id] } : { id, order });
   const room: RoomDetailDto = {
     id: 7, title: 'Pierwsza flaga', description: 'Znajdź flagę', shortDescription: 'Rozgrzewka', difficulty: 'EASY',
     points: 50, solutionsCount: 3, createdAt: '2026-10-01T00:00:00', solved: false, requiresVpn: false,
-    hints: [{ id: 1, description: 'Zajrzyj do źródła strony' }, { id: 2, description: 'Szukaj komentarza' }],
-    unlockedHintIds: [], fileName: null, tasks: [], ...overrides,
+    hints, unlockedHintIds, fileName: null, tasks: [], ...overrides,
   };
   server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
   setClerkSession(createToken('USER'));
@@ -263,9 +267,10 @@ describe('CTF room', () => {
   it('unlocks hints in order after confirming the point cost', async () => {
     const user = userEvent.setup();
     let unlocks = 0;
-    server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => { unlocks++; return HttpResponse.json({ message: 'ok' }); }));
+    server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => { unlocks++; return HttpResponse.json({ id: 1, order: 0, description: hintTexts[1] }); }));
     mountCtf();
     expect(await screen.findByText('Punkty do zdobycia:')).toHaveTextContent('50');
+    expect(screen.queryByText(hintTexts[1])).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Zablokowane (odblokuj poprzednią)' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' }));
     expect(screen.getByText('Czy na pewno chcesz odblokować tę podpowiedź? To odejmie 12.5 punktów.')).toBeInTheDocument();

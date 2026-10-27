@@ -66,7 +66,7 @@ class ContentDraftsIntegrationTest {
         long hint = db.queryForObject("SELECT id FROM hints WHERE room_id = ?", Long.class, id);
         for (String uri : List.of("/api/rooms/" + id, "/api/rooms/" + id + "/file")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         mvc.perform(post("/api/rooms/" + id + "/solve").header("Authorization", "Bearer " + user).contentType("application/json").content("{\"flag\":\"\"}")).andExpect(status().isNotFound());
-        mvc.perform(post("/api/rooms/" + id + "/hints/" + hint + "/unlock").header("Authorization", "Bearer " + user)).andExpect(status().isBadRequest());
+        mvc.perform(post("/api/rooms/" + id + "/hints/" + hint + "/unlock").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         for (String uri : List.of("/api/rooms", "/api/rooms/top3")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(jsonPath("$[?(@.id == " + id + ")]").isEmpty());
         assertFalse(rooms.findAllIds().contains(id));
         mvc.perform(get("/api/admin/content/rooms/" + id + "/preview").header("Authorization", "Bearer " + user)).andExpect(status().isForbidden());

@@ -252,7 +252,7 @@ describe('administrative preview', () => {
   it('uses the player room view, reveals saved draft hints and never writes player progress', async () => {
     const writes: string[] = [];
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9/preview`, () => HttpResponse.json({ ...room, solved: false, fileName: null,
-      unlockedHintIds: [1], hints: [{ id: 1, description: 'Tajna podpowiedź' }], tasks: [{ id: 3, title: 'Zadanie', content: '<strong>Treść HTML</strong>', question: null, completed: false }] })),
+      unlockedHintIds: [1], hints: [{ id: 1, order: 0, description: 'Tajna podpowiedź' }], tasks: [{ id: 3, title: 'Zadanie', content: '<strong>Treść HTML</strong>', question: null, completed: false }] })),
       http.post(`${API_URL}/api/rooms/:id/*`, ({ request }) => { writes.push(request.url); return HttpResponse.json({ success: true }); }));
     const user = userEvent.setup(); mount('/admin/preview/rooms/9?kind=PATH');
     expect(await screen.findByRole('heading', { name: 'Pokój', level: 1 })).toBeInTheDocument();
@@ -269,7 +269,7 @@ describe('administrative preview', () => {
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: () => 'blob:preview-file' });
     const anchor = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] } })), http.get(`${API_URL}/api/admin/content/rooms/9/preview`, () => HttpResponse.json({ ...room, solved: false, fileName: 'training.bin',
-      unlockedHintIds: [], hints: [{ id: 1, description: 'Podpowiedź do testu' }], tasks: [] })),
+      unlockedHintIds: [], hints: [{ id: 1, order: 0, description: 'Podpowiedź do testu' }], tasks: [] })),
       http.get(`${API_URL}/api/admin/content/rooms/9/file`, () => { downloads++; return new HttpResponse(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'application/octet-stream' } }); }),
       http.post(`${API_URL}/api/rooms/:id/*`, ({ request }) => { writes.push(request.url); return HttpResponse.json({ success: true }); }));
     const user = userEvent.setup(); mount('/admin/preview/rooms/9?kind=CTF');
