@@ -400,39 +400,43 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private SolveRoomResponse awardTaskRoomCompletion(User user, Room room) {
+        return awardRoomSolve(user, room, "Poprawna odpowiedź! Pokój ukończony!", "Poprawna odpowiedź! (Pokój już ukończony)");
+    }
+
+    // Callers must hold the user's row lock (findByUsernameForUpdate) so concurrent solves award XP once.
+    private SolveRoomResponse awardRoomSolve(User user, Room room, String solvedMessage, String alreadySolvedMessage) {
         Long roomId = room.getId();
-        // Check if already solved
-        if (!userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
-            // Award points only once
-            long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), roomId);
-            double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
-            if (pointsToAward < 0) pointsToAward = 0;
-
-            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
-            userSolvedRoomRepository.save(userSolvedRoom);
-
-            user.setPoints(user.getPoints() + (int) pointsToAward);
-            roomRepository.incrementSolutions(roomId);
-
-            // Streak logic
-            LocalDate today = LocalDate.now(clock);
-            LocalDate lastSolved = user.getLastSolvedDate();
-            if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
-                user.setStreak(user.getStreak() + 1);
-            } else if (!lastSolved.equals(today)) {
-                user.setStreak(1);
-            }
-            user.setLastSolvedDate(today);
-
-            userRepository.save(user);
-            userServiceImpl.invalidateUserComputedCaches(user.getId());
-            userServiceImpl.invalidateGlobalRankingCache();
-            dashboardSummaryCache.invalidateUser(user.getId());
-
-            List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
-            return new SolveRoomResponse(true, "Poprawna odpowiedź! Pokój ukończony!", (int) pointsToAward, newBadges);
+        if (userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
+            return new SolveRoomResponse(true, alreadySolvedMessage, 0, new ArrayList<>());
         }
-        return new SolveRoomResponse(true, "Poprawna odpowiedź! (Pokój już ukończony)", 0, new ArrayList<>());
+
+        long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), roomId);
+        double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
+        if (pointsToAward < 0) pointsToAward = 0;
+
+        UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
+        userSolvedRoomRepository.save(userSolvedRoom);
+
+        user.setPoints(user.getPoints() + (int) pointsToAward);
+        roomRepository.incrementSolutions(roomId);
+
+        // Streak logic
+        LocalDate today = LocalDate.now(clock);
+        LocalDate lastSolved = user.getLastSolvedDate();
+        if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
+            user.setStreak(user.getStreak() + 1);
+        } else if (!lastSolved.equals(today)) {
+            user.setStreak(1);
+        }
+        user.setLastSolvedDate(today);
+
+        userRepository.save(user);
+        userServiceImpl.invalidateUserComputedCaches(user.getId());
+        userServiceImpl.invalidateGlobalRankingCache();
+        dashboardSummaryCache.invalidateUser(user.getId());
+
+        List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
+        return new SolveRoomResponse(true, solvedMessage, (int) pointsToAward, newBadges);
     }
 
     @Override
@@ -442,66 +446,23 @@ public class RoomServiceImpl implements RoomService {
         Room room = roomRepository.findById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
 
-        User user = userRepository.findByUsername(username)
+        Long userId = userRepository.findIdByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
-        pathUnlockPolicy.requireUnlocked(id, user.getId());
+        pathUnlockPolicy.requireUnlocked(id, userId);
 
         if (flag == null || flag.isBlank() || room.getFlag() == null || room.getFlag().isBlank()) {
             throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
                     "Ten pokój wymaga ukończenia zadań lub podania niepustej flagi");
         }
 
-        // Check if already solved
-        boolean alreadySolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
-
-        if (room.getFlag().equals(flag)) {
-            if (alreadySolved) {
-                // If already solved, return success but 0 points and no new badges
-                return new SolveRoomResponse(true, "Poprawna flaga! (Tryb treningowy - 0 pkt)", 0, new ArrayList<>());
-            }
-
-            long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), room.getId());
-            double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
-            if (pointsToAward < 0) {
-                pointsToAward = 0;
-            }
-
-            // Create and save UserSolvedRoom entity manually
-            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
-            userSolvedRoomRepository.save(userSolvedRoom);
-
-            user.setPoints(user.getPoints() + (int) pointsToAward);
-            room.setSolutionsCount(room.getSolutionsCount() + 1);
-            
-            // Streak Logic
-            LocalDate today = LocalDate.now(clock);
-            LocalDate lastSolved = user.getLastSolvedDate();
-
-            if (lastSolved == null) {
-                user.setStreak(1);
-            } else if (lastSolved.equals(today.minusDays(1))) {
-                user.setStreak(user.getStreak() + 1);
-            } else if (!lastSolved.equals(today)) {
-                // If not today and not yesterday (so older), reset streak
-                user.setStreak(1);
-            }
-            // If solved today, streak remains unchanged (already incremented or set)
-            
-            user.setLastSolvedDate(today);
-            
-            userRepository.save(user);
-            roomRepository.save(room);
-
-            // Check for badges
-            List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
-            
-            userServiceImpl.invalidateUserComputedCaches(user.getId());
-            userServiceImpl.invalidateGlobalRankingCache();
-            dashboardSummaryCache.invalidateUser(user.getId());
-            return new SolveRoomResponse(true, "Poprawna flaga!", (int) pointsToAward, newBadges);
+        if (!room.getFlag().equals(flag)) {
+            return new SolveRoomResponse(false, "Niepoprawna flaga", 0, new ArrayList<>());
         }
 
-        return new SolveRoomResponse(false, "Niepoprawna flaga", 0, new ArrayList<>());
+        // Lock only for a correct flag, so wrong guesses never queue behind the user's row.
+        User user = userRepository.findByUsernameForUpdate(username)
+                .orElseThrow(() -> new UserNotFoundException("User not found"));
+        return awardRoomSolve(user, room, "Poprawna flaga!", "Poprawna flaga! (Tryb treningowy - 0 pkt)");
     }
 
     @Override

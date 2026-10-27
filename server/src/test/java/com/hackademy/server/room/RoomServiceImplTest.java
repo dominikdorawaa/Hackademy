@@ -92,6 +92,7 @@ class RoomServiceImplTest {
         alice = User.builder().username("alice").points(40).build();
         alice.setId(7L);
         when(userRepository.findByUsername("alice")).thenReturn(Optional.of(alice));
+        when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(7L));
         when(userRepository.findByUsernameForUpdate("alice")).thenReturn(Optional.of(alice));
     }
 
@@ -110,23 +111,33 @@ class RoomServiceImplTest {
 
     @Test
     void correctFlagCountsAnotherSolutionOfTheRoom() {
-        Room room = flagRoom(1L, 100, "FLAG{ok}");
-        room.setSolutionsCount(4);
+        flagRoom(1L, 100, "FLAG{ok}");
 
         service.solveRoom(1L, "FLAG{ok}", "alice");
 
-        assertEquals(5, room.getSolutionsCount());
+        verify(roomRepository).incrementSolutions(1L);
     }
 
     @Test
     void wrongFlagIsRejectedWithoutPoints() {
-        Room room = flagRoom(1L, 100, "FLAG{ok}");
+        flagRoom(1L, 100, "FLAG{ok}");
 
         var result = service.solveRoom(1L, "FLAG{nope}", "alice");
 
         assertEquals(new SolveRoomResponse(false, "Niepoprawna flaga", 0, List.of()), result);
         assertEquals(40, alice.getPoints());
-        assertEquals(0, room.getSolutionsCount());
+        verify(roomRepository, never()).incrementSolutions(any());
+    }
+
+    @Test
+    void onlyACorrectFlagLocksTheUser() {
+        flagRoom(1L, 100, "FLAG{ok}");
+
+        service.solveRoom(1L, "FLAG{nope}", "alice");
+        verify(userRepository, never()).findByUsernameForUpdate(any());
+
+        service.solveRoom(1L, "FLAG{ok}", "alice");
+        verify(userRepository).findByUsernameForUpdate("alice");
     }
 
     @Test
