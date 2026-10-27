@@ -35,6 +35,7 @@ export function solveTask(id: ApiId, taskId: ApiId, data: { answer: string }, au
   return request<SolveRoomResponse>(`/api/rooms/${id}/tasks/${taskId}/solve`, {
     method: 'POST',
     auth,
+    rateLimitNotice: false,
     body: JSON.stringify(data),
   });
 }
@@ -43,6 +44,7 @@ export function solveRoom(id: ApiId, data: { flag: string }, auth: SessionScope)
   return request<SolveRoomResponse>(`/api/rooms/${id}/solve`, {
     method: 'POST',
     auth,
+    rateLimitNotice: false,
     body: JSON.stringify(data),
   });
 }

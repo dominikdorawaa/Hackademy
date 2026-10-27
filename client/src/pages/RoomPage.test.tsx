@@ -10,6 +10,7 @@ import { server } from '../test/mocks/server';
 import { createToken } from '../test/fixtures/auth';
 import { renderWithAuth } from '../test/renderWithAuth';
 import type { RoomDetailDto, RoomTaskDto } from '../types/api';
+import { onRateLimit } from '../services/rateLimit';
 import RoomPage from './RoomPage';
 
 const live = vi.hoisted(() => {
@@ -250,6 +251,40 @@ describe('CTF room', () => {
     expect(screen.getByText('Rozwiązania:')).toHaveTextContent('Rozwiązania: 4');
   });
 
+  it('locks the flag form for the retry time after too many wrong flags and unlocks it afterwards', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      const globalNotice = vi.fn();
+      const stopListening = onRateLimit(globalNotice);
+      let sent = 0;
+      server.use(http.post(`${API_URL}/api/rooms/7/solve`, () => {
+        sent++;
+        return HttpResponse.json({ message: 'Zbyt wiele błędnych odpowiedzi w tym pokoju. Spróbuj ponownie za 2 s.', retryAfter: 2 },
+          { status: 429, headers: { 'Retry-After': '2' } });
+      }));
+      mountCtf();
+      await user.type(await screen.findByPlaceholderText('Wklej flagę tutaj...'), 'zla');
+      await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
+
+      expect(await screen.findByText('Zbyt wiele błędnych odpowiedzi. Spróbuj ponownie za 2 s.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zatwierdź' })).toBeDisabled();
+      expect(globalNotice).not.toHaveBeenCalled();
+      stopListening();
+
+      await act(async () => { vi.advanceTimersByTime(1000); });
+      expect(screen.getByText('Zbyt wiele błędnych odpowiedzi. Spróbuj ponownie za 1 s.')).toBeInTheDocument();
+      await act(async () => { vi.advanceTimersByTime(1000); });
+
+      expect(screen.queryByText(/Spróbuj ponownie za/)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Zatwierdź' })).toBeEnabled();
+      await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
+      await waitFor(() => expect(sent).toBe(2));
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
   it('reports a network error while sending a flag', async () => {
     const user = userEvent.setup();
     server.use(http.post(`${API_URL}/api/rooms/7/solve`, () => HttpResponse.error()));
@@ -419,6 +454,29 @@ describe('task room reader', () => {
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
     expect(await screen.findByText('Niepoprawna odpowiedź')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
+  });
+
+  it('locks task answers while the room is blocked for wrong answers', async () => {
+    vi.useFakeTimers({ shouldAdvanceTime: true });
+    try {
+      const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
+      server.use(http.post(`${API_URL}/api/rooms/7/tasks/1/solve`, () => new HttpResponse(null, { status: 429, headers: { 'Retry-After': '1' } })));
+      mount([{ id: 1, title: 'Pierwsze', content: 'A', question: 'Ile?', completed: false }]);
+      await user.type(await screen.findByLabelText('Ile?'), 'zle');
+      await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+
+      expect(await screen.findByText('Zbyt wiele błędnych odpowiedzi. Spróbuj ponownie za 1 s.')).toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sprawdź' })).toBeDisabled();
+      expect(screen.getByLabelText('Ile?')).toBeDisabled();
+
+      await act(async () => { vi.advanceTimersByTime(1000); });
+
+      expect(screen.queryByText(/Spróbuj ponownie za/)).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Sprawdź' })).toBeEnabled();
+      expect(screen.getByLabelText('Ile?')).toHaveValue('zle');
+    } finally {
+      vi.useRealTimers();
+    }
   });
 
   it('opens the first unfinished task and leaves a finished room for the path list', async () => {

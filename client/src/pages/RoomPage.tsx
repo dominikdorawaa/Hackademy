@@ -1,6 +1,7 @@
 import { sanitizeTaskContent } from '../lib/taskContent';
 import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
+import { readRetryAfter, TOO_MANY_REQUESTS } from '../services/rateLimit';
 import React, { useState, useEffect, useId, useRef } from 'react';
 import { BookOpen, Check, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -60,6 +61,30 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     setMascotSuccessCount(count => count + 1);
   };
 
+  // Wrong answers lock both the flag and the task answers of this room for a while
+  const [answersBlockedUntil, setAnswersBlockedUntil] = useState(0);
+  const [now, setNow] = useState(() => Date.now());
+  const retryIn = Math.max(0, Math.ceil((answersBlockedUntil - now) / 1000));
+  const answersBlocked = retryIn > 0;
+  const blockAnswers = async (response: Response) => {
+    const seconds = await readRetryAfter(response);
+    const current = Date.now();
+    setNow(current);
+    setAnswersBlockedUntil(current + seconds * 1000);
+  };
+  useEffect(() => {
+    if (answersBlockedUntil <= Date.now()) return;
+    const timer = window.setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= answersBlockedUntil) window.clearInterval(timer);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [answersBlockedUntil]);
+  const retryNotice = answersBlocked && (
+    <p className="room-message is-error" role="status">Zbyt wiele błędnych odpowiedzi. Spróbuj ponownie za {retryIn} s.</p>
+  );
+
   // Toast state
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
@@ -116,7 +141,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (preview) { setSubmitStatus('success'); setSubmitMessage('Tryb podglądu: wynik nie jest zapisywany.'); return; }
-    if (pendingFlag.current) return;
+    if (pendingFlag.current || answersBlocked) return;
     pendingFlag.current = true;
     setSubmitStatus(null);
     setSubmitMessage('');
@@ -124,6 +149,10 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     try {
       const response = await roomApi.solveRoom(id ?? '', { flag }, {sessionKey
       });
+      if (response.status === TOO_MANY_REQUESTS) {
+        await blockAnswers(response);
+        return;
+      }
 
       const data = await response.json();
       if (response.ok && data.success) {
@@ -193,12 +222,16 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (preview) { setRoom(current => current ? { ...current, tasks: current.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t) } : null); return; }
     const answer = taskAnswers[taskId] || '';
     const task = room?.tasks.find((item) => item.id === taskId);
-    if (!task || task.completed || pendingTask !== null || (task.question && !answer)) return;
+    if (!task || task.completed || pendingTask !== null || answersBlocked || (task.question && !answer)) return;
 
     setPendingTask(taskId);
     try {
         const response = await roomApi.solveTask(id ?? '', taskId, { answer }, {sessionKey
             });
+        if (response.status === TOO_MANY_REQUESTS) {
+            await blockAnswers(response);
+            return;
+        }
         const data = await response.json();
         if (response.ok && data.success) {
             celebrate(`task:${taskId}`);
@@ -403,9 +436,9 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                   onChange={(e) => setFlag(e.target.value)}
                   className={`room-input${submitStatus === 'error' ? ' is-error' : ''}`}
                 />
-                <button type="submit" className="room-btn room-btn--primary">Zatwierdź</button>
+                <button type="submit" className="room-btn room-btn--primary" disabled={answersBlocked}>Zatwierdź</button>
               </div>
-              {submitMessage && <p className={`room-message is-${submitStatus}`} role="status">{submitMessage}</p>}
+              {retryNotice || (submitMessage && <p className={`room-message is-${submitStatus}`} role="status">{submitMessage}</p>)}
             </form>
           ) : (
             <div className="room-solved">
@@ -494,12 +527,13 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                   placeholder={task.completed ? 'Ukończono' : 'Twoja odpowiedź...'}
                   value={task.completed ? '' : (taskAnswers[task.id] || '')}
                   onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
-                  disabled={task.completed || pendingTask !== null}
+                  disabled={task.completed || pendingTask !== null || answersBlocked}
                 />
-                <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
+                <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null || answersBlocked}>
                   {task.completed ? 'Poprawne' : 'Sprawdź'}
                 </button>
               </div>
+              {!task.completed && retryNotice}
             </form>
           ) : (
             <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(event) => void handleTaskSubmit(event, task.id)}>
@@ -508,9 +542,10 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 {task.completed ? 'Zaliczone' : 'Do przeczytania'}
               </p>
               <p className="room-note">Gdy skończysz czytać, oznacz zadanie jako przeczytane.</p>
-              <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
+              <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null || answersBlocked}>
                 {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
               </button>
+              {!task.completed && retryNotice}
             </form>
           )}
         </article>
