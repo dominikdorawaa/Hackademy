@@ -1,5 +1,7 @@
 package com.hackademy.server;
 
+import com.hackademy.server.arena.ArenaService;
+import com.hackademy.server.arena.MatchmakingService;
 import com.hackademy.server.config.WebSocketAuthInterceptor;
 import com.hackademy.server.user.AccountAccess;
 import com.hackademy.server.user.Role;
@@ -18,21 +20,30 @@ import org.springframework.test.context.DynamicPropertySource;
 
 import java.io.IOException;
 import java.net.InetSocketAddress;
+import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.Set;
+import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.CopyOnWriteArrayList;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.delete;
+import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
 
+    private static final String PASSWORD = "Sekretne-haslo-1";
     private static final List<String> deletedIds = new CopyOnWriteArrayList<>();
+    private static final Set<String> passwordless = ConcurrentHashMap.newKeySet();
     private static volatile int clerkStatus;
     private static final HttpServer clerk = startClerk();
 
     @Autowired AccountAccess access;
     @Autowired WebSocketAuthInterceptor websocket;
+    @Autowired ArenaService arena;
+    @Autowired MatchmakingService matchmaking;
 
     @DynamicPropertySource
     static void clerkProperties(DynamicPropertyRegistry registry) {
@@ -43,6 +54,7 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
     @BeforeEach
     void resetClerk() {
         deletedIds.clear();
+        passwordless.clear();
         clerkStatus = 200;
     }
 
@@ -148,6 +160,147 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
         assertFalse(userRepository.existsById(legacy.id()));
     }
 
+    @Test
+    void selfDeletionRemovesOrAnonymizesEveryRowLinkedToTheAccount() throws Exception {
+        var admin = account(Role.ADMIN);
+        var target = account(Role.USER);
+        var friend = account(Role.USER);
+        var invited = account(Role.USER);
+        var identity = userRepository.findById(target.id()).orElseThrow().getClerkUserId();
+        seed(admin, target, friend, invited);
+        seed(admin, friend, invited, admin);
+        var linked = linkedColumns();
+        for (var column : linked) assertTrue(rows(column, target.id()) > 0, "no seeded row in " + column);
+        var friendRows = linked.stream().collect(java.util.stream.Collectors.toMap(column -> column, column -> rows(column, friend.id())));
+
+        deleteSelf(target, "{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isNoContent());
+
+        assertFalse(userRepository.existsById(target.id()));
+        assertEquals(List.of(identity), deletedIds);
+        for (var column : linked) assertEquals(0, rows(column, target.id()), "row left in " + column);
+        assertEquals(1, jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM bug_reports WHERE reporter_id IS NULL AND description = ?", Integer.class, report(target)));
+        for (var column : linked) {
+            long expected = friendRows.get(column) - (column.equals("friendships.requester_id") ? 1 : 0);
+            assertEquals(expected, rows(column, friend.id()), "friend data changed in " + column);
+        }
+        getAs(friend, "/api/friends").andExpect(status().isOk());
+        assertOldAccessDenied(target);
+        deleteSelf(target, "{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isUnauthorized());
+
+        var again = ClerkTestTokens.createUser(userRepository, target.username(), Role.USER);
+        assertEquals(target.username().toLowerCase() + "@example.com", again.getEmail());
+        mockMvc.perform(get("/api/user/me").header("Authorization", ClerkTestTokens.bearer(again)))
+                .andExpect(status().isOk()).andExpect(jsonPath("$.username").value(target.username()));
+    }
+
+    @Test
+    void wrongPasswordDeletesNothingAndRepeatedGuessesAreStopped() throws Exception {
+        var target = account(Role.USER);
+        deleteSelf(target, "{\"password\":\"zgadywanie\"}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Hasło jest nieprawidłowe."));
+        deleteSelf(target, "{}").andExpect(status().isBadRequest());
+        assertTrue(access.isActive(target.id()));
+        getAs(target, "/api/user/me").andExpect(status().isOk());
+        for (int attempt = 2; attempt < 5; attempt++) deleteSelf(target, "{\"password\":\"zgadywanie\"}").andExpect(status().isBadRequest());
+        deleteSelf(target, "{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isTooManyRequests());
+        assertTrue(userRepository.existsById(target.id()));
+        assertTrue(deletedIds.isEmpty());
+    }
+
+    @Test
+    void accountWithoutPasswordConfirmsWithItsUsername() throws Exception {
+        var target = account(Role.USER);
+        passwordless.add(userRepository.findById(target.id()).orElseThrow().getClerkUserId());
+        deleteSelf(target, "{\"confirmation\":\"ktos-inny\"}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Wpisana nazwa nie zgadza się z nazwą Twojego konta."));
+        assertTrue(userRepository.existsById(target.id()));
+        deleteSelf(target, "{\"confirmation\":\"" + target.username() + "\"}").andExpect(status().isNoContent());
+        assertFalse(userRepository.existsById(target.id()));
+    }
+
+    @Test
+    void deletionEndsTheDuelForTheRivalAndDropsQueueAndChallenges() throws Exception {
+        var target = account(Role.USER);
+        var rival = account(Role.USER);
+        var challenged = account(Role.USER);
+        var challenge = arena.createChallenge(target.id(), target.username(), rival.id(), rival.username());
+        var game = arena.acceptChallenge(challenge.getId(), rival.id()).getId();
+        int rivalElo = jdbcTemplate.queryForObject("SELECT elo FROM users WHERE id = ?", Integer.class, rival.id());
+
+        deleteSelf(target, "{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isNoContent());
+
+        getAs(rival, "/api/arena/game/" + game).andExpect(status().isOk())
+                .andExpect(jsonPath("$.status").value("FINISHED"))
+                .andExpect(jsonPath("$.winnerId").value(rival.id()))
+                .andExpect(jsonPath("$.player1Username").value("Usunięte konto"));
+        assertTrue(jdbcTemplate.queryForObject("SELECT elo FROM users WHERE id = ?", Integer.class, rival.id()) > rivalElo);
+
+        var queued = account(Role.USER);
+        arena.joinQueue(queued.id(), queued.username());
+        arena.createChallenge(queued.id(), queued.username(), challenged.id(), challenged.username());
+        deleteSelf(queued, "{\"password\":\"" + PASSWORD + "\"}").andExpect(status().isNoContent());
+        assertFalse(matchmaking.isQueued(queued.id()));
+        assertTrue(arena.getPendingChallenges(challenged.id()).isEmpty());
+    }
+
+    private void seed(Account admin, Account owner, Account friend, Account invited) throws Exception {
+        long id = owner.id();
+        long room = createRoom(admin, uniqueTitle("Pokój"), "CTF");
+        long task = jdbcTemplate.queryForObject("INSERT INTO room_tasks (title, content, room_id, sort_order) VALUES ('Zadanie', 'Treść', ?, 0) RETURNING id", Long.class, room);
+        long hint = jdbcTemplate.queryForObject("INSERT INTO hints (description, room_id) VALUES ('Podpowiedź', ?) RETURNING id", Long.class, room);
+        long path = jdbcTemplate.queryForObject("INSERT INTO paths (title, created_at, updated_at) VALUES (?, now(), now()) RETURNING id", Long.class, uniqueTitle("Ścieżka"));
+        long badge = jdbcTemplate.queryForObject("SELECT id FROM badges ORDER BY id LIMIT 1", Long.class);
+        jdbcTemplate.update("INSERT INTO user_badges (user_id, badge_id, earned_at) VALUES (?, ?, now())", id, badge);
+        jdbcTemplate.update("INSERT INTO user_featured_badges (user_id, position, badge_id) VALUES (?, 0, ?)", id, badge);
+        jdbcTemplate.update("INSERT INTO user_profile_interests (user_id, position, interest) VALUES (?, 0, 'WEB')", id);
+        jdbcTemplate.update("INSERT INTO path_enrollments (user_id, path_id, enrolled_at) VALUES (?, ?, now())", id, path);
+        jdbcTemplate.update("INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (?, ?, now())", id, room);
+        jdbcTemplate.update("INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (?, ?, now())", id, task);
+        jdbcTemplate.update("INSERT INTO user_unlocked_hints (user_id, hint_id) VALUES (?, ?)", id, hint);
+        jdbcTemplate.update("INSERT INTO user_weekly_active_time (user_id, week_key, seconds, updated_at) VALUES (?, '2026-W43', 60, now())", id);
+        jdbcTemplate.update("INSERT INTO user_notification_preferences (user_id) VALUES (?) ON CONFLICT DO NOTHING", id);
+        jdbcTemplate.update("INSERT INTO ukos_lab_progress (user_id, completed_steps) VALUES (?, 3)", id);
+        jdbcTemplate.update("""
+                INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color)
+                VALUES (?, 'dres', 'krotkie', 'brak', 'jasna', 'czarne', 'bordowy', 'grafitowy', 'bialy', 'granatowy') ON CONFLICT DO NOTHING
+                """, id);
+        jdbcTemplate.update("""
+                INSERT INTO friendships (requester_id, receiver_id, status, requester_wins, receiver_wins, created_at)
+                VALUES (?, ?, 'ACCEPTED', 2, 1, now()), (?, ?, 'PENDING', 0, 0, now())
+                """, friend.id(), id, id, invited.id());
+        jdbcTemplate.update("INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (?, 'ARENA', ?, now())", id, report(owner));
+    }
+
+    private static String report(Account owner) {
+        return "Pytanie w Arenie ma złą odpowiedź " + owner.username();
+    }
+
+    private List<String> linkedColumns() {
+        return jdbcTemplate.queryForList("""
+                SELECT c.conrelid::regclass::text || '.' || a.attname FROM pg_constraint c
+                JOIN pg_attribute a ON a.attrelid = c.conrelid AND a.attnum = ANY (c.conkey)
+                WHERE c.contype = 'f' AND c.confrelid = 'users'::regclass ORDER BY 1
+                """, String.class);
+    }
+
+    private long rows(String column, long userId) {
+        var parts = column.split("\\.");
+        return jdbcTemplate.queryForObject("SELECT count(*) FROM " + parts[0] + " WHERE " + parts[1] + " = ?", Long.class, userId);
+    }
+
+    private org.springframework.test.web.servlet.ResultActions deleteSelf(Account account, String body) throws Exception {
+        return mockMvc.perform(delete("/api/user/me").header("Authorization", "Bearer " + account.token())
+                .contentType("application/json").content(body));
+    }
+
+    private static void respond(com.sun.net.httpserver.HttpExchange exchange, int status, String body) throws IOException {
+        var bytes = body.getBytes(StandardCharsets.UTF_8);
+        exchange.getResponseHeaders().add("Content-Type", "application/json");
+        exchange.sendResponseHeaders(status, bytes.length);
+        exchange.getResponseBody().write(bytes);
+    }
+
     private void assertOldAccessDenied(Account target) throws Exception {
         long profileCount = userRepository.count();
         getAs(target, "/api/user/me").andExpect(status().isUnauthorized());
@@ -173,12 +326,21 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
         try {
             var server = HttpServer.create(new InetSocketAddress("localhost", 0), 0);
             server.createContext("/users/", exchange -> {
-                if (!"DELETE".equals(exchange.getRequestMethod())
-                        || !"Bearer sk_test_deletion".equals(exchange.getRequestHeaders().getFirst("Authorization"))) {
+                var path = exchange.getRequestURI().getPath().substring("/users/".length());
+                var method = exchange.getRequestMethod();
+                if (!"Bearer sk_test_deletion".equals(exchange.getRequestHeaders().getFirst("Authorization"))) {
                     exchange.sendResponseHeaders(401, -1);
-                } else {
-                    deletedIds.add(exchange.getRequestURI().getPath().substring("/users/".length()));
+                } else if ("DELETE".equals(method)) {
+                    deletedIds.add(path);
                     exchange.sendResponseHeaders(clerkStatus, -1);
+                } else if ("GET".equals(method)) {
+                    respond(exchange, 200, "{\"id\":\"" + path + "\",\"password_enabled\":" + !passwordless.contains(path) + "}");
+                } else if ("POST".equals(method) && path.endsWith("/verify_password")) {
+                    var body = new String(exchange.getRequestBody().readAllBytes(), StandardCharsets.UTF_8);
+                    if (body.equals("{\"password\":\"" + PASSWORD + "\"}")) respond(exchange, 200, "{\"verified\":true}");
+                    else respond(exchange, 422, "{\"errors\":[{\"code\":\"incorrect_password\"}]}");
+                } else {
+                    exchange.sendResponseHeaders(405, -1);
                 }
                 exchange.close();
             });

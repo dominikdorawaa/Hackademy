@@ -41,6 +41,8 @@ public interface UserRepository extends JpaRepository<User, Long> {
 
     List<User> findByClerkUserIdIsNullOrderByIdAsc();
 
+    long countByRole(Role role);
+
     @Modifying
     @Transactional
     @Query("UPDATE User u SET u.lastSeenAt = :at WHERE u.id = :id")

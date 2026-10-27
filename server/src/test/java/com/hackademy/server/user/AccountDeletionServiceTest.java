@@ -7,6 +7,7 @@ import org.junit.jupiter.api.Test;
 import org.junit.jupiter.api.extension.ExtendWith;
 import org.mockito.Mock;
 import org.mockito.junit.jupiter.MockitoExtension;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.web.client.RestClient;
 import org.springframework.web.server.ResponseStatusException;
@@ -23,13 +24,14 @@ class AccountDeletionServiceTest {
     @Mock AccountDeletionRepository deletions;
     @Mock UserBadgeRepository badges;
     @Mock PlatformTransactionManager transactions;
+    @Mock ApplicationEventPublisher events;
     private AccountDeletionService service;
 
     @BeforeEach
     void createService() {
         service = new AccountDeletionService(users, deletions, badges,
                 new ClerkProperties("https://example.clerk.accounts.dev", null, null, null),
-                RestClient.builder(), transactions);
+                RestClient.builder(), events, transactions);
     }
 
     @Test
@@ -48,5 +50,25 @@ class AccountDeletionServiceTest {
         assertThrows(IllegalStateException.class, () -> service.delete(1L));
         verify(users, never()).delete(any());
         verifyNoInteractions(badges);
+    }
+
+    @Test
+    void theLastAdministratorCannotBeDeleted() {
+        when(users.findByIdForUpdate(1L)).thenReturn(Optional.of(User.builder().id(1L).role(Role.ADMIN).build()));
+        when(users.countByRole(Role.ADMIN)).thenReturn(1L);
+        var exception = assertThrows(ResponseStatusException.class, () -> service.delete(1L));
+        assertEquals(409, exception.getStatusCode().value());
+        verify(deletions, never()).saveAndFlush(any());
+        verifyNoInteractions(events);
+    }
+
+    @Test
+    void anotherAdministratorKeepsDeletionPossible() {
+        when(users.findByIdForUpdate(1L)).thenReturn(Optional.of(User.builder().id(1L).role(Role.ADMIN).build()));
+        when(users.countByRole(Role.ADMIN)).thenReturn(2L);
+        when(deletions.saveAndFlush(any())).thenAnswer(invocation -> invocation.getArgument(0));
+        service.delete(1L);
+        verify(events).publishEvent(new AccountBlockedEvent(1L));
+        verify(users).delete(any());
     }
 }

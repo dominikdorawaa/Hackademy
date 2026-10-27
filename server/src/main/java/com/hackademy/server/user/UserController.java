@@ -3,6 +3,7 @@ package com.hackademy.server.user;
 import com.hackademy.server.dashboard.ActivityDto;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
+import com.hackademy.server.user.dto.DeleteAccountRequest;
 import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateUsernameRequest;
 import com.hackademy.server.user.dto.UsernameAvailabilityDto;
@@ -145,6 +146,13 @@ public class UserController {
     public ResponseEntity<UserAvatarDto> saveAvatar(@Valid @RequestBody UserAvatarDto request) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return ResponseEntity.ok(userService.saveAvatar(user.getId(), request));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(@Valid @RequestBody DeleteAccountRequest request) {
+        User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
+        userService.deleteOwnAccount(user.getId(), request.password(), request.confirmation());
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/me/avatar")
