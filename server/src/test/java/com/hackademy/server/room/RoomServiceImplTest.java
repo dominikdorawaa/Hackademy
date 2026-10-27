@@ -43,6 +43,7 @@ import org.springframework.web.server.ResponseStatusException;
 
 import java.io.IOException;
 import java.time.Clock;
+import java.time.Duration;
 import java.time.Instant;
 import java.time.LocalDate;
 import java.time.ZoneOffset;
@@ -87,7 +88,8 @@ class RoomServiceImplTest {
                 friendshipRepository, userRepository, dashboardSummaryCache, TODAY);
         service = new RoomServiceImpl(roomRepository, userRepository, hintRepository, userUnlockedHintRepository,
                 userSolvedRoomRepository, badges, roomFileRepository, roomTaskRepository, userCompletedTaskRepository,
-                userServiceImpl, dashboardSummaryCache, chapterRoomRepository, visibility, pathUnlockPolicy, TODAY);
+                userServiceImpl, dashboardSummaryCache, chapterRoomRepository, visibility, pathUnlockPolicy, TODAY,
+                RoomAnswerGuardTest.guard(TODAY, true, 2, Duration.ofHours(1)));
 
         alice = User.builder().username("alice").points(40).build();
         alice.setId(7L);
@@ -243,6 +245,51 @@ class RoomServiceImplTest {
 
         assertEquals(expected, alice.getStreak());
         assertEquals(LocalDate.of(2026, 10, 15), alice.getLastSolvedDate());
+    }
+
+    // ── guessing limit ──────────────────────────────────────────────────────
+
+    @Test
+    void wrongFlagsAndTaskAnswersShareOneLimitPerRoom() {
+        Room room = taskRoom(2L, 100, task(20L, "a"));
+        room.setFlag("FLAG{ok}");
+
+        assertFalse(service.solveRoom(2L, "FLAG{nope}", "alice").success());
+        assertFalse(service.solveTask(2L, 20L, "nope", "alice").success());
+
+        assertThrows(RoomAnswerLimitException.class, () -> service.solveTask(2L, 20L, "a", "alice"));
+        assertThrows(RoomAnswerLimitException.class, () -> service.solveRoom(2L, "FLAG{ok}", "alice"));
+        verify(userSolvedRoomRepository, never()).save(any());
+        verify(userCompletedTaskRepository, never()).save(any());
+        assertEquals(40, alice.getPoints());
+    }
+
+    @Test
+    void rightAnswersAndBlankFlagsDoNotCountTowardsTheLimit() {
+        flagRoom(1L, 100, "FLAG{ok}");
+        alreadySolved(1L);
+
+        for (int i = 0; i < 5; i++) {
+            assertTrue(service.solveRoom(1L, "FLAG{ok}", "alice").success());
+            assertThrows(ResponseStatusException.class, () -> service.solveRoom(1L, " ", "alice"));
+        }
+
+        assertFalse(service.solveRoom(1L, "FLAG{nope}", "alice").success());
+        assertFalse(service.solveRoom(1L, "FLAG{nope}", "alice").success());
+        assertThrows(RoomAnswerLimitException.class, () -> service.solveRoom(1L, "FLAG{nope}", "alice"));
+    }
+
+    @Test
+    void aBlockedRoomLeavesOtherRoomsSolvable() {
+        flagRoom(1L, 100, "FLAG{ok}");
+        flagRoom(3L, 50, "FLAG{other}");
+        service.solveRoom(1L, "FLAG{nope}", "alice");
+        service.solveRoom(1L, "FLAG{nope}", "alice");
+
+        var result = service.solveRoom(3L, "FLAG{other}", "alice");
+
+        assertTrue(result.success());
+        assertEquals(50, result.pointsEarned());
     }
 
     // ── tasks ───────────────────────────────────────────────────────────────

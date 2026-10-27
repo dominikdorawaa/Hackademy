@@ -64,6 +64,7 @@ public class RoomServiceImpl implements RoomService {
     private final com.hackademy.server.content.ContentVisibility visibility;
     private final PathUnlockPolicy pathUnlockPolicy;
     private final Clock clock;
+    private final RoomAnswerGuard roomAnswerGuard;
 
     private static final Set<String> RESERVED_TITLES = Set.of("tutorial vm", "tutorial vpn");
 
@@ -358,7 +359,8 @@ public class RoomServiceImpl implements RoomService {
         }
 
         // Check answer
-        if (task.getAnswer() != null && !task.getAnswer().equalsIgnoreCase(answer)) {
+        if (task.getAnswer() != null
+                && !roomAnswerGuard.check(user.getId(), roomId, () -> task.getAnswer().equalsIgnoreCase(answer))) {
             return new SolveRoomResponse(false, "Niepoprawna odpowiedź", 0, new ArrayList<>());
         }
 
@@ -454,7 +456,7 @@ public class RoomServiceImpl implements RoomService {
         // Check if already solved
         boolean alreadySolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
 
-        if (room.getFlag().equals(flag)) {
+        if (roomAnswerGuard.check(user.getId(), room.getId(), () -> room.getFlag().equals(flag))) {
             if (alreadySolved) {
                 // If already solved, return success but 0 points and no new badges
                 return new SolveRoomResponse(true, "Poprawna flaga! (Tryb treningowy - 0 pkt)", 0, new ArrayList<>());
