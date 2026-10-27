@@ -251,7 +251,6 @@ describe('settings', () => {
       <Routes><Route path="/settings" element={<SettingsPage />} /><Route path="/" element={<p>Strona główna</p>} /></Routes>
     </NotificationPreferencesProvider></ThemeProvider></AuthProvider></MemoryRouter>);
     const zone = screen.getByRole('region', { name: 'Strefa niebezpieczna' });
-    expect(within(zone).getByText('Zanonimizujemy')).toBeInTheDocument();
     fireEvent.click(within(zone).getByRole('button', { name: 'Usuń konto' }));
     const dialog = await screen.findByRole('dialog', { name: 'Usunąć konto na zawsze?' });
     const confirm = within(dialog).getByRole('button', { name: 'Usuń konto na zawsze' });

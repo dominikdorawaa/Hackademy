@@ -391,21 +391,7 @@ export default function SettingsPage() {
             <SettingRow title="Wyloguj się z tego urządzenia" description="Zakończ korzystanie z konta w tej przeglądarce."><button className="settings-button" onClick={() => { logout(); navigate('/login'); }}>Wyloguj się</button></SettingRow>
           </SettingsGroup>
           <SettingsGroup id="danger" title="Strefa niebezpieczna" danger>
-            <SettingRow title="Usuń konto" description="Konto znika od razu i na zawsze. Nastąpi wylogowanie, a adres e-mail i nazwa użytkownika będą wolne do ponownej rejestracji."
-              extra={<div className="settings-deletion">
-                <div><h5>Usuniemy</h5><ul>
-                  <li>profil, awatar, bio i preferencje</li>
-                  <li>postęp w ścieżkach, pokojach i laboratoriach</li>
-                  <li>odznaki, statystyki i czas nauki</li>
-                  <li>znajomych i zaproszenia</li>
-                  <li>dane logowania</li>
-                </ul></div>
-                <div><h5>Zanonimizujemy</h5><ul>
-                  <li>Twoje mecze w Arenie: rywale zachowają zdobyte Elo, a zamiast Twojej nazwy zobaczą „Usunięte konto”</li>
-                  <li>Twoje zgłoszenia błędów: zostaną bez Twojej nazwy</li>
-                </ul></div>
-                <p>Trwający pojedynek kończy się wygraną rywala, a kolejka i wyzwania w Arenie są anulowane.</p>
-              </div>}>
+            <SettingRow title="Usuń konto" description="Konto znika od razu i na zawsze. Nastąpi wylogowanie, a adres e-mail i nazwa użytkownika będą wolne do ponownej rejestracji.">
               <DeleteAccountDialog username={account?.username ?? user?.username ?? ''} passwordEnabled={clerkLoaded ? clerkUser?.passwordEnabled : undefined}
                 onDelete={deleteAccount} /></SettingRow>
           </SettingsGroup>
