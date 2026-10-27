@@ -127,9 +127,25 @@ jobs:
         run: npm run ukos:prepare
       - name: Build
         run: npm run build
+      - name: Restore build files from previous deploys
+        uses: actions/cache/restore@v6
+        with:
+          path: ${{ runner.temp }}/pages-static
+          key: pages-static-${{ github.run_id }}-${{ github.run_attempt }}
+          restore-keys: pages-static-
+      - name: Keep build files from previous deploys
+        id: retain-static
+        continue-on-error: true
+        run: node build/retainStatic.mjs dist "$RUNNER_TEMP/pages-static"
       - name: Deploy to Cloudflare Pages
         env:
           CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
           CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
           COMMIT_SHA: ${{ github.sha }}
         run: npx --yes "wrangler@${WRANGLER_VERSION}" pages deploy dist --project-name "$PAGES_PROJECT" --branch main --commit-hash "$COMMIT_SHA"
+      - name: Save build files for the next deploy
+        if: success() && steps.retain-static.outcome == 'success'
+        uses: actions/cache/save@v6
+        with:
+          path: ${{ runner.temp }}/pages-static
+          key: pages-static-${{ github.run_id }}-${{ github.run_attempt }}
