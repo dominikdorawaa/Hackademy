@@ -37,8 +37,7 @@ public class AccountDeletionService {
     private final UserRepository users;
     private final AccountDeletionRepository deletions;
     private final UserBadgeRepository badges;
-    private final ClerkProperties properties;
-    private final RestClient.Builder clientBuilder;
+    private final ClerkBackendClient clerk;
     private final ApplicationEventPublisher events;
     private final TransactionTemplate transaction;
     private final Cache<Long, AtomicInteger> failedConfirmations = Caffeine.newBuilder()
@@ -50,8 +49,7 @@ public class AccountDeletionService {
         this.users = users;
         this.deletions = deletions;
         this.badges = badges;
-        this.properties = properties;
-        this.clientBuilder = clientBuilder;
+        this.clerk = properties.secretKey() == null ? null : new ClerkBackendClient(clientBuilder.clone(), properties);
         this.events = events;
         this.transaction = new TransactionTemplate(transactionManager);
         this.transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
@@ -60,7 +58,7 @@ public class AccountDeletionService {
     public void confirmOwner(Long userId, String password, String confirmation) {
         var user = users.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
         if (user.getClerkUserId() == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, NOT_SELF_SERVICE);
-        if (properties.secretKey() == null) {
+        if (clerk == null) {
             throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Usuwanie kont Clerk nie jest skonfigurowane.");
         }
         var failures = failedConfirmations.get(userId, ignored -> new AtomicInteger());
@@ -71,7 +69,6 @@ public class AccountDeletionService {
         boolean passwordEnabled;
         boolean confirmed;
         try {
-            var clerk = new ClerkBackendClient(clientBuilder.clone(), properties);
             passwordEnabled = clerk.passwordEnabled(user.getClerkUserId());
             var given = passwordEnabled ? password : confirmation;
             if (given == null || given.isBlank()) {
@@ -103,7 +100,7 @@ public class AccountDeletionService {
                     && admins.stream().filter(admin -> !deletions.existsById(admin.getId())).count() <= 1) {
                 throw new ResponseStatusException(HttpStatus.CONFLICT, LAST_ADMIN);
             }
-            if (target.getClerkUserId() != null && properties.secretKey() == null) {
+            if (target.getClerkUserId() != null && clerk == null) {
                 throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Usuwanie kont Clerk nie jest skonfigurowane.");
             }
             return deletions.saveAndFlush(new AccountDeletion(userId, target.getClerkUserId()));
@@ -130,8 +127,11 @@ public class AccountDeletionService {
             log.warn("Closing arena activity of account {} failed", userId, exception);
         }
         if (deletion.getClerkUserId() != null) {
+            if (clerk == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Usuwanie kont Clerk nie jest skonfigurowane.");
+            }
             try {
-                new ClerkBackendClient(clientBuilder.clone(), properties).delete(deletion.getClerkUserId());
+                clerk.delete(deletion.getClerkUserId());
             } catch (RestClientException | IllegalStateException exception) {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
                         "Konto zablokowano. Nie udało się potwierdzić usunięcia w Clerk, dokończymy je automatycznie w ciągu kilku minut.");
