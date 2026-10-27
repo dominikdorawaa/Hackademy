@@ -54,6 +54,14 @@
 .settings-button-primary:hover:not(:disabled) { background: var(--ud-cta-hover); }
 .settings-button:disabled { opacity: .5; cursor: not-allowed; }
 .settings-button-small { min-height: 32px; padding: 0 12px; font-size: .8125rem; }
+.settings-group-danger .settings-group-title { color: var(--settings-error-color); }
+.settings-group-danger .settings-panel { box-shadow: inset 0 0 0 1px color-mix(in srgb, var(--settings-error-color) 55%, transparent); }
+.settings-button-danger { background: color-mix(in srgb, var(--settings-error-color) 14%, transparent); color: var(--settings-error-color); }
+.settings-button-danger:hover:not(:disabled) { background: var(--settings-error-color); color: #ffffff; }
+.settings-deletion { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px 24px; margin-top: 12px; }
+.settings-deletion h5 { margin: 0 0 4px; color: var(--ud-ink); font-size: var(--ud-text-s); font-weight: 650; letter-spacing: normal; }
+.settings-deletion ul { margin: 0; padding-left: 18px; color: var(--ud-muted); font-size: var(--ud-text-s); line-height: 1.6; }
+.settings-page .settings-deletion p { grid-column: 1 / -1; }
 .settings-page .settings-footnote { margin-top: 16px; font-size: .8125rem; }
 .settings-feedback { position: sticky; bottom: 16px; z-index: 5; margin-top: 20px; font-size: var(--ud-text-s); color: var(--ud-ink); }
 .settings-feedback:not(:empty) { padding: 12px 16px; border-radius: var(--ud-radius); background: var(--ud-tip-bg); box-shadow: var(--ud-float-shadow); }
@@ -102,6 +110,7 @@
   .settings-name-control { grid-template-columns: minmax(0, 1fr) auto; }
   .settings-preview-strip { grid-template-columns: minmax(0, 1fr); gap: 16px; }
   .settings-sound-list li > span { min-width: 0; flex-basis: 100%; }
+  .settings-deletion { grid-template-columns: minmax(0, 1fr); }
 }
 @media (prefers-reduced-motion: reduce) {
   .settings-page * { transition: none !important; }

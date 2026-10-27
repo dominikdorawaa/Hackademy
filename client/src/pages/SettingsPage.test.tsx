@@ -1,8 +1,8 @@
-import { setClerkSession, openUserProfile } from '../test/clerk';
+import { setClerkPassword, setClerkSession, openUserProfile, signOut } from '../test/clerk';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { NotificationPreferencesProvider } from '../context/NotificationPreferencesContext';
@@ -235,6 +235,55 @@ describe('settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zarządzaj dostępem' }));
     expect(openUserProfile).toHaveBeenCalledOnce();
     expect(screen.queryByLabelText('Obecne hasło')).toBeNull();
+  });
+
+  it('deletes the account only after the password is confirmed, then signs out', async () => {
+    const attempts: unknown[] = [];
+    server.use(http.delete(`${API_URL}/api/user/me`, async ({ request }) => {
+      const body = await request.json() as { password?: string };
+      attempts.push(body);
+      return body.password === 'dobre-haslo'
+        ? new HttpResponse(null, { status: 204 })
+        : HttpResponse.json({ message: 'Hasło jest nieprawidłowe.' }, { status: 400 });
+    }));
+    setClerkSession(createToken());
+    render(<MemoryRouter initialEntries={['/settings?section=security']}><AuthProvider><ThemeProvider><NotificationPreferencesProvider>
+      <Routes><Route path="/settings" element={<SettingsPage />} /><Route path="/" element={<p>Strona główna</p>} /></Routes>
+    </NotificationPreferencesProvider></ThemeProvider></AuthProvider></MemoryRouter>);
+    const zone = screen.getByRole('region', { name: 'Strefa niebezpieczna' });
+    expect(within(zone).getByText('Zanonimizujemy')).toBeInTheDocument();
+    fireEvent.click(within(zone).getByRole('button', { name: 'Usuń konto' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Usunąć konto na zawsze?' });
+    const confirm = within(dialog).getByRole('button', { name: 'Usuń konto na zawsze' });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(within(dialog).getByLabelText('Obecne hasło'), { target: { value: 'zle-haslo' } });
+    fireEvent.click(confirm);
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Hasło jest nieprawidłowe.');
+    expect(signOut).not.toHaveBeenCalled();
+    expect(screen.queryByText('Strona główna')).toBeNull();
+
+    fireEvent.change(within(dialog).getByLabelText('Obecne hasło'), { target: { value: 'dobre-haslo' } });
+    fireEvent.click(confirm);
+    await screen.findByText('Strona główna');
+    expect(attempts).toEqual([{ password: 'zle-haslo' }, { password: 'dobre-haslo' }]);
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem('hackademy.account-deleted')).toBe('1');
+  });
+
+  it('asks for the username when the account has no password', async () => {
+    let sent: unknown = null;
+    server.use(http.delete(`${API_URL}/api/user/me`, async ({ request }) => {
+      sent = await request.json();
+      return new HttpResponse(null, { status: 204 });
+    }));
+    setClerkPassword(false);
+    mount('security');
+    fireEvent.click(screen.getByRole('button', { name: 'Usuń konto' }));
+    const dialog = await screen.findByRole('dialog');
+    fireEvent.change(await within(dialog).findByLabelText('Wpisz nazwę użytkownika: tester'), { target: { value: 'tester' } });
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Usuń konto na zawsze' }));
+    await waitFor(() => expect(sent).toEqual({ confirmation: 'tester' }));
   });
 
   it('explains what each event triggers and updates the summary live', async () => {

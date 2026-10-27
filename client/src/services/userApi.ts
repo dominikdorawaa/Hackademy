@@ -43,6 +43,15 @@ export function saveNotificationPreference(preference: keyof NotificationPrefere
   });
 }
 
+export type AccountDeletionConfirmation = { password: string } | { confirmation: string };
+
+export function deleteAccount(confirmation: AccountDeletionConfirmation, auth: SessionScope) {
+  return request<void>('/api/user/me', {
+    method: 'DELETE', auth, headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(confirmation),
+  });
+}
+
 export function changeUsername(newUsername: string, auth: SessionScope) {
   return request<{ username: string }>('/api/user/me/username', {
     method: 'PATCH', auth, headers: { 'Content-Type': 'application/json' },

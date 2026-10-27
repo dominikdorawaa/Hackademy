@@ -18,5 +18,11 @@ export function useMockAuth() {
   return { isLoaded: loaded, isSignedIn: !!token, sessionId: token ? `session:${token}` : null, getToken };
 }
 export function useMockClerk() { return { signOut, openUserProfile }; }
+let passwordEnabled = true;
+export function setClerkPassword(enabled: boolean) { passwordEnabled = enabled; }
+export function useMockUser() {
+  useSyncExternalStore(subscribe, () => `${loaded}:${token}`);
+  return { isLoaded: loaded, isSignedIn: !!token, user: token ? { passwordEnabled } : null };
+}
 export function MockSignIn() { return <div data-testid="clerk-sign-in">Logowanie Clerk</div>; }
 export function MockSignUp() { return <div data-testid="clerk-sign-up">Rejestracja Clerk</div>; }
