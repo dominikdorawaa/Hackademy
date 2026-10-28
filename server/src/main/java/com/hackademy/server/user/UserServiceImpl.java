@@ -189,6 +189,12 @@ public class UserServiceImpl implements UserService {
     }
 
     @Override
+    public void deleteOwnAccount(Long id, String password, Object factorAges) {
+        accountDeletionService.confirmOwner(id, password, factorAges);
+        deleteUser(id);
+    }
+
+    @Override
     public UserAdminView updateUserRole(Long id, Role newRole) {
         User user = userRepository.findById(id)
                 .orElseThrow(() -> new UserNotFoundException("User with ID: " + id + " not found."));

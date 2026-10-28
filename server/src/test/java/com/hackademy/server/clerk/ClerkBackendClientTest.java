@@ -2,18 +2,23 @@ package com.hackademy.server.clerk;
 
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpMethod;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.test.web.client.MockRestServiceServer;
 import org.springframework.web.client.RestClient;
+import org.springframework.web.client.RestClientException;
 
 import java.util.List;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertThrows;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.header;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.jsonPath;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.method;
 import static org.springframework.test.web.client.match.MockRestRequestMatchers.requestTo;
+import static org.springframework.test.web.client.response.MockRestResponseCreators.withStatus;
 import static org.springframework.test.web.client.response.MockRestResponseCreators.withSuccess;
 
 class ClerkBackendClientTest {
@@ -92,6 +97,28 @@ class ClerkBackendClientTest {
         server.expect(requestTo(API + "/users/user_12")).andRespond(
                 org.springframework.test.web.client.response.MockRestResponseCreators.withStatus(org.springframework.http.HttpStatus.valueOf(status)));
         assertThrows(org.springframework.web.client.RestClientResponseException.class, () -> client.delete("user_12"));
+        server.verify();
+    }
+
+    @Test
+    void readsWhetherAPasswordIsSetAndVerifiesIt() {
+        var builder = RestClient.builder();
+        var server = MockRestServiceServer.bindTo(builder).build();
+        var client = new ClerkBackendClient(builder, new ClerkProperties(ClerkTestIssuer.VALUE, null, "sk_test_x", API));
+        server.expect(requestTo(API + "/users/user_1")).andExpect(method(HttpMethod.GET))
+                .andRespond(withSuccess("{\"id\":\"user_1\",\"password_enabled\":true}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(API + "/users/user_1/verify_password")).andExpect(method(HttpMethod.POST))
+                .andExpect(jsonPath("$.password").value("dobre"))
+                .andRespond(withSuccess("{\"verified\":true}", MediaType.APPLICATION_JSON));
+        server.expect(requestTo(API + "/users/user_1/verify_password"))
+                .andRespond(withStatus(HttpStatus.UNPROCESSABLE_CONTENT).contentType(MediaType.APPLICATION_JSON)
+                        .body("{\"errors\":[{\"code\":\"incorrect_password\"}]}"));
+        server.expect(requestTo(API + "/users/user_1/verify_password")).andRespond(withStatus(HttpStatus.BAD_GATEWAY));
+
+        assertTrue(client.passwordEnabled("user_1"));
+        assertTrue(client.verifyPassword("user_1", "dobre"));
+        assertFalse(client.verifyPassword("user_1", "zle"));
+        assertThrows(RestClientException.class, () -> client.verifyPassword("user_1", "dobre"));
         server.verify();
     }
 

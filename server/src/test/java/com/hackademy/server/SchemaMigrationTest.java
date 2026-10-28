@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 32;
+    static final int SCHEMA_VERSION = 33;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -175,12 +175,26 @@ class SchemaMigrationTest {
     void sharesActivityOfExistingUsersUntilTheyHideIt() throws Exception {
         flyway("31").migrate();
         insertUser(1, "Alice", "alice@example.com");
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("32").migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE share_activity AND last_seen_at IS NULL"));
         execute("UPDATE users SET share_activity = false, last_seen_at = now() WHERE id = 1");
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE NOT share_activity AND last_seen_at IS NOT NULL"));
         assertSqlState("23502", "UPDATE users SET share_activity = NULL WHERE id = 1");
-        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertEquals(0, flyway("32").migrate().migrationsExecuted);
+        assertTrue(flyway("32").validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void keepsBugReportsOfDeletedAccountsWithoutTheirAuthor() throws Exception {
+        flyway("32").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        insertUser(2, "Bob", "bob@example.com");
+        execute("INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (1, 'ARENA', 'Mecz się zawiesił', now()), (2, 'ARENA', 'Pytanie jest błędne', now())");
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        execute("DELETE FROM users WHERE id = 1");
+        assertEquals("Mecz się zawiesił", text("SELECT description FROM bug_reports WHERE reporter_id IS NULL"));
+        assertEquals(1, scalar("SELECT count(*) FROM bug_reports WHERE reporter_id = 2"));
+        assertSqlState("23503", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (99, 'ARENA', 'Nieznany autor zgłoszenia', now())");
         assertTrue(flyway().validateWithResult().validationSuccessful);
     }
 
@@ -410,7 +424,8 @@ class SchemaMigrationTest {
                      + (SELECT count(*) FROM user_completed_tasks)
                      + (SELECT count(*) FROM user_unlocked_hints)
                 """));
-        assertEquals(1, scalar("SELECT count(*) FROM bug_reports WHERE room_id IS NULL AND task_id IS NULL"));
+        assertEquals(2, scalar("SELECT count(*) FROM bug_reports WHERE room_id IS NULL AND task_id IS NULL"));
+        assertEquals("Nie działa podpowiedź", text("SELECT description FROM bug_reports WHERE reporter_id IS NULL"));
         assertEquals(1, scalar("SELECT count(*) FROM users"));
         assertEquals(7, scalar("SELECT count(*) FROM badges"));
         assertEquals(1, scalar("SELECT count(*) FROM path_chapters"));

@@ -43,6 +43,13 @@ export function saveNotificationPreference(preference: keyof NotificationPrefere
   });
 }
 
+export function deleteAccount(password: string | undefined, auth: SessionScope, freshToken = false) {
+  return request<void>('/api/user/me', {
+    method: 'DELETE', auth, freshToken, headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(password === undefined ? {} : { password }),
+  });
+}
+
 export function changeUsername(newUsername: string, auth: SessionScope) {
   return request<{ username: string }>('/api/user/me/username', {
     method: 'PATCH', auth, headers: { 'Content-Type': 'application/json' },

@@ -1,8 +1,9 @@
-import { setClerkSession, openUserProfile } from '../test/clerk';
+import { reverify, setClerkPassword, setClerkSession, openUserProfile, signOut } from '../test/clerk';
 import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
+import { ClerkRuntimeError } from '@clerk/react/errors';
 import { describe, expect, it, vi } from 'vitest';
 import { http, HttpResponse } from 'msw';
-import { MemoryRouter } from 'react-router-dom';
+import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
 import { NotificationPreferencesProvider } from '../context/NotificationPreferencesContext';
@@ -235,6 +236,77 @@ describe('settings', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Zarządzaj dostępem' }));
     expect(openUserProfile).toHaveBeenCalledOnce();
     expect(screen.queryByLabelText('Obecne hasło')).toBeNull();
+  });
+
+  it('deletes the account only after the password is confirmed, then signs out', async () => {
+    const attempts: unknown[] = [];
+    server.use(http.delete(`${API_URL}/api/user/me`, async ({ request }) => {
+      const body = await request.json() as { password?: string };
+      attempts.push(body);
+      return body.password === 'dobre-haslo'
+        ? new HttpResponse(null, { status: 204 })
+        : HttpResponse.json({ message: 'Hasło jest nieprawidłowe.' }, { status: 400 });
+    }));
+    setClerkSession(createToken());
+    render(<MemoryRouter initialEntries={['/settings?section=security']}><AuthProvider><ThemeProvider><NotificationPreferencesProvider>
+      <Routes><Route path="/settings" element={<SettingsPage />} /><Route path="/" element={<p>Strona główna</p>} /></Routes>
+    </NotificationPreferencesProvider></ThemeProvider></AuthProvider></MemoryRouter>);
+    const zone = screen.getByRole('region', { name: 'Strefa niebezpieczna' });
+    fireEvent.click(within(zone).getByRole('button', { name: 'Usuń konto' }));
+    const dialog = await screen.findByRole('dialog', { name: 'Usunąć konto na zawsze?' });
+    const confirm = within(dialog).getByRole('button', { name: 'Usuń konto na zawsze' });
+    expect(confirm).toBeDisabled();
+
+    fireEvent.change(within(dialog).getByLabelText('Obecne hasło'), { target: { value: 'zle-haslo' } });
+    fireEvent.click(confirm);
+    expect(await within(dialog).findByRole('alert')).toHaveTextContent('Hasło jest nieprawidłowe.');
+    expect(signOut).not.toHaveBeenCalled();
+    expect(screen.queryByText('Strona główna')).toBeNull();
+
+    fireEvent.change(within(dialog).getByLabelText('Obecne hasło'), { target: { value: 'dobre-haslo' } });
+    fireEvent.click(confirm);
+    await screen.findByText('Strona główna');
+    expect(attempts).toEqual([{ password: 'zle-haslo' }, { password: 'dobre-haslo' }]);
+    expect(signOut).toHaveBeenCalledOnce();
+    expect(sessionStorage.getItem('hackademy.account-deleted')).toBe('1');
+  });
+
+  it('confirms an account without a password through the emailed code', async () => {
+    const sent: unknown[] = [];
+    server.use(http.delete(`${API_URL}/api/user/me`, async ({ request }) => {
+      sent.push(await request.json());
+      return sent.length === 1
+        ? HttpResponse.json({ clerk_error: { type: 'forbidden', reason: 'reverification-error' } }, { status: 403 })
+        : new HttpResponse(null, { status: 204 });
+    }));
+    setClerkPassword(false);
+    mount('security');
+    fireEvent.click(await screen.findByRole('button', { name: 'Usuń konto' }));
+    const dialog = await screen.findByRole('dialog');
+    expect(within(dialog).queryByRole('textbox')).not.toBeInTheDocument();
+    expect(dialog).toHaveTextContent('wyślemy na Twój adres e-mail kod');
+    fireEvent.click(within(dialog).getByRole('button', { name: 'Usuń konto na zawsze' }));
+    await waitFor(() => expect(signOut).toHaveBeenCalledOnce());
+    expect(reverify).toHaveBeenCalledOnce();
+    expect(sent).toEqual([{}, {}]);
+  });
+
+  it('keeps the account when the emailed code is cancelled', async () => {
+    let calls = 0;
+    server.use(http.delete(`${API_URL}/api/user/me`, () => {
+      calls += 1;
+      return HttpResponse.json({ clerk_error: { type: 'forbidden', reason: 'reverification-error' } }, { status: 403 });
+    }));
+    reverify.mockRejectedValueOnce(new ClerkRuntimeError('User cancelled attempted verification', { code: 'reverification_cancelled' }));
+    setClerkPassword(false);
+    mount('security');
+    fireEvent.click(await screen.findByRole('button', { name: 'Usuń konto' }));
+    fireEvent.click(within(await screen.findByRole('dialog')).getByRole('button', { name: 'Usuń konto na zawsze' }));
+    await waitFor(() => expect(reverify).toHaveBeenCalledOnce());
+    await waitFor(() => expect(screen.getByRole('button', { name: 'Usuń konto' })).toBeEnabled());
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    expect(calls).toBe(1);
+    expect(signOut).not.toHaveBeenCalled();
   });
 
   it('explains what each event triggers and updates the summary live', async () => {

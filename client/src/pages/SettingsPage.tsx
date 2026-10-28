@@ -1,7 +1,7 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import type { FormEvent, ReactNode } from 'react';
 import { Link, useNavigate, useSearchParams } from 'react-router-dom';
-import { useClerk } from '@clerk/react';
+import { useClerk, useReverification, useUser } from '@clerk/react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
@@ -22,6 +22,8 @@ import { chooseVariant, playSound, selectedVariant, soundVariants, unlockAudio }
 import type { SoundEvent } from '../lib/notificationSounds';
 import { USERNAME_MAX } from '../lib/username';
 import { getActivitySharing, saveActivitySharing } from '../services/presenceApi';
+import { DeleteAccountDialog } from '../components/settings/DeleteAccountDialog';
+import { rememberAccountDeleted } from '../lib/accountDeletion';
 
 const sections: Record<'account' | 'notifications' | 'appearance' | 'security', { title: string; description: string; icon: Icon }> = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.', icon: UserCircle },
@@ -72,10 +74,11 @@ function NotificationPreview({ ownName, ownAvatar }: { ownName?: string; ownAvat
   </div>;
 }
 
-async function responseError(response: ApiResponse<unknown>, fallback: string) {
+async function responseError(response: ApiResponse<unknown>, fallback: string, passMessage = false) {
   if (response.status === 401) return 'Sesja wygasła. Zaloguj się ponownie.';
   try {
     const body = await response.json() as Record<string, unknown>;
+    if (passMessage && typeof body.message === 'string' && response.status !== 500) return body.message;
     if (body.message === 'Incorrect current password') return 'Obecne hasło jest nieprawidłowe.';
     if (typeof body.newUsername === 'string') return `${body.newUsername}.`;
   } catch { return fallback; }
@@ -86,8 +89,8 @@ function SettingRow({ title, description, extra, children }: { title: string; de
   return <div className="settings-row"><div className="settings-row-text"><h4>{title}</h4><p>{description}</p>{extra}</div><div className="settings-control">{children}</div></div>;
 }
 
-function SettingsGroup({ id, title, children }: { id: string; title: string; children: ReactNode }) {
-  return <section className="settings-group" aria-labelledby={`settings-group-${id}`}>
+function SettingsGroup({ id, title, danger, children }: { id: string; title: string; danger?: boolean; children: ReactNode }) {
+  return <section className={danger ? 'settings-group settings-group-danger' : 'settings-group'} aria-labelledby={`settings-group-${id}`}>
     <h3 id={`settings-group-${id}`} className="settings-group-title">{title}</h3>
     <div className="settings-panel">{children}</div>
   </section>;
@@ -112,6 +115,7 @@ export default function SettingsPage() {
   const [accountAttempt, setAccountAttempt] = useState(0);
   const [username, setUsername] = useState(user?.username ?? '');
   const { openUserProfile } = useClerk();
+  const { isLoaded: clerkLoaded, user: clerkUser } = useUser();
   const [busy, setBusy] = useState<'permission' | null>(null);
   const { change: changeUsername, changing: renaming } = useUsernameChange();
   const [nameError, setNameError] = useState('');
@@ -139,6 +143,27 @@ export default function SettingsPage() {
       .catch(() => { if (!controller.signal.aborted) setSharingFailed(true); });
     return () => controller.abort();
   }, [sessionKey, sharingAttempt]);
+
+  const reverified = useRef(false);
+  const sendDeletion = useReverification(async (password?: string) => {
+    const response = await userApi.deleteAccount(password, { sessionKey }, reverified.current);
+    if (response.status !== 403) return response;
+    const hint = await response.clone().json().catch(() => null) as { clerk_error?: unknown } | null;
+    if (!hint?.clerk_error || reverified.current) return response;
+    reverified.current = true;
+    return { clerk_error: hint.clerk_error };
+  });
+
+  const deleteAccount = async (password?: string) => {
+    if (!sessionKey) throw new Error('Sesja wygasła. Zaloguj się ponownie.');
+    reverified.current = false;
+    const result = await sendDeletion(password);
+    if ('clerk_error' in result) throw new Error('Nie udało się potwierdzić tożsamości. Spróbuj ponownie.');
+    if (!result.ok) throw new Error(await responseError(result, 'Nie udało się usunąć konta. Spróbuj ponownie.', true));
+    rememberAccountDeleted();
+    await logout().catch(() => {});
+    navigate('/', { replace: true });
+  };
 
   const changeSharing = async (enabled: boolean) => {
     if (!sessionKey) return;
@@ -376,6 +401,11 @@ export default function SettingsPage() {
           </SettingsGroup>
           <SettingsGroup id="session" title="Bieżąca sesja">
             <SettingRow title="Wyloguj się z tego urządzenia" description="Zakończ korzystanie z konta w tej przeglądarce."><button className="settings-button" onClick={() => { logout(); navigate('/login'); }}>Wyloguj się</button></SettingRow>
+          </SettingsGroup>
+          <SettingsGroup id="danger" title="Strefa niebezpieczna" danger>
+            <SettingRow title="Usuń konto" description="Konto znika od razu i na zawsze. Nastąpi wylogowanie, a adres e-mail i nazwa użytkownika będą wolne do ponownej rejestracji.">
+              <DeleteAccountDialog username={account?.username ?? user?.username ?? ''} passwordEnabled={clerkLoaded ? clerkUser?.passwordEnabled : undefined}
+                onDelete={deleteAccount} /></SettingRow>
           </SettingsGroup>
         </>}
         <div className={`settings-feedback ${feedback?.error ? 'settings-feedback-error' : ''}`} role={feedback?.error ? 'alert' : 'status'} aria-live="polite">{saving ? 'Zapisywanie preferencji…' : feedback?.message}</div>

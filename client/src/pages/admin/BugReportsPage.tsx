@@ -145,7 +145,7 @@ export default function BugReportsPage() {
                   <TableCell className="max-w-xl align-top whitespace-normal">
                     <p className="break-words whitespace-pre-wrap">{report.description}</p>
                     <p className="mt-1 text-xs text-muted-foreground tabular-nums">
-                      {report.reporterUsername}, {dateTimeFormat.format(new Date(report.createdAt))}
+                      {report.reporterUsername ?? 'Usunięte konto'}, {dateTimeFormat.format(new Date(report.createdAt))}
                     </p>
                     <div className="mt-2 md:hidden"><Place report={report} /></div>
                   </TableCell>

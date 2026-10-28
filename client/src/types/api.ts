@@ -183,7 +183,7 @@ export interface BugReportRequest {
 
 export interface BugReportAdmin {
   id: number
-  reporterUsername: string
+  reporterUsername: string | null
   source: BugReportSource
   roomId: number | null
   roomTitle: string | null

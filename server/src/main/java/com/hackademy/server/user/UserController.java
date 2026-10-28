@@ -3,6 +3,7 @@ package com.hackademy.server.user;
 import com.hackademy.server.dashboard.ActivityDto;
 import com.hackademy.server.room.dto.RecentSolvedRoomDto;
 import com.hackademy.server.ranking.RankingEntry;
+import com.hackademy.server.user.dto.DeleteAccountRequest;
 import com.hackademy.server.user.dto.UpdateBioRequest;
 import com.hackademy.server.user.dto.UpdateUsernameRequest;
 import com.hackademy.server.user.dto.UsernameAvailabilityDto;
@@ -20,6 +21,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.web.bind.annotation.*;
 import org.springframework.transaction.annotation.Transactional;
 
@@ -145,6 +147,15 @@ public class UserController {
     public ResponseEntity<UserAvatarDto> saveAvatar(@Valid @RequestBody UserAvatarDto request) {
         User user = (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         return ResponseEntity.ok(userService.saveAvatar(user.getId(), request));
+    }
+
+    @DeleteMapping("/me")
+    public ResponseEntity<Void> deleteAccount(@Valid @RequestBody DeleteAccountRequest request) {
+        var authentication = SecurityContextHolder.getContext().getAuthentication();
+        User user = (User) authentication.getPrincipal();
+        Object factorAges = authentication.getCredentials() instanceof Jwt jwt ? jwt.getClaim("fva") : null;
+        userService.deleteOwnAccount(user.getId(), request.password(), factorAges);
+        return ResponseEntity.noContent().build();
     }
 
     @DeleteMapping("/me/avatar")

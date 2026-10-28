@@ -18,5 +18,20 @@ export function useMockAuth() {
   return { isLoaded: loaded, isSignedIn: !!token, sessionId: token ? `session:${token}` : null, getToken };
 }
 export function useMockClerk() { return { signOut, openUserProfile }; }
+let passwordEnabled = true;
+export function setClerkPassword(enabled: boolean) { passwordEnabled = enabled; }
+export function useMockUser() {
+  useSyncExternalStore(subscribe, () => `${loaded}:${token}`);
+  return { isLoaded: loaded, isSignedIn: !!token, user: token ? { passwordEnabled } : null };
+}
+export const reverify = vi.fn(async () => {});
+export function useMockReverification<A extends unknown[], R>(fetcher: (...args: A) => Promise<R>) {
+  return async (...args: A) => {
+    const result = await fetcher(...args);
+    if (!result || typeof result !== 'object' || !('clerk_error' in result)) return result;
+    await reverify();
+    return fetcher(...args);
+  };
+}
 export function MockSignIn() { return <div data-testid="clerk-sign-in">Logowanie Clerk</div>; }
 export function MockSignUp() { return <div data-testid="clerk-sign-up">Rejestracja Clerk</div>; }

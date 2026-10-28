@@ -3,6 +3,7 @@ package com.hackademy.server.arena;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
+import com.hackademy.server.user.AccountBlockedEvent;
 import com.hackademy.server.user.AvatarChangedEvent;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserAvatarRepository;
@@ -50,6 +51,7 @@ public class ArenaServiceImpl implements ArenaService {
     static final String STALE_CHALLENGE = "To wyzwanie jest już nieaktualne.";
     static final String EXPIRED_CHALLENGE = "To wyzwanie wygasło.";
     static final String REJECTED_CHALLENGE = "To wyzwanie zostało odrzucone.";
+    static final String DELETED_PLAYER = "Usunięte konto";
     static final long PLAYER_GONE_MILLIS = 30_000;
     static final Duration DEFAULT_CHALLENGE_EXPIRY = Duration.ofSeconds(60);
     static final long NOTICE_MILLIS = 300_000;
@@ -605,6 +607,46 @@ public class ArenaServiceImpl implements ArenaService {
                 .flatMap(challenge -> Stream.of(challenge.getChallengerId(), challenge.getTargetId()))
                 .collect(Collectors.toSet());
         if (!involved.isEmpty()) realtime.arenaChanged(involved.toArray(Long[]::new));
+    }
+
+    @EventListener
+    public void accountBlocked(AccountBlockedEvent event) {
+        Long userId = event.userId();
+        matchmaking.leaveQueue(userId);
+        for (GameSession session : activeGames.values()) {
+            if (!session.includes(userId)) continue;
+            synchronized (session) {
+                if (userId.equals(session.getPlayer1Id())) {
+                    session.setPlayer1Username(DELETED_PLAYER);
+                    session.setPlayer1Avatar(null);
+                } else {
+                    session.setPlayer2Username(DELETED_PLAYER);
+                    session.setPlayer2Avatar(null);
+                }
+                if (!"ACTIVE".equals(session.getStatus())) realtime.changed(session.people());
+                else if (session.getBotId() != null) finish(session, null, "CANCELLED");
+                else finish(session, session.opponentOf(userId), "SURRENDER");
+            }
+        }
+        currentGames.remove(userId);
+        var others = new TreeSet<Long>();
+        for (Challenge challenge : challenges.values()) {
+            if (!challenge.getChallengerId().equals(userId) && !challenge.getTargetId().equals(userId)) continue;
+            synchronized (challenge) {
+                if (challenges.get(challenge.getId()) == challenge && removeChallenge(challenge, "CANCELLED")) {
+                    others.add(challenge.getChallengerId());
+                    others.add(challenge.getTargetId());
+                }
+            }
+        }
+        notices.forEach((id, notice) -> {
+            var challenge = notice.challenge();
+            if ((challenge.getChallengerId().equals(userId) || challenge.getTargetId().equals(userId)) && notices.remove(id, notice)) {
+                others.add(challenge.getChallengerId());
+            }
+        });
+        others.remove(userId);
+        if (!others.isEmpty()) realtime.arenaChanged(others.toArray(Long[]::new));
     }
 
     @Override
