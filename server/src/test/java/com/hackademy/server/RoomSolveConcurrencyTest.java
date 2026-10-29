@@ -14,22 +14,26 @@ import com.hackademy.server.user.UserRepository;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
 import org.springframework.test.context.DynamicPropertyRegistry;
 import org.springframework.test.context.DynamicPropertySource;
 import org.testcontainers.junit.jupiter.Container;
 import org.testcontainers.junit.jupiter.Testcontainers;
 import org.testcontainers.postgresql.PostgreSQLContainer;
 
+import javax.sql.DataSource;
+import java.sql.Connection;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
 import java.util.concurrent.Callable;
-import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
 
 @SpringBootTest
 @Testcontainers
@@ -59,12 +63,18 @@ class RoomSolveConcurrencyTest {
     @Autowired
     private UserSolvedRoomRepository userSolvedRoomRepository;
 
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
     @Test
     void sameRoomFlagSolvesAwardPointsOnce() throws Exception {
         User user = user();
         Room room = room(DifficultyLevel.MEDIUM);
 
-        List<SolveRoomResponse> results = race(
+        List<SolveRoomResponse> results = race(user,
                 () -> roomService.solveRoom(room.getId(), "CTF{race}", user.getUsername()),
                 () -> roomService.solveRoom(room.getId(), "CTF{race}", user.getUsername()));
 
@@ -81,7 +91,7 @@ class RoomSolveConcurrencyTest {
         Room first = room(DifficultyLevel.MEDIUM);
         Room second = room(DifficultyLevel.EASY);
 
-        List<SolveRoomResponse> results = race(
+        List<SolveRoomResponse> results = race(user,
                 () -> roomService.solveRoom(first.getId(), "CTF{race}", user.getUsername()),
                 () -> roomService.solveRoom(second.getId(), "CTF{race}", user.getUsername()));
 
@@ -102,7 +112,7 @@ class RoomSolveConcurrencyTest {
                 .sortOrder(0)
                 .build());
 
-        List<SolveRoomResponse> results = race(
+        List<SolveRoomResponse> results = race(user,
                 () -> roomService.solveRoom(room.getId(), "CTF{race}", user.getUsername()),
                 () -> roomService.solveTask(room.getId(), task.getId(), "answer", user.getUsername()));
 
@@ -129,18 +139,20 @@ class RoomSolveConcurrencyTest {
     }
 
     @SafeVarargs
-    private static List<SolveRoomResponse> race(Callable<SolveRoomResponse>... solves) throws Exception {
-        var start = new CountDownLatch(1);
+    private List<SolveRoomResponse> race(User user, Callable<SolveRoomResponse>... solves) throws Exception {
         var pool = Executors.newFixedThreadPool(solves.length);
-        try {
-            var futures = new ArrayList<java.util.concurrent.Future<SolveRoomResponse>>();
-            for (var solve : solves) {
-                futures.add(pool.submit(() -> {
-                    start.await();
-                    return solve.call();
-                }));
+        try (Connection holder = dataSource.getConnection()) {
+            holder.setAutoCommit(false);
+            try (var lock = holder.prepareStatement("SELECT id FROM users WHERE id = ? FOR UPDATE")) {
+                lock.setLong(1, user.getId());
+                lock.executeQuery();
             }
-            start.countDown();
+            var futures = new ArrayList<Future<SolveRoomResponse>>();
+            for (var solve : solves) {
+                futures.add(pool.submit(solve));
+            }
+            awaitSolvesWaitingOnLocks(solves.length);
+            holder.commit();
             var results = new ArrayList<SolveRoomResponse>();
             for (var future : futures) {
                 results.add(future.get(10, TimeUnit.SECONDS));
@@ -149,5 +161,21 @@ class RoomSolveConcurrencyTest {
         } finally {
             pool.shutdownNow();
         }
+    }
+
+    private void awaitSolvesWaitingOnLocks(int count) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (sessionsWaitingOnLocks() < count) {
+            if (System.nanoTime() > deadline) {
+                fail("Expected " + count + " solves to wait on the user's row lock");
+            }
+            Thread.sleep(20);
+        }
+    }
+
+    private int sessionsWaitingOnLocks() {
+        return jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'",
+                Integer.class);
     }
 }

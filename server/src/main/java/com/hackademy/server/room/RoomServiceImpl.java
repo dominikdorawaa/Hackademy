@@ -403,7 +403,6 @@ public class RoomServiceImpl implements RoomService {
         return awardRoomSolve(user, room, "Poprawna odpowiedź! Pokój ukończony!", "Poprawna odpowiedź! (Pokój już ukończony)");
     }
 
-    // Callers must hold the user's row lock (findByUsernameForUpdate) so concurrent solves award XP once.
     private SolveRoomResponse awardRoomSolve(User user, Room room, String solvedMessage, String alreadySolvedMessage) {
         Long roomId = room.getId();
         if (userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
@@ -459,7 +458,6 @@ public class RoomServiceImpl implements RoomService {
             return new SolveRoomResponse(false, "Niepoprawna flaga", 0, new ArrayList<>());
         }
 
-        // Lock only for a correct flag, so wrong guesses never queue behind the user's row.
         User user = userRepository.findByUsernameForUpdate(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
         return awardRoomSolve(user, room, "Poprawna flaga!", "Poprawna flaga! (Tryb treningowy - 0 pkt)");
