@@ -8,7 +8,6 @@ import type { BadgeFilter } from './ProfileBadges';
 
 const PAGE_SIZE = 6;
 
-// Up to seven slots: every page when they fit, otherwise the first, the last and the current page's neighbours.
 export function pageSlots(current: number, count: number): (number | 'gap')[] {
   if (count <= 7) return Array.from({ length: count }, (_, index) => index);
   if (current < 4) return [0, 1, 2, 3, 4, 'gap', count - 1];
@@ -64,7 +63,6 @@ export default function BadgeCatalog({ badges, initialFilter, own, onClose }: {
     setView(next); setPage(0);
   }
 
-  // An arrow that becomes disabled would drop focus to the page body, so it moves to the current page instead.
   function step(next: number) {
     focusCurrentPage.current = next === 0 || next === pageCount - 1;
     setPage(next);

@@ -39,7 +39,6 @@
   text-decoration: none;
 }
 
-/* --- Shell: learning on the left, standings on the right --- */
 .ud-shell {
   max-width: 1320px;
   margin: 0 auto;
@@ -57,7 +56,6 @@
   min-width: 0;
 }
 
-/* --- Today's stats --- */
 .ud-today {
   display: flex;
   flex-wrap: wrap;
@@ -90,7 +88,6 @@
   font-weight: 650;
 }
 
-/* --- Next room: a blue-tinted field; brand blue is kept for the action --- */
 .ud-next {
   background: var(--ud-hero-bg);
   color: var(--ud-hero-ink);
@@ -143,7 +140,6 @@
   background: var(--ud-cta-hover);
 }
 
-/* --- Buttons --- */
 .ud-btn {
   display: inline-flex;
   align-items: center;
@@ -223,7 +219,6 @@
   text-decoration-color: currentColor;
 }
 
-/* --- Current path --- */
 .ud-path {
   background: var(--ud-surface);
   border: 1px solid var(--ud-line);
@@ -383,7 +378,6 @@ a.ud-room-row:hover .ud-room-icon {
   color: var(--ud-xp);
 }
 
-/* --- Level and recent flags --- */
 .ud-pair {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -515,7 +509,6 @@ a.ud-room-row:hover .ud-room-icon {
   margin-top: 0;
 }
 
-/* --- Standings: the competition column --- */
 .ud-board {
   position: sticky;
   top: 24px;
@@ -620,7 +613,6 @@ a.ud-room-row:hover .ud-room-icon {
   line-height: 1.1;
 }
 
-/* --- Arena: league, Elo and the place in the Elo ranking --- */
 .ud-arena {
   padding: 20px;
 }
@@ -879,7 +871,6 @@ a.ud-room-row:hover .ud-room-icon {
   display: none;
 }
 
-/* --- Profile preview on hover or focus --- */
 .ud-peek {
   min-width: 0;
 }
@@ -1114,7 +1105,6 @@ a.ud-room-row:hover .ud-room-icon {
   color: var(--ud-peek-error);
 }
 
-/* --- Friends --- */
 .ud-friend-list {
   margin-top: 16px;
   display: flex;
@@ -1205,7 +1195,6 @@ a.ud-room-row:hover .ud-room-icon {
   font-size: var(--ud-text-s);
 }
 
-/* --- Loading and error states --- */
 .ud-skel-next { height: 168px; }
 .ud-skel-block { height: 220px; }
 .ud-skel-rank { height: 180px; margin-bottom: 16px; }
@@ -1234,7 +1223,6 @@ a.ud-room-row:hover .ud-room-icon {
   margin-top: 28px;
 }
 
-/* --- Responsive --- */
 @media (max-width: 1080px) {
   .ud-shell {
     grid-template-columns: minmax(0, 1fr);

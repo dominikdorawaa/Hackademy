@@ -107,7 +107,7 @@ public class UserServiceImpl implements UserService {
     private final com.hackademy.server.friendship.FriendshipRepository friendships;
     private final AccountDeletionService accountDeletionService;
     private final UserSolvedRoomRepository userSolvedRoomRepository;
-    private final UserBadgeRepository userBadgeRepository; // Inject UserBadgeRepository
+    private final UserBadgeRepository userBadgeRepository;
     private final FriendshipService friendshipService;
     private final BadgeService badgeService;
     private final UserWeeklyActiveTimeRepository userWeeklyActiveTimeRepository;
@@ -144,7 +144,7 @@ public class UserServiceImpl implements UserService {
         return new ProfilePortfolioDto(areas, paths);
     }
 
-    private static final long CACHE_MS = 30_000; // 30 seconds
+    private static final long CACHE_MS = 30_000;
     private static final class CacheEntry<T> {
         final long timeMs;
         final T value;
@@ -315,7 +315,6 @@ public class UserServiceImpl implements UserService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Calculate effective streak
         int effectiveStreak = user.getStreak();
         LocalDate lastSolved = user.getLastSolvedDate();
         LocalDate today = LocalDate.now();
@@ -323,7 +322,6 @@ public class UserServiceImpl implements UserService {
             effectiveStreak = 0;
         }
 
-        // Get badges
         List<BadgeDto> badges = badgeService.getAllBadgesWithStatus(user.getId());
 
         return UserProfileDto.builder()
@@ -338,7 +336,7 @@ public class UserServiceImpl implements UserService {
                 .interests(List.copyOf(user.getInterests()))
                 .featuredBadgeIds(List.copyOf(user.getFeaturedBadgeIds()))
                 .avatar(userAvatarRepository.findDtoByUserId(user.getId()))
-                .badges(badges) // Add badges to DTO
+                .badges(badges)
                 .build();
     }
 
@@ -398,10 +396,8 @@ public class UserServiceImpl implements UserService {
             User user = userRepository.findById(userId)
                     .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-            // Calculate rank based on points
             long rankPoints = userRepository.countByPointsGreaterThan(user.getPoints()) + 1;
 
-            // Calculate rank based on ELO
             long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
 
             RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), userAvatarRepository.findDtoByUserId(userId));
@@ -431,7 +427,6 @@ public class UserServiceImpl implements UserService {
 
     @Override
     public List<ActivityDto> getUserActivity(Long userId) {
-        // Get activity for the last year
         LocalDateTime oneYearAgo = LocalDateTime.now().minusYears(1);
         return userSolvedRoomRepository.findUserActivity(userId, oneYearAgo);
     }
@@ -470,7 +465,6 @@ public class UserServiceImpl implements UserService {
                     .map(com.hackademy.server.dashboard.UserWeeklyActiveTime::getSeconds)
                     .orElse(0);
         } catch (RuntimeException e) {
-            // If the table isn't present (e.g. migrations not applied yet), return 0 instead of throwing.
             return 0;
         }
     }

@@ -15,10 +15,8 @@
 }
 
 @layer base {
-/* --- ZMIENNE I RESET --- */
 :root {
   --font-heading: 'Jersey 10', 'Poppins', sans-serif;
-  /* Default Dark Mode */
   --bg-dark: #0f1724;
   --bg-panel: #111827;
   --bg-panel-lighter: #1f2937;
@@ -52,17 +50,16 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* Light Mode Overrides - "Card on Table" look */
 [data-theme='light'] {
   color-scheme: light;
-  --bg-dark: #e5e7eb;       /* Wyraźne szare tło strony (Gray-200) */
-  --bg-panel: #f9fafb;      /* Złamana biel dla kart (Gray-50) */
-  --bg-panel-lighter: #ffffff; /* Czysta biel dla nagłówków/wyróżnień */
-  --text-light: #111827;    /* Prawie czarny tekst (Gray-900) */
-  --text-gray: #4b5563;     /* Ciemniejszy szary tekst (Gray-600) */
-  --border-color: #d1d5db;  /* Wyraźniejszy border (Gray-300) */
-  --input-bg: #ffffff;      /* Białe inputy */
-  --input-border: #9ca3af;  /* Szary border inputów (Gray-400) */
+  --bg-dark: #e5e7eb;
+  --bg-panel: #f9fafb;
+  --bg-panel-lighter: #ffffff;
+  --text-light: #111827;
+  --text-gray: #4b5563;
+  --border-color: #d1d5db;
+  --input-bg: #ffffff;
+  --input-border: #9ca3af;
 }
 
 body {
@@ -75,8 +72,8 @@ body {
   flex-direction: column;
   min-height: 100vh;
   margin: 0;
-  display: block; /* Overwrite vite default */
-  place-items: initial; /* Overwrite vite default */
+  display: block;
+  place-items: initial;
   min-width: 320px;
 }
 
@@ -126,7 +123,6 @@ a {
   padding: 0 20px;
 }
 
-/* --- BUTTONS --- */
 .btn {
   display: inline-block;
   padding: 12px 28px;
@@ -139,7 +135,7 @@ a {
 }
 
 .btn-primary {
-  background: var(--primary-blue); /* Ujednolicone tło */
+  background: var(--primary-blue);
   background: linear-gradient(135deg, #0b63ff 0%, #2563eb 100%);
   color: white;
   box-shadow: var(--glow-blue);
@@ -158,7 +154,6 @@ a {
   color: var(--text-light);
 }
 
-/* --- BUTTON OUTLINE (Dla "Wyzwij Znajomego") --- */
 .btn-outline {
     background: transparent;
     border: 1px solid var(--border-color);
@@ -175,7 +170,7 @@ a {
 }
 
 [data-theme='light'] .btn-outline {
-    border-color: #9ca3af; /* Ciemniejszy border w light mode */
+    border-color: #9ca3af;
     color: var(--text-gray);
 }
 
@@ -185,11 +180,10 @@ a {
     background-color: rgba(11, 99, 255, 0.05);
 }
 
-/* --- ELO BUTTON OUTLINE (Specjalny dla Areny) --- */
 .elo-btn-outline {
     background: transparent;
-    border: 1px solid rgba(255, 255, 255, 0.2); /* Domyślnie jasny border dla dark mode */
-    color: white; /* Domyślnie biały tekst dla dark mode */
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: white;
     width: 100%;
     padding: 15px;
     font-weight: 700;
@@ -210,8 +204,8 @@ a {
 }
 
 [data-theme='light'] .elo-btn-outline {
-    border: 1px solid var(--border-color); /* Ciemniejszy border w light mode */
-    color: var(--text-light); /* Ciemny tekst w light mode */
+    border: 1px solid var(--border-color);
+    color: var(--text-light);
 }
 
 [data-theme='light'] .elo-btn-outline:hover {
@@ -219,7 +213,6 @@ a {
     border-color: var(--text-light);
 }
 
-/* --- SECTION TITLES --- */
 .section-title {
   font-size: 2.5rem;
   text-align: center;
@@ -235,7 +228,6 @@ a {
   margin-right: auto;
 }
 
-/* --- NAVBAR --- */
 .navbar {
   position: sticky;
   top: 0;
@@ -252,8 +244,8 @@ a {
 }
 
 [data-theme='light'] .navbar {
-    background: rgba(249, 250, 251, 0.95); /* Dopasowane do --bg-panel */
-    box-shadow: 0 2px 10px rgba(0,0,0,0.05); /* Delikatny cień w light mode */
+    background: rgba(249, 250, 251, 0.95);
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
 }
 
 .nav-content {
@@ -272,7 +264,6 @@ a {
   color: var(--primary-red);
 }
 
-/* Logo Invert for Light Mode */
 [data-theme='light'] .logo img {
     filter: invert(1);
 }
@@ -296,7 +287,6 @@ a {
   align-items: center;
 }
 
-/* --- HERO SECTION --- */
 .hero {
   padding: 80px 0;
   position: relative;
@@ -362,7 +352,6 @@ a {
   font-size: 0.85rem;
 }
 
-/* Terminal Visual */
 .terminal-window {
   background: var(--bg-panel);
   border-radius: 12px;
@@ -409,7 +398,6 @@ a {
   }
 }
 
-/* --- HOW IT WORKS (ZMODYFIKOWANE) --- */
 .how-it-works {
   padding: 100px 0;
   background: var(--bg-dark);
@@ -437,7 +425,6 @@ a {
   margin-bottom: 1.5rem;
 }
 
-/* Nowe style ikon zgodne z obrazkiem */
 .step-icon-box {
   width: 80px;
   height: 80px;
@@ -474,7 +461,6 @@ a {
   max-width: 300px;
 }
 
-/* --- ROOMS SHOWCASE (BEZ PROGRESSU) --- */
 .rooms-showcase {
   padding: 80px 0;
 }
@@ -509,7 +495,7 @@ a {
   height: 100%;
   background: rgba(15, 23, 36, 0.95);
   backdrop-filter: blur(4px);
-  color: #e6eef8; /* Always light text on dark tooltip */
+  color: #e6eef8;
   padding: 20px;
   display: flex;
   align-items: center;
@@ -530,7 +516,6 @@ a {
   opacity: 1;
 }
 
-/* Tag na górze karty */
 .room-top-badge {
   position: absolute;
   top: 15px;
@@ -582,7 +567,6 @@ a {
   color: #a855f7;
 }
 
-/* Light Mode Difficulty Badges - High Contrast */
 [data-theme='light'] .diff-easy {
   background: #10b981;
   color: white;
@@ -619,7 +603,6 @@ a {
   margin-bottom: 1.5rem;
 }
 
-/* Sekcja 'read-only' na dole karty */
 .room-locked-footer {
   margin-top: auto;
   padding-top: 15px;
@@ -637,7 +620,6 @@ a {
   gap: 6px;
 }
 
-/* --- LEADERBOARD (ZACHOWANE Z POPRZEDNIEJ WERSJI) --- */
 .leaderboard-section {
   padding: 80px 0;
   background: var(--bg-dark);
@@ -744,7 +726,6 @@ a {
   color: var(--text-gray);
 }
 
-/* --- FOOTER --- */
 footer {
   background: var(--bg-panel);
   padding: 40px 0;
@@ -787,7 +768,6 @@ footer {
   }
 }
 
-/* --- COMPETITION / ARENA SECTION --- */
 .arena-section {
   padding: 100px 0;
   background: var(--bg-dark);
@@ -795,7 +775,6 @@ footer {
   overflow: hidden;
 }
 
-/* Tło w kropki/siatkę dla efektu tech */
 .arena-section::before {
   content: "";
   position: absolute;
@@ -826,7 +805,6 @@ footer {
   align-items: center;
 }
 
-/* LEWA STRONA - TEKST I CECHY */
 .arena-content h2 {
   font-size: 3rem;
   line-height: 1.1;
@@ -878,13 +856,11 @@ footer {
   line-height: 1.5;
 }
 
-/* PRAWA STRONA - KARTA 1v1 ELO */
 .elo-card-wrapper {
   position: relative;
   z-index: 1;
 }
 
-/* Efekt poświaty za kartą */
 .elo-card-wrapper::after {
   content: "";
   position: absolute;
@@ -923,7 +899,6 @@ footer {
     background: rgba(255, 255, 255, 0.8);
 }
 
-/* Gradientowy border na górze karty */
 .elo-card::before {
   content: "";
   position: absolute;
@@ -1030,7 +1005,6 @@ footer {
   box-shadow: 0 10px 20px rgba(255, 255, 255, 0.1);
 }
 
-/* Responsive */
 @media (max-width: 900px) {
   .arena-grid {
     grid-template-columns: 1fr;
@@ -1075,7 +1049,6 @@ footer {
   }
 }
 
-/* --- PROFILE DROPDOWN --- */
 .dropdown-item a,
 .dropdown-item button {
   display: flex;

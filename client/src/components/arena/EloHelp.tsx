@@ -22,7 +22,6 @@ export function EloHelp() {
         onPointerEnter={event => { if (event.pointerType !== 'touch') show(); }} onPointerLeave={leave}
         onFocus={show} onClick={event => {
           event.preventDefault();
-          // A second tap closes it; a mouse click keeps the hover-opened explanation open.
           if (open && tapped.current) setOpen(false); else show();
         }}>
         Elo <Info size={14} aria-hidden="true" />

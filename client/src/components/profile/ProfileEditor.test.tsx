@@ -178,7 +178,6 @@ describe('profile editor dismissal', () => {
     expect(screen.queryByRole('alertdialog')).not.toBeInTheDocument();
     expect(writes).toHaveLength(1);
     finish();
-    // Closing follows the fetch outside act(), so the unmount effect restoring focus may run after the dialog is gone.
     await waitFor(() => {
       expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Edytuj profil' })).toHaveFocus();

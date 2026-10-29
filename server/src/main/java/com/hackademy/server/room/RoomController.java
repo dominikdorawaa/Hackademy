@@ -52,7 +52,6 @@ public class RoomController {
             UserDetails userDetails = (UserDetails) principal;
             return ResponseEntity.ok(roomService.getRoomDetail(id, userDetails.getUsername()));
         } else {
-            // Should be handled by Security filter, but just in case
             return ResponseEntity.status(401).body(Map.of("message", "User not authenticated"));
         }
     }

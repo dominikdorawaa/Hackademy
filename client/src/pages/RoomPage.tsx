@@ -39,15 +39,12 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null); // 'success', 'error', null
   const [submitMessage, setSubmitMessage] = useState('');
 
-  // Success Modal State (Normal Mode)
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Training Mode State
   const [isTrainingMode, setIsTrainingMode] = useState(false);
 
-  // Tasks State
   const [taskAnswers, setTaskAnswers] = useState<Record<number, string>>({});
   const [activeTask, setActiveTask] = useState(0);
   const [pendingTask, setPendingTask] = useState<number | null>(null);
@@ -89,7 +86,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     </p>
   );
 
-  // Toast state
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
 
   const titleId = useId();

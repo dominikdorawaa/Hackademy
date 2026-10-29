@@ -1,7 +1,6 @@
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 
-/** Statyczna zapowiedź pokoi na landing (bez API / bazy). */
 const STATIC_PREVIEW_ROOMS = [
   {
     id: 'demo-1',

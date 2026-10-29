@@ -7,7 +7,6 @@ import { leagueFor, leagueProgress } from '../arena/leagues';
 
 const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
-// The dashboard's arena panel: league, Elo, progress to the next league and the place in the Elo ranking.
 export function ArenaRankPanel({ rank }: { rank: RankingEntry | null }) {
   return (
     <section className="ud-panel ud-arena" aria-labelledby="ud-arena-title">

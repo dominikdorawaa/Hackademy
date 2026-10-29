@@ -6,7 +6,6 @@
     --gradient-primary: linear-gradient(135deg, var(--neon-blue), var(--neon-red));
 }
 
-/* Main Layout Structure */
 .dashboard-content-grid {
     display: grid;
     grid-template-columns: 280px 1fr;
@@ -14,45 +13,32 @@
     align-items: start;
 }
 
-/* --- Sidebar Styling (Arena Style) --- */
 .filters-sidebar {
-    /* Tło wewnętrzne */
     background-color: var(--bg-panel);
 
-    /* Gradientowy Border Trick */
-    border: 2px solid transparent; /* Rezerwujemy miejsce na border */
+    border: 2px solid transparent;
     border-radius: 16px;
 
-    /* Dwie warstwy tła:
-       1. Kolor tła panelu (padding-box)
-       2. Gradient (border-box) - to on "wystaje" spod spodu tworząc ramkę
-    */
     background-image: linear-gradient(var(--bg-panel), var(--bg-panel)),
                       var(--gradient-primary);
     background-origin: border-box;
     background-clip: padding-box, border-box;
 
-    padding: 15px; /* Zmniejszony padding */
+    padding: 15px;
 
-    /* STICKY BEHAVIOR FIX */
     position: sticky;
-    /* Zwiększam top, aby pasek nie chował się pod Navbarem (zakładając, że Navbar ma ok. 80px) */
     top: 100px;
-    /* Wysokość paska to wysokość ekranu minus odstęp od góry i dołu */
     max-height: calc(100vh - 120px);
-    overflow-y: auto; /* Scroll wewnątrz paska */
+    overflow-y: auto;
 
-    /* Custom Scrollbar dla paska */
     scrollbar-width: thin;
     scrollbar-color: #333 var(--bg-panel);
 
-    /* Subtelna poświata (Glow) pasująca do gradientu */
     box-shadow: 0 0 30px rgba(52, 152, 219, 0.1),
                 0 0 30px rgba(231, 76, 60, 0.1);
     z-index: 10;
 }
 
-/* Stylizacja scrollbara wewnątrz filtrów (Webkit) */
 .filters-sidebar::-webkit-scrollbar {
     width: 6px;
 }
@@ -69,8 +55,8 @@
 }
 
 .filter-group {
-    margin-bottom: 15px; /* Zmniejszony margines */
-    padding-bottom: 10px; /* Zmniejszony padding */
+    margin-bottom: 15px;
+    padding-bottom: 10px;
     border-bottom: 1px solid var(--border-color);
 }
 
@@ -81,38 +67,37 @@
 }
 
 .filter-title {
-    font-size: 0.85rem; /* Zmniejszona czcionka */
+    font-size: 0.85rem;
     font-weight: 800;
     color: var(--text-light);
-    margin-bottom: 10px; /* Zmniejszony margines */
+    margin-bottom: 10px;
     display: flex;
     align-items: center;
-    gap: 8px; /* Zmniejszony odstęp */
+    gap: 8px;
     text-transform: uppercase;
     letter-spacing: 1px;
 }
 
-/* Ikony w nagłówkach z gradientem */
 .filter-title i {
     background: var(--gradient-primary);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
-    font-size: 0.9rem; /* Zmniejszona ikona */
+    font-size: 0.9rem;
 }
 
 .filter-options {
     display: flex;
     flex-direction: column;
-    gap: 8px; /* Zmniejszony odstęp między opcjami */
+    gap: 8px;
 }
 
 .filter-label {
     display: flex;
     align-items: center;
-    gap: 8px; /* Zmniejszony odstęp */
+    gap: 8px;
     cursor: pointer;
     color: var(--text-gray);
-    font-size: 0.85rem; /* Zmniejszona czcionka */
+    font-size: 0.85rem;
     transition: all 0.3s ease;
     user-select: none;
 }
@@ -122,14 +107,13 @@
     transform: translateX(3px);
 }
 
-/* --- Custom Checkbox & Radio --- */
 .filter-checkbox {
     appearance: none;
     -webkit-appearance: none;
-    width: 16px; /* Zmniejszony checkbox */
-    height: 16px; /* Zmniejszony checkbox */
+    width: 16px;
+    height: 16px;
     border: 2px solid var(--input-border);
-    border-radius: 4px; /* Zmniejszony border-radius */
+    border-radius: 4px;
     background-color: var(--input-bg);
     cursor: pointer;
     position: relative;
@@ -141,7 +125,6 @@
     border-color: var(--text-gray);
 }
 
-/* Checked State - Gradient */
 .filter-checkbox:checked {
     background: var(--gradient-primary);
     border-color: transparent;
@@ -153,28 +136,26 @@
     font-family: 'Font Awesome 5 Free';
     font-weight: 900;
     color: white;
-    font-size: 9px; /* Zmniejszona ikona "ptaszka" */
+    font-size: 9px;
     position: absolute;
     top: 50%;
     left: 50%;
     transform: translate(-50%, -50%);
 }
 
-/* Radio specific style override (circular) */
 input[type="radio"].filter-checkbox {
     border-radius: 50%;
 }
 
 input[type="radio"].filter-checkbox:checked::after {
     content: '';
-    width: 6px; /* Zmniejszona kropka w radio */
-    height: 6px; /* Zmniejszona kropka w radio */
+    width: 6px;
+    height: 6px;
     background-color: white;
     border-radius: 50%;
     box-shadow: 0 0 5px rgba(255, 255, 255, 0.8);
 }
 
-/* --- Main Content Styling --- */
 .rooms-list-container {
     display: flex;
     flex-direction: column;
@@ -206,18 +187,17 @@ input[type="radio"].filter-checkbox:checked::after {
     font-family: monospace;
 }
 
-/* Sort Select Styling */
 .sort-select {
     background-color: var(--bg-panel);
     color: var(--text-light);
     border: 1px solid var(--input-border);
     padding: 10px 20px;
-    border-radius: 20px; /* Pill shape */
+    border-radius: 20px;
     outline: none;
     cursor: pointer;
     font-size: 0.9rem;
     transition: all 0.3s ease;
-    appearance: none; /* Remove default arrow */
+    appearance: none;
     background-image: url("data:image/svg+xml;charset=US-ASCII,%3Csvg%20xmlns%3D%22http%3A%2F%2Fwww.w3.org%2F2000%2Fsvg%22%20width%3D%22292.4%22%20height%3D%22292.4%22%3E%3Cpath%20fill%3D%22%233498db%22%20d%3D%22M287%2069.4a17.6%2017.6%200%200%200-13-5.4H18.4c-5%200-9.3%201.8-12.9%205.4A17.6%2017.6%200%200%200%200%2082.2c0%205%201.8%209.3%205.4%2012.9l128%20127.9c3.6%203.6%207.8%205.4%2012.8%205.4s9.2-1.8%2012.8-5.4L287%2095c3.5-3.5%205.4-7.8%205.4-12.8%200-5-1.9-9.2-5.5-12.8z%22%2F%3E%3C%2Fsvg%3E");
     background-repeat: no-repeat;
     background-position: right 15px top 50%;
@@ -230,7 +210,6 @@ input[type="radio"].filter-checkbox:checked::after {
     box-shadow: 0 0 10px rgba(52, 152, 219, 0.2);
 }
 
-/* --- Pagination Styling --- */
 .pagination-container {
     display: flex;
     justify-content: center;
@@ -272,7 +251,6 @@ input[type="radio"].filter-checkbox:checked::after {
     background-color: var(--bg-panel);
 }
 
-/* Responsive */
 @media (max-width: 900px) {
     .dashboard-content-grid {
         grid-template-columns: 1fr;
@@ -284,7 +262,7 @@ input[type="radio"].filter-checkbox:checked::after {
         display: grid;
         grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
         gap: 20px;
-        max-height: none; /* Reset max-height on mobile */
+        max-height: none;
         overflow-y: visible;
     }
 
@@ -295,7 +273,6 @@ input[type="radio"].filter-checkbox:checked::after {
     }
 }
 
-/* ─── Active Path Widget ──────────────────────────────────────────────────── */
 .active-path-widget {
     background: var(--bg-panel);
     border: 1px solid rgba(52, 152, 219, 0.2);
@@ -322,7 +299,6 @@ input[type="radio"].filter-checkbox:checked::after {
     padding: 12px 0;
 }
 
-/* Header */
 .apw-header {
     margin-bottom: 16px;
 }
@@ -384,7 +360,6 @@ input[type="radio"].filter-checkbox:checked::after {
     transform: translateX(2px);
 }
 
-/* Progress bar */
 .apw-progress-wrap {
     display: flex;
     align-items: center;
@@ -413,7 +388,6 @@ input[type="radio"].filter-checkbox:checked::after {
     white-space: nowrap;
 }
 
-/* Rooms list */
 .apw-rooms {
     display: flex;
     flex-direction: column;

@@ -149,11 +149,9 @@ public class RoomServiceImpl implements RoomService {
             Long userId = userRepository.findIdByUsername(username)
                     .orElseThrow(() -> new UserNotFoundException("User not found"));
             
-            // Optimized: Fetch only IDs of solved rooms
             solvedRoomIds = userSolvedRoomRepository.findSolvedRoomIdsByUserId(userId).stream()
                     .collect(Collectors.toSet());
             
-            // Check tutorial unlocks in one query
             List<String> solvedTitles = userSolvedRoomRepository.findSolvedRoomTitlesByUserId(
                     userId,
                     List.of("Tutorial VPN", "Tutorial VM")
@@ -164,19 +162,16 @@ public class RoomServiceImpl implements RoomService {
             solvedRoomIds = Set.of();
         }
 
-        // Set solved and locked status in memory
         boolean finalHasTutorialVPN = hasTutorialVPN;
         boolean finalHasTutorialVM = hasTutorialVM;
         
         rooms.forEach(room -> {
             room.setSolved(solvedRoomIds.contains(room.getId()));
             
-            // Lock Tutorial VPN if Tutorial VM is not solved
             if ("Tutorial VPN".equals(room.getTitle()) && !finalHasTutorialVM) {
                 room.setLocked(true);
             }
             
-            // Lock rooms that require VPN if Tutorial VPN is not solved
             if (room.isRequiresVpn() && !finalHasTutorialVPN) {
                 room.setLocked(true);
             }
@@ -279,7 +274,6 @@ public class RoomServiceImpl implements RoomService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        // Check requirements for Tutorial VPN
         if ("Tutorial VPN".equals(room.getTitle())) {
             boolean hasTutorialVM = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VM");
             if (!hasTutorialVM) {
@@ -287,7 +281,6 @@ public class RoomServiceImpl implements RoomService {
             }
         }
         
-        // Check requirements for VPN rooms
         if (room.isRequiresVpn()) {
             boolean hasTutorialVPN = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VPN");
             if (!hasTutorialVPN) {
@@ -296,7 +289,6 @@ public class RoomServiceImpl implements RoomService {
         }
         pathUnlockPolicy.requireUnlocked(id, user.getId());
 
-        // Use new repository to check if solved
         boolean isSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
 
         List<Long> unlockedHintIds = userUnlockedHintRepository.findByUser_IdAndHint_Room_Id(user.getId(), room.getId())
@@ -313,7 +305,6 @@ public class RoomServiceImpl implements RoomService {
 
         String fileName = roomFileRepository.findFileNameByRoomId(id);
 
-        // Fetch Tasks
         List<Long> completedTaskIds = userCompletedTaskRepository.findCompletedTaskIdsInRoom(user.getId(), id);
         List<RoomTaskDto> taskDtos = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(id).stream()
                 .map(t -> RoomTaskDto.builder()
@@ -359,18 +350,15 @@ public class RoomServiceImpl implements RoomService {
             throw new IllegalArgumentException("Task does not belong to this room");
         }
 
-        // Check answer
         if (task.getAnswer() != null
                 && !roomAnswerGuard.check(user.getId(), roomId, () -> task.getAnswer().equalsIgnoreCase(answer))) {
             return new SolveRoomResponse(false, "Niepoprawna odpowiedź", 0, new ArrayList<>());
         }
 
-        // Save completion if not already completed
         if (!userCompletedTaskRepository.existsByUserIdAndTaskId(user.getId(), taskId)) {
             userCompletedTaskRepository.save(new UserCompletedTask(null, user.getId(), taskId, LocalDateTime.now()));
         }
 
-        // Check if all tasks in room are completed
         List<RoomTask> allTasks = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(roomId);
         long completedCount = userCompletedTaskRepository.countByUserIdAndTaskIdIn(user.getId(), 
                 allTasks.stream().map(RoomTask::getId).collect(Collectors.toList()));
@@ -422,7 +410,6 @@ public class RoomServiceImpl implements RoomService {
         user.setPoints(user.getPoints() + (int) pointsToAward);
         roomRepository.incrementSolutions(roomId);
 
-        // Streak logic
         LocalDate today = LocalDate.now(clock);
         LocalDate lastSolved = user.getLastSolvedDate();
         if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
@@ -481,7 +468,6 @@ public class RoomServiceImpl implements RoomService {
                 .filter(found -> found.getRoom().getId().equals(roomId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Podpowiedź nie istnieje w tym pokoju"));
 
-        // Allow unlocking hints even if room is solved (for training purposes)
         List<com.hackademy.server.room.Hint> allHints = sortedHints(room);
         int hintIndex = -1;
         for (int i = 0; i < allHints.size(); i++) {
@@ -499,7 +485,6 @@ public class RoomServiceImpl implements RoomService {
             com.hackademy.server.room.Hint previousHint = allHints.get(hintIndex - 1);
             boolean isPreviousUnlocked = userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), previousHint.getId());
             if (!isPreviousUnlocked) {
-                // In training mode, allow unlocking any hint if room is solved
                 boolean isRoomSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId);
                 if (!isRoomSolved) {
                     throw new ResponseStatusException(HttpStatus.CONFLICT, "Najpierw odblokuj poprzednią podpowiedź");

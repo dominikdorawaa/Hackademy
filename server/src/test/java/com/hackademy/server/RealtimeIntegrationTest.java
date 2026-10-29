@@ -173,7 +173,6 @@ class RealtimeIntegrationTest {
                 renamed.subscribe();
                 assertEquals(challenge.getId(), JsonPath.read(state(token), "$.outgoingChallenges[0].id"));
                 arena.cancelChallenge(challenge.getId(), a.getId());
-                // The rename pushes its own state after commit, which can still list the challenge when it lands after subscribing.
                 assertEquals(0, (int) JsonPath.read(renamed.receiveUntil(body -> (int) JsonPath.read(body, "$.state.outgoingChallenges.length()") == 0),
                         "$.state.outgoingChallenges.length()"));
                 target.receive();
@@ -407,8 +406,6 @@ class RealtimeIntegrationTest {
     void authenticatedUsersCannotReadOtherDestinationsOrForgeEvents(String frame) throws Exception {
         try (var socket = RealtimeSocket.open(client, port, ClerkTestTokens.tokenFor(user(), ORIGIN))) {
             socket.send(frame);
-            // Spring closes the session right after the ERROR frame and may drop that frame when the close
-            // races a send still flushing on another thread, so the close is the guaranteed rejection signal.
             assertEquals(1002, socket.awaitServerClose());
             var reply = socket.poll(0);
             if (reply != null) assertTrue(reply.text().startsWith("ERROR\n"), reply.text());

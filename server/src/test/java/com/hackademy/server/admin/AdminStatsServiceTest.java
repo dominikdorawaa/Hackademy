@@ -26,7 +26,6 @@ import static org.mockito.Mockito.mock;
 class AdminStatsServiceTest {
 
     private final FakeJdbcTemplate jdbc = new FakeJdbcTemplate();
-    // A fixed clock keeps the expected timeline stable even if the test runs across midnight.
     private static final LocalDate TODAY = LocalDate.of(2026, 10, 14);
     private final AdminStatsService service = new AdminStatsService(jdbc,
             Clock.fixed(TODAY.atTime(12, 0).toInstant(ZoneOffset.UTC), ZoneOffset.UTC));
@@ -123,7 +122,6 @@ class AdminStatsServiceTest {
         });
     }
 
-    /** Answers the four queries AdminStatsService makes with canned rows. */
     private static class FakeJdbcTemplate extends JdbcTemplate {
         final List<Long> counts = new ArrayList<>();
         final List<String> countSql = new ArrayList<>();

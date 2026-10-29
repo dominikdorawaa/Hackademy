@@ -26,7 +26,7 @@ public class DashboardSummaryCache {
         });
     }
 
-    private static final long CACHE_MS = 600_000; // 10 minutes (invalidated on user actions)
+    private static final long CACHE_MS = 600_000;
 
     private static final class CacheEntry<T> {
         final long timeMs;

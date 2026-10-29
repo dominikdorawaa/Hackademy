@@ -68,7 +68,6 @@ class PathServiceImplTest {
         dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());
     }
 
-    // ── listing and progress ────────────────────────────────────────────────
 
     @Test
     void listsPathsWithEnrollmentAndBannerForLoggedInUser() {
@@ -113,7 +112,6 @@ class PathServiceImplTest {
         verifyNoInteractions(pathRepository);
     }
 
-    // ── path detail ─────────────────────────────────────────────────────────
 
     @Test
     void enrolledUserSeesRoomsGroupedByChapterWithProgress() {
@@ -203,7 +201,6 @@ class PathServiceImplTest {
                 room(10L, true), room(11L, false), room(10L, false)));
     }
 
-    // ── enrollment ──────────────────────────────────────────────────────────
 
     @Test
     void enrollsUserOnce() {
@@ -263,7 +260,6 @@ class PathServiceImplTest {
         verify(visibility, times(2)).requirePath(5L);
     }
 
-    // ── path room list ──────────────────────────────────────────────────────
 
     @Test
     void locksTutorialAndVpnRoomsUntilTutorialsAreSolved() {
@@ -331,7 +327,6 @@ class PathServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> service.getPathRoomsMini(5L, "alice", 3));
     }
 
-    // ── creating, deleting and editing ──────────────────────────────────────
 
     @Test
     void createsUnpublishedPathWithFirstChapterAndOrderedRooms() {
@@ -361,7 +356,6 @@ class PathServiceImplTest {
         verify(chapterRoomRepository, times(2)).save(rooms.capture());
         assertEquals(List.of(17L, 3L), rooms.getAllValues().stream().map(ChapterRoom::getRoomId).toList());
         assertEquals(List.of(0, 1), rooms.getAllValues().stream().map(ChapterRoom::getSortOrder).toList());
-        // Rooms are locked in ascending id order to avoid deadlocks; a HashSet would yield 17 before 3.
         InOrder lockOrder = inOrder(roomRepository);
         lockOrder.verify(roomRepository).findByIdForUpdate(3L);
         lockOrder.verify(roomRepository).findByIdForUpdate(17L);
@@ -588,7 +582,6 @@ class PathServiceImplTest {
                 new UpdatePathChaptersRequest(0L, List.of()), true));
     }
 
-    // ── banner ──────────────────────────────────────────────────────────────
 
     @Test
     void storesBannerAndBumpsContentRevision() {
@@ -648,7 +641,6 @@ class PathServiceImplTest {
         verifyNoInteractions(pathRepository);
     }
 
-    // ── helpers ─────────────────────────────────────────────────────────────
 
     private void stubPathRooms(Room... rooms) {
         for (Room room : rooms) {

@@ -14,10 +14,6 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 
-/**
- * Manages the arena question bank. Duels copy their questions when they start, so changes here only reach
- * matches that begin afterwards.
- */
 @Service
 @RequiredArgsConstructor
 public class ArenaQuestionAdminService {

@@ -21,12 +21,8 @@ public class VpnService {
     public Resource generateVpnConfig(String username) throws Exception {
         String safeUsername = username.replaceAll("[^a-zA-Z0-9_-]", "");
 
-        // 1. Run our wrapper script (generate-client.sh)
-        // Assuming script is in the user's home directory
         String command = "sudo ./generate-client.sh " + safeUsername;
 
-        // 2. Read file
-        // The script generates it at /home/user/username.ovpn
         String remoteFilePath = "/home/" + vpnUser + "/" + safeUsername + ".ovpn";
         String catCommand = "sudo cat " + remoteFilePath;
 

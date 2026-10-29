@@ -180,7 +180,6 @@ export default function SettingsPage() {
     setFeedback(null);
   };
 
-  // The naming rules only show up once the typed name breaks them.
   const unchangedName = !account || username.trim() === account.username;
   const typedNameProblem = unchangedName ? null : validateUsername(username);
   const nameProblem = nameError || typedNameProblem;
@@ -237,7 +236,6 @@ export default function SettingsPage() {
       return;
     }
     try {
-      // No tag: a repeated tag silently replaces the previous bubble, so a second test would show nothing.
       const notification = new Notification('Próbne powiadomienie Hackademy', { body: 'Tak zobaczysz zaproszenie, wyzwanie albo znaleziony mecz, gdy Hackademy jest w tle.' });
       notification.onerror = () => setFeedback({ message: 'System nie wyświetlił powiadomienia. Sprawdź, czy ustawienia systemu pozwalają przeglądarce pokazywać powiadomienia.', error: true });
     } catch {

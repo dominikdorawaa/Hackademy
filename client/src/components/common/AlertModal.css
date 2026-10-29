@@ -34,7 +34,7 @@
 
 .alert-modal-content.danger {
     border-left: 5px solid #e74c3c;
-    background-color: #2c0b0e; /* Dark red tint */
+    background-color: #2c0b0e;
 }
 
 .alert-icon {

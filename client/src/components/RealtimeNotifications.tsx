@@ -42,7 +42,6 @@ interface Toast {
   failed?: boolean;
   paused?: boolean;
   duration: number;
-  /** How many invitations a summary toast stands for. */
   count?: number;
 }
 
@@ -50,7 +49,6 @@ interface Toast {
 
 export const ONLINE_TOAST_COOLDOWN_MS = 10 * 60 * 1000;
 export const TOAST_DURATION_MS = 5000;
-/** A duel needs a decision, so its toast stays three times longer than the rest. */
 export const CHALLENGE_TOAST_DURATION_MS = 15000;
 const ONLINE_EVENT_PREFIX = 'online:';
 const ACCEPTED_EVENT_PREFIX = 'accepted:';
@@ -89,7 +87,6 @@ export default function RealtimeNotifications() {
   const [toasts, setToasts] = useState<Toast[]>([]);
   const visibleToasts = useRef<Toast[]>([]);
   useEffect(() => { visibleToasts.current = toasts; }, [toasts]);
-  // Toasts whose answer is still being sent: their countdown stays held so a slow request cannot lose them.
   const answering = useRef(new Set<number>());
   const dismiss = useCallback((id: number) => {
     window.clearTimeout(toastTimers.current.get(id));
@@ -109,7 +106,6 @@ export default function RealtimeNotifications() {
     schedule(id, duration);
   }, [schedule]);
   const update = useCallback((id: number, change: Partial<Toast>) => setToasts(current => current.map(toast => toast.id === id ? { ...toast, ...change } : toast)), []);
-  // Hovering or focusing a toast holds the countdown, so there is time to read it and press a button.
   const pause = useCallback((id: number) => {
     const clock = toastClock.current.get(id);
     if (!clock || !toastTimers.current.has(id)) return;
@@ -192,7 +188,6 @@ export default function RealtimeNotifications() {
     const activeIds = new Set(events.map(event => event.id));
     history.pending.forEach((_event, id) => { if (!activeIds.has(id) && !id.startsWith(ACCEPTED_EVENT_PREFIX)) history.pending.delete(id); });
     history.ids.forEach(id => { if (id.startsWith(ONLINE_EVENT_PREFIX) && !activeIds.has(id)) history.ids.delete(id); });
-    // A new friend who had not invited the viewer accepted the viewer's own invitation.
     state.friends.filter(friend => !history.friends.has(friend.id) && !history.requesters.has(friend.username)).forEach(friend =>
       history.pending.set(`${ACCEPTED_EVENT_PREFIX}${friend.id}`, { id: `${ACCEPTED_EVENT_PREFIX}${friend.id}`, category: 'friendRequests',
         title: 'Zaproszenie przyjęte', body: `${friend.username} przyjmuje Twoje zaproszenie do znajomych.` }));
@@ -216,7 +211,6 @@ export default function RealtimeNotifications() {
     if (onlineSummary) showToast(onlineSummary);
     eligible.filter(event => event.id.startsWith(ACCEPTED_EVENT_PREFIX)).forEach(event => showToast(event.body));
     const invitations = eligible.filter(event => (event.category === 'friendRequests' || event.category === 'challenges') && event.targetId !== undefined);
-    // The threshold covers invitation cards already on screen too, so a slow trickle still folds into one summary.
     const shownInvitations = visibleToasts.current.filter(toast => (toast.kind === 'friend' || toast.kind === 'challenge' || toast.kind === 'summary')
       && !answering.current.has(toast.id));
     const total = invitations.length ? shownInvitations.reduce((sum, toast) => sum + (toast.count ?? 1), invitations.length) : 0;
@@ -245,7 +239,6 @@ export default function RealtimeNotifications() {
     if (!connected && seen.current) seen.current.staleState = state;
   }, [connected, state]);
 
-  // An invitation answered in the bell or on another device no longer needs its toast.
   useEffect(() => {
     if (!state) return;
     const open = new Set<number | string>([...state.friendRequests.map(request => request.id), ...state.challenges.map(challenge => challenge.id)]);

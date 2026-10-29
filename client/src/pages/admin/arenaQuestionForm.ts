@@ -31,7 +31,6 @@ function answerProblem(answer: string, missing: string) {
   return undefined;
 }
 
-/** Mirrors the server rules so the administrator sees every problem before saving. */
 export function validateQuestion(form: QuestionForm): FieldErrors {
   const errors: FieldErrors = {};
   if (!form.content.trim()) errors.content = 'Treść pytania jest wymagana.';

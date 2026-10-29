@@ -12,7 +12,6 @@ function Fighter({ name, avatar, elo, label, own }: { name: string; avatar?: Ava
   </span>;
 }
 
-/** The face of an incoming invitation: the sender's pixel portrait and an answer, shared by the live toast and the settings preview. */
 export default function InvitationCard({ kind, actor, avatar, elo, ownName, ownAvatar, ownElo, busy, failed, onAccept, onReject, children }: {
   kind: InvitationKind; actor: string; avatar?: AvatarConfig | null; elo?: number | null; ownName?: string; ownAvatar?: AvatarConfig | null; ownElo?: number | null;
   busy?: boolean; failed?: boolean; onAccept?: () => void; onReject?: () => void; children?: ReactNode;

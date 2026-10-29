@@ -26,8 +26,6 @@ const FriendOnlineFeedContext = createContext<FriendOnlineFeedValue>({
   entries: [], dismiss: () => {}, markAllRead: () => {},
 });
 
-// One bell entry per offline→online transition. The first snapshot of a stream is only a baseline,
-// so signing in does not flood the bell with everyone who was already online.
 export function FriendOnlineFeedProvider({ children }: PropsWithChildren) {
   const { sessionKey } = useAuth();
   const { state } = useRealtime();

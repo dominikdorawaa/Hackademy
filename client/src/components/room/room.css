@@ -824,7 +824,6 @@
   .room-field { flex-direction: column; }
 }
 
-/* The room bar above already names the room and the step, so a squeezed footer leaves the room to its buttons. */
 @media (max-width: 420px) {
   .room-footer-where:has(> span) { display: none; }
 }

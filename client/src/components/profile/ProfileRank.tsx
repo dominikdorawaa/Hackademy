@@ -2,7 +2,6 @@ import { LeagueIcon } from '../arena/LeagueIcon';
 import { leagueFor } from '../arena/leagues';
 import { levelFromPoints, rankTitleFromPoints } from '../../lib/level';
 
-// The learning title comes from XP and the league from arena Elo, so each carries its own label.
 export default function ProfileRank({ points, elo }: { points: number; elo?: number }) {
   const league = elo === undefined ? null : leagueFor(elo).league;
   return <dl className="profile-rank">

@@ -2,7 +2,6 @@ package com.hackademy.server.arena;
 
 import java.util.List;
 
-/** The question shape the battle engine plays: one correct and three wrong answers, shuffled for every duel, and the categories the database accepts. */
 public final class ArenaQuestionRules {
     public static final String CATEGORY_PATTERN = "WEB|SIECI|KRYPTOGRAFIA|LINUX|OGOLNE|WINDOWS|BLUE_TEAM|CHMURA";
     public static final String DIFFICULTY_PATTERN = "VERY_EASY|EASY|MEDIUM|HARD|VERY_HARD";

@@ -9,7 +9,6 @@ import type { NavigateFunction } from 'react-router-dom';
 import type { DashboardUser, PathProgressDto, PathRoomMiniDto, PathSummaryDto, RoomSummaryDto } from '../types/api';
 import './DashboardPage.css';
 
-// ─── Active Path Widget ────────────────────────────────────────────────────────
 export const ActivePathWidget = ({ sessionKey, navigate }: { sessionKey: string | null; navigate: NavigateFunction }) => {
   const [pathData, setPathData] = useState<{ id: number; title: string; rooms: PathRoomMiniDto[]; solvedCount: number; totalCount: number } | null>(null);
   const [loading, setLoading] = useState(true);
@@ -19,16 +18,12 @@ export const ActivePathWidget = ({ sessionKey, navigate }: { sessionKey: string 
       try {
         const headers = { sessionKey };
 
-        // Zamiast odpytania każdej ścieżki po kolei (/api/paths/{id}),
-        // bierzemy zagregowany progres i dociągamy tylko mini-listę pokoi.
         const progressRes = await pathApi.getProgress(headers);
         const progressList = progressRes.ok ? await progressRes.json() : [];
         const safeProgress = Array.isArray(progressList) ? progressList : [];
 
         let active: PathProgressDto | PathSummaryDto | null = safeProgress.find((p) => p && !p.completed) || safeProgress[0] || null;
 
-        // Fallback: jeśli użytkownik nie ma jeszcze progresu (brak enroll),
-        // weź pierwszą ścieżkę z listy.
         if (!active) {
           const listRes = await pathApi.getPaths(headers);
           const paths = listRes.ok ? await listRes.json() : [];
@@ -144,14 +139,12 @@ const DashboardPage = () => {
   const [error, setError] = useState<string | null>(null);
   const [roomsError, setRoomsError] = useState<string | null>(null);
 
-  // Filters State
   const [selectedDifficulties, setSelectedDifficulties] = useState<string[]>([]);
   const [selectedCategories, setSelectedCategories] = useState<string[]>([]);
   const [statusFilter, setStatusFilter] = useState('ALL'); // ALL, UNSOLVED, SOLVED
   const [vpnFilter, setVpnFilter] = useState('ALL'); // ALL, VPN_REQUIRED, NO_VPN
   const [sortOption, setSortOption] = useState('NEWEST'); // NEWEST, OLDEST, POPULAR, POINTS_DESC, POINTS_ASC
 
-  // Pagination State
   const [currentPage, setCurrentPage] = useState(1);
 
   useEffect(() => {
@@ -250,30 +243,24 @@ const DashboardPage = () => {
       setCurrentPage(1);
   };
 
-  // Filtering Logic
   const filteredRooms = rooms.filter(room => {
-    // Difficulty Filter
     if (selectedDifficulties.length > 0 && !selectedDifficulties.includes(room.difficulty)) {
       return false;
     }
 
-    // Category Filter
     if (selectedCategories.length > 0 && !selectedCategories.includes(room.category)) {
       return false;
     }
 
-    // Status Filter
     if (statusFilter === 'SOLVED' && !room.solved) return false;
     if (statusFilter === 'UNSOLVED' && room.solved) return false;
 
-    // VPN Filter
     if (vpnFilter === 'VPN_REQUIRED' && !room.requiresVpn) return false;
     if (vpnFilter === 'NO_VPN' && room.requiresVpn) return false;
 
     return true;
   });
 
-  // Sorting Logic
   const sortedRooms = [...filteredRooms].sort((a, b) => {
     switch (sortOption) {
       case 'NEWEST':
@@ -291,7 +278,6 @@ const DashboardPage = () => {
     }
   });
 
-  // Pagination Logic
   const totalPages = Math.ceil(sortedRooms.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const currentRooms = sortedRooms.slice(startIndex, startIndex + ITEMS_PER_PAGE);
@@ -301,9 +287,7 @@ const DashboardPage = () => {
       window.scrollTo({ top: 0, behavior: 'smooth' });
   };
 
-  // Extract unique categories from rooms for filter options
   const availableCategories = [...new Set(rooms.map(room => room.category))].sort();
-  // Default categories if none exist yet or to ensure order
   const defaultCategories = ['Web', 'Crypto', 'Forensics', 'Reverse', 'OSINT', 'Misc'];
   const categoriesToDisplay = [...new Set([...defaultCategories, ...availableCategories])];
 
@@ -335,7 +319,6 @@ const DashboardPage = () => {
 
   return (
     <div className="hackademy-container" style={{ paddingTop: '40px', paddingBottom: '40px' }}>
-      {/* Header Section - Full Width */}
       <header className="rooms-header">
         <div>
           <h1 style={{ fontSize: '2rem', margin: 0 }}>Wyzwania CTF</h1>
@@ -355,9 +338,7 @@ const DashboardPage = () => {
         </select>
       </header>
 
-      {/* Main Grid Layout */}
       <div className="dashboard-content-grid">
-        {/* Sidebar Filters */}
         <aside className="filters-sidebar">
           <div className="filter-group">
             <h3 className="filter-title"><i className="fas fa-layer-group"></i> Poziom Trudności</h3>
@@ -475,7 +456,6 @@ const DashboardPage = () => {
           </div>
         </aside>
 
-        {/* Rooms Grid */}
         <main className="rooms-list-container">
           {roomsLoading ? (
             <h2>Ładowanie pokoi...</h2>
@@ -495,7 +475,6 @@ const DashboardPage = () => {
                       ))}
                     </div>
 
-                    {/* Pagination Controls */}
                     {totalPages > 1 && (
                         <div className="pagination-container">
                             <button

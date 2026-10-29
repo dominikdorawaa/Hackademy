@@ -22,7 +22,6 @@ public class Challenge {
     private UserAvatarDto challengerAvatar;
     private UserAvatarDto targetAvatar;
     private long expiresAt;
-    /** Elo when the challenge was sent, so the target can judge the duel before answering. */
     private Integer challengerElo;
     private Integer targetElo;
 

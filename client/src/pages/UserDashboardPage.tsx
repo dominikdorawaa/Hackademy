@@ -49,7 +49,6 @@ const isToday = (isoDateTime: string) => {
   return d.toDateString() === new Date().toDateString();
 };
 
-// The recent-solved endpoint returns at most this many rooms; enough to sum up a day.
 const TODAY_WINDOW = 20;
 
 const badgesLabelPL = (n: number) => {
@@ -60,7 +59,6 @@ const badgesLabelPL = (n: number) => {
   return `${n} odznak`;
 };
 
-// How many friends the dashboard lists before pointing to the friends page.
 const FRIENDS_SHOWN = 5;
 
 type ChallengeState = 'sending' | 'sent' | { error: string };
@@ -88,10 +86,8 @@ const difficultyBadge = (difficulty: string) => {
   }
 };
 
-// How many rooms of the current path the dashboard lists, starting just before the next one.
 const ROOMS_SHOWN = 5;
 
-// Above this many rooms the path rail switches from one segment per room to a continuous bar.
 const MAX_RAIL_SEGMENTS = 24;
 
 type RoomStatus = 'open' | 'done' | 'locked';
@@ -229,7 +225,7 @@ const UserDashboardPage = () => {
         setRecentWindow(list);
         setRecentSolved(list.slice(0, 3));
       } catch {
-        // ignore background refresh errors
+        return;
       }
     };
 
@@ -263,7 +259,6 @@ const UserDashboardPage = () => {
           const data = await res.json();
           setActiveSecondsThisWeek(Number(data?.secondsThisWeek) || 0);
         } else {
-          // If backend can't persist yet (e.g. missing table), stop spamming.
           disabled = true;
         }
       } catch {
@@ -327,8 +322,6 @@ const UserDashboardPage = () => {
     const sorted = [...ranking].sort((a, b) => (b?.points || 0) - (a?.points || 0));
     const me = userData?.username;
     const idx = me ? sorted.findIndex((x) => x?.username === me) : -1;
-    // Same rule as the server's rankPoints: tied scores share a place, the next score skips past them.
-    // The list is the top of the ranking, so counting higher scores inside it gives the exact place.
     const rankOf = (points: number) => 1 + sorted.filter((x) => (x?.points || 0) > points).length;
 
     const start = idx < 0 ? 0 : Math.max(0, idx - 2);
@@ -337,7 +330,6 @@ const UserDashboardPage = () => {
 
     const myPoints = idx >= 0 ? sorted[idx]?.points || 0 : stats.points;
     const position = idx >= 0 ? rankOf(myPoints) : myRank?.rankPoints || null;
-    // Neighbours are the nearest strictly higher and lower scores, so a tie never reads as a gap of 0 XP.
     const above = idx >= 0 ? ([...sorted].reverse().find((x) => (x?.points || 0) > myPoints) ?? null) : null;
     const below = idx >= 0 ? (sorted.find((x) => (x?.points || 0) < myPoints) ?? null) : null;
 
@@ -351,7 +343,6 @@ const UserDashboardPage = () => {
       gapUp: above ? Math.max(0, (above.points || 0) - myPoints) : 0,
       leadDown: below ? Math.max(0, myPoints - (below.points || 0)) : 0,
       myPoints,
-      // Position of the user's XP on the scale between the place below (or 0) and the place above.
       scaleLow: below ? below.points || 0 : 0,
       scaleRatio: above
         ? clamp01((myPoints - (below ? below.points || 0 : 0)) / Math.max(1, (above.points || 0) - (below ? below.points || 0 : 0)))
@@ -363,14 +354,11 @@ const UserDashboardPage = () => {
     const solved = recentWindow.filter((x) => isToday(x?.solvedAt));
     return {
       flags: solved.length,
-      // `points` is the XP actually awarded for the solve, after hint penalties.
       xp: solved.reduce((sum, x) => sum + (Number(x?.points) || 0), 0),
-      // A full window of today's solves may hide older ones from today, so both totals are lower bounds.
       capped: recentWindow.length >= TODAY_WINDOW && solved.length === recentWindow.length,
     };
   }, [recentWindow]);
 
-  // The fresh recent-solved fetch wins over the (possibly cached) dashboard summary.
   const recentList = recentWindow.length > 0 ? recentWindow.slice(0, 3) : recentSolved;
 
   const todayStats = (
@@ -411,11 +399,9 @@ const UserDashboardPage = () => {
   const totalRooms = currentPath?.totalRooms ?? 0;
   const solvedRooms = currentPath?.solvedRooms ?? 0;
   const pathRatio = totalRooms > 0 ? clamp01(solvedRooms / totalRooms) : 0;
-  // The summary carries every room of the current path, in path order.
   const nextRoomIdx = currentPathRoomsMini.findIndex((r) => !r.solved && !r.locked);
   const nextRoom = nextRoomIdx >= 0 ? currentPathRoomsMini[nextRoomIdx] : null;
   const railSegments = totalRooms > 0 && totalRooms <= MAX_RAIL_SEGMENTS ? Array.from({ length: totalRooms }, (_, i) => i) : null;
-  // Open paths can be solved out of order; mark the rail per room when the room list covers the whole path.
   const railFromRooms = currentPathRoomsMini.length === totalRooms;
   const segmentClass = (i: number) => {
     if (railFromRooms) return currentPathRoomsMini[i].solved ? 'is-done' : i === nextRoomIdx ? 'is-current' : '';
