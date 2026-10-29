@@ -10,11 +10,11 @@ function ContactLink() {
   return <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
 }
 
-function LegalDocument({ title, children }: { title: string; children: ReactNode }) {
+function LegalDocument({ title, children, updatedAt = UPDATED_AT }: { title: string; children: ReactNode; updatedAt?: string }) {
   return (
     <div className="user-dashboard legal-page">
       <article className="legal-document" aria-labelledby="legal-title">
-        <p className="legal-updated">Ostatnia aktualizacja: {UPDATED_AT}</p>
+        <p className="legal-updated">Ostatnia aktualizacja: {updatedAt}</p>
         <h1 id="legal-title">{title}</h1>
         {children}
       </article>
@@ -104,7 +104,7 @@ export function PrivacyPage() {
 
 export function TermsPage() {
   return (
-    <LegalDocument title="Regulamin">
+    <LegalDocument title="Regulamin" updatedAt="29 października 2026">
       <p>
         Regulamin określa zasady korzystania z Hackademy (hackademy.app), platformy do nauki cyberbezpieczeństwa przez
         zadania, ścieżki i pojedynki.
@@ -117,6 +117,18 @@ export function TermsPage() {
         <li>Jedna osoba może mieć jedno konto. Nie udostępniaj go innym.</li>
         <li>Nazwa użytkownika, awatar i opis nie mogą być obraźliwe ani podszywać się pod inne osoby.</li>
       </ul>
+
+      <h2 id="educational-materials">Materiały edukacyjne</h2>
+      <p>
+        Bank pytań areny Hackademy obejmuje materiały opracowane z pomocą sztucznej inteligencji.
+        Za ich dobór i publikację odpowiada operator Hackademy. Treści są weryfikowane i poprawiane,
+        ale mogą zawierać błędy. Możesz je zgłaszać przy pytaniu.
+      </p>
+      <p>
+        Odwołania do certyfikacji i nazw technologii opisują zakres zagadnień. Materiały Hackademy nie są
+        oficjalnym bankiem pytań egzaminacyjnych ani materiałami zatwierdzonymi przez organizatorów certyfikacji.
+        Nazwy i znaki ich właścicieli nie oznaczają współpracy ani rekomendacji.
+      </p>
 
       <h2>Etyczne korzystanie z wiedzy</h2>
       <ul>

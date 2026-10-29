@@ -34,6 +34,9 @@ it('lets a player with no XP look for an opponent', async () => {
   expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeEnabled();
   expect(screen.getByRole('heading', { name: 'Wejdź na arenę' })).toBeInTheDocument();
   expect(screen.getByText(/Twój awatar staje do walki na pytania/)).toBeInTheDocument();
+  expect(screen.getByText(/Pytania opracowano z pomocą sztucznej inteligencji/)).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'O materiałach' })).toHaveAttribute('href', '/terms#educational-materials');
+
   expect(screen.queryByText(/XP\. Brakuje Ci/)).not.toBeInTheDocument();
   expect(screen.queryByRole('link', { name: 'Rozwiązuj pokoje' })).not.toBeInTheDocument();
 });

@@ -1,6 +1,6 @@
 # Bank pytań areny - #287
 
-Migracja `V33__arena_question_bank.sql` dodaje **300 autorskich pytań**, po **60 na każdy z pięciu poziomów**. Po migracji czysta baza zawiera 342 pytania. Treści nie pochodzą z egzaminów, dumpów, TryHackMe ani Hack The Box; zakresy certyfikacji służą jako mapa zagadnień.
+Migracja `V33__arena_question_bank.sql` dodaje **300 oryginalnych pytań**, po **60 na każdy z pięciu poziomów**. Po migracji czysta baza zawiera 342 pytania. Treści nie pochodzą z egzaminów, dumpów, TryHackMe ani Hack The Box; zakresy certyfikacji służą jako mapa zagadnień.
 
 Identyfikatory `Q001`–`Q300` w `question-index-287.json` odpowiadają kolejności 300 wierszy INSERT w SQL i są stałymi identyfikatorami redakcyjnymi. Indeks zawiera kategorię, trudność, skrót SHA-256 treści oraz dodatkowe źródła do sprawdzanych szczegółów. Nie są identyfikatorami rekordów w bazie, ponieważ administratorzy mogą wcześniej dodawać i usuwać pytania. Każda pozycja zapisuje jedną poprawną i trzy błędne odpowiedzi; silnik walki tasuje je osobno dla pojedynku.
 
@@ -75,3 +75,7 @@ Prawdziwość odpowiedzi zależy od warunków w treści pytania. Nie każda stro
 Nie stosujemy długości jako podpowiedzi. W 300 nowych pytaniach poprawna odpowiedź jest jedyną najdłuższą w 68 przypadkach (22,7%). Jej średnia długość wynosi 38,4 znaku, a średnia długość błędnej opcji 39,1 znaku. W całej puli 342 pytań poprawna jest jedyną najdłuższą w 72 przypadkach (21,1%). Remisy długości są liczone osobno.
 
 Test migracji sprawdza maksymalnie 25 znaków różnicy między najkrótszą a najdłuższą opcją w każdym pytaniu, najwyżej 25% nowych pytań z jednoznacznie najdłuższym kluczem oraz różnicę średnich długości do 3 znaków. Dotyczy to dostarczonego banku; administrator nadal może samodzielnie redagować pytania w granicach 500/200 znaków. Wartości nie są sztucznie dopełniane spacjami ani znakami niewidocznymi.
+
+## Wykorzystanie komercyjne
+
+[Notatka o wykorzystaniu komercyjnym](commercial-use-287.md) dokumentuje zakres sprawdzenia, właściwe warunki usług i zasady korzystania ze źródeł. Informacja o sposobie przygotowania materiałów jest widoczna na wejściu do areny i rozwinięta w regulaminie. Odwołania do certyfikacji nie oznaczają oficjalnego banku egzaminacyjnego ani autoryzacji organizatora.
