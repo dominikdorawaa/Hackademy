@@ -64,6 +64,7 @@ public class RoomServiceImpl implements RoomService {
     private final com.hackademy.server.content.ContentVisibility visibility;
     private final PathUnlockPolicy pathUnlockPolicy;
     private final Clock clock;
+    private final RoomAnswerGuard roomAnswerGuard;
 
     private static final Set<String> RESERVED_TITLES = Set.of("tutorial vm", "tutorial vpn");
 
@@ -358,7 +359,8 @@ public class RoomServiceImpl implements RoomService {
         }
 
         // Check answer
-        if (task.getAnswer() != null && !task.getAnswer().equalsIgnoreCase(answer)) {
+        if (task.getAnswer() != null
+                && !roomAnswerGuard.check(user.getId(), roomId, () -> task.getAnswer().equalsIgnoreCase(answer))) {
             return new SolveRoomResponse(false, "Niepoprawna odpowiedź", 0, new ArrayList<>());
         }
 
@@ -454,7 +456,7 @@ public class RoomServiceImpl implements RoomService {
                     "Ten pokój wymaga ukończenia zadań lub podania niepustej flagi");
         }
 
-        if (!room.getFlag().equals(flag)) {
+        if (!roomAnswerGuard.check(userId, room.getId(), () -> room.getFlag().equals(flag))) {
             return new SolveRoomResponse(false, "Niepoprawna flaga", 0, new ArrayList<>());
         }
 

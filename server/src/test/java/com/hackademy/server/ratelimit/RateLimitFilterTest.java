@@ -36,7 +36,7 @@ class RateLimitFilterTest {
     };
 
     private RateLimitFilter filter(boolean enabled) {
-        var rules = new RateLimitProperties.Rules(ONE, ONE, TWO, TWO, ONE, TWO, ONE);
+        var rules = new RateLimitProperties.Rules(ONE, ONE, TWO, TWO, ONE, TWO, ONE, ONE);
         return new RateLimitFilter(new RateLimitProperties(enabled, 100, rules), new RateLimiter(clock, 100), decoder);
     }
 

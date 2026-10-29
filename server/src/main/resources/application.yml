@@ -78,6 +78,10 @@ application:
         burst: 1
         limit: 1
         window: 30s
+      room-answer:
+        burst: 5
+        limit: 5
+        window: 5m
   cors:
     allowed-origins: ${CORS_ALLOWED_ORIGINS:${FRONTEND_URL:http://localhost:5173}}
   clerk:

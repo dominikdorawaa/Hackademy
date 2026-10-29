@@ -25,6 +25,10 @@ public class RateLimiter {
     }
 
     public RateLimitDecision acquire(String scope, String id, RateLimitProperties.Rule rule) {
+        return lease(scope, id, rule).decision();
+    }
+
+    public Lease lease(String scope, String id, RateLimitProperties.Rule rule) {
         long now = clock.millis();
         sweep(now, SWEEP_INTERVAL_MILLIS);
         Key key = new Key(scope, id);
@@ -41,7 +45,7 @@ public class RateLimiter {
             }
             RateLimitDecision decision = bucket.acquire(now);
             if (decision != null) {
-                return decision;
+                return new Lease(decision, decision.allowed() ? bucket : null);
             }
         }
     }
@@ -63,6 +67,28 @@ public class RateLimiter {
     }
 
     private record Key(String scope, String id) {
+    }
+
+    public static final class Lease {
+
+        private final RateLimitDecision decision;
+        private Bucket bucket;
+
+        private Lease(RateLimitDecision decision, Bucket bucket) {
+            this.decision = decision;
+            this.bucket = bucket;
+        }
+
+        public RateLimitDecision decision() {
+            return decision;
+        }
+
+        public synchronized void release() {
+            if (bucket != null) {
+                bucket.release();
+                bucket = null;
+            }
+        }
     }
 
     private static final class Bucket {
@@ -90,6 +116,12 @@ public class RateLimiter {
                 return RateLimitDecision.ALLOWED;
             }
             return new RateLimitDecision(false, (long) Math.ceil((1 - tokens) / tokensPerMilli));
+        }
+
+        synchronized void release() {
+            if (!retired) {
+                tokens = Math.min(capacity, tokens + 1);
+            }
         }
 
         synchronized boolean retireIfFull(long now) {

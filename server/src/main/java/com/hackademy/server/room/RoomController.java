@@ -9,7 +9,9 @@ import com.hackademy.server.room.dto.SolveRoomResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -84,6 +86,15 @@ public class RoomController {
         } else {
             return ResponseEntity.badRequest().body(response);
         }
+    }
+
+    @ExceptionHandler(RoomAnswerLimitException.class)
+    public ResponseEntity<Map<String, Object>> answerLimited(RoomAnswerLimitException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
+                .cacheControl(CacheControl.noStore())
+                .body(Map.of("message", exception.getMessage(), "retryAfter", exception.retryAfterSeconds(),
+                        "reason", RoomAnswerGuard.SCOPE));
     }
 
     @PostMapping("/{roomId}/tasks/complete")
