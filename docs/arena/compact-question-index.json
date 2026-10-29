@@ -531,91 +531,91 @@
     "id": "Q047",
     "category": "SIECI",
     "difficulty": "VERY_EASY",
-    "contentSha256": "da62e0f962682d9265a38d1c0ddc22647aa4f5d78dd00beece75c4463267aa55"
+    "contentSha256": "eacab613161dbc30ed8cf51a7e8222f6db61e49f420263486bdedf1b8c6272d8"
   },
   {
     "id": "Q048",
     "category": "SIECI",
     "difficulty": "VERY_EASY",
-    "contentSha256": "61db846e28f19f78e9ca64e25d22395a182c67f85fd727599d1dfae81ad88913"
+    "contentSha256": "90d722012767b0920db5514764d14f353a0a9edd7287d78eb5e5f1ca12af716e"
   },
   {
     "id": "Q049",
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "68d82dba8fa8684da25fbd167f625c04efc646c0a2b0c7ecdedf7e012355c237"
+    "contentSha256": "e873787b279c5e05cc742fcb40763758a98770229a34ce981981e5f9b5105266"
   },
   {
     "id": "Q050",
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "e5fee375e13972282a54103592f18d3ee07a7901be7fc1c2019355f481451296"
+    "contentSha256": "61db846e28f19f78e9ca64e25d22395a182c67f85fd727599d1dfae81ad88913"
   },
   {
     "id": "Q051",
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "8afdfc9647326f357b22618a5c9a18594a9aa8e8f57a5914c43a53e188412ee4"
+    "contentSha256": "70a6c48f950de1e6136d8a1bd844cb42d810a8f765ca01354db4b7033edfcd0b"
   },
   {
     "id": "Q052",
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "c7dea43a242963559dd05c5d51d364e44359b872370cda334b7f38e06ca8b69e"
+    "contentSha256": "68d82dba8fa8684da25fbd167f625c04efc646c0a2b0c7ecdedf7e012355c237"
   },
   {
     "id": "Q053",
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "fefb602b6d4952ce7966ff823b1d233e87be0260f7907208583e3099d3329f7b"
+    "contentSha256": "e5fee375e13972282a54103592f18d3ee07a7901be7fc1c2019355f481451296"
   },
   {
     "id": "Q054",
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "eece6cdc21aa5b5c716f79fca59afa6a365564e13f204a2e75825dbaf2555063"
+    "contentSha256": "8afdfc9647326f357b22618a5c9a18594a9aa8e8f57a5914c43a53e188412ee4"
   },
   {
     "id": "Q055",
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "b0c8c742674f40fb7912c5f48f71fbe861740798ccd4a04fab1b0ee93f3cb47c"
+    "contentSha256": "c7dea43a242963559dd05c5d51d364e44359b872370cda334b7f38e06ca8b69e"
   },
   {
     "id": "Q056",
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "9f45970bb827591eaffc893502bb8f768826c1591836a46f334b24fb41cc25a1"
+    "contentSha256": "fefb602b6d4952ce7966ff823b1d233e87be0260f7907208583e3099d3329f7b"
   },
   {
     "id": "Q057",
     "category": "SIECI",
     "difficulty": "MEDIUM",
-    "contentSha256": "7e3e89b0f5f8fc092066eee51c5bf4fa68d33ea3cae37d6c5d815d8eb1e05af7"
+    "contentSha256": "eece6cdc21aa5b5c716f79fca59afa6a365564e13f204a2e75825dbaf2555063"
   },
   {
     "id": "Q058",
     "category": "SIECI",
     "difficulty": "MEDIUM",
-    "contentSha256": "f25890bb0a1c5073371ad94ec741bad3f92f755129e21bf87348992c3ff5c081"
+    "contentSha256": "b0c8c742674f40fb7912c5f48f71fbe861740798ccd4a04fab1b0ee93f3cb47c"
   },
   {
     "id": "Q059",
     "category": "SIECI",
     "difficulty": "MEDIUM",
-    "contentSha256": "169ca9cee9ebc0d8953d8f41d5b377869690543344c1be2232294a5d717be9e3"
+    "contentSha256": "9f45970bb827591eaffc893502bb8f768826c1591836a46f334b24fb41cc25a1"
   },
   {
     "id": "Q060",
     "category": "SIECI",
     "difficulty": "MEDIUM",
-    "contentSha256": "81d41b608f7e7ceb79bfad3b2869958e32f90e6572883f191c027addee03bee1"
+    "contentSha256": "7e3e89b0f5f8fc092066eee51c5bf4fa68d33ea3cae37d6c5d815d8eb1e05af7"
   },
   {
     "id": "Q061",
     "category": "SIECI",
     "difficulty": "MEDIUM",
-    "contentSha256": "74b5a838097f5d06e64bd03e5e636dec04ab80dbfc6bb42200f91b01c4ac7f60"
+    "contentSha256": "f25890bb0a1c5073371ad94ec741bad3f92f755129e21bf87348992c3ff5c081"
   },
   {
     "id": "Q062",
@@ -633,7 +633,7 @@
     "id": "Q064",
     "category": "SIECI",
     "difficulty": "MEDIUM",
-    "contentSha256": "153b86cdaacf151f7e2311bdfef79617b51442e9a53f6b0a9d05ea2fea4d391a"
+    "contentSha256": "74b5a838097f5d06e64bd03e5e636dec04ab80dbfc6bb42200f91b01c4ac7f60"
   },
   {
     "id": "Q065",
@@ -1299,7 +1299,7 @@
     "id": "Q175",
     "category": "LINUX",
     "difficulty": "HARD",
-    "contentSha256": "8e9b94ba3b1de44347d3078a8fac910dcdafae3b464b4f038152e96cf00eef2e"
+    "contentSha256": "5cc12989a2e89cbc810c91f955fbaab7390b1338710c581b72d3b3e3de85cb08"
   },
   {
     "id": "Q176",
@@ -1587,7 +1587,7 @@
     "id": "Q223",
     "category": "WINDOWS",
     "difficulty": "VERY_HARD",
-    "contentSha256": "0a1c3cbc1e240e9793645c0422ac3b356d3f02b3825610a04bd8c133553d4af8"
+    "contentSha256": "4bdce7eba913b9dbbb7bd6d5e7411ca4f48f51ff257fd3c705233cd0615d6110"
   },
   {
     "id": "Q224",

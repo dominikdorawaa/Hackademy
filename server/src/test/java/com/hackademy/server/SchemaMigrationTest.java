@@ -292,6 +292,27 @@ class SchemaMigrationTest {
     }
 
     @Test
+    void keepsNetworkLessonsAtTheirOriginalLevelsAndClarifiesPermissionQuestions() throws Exception {
+        flyway().migrate();
+        assertEquals(10, scalar("""
+                SELECT count(*) FROM (VALUES
+                    (89, 'Co wybiera trasę między podsieciami IP?', 'Router', 'VERY_EASY'),
+                    (90, 'Który protokół synchronizuje zegary hostów?', 'NTP', 'VERY_EASY'),
+                    (91, 'Nmap bez -sV pokazuje 22/tcp open ssh. Co potwierdza sam wynik?', 'Port TCP 22 jest otwarty', 'EASY'),
+                    (92, 'Co oznacza odpowiedź DNS NXDOMAIN?', 'Nazwa nie istnieje', 'EASY'),
+                    (93, 'Który filtr tcpdump wybierze ruch portu 53?', 'port 53', 'EASY'),
+                    (99, 'Skan SYN otrzymał RST. Jaki jest zwykle stan portu?', 'Zamknięty', 'MEDIUM'),
+                    (100, 'Co oznacza UDP open/filtered w nmap?', 'Brak rozstrzygającej odpowiedzi', 'MEDIUM'),
+                    (101, 'Ile adresów hostów ma tradycyjna podsieć IPv4 /26?', '62', 'MEDIUM'),
+                    (217, 'Jakie kontrole omija CAP_DAC_READ_SEARCH?', 'Kontrole odczytu i przejścia', 'HARD'),
+                    (265, 'Co może zmienić posiadacz SERVICE_CHANGE_CONFIG?', 'Ścieżkę uruchamianej usługi', 'VERY_HARD')
+                ) AS expected(id, content, correct_answer, difficulty)
+                JOIN arena_questions q ON q.id = expected.id AND q.content = expected.content
+                    AND q.correct_answer = expected.correct_answer AND q.difficulty = expected.difficulty
+                """));
+    }
+
+    @Test
     void compactMigrationPreservesAdminEditsAndDeletedQuestions() throws Exception {
         flyway("33").migrate();
         execute("""
