@@ -1,5 +1,4 @@
 @layer components {
-/* The term that opens the explanation on hover, focus or tap. */
 .ud-term-btn {
   display: inline-flex;
   align-items: center;

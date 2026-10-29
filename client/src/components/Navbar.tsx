@@ -70,8 +70,6 @@ const Navbar = () => {
       setIsNotificationsOpen(false);
       if (mobileMenuOpen) mobileToggleRef.current?.focus();
     };
-    // Any press outside the menu and its toggle closes it, the navbar's own panels included,
-    // so a panel never opens below the expanded links and runs off the screen.
     const closeMobileOutside = (event: MouseEvent) => {
       const target = event.target as Node;
       if (!mobileLinksRef.current?.contains(target) && !mobileToggleRef.current?.contains(target)) setMobileMenuPath(null);
@@ -99,9 +97,7 @@ const Navbar = () => {
     };
   }, []);
 
-  // Online entries count as read once the visitor has seen the open bell.
   const wasNotificationsOpen = useRef(false);
-  // "5 min temu" has to keep counting while the bell stays open.
   const [now, setNow] = useState(() => Date.now());
   useEffect(() => {
     if (!isNotificationsOpen) return;
@@ -109,7 +105,6 @@ const Navbar = () => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000);
     return () => window.clearInterval(timer);
   }, [isNotificationsOpen]);
-  // Pending duels count down to their expiry on the server clock, like the arena's own list.
   const serverTime = realtime?.serverTime ?? 0;
   const clock = useArenaClock(serverTime, isNotificationsOpen && notifications.some(notif => notif.type === 'CHALLENGE'));
   const challengeSecondsLeft = (expiresAt: number) => clock.serverTime === serverTime
@@ -241,7 +236,6 @@ const Navbar = () => {
             <img className="logo-mark" src="/brand-pixel/hackademy-mark-white-web.png" alt="Hackademy Logo" />
           </Link>
           {roomMode && <div className="navbar-room-slot" ref={roomChrome?.setSlot} />}
-          {/* Signed-in phones navigate with the bottom tab bar; the Menu toggle stays for the public landing page. */}
           {!isAuthPage && !roomMode && !isAuthenticated && (
             <Button type="button" variant="outline" size="sm" className="mobile-nav-toggle md:hidden" ref={mobileToggleRef}
               aria-expanded={mobileMenuOpen} aria-controls="main-nav-links"
@@ -301,7 +295,6 @@ const Navbar = () => {
                 
                 <NavbarFriends />
 
-                {/* Notifications Bell */}
                 <div ref={notifRef} style={{ position: 'relative' }}>
                     <NavIconButton
                         data-slot="nav-notifications"
@@ -413,7 +406,6 @@ const Navbar = () => {
                     )}
                 </div>
 
-                {/* Streak Counter */}
                 <div className="nav-streak" style={{
                     alignItems: 'center', 
                     gap: '5px', 

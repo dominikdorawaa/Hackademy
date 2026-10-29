@@ -57,20 +57,16 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
            "ORDER BY r.id")
     List<RoomAdminSummaryDto> findAllAdminSummaries();
 
-    // Native query for random room (PostgreSQL specific) - EXCLUDE TUTORIALS
     @Query(value = "SELECT * FROM rooms WHERE published = true AND room_type = 'CTF' AND category != 'Tutorial' ORDER BY RANDOM() LIMIT 1", nativeQuery = true)
     Optional<Room> findRandomRoom();
 
-    // Exclude tutorials from ID list (used for random selection in service)
     @Query("SELECT r.id FROM Room r WHERE " + VISIBLE + " AND r.category != 'Tutorial'")
     List<Long> findAllIds();
 
-    // Find IDs based on VPN requirement
     @Query("SELECT r.id FROM Room r WHERE " + VISIBLE + " AND r.category != 'Tutorial' AND (:vpnEnabled = true OR r.requiresVpn = false)")
     List<Long> findIdsByVpnRequirement(@Param("vpnEnabled") boolean vpnEnabled);
 
 
-    // Fetch top 3 rooms excluding Tutorial category using projection
     @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +
            "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
            "FROM Room r WHERE " + VISIBLE + " AND r.category != :category ORDER BY r.solutionsCount DESC")

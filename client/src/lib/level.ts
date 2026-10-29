@@ -1,4 +1,3 @@
-// XP progression shared by the dashboard and profile previews: 100 XP per level.
 export const levelFromPoints = (points: number) => Math.floor((Number(points) || 0) / 100) + 1;
 
 export const rankTitleFromPoints = (points: number) => {

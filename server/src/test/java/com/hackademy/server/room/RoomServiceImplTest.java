@@ -98,7 +98,6 @@ class RoomServiceImplTest {
         when(userRepository.findByUsernameForUpdate("alice")).thenReturn(Optional.of(alice));
     }
 
-    // ── solving with a flag ─────────────────────────────────────────────────
 
     @Test
     void correctFlagAwardsRoomPoints() {
@@ -206,7 +205,6 @@ class RoomServiceImplTest {
         assertEquals(List.of("Pierwsza krew"), result.newBadges().stream().map(BadgeDto::name).toList());
     }
 
-    // ── hint penalty ────────────────────────────────────────────────────────
 
     @ParameterizedTest(name = "{0} hints → {1} points")
     @CsvSource({"0,100", "1,75", "2,50", "3,25", "4,0", "5,0"})
@@ -229,7 +227,6 @@ class RoomServiceImplTest {
         assertEquals(37, service.solveRoom(1L, "FLAG{ok}", "alice").pointsEarned());
     }
 
-    // ── streak (today is 2026-10-15) ────────────────────────────────────────
 
     @ParameterizedTest(name = "last solved {0}, streak {1} → {2}")
     @CsvSource({",0,1", "2026-10-14,3,4", "2026-10-15,3,3", "2026-10-12,3,1"})
@@ -258,7 +255,6 @@ class RoomServiceImplTest {
         assertEquals(LocalDate.of(2026, 10, 15), alice.getLastSolvedDate());
     }
 
-    // ── guessing limit ──────────────────────────────────────────────────────
 
     @Test
     void wrongFlagsAndTaskAnswersShareOneLimitPerRoom() {
@@ -303,7 +299,6 @@ class RoomServiceImplTest {
         assertEquals(50, result.pointsEarned());
     }
 
-    // ── tasks ───────────────────────────────────────────────────────────────
 
     @Test
     void taskAnswerIgnoresLetterCase() {
@@ -438,7 +433,6 @@ class RoomServiceImplTest {
         assertEquals(100, result.pointsEarned());
     }
 
-    // ── hints ───────────────────────────────────────────────────────────────
 
     @Test
     void firstHintUnlocks() {
@@ -512,7 +506,6 @@ class RoomServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> service.unlockHint(99L, 11L, "alice"));
     }
 
-    // ── creating rooms ──────────────────────────────────────────────────────
 
     @Test
     void newRoomIsADraftCtfWithHintsInGivenOrder() throws IOException {
@@ -604,7 +597,6 @@ class RoomServiceImplTest {
         verifyNoInteractions(roomFileRepository);
     }
 
-    // ── editing and deleting rooms ──────────────────────────────────────────
 
     @Test
     void editingRoomBumpsContentRevisionAndKeepsMatchingHints() throws IOException {
@@ -737,7 +729,6 @@ class RoomServiceImplTest {
         verify(roomRepository, never()).deleteById(any());
     }
 
-    // ── room lists ──────────────────────────────────────────────────────────
 
     @Test
     void anonymousVisitorSeesNothingSolvedAndVpnRoomsLocked() {
@@ -807,7 +798,6 @@ class RoomServiceImplTest {
         assertEquals(top, service.getTop3Rooms());
     }
 
-    // ── room detail ─────────────────────────────────────────────────────────
 
     @Test
     void detailShowsSortedHintsUnlockedHintsTasksAndFile() {
@@ -893,7 +883,6 @@ class RoomServiceImplTest {
         assertThrows(UserNotFoundException.class, () -> service.getRoomFile(1L, "bob"));
     }
 
-    // ── task editor ─────────────────────────────────────────────────────────
 
     @Test
     void adminSeesTasksOrderedWithRevision() {
@@ -999,7 +988,6 @@ class RoomServiceImplTest {
                 () -> service.updateRoomTasks(99L, new UpdateRoomTasksRequest(0L, List.of())));
     }
 
-    // ── helpers ─────────────────────────────────────────────────────────────
 
     Room flagRoom(Long id, int points, String flag) {
         Room room = Room.builder().id(id).title("Room " + id).points(points).flag(flag).build();

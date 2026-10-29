@@ -15,7 +15,6 @@ export const PROFILE_UPDATED = 'hackademy:profile-updated';
 
 export interface ProfileCompletionStep { label: string; done: boolean }
 
-// The showcase step only counts once there is an earned badge to put in it.
 export function profileCompletion({ customAvatar, profile, canFeature }: {
   customAvatar: boolean; profile: ProfilePersonalization; canFeature: boolean;
 }) {

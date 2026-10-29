@@ -70,7 +70,6 @@ class UserServiceImplTest {
         }
     }
 
-    // ── personalization ─────────────────────────────────────────────────────
 
     @Test
     void updatesPersonalizationAndInvalidatesCachesAfterCommit() {
@@ -131,7 +130,6 @@ class UserServiceImplTest {
         assertThrows(UserNotFoundException.class, () -> service.getPersonalization(2L));
     }
 
-    // ── stats and portfolio ─────────────────────────────────────────────────
 
     @Test
     void assemblesProfileStats() {
@@ -201,7 +199,6 @@ class UserServiceImplTest {
         assertThrows(UserNotFoundException.class, () -> service.getPublicProfile("ghost"));
     }
 
-    // ── ranking ─────────────────────────────────────────────────────────────
 
     @Test
     void topRankingIsCachedUntilInvalidated() {
@@ -258,7 +255,6 @@ class UserServiceImplTest {
         assertEquals(new RankingEntry(10, 4, "alice", 0, 500), service.getUserRankFast(1L, "alice", null, null));
     }
 
-    // ── search, moderation and tutorials ────────────────────────────────────
 
     @Test
     void searchMarksSelfAndOtherFriendshipStatuses() {
@@ -286,7 +282,6 @@ class UserServiceImplTest {
         verify(userSolvedRoomRepository, never()).existsByUser_IdAndRoom_Title(2L, "Tutorial VM");
     }
 
-    // ── activity ────────────────────────────────────────────────────────────
 
     @Test
     void recentSolvedRoomsClampLimitAndDefaultPoints() {
@@ -327,7 +322,6 @@ class UserServiceImplTest {
         assertEquals(0, service.getActiveSecondsThisWeek(1L));
     }
 
-    // ── admin and simple updates ────────────────────────────────────────────
 
     @Test
     void listsUsersForAdmin() {
@@ -432,7 +426,6 @@ class UserServiceImplTest {
         assertEquals("length", service.usernameAvailability(1L, "ab").reason());
     }
 
-    // ── helpers ─────────────────────────────────────────────────────────────
 
     private static User user(long id, String username) {
         return User.builder().id(id).username(username).build();

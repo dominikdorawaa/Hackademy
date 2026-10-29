@@ -9,7 +9,6 @@ import Leaderboard from '../components/Leaderboard';
 import Newsletter from '../components/Newsletter';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 
-/** Przykładowy ranking na landing — bez wywołań do API. */
 const STATIC_LANDING_LEADERBOARD = [
   { username: 'CyberNinja', points: 12450, title: 'Elitarny pentester' },
   { username: 'ByteHunter', points: 10120, title: 'Łowca podatności' },

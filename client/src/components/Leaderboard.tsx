@@ -42,7 +42,6 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
 
   const rankClasses = ['rank-1', 'rank-2', 'rank-3', 'rank-4'];
 
-  // Check if current user is in the top list
   const isCurrentUserInTop = players.some(p => (p.username || p.name) === currentUsername);
 
   return (
@@ -107,7 +106,6 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
             })
           )}
 
-          {/* Show current user rank if not in top list and myRank is available */}
           {!isCurrentUserInTop && myRank && (
             <>
               <div style={{ textAlign: 'center', margin: '10px 0', color: '#666' }}>...</div>

@@ -14,7 +14,6 @@ import UserAvatar from '../UserAvatar';
 import { AVATAR_POSES, avatarFromUsername, fromAvatarConfig, saveAvatar as saveLocalAvatar, toAvatarConfig } from '../arena/avatar/avatarModel';
 import { POSE_NAMES } from '../arena/avatar/avatarOptions';
 
-// Without a saved avatar the profile shows the look generated from the username, so that is the one to pose.
 function shownAvatar(avatar: AvatarConfig | null | undefined, username: string): AvatarConfig {
   const custom = fromAvatarConfig(avatar);
   return toAvatarConfig(custom ?? avatarFromUsername(username));
@@ -23,9 +22,7 @@ function shownAvatar(avatar: AvatarConfig | null | undefined, username: string):
 export default function ProfileEditor({ username, initial, badges, avatar, onSaved, onRenamed, onAvatarSaved, onOpenAvatarStudio, onClose, onUnauthorized }: {
   username: string; initial: ProfilePersonalization; badges: BadgeDto[]; avatar?: AvatarConfig | null;
   onSaved: (profile: ProfilePersonalization, username: string) => void; onClose: () => void; onUnauthorized: () => void;
-  /** The rename is saved on its own, so the page learns about it even if the other fields then fail. */
   onRenamed?: (username: string) => void;
-  /** Like the rename, a new pose is saved on its own before the other fields. */
   onAvatarSaved?: (avatar: AvatarConfig) => void;
   onOpenAvatarStudio?: () => void;
 }) {

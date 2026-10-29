@@ -3,7 +3,6 @@ import './SuccessModal.css';
 import { PixelSprite, SPRITES } from '../PixelSprite';
 
 const SuccessModal = ({ isOpen, onClose, points, message }: { isOpen: boolean; onClose: () => void; points: number; message?: string }) => {
-  // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
     const handleEsc = (e: KeyboardEvent) => {

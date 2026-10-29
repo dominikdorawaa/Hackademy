@@ -37,9 +37,9 @@ public interface UserService {
     void updateBio(Long userId, UpdateBioRequest request);
     List<UserSearchDto> searchUsers(String query, Long currentUserId);
     Long getUserIdByUsername(String username);
-    RankingEntry getUserRank(Long userId); // New method
-    boolean hasSolvedTutorialVpn(Long userId); // New method
-    List<ActivityDto> getUserActivity(Long userId); // New method
+    RankingEntry getUserRank(Long userId);
+    boolean hasSolvedTutorialVpn(Long userId);
+    List<ActivityDto> getUserActivity(Long userId);
     List<RecentSolvedRoomDto> getRecentSolvedRooms(Long userId, int limit);
     int recordActivity(Long userId, boolean active);
     int getActiveSecondsThisWeek(Long userId);

@@ -20,7 +20,6 @@ async function failure(response: Awaited<ReturnType<typeof userApi.changeUsernam
   return { ok: false, error: 'Nie udało się zmienić nazwy użytkownika. Spróbuj ponownie.' };
 }
 
-/** Shared by the settings account form and the profile editor so both validate, save and refresh the same way. */
 export function useUsernameChange() {
   const { sessionKey, refreshUser } = useAuth();
   const activeToken = useRef(sessionKey);

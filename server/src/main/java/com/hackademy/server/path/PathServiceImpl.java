@@ -65,7 +65,6 @@ public class PathServiceImpl implements PathService {
         return userRepository.findIdByUsername(username).orElse(null);
     }
 
-    // ── list paths ──────────────────────────────────────────────────────────
 
     public List<PathSummaryDto> listPaths(String username) {
         Long userId = resolveUserId(username);
@@ -88,7 +87,6 @@ public class PathServiceImpl implements PathService {
                 .toList();
     }
 
-    // ── path detail ─────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -103,7 +101,6 @@ public class PathServiceImpl implements PathService {
                             .id(v.getId())
                             .title(v.getTitle())
                             .description(v.getDescription())
-                            // Use URL banner if provided; DB banner is available via /api/paths/{id}/banner
                             .bannerUrl(v.getBannerUrl())
                             .totalRooms(total)
                             .solvedRooms(solved)
@@ -168,7 +165,6 @@ public class PathServiceImpl implements PathService {
                 .build();
     }
 
-    // ── enrollment ──────────────────────────────────────────────────────────
 
     @Override
     @Transactional
@@ -205,7 +201,6 @@ public class PathServiceImpl implements PathService {
         return pathEnrollmentRepository.existsByUserIdAndPathId(userId, pathId);
     }
 
-    // ── admin / CRUD ─────────────────────────────────────────────────────────
 
     @Override
     @Transactional(readOnly = true)
@@ -230,7 +225,6 @@ public class PathServiceImpl implements PathService {
 
         List<PathRoomMiniDto> rooms = new ArrayList<>();
         if (safeLimit == 0) {
-            // Keep behavior: limit=0 means "return all"
             List<Long> roomIds = chapterRoomRepository.findRoomIdsOrdered(id);
             int effectiveLimit = roomIds.size();
             rooms.addAll(mapMiniRooms(id, userId, effectiveLimit, hasTutorialVPN, hasTutorialVM, lockedByPath));
@@ -253,7 +247,7 @@ public class PathServiceImpl implements PathService {
             boolean hasTutorialVM,
             Set<Long> lockedByPath
     ) {
-        Long safeUserId = userId != null ? userId : -1L; // ensures LEFT JOIN condition matches nothing
+        Long safeUserId = userId != null ? userId : -1L;
         List<ChapterRoomRepository.PathRoomMiniRow> rows = chapterRoomRepository.findMiniRoomsForUser(pathId, safeUserId, limit);
         List<PathRoomMiniDto> out = new ArrayList<>(rows.size());
         for (var r : rows) {
@@ -261,7 +255,6 @@ public class PathServiceImpl implements PathService {
             boolean solved = Boolean.TRUE.equals(r.getSolved());
             boolean locked = lockedByPath.contains(r.getId());
 
-            // Keep the same gating rules as rooms listing:
             if ("Tutorial VPN".equals(r.getTitle()) && !hasTutorialVM) {
                 locked = true;
             }
@@ -447,7 +440,6 @@ public class PathServiceImpl implements PathService {
         }
         if (unique.isEmpty()) return Map.of();
 
-        // Lock in a stable order before reading types and ownership across paths.
         Map<Long, Room> rooms = new HashMap<>();
         for (Long roomId : unique.stream().sorted().toList()) {
             Room room = roomRepository.findByIdForUpdate(roomId)

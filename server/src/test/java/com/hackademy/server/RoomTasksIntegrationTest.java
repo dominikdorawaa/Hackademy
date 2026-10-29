@@ -60,7 +60,6 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var executor = Executors.newSingleThreadExecutor();
         try {
             var unrelated = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(tx -> {
-                // Same managed-entity read/write as solveRoom, without its unrelated FK insert locks.
                 var entity = roomRepository.findById(room).orElseThrow();
                 entity.setSolutionsCount(entity.getSolutionsCount() + 1);
                 roomRepository.save(entity);

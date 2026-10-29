@@ -25,7 +25,6 @@ const CTFCard = ({ challenge }: { challenge: RoomSummaryDto & { description?: st
     }
   };
 
-  // Determine lock message
   let lockMessage = 'Ukończ "Tutorial VM", aby odblokować.';
   if (challenge.requiresVpn) {
       lockMessage = 'Ukończ "Tutorial VPN", aby odblokować.';

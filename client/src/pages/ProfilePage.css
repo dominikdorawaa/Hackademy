@@ -12,7 +12,6 @@
     overflow-y: auto; scrollbar-width: none;
   }
   .badge-catalog::-webkit-scrollbar { display: none; }
-  /* A fixed height keeps the dialog still when a filter leaves one card or none; the body scrolls instead. */
   .badge-catalog[open] { display: flex; flex-direction: column; height: min(940px, calc(100dvh - 32px)); max-height: none; overflow: hidden; }
   .badge-catalog-header { flex: none; }
   .badge-catalog-body { flex: 1; min-height: 0; display: flex; flex-direction: column; overflow-y: auto; scrollbar-width: thin; scrollbar-color: var(--profile-divider) transparent; }
@@ -138,8 +137,6 @@
   .profile-badge-pages { display: flex; align-items: center; gap: 4px; margin: 0; padding: 0; list-style: none; }
   .profile-badge-pages [data-slot='button'] { font-variant-numeric: tabular-nums; }
   .profile-badge-page-gap { min-width: 20px; text-align: center; color: var(--text-gray); }
-  /* Seven page numbers and both arrows do not fit one phone row, so the numbers take their own row above the arrows.
-     The buttons' width and padding are Tailwind classes, because utilities outrank this layer. */
   @media (max-width: 600px) {
     .profile-badge-page-controls { flex-wrap: wrap; }
     .profile-badge-pages { order: -1; flex-basis: 100%; justify-content: center; gap: 2px; }

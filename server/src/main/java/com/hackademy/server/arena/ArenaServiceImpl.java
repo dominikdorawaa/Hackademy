@@ -72,8 +72,6 @@ public class ArenaServiceImpl implements ArenaService {
     private final Map<String, Notice> notices = new ConcurrentHashMap<>();
     private final Map<Long, Deque<Long>> recentReactions = new ConcurrentHashMap<>();
     private final AtomicLong reactionIds = new AtomicLong();
-    // A player can be in one game at a time. Queue matches and accepted challenges both reserve their
-    // players under this lock first, so whichever start comes first wins and the other one is refused.
     private final Object players = new Object();
     private final Set<Long> startingPlayers = new HashSet<>();
     private final Map<Long, String> playingIn = new HashMap<>();
@@ -112,7 +110,6 @@ public class ArenaServiceImpl implements ArenaService {
             reserve(session.getPlayer1Id(), busyMessage(session.getPlayer1Username()),
                     session.getPlayer2Id(), busyMessage(session.getPlayer2Username()));
         } catch (PlayerBusyException busy) {
-            // Someone already in a duel has no business in the queue; dropping them frees their partner.
             if (hasGame(busy.userId)) matchmaking.leaveQueue(busy.userId);
             throw busy;
         }
@@ -173,8 +170,6 @@ public class ArenaServiceImpl implements ArenaService {
         return username + " jest już w pojedynku.";
     }
 
-    // A starting game takes its players out of the queue and drops their other challenges, all at once,
-    // so nothing created a moment earlier can pull them into a second game.
     private boolean start(GameSession session) {
         List<Challenge> dropped;
         synchronized (players) {
@@ -479,7 +474,6 @@ public class ArenaServiceImpl implements ArenaService {
             if (user.getId().equals(challengerId)) challenge.setChallengerElo(user.getElo());
             else challenge.setTargetElo(user.getElo());
         });
-        // Checked and stored under the players lock, so a game starting meanwhile either sees it or blocks it.
         synchronized (players) {
             if (isPlaying(challengerId)) throw new IllegalStateException(YOU_ARE_PLAYING);
             if (isPlaying(targetId)) throw new IllegalStateException(busyMessage(targetUsername));
@@ -512,7 +506,6 @@ public class ArenaServiceImpl implements ArenaService {
             try {
                 reserve(userId, YOU_ARE_PLAYING, challenge.getChallengerId(), busyMessage(challenge.getChallengerUsername()));
             } catch (PlayerBusyException busy) {
-                // A player merely starting another game may still fail to start it; only a running game ends this challenge.
                 if (hasGame(busy.userId) && removeChallenge(challenge, "CANCELLED")) {
                     realtime.arenaChanged(challenge.getChallengerId(), challenge.getTargetId());
                 }
@@ -643,8 +636,6 @@ public class ArenaServiceImpl implements ArenaService {
         }
     }
 
-    // A challenge between players who closed Hackademy or logged out would wait forever; drop it once either
-    // side has been gone for a while. Each player has their own clock, so one leaving never inherits another's time.
     @Scheduled(fixedRate = 5_000)
     public void sweepAbandonedChallenges() {
         long now = clock.getAsLong();

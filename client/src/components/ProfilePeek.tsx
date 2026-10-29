@@ -18,8 +18,6 @@ interface PeekData {
   stats: UserSearchDto | null;
 }
 
-// Profiles change rarely while a dashboard is open; one fetch per username is enough.
-// The friendship part depends on who is signed in, so the cache belongs to one sessionKey and is dropped when it changes.
 const peekCache = new Map<string, PeekData>();
 let peekCacheToken: string | null = null;
 
@@ -33,7 +31,6 @@ const cacheFor = (sessionKey: string | null) => {
 
 const PEEK_BADGE_LIMIT = 3;
 
-// The visitor picked featured badges for their profile, so those come first; the rarest earned ones fill the rest.
 export function peekBadges(profile: UserProfileDto): BadgeDto[] {
   const earned = profile.badges.filter((b) => b.earned);
   const featured = (profile.featuredBadgeIds ?? [])
@@ -61,14 +58,12 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
   const [failed, setFailed] = useState(false);
   const [sending, setSending] = useState(false);
   const [sendError, setSendError] = useState<string | null>(null);
-  // Once the visitor acts inside the card it stays open until they click elsewhere or press Escape.
   const [pinned, setPinned] = useState(false);
   const now = useMinuteClock(open);
   const timer = useRef<number | undefined>(undefined);
   const rootRef = useRef<HTMLSpanElement>(null);
   const cardId = useId();
   const { state: realtime } = useRealtime();
-  // Presence is only known for friends; for everyone else the card stays silent about it.
   const friend = isMe ? undefined : realtime?.friends.find((f) => f.username === username);
   const presence = friend?.online;
 

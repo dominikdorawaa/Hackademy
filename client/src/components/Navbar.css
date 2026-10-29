@@ -30,7 +30,6 @@
     .navbar .logo img { height: 48px; margin: 0; }
     .nav-user-controls { gap: 8px; }
   }
-  /* Below 960px the streak would push the account menu off the bar; it stays on the dashboard and profile. */
   @media (min-width: 768px) and (max-width: 959px) {
     .navbar .nav-streak { display: none; }
   }
@@ -49,9 +48,7 @@
     .navbar .notifications-dropdown { position: fixed; top: 100%; left: 16px; right: 16px; width: auto; max-width: calc(100vw - 32px); }
     .navbar .profile-dropdown { position: fixed; top: calc(100% + 8px); right: 16px; max-width: calc(100vw - 32px); }
   }
-/* Navbar.css */
 
-/* --- Active tab underline in navbar --- */
 .nav-links a {
   position: relative;
 }
@@ -78,7 +75,6 @@
   }
 }
 
-/* --- Notifications panel: the Scoreboard's floating card --- */
 .notifications-dropdown {
   --np-ground: var(--px-surface);
   --np-duel: var(--px-board);
@@ -342,7 +338,6 @@
   font-size: 0.6rem;
 }
 
-/* One-off "friend came online" entries: a single quiet line, closable. */
 .notification-online {
   display: flex;
   align-items: center;
@@ -404,7 +399,6 @@
   .navbar .mobile-nav-toggle { height: 40px; padding-inline: 14px; }
 }
 
-/* On phones the wordmark leaves no room for the controls, so the bar keeps to one row with the mark. */
 @media (max-width: 479px) {
   .navbar .logo img { display: none; }
   .navbar .logo .logo-mark { display: block; height: 32px; margin: 0; }

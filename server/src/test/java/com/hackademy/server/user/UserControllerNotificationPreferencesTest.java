@@ -14,7 +14,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-// Saving a single preference is covered end to end by NotificationPreferencesIntegrationTest.
 @ExtendWith(MockitoExtension.class)
 class UserControllerNotificationPreferencesTest {
 

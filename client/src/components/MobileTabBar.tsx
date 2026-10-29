@@ -12,7 +12,6 @@ const tabs: { to: string; label: string; icon: Icon }[] = [
   { to: '/ranking', label: 'Ranking', icon: Trophy },
 ];
 
-// Screens that own the whole viewport (a room, a duel, onboarding) keep their space.
 const fullScreen = [/^\/witaj/, /^\/arena\/battle\//, /^\/learn\/ukos/, /^\/login/, /^\/register/];
 
 export function showsMobileTabBar(pathname: string) {
@@ -23,7 +22,6 @@ function within(pathname: string, prefix: string) {
   return pathname === prefix || pathname.startsWith(`${prefix}/`);
 }
 
-/** The phone's main navigation: a floating dock of the four sections, with a sliding marker under the current one. */
 export default function MobileTabBar() {
   const { pathname } = useLocation();
   const { state } = useRealtime();
