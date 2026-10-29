@@ -75,7 +75,3 @@ Prawdziwość odpowiedzi zależy od warunków w treści pytania. Nie każda stro
 Nie stosujemy długości jako podpowiedzi. W 300 nowych pytaniach poprawna odpowiedź jest jedyną najdłuższą w 68 przypadkach (22,7%). Jej średnia długość wynosi 38,4 znaku, a średnia długość błędnej opcji 39,1 znaku. W całej puli 342 pytań poprawna jest jedyną najdłuższą w 72 przypadkach (21,1%). Remisy długości są liczone osobno.
 
 Test migracji sprawdza maksymalnie 25 znaków różnicy między najkrótszą a najdłuższą opcją w każdym pytaniu, najwyżej 25% nowych pytań z jednoznacznie najdłuższym kluczem oraz różnicę średnich długości do 3 znaków. Dotyczy to dostarczonego banku; administrator nadal może samodzielnie redagować pytania w granicach 500/200 znaków. Wartości nie są sztucznie dopełniane spacjami ani znakami niewidocznymi.
-
-## Wykorzystanie komercyjne
-
-[Notatka o wykorzystaniu komercyjnym](commercial-use-287.md) dokumentuje zakres sprawdzenia, właściwe warunki usług i zasady korzystania ze źródeł. Informacja o sposobie przygotowania materiałów jest widoczna na wejściu do areny i rozwinięta w regulaminie. Odwołania do certyfikacji nie oznaczają oficjalnego banku egzaminacyjnego ani autoryzacji organizatora.

@@ -120,7 +120,7 @@ export function TermsPage() {
 
       <h2 id="educational-materials">Materiały edukacyjne</h2>
       <p>
-        Bank pytań areny Hackademy obejmuje materiały opracowane z pomocą sztucznej inteligencji.
+        Pytania areny Hackademy są materiałami ćwiczeniowymi.
         Za ich dobór i publikację odpowiada operator Hackademy. Treści są weryfikowane i poprawiane,
         ale mogą zawierać błędy. Możesz je zgłaszać przy pytaniu.
       </p>

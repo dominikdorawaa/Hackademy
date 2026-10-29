@@ -243,10 +243,6 @@ const ArenaPage = () => {
                             ) : (
                                 <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
                             )}
-                            <p>
-                                Pytania opracowano z pomocą sztucznej inteligencji. Za ich dobór i publikację odpowiada Hackademy.
-                                {' '}<Link to="/terms#educational-materials">O materiałach</Link>
-                            </p>
                             {status !== 'GAME' && rejected.length > 0 && (
                                 <ul className="arena-rejected" aria-label="Odrzucone wyzwania">
                                     {rejected.map(challenge => {
