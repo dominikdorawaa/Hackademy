@@ -1,7 +1,7 @@
 export const ROOM_PROGRESS_CHANGED = 'hackademy:room-progress';
 import { request } from './http';
 import type { SessionScope } from './http';
-import type { ApiId, MessageResponse, RoomSummaryDto, RoomDetailDto, SolveRoomResponse } from '../types/api';
+import type { ApiId, HintDto, RoomSummaryDto, RoomDetailDto, SolveRoomResponse } from '../types/api';
 
 export function getRooms(auth: SessionScope) {
   return request<RoomSummaryDto[]>(`/api/rooms`, {
@@ -25,7 +25,7 @@ export function downloadFile(id: ApiId, auth: SessionScope) {
 }
 
 export function unlockHint(id: ApiId, hintId: ApiId, auth: SessionScope) {
-  return request<MessageResponse>(`/api/rooms/${id}/hints/${hintId}/unlock`, {
+  return request<HintDto>(`/api/rooms/${id}/hints/${hintId}/unlock`, {
     method: 'POST',
     auth,
   });

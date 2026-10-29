@@ -1,14 +1,15 @@
 package com.hackademy.server.room;
 
 
-import com.hackademy.server.path.PathLockedException;
 import com.hackademy.server.user.User;
 
+import com.hackademy.server.room.dto.HintDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.room.dto.SolveRoomResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.dao.DataIntegrityViolationException;
 import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
@@ -105,23 +106,12 @@ public class RoomController {
     }
 
     @PostMapping("/{roomId}/hints/{hintId}/unlock")
-    public ResponseEntity<?> unlockHint(@PathVariable Long roomId, @PathVariable Long hintId) {
+    public ResponseEntity<HintDto> unlockHint(@PathVariable Long roomId, @PathVariable Long hintId) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         try {
-            boolean unlocked = roomService.unlockHint(roomId, hintId, userDetails.getUsername());
-            // If unlocked is false, it means hint was already unlocked.
-            // In training mode, we want to treat this as success or at least not an error
-            // that blocks UI.
-            if (unlocked) {
-                return ResponseEntity.ok(Map.of("message", "Hint unlocked."));
-            } else {
-                // Return OK even if already unlocked, so frontend doesn't show error
-                return ResponseEntity.ok(Map.of("message", "Hint already unlocked."));
-            }
-        } catch (PathLockedException e) {
-            throw e;
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            return ResponseEntity.ok(roomService.unlockHint(roomId, hintId, userDetails.getUsername()));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.ok(roomService.unlockHint(roomId, hintId, userDetails.getUsername()));
         }
     }
 

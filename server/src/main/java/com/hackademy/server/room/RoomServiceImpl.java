@@ -299,17 +299,18 @@ public class RoomServiceImpl implements RoomService {
         // Use new repository to check if solved
         boolean isSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
 
-        // Sort hints by ID to ensure consistent order
-        List<com.hackademy.server.room.dto.HintDto> hintDtos = room.getHints().stream()
-                .sorted(Comparator.comparing(com.hackademy.server.room.Hint::getId))
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
-
         List<Long> unlockedHintIds = userUnlockedHintRepository.findByUser_IdAndHint_Room_Id(user.getId(), room.getId())
                 .stream()
                 .map(unlockedHint -> unlockedHint.getHint().getId())
                 .collect(Collectors.toList());
-        
+
+        List<com.hackademy.server.room.Hint> sortedHints = sortedHints(room);
+        List<HintDto> hintDtos = new ArrayList<>();
+        for (int i = 0; i < sortedHints.size(); i++) {
+            com.hackademy.server.room.Hint hint = sortedHints.get(i);
+            hintDtos.add(unlockedHintIds.contains(hint.getId()) ? mapToDto(hint, i) : HintDto.locked(hint.getId(), i));
+        }
+
         String fileName = roomFileRepository.findFileNameByRoomId(id);
 
         // Fetch Tasks
@@ -467,7 +468,7 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional
-    public boolean unlockHint(Long roomId, Long hintId, String username) {
+    public HintDto unlockHint(Long roomId, Long hintId, String username) {
         visibility.requireRoom(roomId);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -477,32 +478,21 @@ public class RoomServiceImpl implements RoomService {
         pathUnlockPolicy.requireUnlocked(roomId, user.getId());
 
         com.hackademy.server.room.Hint hint = hintRepository.findById(hintId)
-                .orElseThrow(() -> new IllegalArgumentException("Hint not found with ID: " + hintId));
-
-        if (!hint.getRoom().getId().equals(roomId)) {
-             throw new IllegalArgumentException("Hint does not belong to this room");
-        }
+                .filter(found -> found.getRoom().getId().equals(roomId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Podpowiedź nie istnieje w tym pokoju"));
 
         // Allow unlocking hints even if room is solved (for training purposes)
-        // if (userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
-        //    return false; // Room already solved
-        // }
-
-        if (userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), hintId)) {
-            return false; // Hint already unlocked
-        }
-
-        // Check if previous hints are unlocked
-        List<com.hackademy.server.room.Hint> allHints = room.getHints().stream()
-                .sorted(Comparator.comparing(com.hackademy.server.room.Hint::getId))
-                .collect(Collectors.toList());
-
+        List<com.hackademy.server.room.Hint> allHints = sortedHints(room);
         int hintIndex = -1;
         for (int i = 0; i < allHints.size(); i++) {
             if (allHints.get(i).getId().equals(hintId)) {
                 hintIndex = i;
                 break;
             }
+        }
+
+        if (userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), hintId)) {
+            return mapToDto(hint, hintIndex);
         }
 
         if (hintIndex > 0) {
@@ -512,7 +502,7 @@ public class RoomServiceImpl implements RoomService {
                 // In training mode, allow unlocking any hint if room is solved
                 boolean isRoomSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId);
                 if (!isRoomSolved) {
-                    throw new IllegalStateException("Previous hint must be unlocked first");
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Najpierw odblokuj poprzednią podpowiedź");
                 }
             }
         }
@@ -520,7 +510,7 @@ public class RoomServiceImpl implements RoomService {
         UserUnlockedHint userUnlockedHint = new UserUnlockedHint(user, hint);
         userUnlockedHintRepository.save(userUnlockedHint);
 
-        return true;
+        return mapToDto(hint, hintIndex);
     }
 
     @Override
@@ -636,7 +626,13 @@ public class RoomServiceImpl implements RoomService {
         return roomRepository.findTop3ByCategoryNot("Tutorial", PageRequest.of(0, 3));
     }
 
-    private com.hackademy.server.room.dto.HintDto mapToDto(com.hackademy.server.room.Hint hint) {
-        return new com.hackademy.server.room.dto.HintDto(hint.getId(), hint.getDescription());
+    private List<com.hackademy.server.room.Hint> sortedHints(Room room) {
+        return room.getHints().stream()
+                .sorted(Comparator.comparing(com.hackademy.server.room.Hint::getId))
+                .toList();
+    }
+
+    private HintDto mapToDto(com.hackademy.server.room.Hint hint, int order) {
+        return new HintDto(hint.getId(), order, hint.getDescription());
     }
 }

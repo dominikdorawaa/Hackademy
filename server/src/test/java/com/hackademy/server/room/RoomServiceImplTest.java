@@ -444,7 +444,7 @@ class RoomServiceImplTest {
     void firstHintUnlocks() {
         hintRoom(1L, 11L, 12L);
 
-        assertTrue(service.unlockHint(1L, 11L, "alice"));
+        assertEquals(new HintDto(11L, 0, "Podpowiedź 11"), service.unlockHint(1L, 11L, "alice"));
         verify(userUnlockedHintRepository).save(argThat(u -> u.getHint().getId().equals(11L)));
     }
 
@@ -453,15 +453,15 @@ class RoomServiceImplTest {
         hintRoom(1L, 11L, 12L, 13L);
         when(userUnlockedHintRepository.existsByUser_IdAndHint_Id(7L, 11L)).thenReturn(true);
 
-        assertTrue(service.unlockHint(1L, 12L, "alice"));
-        assertThrows(IllegalStateException.class, () -> service.unlockHint(1L, 13L, "alice"));
+        assertEquals(1, service.unlockHint(1L, 12L, "alice").order());
+        assertStatus(HttpStatus.CONFLICT, () -> service.unlockHint(1L, 13L, "alice"));
     }
 
     @Test
     void skippingAHintIsRefused() {
         hintRoom(1L, 11L, 12L);
 
-        assertThrows(IllegalStateException.class, () -> service.unlockHint(1L, 12L, "alice"));
+        assertStatus(HttpStatus.CONFLICT, () -> service.unlockHint(1L, 12L, "alice"));
         verify(userUnlockedHintRepository, never()).save(any());
     }
 
@@ -470,7 +470,7 @@ class RoomServiceImplTest {
         hintRoom(1L, 11L, 12L, 13L);
         alreadySolved(1L);
 
-        assertTrue(service.unlockHint(1L, 13L, "alice"));
+        assertEquals("Podpowiedź 13", service.unlockHint(1L, 13L, "alice").description());
     }
 
     @Test
@@ -478,7 +478,7 @@ class RoomServiceImplTest {
         hintRoom(1L, 11L);
         when(userUnlockedHintRepository.existsByUser_IdAndHint_Id(7L, 11L)).thenReturn(true);
 
-        assertFalse(service.unlockHint(1L, 11L, "alice"));
+        assertEquals(new HintDto(11L, 0, "Podpowiedź 11"), service.unlockHint(1L, 11L, "alice"));
         verify(userUnlockedHintRepository, never()).save(any());
     }
 
@@ -486,8 +486,8 @@ class RoomServiceImplTest {
     void hintOrderFollowsIdsNotInsertionOrder() {
         hintRoom(1L, 12L, 11L);
 
-        assertTrue(service.unlockHint(1L, 11L, "alice"));
-        assertThrows(IllegalStateException.class, () -> service.unlockHint(1L, 12L, "alice"));
+        assertEquals(0, service.unlockHint(1L, 11L, "alice").order());
+        assertStatus(HttpStatus.CONFLICT, () -> service.unlockHint(1L, 12L, "alice"));
     }
 
     @Test
@@ -497,14 +497,14 @@ class RoomServiceImplTest {
         foreign.setId(21L);
         when(hintRepository.findById(21L)).thenReturn(Optional.of(foreign));
 
-        assertThrows(IllegalArgumentException.class, () -> service.unlockHint(1L, 21L, "alice"));
+        assertStatus(HttpStatus.NOT_FOUND, () -> service.unlockHint(1L, 21L, "alice"));
     }
 
     @Test
     void unknownHintIsRejected() {
         hintRoom(1L, 11L);
 
-        assertThrows(IllegalArgumentException.class, () -> service.unlockHint(1L, 99L, "alice"));
+        assertStatus(HttpStatus.NOT_FOUND, () -> service.unlockHint(1L, 99L, "alice"));
     }
 
     @Test
@@ -826,7 +826,7 @@ class RoomServiceImplTest {
         var detail = service.getRoomDetail(1L, "alice");
 
         assertTrue(detail.solved());
-        assertEquals(List.of(new HintDto(11L, "Podpowiedź 11"), new HintDto(12L, "Podpowiedź 12")), detail.hints());
+        assertEquals(List.of(new HintDto(11L, 0, "Podpowiedź 11"), HintDto.locked(12L, 1)), detail.hints());
         assertEquals(List.of(11L), detail.unlockedHintIds());
         assertEquals(List.of(true, false), detail.tasks().stream().map(RoomTaskDto::completed).toList());
         assertEquals("dump.pcap", detail.fileName());
@@ -1019,6 +1019,10 @@ class RoomServiceImplTest {
         when(roomRepository.findByIdForUpdate(id)).thenReturn(Optional.of(room));
         when(roomTaskRepository.findByRoomIdOrderBySortOrderAsc(id)).thenReturn(List.of(tasks));
         return room;
+    }
+
+    static void assertStatus(HttpStatus status, org.junit.jupiter.api.function.Executable call) {
+        assertEquals(status, assertThrows(ResponseStatusException.class, call).getStatusCode());
     }
 
     Room hintRoom(Long id, Long... hintIds) {

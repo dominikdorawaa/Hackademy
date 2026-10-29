@@ -241,7 +241,8 @@ export interface FriendRequestDto {
 
 export interface HintDto {
   id: number
-  description: string
+  order: number
+  description?: string
 }
 
 export interface PathRoomMiniDto {

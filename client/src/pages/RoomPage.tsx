@@ -111,6 +111,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     try {
         const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { sessionKey });
         if (!response.ok) throw new Error('Failed to unlock hint');
+        const unlocked = await response.json();
+        setRoom(prev => prev ? { ...prev, hints: prev.hints.map(h => h.id === unlocked.id ? unlocked : h) } : null);
         setUnlockedHints([...unlockedHints, hintToUnlock]);
         setPotentialPoints(Math.max(0, (room?.points ?? 0) * (1 - (unlockedHints.length + 1) * 0.25)));
         setToast({ message: 'Podpowiedź odblokowana!', type: 'success' });
