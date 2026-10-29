@@ -1,15 +1,24 @@
 package com.hackademy.server;
 
+import com.hackademy.server.arena.ArenaQuestionRepository;
+import com.hackademy.server.arena.ArenaQuestionRules;
 import com.hackademy.server.arena.ArenaService;
 import com.hackademy.server.user.Role;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.CsvSource;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.test.util.ReflectionTestUtils;
+
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.Random;
 import java.util.concurrent.atomic.AtomicLong;
 import java.util.function.LongSupplier;
 
 import static org.hamcrest.Matchers.hasSize;
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -17,14 +26,34 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
     @Autowired
     private ArenaService arena;
 
+    @Autowired
+    private ArenaQuestionRepository questions;
+
     @Test
     void seedsEnoughQuestionsForAFullBattle() {
-        assertEquals(42, jdbcTemplate.queryForObject("SELECT count(*) FROM arena_questions", Integer.class));
+        assertEquals(342, jdbcTemplate.queryForObject("SELECT count(*) FROM arena_questions", Integer.class));
         assertEquals(0, jdbcTemplate.queryForObject(
                 """
                 SELECT count(*) FROM arena_questions WHERE (SELECT count(DISTINCT lower(answer))
                     FROM unnest(ARRAY[correct_answer, wrong_answer_1, wrong_answer_2, wrong_answer_3]) AS answer) <> 4
                 """, Integer.class));
+    }
+
+    @ParameterizedTest
+    @CsvSource({"300,VERY_EASY", "500,EASY", "800,MEDIUM", "1000,HARD", "1300,VERY_HARD"})
+    void drawsEveryMigratedLevelAndFavorsTheEloTarget(int elo, String target) {
+        var random = new Random(287);
+        var seen = new HashMap<String, Integer>();
+        for (int battle = 0; battle < 40; battle++) {
+            var drawn = questions.drawForElo(elo, 10, random);
+            assertEquals(10, drawn.size());
+            assertEquals(10, new HashSet<>(drawn.stream().map(question -> question.getId()).toList()).size());
+            drawn.forEach(question -> seen.merge(question.getDifficulty(), 1, Integer::sum));
+        }
+        assertEquals(new HashSet<>(ArenaQuestionRules.DIFFICULTIES), seen.keySet());
+        seen.forEach((level, count) -> {
+            if (!level.equals(target)) assertTrue(seen.get(target) > count, seen.toString());
+        });
     }
 
     @Test

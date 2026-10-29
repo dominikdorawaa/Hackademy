@@ -6,17 +6,9 @@ export const CONTENT_LIMIT = 500;
 export const ANSWER_LIMIT = 200;
 export const WRONG_ANSWERS = 3;
 
-export const categoryLabels: Record<ArenaQuestionCategory, string> = {
-  WEB: 'Web',
-  SIECI: 'Sieci',
-  KRYPTOGRAFIA: 'Kryptografia',
-  LINUX: 'Linux',
-  OGOLNE: 'Ogólne',
-};
-
+export { arenaCategoryLabels as categoryLabels, arenaCategories as categories } from '../../components/arena/arenaCategory';
 export { arenaDifficultyLabels };
 
-export const categories = Object.keys(categoryLabels) as ArenaQuestionCategory[];
 export const difficulties = arenaDifficulties;
 
 export interface QuestionForm {

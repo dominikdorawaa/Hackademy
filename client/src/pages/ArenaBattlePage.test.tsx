@@ -343,3 +343,16 @@ it('shows a battle cancelled by a server restart without a winner', async () => 
   expect(screen.getByText('Serwer został zrestartowany w trakcie walki, więc mecz anulowano. Elo się nie zmienia.')).toBeInTheDocument();
   expect(screen.getByText('0 Elo')).toBeInTheDocument();
 });
+
+it.each([
+  ['WINDOWS', 'Windows i Active Directory'],
+  ['BLUE_TEAM', 'Blue Team'],
+  ['CHMURA', 'Chmura'],
+])('shows the readable battle category for %s', async (category, label) => {
+  const session = createGameSession();
+  session.question = { ...session.question!, category };
+  realtime.value = { ...realtime.value, state: live(session) };
+  server.use(http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json(session)));
+  mount();
+  expect(await screen.findByText(label)).toBeInTheDocument();
+});

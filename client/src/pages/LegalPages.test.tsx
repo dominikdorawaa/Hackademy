@@ -18,4 +18,7 @@ it('shows the terms with a link to the privacy policy', () => {
   expect(screen.getByRole('heading', { level: 1, name: 'Regulamin' })).toBeInTheDocument();
   expect(screen.getByRole('heading', { level: 2, name: 'Etyczne korzystanie z wiedzy' })).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'polityka prywatności' })).toHaveAttribute('href', '/privacy');
+  expect(screen.getByRole('heading', { level: 2, name: 'Materiały edukacyjne' })).toHaveAttribute('id', 'educational-materials');
+  expect(screen.getByText(/nie są oficjalnym bankiem pytań egzaminacyjnych/)).toBeInTheDocument();
+  expect(screen.getByText('Ostatnia aktualizacja: 29 października 2026')).toBeInTheDocument();
 });

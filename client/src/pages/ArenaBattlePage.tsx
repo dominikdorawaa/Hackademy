@@ -12,6 +12,7 @@ import { useArenaClock } from '../hooks/useArenaClock';
 import { useArenaSession } from '../hooks/useArenaSession';
 import { useBattlePresence } from '../hooks/useBattlePresence';
 import { useReducedMotion } from '../hooks/useReducedMotion';
+import { arenaCategoryLabel } from '../components/arena/arenaCategory';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
 import * as arenaApi from '../services/arenaApi';
@@ -179,7 +180,7 @@ export default function ArenaBattlePage() {
             </section>
           ) : !finished && session.question ? (
             <section className="battle-card" aria-labelledby="battle-question">
-              <p className="battle-card-meta">{session.question.category}</p>
+              <p className="battle-card-meta">{arenaCategoryLabel(session.question.category)}</p>
               <h1 id="battle-question" className="battle-question">{session.question.content}</h1>
               <div className="battle-answers" role="group" aria-label="Odpowiedzi">
                 {session.question.answers.map((text, index) => (
