@@ -125,6 +125,36 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void exposesTheMigratedQuestionsInTheAdminBank() throws Exception {
+        var admin = account(Role.ADMIN);
+        for (String category : List.of("WINDOWS", "BLUE_TEAM", "CHMURA")) {
+            int total = category.equals("CHMURA") ? 35 : 40;
+            getAs(admin, URL + "?category=" + category + "&size=100")
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(total)))
+                    .andExpect(jsonPath("$.hasNext").value(false))
+                    .andExpect(jsonPath("$.items[0].correctAnswer").isNotEmpty())
+                    .andExpect(jsonPath("$.items[0].wrongAnswers", hasSize(3)));
+            getAs(admin, URL + "?category=" + category + "&difficulty=VERY_HARD&size=100")
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(total / 5)));
+        }
+    }
+
+    @Test
+    void createsFiltersAndEditsEveryNewCategory() throws Exception {
+        var admin = account(Role.ADMIN);
+        String marker = UUID.randomUUID().toString();
+        for (String category : List.of("WINDOWS", "BLUE_TEAM", "CHMURA")) {
+            long id = create(admin, "Nowa kategoria " + category + " " + marker, category, "HARD");
+            getAs(admin, URL + "?query=" + marker + "&category=" + category)
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(1)))
+                    .andExpect(jsonPath("$.items[0].id").value(id))
+                    .andExpect(jsonPath("$.items[0].category").value(category));
+            putJson(admin, URL + "/" + id, body("Zmiana " + marker, "A", List.of("B", "C", "D"), category, "VERY_HARD", 0L))
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.category").value(category));
+        }
+    }
+
+    @Test
     void rejectsQuestionsTheEngineCannotPlay() throws Exception {
         var admin = account(Role.ADMIN);
         var three = List.of("B", "C", "D");

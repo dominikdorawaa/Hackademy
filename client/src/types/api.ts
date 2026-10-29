@@ -22,7 +22,7 @@ export type FriendshipStatus = 'NONE' | 'FRIENDS' | 'REQUEST_SENT' | 'REQUEST_RE
 
 export type ApiId = string | number
 
-export type ArenaQuestionCategory = 'WEB' | 'SIECI' | 'KRYPTOGRAFIA' | 'LINUX' | 'OGOLNE'
+export type ArenaQuestionCategory = 'WEB' | 'SIECI' | 'KRYPTOGRAFIA' | 'LINUX' | 'OGOLNE' | 'WINDOWS' | 'BLUE_TEAM' | 'CHMURA'
 
 export type ArenaQuestionDifficulty = 'VERY_EASY' | 'EASY' | 'MEDIUM' | 'HARD' | 'VERY_HARD'
 

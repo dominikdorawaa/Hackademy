@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 32;
+    static final int SCHEMA_VERSION = 33;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -145,7 +145,7 @@ class SchemaMigrationTest {
 
     @Test
     void keepsTheSeededArenaAnswersWhenSplittingThem() throws Exception {
-        flyway().migrate();
+        flyway("27").migrate();
         assertEquals(42, scalar("SELECT count(*) FROM arena_questions"));
         assertEquals("Podatnością nieznaną producentowi i bez dostępnej poprawki", text("SELECT correct_answer FROM arena_questions WHERE content = 'Czym jest podatność zero-day?'"));
         assertEquals("Podatnością naprawioną w dniu zgłoszenia|Podatnością dotyczącą tylko starych systemów|Podatnością, której nie da się wykorzystać",
@@ -172,10 +172,49 @@ class SchemaMigrationTest {
     }
 
     @Test
+    void extendsTheArenaBankWithoutOverwritingAdminEdits() throws Exception {
+        flyway("32").migrate();
+        long previousMax = scalar("SELECT max(id) FROM arena_questions");
+        execute("UPDATE arena_questions SET correct_answer = 'Własna odpowiedź administratora', version = 1 WHERE content = 'Co umożliwia ARP spoofing w sieci lokalnej?'");
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(342, scalar("SELECT count(*) FROM arena_questions"));
+        assertEquals(300, scalar("SELECT count(*) FROM arena_questions WHERE id > " + previousMax));
+        assertEquals("EASY:60,HARD:60,MEDIUM:60,VERY_EASY:60,VERY_HARD:60", text("""
+                SELECT string_agg(difficulty || ':' || total, ',' ORDER BY difficulty)
+                FROM (SELECT difficulty, count(*) AS total FROM arena_questions WHERE id > %d GROUP BY difficulty) levels
+                """.formatted(previousMax)));
+        assertEquals("BLUE_TEAM,CHMURA,KRYPTOGRAFIA,LINUX,OGOLNE,SIECI,WEB,WINDOWS", text("""
+                SELECT string_agg(category, ',' ORDER BY category)
+                FROM (SELECT DISTINCT category FROM arena_questions) categories
+                """));
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM (
+                    SELECT lower(trim(content)) FROM arena_questions GROUP BY lower(trim(content)) HAVING count(*) > 1
+                ) duplicates
+                """));
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM arena_questions
+                WHERE length(trim(content)) = 0 OR length(content) > 500
+                    OR EXISTS (SELECT 1 FROM unnest(ARRAY[correct_answer, wrong_answer_1, wrong_answer_2, wrong_answer_3]) answer
+                               WHERE length(trim(answer)) = 0 OR length(answer) > 200)
+                    OR (SELECT count(DISTINCT lower(trim(answer)))
+                        FROM unnest(ARRAY[correct_answer, wrong_answer_1, wrong_answer_2, wrong_answer_3]) answer) <> 4
+                """));
+        assertEquals("Własna odpowiedź administratora:1", text("SELECT correct_answer || ':' || version FROM arena_questions WHERE content = 'Co umożliwia ARP spoofing w sieci lokalnej?'"));
+        assertEquals("MEDIUM:1", text("SELECT difficulty || ':' || version FROM arena_questions WHERE content = 'Czym jest SSRF?'"));
+        assertTrue(text("SELECT correct_answer FROM arena_questions WHERE content = 'Dlaczego MD5 nie nadaje się do przechowywania haseł?'").contains("zgadywania"));
+        assertTrue(text("SELECT correct_answer FROM arena_questions WHERE content = 'Co łączy uwierzytelnianie dwuskładnikowe (2FA)?'").contains("różnych rodzajów"));
+        assertSqlState("23514", "UPDATE arena_questions SET category = 'WINDOWS_AD' WHERE id = 1");
+        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertTrue(flyway().validateWithResult().validationSuccessful);
+    }
+
+    @Test
     void sharesActivityOfExistingUsersUntilTheyHideIt() throws Exception {
         flyway("31").migrate();
         insertUser(1, "Alice", "alice@example.com");
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 31, flyway().migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE share_activity AND last_seen_at IS NULL"));
         execute("UPDATE users SET share_activity = false, last_seen_at = now() WHERE id = 1");
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE NOT share_activity AND last_seen_at IS NOT NULL"));

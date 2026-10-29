@@ -138,6 +138,29 @@ describe('arena question form rules', () => {
 });
 
 describe('arena questions page', () => {
+  it.each([
+    ['WINDOWS', 'Windows i Active Directory'],
+    ['BLUE_TEAM', 'Blue Team'],
+    ['CHMURA', 'Chmura'],
+  ] as const)('filters and labels %s questions', async (category, label) => {
+    signIn('ADMIN');
+    const { requests } = bank([question(1, 'Scenariusz testowy', { category })]);
+    const user = userEvent.setup();
+    mountAdmin('/admin/arena/questions');
+    expect(await screen.findByText('Scenariusz testowy')).toBeInTheDocument();
+    within(screen.getByText('Scenariusz testowy').closest('tr')!).getAllByText(label)
+      .forEach((element) => expect(element).toBeInTheDocument());
+    await user.click(screen.getByRole('combobox', { name: 'Filtruj według kategorii' }));
+    await user.click(await screen.findByRole('option', { name: label }));
+    await waitFor(() => expect(requests.at(-1)?.url.searchParams.get('category')).toBe(category));
+    await user.click(await screen.findByRole('button', { name: 'Edytuj pytanie: Scenariusz testowy' }));
+    const dialog = within(await screen.findByRole('dialog'));
+    await user.click(dialog.getByRole('combobox', { name: 'Kategoria *' }));
+    await user.click(await screen.findByRole('option', { name: label }));
+    await user.click(dialog.getByRole('button', { name: 'Zapisz zmiany' }));
+    await waitFor(() => expect(requests.find((entry) => entry.method === 'PUT')?.body).toMatchObject({ category, version: 0 }));
+  });
+
   it('lists, searches and filters the bank for an administrator', async () => {
     signIn('ADMIN');
     const { requests } = bank([question(1, 'Na którym porcie działa SSH?'), question(2, 'Co to XSS?', { category: 'WEB', difficulty: 'VERY_EASY', correctAnswer: 'Atak', wrongAnswers: ['Port', 'Plik', 'Szyfr'] })]);
