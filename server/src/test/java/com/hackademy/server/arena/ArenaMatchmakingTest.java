@@ -169,4 +169,39 @@ class ArenaMatchmakingTest {
         controller.processMatchmaking();
         for (long id = 1; id <= 4; id++) assertNotNull(arena.findCurrentGameForUser(id));
     }
+
+    @Test
+    void aDeletedAccountGetsNoGameAndTheNextPairStillPlays() {
+        when(users.findById(1L)).thenReturn(Optional.empty());
+        controller.processMatchmaking();
+        assertNull(arena.findCurrentGameForUser(1L));
+        assertNull(arena.findCurrentGameForUser(2L));
+        assertNotNull(arena.findCurrentGameForUser(3L));
+        assertEquals(arena.findCurrentGameForUser(3L).getId(), arena.findCurrentGameForUser(4L).getId());
+    }
+
+    @Test
+    void challengingAnUnknownPlayerAnswersWithTheReason() {
+        when(userService.getUserIdByUsername("ghost")).thenThrow(new IllegalArgumentException("User not found"));
+        signIn(1L);
+        var response = controller.createChallenge(Map.of("targetUsername", "ghost"));
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals(Map.of("message", "User not found"), response.getBody());
+        assertTrue(arena.getPendingChallenges(1L).isEmpty());
+    }
+
+    @Test
+    void theChallengerCanCancelTheirChallengeThroughTheApi() {
+        when(userService.getUserIdByUsername("player2")).thenReturn(2L);
+        signIn(1L);
+        controller.createChallenge(Map.of("targetUsername", "player2"));
+        String challengeId = arena.getPendingChallenges(2L).get(0).getId();
+        signIn(2L);
+        assertEquals(400, controller.cancelChallenge(challengeId).getStatusCode().value());
+        signIn(1L);
+        var response = controller.cancelChallenge(challengeId);
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(Map.of("message", "Wyzwanie anulowane"), response.getBody());
+        assertTrue(arena.getPendingChallenges(2L).isEmpty());
+    }
 }
