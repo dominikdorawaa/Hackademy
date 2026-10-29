@@ -2,7 +2,6 @@ package com.hackademy.server.room.dto;
 
 import com.fasterxml.jackson.annotation.JsonInclude;
 
-// A locked hint carries only its id and order; the description is left out of the JSON entirely.
 @JsonInclude(JsonInclude.Include.NON_NULL)
 public record HintDto(
     Long id,

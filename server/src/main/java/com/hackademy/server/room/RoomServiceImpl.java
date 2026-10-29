@@ -303,7 +303,6 @@ public class RoomServiceImpl implements RoomService {
                 .map(unlockedHint -> unlockedHint.getHint().getId())
                 .collect(Collectors.toList());
 
-        // Only unlocked hints carry their description; locked ones expose just id and order
         List<com.hackademy.server.room.Hint> sortedHints = sortedHints(room);
         List<HintDto> hintDtos = new ArrayList<>();
         for (int i = 0; i < sortedHints.size(); i++) {
@@ -531,7 +530,6 @@ public class RoomServiceImpl implements RoomService {
             }
         }
 
-        // A repeated unlock returns the content again without a second penalty
         if (userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), hintId)) {
             return mapToDto(hint, hintIndex);
         }
@@ -667,7 +665,6 @@ public class RoomServiceImpl implements RoomService {
         return roomRepository.findTop3ByCategoryNot("Tutorial", PageRequest.of(0, 3));
     }
 
-    // Hint order is the position after sorting by id
     private List<com.hackademy.server.room.Hint> sortedHints(Room room) {
         return room.getHints().stream()
                 .sorted(Comparator.comparing(com.hackademy.server.room.Hint::getId))

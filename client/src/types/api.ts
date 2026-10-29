@@ -242,7 +242,6 @@ export interface FriendRequestDto {
 export interface HintDto {
   id: number
   order: number
-  // Absent until the player unlocks the hint
   description?: string
 }
 

@@ -100,7 +100,6 @@ public class RoomController {
         try {
             return ResponseEntity.ok(roomService.unlockHint(roomId, hintId, userDetails.getUsername()));
         } catch (DataIntegrityViolationException e) {
-            // A concurrent request unlocked the same hint first; the retry sees it as already unlocked
             return ResponseEntity.ok(roomService.unlockHint(roomId, hintId, userDetails.getUsername()));
         }
     }

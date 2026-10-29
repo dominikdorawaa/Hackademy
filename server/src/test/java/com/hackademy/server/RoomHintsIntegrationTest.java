@@ -88,7 +88,6 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.hints[1].description").doesNotExist())
                 .andExpect(jsonPath("$.unlockedHintIds[0]").value(hints.get(0)));
 
-        // 50 points minus one 25% penalty, charged once despite the repeated unlock
         postJson(user, "/api/rooms/" + roomId + "/solve", "{\"flag\":\"flag\"}").andExpect(status().isOk())
                 .andExpect(jsonPath("$.pointsEarned").value(37));
     }

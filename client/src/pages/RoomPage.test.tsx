@@ -214,7 +214,6 @@ const hintTexts: Record<number, string> = { 1: 'Zajrzyj do źródła strony', 2:
 
 function mountCtf(overrides: Partial<RoomDetailDto> = {}, url = '/rooms/7') {
   const unlockedHintIds = overrides.unlockedHintIds ?? [];
-  // The API sends a hint's description only once it is unlocked
   const hints = [1, 2].map((id, order) => unlockedHintIds.includes(id) ? { id, order, description: hintTexts[id] } : { id, order });
   const room: RoomDetailDto = {
     id: 7, title: 'Pierwsza flaga', description: 'Znajdź flagę', shortDescription: 'Rozgrzewka', difficulty: 'EASY',
