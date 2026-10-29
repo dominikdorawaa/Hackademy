@@ -8,10 +8,6 @@ import org.springframework.stereotype.Component;
 
 import java.util.function.BooleanSupplier;
 
-/**
- * Limits flag and task-answer guessing per user and room. Only wrong answers use up the budget; while it is spent,
- * answers are refused before they are compared, so a block never reveals whether a guess was right.
- */
 @Component
 @RequiredArgsConstructor
 public class RoomAnswerGuard {

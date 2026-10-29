@@ -1,7 +1,7 @@
 import { sanitizeTaskContent } from '../lib/taskContent';
 import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
-import { readRetryAfter, TOO_MANY_REQUESTS } from '../services/rateLimit';
+import { rateLimitMessage, retryAfterSeconds, TOO_MANY_REQUESTS } from '../services/rateLimit';
 import React, { useState, useEffect, useId, useRef } from 'react';
 import { BookOpen, Check, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
@@ -61,13 +61,15 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     setMascotSuccessCount(count => count + 1);
   };
 
-  // Wrong answers lock both the flag and the task answers of this room for a while
   const [answersBlockedUntil, setAnswersBlockedUntil] = useState(0);
+  const [wrongAnswersBlock, setWrongAnswersBlock] = useState(false);
   const [now, setNow] = useState(() => Date.now());
   const retryIn = Math.max(0, Math.ceil((answersBlockedUntil - now) / 1000));
   const answersBlocked = retryIn > 0;
   const blockAnswers = async (response: Response) => {
-    const seconds = await readRetryAfter(response);
+    const body: unknown = await response.json().catch(() => null);
+    const seconds = retryAfterSeconds(response.headers, body);
+    setWrongAnswersBlock(!!body && typeof body === 'object' && (body as { reason?: unknown }).reason === 'room-answer');
     const current = Date.now();
     setNow(current);
     setAnswersBlockedUntil(current + seconds * 1000);
@@ -82,7 +84,9 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     return () => window.clearInterval(timer);
   }, [answersBlockedUntil]);
   const retryNotice = answersBlocked && (
-    <p className="room-message is-error" role="status">Zbyt wiele błędnych odpowiedzi. Spróbuj ponownie za {retryIn} s.</p>
+    <p className="room-message is-error" role="status">
+      {wrongAnswersBlock ? `Zbyt wiele błędnych odpowiedzi. Spróbuj ponownie za ${retryIn} s.` : rateLimitMessage(retryIn)}
+    </p>
   );
 
   // Toast state
@@ -222,7 +226,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (preview) { setRoom(current => current ? { ...current, tasks: current.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t) } : null); return; }
     const answer = taskAnswers[taskId] || '';
     const task = room?.tasks.find((item) => item.id === taskId);
-    if (!task || task.completed || pendingTask !== null || answersBlocked || (task.question && !answer)) return;
+    if (!task || task.completed || pendingTask !== null || (task.question && (answersBlocked || !answer))) return;
 
     setPendingTask(taskId);
     try {
@@ -542,10 +546,9 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 {task.completed ? 'Zaliczone' : 'Do przeczytania'}
               </p>
               <p className="room-note">Gdy skończysz czytać, oznacz zadanie jako przeczytane.</p>
-              <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null || answersBlocked}>
+              <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
                 {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
               </button>
-              {!task.completed && retryNotice}
             </form>
           )}
         </article>

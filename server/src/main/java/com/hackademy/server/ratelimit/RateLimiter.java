@@ -28,10 +28,6 @@ public class RateLimiter {
         return lease(scope, id, rule).decision();
     }
 
-    /**
-     * Takes a token like {@link #acquire} but lets the caller hand it back when the request should not count,
-     * so the bucket never admits more than its burst even while several requests are still being judged.
-     */
     public Lease lease(String scope, String id, RateLimitProperties.Rule rule) {
         long now = clock.millis();
         sweep(now, SWEEP_INTERVAL_MILLIS);

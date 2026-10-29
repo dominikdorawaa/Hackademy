@@ -36,7 +36,7 @@ class RoomAnswerLimitIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(header().string("Retry-After", "3600"))
                 .andExpect(header().string("Cache-Control", "no-store"))
                 .andExpect(content().json("""
-                        {"message":"Zbyt wiele błędnych odpowiedzi w tym pokoju. Spróbuj ponownie za 3600 s.","retryAfter":3600}
+                        {"message":"Zbyt wiele błędnych odpowiedzi w tym pokoju. Spróbuj ponownie za 3600 s.","retryAfter":3600,"reason":"room-answer"}
                         """, true));
 
         postJson(other, solve, "{\"flag\":\"flag\"}").andExpect(status().isOk())

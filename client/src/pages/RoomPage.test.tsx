@@ -260,7 +260,7 @@ describe('CTF room', () => {
       let sent = 0;
       server.use(http.post(`${API_URL}/api/rooms/7/solve`, () => {
         sent++;
-        return HttpResponse.json({ message: 'Zbyt wiele błędnych odpowiedzi w tym pokoju. Spróbuj ponownie za 2 s.', retryAfter: 2 },
+        return HttpResponse.json({ message: 'Zbyt wiele błędnych odpowiedzi w tym pokoju. Spróbuj ponownie za 2 s.', retryAfter: 2, reason: 'room-answer' },
           { status: 429, headers: { 'Retry-After': '2' } });
       }));
       mountCtf();
@@ -456,7 +456,7 @@ describe('task room reader', () => {
     expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
   });
 
-  it('locks task answers while the room is blocked for wrong answers', async () => {
+  it('locks task answers with a neutral message when a general write limit answers', async () => {
     vi.useFakeTimers({ shouldAdvanceTime: true });
     try {
       const user = userEvent.setup({ advanceTimers: vi.advanceTimersByTime });
@@ -465,7 +465,8 @@ describe('task room reader', () => {
       await user.type(await screen.findByLabelText('Ile?'), 'zle');
       await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
 
-      expect(await screen.findByText('Zbyt wiele błędnych odpowiedzi. Spróbuj ponownie za 1 s.')).toBeInTheDocument();
+      expect(await screen.findByText('Zbyt wiele żądań. Spróbuj ponownie za 1 s.')).toBeInTheDocument();
+      expect(screen.queryByText(/błędnych odpowiedzi/)).not.toBeInTheDocument();
       expect(screen.getByRole('button', { name: 'Sprawdź' })).toBeDisabled();
       expect(screen.getByLabelText('Ile?')).toBeDisabled();
 

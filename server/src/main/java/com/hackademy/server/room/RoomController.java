@@ -93,7 +93,8 @@ public class RoomController {
         return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
                 .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
                 .cacheControl(CacheControl.noStore())
-                .body(Map.of("message", exception.getMessage(), "retryAfter", exception.retryAfterSeconds()));
+                .body(Map.of("message", exception.getMessage(), "retryAfter", exception.retryAfterSeconds(),
+                        "reason", RoomAnswerGuard.SCOPE));
     }
 
     @PostMapping("/{roomId}/tasks/complete")
