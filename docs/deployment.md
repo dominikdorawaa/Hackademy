@@ -26,6 +26,16 @@ Workflow `.github/workflows/deploy.yml` uruchamia się po każdym pushu na `main
 3. Backend: `git push` do Heroku, które buduje obraz z `heroku.yml`, a następnie czeka na `200` z `BACKEND_HEALTH_URL`.
 4. Frontend: build z `VITE_API_URL` i `wrangler pages deploy`. Rusza dopiero po udanym wdrożeniu backendu lub gdy backend się nie zmienił.
 
+### Pliki z poprzednich deployów
+
+Każdy deploy na Pages to osobny snapshot, więc karta otwarta przed deployem nie załadowałaby chunków starego builda, których nie ma w nowym. Dlatego workflow dokłada je do nowego deployu (#252):
+
+1. `actions/cache/restore` przywraca do `$RUNNER_TEMP/pages-static` katalog z ostatniego udanego deployu: `files/` z plikami `/static/` i `manifest.json` z numerem deployu oraz czasem, kiedy każdy plik był ostatnio częścią builda.
+2. `client/build/retainStatic.mjs` kopiuje do `dist/static/` stare pliki, których nie ma w nowym buildzie, bez nadpisywania nowych. Plik zostaje, jeśli był w jednym z 2 poprzednich deployów albo w ciągu ostatnich 7 dni. Najwyżej 15 000 plików w `/static/` łącznie z nowym buildem (limit Pages to 20 000 plików w deployu), przy nadmiarze odpadają najdawniej używane. Skrypt zapisuje nowy stan katalogu.
+3. Po udanym `wrangler pages deploy` `actions/cache/save` zapisuje katalog pod nowym kluczem `pages-static-<run_id>-<run_attempt>`. Kolejny deploy przywraca najnowszy klucz z prefiksem `pages-static-`.
+
+Brak cache, uszkodzony `manifest.json` albo błąd skryptu nie zatrzymują wdrożenia: idzie sam nowy build, a stan nie jest zapisywany. GitHub usuwa cache nieużywany przez 7 dni, więc po dłuższej przerwie we wdrożeniach pierwszy deploy zaczyna od zera. Cache z PR-ów nie jest widoczny dla `main`, więc PR nie podmieni plików produkcji. Rollback w panelu Cloudflare nie zmienia tego cache. Lokalnie: `node build/retainStatic.mjs dist <katalog-cache>` w `client`.
+
 Wdrożenia nie przerywają się nawzajem. Nieudane testy lub nieudany backend zatrzymują frontend. Wdrożenie frontendu nie restartuje Heroku.
 
 Sekrety repozytorium (dodaje je właściciel repozytorium):
@@ -130,9 +140,11 @@ Dla usuniętego `/api/auth` nie ma i nie dodajemy żadnej reguły. Logowanie obs
 | Ruch | Zasada |
 | --- | --- |
 | `/static/*` na Pages | `public, max-age=31536000, immutable`; nazwy plików zawierają skrót treści |
+| brakujący plik pod `/static/*` | `404` z `no-store`, bez `index.html` |
 | HTML, głębokie linki SPA, favikony, logotypy, `/assets/*`, `robots.txt`, `sitemap.xml`, `/prototypes/runtime/*` | `public, max-age=0, must-revalidate`; przeglądarka sprawdza ETag przy każdym wejściu, więc po wdrożeniu dostaje nowe pliki |
 | `api.hackademy.app` | reguła cache `cache: false`; odpowiedzi nigdy nie trafiają do cache Cloudflare |
 
+- `/static/*` obsługuje Pages Function `client/functions/static/[[path]].js` (#251). Bez niej fallback SPA z `_redirects` podawał `index.html` ze statusem 200 pod adresem brakującego chunka, a przeglądarka zapisywała go z `immutable` na rok. Funkcja pobiera plik przez `env.ASSETS`, istniejącemu ustawia `immutable`, a zamiast `index.html` lub 404 zwraca `404` z `Cache-Control: no-store`. Wrangler generuje `_routes.json` tylko dla `/static/*`, więc pozostałe adresy nie wywołują funkcji. Każde pobranie chunka, którego przeglądarka nie ma w cache, liczy się do darmowego limitu 100 000 wywołań Workers na dobę. Lokalnie: `npm run build` i `npx wrangler pages dev dist` w `client`.
 - `_headers` ustawia tylko politykę `/static/*`. Pozostałe pliki dostają domyślny nagłówek Pages `public, max-age=0, must-revalidate` razem z ETag i `X-Content-Type-Options: nosniff`. Treść `_headers` sprawdza test `client/tests/pages-config.test.mjs`.
 - Strefa ma Browser Cache TTL 4 h, które może podnieść `max-age=0` plików statycznych. Reguła cache dla `hackademy.app` ustawia `browser_ttl: respect_origin`, żeby obowiązywały nagłówki z Pages.
 - Strefa ma poziom cache aggressive, więc bez reguły Cloudflare mógłby zapisać odpowiedź API, której adres kończy się rozszerzeniem z domyślnej listy, np. plik VPN albo chroniony plik pokoju, i podać ją innemu użytkownikowi. `cache: false` wyłącza cache całej domeny API niezależnie od nagłówków backendu (`Cache-Control: no-store`). WebSocket i SockJS (`/ws`) zawsze trafiają do backendu.
@@ -201,6 +213,8 @@ Token tworzymy w panelu (My Profile, API Tokens) tylko dla strefy `hackademy.app
 - `curl -fsS https://api.hackademy.app/health` zwraca `200`.
 - `curl -sI https://api.hackademy.app/health` pokazuje `cf-cache-status: DYNAMIC` lub `BYPASS`, nigdy `HIT`.
 - `curl -sI https://hackademy.app/paths/test` pokazuje `cache-control: public, max-age=0, must-revalidate`, a plik z `/static/` z tej strony `immutable`.
+- `curl -sI https://hackademy.app/static/nie-istnieje.js` zwraca `404` z `cache-control: no-store` i `content-type: text/plain`.
+- Po kolejnym deployu chunk z poprzedniego builda (adres z `index.html` sprzed deployu) dalej zwraca `200` z `content-type: application/javascript`; log kroku „Keep build files from previous deploys” podaje liczbę zachowanych plików.
 - W przeglądarce: logowanie, lista pokoi, wysłanie flagi, odświeżenie głębokiego linku.
 - Realtime: w narzędziach deweloperskich połączenie `wss://api.hackademy.app/ws/.../websocket` z kodem `101` i ramkami STOMP, heartbeat bez rozłączeń przez kilka minut, ponowne połączenie po wyłączeniu i włączeniu sieci oraz zapasowy transport SockJS przy zablokowanym WebSocket.
 - Dwa konta w dwóch przeglądarkach: ten sam endpoint, np. `/api/user/me`, zwraca dane właściwego konta, a `cf-cache-status` to `DYNAMIC` lub `BYPASS`.

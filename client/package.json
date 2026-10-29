@@ -15,7 +15,7 @@
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest run src && node --test tests/*.test.mjs",
-    "test:coverage": "vitest run src --coverage && node --test tests/*.test.mjs",
+    "test:coverage": "vitest run src --coverage && node --test --experimental-test-coverage --test-coverage-lines=80 --test-coverage-include='functions/**' --test-coverage-include='build/retainStatic.mjs' tests/*.test.mjs",
     "test:integration": "vitest run src/pages/LoginPage.test.tsx src/context/auth-routing.test.tsx",
     "test:realtime-load": "vitest run tests/realtime-load.test.tsx",
     "ukos:test:course": "playwright test --config playwright.course.config.ts"
