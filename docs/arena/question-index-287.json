@@ -32,10 +32,7 @@
     "ordinal": 5,
     "category": "OGOLNE",
     "difficulty": "VERY_EASY",
-    "contentSha256": "73510424408bb0767e8c5e3b46e28418b8b6fd0f671977c92389f2219281fe05",
-    "references": [
-      "https://assets.ctfassets.net/82ripq7fjls2/6TYWUym0Nudqa8nGEnegjG/0f9b974d3b1837fe85ab8e6553f4d623/CompTIA-Security-Plus-SY0-701-Exam-Objectives.pdf"
-    ]
+    "contentSha256": "73510424408bb0767e8c5e3b46e28418b8b6fd0f671977c92389f2219281fe05"
   },
   {
     "id": "Q006",
@@ -87,10 +84,7 @@
     "ordinal": 11,
     "category": "OGOLNE",
     "difficulty": "EASY",
-    "contentSha256": "967267e35a2edc696c08a14f9f4ea5b1571c3785c948db52384bfbc5b2f4a95e",
-    "references": [
-      "https://assets.ctfassets.net/82ripq7fjls2/6TYWUym0Nudqa8nGEnegjG/0f9b974d3b1837fe85ab8e6553f4d623/CompTIA-Security-Plus-SY0-701-Exam-Objectives.pdf"
-    ]
+    "contentSha256": "967267e35a2edc696c08a14f9f4ea5b1571c3785c948db52384bfbc5b2f4a95e"
   },
   {
     "id": "Q012",
@@ -380,10 +374,7 @@
     "ordinal": 45,
     "category": "SIECI",
     "difficulty": "VERY_EASY",
-    "contentSha256": "ebee56cb2ba90b6e7bfc825fb0e338f4314da92bb1c695a8693ca69e5f5b19e3",
-    "references": [
-      "https://assets.ctfassets.net/82ripq7fjls2/113XqW3JHT7AlIU33M63I0/af42da2af7383a38f318bad10aa9afbd/Network_Plus_N10-009_Exam_Objectives.pdf"
-    ]
+    "contentSha256": "ebee56cb2ba90b6e7bfc825fb0e338f4314da92bb1c695a8693ca69e5f5b19e3"
   },
   {
     "id": "Q046",
@@ -528,10 +519,7 @@
     "ordinal": 63,
     "category": "SIECI",
     "difficulty": "MEDIUM",
-    "contentSha256": "62f4e9249f30e75fb0ee1d9a951b7884a0cf55d1b7b0b48bc96643d542d8218e",
-    "references": [
-      "https://assets.ctfassets.net/82ripq7fjls2/113XqW3JHT7AlIU33M63I0/af42da2af7383a38f318bad10aa9afbd/Network_Plus_N10-009_Exam_Objectives.pdf"
-    ]
+    "contentSha256": "62f4e9249f30e75fb0ee1d9a951b7884a0cf55d1b7b0b48bc96643d542d8218e"
   },
   {
     "id": "Q064",

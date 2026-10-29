@@ -34,10 +34,9 @@ Bardzo łatwe pytania wymagają rozpoznania podstawowej kontroli lub narzędzia 
 
 ## Podstawy merytoryczne
 
-Punkt odniesienia: **CompTIA Security+ SY0-701** wskazany w tickecie. Pozostałe certyfikacje wyznaczają zakres praktyki; pytania nie deklarują pokrycia całego egzaminu ani autoryzacji przez organizatora. Źródła sprawdzano 2026-10-29. Nie utrwalamy punktacji, cen, dat egzaminów ani krajowych terminów wdrożenia NIS2 jako odpowiedzi w banku.
+Pytania obejmują podstawy i praktyczne zagadnienia cyberbezpieczeństwa; nie deklarują pokrycia całego egzaminu ani autoryzacji przez organizatora. Źródła sprawdzano 2026-10-29. Nie utrwalamy punktacji, cen, dat egzaminów ani krajowych terminów wdrożenia NIS2 jako odpowiedzi w banku.
 
-- [Security+ SY0-701 - cele egzaminacyjne](https://assets.ctfassets.net/82ripq7fjls2/6TYWUym0Nudqa8nGEnegjG/0f9b974d3b1837fe85ab8e6553f4d623/CompTIA-Security-Plus-SY0-701-Exam-Objectives.pdf).
-- [Network+ - zakres certyfikacji](https://www.comptia.org/en-us/certifications/network/), [CySA+ - zakres certyfikacji](https://www.comptia.org/en-us/certifications/cybersecurity-analyst/), [ISC2 CC - zakres egzaminu](https://www.isc2.org/certifications/cc/cc-certification-exam-outline).
+- [ISC2 CC - zakres egzaminu](https://www.isc2.org/certifications/cc/cc-certification-exam-outline).
 - [eJPT](https://ine.com/security/certifications/ejpt-certification), [PNPT](https://certifications.tcm-sec.com/pnpt/), [OSCP - przewodnik egzaminacyjny](https://help.offsec.com/hc/en-us/articles/360040165632-OSCP-Exam-Guide).
 - [NIST SP 800-63B-4 - uwierzytelnianie](https://pages.nist.gov/800-63-4/sp800-63b.html), [NIST SP 800-207 - zero trust](https://csrc.nist.gov/pubs/sp/800/207/final), [NIST SP 800-61r3 - reagowanie](https://csrc.nist.gov/pubs/sp/800/61/r3/final).
 - [RODO - tekst rozporządzenia](https://eur-lex.europa.eu/eli/reg/2016/679/oj), w szczególności art. 4, 5, 17 i 33; [NIS2 - tekst dyrektywy](https://eur-lex.europa.eu/eli/dir/2022/2555/oj), w szczególności zakres podmiotowy.
