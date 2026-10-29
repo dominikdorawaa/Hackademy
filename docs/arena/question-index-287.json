@@ -1,0 +1,2638 @@
+[
+  {
+    "id": "Q001",
+    "ordinal": 1,
+    "category": "OGOLNE",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "cfc51031da13d7b67e4db822ba8af46dc2bf6de51edcc33a13d9a2a987ce9659"
+  },
+  {
+    "id": "Q002",
+    "ordinal": 2,
+    "category": "OGOLNE",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "f2a43d41c386bd1f58127846ffc697f2a94aea3e3c3522d76552136fed1880a1"
+  },
+  {
+    "id": "Q003",
+    "ordinal": 3,
+    "category": "OGOLNE",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "f318532db76d47ccd08f29cd045edcba7220f95ca21967d843896b44351401c6"
+  },
+  {
+    "id": "Q004",
+    "ordinal": 4,
+    "category": "OGOLNE",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "57e973098923407dde16306d6ae462079394ea7639d729ee0a8aeafff5eda6ac"
+  },
+  {
+    "id": "Q005",
+    "ordinal": 5,
+    "category": "OGOLNE",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "73510424408bb0767e8c5e3b46e28418b8b6fd0f671977c92389f2219281fe05",
+    "references": [
+      "https://assets.ctfassets.net/82ripq7fjls2/6TYWUym0Nudqa8nGEnegjG/0f9b974d3b1837fe85ab8e6553f4d623/CompTIA-Security-Plus-SY0-701-Exam-Objectives.pdf"
+    ]
+  },
+  {
+    "id": "Q006",
+    "ordinal": 6,
+    "category": "OGOLNE",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "703ad9d74a7a782e6bb99f5d18d1c4bd70e191274cdc4c3278dfab7b7a2037ac",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/115/final"
+    ]
+  },
+  {
+    "id": "Q007",
+    "ordinal": 7,
+    "category": "OGOLNE",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "1f909ed22c38a1bd7657ae0a6a865a7cf9141ee6cd2751644eff5785b04e64bc"
+  },
+  {
+    "id": "Q008",
+    "ordinal": 8,
+    "category": "OGOLNE",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "7353ab15b2d28af43c67162350dce64f5b82f23a8fddc57ef6eb9df37f51744d",
+    "references": [
+      "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    ]
+  },
+  {
+    "id": "Q009",
+    "ordinal": 9,
+    "category": "OGOLNE",
+    "difficulty": "EASY",
+    "contentSha256": "e429e8c58420e58cb2c9a66c6feb3aff8dedce65087daf728cebff4bb6c03415"
+  },
+  {
+    "id": "Q010",
+    "ordinal": 10,
+    "category": "OGOLNE",
+    "difficulty": "EASY",
+    "contentSha256": "3342fb774c7ae953930ad75d3b33fef051600e4b306ca0ee218864c4e27932a5",
+    "references": [
+      "https://www.cisa.gov/sites/default/files/publications/fact-sheet-implementing-phishing-resistant-mfa-508c.pdf",
+      "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-63B-4.pdf"
+    ]
+  },
+  {
+    "id": "Q011",
+    "ordinal": 11,
+    "category": "OGOLNE",
+    "difficulty": "EASY",
+    "contentSha256": "967267e35a2edc696c08a14f9f4ea5b1571c3785c948db52384bfbc5b2f4a95e",
+    "references": [
+      "https://assets.ctfassets.net/82ripq7fjls2/6TYWUym0Nudqa8nGEnegjG/0f9b974d3b1837fe85ab8e6553f4d623/CompTIA-Security-Plus-SY0-701-Exam-Objectives.pdf"
+    ]
+  },
+  {
+    "id": "Q012",
+    "ordinal": 12,
+    "category": "OGOLNE",
+    "difficulty": "EASY",
+    "contentSha256": "13b7440b4a511d20b6ca4858fac912f16915bca0d1ec23e339e506b2d885a9b2"
+  },
+  {
+    "id": "Q013",
+    "ordinal": 13,
+    "category": "OGOLNE",
+    "difficulty": "EASY",
+    "contentSha256": "4e450c5dfd4acca764ec7caa49b2e89f4421e8494c368306aa0f01b70523cdd5"
+  },
+  {
+    "id": "Q014",
+    "ordinal": 14,
+    "category": "OGOLNE",
+    "difficulty": "EASY",
+    "contentSha256": "f51fbe3ddb3c2a586663a76f457c64af4ca14ecc08dbcc19307935e5939bcf06"
+  },
+  {
+    "id": "Q015",
+    "ordinal": 15,
+    "category": "OGOLNE",
+    "difficulty": "EASY",
+    "contentSha256": "2d8a4551e7543d37327e6747835ccd0044a64b0805e3984150436cb0b0eeef8e",
+    "references": [
+      "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    ]
+  },
+  {
+    "id": "Q016",
+    "ordinal": 16,
+    "category": "OGOLNE",
+    "difficulty": "EASY",
+    "contentSha256": "6da37dfc39a5089fc63a66ddf78764ef3d416b405d26a890ba771a4574c91946",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final"
+    ]
+  },
+  {
+    "id": "Q017",
+    "ordinal": 17,
+    "category": "OGOLNE",
+    "difficulty": "MEDIUM",
+    "contentSha256": "02becaf44d8a1eb128203159906ecb8c3723319da0e5a18908d9fd2dda8644a9"
+  },
+  {
+    "id": "Q018",
+    "ordinal": 18,
+    "category": "OGOLNE",
+    "difficulty": "MEDIUM",
+    "contentSha256": "69bb150ca5b9bbf93510e6651a2f7e9b8b402e52ffa6ed98ef589a7b11cc8c39"
+  },
+  {
+    "id": "Q019",
+    "ordinal": 19,
+    "category": "OGOLNE",
+    "difficulty": "MEDIUM",
+    "contentSha256": "5baab54f4ebbe7ae08a457c707d010b2b8ba3044443a8cc956eb0aa6e9e43b31"
+  },
+  {
+    "id": "Q020",
+    "ordinal": 20,
+    "category": "OGOLNE",
+    "difficulty": "MEDIUM",
+    "contentSha256": "20bc62f97327da74a315db848a9101f9c87b1312c0ba9727ec06a36d6df87b73",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final"
+    ]
+  },
+  {
+    "id": "Q021",
+    "ordinal": 21,
+    "category": "OGOLNE",
+    "difficulty": "MEDIUM",
+    "contentSha256": "6c65ba709ff5c8dab197d3824cee667b442e6971b51f335947444b9c965dfa5f"
+  },
+  {
+    "id": "Q022",
+    "ordinal": 22,
+    "category": "OGOLNE",
+    "difficulty": "MEDIUM",
+    "contentSha256": "81e039bea953cae2947befd82d66aabc7a31a0a3bb6dc3e5dc1bf22381c9a87e"
+  },
+  {
+    "id": "Q023",
+    "ordinal": 23,
+    "category": "OGOLNE",
+    "difficulty": "MEDIUM",
+    "contentSha256": "ab565f0ee8cccc754b3f52417bd1fd7248bf79df6d4f6d36711b688543215d3e"
+  },
+  {
+    "id": "Q024",
+    "ordinal": 24,
+    "category": "OGOLNE",
+    "difficulty": "MEDIUM",
+    "contentSha256": "92e9610c409f811800882d978334a65ff057a9cec8bcfeccd6122b045dccd692",
+    "references": [
+      "https://eur-lex.europa.eu/eli/dir/2022/2555/oj"
+    ]
+  },
+  {
+    "id": "Q025",
+    "ordinal": 25,
+    "category": "OGOLNE",
+    "difficulty": "HARD",
+    "contentSha256": "927cba034ab955c31b155c57fc850b7aaef92ba31aa6583fa8d7e4634c61e5d8",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q026",
+    "ordinal": 26,
+    "category": "OGOLNE",
+    "difficulty": "HARD",
+    "contentSha256": "7ca768c4817bb17592ced2af8c7396c2712802aba4011b7e24fe13e3967e5854",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/162/final"
+    ]
+  },
+  {
+    "id": "Q027",
+    "ordinal": 27,
+    "category": "OGOLNE",
+    "difficulty": "HARD",
+    "contentSha256": "d990f59769493c5c1d84ca1238673f6766f2f88a1dc4d4feadd8f88c9f1db4cb",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q028",
+    "ordinal": 28,
+    "category": "OGOLNE",
+    "difficulty": "HARD",
+    "contentSha256": "93a06481db768fa20942a9d55320f0b503c4b510742c254107de1b7fe55a7db0",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/92/final"
+    ]
+  },
+  {
+    "id": "Q029",
+    "ordinal": 29,
+    "category": "OGOLNE",
+    "difficulty": "HARD",
+    "contentSha256": "beba9983942aa1ec9b92371b1453c35ed9c748f799626fdd71be203353f09d0a"
+  },
+  {
+    "id": "Q030",
+    "ordinal": 30,
+    "category": "OGOLNE",
+    "difficulty": "HARD",
+    "contentSha256": "dcc1b7bfb9f83ca397ba73f10cf0a550cf612fd03781e52b18766e5f6c7b8ce9"
+  },
+  {
+    "id": "Q031",
+    "ordinal": 31,
+    "category": "OGOLNE",
+    "difficulty": "HARD",
+    "contentSha256": "853e1522014a03fcaec71865b23f80b7019deb77f17834b8333312f9f74e0e63"
+  },
+  {
+    "id": "Q032",
+    "ordinal": 32,
+    "category": "OGOLNE",
+    "difficulty": "HARD",
+    "contentSha256": "6816ca06da6f10cbbc2654283bb05e07d24cbfc6f01455c0831d3f4461b98d87",
+    "references": [
+      "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    ]
+  },
+  {
+    "id": "Q033",
+    "ordinal": 33,
+    "category": "OGOLNE",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "1ea7e4aec138432a4db8d4eeda14b707211b196f02d75e35ebd1480b810953b2",
+    "references": [
+      "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-63B-4.pdf"
+    ]
+  },
+  {
+    "id": "Q034",
+    "ordinal": 34,
+    "category": "OGOLNE",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "1e9b43f73b8e7eddb9e31f0793239d680ad7a119e9e6344b5c6f8978f97bf5f7",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html",
+      "https://owasp.org/API-Security/editions/2023/en/0xa1-broken-object-level-authorization/"
+    ]
+  },
+  {
+    "id": "Q035",
+    "ordinal": 35,
+    "category": "OGOLNE",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "21d8e2c3b711e319465d50b5f4f38df4ec530041438b7a58f8c3b25989991215",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc7519#section-4.1.3"
+    ]
+  },
+  {
+    "id": "Q036",
+    "ordinal": 36,
+    "category": "OGOLNE",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "27e4698432510a313c0db14a3ad80b18313eb6a3e6894fa2f22ce46350ac0a9f",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Transaction_Authorization_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q037",
+    "ordinal": 37,
+    "category": "OGOLNE",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "3f24d19e7fc6569b0590c0a8bb49af70d1781f4558b617529c88b801c21ced53",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/207/final"
+    ]
+  },
+  {
+    "id": "Q038",
+    "ordinal": 38,
+    "category": "OGOLNE",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "74d6c2516904cb774a8eae9548d4f9dd95b7f907940e7733ef8ae16c2fa1deb4",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/30/r1/final"
+    ]
+  },
+  {
+    "id": "Q039",
+    "ordinal": 39,
+    "category": "OGOLNE",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "35e5127fa57604d89e606c9aeca29c643ddbf507143803c5e31c14f7abc8f787",
+    "references": [
+      "https://eur-lex.europa.eu/eli/reg/2016/679/oj"
+    ]
+  },
+  {
+    "id": "Q040",
+    "ordinal": 40,
+    "category": "OGOLNE",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "bc81f700a93f42de1c3e8fdb50943bb01d5eaadaa855601518c12f9d8dbbfc73",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/34/r1/upd1/final"
+    ]
+  },
+  {
+    "id": "Q041",
+    "ordinal": 41,
+    "category": "SIECI",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "0523e0609861a76f4e6d9a60258b4c95b9415bb6404b757c9eeaad7fcd017b09"
+  },
+  {
+    "id": "Q042",
+    "ordinal": 42,
+    "category": "SIECI",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "f88d9010bea069c874dde4f2807db1f709f05d54246c370746cd6799d7f77161"
+  },
+  {
+    "id": "Q043",
+    "ordinal": 43,
+    "category": "SIECI",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "fe5e5b98985507abaf11df5fe93b27544cfa9d459554f9d6ca300f98cb4b81fe"
+  },
+  {
+    "id": "Q044",
+    "ordinal": 44,
+    "category": "SIECI",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "5044de1564dedc93904b6ea08b97143665877ba3c696192255b2dc542a3bf601"
+  },
+  {
+    "id": "Q045",
+    "ordinal": 45,
+    "category": "SIECI",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "ebee56cb2ba90b6e7bfc825fb0e338f4314da92bb1c695a8693ca69e5f5b19e3",
+    "references": [
+      "https://assets.ctfassets.net/82ripq7fjls2/113XqW3JHT7AlIU33M63I0/af42da2af7383a38f318bad10aa9afbd/Network_Plus_N10-009_Exam_Objectives.pdf"
+    ]
+  },
+  {
+    "id": "Q046",
+    "ordinal": 46,
+    "category": "SIECI",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "6e38466608090c8f6bcdc3d38645a47759cfd1b691d2aeb055043c9a2293c387",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc3927"
+    ]
+  },
+  {
+    "id": "Q047",
+    "ordinal": 47,
+    "category": "SIECI",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "a78d715b3fda69cccf4a1ba70871261fd318bc0c35fb63f1148cd5e8c888f931"
+  },
+  {
+    "id": "Q048",
+    "ordinal": 48,
+    "category": "SIECI",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "0b62aa494e9d76056d140605c2b26a7fdfcf1f1a7a54f0d3b3dba62d6e31eafe"
+  },
+  {
+    "id": "Q049",
+    "ordinal": 49,
+    "category": "SIECI",
+    "difficulty": "EASY",
+    "contentSha256": "d31e696fdb576adb0ad2db1c5dd93634f585ebb713e43852e626c85efec32315"
+  },
+  {
+    "id": "Q050",
+    "ordinal": 50,
+    "category": "SIECI",
+    "difficulty": "EASY",
+    "contentSha256": "ab90807331356fd2971774fa0b6197661ff31155fd685cb090ea38b171c42c07"
+  },
+  {
+    "id": "Q051",
+    "ordinal": 51,
+    "category": "SIECI",
+    "difficulty": "EASY",
+    "contentSha256": "9cf3ff3503e87c69ce72b860228d7d5240f87c3ac4934a98d7724540735f40f5"
+  },
+  {
+    "id": "Q052",
+    "ordinal": 52,
+    "category": "SIECI",
+    "difficulty": "EASY",
+    "contentSha256": "d0d2270f37e2a1673d98c062021fef5b486fc216ae06e8fe4081a56540fe0cb2"
+  },
+  {
+    "id": "Q053",
+    "ordinal": 53,
+    "category": "SIECI",
+    "difficulty": "EASY",
+    "contentSha256": "2ad7677d0cd652ad394793f98670b7cfee480b48e4f841b5368368d966f64317"
+  },
+  {
+    "id": "Q054",
+    "ordinal": 54,
+    "category": "SIECI",
+    "difficulty": "EASY",
+    "contentSha256": "0642f0ba6ea217fefec82530c9756e721864cb4cf515041b80afdebf8c994b98"
+  },
+  {
+    "id": "Q055",
+    "ordinal": 55,
+    "category": "SIECI",
+    "difficulty": "EASY",
+    "contentSha256": "d94027a37de4a6a527998d9a1e80316bec05beb2948d68fb708718287c1418b6"
+  },
+  {
+    "id": "Q056",
+    "ordinal": 56,
+    "category": "SIECI",
+    "difficulty": "EASY",
+    "contentSha256": "1a84a4884c5ecd09c1c9716b2758fa1110613e66c771284ef0a96960f5fcd1a2",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc1035"
+    ]
+  },
+  {
+    "id": "Q057",
+    "ordinal": 57,
+    "category": "SIECI",
+    "difficulty": "MEDIUM",
+    "contentSha256": "58c281b5ed89a7c820f7835257522cc7b630b6d93c7eaa91177aeaa84c2db682",
+    "references": [
+      "https://nmap.org/book/man-port-scanning-techniques.html"
+    ]
+  },
+  {
+    "id": "Q058",
+    "ordinal": 58,
+    "category": "SIECI",
+    "difficulty": "MEDIUM",
+    "contentSha256": "df2243dde4a68d2b0b2d399dd9473ebb4052e3eeac93595cfe4cf946a5871fdc"
+  },
+  {
+    "id": "Q059",
+    "ordinal": 59,
+    "category": "SIECI",
+    "difficulty": "MEDIUM",
+    "contentSha256": "7b0c66906e5b6a26d0a31673c1ee05b65e0e9c69abacc381a88212610f1927f1"
+  },
+  {
+    "id": "Q060",
+    "ordinal": 60,
+    "category": "SIECI",
+    "difficulty": "MEDIUM",
+    "contentSha256": "9468c4dfe39c3d42dcde9b3e4423f180b4f8070cc803680d50a8bf9677895021",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/41/r1/final"
+    ]
+  },
+  {
+    "id": "Q061",
+    "ordinal": 61,
+    "category": "SIECI",
+    "difficulty": "MEDIUM",
+    "contentSha256": "34b731f33c9209120668cbe3cd303c9472863f3839a0710caaeb213607fb68d1"
+  },
+  {
+    "id": "Q062",
+    "ordinal": 62,
+    "category": "SIECI",
+    "difficulty": "MEDIUM",
+    "contentSha256": "f9884570e4eea9ecdb5c3bdc22868aa460a8542b98569f52ab4c0f02576ca6be",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc5358",
+      "https://www.cisa.gov/news-events/alerts/2013/03/29/dns-amplification-attacks"
+    ]
+  },
+  {
+    "id": "Q063",
+    "ordinal": 63,
+    "category": "SIECI",
+    "difficulty": "MEDIUM",
+    "contentSha256": "62f4e9249f30e75fb0ee1d9a951b7884a0cf55d1b7b0b48bc96643d542d8218e",
+    "references": [
+      "https://assets.ctfassets.net/82ripq7fjls2/113XqW3JHT7AlIU33M63I0/af42da2af7383a38f318bad10aa9afbd/Network_Plus_N10-009_Exam_Objectives.pdf"
+    ]
+  },
+  {
+    "id": "Q064",
+    "ordinal": 64,
+    "category": "SIECI",
+    "difficulty": "MEDIUM",
+    "contentSha256": "dfff4d2858930078f4552d60a2ed16cdd9298b53cd1bd6ad254188fb3ea3915d"
+  },
+  {
+    "id": "Q065",
+    "ordinal": 65,
+    "category": "SIECI",
+    "difficulty": "HARD",
+    "contentSha256": "a75a9d7dec82d67a8ee960d56991aa152dc0e163811159d31dded17bb64b1198"
+  },
+  {
+    "id": "Q066",
+    "ordinal": 66,
+    "category": "SIECI",
+    "difficulty": "HARD",
+    "contentSha256": "21c480bb1233b5424dec0cc17b8171a2e9f58693b82ab3f430ab021f10e81d12"
+  },
+  {
+    "id": "Q067",
+    "ordinal": 67,
+    "category": "SIECI",
+    "difficulty": "HARD",
+    "contentSha256": "e4d2511d1e180c65f4e1d9f95a20c1fce020ad312a02f0d6813335e628000cca",
+    "references": [
+      "https://www.cisco.com/c/en/us/support/docs/cloud-systems-management/intersight/222913-troubleshoot-native-vlan-issues-on-inter.html",
+      "https://www.cisco.com/c/en/us/support/docs/lan-switching/inter-vlan-routing/41260-189.html",
+      "https://www.ciscopress.com/content/images/9781587133183/samplepages/1587133180.pdf"
+    ]
+  },
+  {
+    "id": "Q068",
+    "ordinal": 68,
+    "category": "SIECI",
+    "difficulty": "HARD",
+    "contentSha256": "9aed1e0e07539ddbf52d05dddf17454471eec2214bb1bd12b1882533fcff1a02",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc6105"
+    ]
+  },
+  {
+    "id": "Q069",
+    "ordinal": 69,
+    "category": "SIECI",
+    "difficulty": "HARD",
+    "contentSha256": "523a48c32f3e0ef2533074b394ac3a59fffb1836097c5a6df484f5df08190523",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc5216",
+      "https://www.rfc-editor.org/rfc/rfc9525"
+    ]
+  },
+  {
+    "id": "Q070",
+    "ordinal": 70,
+    "category": "SIECI",
+    "difficulty": "HARD",
+    "contentSha256": "a861b3c199bddbc7cf83dee7b08dd862c516fb204556bb4567e8566c85d96cc7",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc5936"
+    ]
+  },
+  {
+    "id": "Q071",
+    "ordinal": 71,
+    "category": "SIECI",
+    "difficulty": "HARD",
+    "contentSha256": "decd495756ddd6f0b2853de135a4a1354ea5f4cf7882ff86e0b306febc796d7f"
+  },
+  {
+    "id": "Q072",
+    "ordinal": 72,
+    "category": "SIECI",
+    "difficulty": "HARD",
+    "contentSha256": "900140f76a9ae647ad6679425b8553ba26085f657794e4ce60433b230d70ab78",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc4987"
+    ]
+  },
+  {
+    "id": "Q073",
+    "ordinal": 73,
+    "category": "SIECI",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "09a71e7e627af7b0e176c142c7027cff7572370142a7e94bc9c3ac377277beb8",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc8201",
+      "https://www.rfc-editor.org/rfc/rfc4459"
+    ]
+  },
+  {
+    "id": "Q074",
+    "ordinal": 74,
+    "category": "SIECI",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "2ee6cf900b479d668e13fdf0b5db857639988c0eeb531fb389559964a0108ac3",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc7123"
+    ]
+  },
+  {
+    "id": "Q075",
+    "ordinal": 75,
+    "category": "SIECI",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "aaa0517a480320504e4a0b93444e6ae24e828517993f4d27a598756963c8aa9c",
+    "references": [
+      "https://www.cisco.com/c/en/us/td/docs/switches/lan/catalyst9300/software/release/17-3/configuration_guide/sec/b_173_sec_9300_cg/configuring_dynamic_arp_inspection.html"
+    ]
+  },
+  {
+    "id": "Q076",
+    "ordinal": 76,
+    "category": "SIECI",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "47091d4c2973e5f97031f4eefd11bed2ab6be66ade31ddac630bcb918e7af4b7"
+  },
+  {
+    "id": "Q077",
+    "ordinal": 77,
+    "category": "SIECI",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "f105d7ef720d074a9b887027ae1bc15b629678cad70b115bbfe5f611c209486e",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc4035",
+      "https://www.rfc-editor.org/rfc/rfc6781"
+    ]
+  },
+  {
+    "id": "Q078",
+    "ordinal": 78,
+    "category": "SIECI",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "4aff78823fa5e954399a048aa10056ebae833df94546b2ae26a4f2691b677adf",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc2663",
+      "https://csrc.nist.gov/pubs/sp/800/41/r1/final"
+    ]
+  },
+  {
+    "id": "Q079",
+    "ordinal": 79,
+    "category": "SIECI",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "041233f33ef001ccbec7027a6defad4f73406c57fc9fadf1c6ed888d3f81dce8"
+  },
+  {
+    "id": "Q080",
+    "ordinal": 80,
+    "category": "SIECI",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "457f047489d44accce7a6e8b5c9ff0c922e2464283a8f701caafbea6bbc87303",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/41/r1/final"
+    ]
+  },
+  {
+    "id": "Q081",
+    "ordinal": 81,
+    "category": "WEB",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "77ba55850e5f16c30724ea8899cde802f31d254328cae9d3e77d3e2a7e0f5e5a",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc9525"
+    ]
+  },
+  {
+    "id": "Q082",
+    "ordinal": 82,
+    "category": "WEB",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "a0be7e972bf2a3e3199f3873f0f4a83ba424f6b68188d59f00e78e0057df57dc",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc6265#section-4.1.2.5"
+    ]
+  },
+  {
+    "id": "Q083",
+    "ordinal": 83,
+    "category": "WEB",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "b20a94b15ac0a793fcce3cb16f1318095b6753d18d9b065f86386baafd006317",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q084",
+    "ordinal": 84,
+    "category": "WEB",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "1e507d54295898a92bc76d240c40fe307731df252e93ed30b1829ad19d8a2a57",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Error_Handling_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q085",
+    "ordinal": 85,
+    "category": "WEB",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "4a501743d57576eae01f40a7e2da1e535e7c29a4b0dec5e99bb98e8c9a609797",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q086",
+    "ordinal": 86,
+    "category": "WEB",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "839b31862c16464fb452895a1b0fc0a9fc6bd4c85ff0dace7ca126737f575a40",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc6797"
+    ]
+  },
+  {
+    "id": "Q087",
+    "ordinal": 87,
+    "category": "WEB",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "575fc19377873f162f6ca6bd80816f1ae7cbcdc738dabd336b1d5741e5c31acb",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross_Site_Scripting_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q088",
+    "ordinal": 88,
+    "category": "WEB",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "faa7a3bd4e3c914b44c9019b0642887b8813e8baae045c2576bfe66284301a04",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Session_Management_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q089",
+    "ordinal": 89,
+    "category": "WEB",
+    "difficulty": "EASY",
+    "contentSha256": "02620879f1079e2befb20b72a384031febcb136619f8d65b2999089d70fa7d9c",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html",
+      "https://datatracker.ietf.org/doc/html/draft-ietf-httpbis-rfc6265bis"
+    ]
+  },
+  {
+    "id": "Q090",
+    "ordinal": 90,
+    "category": "WEB",
+    "difficulty": "EASY",
+    "contentSha256": "4dd869a6d5f33092653b92e08f532784a7deeb70d50be3e430b0a3fab24676e6",
+    "references": [
+      "https://fetch.spec.whatwg.org/#x-content-type-options-header",
+      "https://developer.mozilla.org/en-US/docs/Web/Security/Practical_implementation_guides/MIME_types"
+    ]
+  },
+  {
+    "id": "Q091",
+    "ordinal": 91,
+    "category": "WEB",
+    "difficulty": "EASY",
+    "contentSha256": "9b9605a2b8803685a1f0b16af1ac02edbb1fa02e34b4b42423d20d475d56747a",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Mass_Assignment_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q092",
+    "ordinal": 92,
+    "category": "WEB",
+    "difficulty": "EASY",
+    "contentSha256": "bfe1ba1d44e9ee5db46570a0c1ab65375d189730f4822c27a519aa103f7b3bdb",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Cross-Site_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q093",
+    "ordinal": 93,
+    "category": "WEB",
+    "difficulty": "EASY",
+    "contentSha256": "0fbebb4bb89d23a040b0eb1c45a6dfbe6fc811438d21de4e7327ee909dc1bca9",
+    "references": [
+      "https://www.w3.org/TR/sri/"
+    ]
+  },
+  {
+    "id": "Q094",
+    "ordinal": 94,
+    "category": "WEB",
+    "difficulty": "EASY",
+    "contentSha256": "a4be8df877b91e58e5973375b1b56eed93e90a3e4e6a03c720be9b6b0b37fcce",
+    "references": [
+      "https://owasp.org/Top10/A05_2021-Security_Misconfiguration/"
+    ]
+  },
+  {
+    "id": "Q095",
+    "ordinal": 95,
+    "category": "WEB",
+    "difficulty": "EASY",
+    "contentSha256": "5571f6b692cb02b0d40abd4f081824c46d544536727ae4fe841df81c97a86dc0",
+    "references": [
+      "https://www.w3.org/TR/CSP3/#directive-frame-ancestors"
+    ]
+  },
+  {
+    "id": "Q096",
+    "ordinal": 96,
+    "category": "WEB",
+    "difficulty": "EASY",
+    "contentSha256": "1f79e62753815287c711ff723ba49013bad91cfe939f81662c9f35d886b14d20",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Authentication_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q097",
+    "ordinal": 97,
+    "category": "WEB",
+    "difficulty": "MEDIUM",
+    "contentSha256": "e03a53fca122889ea615c6122865aa6c8b3868f8931204db63fe90993738b7b7",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q098",
+    "ordinal": 98,
+    "category": "WEB",
+    "difficulty": "MEDIUM",
+    "contentSha256": "490388b0cf2aadd46b96356f03309651100ab19cb334144b93a352d945780108",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/File_Upload_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q099",
+    "ordinal": 99,
+    "category": "WEB",
+    "difficulty": "MEDIUM",
+    "contentSha256": "cb679c8ad17f8b5bb3efb52a0fab8e3287645f7dcfc7e08b85cfd4a5dfa0a0d6",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc7519"
+    ]
+  },
+  {
+    "id": "Q100",
+    "ordinal": 100,
+    "category": "WEB",
+    "difficulty": "MEDIUM",
+    "contentSha256": "9c7f221d57d92aa164b34d17be2f60a0674e86edfeb09a64f77c5d5cbe115b42",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/SQL_Injection_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q101",
+    "ordinal": 101,
+    "category": "WEB",
+    "difficulty": "MEDIUM",
+    "contentSha256": "a61d00a0c8ecd7598b98b60ea41cc08832da621352bb1c5df13091345377156f",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/XML_External_Entity_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q102",
+    "ordinal": 102,
+    "category": "WEB",
+    "difficulty": "MEDIUM",
+    "contentSha256": "f5ba638ca3ad29d6325c2d2a391c8618d0e2ba4535a55100dd86896bb8d11c76",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Unvalidated_Redirects_and_Forwards_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q103",
+    "ordinal": 103,
+    "category": "WEB",
+    "difficulty": "MEDIUM",
+    "contentSha256": "dbfd957f84d0dbd59f732f6b7c56f2679d5837d395103f83a25942eca22b4aa5",
+    "references": [
+      "https://owasp.org/API-Security/editions/2023/en/0xa4-unrestricted-resource-consumption/"
+    ]
+  },
+  {
+    "id": "Q104",
+    "ordinal": 104,
+    "category": "WEB",
+    "difficulty": "MEDIUM",
+    "contentSha256": "d7f4d3c63700050bd4274e8920b3d0924591dd828e1a0d8b56017976a0dc0364"
+  },
+  {
+    "id": "Q105",
+    "ordinal": 105,
+    "category": "WEB",
+    "difficulty": "HARD",
+    "contentSha256": "5ee665136c422ea0cf7cca0594e550bcc4b67664235d610059887085f995d0a4",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q106",
+    "ordinal": 106,
+    "category": "WEB",
+    "difficulty": "HARD",
+    "contentSha256": "b99ea727366ffcf1b086e0e9bc02e606933b4616c07c6b158ef3a920901c9df5",
+    "references": [
+      "https://fetch.spec.whatwg.org/#http-access-control-allow-origin"
+    ]
+  },
+  {
+    "id": "Q107",
+    "ordinal": 107,
+    "category": "WEB",
+    "difficulty": "HARD",
+    "contentSha256": "ae8647c32ccb446ee9bed63fc4fd9a2b636900f63733dfae900ee03abf631276",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Forgot_Password_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q108",
+    "ordinal": 108,
+    "category": "WEB",
+    "difficulty": "HARD",
+    "contentSha256": "bcef9b12b1338752bb4fce28dc7078cee0fb74bba12991afbad15af86f8ec624",
+    "references": [
+      "https://owasp.org/API-Security/editions/2023/en/0xa5-broken-function-level-authorization/"
+    ]
+  },
+  {
+    "id": "Q109",
+    "ordinal": 109,
+    "category": "WEB",
+    "difficulty": "HARD",
+    "contentSha256": "1e397d1abd8bbf2512142dafea27cdbc4a99b4188d70bd2da048c35ff383207b",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc9421"
+    ]
+  },
+  {
+    "id": "Q110",
+    "ordinal": 110,
+    "category": "WEB",
+    "difficulty": "HARD",
+    "contentSha256": "46cdb293f09697ddc7bd4cbc54bc035cfaffb9c337562cd7bd40e58404e28c61",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Deserialization_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q111",
+    "ordinal": 111,
+    "category": "WEB",
+    "difficulty": "HARD",
+    "contentSha256": "79f4aaa0220c25528d51bb65bb65ff0285cccf0a344eafc23b529e64d74d9961",
+    "references": [
+      "https://www.postgresql.org/docs/current/transaction-iso.html"
+    ]
+  },
+  {
+    "id": "Q112",
+    "ordinal": 112,
+    "category": "WEB",
+    "difficulty": "HARD",
+    "contentSha256": "7309350eff98af3727271ed76ca0e69d23ff6100baf22045a7ce449de7b2bf80"
+  },
+  {
+    "id": "Q113",
+    "ordinal": 113,
+    "category": "WEB",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "a86b8aaf5ddde003722dc880e122cd57b33925094659e09c26eeb02ff75dacf9",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc9112#section-6.3"
+    ]
+  },
+  {
+    "id": "Q114",
+    "ordinal": 114,
+    "category": "WEB",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "052ede32f008463dd394aabd48805f53c9d4f4dc85563d6544adef4ddccea538",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q115",
+    "ordinal": 115,
+    "category": "WEB",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "8b27dab8713a02bc92871b8a744da4657a18c8ba9dd2db27fc109721316e6797",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc9111"
+    ]
+  },
+  {
+    "id": "Q116",
+    "ordinal": 116,
+    "category": "WEB",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "c265b2ab395c73fb0bd8f1fdb4c5e6cc1580b93cbdcdc3104265fe1b047f4181",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc7636"
+    ]
+  },
+  {
+    "id": "Q117",
+    "ordinal": 117,
+    "category": "WEB",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "20bbad95d9898d1f499db3beca086cb6777e4b34ecfe2e7a2d2c0ff7ed6bada9",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc8725"
+    ]
+  },
+  {
+    "id": "Q118",
+    "ordinal": 118,
+    "category": "WEB",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "ae4834a16d13e4e47bc3657cab4a53b23e5ba80909d7cb3dbaab3dcd2e6f7de2",
+    "references": [
+      "https://docs.stripe.com/api/idempotent_requests"
+    ]
+  },
+  {
+    "id": "Q119",
+    "ordinal": 119,
+    "category": "WEB",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "7b3b6b877fd19ace8029e7d880f3e5ebe2147edb427d2bb50a1ee675c2bf91b2",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/GraphQL_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q120",
+    "ordinal": 120,
+    "category": "WEB",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "6e685272d84ffae80d9991524de5f3916027e8ce19a75faa16647637c3dcc7bf",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q121",
+    "ordinal": 121,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "65c36840f4e512e1d27055a1a4c63b9b0de933f30cbe4a759d53443dd21fddb9",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/111/final"
+    ]
+  },
+  {
+    "id": "Q122",
+    "ordinal": 122,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "687caad2e8f13ba75bbe727cc0e77172681322749c349083f8afc24d20cf69b6"
+  },
+  {
+    "id": "Q123",
+    "ordinal": 123,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "eb0771fe7fd35305403a801782ec01b3118c0af9265f46ab478612366a6f01da"
+  },
+  {
+    "id": "Q124",
+    "ordinal": 124,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "06d2a39ae03e778c1b3ea6bcd22cb397c464ecd02b83cc8f5a57fc463a56b4b4"
+  },
+  {
+    "id": "Q125",
+    "ordinal": 125,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "eb4dbfbbb15c3db5b5a4a39e7f424984ebf1ed08804feb51caeb1197d81aece7",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc5280#section-4.1.2.5"
+    ]
+  },
+  {
+    "id": "Q126",
+    "ordinal": 126,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "abbc8373703962787cc89bfc2acab3b3dbc179bb6a4d3ac50f4dc26c9e9e3ada"
+  },
+  {
+    "id": "Q127",
+    "ordinal": 127,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "EASY",
+    "contentSha256": "19d4593ee9d3a5a183bc5591033b66c26f9d425b924ae1e8ccb7fda0354bfe33",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final"
+    ]
+  },
+  {
+    "id": "Q128",
+    "ordinal": 128,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "EASY",
+    "contentSha256": "63d4a22c2010ae55ef70825f66d127658139eb84df12c446ddf961eb755b9ac9"
+  },
+  {
+    "id": "Q129",
+    "ordinal": 129,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "EASY",
+    "contentSha256": "0d03a3afb349570bdd1a3cd7b23c66de577bf8454d1f24c0f93ed4d6478116ec",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc5280",
+      "https://www.rfc-editor.org/rfc/rfc6960"
+    ]
+  },
+  {
+    "id": "Q130",
+    "ordinal": 130,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "EASY",
+    "contentSha256": "e8ef1f9b6ce1073c94bf68667f00102b9c2912bbb7cebab878bfcb556bd5fda2",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc2631"
+    ]
+  },
+  {
+    "id": "Q131",
+    "ordinal": 131,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "EASY",
+    "contentSha256": "5018f08e783910f59ddce579e9b737c157c9225ab3bb469c1d0afeaf4b78b837"
+  },
+  {
+    "id": "Q132",
+    "ordinal": 132,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "EASY",
+    "contentSha256": "d402d37a26f54367c426265917c7267cc5e31391a93303c6c70bf03b52f7e287",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html",
+      "https://www.rfc-editor.org/rfc/rfc9106"
+    ]
+  },
+  {
+    "id": "Q133",
+    "ordinal": 133,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "ad699eb15197f2b4261d4f995d00570df8db02f109b3a43dca8d48afa26ac3a5"
+  },
+  {
+    "id": "Q134",
+    "ordinal": 134,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "519fc67495f522b5dcce0501c96c828215b65a1cd348b8dc3c08d089de5678fa"
+  },
+  {
+    "id": "Q135",
+    "ordinal": 135,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "cc7fb3b08e6ef06164c5ff06fd7e4e026cb043c5282c8a0d51464d8c9bdbce35"
+  },
+  {
+    "id": "Q136",
+    "ordinal": 136,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "ba66e739a053e67cf7487ee3f950cea76bea85e8b1263572e26c8139ed217315",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc9525",
+      "https://www.rfc-editor.org/rfc/rfc7435"
+    ]
+  },
+  {
+    "id": "Q137",
+    "ordinal": 137,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "6ba8a8c93d48f6420147fd4f247791b7b97ee7301c4e381f159838f471363461",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/57/pt1/r5/final"
+    ]
+  },
+  {
+    "id": "Q138",
+    "ordinal": 138,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "9f45dc5bef6835508ae81c103e80e9b28d75142dac089d919b16523ca927d4ef"
+  },
+  {
+    "id": "Q139",
+    "ordinal": 139,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "HARD",
+    "contentSha256": "06c54a048de6217dc800041dfe00dfb3b7ddc4e4a7367d574d13dcaaa6448042"
+  },
+  {
+    "id": "Q140",
+    "ordinal": 140,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "HARD",
+    "contentSha256": "c70bc68ee68b14cd0d0e131be9598dc266efd206d45c8f6f183cccf27fc10fe6",
+    "references": [
+      "https://nvlpubs.nist.gov/nistpubs/FIPS/NIST.FIPS.198-1.pdf"
+    ]
+  },
+  {
+    "id": "Q141",
+    "ordinal": 141,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "HARD",
+    "contentSha256": "e03481a261f969c4e6ab976b609ee5715176597fc5c01cdda698f32ecd58542a"
+  },
+  {
+    "id": "Q142",
+    "ordinal": 142,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "HARD",
+    "contentSha256": "7ab5a1ac77e083a3b1466e238f2ee5dfc15901811e7606b085ef8853b60112dc"
+  },
+  {
+    "id": "Q143",
+    "ordinal": 143,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "HARD",
+    "contentSha256": "e7ec682c184ee199abed155896d94e230fd1de4ee29dcc065fe9931b04c0d628",
+    "references": [
+      "https://www.iacr.org/archive/eurocrypt2002/23320530/cbc02_e02d.pdf"
+    ]
+  },
+  {
+    "id": "Q144",
+    "ordinal": 144,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "HARD",
+    "contentSha256": "448989d0cbb2930dd5cccafcaecf54dbb827f1e4ab7d710cad2428bc414ad258"
+  },
+  {
+    "id": "Q145",
+    "ordinal": 145,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "e6834a63e2b590c5b5e8f1121a304e6c520d1b7cf45a482b7169fc85a6144ce3"
+  },
+  {
+    "id": "Q146",
+    "ordinal": 146,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "bea42774a8f91f2f227fff97cf5abda738928d15f00878c0f58cc0c8fe9b6150",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc8725"
+    ]
+  },
+  {
+    "id": "Q147",
+    "ordinal": 147,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "4dbee085557a032e1025865cd913792230b9f9092f6c8ce2c9fa052f10a40e77",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Password_Storage_Cheat_Sheet.html",
+      "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-63B-4.pdf"
+    ]
+  },
+  {
+    "id": "Q148",
+    "ordinal": 148,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "fed63ae953c08caafb4cc9b685db1850058b6cd6bbfa10b225ff08233222d5a5"
+  },
+  {
+    "id": "Q149",
+    "ordinal": 149,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "59afb01e34b2b80a732aa6ef340195eadc9117d2db8977fee3ab61c0d8f38407",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc8446",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Authorization_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q150",
+    "ordinal": 150,
+    "category": "KRYPTOGRAFIA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "43a13f9aacf7e3309d666e4432f9a5ce46703e29a3ee20d6eedf9a8d3583d992",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/38/d/final"
+    ]
+  },
+  {
+    "id": "Q151",
+    "ordinal": 151,
+    "category": "LINUX",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "18cc2b9005b2eab5180084abfbc16bdf832a2a84ec1534a72273803c874faeab"
+  },
+  {
+    "id": "Q152",
+    "ordinal": 152,
+    "category": "LINUX",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "528f2f43c4a445e5d8f5078ef05016ce4fea1b3893ac072d822595470f1d9909"
+  },
+  {
+    "id": "Q153",
+    "ordinal": 153,
+    "category": "LINUX",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "8323e37ad790b8a93610d89263d259eef87aa4764bd48adf3a7335ef6a5e622b"
+  },
+  {
+    "id": "Q154",
+    "ordinal": 154,
+    "category": "LINUX",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "866368f8813fd77552b6453ad01614ba819fa3d7dfd90f403b7313d8912ae41d"
+  },
+  {
+    "id": "Q155",
+    "ordinal": 155,
+    "category": "LINUX",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "94f413abb448ec4a0ac98c101a8b32300a25ca2a943633a85cb61439b4089e26",
+    "references": [
+      "https://man7.org/linux/man-pages/man1/chown.1.html"
+    ]
+  },
+  {
+    "id": "Q156",
+    "ordinal": 156,
+    "category": "LINUX",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "adc9e54af12eee8860d29bbafde0d7903c8a068c4714395c94874a8e3aa6c7f1",
+    "references": [
+      "https://man.openbsd.org/sshd.8"
+    ]
+  },
+  {
+    "id": "Q157",
+    "ordinal": 157,
+    "category": "LINUX",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "3cde2346bcd83c2834c630afc10af467961121dbb9d1a0f633158c7796547bc0"
+  },
+  {
+    "id": "Q158",
+    "ordinal": 158,
+    "category": "LINUX",
+    "difficulty": "EASY",
+    "contentSha256": "61398e273b9c6da3f44a072d05c741529681094f2763dd85751576ca5bc44d65",
+    "references": [
+      "https://man7.org/linux/man-pages/man8/ss.8.html"
+    ]
+  },
+  {
+    "id": "Q159",
+    "ordinal": 159,
+    "category": "LINUX",
+    "difficulty": "EASY",
+    "contentSha256": "8aac78aaac8e5e67743c85b2bbb1cad26a0a742a2d4a48629beeb0031123f02c"
+  },
+  {
+    "id": "Q160",
+    "ordinal": 160,
+    "category": "LINUX",
+    "difficulty": "EASY",
+    "contentSha256": "dc2be7ca39dfa104135671c26e2a9c6a3cd930972abe98d286bd84abf9f49724"
+  },
+  {
+    "id": "Q161",
+    "ordinal": 161,
+    "category": "LINUX",
+    "difficulty": "EASY",
+    "contentSha256": "7f8e38e0d1e8b57783f3e68309e6f15c5937ffa8f99212def91f3067736d9dc7"
+  },
+  {
+    "id": "Q162",
+    "ordinal": 162,
+    "category": "LINUX",
+    "difficulty": "EASY",
+    "contentSha256": "4053459e69ebea630850d8c2d7b6e6a04394655928b40a23018f883a2123dab6",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/53/r5/upd1/final"
+    ]
+  },
+  {
+    "id": "Q163",
+    "ordinal": 163,
+    "category": "LINUX",
+    "difficulty": "EASY",
+    "contentSha256": "c6203b05d1c4262566c5924e513cd2af2e98e70e1aa37e9d68f58ba53cc52345"
+  },
+  {
+    "id": "Q164",
+    "ordinal": 164,
+    "category": "LINUX",
+    "difficulty": "EASY",
+    "contentSha256": "262d04896f1d0989ff67afd6b3224e96980917ff156be3ac3765d6cd2f2adbde",
+    "references": [
+      "https://man.openbsd.org/sshd_config.5"
+    ]
+  },
+  {
+    "id": "Q165",
+    "ordinal": 165,
+    "category": "LINUX",
+    "difficulty": "MEDIUM",
+    "contentSha256": "ea897fd94967381185ef4b9691ff727146c275f2ac0766a92be1981bb5f48180"
+  },
+  {
+    "id": "Q166",
+    "ordinal": 166,
+    "category": "LINUX",
+    "difficulty": "MEDIUM",
+    "contentSha256": "7ec2176edd2dba6d80e589d0ace12a1ca439ddd070a45ee491fe84d953446ff2",
+    "references": [
+      "https://man7.org/linux/man-pages/man7/path_resolution.7.html"
+    ]
+  },
+  {
+    "id": "Q167",
+    "ordinal": 167,
+    "category": "LINUX",
+    "difficulty": "MEDIUM",
+    "contentSha256": "59834af31d1ac5a8f4895b11c2fe876fae0813f148f3cc4009bf5bd5897f57d3",
+    "references": [
+      "https://man7.org/linux/man-pages/man7/path_resolution.7.html"
+    ]
+  },
+  {
+    "id": "Q168",
+    "ordinal": 168,
+    "category": "LINUX",
+    "difficulty": "MEDIUM",
+    "contentSha256": "417a26a2f6f2265cdc12ac01a396d996c78436a4d6ad8e20e53f4f32670c230b",
+    "references": [
+      "https://man7.org/linux/man-pages/man5/crontab.5.html"
+    ]
+  },
+  {
+    "id": "Q169",
+    "ordinal": 169,
+    "category": "LINUX",
+    "difficulty": "MEDIUM",
+    "contentSha256": "f41c60981c5bb8ca64bfd88f23c7827d69bb2f52376de7cf161fe7f7998120e5"
+  },
+  {
+    "id": "Q170",
+    "ordinal": 170,
+    "category": "LINUX",
+    "difficulty": "MEDIUM",
+    "contentSha256": "48f9a360e3d12f9dfe15497b69fe22b7b5bd17ff50dfe9bd09e470ede0a924d0"
+  },
+  {
+    "id": "Q171",
+    "ordinal": 171,
+    "category": "LINUX",
+    "difficulty": "MEDIUM",
+    "contentSha256": "c54a5c920e0816388038d3f3ca63618d4de3b28497e60e835869760076e7b352",
+    "references": [
+      "https://man7.org/linux/man-pages/man1/getfacl.1.html"
+    ]
+  },
+  {
+    "id": "Q172",
+    "ordinal": 172,
+    "category": "LINUX",
+    "difficulty": "HARD",
+    "contentSha256": "f699aee2d1204190ad5febd1988225196d8051610ff64f2afe9fa15c4e7453fa"
+  },
+  {
+    "id": "Q173",
+    "ordinal": 173,
+    "category": "LINUX",
+    "difficulty": "HARD",
+    "contentSha256": "13d159d9b1fed5990a0342e0cc9be3af562f9df502b5b17103161ff6bb7a980f"
+  },
+  {
+    "id": "Q174",
+    "ordinal": 174,
+    "category": "LINUX",
+    "difficulty": "HARD",
+    "contentSha256": "e9dd3c91980e95f2d8d603bb051b31a61b79ddbbdd93bd3d87ffe204adaaac58"
+  },
+  {
+    "id": "Q175",
+    "ordinal": 175,
+    "category": "LINUX",
+    "difficulty": "HARD",
+    "contentSha256": "24356286478976353302dcca3240cd27a72ffc54a80b52bef884573f55be0778"
+  },
+  {
+    "id": "Q176",
+    "ordinal": 176,
+    "category": "LINUX",
+    "difficulty": "HARD",
+    "contentSha256": "04632380dec58c5bbe185e191a1176e014d5ed8580d21c2c96196f8e2b41939f"
+  },
+  {
+    "id": "Q177",
+    "ordinal": 177,
+    "category": "LINUX",
+    "difficulty": "HARD",
+    "contentSha256": "6aed3692ed5e5ed63f7302ecd504691800827802944f482b68030a1abd712f67",
+    "references": [
+      "https://manpages.debian.org/testing/lsof/lsof.8.en.html"
+    ]
+  },
+  {
+    "id": "Q178",
+    "ordinal": 178,
+    "category": "LINUX",
+    "difficulty": "HARD",
+    "contentSha256": "ccb01976914a2fb880e42c0294b6757f27e980ad67c770e218610aa5e23446cd"
+  },
+  {
+    "id": "Q179",
+    "ordinal": 179,
+    "category": "LINUX",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "e0735c0d33f85c4229f07052530f7a0f5bc655cb7e485deab409cbf078db1a7f"
+  },
+  {
+    "id": "Q180",
+    "ordinal": 180,
+    "category": "LINUX",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "1fdd23f4e6813aa0140a97a63faff41939b37a0f565511b10b4bf1ecf5fc0a4e",
+    "references": [
+      "https://pubs.opengroup.org/onlinepubs/9699919799/basedefs/V1_chap12.html"
+    ]
+  },
+  {
+    "id": "Q181",
+    "ordinal": 181,
+    "category": "LINUX",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "890506bdb71142283b649df54f5618fc9b01a4169e6c34a617c150f3174191ab"
+  },
+  {
+    "id": "Q182",
+    "ordinal": 182,
+    "category": "LINUX",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "f41a6ee1429e3af0f85a5b9c8f66e1534454bf8484b4a29b44c549b503c6b5c9"
+  },
+  {
+    "id": "Q183",
+    "ordinal": 183,
+    "category": "LINUX",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "c0e60de6c770fb045739c60fdd91e9d6b18e6fc45e34f67bb53fec89cfa6f6a0"
+  },
+  {
+    "id": "Q184",
+    "ordinal": 184,
+    "category": "LINUX",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "04bf191daacc35d15f91e5c8f29c85a99005e64c6f85228cf299c076719dc9a3",
+    "references": [
+      "https://man7.org/linux/man-pages/man8/selinux.8.html"
+    ]
+  },
+  {
+    "id": "Q185",
+    "ordinal": 185,
+    "category": "LINUX",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "101a8980c5dd8d8cc52a47670053c42a4acc7fdcf9d75f5599dbae73199b7dd0"
+  },
+  {
+    "id": "Q186",
+    "ordinal": 186,
+    "category": "WINDOWS",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "23c5e2edef63fcfddd8557a94c9f10f4b6046a90960257d8b20622214af2dcf2",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows/win32/eventlog/event-logging"
+    ]
+  },
+  {
+    "id": "Q187",
+    "ordinal": 187,
+    "category": "WINDOWS",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "e102c0473534bc4e41cd75c5281c258653f820d109162ef9f32f368de8775de5",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/understand-default-user-accounts"
+    ]
+  },
+  {
+    "id": "Q188",
+    "ordinal": 188,
+    "category": "WINDOWS",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "588b949cf141b9f01ed03bef851cfb79f8019a99fc62624835ac5f272d59bdd1"
+  },
+  {
+    "id": "Q189",
+    "ordinal": 189,
+    "category": "WINDOWS",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "0a94e7b36177a23118a15fe9ecfb1ba7a8398c8726c192e067ddeeddd46b659a",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows/security/operating-system-security/data-protection/bitlocker/"
+    ]
+  },
+  {
+    "id": "Q190",
+    "ordinal": 190,
+    "category": "WINDOWS",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "97a8015f65f6d6882bc5ff99b06fe7da58e435e51aa8c9d127880b5dee56912d",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/group-policy/group-policy-overview"
+    ]
+  },
+  {
+    "id": "Q191",
+    "ordinal": 191,
+    "category": "WINDOWS",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "216bbb40f46c54ed45cd26bf7084f1a0b904562a7cab7027f7114506dbfe9a37",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows/security/application-security/application-control/user-account-control/"
+    ]
+  },
+  {
+    "id": "Q192",
+    "ordinal": 192,
+    "category": "WINDOWS",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "c4076b5d73af8d3825860c71fedacaa9396e89daa24eb0af6035fa7d293003ce",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/get-started/virtual-dc/active-directory-domain-services-overview"
+    ]
+  },
+  {
+    "id": "Q193",
+    "ordinal": 193,
+    "category": "WINDOWS",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "582915328a3dfb118b9432d17fe4ef05aa437bd48103fffa1557215ee634d974"
+  },
+  {
+    "id": "Q194",
+    "ordinal": 194,
+    "category": "WINDOWS",
+    "difficulty": "EASY",
+    "contentSha256": "488dbc6573667fe371c008c6b33a0f69c7baa213a1a44be0176ac114518baafc"
+  },
+  {
+    "id": "Q195",
+    "ordinal": 195,
+    "category": "WINDOWS",
+    "difficulty": "EASY",
+    "contentSha256": "b007bf0a4c81e7161255c8914c0d34d622a050e7929b409801fdd7c363aaecfd"
+  },
+  {
+    "id": "Q196",
+    "ordinal": 196,
+    "category": "WINDOWS",
+    "difficulty": "EASY",
+    "contentSha256": "c24aee04e75e9677909084d9044f894ba1bc5bba256e663cbb676182d37b3fe0",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/storage/file-server/smb-security"
+    ]
+  },
+  {
+    "id": "Q197",
+    "ordinal": 197,
+    "category": "WINDOWS",
+    "difficulty": "EASY",
+    "contentSha256": "801b339dbde57df9b4a9e0d6777f253b42686535a14ed13a6b8cdeb5c04228e4",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/identity/laps/laps-overview"
+    ]
+  },
+  {
+    "id": "Q198",
+    "ordinal": 198,
+    "category": "WINDOWS",
+    "difficulty": "EASY",
+    "contentSha256": "519ac08f96c06a03a4093c94b027fc2d2653441d9d7074c1602efc733d8ec746"
+  },
+  {
+    "id": "Q199",
+    "ordinal": 199,
+    "category": "WINDOWS",
+    "difficulty": "EASY",
+    "contentSha256": "df53c892127664bae02e794e1c35d5e77a1c13d0ce8fca55f341c9a34a4fb502",
+    "references": [
+      "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_execution_policies"
+    ]
+  },
+  {
+    "id": "Q200",
+    "ordinal": 200,
+    "category": "WINDOWS",
+    "difficulty": "EASY",
+    "contentSha256": "be9922168f48cbe124c093f0f5d3718ac060e14de9d7690c5e50b5fcea7cb403"
+  },
+  {
+    "id": "Q201",
+    "ordinal": 201,
+    "category": "WINDOWS",
+    "difficulty": "EASY",
+    "contentSha256": "815c267e4a31cd3c18c9d8492e07d7c144083f0767d3936ca1dc696e91f7edbd",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/whoami"
+    ]
+  },
+  {
+    "id": "Q202",
+    "ordinal": 202,
+    "category": "WINDOWS",
+    "difficulty": "MEDIUM",
+    "contentSha256": "907490121573f16ec28535f5aeb5663714ce1870373c39e98f5650cbf6499411"
+  },
+  {
+    "id": "Q203",
+    "ordinal": 203,
+    "category": "WINDOWS",
+    "difficulty": "MEDIUM",
+    "contentSha256": "26a84b36cbeb6ef41e8bfc0a1abcf710a2fa0c763f8f29f98172859cf9a8ec24"
+  },
+  {
+    "id": "Q204",
+    "ordinal": 204,
+    "category": "WINDOWS",
+    "difficulty": "MEDIUM",
+    "contentSha256": "40346824e6be4ab4efb4a6f2a9882001d3906a8fcfde391077247bc005f828df",
+    "references": [
+      "https://attack.mitre.org/techniques/T1558/003/"
+    ]
+  },
+  {
+    "id": "Q205",
+    "ordinal": 205,
+    "category": "WINDOWS",
+    "difficulty": "MEDIUM",
+    "contentSha256": "bf062889ea67a7e79173cfff59bd5e32e21a80e0367dc58a372507f1b569f2fe"
+  },
+  {
+    "id": "Q206",
+    "ordinal": 206,
+    "category": "WINDOWS",
+    "difficulty": "MEDIUM",
+    "contentSha256": "19e875b0f454f8c6d6aede51e43e14b1b801b807dca809914d443361f50d2f89",
+    "references": [
+      "https://learn.microsoft.com/en-us/powershell/module/microsoft.powershell.core/about/about_logging"
+    ]
+  },
+  {
+    "id": "Q207",
+    "ordinal": 207,
+    "category": "WINDOWS",
+    "difficulty": "MEDIUM",
+    "contentSha256": "5359b49bda0947a124cd3cf47ce4aaa660be47be103af49d9004a390e1007856",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/group-managed-service-accounts/group-managed-service-accounts/group-managed-service-accounts-overview"
+    ]
+  },
+  {
+    "id": "Q208",
+    "ordinal": 208,
+    "category": "WINDOWS",
+    "difficulty": "MEDIUM",
+    "contentSha256": "1ec87826b795fdc7e386c00009112f7385303d8664d114c34f0fb7071a70e401",
+    "references": [
+      "https://learn.microsoft.com/en-us/troubleshoot/windows-server/networking/overview-server-message-block-signing",
+      "https://attack.mitre.org/techniques/T1557/001/"
+    ]
+  },
+  {
+    "id": "Q209",
+    "ordinal": 209,
+    "category": "WINDOWS",
+    "difficulty": "MEDIUM",
+    "contentSha256": "2093492a93067c0c15918ab81b58ba603bd3ed94005f616475c84b92e6d6e2e4",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/administration/windows-commands/gpresult"
+    ]
+  },
+  {
+    "id": "Q210",
+    "ordinal": 210,
+    "category": "WINDOWS",
+    "difficulty": "HARD",
+    "contentSha256": "3d1100d5bc10a3fdb336d382315b16d578575314dbe0ded4be5985da6bb659ec",
+    "references": [
+      "https://attack.mitre.org/techniques/T1574/010/"
+    ]
+  },
+  {
+    "id": "Q211",
+    "ordinal": 211,
+    "category": "WINDOWS",
+    "difficulty": "HARD",
+    "contentSha256": "772a0753732146d74ea8cf62193c4e63a5890844fa58704ce644bec14e73f7ac"
+  },
+  {
+    "id": "Q212",
+    "ordinal": 212,
+    "category": "WINDOWS",
+    "difficulty": "HARD",
+    "contentSha256": "9054c7793bacbcb2e07a38723464e45c9462667b1be79b55a43077623e189bdd",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks"
+    ]
+  },
+  {
+    "id": "Q213",
+    "ordinal": 213,
+    "category": "WINDOWS",
+    "difficulty": "HARD",
+    "contentSha256": "06568d2ca486e0df603a2c865f874b822c38221c415b1e475efb713f08e5f977"
+  },
+  {
+    "id": "Q214",
+    "ordinal": 214,
+    "category": "WINDOWS",
+    "difficulty": "HARD",
+    "contentSha256": "62cdc65072633c48754c4ffa186cb5d98f02803fd869563495fe85f19ec6e986",
+    "references": [
+      "https://attack.mitre.org/techniques/T1558/004/"
+    ]
+  },
+  {
+    "id": "Q215",
+    "ordinal": 215,
+    "category": "WINDOWS",
+    "difficulty": "HARD",
+    "contentSha256": "d034a52d582a09c4ce28933c786251d3a37a85b1f52cff71bf17752bd610b26f",
+    "references": [
+      "https://attack.mitre.org/techniques/T1003/001/"
+    ]
+  },
+  {
+    "id": "Q216",
+    "ordinal": 216,
+    "category": "WINDOWS",
+    "difficulty": "HARD",
+    "contentSha256": "2e974ad6a87dcd6081c9253b490454696ff284ebbf01c49303d1c937a32185f6",
+    "references": [
+      "https://attack.mitre.org/techniques/T1003/006/"
+    ]
+  },
+  {
+    "id": "Q217",
+    "ordinal": 217,
+    "category": "WINDOWS",
+    "difficulty": "HARD",
+    "contentSha256": "9ce53a8b48359ca52b6c9935c6f8082d9110aa9dc2036bb5e7128fe99787437b",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview"
+    ]
+  },
+  {
+    "id": "Q218",
+    "ordinal": 218,
+    "category": "WINDOWS",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "072376ee5fec9bf856bfa1aea8c11663d0e0525d7291950b7dbd49f07ca75b9a",
+    "references": [
+      "https://attack.mitre.org/techniques/T1550/002/",
+      "https://learn.microsoft.com/en-us/windows-server/security/kerberos/detect-and-prevent-rc4"
+    ]
+  },
+  {
+    "id": "Q219",
+    "ordinal": 219,
+    "category": "WINDOWS",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "e1cd989f50337857ae9bbcc0f437d79b31c1f3eb82f68a270dd9e6caabec901d",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/identity/ad-cs/certificate-template-concepts",
+      "https://specterops.io/wp-content/uploads/sites/3/2022/06/Certified_Pre-Owned.pdf"
+    ]
+  },
+  {
+    "id": "Q220",
+    "ordinal": 220,
+    "category": "WINDOWS",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "96b1ae5dc70d3dc0bb007c7e81924e1b8c5c4ee2566dddc8c86bbb7396ee0d6d",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/security/kerberos/kerberos-constrained-delegation-overview"
+    ]
+  },
+  {
+    "id": "Q221",
+    "ordinal": 221,
+    "category": "WINDOWS",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "61de272c2c1261d62affc61c9e7f857d9339e6f860e2cdfc1ebf223bfc06cc56"
+  },
+  {
+    "id": "Q222",
+    "ordinal": 222,
+    "category": "WINDOWS",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "116d4224a603b572d039bb546fd23066bd51700f4de18c51c4354b171abe9e8a",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows-server/identity/ad-ds/manage/forest-recovery-guide/ad-forest-recovery-reset-the-krbtgt-password",
+      "https://learn.microsoft.com/en-us/defender-for-identity/change-password-krbtgt-account"
+    ]
+  },
+  {
+    "id": "Q223",
+    "ordinal": 223,
+    "category": "WINDOWS",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "d2df74c47994520b1c30d82149e0511be6ab8abe40f936ed313eae1dcc138958",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows/win32/services/service-security-and-access-rights"
+    ]
+  },
+  {
+    "id": "Q224",
+    "ordinal": 224,
+    "category": "WINDOWS",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "c45c24195d031c46d223b00a34c7071256cd54ca1d1ad41f0137a18c9933f34a"
+  },
+  {
+    "id": "Q225",
+    "ordinal": 225,
+    "category": "WINDOWS",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "dcf90f663b8c2defdd11e6d11864df0e08e69c07218248322d400832d60ae392",
+    "references": [
+      "https://learn.microsoft.com/en-us/windows/win32/secauthz/access-rights-and-access-masks"
+    ]
+  },
+  {
+    "id": "Q226",
+    "ordinal": 226,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "22b47826d2e83af39bfd052cea260ef4a8faf1e7e5becc1cac83e92951d94b8a"
+  },
+  {
+    "id": "Q227",
+    "ordinal": 227,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "2d4e2522f83bad8ebb7e9e8e80d58e2fce3cf2a18a4d08cba4d1b26edbda742e",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/92/final"
+    ]
+  },
+  {
+    "id": "Q228",
+    "ordinal": 228,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "e6e5b0073d70a81a23face2ca40987f0a9050e6d60197ce39825fe20fb9eba91"
+  },
+  {
+    "id": "Q229",
+    "ordinal": 229,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "b70d1698a65aaaffe57f555c686fcd45a0f35b184759e13872f06cb1a8c83594"
+  },
+  {
+    "id": "Q230",
+    "ordinal": 230,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "e7f0d483951de77676bddffa01254373f7916d782cee08794ac10d7f57ebf329",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/86/final"
+    ]
+  },
+  {
+    "id": "Q231",
+    "ordinal": 231,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "4c8c25de6c7f0217aad759ec34473ef27f4e901a3f652c25edf739c8de7baff4"
+  },
+  {
+    "id": "Q232",
+    "ordinal": 232,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "9a2c37982c980b6e8a87ee97dedff97af7cdc0968d488297d89f554998523cb6"
+  },
+  {
+    "id": "Q233",
+    "ordinal": 233,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "ecbdc5803935c7b645ba084ffc01da7d07ed366c3800baa8ee4201ea7540a878",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/61/r3/final"
+    ]
+  },
+  {
+    "id": "Q234",
+    "ordinal": 234,
+    "category": "BLUE_TEAM",
+    "difficulty": "EASY",
+    "contentSha256": "eb35c835c42a928ff61fffd8e239180179b63ea391c9955f37d3ea553de39626",
+    "references": [
+      "https://attack.mitre.org/techniques/T1110/003/"
+    ]
+  },
+  {
+    "id": "Q235",
+    "ordinal": 235,
+    "category": "BLUE_TEAM",
+    "difficulty": "EASY",
+    "contentSha256": "40cd1630264f5a51af840668cba8f8ae06942ace9fd9ac3196e31001bbeefb8e",
+    "references": [
+      "https://attack.mitre.org/techniques/T1110/001/"
+    ]
+  },
+  {
+    "id": "Q236",
+    "ordinal": 236,
+    "category": "BLUE_TEAM",
+    "difficulty": "EASY",
+    "contentSha256": "307022b45cbae7b0a8510d4934d29c67f6507d45c16cb78190ffd6843d4780d7",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/86/final"
+    ]
+  },
+  {
+    "id": "Q237",
+    "ordinal": 237,
+    "category": "BLUE_TEAM",
+    "difficulty": "EASY",
+    "contentSha256": "0dd12b3f09dc14584e32c560021033ac287d26f3ef76d59a05fb443ca95e6cc8",
+    "references": [
+      "https://www.cisa.gov/stopransomware/ransomware-guide"
+    ]
+  },
+  {
+    "id": "Q238",
+    "ordinal": 238,
+    "category": "BLUE_TEAM",
+    "difficulty": "EASY",
+    "contentSha256": "e0b2a1e5b79e43535d29301f8abbc241fe2d7c4dd277f8034915fd5db89f591e"
+  },
+  {
+    "id": "Q239",
+    "ordinal": 239,
+    "category": "BLUE_TEAM",
+    "difficulty": "EASY",
+    "contentSha256": "6cc344f2542b8e692e4b2692bfeb6852f4c74d4e0915bf69d65fc26ece090fd0",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/86/final",
+      "https://www.rfc-editor.org/rfc/rfc3339"
+    ]
+  },
+  {
+    "id": "Q240",
+    "ordinal": 240,
+    "category": "BLUE_TEAM",
+    "difficulty": "EASY",
+    "contentSha256": "6ddf8e1b9a5b9109befef92f34a447cf2c8d192569273aad2a1cc58d1ed6c85c"
+  },
+  {
+    "id": "Q241",
+    "ordinal": 241,
+    "category": "BLUE_TEAM",
+    "difficulty": "EASY",
+    "contentSha256": "fbe883e607a6fc71bb8f32cf43923144c9435928042a74fa06ef27b78b7c5c0e"
+  },
+  {
+    "id": "Q242",
+    "ordinal": 242,
+    "category": "BLUE_TEAM",
+    "difficulty": "MEDIUM",
+    "contentSha256": "658eb9704ee841daaccaee44a45b36f610f59fe160f6336186a690e62a5f4496"
+  },
+  {
+    "id": "Q243",
+    "ordinal": 243,
+    "category": "BLUE_TEAM",
+    "difficulty": "MEDIUM",
+    "contentSha256": "9350d7118e11744a9febb11d570258418f77aa94d694fe51175b0da98300384f",
+    "references": [
+      "https://attack.mitre.org/techniques/T1071/004/"
+    ]
+  },
+  {
+    "id": "Q244",
+    "ordinal": 244,
+    "category": "BLUE_TEAM",
+    "difficulty": "MEDIUM",
+    "contentSha256": "e715e3bbfb9a0685fdd05dda3bcc6e9ffae7ad7cade598affa80187e27d03661",
+    "references": [
+      "https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon"
+    ]
+  },
+  {
+    "id": "Q245",
+    "ordinal": 245,
+    "category": "BLUE_TEAM",
+    "difficulty": "MEDIUM",
+    "contentSha256": "ff48e80c45ef2f67fbd5a1603cf9cd9b6d6b14ffa607ac701c844ec29af8a0b0",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc3227",
+      "https://csrc.nist.gov/pubs/sp/800/86/final"
+    ]
+  },
+  {
+    "id": "Q246",
+    "ordinal": 246,
+    "category": "BLUE_TEAM",
+    "difficulty": "MEDIUM",
+    "contentSha256": "d6ccb0ec8a88d0cda81b676b5950ff7af55dbe7212792123608f300e4fd3965f"
+  },
+  {
+    "id": "Q247",
+    "ordinal": 247,
+    "category": "BLUE_TEAM",
+    "difficulty": "MEDIUM",
+    "contentSha256": "8ea030ae866c99cfeee08261855985d23cc6f407fe5d2cb8f74e0cddaef600f4"
+  },
+  {
+    "id": "Q248",
+    "ordinal": 248,
+    "category": "BLUE_TEAM",
+    "difficulty": "MEDIUM",
+    "contentSha256": "571eae8d0439e31bf9e34f216508aac7cc49bd720969f7c0b6678b4f3d28446b"
+  },
+  {
+    "id": "Q249",
+    "ordinal": 249,
+    "category": "BLUE_TEAM",
+    "difficulty": "MEDIUM",
+    "contentSha256": "d05daaacc3d3d0b332ba36e730ed5bab38a003523e57e3b593893035e750b34e",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/61/r3/final"
+    ]
+  },
+  {
+    "id": "Q250",
+    "ordinal": 250,
+    "category": "BLUE_TEAM",
+    "difficulty": "HARD",
+    "contentSha256": "0c58edeea056e32dd3a41c8884e198a0b3d4cff0f1c4eae8d628f6d776ba2028"
+  },
+  {
+    "id": "Q251",
+    "ordinal": 251,
+    "category": "BLUE_TEAM",
+    "difficulty": "HARD",
+    "contentSha256": "379f468bfa64bfb7e5c493e5f5d6535691671855f45c3de39ee90078977a13e2"
+  },
+  {
+    "id": "Q252",
+    "ordinal": 252,
+    "category": "BLUE_TEAM",
+    "difficulty": "HARD",
+    "contentSha256": "724157f6e289bf7db86b936d3212327cd991e07b44ab76704697ef44749fd223"
+  },
+  {
+    "id": "Q253",
+    "ordinal": 253,
+    "category": "BLUE_TEAM",
+    "difficulty": "HARD",
+    "contentSha256": "573789102b6023289ad18daf609bb5d0bc4cc95888968f7b12b41a7c99bb603d",
+    "references": [
+      "https://attack.mitre.org/techniques/T1218/011/"
+    ]
+  },
+  {
+    "id": "Q254",
+    "ordinal": 254,
+    "category": "BLUE_TEAM",
+    "difficulty": "HARD",
+    "contentSha256": "77a4b12d5f048c40a8a4c1fd25045155b2e403e9d7799ab413c181e97e4715a8"
+  },
+  {
+    "id": "Q255",
+    "ordinal": 255,
+    "category": "BLUE_TEAM",
+    "difficulty": "HARD",
+    "contentSha256": "3c946c060a7edf5dfca31f52bce93d874160cdcd8373512938c7ce0f36ee00b9",
+    "references": [
+      "https://attack.mitre.org/techniques/T1110/003/"
+    ]
+  },
+  {
+    "id": "Q256",
+    "ordinal": 256,
+    "category": "BLUE_TEAM",
+    "difficulty": "HARD",
+    "contentSha256": "3c428604d433ce8835878c8b4c71b60dc1fea9d15775d4650ec235b4abe7da97",
+    "references": [
+      "https://www.rfc-editor.org/rfc/rfc7009",
+      "https://csrc.nist.gov/pubs/sp/800/61/r3/final"
+    ]
+  },
+  {
+    "id": "Q257",
+    "ordinal": 257,
+    "category": "BLUE_TEAM",
+    "difficulty": "HARD",
+    "contentSha256": "f164baf9a6ece4d05338acf8c90ccf4548ac4321b7994429dc7880282b0bc05b",
+    "references": [
+      "https://www.first.org/cvss/v3.1/specification-document",
+      "https://www.cisa.gov/stakeholder-specific-vulnerability-categorization-ssvc"
+    ]
+  },
+  {
+    "id": "Q258",
+    "ordinal": 258,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "7188fedf905dd0e23c5c45f17a0a3b680f6d5f1a31c2e34548724af79e9652c4",
+    "references": [
+      "https://learn.microsoft.com/en-us/sysinternals/downloads/sysmon"
+    ]
+  },
+  {
+    "id": "Q259",
+    "ordinal": 259,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "7e1caa858bfba32e14d6772a450b37ea63742efabcd6d37f8436eb436f846dc6"
+  },
+  {
+    "id": "Q260",
+    "ordinal": 260,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "b39cf821c336944a9e8fd667b874ced796ae0361b0947cf274cde381a7f90c10"
+  },
+  {
+    "id": "Q261",
+    "ordinal": 261,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "b83f855a84fd9f260e777f25a6f427b4dc0e31d11fe67e70ee132cf45b755f47"
+  },
+  {
+    "id": "Q262",
+    "ordinal": 262,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "dd0ed80633ca0459ed59faa256d480458ff5d271f29d2eac7e3f0d1bb8f658e0",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/61/r3/final"
+    ]
+  },
+  {
+    "id": "Q263",
+    "ordinal": 263,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "9c8bca3d8496be2cadaeb956188ec9e049e4c1784b872f388dd7bbc403afa139"
+  },
+  {
+    "id": "Q264",
+    "ordinal": 264,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "e59b42c430b3e0600f2137223de01bc5442e0cd8c5c329feeb9d202fe4af79e1"
+  },
+  {
+    "id": "Q265",
+    "ordinal": 265,
+    "category": "BLUE_TEAM",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "a070de1138bed8428f3911305c6c4a1dc911d56f33382b07686ebdc4e06b5cdd"
+  },
+  {
+    "id": "Q266",
+    "ordinal": 266,
+    "category": "CHMURA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "9128073e80e9e6eaa7542ca9d5ad3780392d5fa045fb1cfdeff0110043cd8f0d",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/145/final",
+      "https://aws.amazon.com/compliance/shared-responsibility-model/"
+    ]
+  },
+  {
+    "id": "Q267",
+    "ordinal": 267,
+    "category": "CHMURA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "72c4519ae20cf8718f80ea000a802cc874adef0faf821404870ad4e2a5fbd2a1",
+    "references": [
+      "https://docs.aws.amazon.com/AmazonS3/latest/userguide/access-control-block-public-access.html"
+    ]
+  },
+  {
+    "id": "Q268",
+    "ordinal": 268,
+    "category": "CHMURA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "7812d4db3fae1a8df655f517c042be4c1b885114913008fd1adc584480545e2d"
+  },
+  {
+    "id": "Q269",
+    "ordinal": 269,
+    "category": "CHMURA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "9ae6e258af635b9678f43937f57707287f84b4cc55c3d258c01d93d15accc792",
+    "references": [
+      "https://nvlpubs.nist.gov/nistpubs/SpecialPublications/NIST.SP.800-63B-4.pdf",
+      "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_credentials_mfa.html"
+    ]
+  },
+  {
+    "id": "Q270",
+    "ordinal": 270,
+    "category": "CHMURA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "dab286c8b386a7a5c84ba0647ea845cff8e595c828091c954b9731136a71185c",
+    "references": [
+      "https://docs.aws.amazon.com/whitepapers/latest/aws-fault-isolation-boundaries/availability-zones.html"
+    ]
+  },
+  {
+    "id": "Q271",
+    "ordinal": 271,
+    "category": "CHMURA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "272c3818ba0050957f3f23b2c258ecc406e3cd9d52cd081e2ddb185af04848bb",
+    "references": [
+      "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/cloudtrail-user-guide.html"
+    ]
+  },
+  {
+    "id": "Q272",
+    "ordinal": 272,
+    "category": "CHMURA",
+    "difficulty": "VERY_EASY",
+    "contentSha256": "830067330cb1f6ab03419d21a1a3a67c86247dac90bb01c786693aa43e4b5a1c",
+    "references": [
+      "https://docs.aws.amazon.com/vpc/latest/userguide/vpc-security-groups.html"
+    ]
+  },
+  {
+    "id": "Q273",
+    "ordinal": 273,
+    "category": "CHMURA",
+    "difficulty": "EASY",
+    "contentSha256": "bbea6294451c2e71e0786836ba3e732fd5eeedfd052183b3680ef3f0a98a3af8"
+  },
+  {
+    "id": "Q274",
+    "ordinal": 274,
+    "category": "CHMURA",
+    "difficulty": "EASY",
+    "contentSha256": "1c4ce9078f3231a4dae2108f15b4c1782f6df57fd11250621e596d1b0439043e"
+  },
+  {
+    "id": "Q275",
+    "ordinal": 275,
+    "category": "CHMURA",
+    "difficulty": "EASY",
+    "contentSha256": "70081326129309b755ac3358d83bc0691f6d7993d9ef075eb4479fbc4177dbdb",
+    "references": [
+      "https://cheatsheetseries.owasp.org/cheatsheets/Docker_Security_Cheat_Sheet.html",
+      "https://github.com/opencontainers/image-spec/blob/main/descriptor.md"
+    ]
+  },
+  {
+    "id": "Q276",
+    "ordinal": 276,
+    "category": "CHMURA",
+    "difficulty": "EASY",
+    "contentSha256": "ef98d1bdcc502a5f6d0210cea65613231a56eca29bf9c8042e55f6497493f0cd"
+  },
+  {
+    "id": "Q277",
+    "ordinal": 277,
+    "category": "CHMURA",
+    "difficulty": "EASY",
+    "contentSha256": "7a9eced33fd1c0ee6f16729a164fffae4ac662ab688361285edf34c1cbe16d5f",
+    "references": [
+      "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/logging-using-cloudtrail.html"
+    ]
+  },
+  {
+    "id": "Q278",
+    "ordinal": 278,
+    "category": "CHMURA",
+    "difficulty": "EASY",
+    "contentSha256": "ab96a642ce0c9fb4994e1568f453ba3d341595c0ff1574d5aef06e848a1109d8",
+    "references": [
+      "https://csrc.nist.gov/pubs/sp/800/34/r1/upd1/final",
+      "https://docs.aws.amazon.com/AmazonRDS/latest/UserGuide/USER_ReadRepl.html"
+    ]
+  },
+  {
+    "id": "Q279",
+    "ordinal": 279,
+    "category": "CHMURA",
+    "difficulty": "EASY",
+    "contentSha256": "1b66dce322c2ae50b5f16e3569e59beece686afb07decc8adb10db61e54b6a99"
+  },
+  {
+    "id": "Q280",
+    "ordinal": 280,
+    "category": "CHMURA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "24de7bce0ef58549e0ab4e9e9d43e4f6040a2c08fc78f9d4604efdfddc507ca5"
+  },
+  {
+    "id": "Q281",
+    "ordinal": 281,
+    "category": "CHMURA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "97e730e5e57bf6f54e4f13d8ac4e4934c57303bda0484655f51bab569baf0eda"
+  },
+  {
+    "id": "Q282",
+    "ordinal": 282,
+    "category": "CHMURA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "86ff4556b90b2c6a91ee5e4ead7df882c36cde35db9655be57b8c2b5b211eb83"
+  },
+  {
+    "id": "Q283",
+    "ordinal": 283,
+    "category": "CHMURA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "f19059138ea60a31f94e2b332a67f58451009ebe5c871f7275fd377043721e82",
+    "references": [
+      "https://kubernetes.io/docs/concepts/services-networking/network-policies/"
+    ]
+  },
+  {
+    "id": "Q284",
+    "ordinal": 284,
+    "category": "CHMURA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "addd007a30f97b7fc66532e1382e0c516baff73ee49999808dec02d63e3dc121",
+    "references": [
+      "https://docs.aws.amazon.com/AmazonS3/latest/userguide/UsingEncryption.html"
+    ]
+  },
+  {
+    "id": "Q285",
+    "ordinal": 285,
+    "category": "CHMURA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "8b76f82fbd0c9799e23a93d04f6319cc40d491340e24dec775446abf56e7f5b5"
+  },
+  {
+    "id": "Q286",
+    "ordinal": 286,
+    "category": "CHMURA",
+    "difficulty": "MEDIUM",
+    "contentSha256": "e0267e1469f02b52ac045365123f0a226a4c4794f9e83e75ce01e4bf651dc86d"
+  },
+  {
+    "id": "Q287",
+    "ordinal": 287,
+    "category": "CHMURA",
+    "difficulty": "HARD",
+    "contentSha256": "2ea6db92a4b46108b45728a430525f97ca05474666022f34b0787206f5bc0ef5",
+    "references": [
+      "https://docs.aws.amazon.com/IAM/latest/UserGuide/id_roles_create_for-user_externalid.html"
+    ]
+  },
+  {
+    "id": "Q288",
+    "ordinal": 288,
+    "category": "CHMURA",
+    "difficulty": "HARD",
+    "contentSha256": "90ec20b0d49ca6ea088b4b3ef9913ade349581dc5e5dfcf7ffb13edcbb164231",
+    "references": [
+      "https://docs.aws.amazon.com/IAM/latest/UserGuide/access_policies_manage-edit.html"
+    ]
+  },
+  {
+    "id": "Q289",
+    "ordinal": 289,
+    "category": "CHMURA",
+    "difficulty": "HARD",
+    "contentSha256": "0b230a1e099a806054521cfd50d7b1bd8dc15002ab41a32d232932c8edae2608",
+    "references": [
+      "https://docs.aws.amazon.com/awscloudtrail/latest/userguide/logging-data-events-with-cloudtrail.html"
+    ]
+  },
+  {
+    "id": "Q290",
+    "ordinal": 290,
+    "category": "CHMURA",
+    "difficulty": "HARD",
+    "contentSha256": "1d36c7d65759bfc01a5765fb447ad5dc1e4e8b06e1084ef64ee55a5e02cf687a",
+    "references": [
+      "https://kubernetes.io/docs/concepts/containers/images/#image-names",
+      "https://github.com/opencontainers/image-spec/blob/main/descriptor.md"
+    ]
+  },
+  {
+    "id": "Q291",
+    "ordinal": 291,
+    "category": "CHMURA",
+    "difficulty": "HARD",
+    "contentSha256": "3755a8228d16402f9ca27b06a0a5afaa5485d427b64bf959db1c6c2d225e1827"
+  },
+  {
+    "id": "Q292",
+    "ordinal": 292,
+    "category": "CHMURA",
+    "difficulty": "HARD",
+    "contentSha256": "3cb1ab3c9f93bca23b956e8526508471cb39dab85ad33a1353d264db5df93db4"
+  },
+  {
+    "id": "Q293",
+    "ordinal": 293,
+    "category": "CHMURA",
+    "difficulty": "HARD",
+    "contentSha256": "06e95c78f76a9c5edb510dbac716e3f57cfb862f099dc70bf940de3bff8ba74e"
+  },
+  {
+    "id": "Q294",
+    "ordinal": 294,
+    "category": "CHMURA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "b41cfea3d68b33dca674bb71d7e036a82775ba5f2c1110962e289862de62d216"
+  },
+  {
+    "id": "Q295",
+    "ordinal": 295,
+    "category": "CHMURA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "bb988770c033f54c94d5ca660bc464db997fc1bbac7374a25c3b231b56f4b5e6"
+  },
+  {
+    "id": "Q296",
+    "ordinal": 296,
+    "category": "CHMURA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "f09f9409d9aad10319e9a6538d1889c4e983d5fdb879a047c8347b97ff8abf0d",
+    "references": [
+      "https://kubernetes.io/docs/reference/access-authn-authz/rbac/#privilege-escalation-prevention-and-bootstrapping"
+    ]
+  },
+  {
+    "id": "Q297",
+    "ordinal": 297,
+    "category": "CHMURA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "e6493fe582afef7a2b98a0b405872aaa1e5c0eafbda64b3c7e1346eb28fb4dec"
+  },
+  {
+    "id": "Q298",
+    "ordinal": 298,
+    "category": "CHMURA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "5cded08dc56c27efef1032c7d1343a290388a88384e18fea79ae5559e2fe8376",
+    "references": [
+      "https://docs.aws.amazon.com/AWSEC2/latest/UserGuide/instancedata-data-retrieval.html",
+      "https://cheatsheetseries.owasp.org/cheatsheets/Server_Side_Request_Forgery_Prevention_Cheat_Sheet.html"
+    ]
+  },
+  {
+    "id": "Q299",
+    "ordinal": 299,
+    "category": "CHMURA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "d95e676e6b4a050ee90d26af7f0b6170cc0dfb20851f376236957221256992a0",
+    "references": [
+      "https://docs.aws.amazon.com/kms/latest/developerguide/control-access.html",
+      "https://docs.aws.amazon.com/secretsmanager/latest/userguide/auth-and-access.html",
+      "https://docs.aws.amazon.com/kms/latest/cryptographic-details/decrypt-operation.html"
+    ]
+  },
+  {
+    "id": "Q300",
+    "ordinal": 300,
+    "category": "CHMURA",
+    "difficulty": "VERY_HARD",
+    "contentSha256": "69b76d15c62b7a97258f487a746d3f70d6e43eaaec0862d7a4ac93b04bc5cd73",
+    "references": [
+      "https://docs.aws.amazon.com/AmazonCloudFront/latest/DeveloperGuide/restrict-access-to-load-balancer.html"
+    ]
+  }
+]
