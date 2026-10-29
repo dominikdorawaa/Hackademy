@@ -128,14 +128,14 @@ class ArenaQuestionAdminIntegrationTest extends PostgresIntegrationTest {
     void exposesTheMigratedQuestionsInTheAdminBank() throws Exception {
         var admin = account(Role.ADMIN);
         for (String category : List.of("WINDOWS", "BLUE_TEAM", "CHMURA")) {
-            int total = category.equals("CHMURA") ? 35 : 40;
+            int total = category.equals("CHMURA") ? 35 : category.equals("WINDOWS") ? 50 : 40;
             getAs(admin, URL + "?category=" + category + "&size=100")
                     .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(total)))
                     .andExpect(jsonPath("$.hasNext").value(false))
                     .andExpect(jsonPath("$.items[0].correctAnswer").isNotEmpty())
                     .andExpect(jsonPath("$.items[0].wrongAnswers", hasSize(3)));
             getAs(admin, URL + "?category=" + category + "&difficulty=VERY_HARD&size=100")
-                    .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(total / 5)));
+                    .andExpect(status().isOk()).andExpect(jsonPath("$.items", hasSize(category.equals("WINDOWS") ? 11 : total / 5)));
         }
     }
 

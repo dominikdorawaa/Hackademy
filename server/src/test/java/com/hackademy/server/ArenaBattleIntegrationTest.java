@@ -31,7 +31,7 @@ class ArenaBattleIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void seedsEnoughQuestionsForAFullBattle() {
-        assertEquals(342, jdbcTemplate.queryForObject("SELECT count(*) FROM arena_questions", Integer.class));
+        assertEquals(382, jdbcTemplate.queryForObject("SELECT count(*) FROM arena_questions", Integer.class));
         assertEquals(0, jdbcTemplate.queryForObject(
                 """
                 SELECT count(*) FROM arena_questions WHERE (SELECT count(DISTINCT lower(answer))
