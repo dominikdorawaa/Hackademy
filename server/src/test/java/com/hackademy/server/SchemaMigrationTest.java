@@ -201,6 +201,23 @@ class SchemaMigrationTest {
                     OR (SELECT count(DISTINCT lower(trim(answer)))
                         FROM unnest(ARRAY[correct_answer, wrong_answer_1, wrong_answer_2, wrong_answer_3]) answer) <> 4
                 """));
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM arena_questions
+                WHERE greatest(length(correct_answer), length(wrong_answer_1), length(wrong_answer_2), length(wrong_answer_3))
+                    - least(length(correct_answer), length(wrong_answer_1), length(wrong_answer_2), length(wrong_answer_3)) > 25
+                """));
+        long correctIsLongest = scalar("""
+                SELECT count(*) FROM arena_questions WHERE id > %d
+                    AND length(correct_answer) > greatest(length(wrong_answer_1), length(wrong_answer_2), length(wrong_answer_3))
+                """.formatted(previousMax));
+        assertTrue(correctIsLongest <= 75, "Correct answer uniquely longest in " + correctIsLongest + " of 300 questions");
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM (
+                    SELECT abs(avg(length(correct_answer))
+                        - avg((length(wrong_answer_1) + length(wrong_answer_2) + length(wrong_answer_3)) / 3.0)) AS gap
+                    FROM arena_questions WHERE id > %d
+                ) lengths WHERE gap > 3
+                """.formatted(previousMax)));
         assertEquals("Własna odpowiedź administratora:1", text("SELECT correct_answer || ':' || version FROM arena_questions WHERE content = 'Co umożliwia ARP spoofing w sieci lokalnej?'"));
         assertEquals("MEDIUM:1", text("SELECT difficulty || ':' || version FROM arena_questions WHERE content = 'Czym jest SSRF?'"));
         assertTrue(text("SELECT correct_answer FROM arena_questions WHERE content = 'Dlaczego MD5 nie nadaje się do przechowywania haseł?'").contains("zgadywania"));

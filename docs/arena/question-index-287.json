@@ -414,7 +414,10 @@
     "ordinal": 49,
     "category": "SIECI",
     "difficulty": "EASY",
-    "contentSha256": "d31e696fdb576adb0ad2db1c5dd93634f585ebb713e43852e626c85efec32315"
+    "contentSha256": "1b28b9ad728fe7d014fb057ab95f21d2dc87c5bca3c8fcc3da5528911128ce4c",
+    "references": [
+      "https://nmap.org/book/man-version-detection.html"
+    ]
   },
   {
     "id": "Q050",

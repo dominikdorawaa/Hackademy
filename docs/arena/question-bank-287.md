@@ -51,7 +51,7 @@ Punkt odniesienia: **CompTIA Security+ SY0-701** wskazany w tickecie. Pozostałe
 
 ## Migracja i wdrożenie
 
-V33 rozszerza ograniczenie kategorii i dodaje nowe rekordy bez założeń o ich ID. Koryguje niezmienione stare odpowiedzi o MD5, ARP i 2FA oraz trudność definicji SSRF. Aktualizacje starych rekordów wymagają `version = 0`, a przy zmianie podnoszą wersję. Dzięki temu nie nadpisują edycji administratora.
+V33 rozszerza ograniczenie kategorii i dodaje nowe rekordy bez założeń o ich ID. Koryguje niezmienione stare odpowiedzi o MD5, ARP i 2FA oraz trudność definicji SSRF. Wyrównuje też warianty odpowiedzi w 20 dotychczasowych pytaniach. Aktualizacje starych rekordów wymagają `version = 0` i zgodności wszystkich czterech dotychczasowych odpowiedzi z oryginalnym seedem, a przy zmianie podnoszą wersję. Dzięki temu nie nadpisują edycji administratora.
 
 Kolejność wdrożenia: **backend z V33 przed klientem**, a potem klient ze wspólnymi etykietami. Starszy klient nadal potrafi wyświetlić tekstowy kod kategorii w walce, ale jego formularz admina nie obsługuje nowych opcji. Migracja jest transakcyjna w PostgreSQL, a Flyway uruchamia ją raz; ponowny start waliduje checksum i nie dodaje kolejnych rekordów.
 
@@ -69,3 +69,9 @@ Same testy strukturalne nie dowodzą prawdziwości odpowiedzi. Audyt merytoryczn
 Zweryfikowano wszystkie 300 pozycji i ich cztery odpowiedzi. Poprawiono 168 pozycji, w tym zastąpiono 16 powtarzających się lub zbyt prostych scenariuszy. Błędne opcje skrócono i dopasowano do zagadnienia bez dopisywania wyjaśnień zdradzających ich błędność. W szczególności doprecyzowano wielokrotne monity MFA, wyłączenie keyboard-interactive w pytaniu SSH, weryfikację MIME skryptów, audyt zdarzeń danych S3 i alternatywną ścieżkę odczytu szyfrogramu przez KMS.
 
 Prawdziwość odpowiedzi zależy od warunków w treści pytania. Nie każda strona źródłowa została przeczytana w całości; dla szczegółów technicznych sprawdzano właściwe sekcje dokumentacji. Poziomy trudności pozostają oceną redakcyjną. Testy automatyczne sprawdzają strukturę i działanie banku, a nie zastępują oceny merytorycznej.
+
+## Długość odpowiedzi
+
+Nie stosujemy długości jako podpowiedzi. W 300 nowych pytaniach poprawna odpowiedź jest jedyną najdłuższą w 68 przypadkach (22,7%). Jej średnia długość wynosi 38,4 znaku, a średnia długość błędnej opcji 39,1 znaku. W całej puli 342 pytań poprawna jest jedyną najdłuższą w 72 przypadkach (21,1%). Remisy długości są liczone osobno.
+
+Test migracji sprawdza maksymalnie 25 znaków różnicy między najkrótszą a najdłuższą opcją w każdym pytaniu, najwyżej 25% nowych pytań z jednoznacznie najdłuższym kluczem oraz różnicę średnich długości do 3 znaków. Dotyczy to dostarczonego banku; administrator nadal może samodzielnie redagować pytania w granicach 500/200 znaków. Wartości nie są sztucznie dopełniane spacjami ani znakami niewidocznymi.
