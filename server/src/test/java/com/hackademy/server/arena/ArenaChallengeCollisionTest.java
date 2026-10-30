@@ -239,4 +239,15 @@ class ArenaChallengeCollisionTest {
         arena.sweepAbandonedChallenges();
         assertEquals(1, arena.getPendingChallenges(2L).size());
     }
+
+    @Test
+    void aChallengeFromADeletedAccountStartsNoGameAndFreesTheTarget() {
+        var orphan = challenge(1, 2);
+        when(users.findById(1L)).thenReturn(Optional.empty());
+        assertEquals("Users not found",
+                assertThrows(IllegalStateException.class, () -> arena.acceptChallenge(orphan.getId(), 2L)).getMessage());
+        assertNull(arena.findCurrentGameForUser(2L));
+        assertDoesNotThrow(() -> arena.joinQueue(2L, "player2"));
+        assertTrue(matchmaking.isQueued(2L));
+    }
 }
