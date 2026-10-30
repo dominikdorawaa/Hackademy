@@ -12,11 +12,13 @@ import com.hackademy.server.user.UserServiceImpl;
 import org.junit.jupiter.api.BeforeEach;
 import org.junit.jupiter.api.Test;
 
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.Map;
 import java.util.Optional;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicLong;
 
@@ -94,19 +96,27 @@ class ArenaSettlementTest {
     }
 
     @Test
-    void strangersAndDrawsLeaveTheWinBalanceAlone() {
+    void aWinOverAStrangerLeavesTheWinBalanceAlone() {
         startGame();
         arena.surrenderGame("game", 1L);
         verify(friendships, never()).save(any());
+    }
 
-        friendsRequestedBy(1L);
-        var draw = new GameSession();
-        draw.setId("draw");
-        draw.setPlayer1Id(1L);
-        draw.setPlayer2Id(2L);
-        arena.addGame(draw);
-        arena.cancelActiveGames();
-        assertEquals("FINISHED", arena.getGameSession("draw").getStatus());
+    @Test
+    void aDrawBetweenFriendsAfterTheLastRoundLeavesTheWinBalanceAlone() {
+        var friendship = friendsRequestedBy(1L);
+        startGame();
+        for (int round = 1; round <= BattleEngine.ROUNDS; round++) {
+            now.addAndGet(BattleEngine.ROUND_MILLIS);
+            arena.tickBattles();
+            now.addAndGet(BattleEngine.REVEAL_MILLIS);
+            arena.tickBattles();
+        }
+        var finished = arena.getGameSession("game");
+        assertEquals("FINISHED", finished.getStatus());
+        assertEquals("ROUNDS", finished.getFinishReason());
+        assertNull(finished.getWinnerId());
+        assertEquals(0, friendship.getRequesterWins() + friendship.getReceiverWins());
         verify(friendships, never()).save(any());
     }
 
@@ -141,18 +151,20 @@ class ArenaSettlementTest {
         var pool = Executors.newFixedThreadPool(2);
         var ready = new CountDownLatch(2);
         var go = new CountDownLatch(1);
+        var finishes = new ArrayList<Future<?>>();
         try {
             for (long winner = 1; winner <= 2; winner++) {
                 long id = winner;
-                pool.submit(() -> {
+                finishes.add(pool.submit(() -> {
                     ready.countDown();
                     go.await();
                     arena.finishGame("game", id);
                     return null;
-                });
+                }));
             }
             assertTrue(ready.await(5, TimeUnit.SECONDS));
             go.countDown();
+            for (var finish : finishes) finish.get(5, TimeUnit.SECONDS);
         } finally {
             pool.shutdown();
             assertTrue(pool.awaitTermination(5, TimeUnit.SECONDS));
