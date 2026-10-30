@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 33;
+    static final int SCHEMA_VERSION = 34;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -177,7 +177,7 @@ class SchemaMigrationTest {
         long previousMax = scalar("SELECT max(id) FROM arena_questions");
         execute("UPDATE arena_questions SET correct_answer = 'Własna odpowiedź administratora', version = 1 WHERE content = 'Co umożliwia ARP spoofing w sieci lokalnej?'");
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("33").migrate().migrationsExecuted);
         assertEquals(342, scalar("SELECT count(*) FROM arena_questions"));
         assertEquals(300, scalar("SELECT count(*) FROM arena_questions WHERE id > " + previousMax));
         assertEquals("EASY:60,HARD:60,MEDIUM:60,VERY_EASY:60,VERY_HARD:60", text("""
@@ -223,8 +223,126 @@ class SchemaMigrationTest {
         assertTrue(text("SELECT correct_answer FROM arena_questions WHERE content = 'Dlaczego MD5 nie nadaje się do przechowywania haseł?'").contains("zgadywania"));
         assertTrue(text("SELECT correct_answer FROM arena_questions WHERE content = 'Co łączy uwierzytelnianie dwuskładnikowe (2FA)?'").contains("różnych rodzajów"));
         assertSqlState("23514", "UPDATE arena_questions SET category = 'WINDOWS_AD' WHERE id = 1");
+        assertEquals(0, flyway("33").migrate().migrationsExecuted);
+        assertTrue(flyway("33").validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void compactsTheBankAndAddsShortOffensiveQuestions() throws Exception {
+        flyway("33").migrate();
+        long previousMax = scalar("SELECT max(id) FROM arena_questions");
+        String previousLevels = text("""
+                SELECT string_agg(id || ':' || category || ':' || difficulty, ',' ORDER BY id) FROM arena_questions
+                """);
+        String previousVersions = text("SELECT string_agg(id || ':' || (version + 1), ',' ORDER BY id) FROM arena_questions");
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
+        assertEquals(previousLevels, text("""
+                SELECT string_agg(id || ':' || category || ':' || difficulty, ',' ORDER BY id)
+                FROM arena_questions WHERE id <= %d
+                """.formatted(previousMax)));
+        assertEquals(previousVersions, text("""
+                SELECT string_agg(id || ':' || version, ',' ORDER BY id) FROM arena_questions WHERE id <= %d
+                """.formatted(previousMax)));
+        assertEquals(40, scalar("SELECT count(*) FROM arena_questions WHERE id > " + previousMax));
+        assertEquals("EASY:8,HARD:8,MEDIUM:8,VERY_EASY:8,VERY_HARD:8", text("""
+                SELECT string_agg(difficulty || ':' || total, ',' ORDER BY difficulty)
+                FROM (SELECT difficulty, count(*) AS total FROM arena_questions WHERE id > %d GROUP BY difficulty) levels
+                """.formatted(previousMax)));
+        assertEquals("LINUX:10,SIECI:5,WEB:15,WINDOWS:10", text("""
+                SELECT string_agg(category || ':' || total, ',' ORDER BY category)
+                FROM (SELECT category, count(*) AS total FROM arena_questions WHERE id > %d GROUP BY category) categories
+                """.formatted(previousMax)));
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM arena_questions
+                WHERE length(trim(content)) = 0 OR length(content) > 120
+                    OR EXISTS (SELECT 1 FROM unnest(ARRAY[correct_answer, wrong_answer_1, wrong_answer_2, wrong_answer_3]) answer
+                               WHERE length(trim(answer)) = 0 OR length(answer) > 50)
+                    OR (SELECT count(DISTINCT lower(trim(answer)))
+                        FROM unnest(ARRAY[correct_answer, wrong_answer_1, wrong_answer_2, wrong_answer_3]) answer) <> 4
+                    OR greatest(length(correct_answer), length(wrong_answer_1), length(wrong_answer_2), length(wrong_answer_3))
+                        - least(length(correct_answer), length(wrong_answer_1), length(wrong_answer_2), length(wrong_answer_3)) > 20
+                """));
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM (
+                    SELECT lower(trim(content)) FROM arena_questions GROUP BY lower(trim(content)) HAVING count(*) > 1
+                ) duplicates
+                """));
+        assertTrue(scalar("SELECT round(avg(length(content))) FROM arena_questions") <= 65);
+        assertTrue(scalar("""
+                SELECT count(*) FROM arena_questions
+                WHERE length(correct_answer) > greatest(length(wrong_answer_1), length(wrong_answer_2), length(wrong_answer_3))
+                """) <= 95);
+        assertEquals(0, scalar("""
+                SELECT count(*) FROM (
+                    SELECT abs(avg(length(correct_answer))
+                        - avg((length(wrong_answer_1) + length(wrong_answer_2) + length(wrong_answer_3)) / 3.0)) AS gap,
+                        avg((length(correct_answer) + length(wrong_answer_1) + length(wrong_answer_2) + length(wrong_answer_3)) / 4.0) AS mean
+                    FROM arena_questions
+                ) lengths WHERE gap > 3 OR mean > 30
+                """));
+        assertEquals("Brakiem kontroli dostępu do obiektu", text("SELECT correct_answer FROM arena_questions WHERE content = 'Czym jest IDOR?'"));
+        assertEquals("Zbierania i korelacji logów", text("SELECT correct_answer FROM arena_questions WHERE content = 'Do czego służy SIEM?'"));
+        assertEquals("Automatyzacja reakcji", text("SELECT correct_answer FROM arena_questions WHERE content = 'Co wyróżnia SOAR w obsłudze incydentów?'"));
+        assertEquals("Fuzzingu ścieżek i parametrów", text("SELECT correct_answer FROM arena_questions WHERE content = 'Do czego służy ffuf w testach WWW?'"));
         assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
         assertTrue(flyway().validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void keepsNetworkLessonsAtTheirOriginalLevelsAndClarifiesPermissionQuestions() throws Exception {
+        flyway().migrate();
+        assertEquals(10, scalar("""
+                SELECT count(*) FROM (VALUES
+                    (89, 'Co wybiera trasę między podsieciami IP?', 'Router', 'VERY_EASY'),
+                    (90, 'Który protokół synchronizuje zegary hostów?', 'NTP', 'VERY_EASY'),
+                    (91, 'Nmap bez -sV pokazuje 22/tcp open ssh. Co potwierdza sam wynik?', 'Port TCP 22 jest otwarty', 'EASY'),
+                    (92, 'Co oznacza odpowiedź DNS NXDOMAIN?', 'Nazwa nie istnieje', 'EASY'),
+                    (93, 'Który filtr tcpdump wybierze ruch portu 53?', 'port 53', 'EASY'),
+                    (99, 'Skan SYN otrzymał RST. Jaki jest zwykle stan portu?', 'Zamknięty', 'MEDIUM'),
+                    (100, 'Co oznacza UDP open/filtered w nmap?', 'Brak rozstrzygającej odpowiedzi', 'MEDIUM'),
+                    (101, 'Ile adresów hostów ma tradycyjna podsieć IPv4 /26?', '62', 'MEDIUM'),
+                    (217, 'Jakie kontrole omija CAP_DAC_READ_SEARCH?', 'Kontrole odczytu i przejścia', 'HARD'),
+                    (265, 'Co może zmienić posiadacz SERVICE_CHANGE_CONFIG?', 'Ścieżkę uruchamianej usługi', 'VERY_HARD')
+                ) AS expected(id, content, correct_answer, difficulty)
+                JOIN arena_questions q ON q.id = expected.id AND q.content = expected.content
+                    AND q.correct_answer = expected.correct_answer AND q.difficulty = expected.difficulty
+                """));
+    }
+
+    @Test
+    void compactMigrationPreservesAdminEditsAndDeletedQuestions() throws Exception {
+        flyway("33").migrate();
+        execute("""
+                UPDATE arena_questions SET content = 'Pytanie zmienione przez administratora' WHERE id = 1;
+                UPDATE arena_questions SET correct_answer = 'Własna poprawna odpowiedź' WHERE id = 2;
+                UPDATE arena_questions SET wrong_answer_1 = 'Własny wariant pierwszy' WHERE id = 3;
+                UPDATE arena_questions SET wrong_answer_2 = 'Własny wariant drugi' WHERE id = 4;
+                UPDATE arena_questions SET wrong_answer_3 = 'Własny wariant trzeci' WHERE id = 5;
+                UPDATE arena_questions SET category = 'OGOLNE' WHERE id = 6;
+                UPDATE arena_questions SET difficulty = 'EASY' WHERE id = 7;
+                UPDATE arena_questions SET version = 8 WHERE id = 8;
+                UPDATE arena_questions SET content = 'Nowy bank zmieniony przez admina', version = 3 WHERE id = 43;
+                DELETE FROM arena_questions WHERE id = 44;
+                INSERT INTO arena_questions (content, correct_answer, wrong_answer_1, wrong_answer_2, wrong_answer_3, category, difficulty)
+                VALUES ('Własne pytanie administratora', 'Tak', 'Nie', 'Być może', 'Nie wiadomo', 'WEB', 'MEDIUM');
+                """);
+        String adminEdits = text("""
+                SELECT json_agg(q ORDER BY id)::text FROM arena_questions q
+                WHERE id <= 8 OR id = 43 OR content = 'Własne pytanie administratora'
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(adminEdits, text("""
+                SELECT json_agg(q ORDER BY id)::text FROM arena_questions q
+                WHERE id <= 8 OR id = 43 OR content = 'Własne pytanie administratora'
+                """));
+        assertEquals(0, scalar("SELECT count(*) FROM arena_questions WHERE id = 44"));
+        assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
+        assertEquals("Brakiem kontroli dostępu do obiektu", text("SELECT correct_answer FROM arena_questions WHERE id = 9"));
+        assertEquals(0, flyway().migrate().migrationsExecuted);
     }
 
     @Test

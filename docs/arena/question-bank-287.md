@@ -1,5 +1,7 @@
 # Bank pytań areny - #287
 
+Aktualną krótką wersję banku opisuje [V34: krótkie pytania areny](compact-questions.md). Poniższy opis i `question-index-287.json` dokumentują historyczną migrację V33.
+
 Migracja `V33__arena_question_bank.sql` dodaje **300 oryginalnych pytań**, po **60 na każdy z pięciu poziomów**. Po migracji czysta baza zawiera 342 pytania. Treści nie pochodzą z egzaminów, dumpów, TryHackMe ani Hack The Box; zakresy certyfikacji służą jako mapa zagadnień.
 
 Identyfikatory `Q001`–`Q300` w `question-index-287.json` odpowiadają kolejności 300 wierszy INSERT w SQL i są stałymi identyfikatorami redakcyjnymi. Indeks zawiera kategorię, trudność, skrót SHA-256 treści oraz dodatkowe źródła do sprawdzanych szczegółów. Nie są identyfikatorami rekordów w bazie, ponieważ administratorzy mogą wcześniej dodawać i usuwać pytania. Każda pozycja zapisuje jedną poprawną i trzy błędne odpowiedzi; silnik walki tasuje je osobno dla pojedynku.
