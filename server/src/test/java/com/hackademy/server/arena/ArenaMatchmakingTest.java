@@ -42,10 +42,7 @@ class ArenaMatchmakingTest {
     void queuePlayers() {
         matchmaking.useClock(now::get);
         for (long id = 1; id <= 4; id++) {
-            User user = new User();
-            user.setId(id);
-            user.setUsername("player" + id);
-            user.setElo(500);
+            User user = player(id);
             when(users.findById(id)).thenReturn(Optional.of(user));
             matchmaking.joinQueue(id, user.getUsername());
         }
@@ -56,6 +53,14 @@ class ArenaMatchmakingTest {
     @AfterEach
     void clearUser() {
         SecurityContextHolder.clearContext();
+    }
+
+    private static User player(long id) {
+        User user = new User();
+        user.setId(id);
+        user.setUsername("player" + id);
+        user.setElo(500);
+        return user;
     }
 
     private User signIn(long id) {
@@ -164,11 +169,7 @@ class ArenaMatchmakingTest {
             assertTrue(matchmaking.isQueued(id));
             assertNull(arena.findCurrentGameForUser(id));
         }
-        User third = new User();
-        third.setId(3L);
-        third.setUsername("player3");
-        third.setElo(500);
-        doReturn(Optional.of(third)).when(users).findById(3L);
+        doReturn(Optional.of(player(3L))).when(users).findById(3L);
         controller.processMatchmaking();
         for (long id = 1; id <= 4; id++) assertNotNull(arena.findCurrentGameForUser(id));
     }
@@ -204,10 +205,7 @@ class ArenaMatchmakingTest {
     void thePartnerOfADeletedAccountPairsWithTheNextPlayer() {
         when(users.findById(1L)).thenReturn(Optional.empty());
         controller.processMatchmaking();
-        User fifth = new User();
-        fifth.setId(5L);
-        fifth.setUsername("player5");
-        fifth.setElo(500);
+        User fifth = player(5L);
         when(users.findById(5L)).thenReturn(Optional.of(fifth));
         matchmaking.joinQueue(5L, fifth.getUsername());
         controller.processMatchmaking();
