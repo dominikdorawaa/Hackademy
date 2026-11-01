@@ -20,9 +20,11 @@ public interface RoomService {
     Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException;
     List<RoomAdminSummaryDto> getAllRoomsForAdmin();
     Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException;
+    // Saves room details without checking the current tasks against a new type; the caller saves the tasks
+    // in the same transaction right after, and updateRoomTasks checks them.
+    Room updateRoomBeforeTasks(Long id, UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException;
     void deleteRoom(Long id);
     RoomDetailDto getRoomDetail(Long id, String username);
-    SolveRoomResponse solveRoom(Long id, String flag, String username);
     HintDto unlockHint(Long roomId, Long hintId, String username);
     Room getRoomById(Long id);
     RoomFile getRoomFile(Long roomId, String username);

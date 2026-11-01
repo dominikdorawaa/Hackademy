@@ -146,7 +146,7 @@ Administrator może w sekcji Ścieżki wybrać „Importuj JSON”, obejrzeć, s
 
 W edytorze istniejącej ścieżki „Importuj pokoje z JSON” dopisuje nowe pokoje jako szkice do wybranego rozdziału, bez zmiany obecnych materiałów, postępów i statusu publikacji ścieżki. Przed importem edytor chroni niezapisane zmiany; backend sprawdza wersję ścieżki i tytuły pokoi w rozdziale.
 
-Nie ma osobnej sekcji pokoi CTF. Pokoje z flagą i lekcje są w zakładce „Pokoje” i należą do ścieżek. Migracja V36 przeniosła dawne samodzielne pokoje CTF do ścieżki „Zadania CTF”, a samouczki VM i VPN do ścieżki „Pierwsze kroki”, bez zmiany rozwiązań, XP i punktów.
+Nie ma osobnej sekcji pokoi CTF. Pokoje typu Teoria i CTF są w zakładce „Pokoje” i należą do ścieżek. Oba typy rozwiązuje się przez zadania; w pokoju CTF odpowiedzią zadania jest flaga. Migracja V37 zamieniła dawne flagi pokoi na zadania z flagą i oznaczyła je jako ukończone dla graczy, którzy rozwiązali pokój. Migracja V36 przeniosła dawne samodzielne pokoje CTF do ścieżki „Zadania CTF”, a samouczki VM i VPN do ścieżki „Pierwsze kroki”, bez zmiany rozwiązań, XP i punktów.
 
 ## Testy backendu
 

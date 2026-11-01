@@ -11,6 +11,7 @@ import * as adminApi from '../../services/adminApi';
 import type { ChapterRequest, PathAdminDetailDto, PathChapterAdminDto, RoomAdminSummaryDto } from '../../types/api';
 import { ConfirmAction, Section, StatusMessage } from './AdminUi';
 import { errorText, plural } from './adminFormat';
+import { RoomTypeIcon } from './RoomTypeChoice';
 
 interface DraftChapter {
   key: string;
@@ -248,6 +249,7 @@ export default function ChaptersEditor({
                             <span className="w-8 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">
                               {chapterIndex + 1}.{roomIndex + 1}
                             </span>
+                            <RoomTypeIcon type={room?.roomType} labelled className="size-3.5 shrink-0 text-muted-foreground" />
                             {roomHref ? (
                               <Link to={roomHref(roomId)} className="min-w-0 flex-1 truncate hover:text-primary hover:underline underline-offset-4">
                                 {title}
@@ -301,7 +303,7 @@ export default function ChaptersEditor({
 
         <aside aria-label="Pula pokoi" className="h-fit rounded-lg border bg-muted/30 p-3 lg:sticky lg:top-20">
           <h3 className="text-sm font-semibold text-foreground">Pula pokoi</h3>
-          <p className="mb-3 text-xs text-muted-foreground">Pokoje bez przypisanego rozdziału.</p>
+          <p className="mb-3 text-xs text-muted-foreground">Pokoje teorii i CTF bez przypisanego rozdziału.</p>
           <div className="mb-3 grid gap-1.5">
             <Label htmlFor={`target-${pathId}`} className="text-xs">Dodawaj do</Label>
             <Select disabled={saving} value={target?.key ?? ''} onValueChange={setTargetKey}>
@@ -331,6 +333,7 @@ export default function ChaptersEditor({
             <ul className="max-h-96 space-y-1 overflow-y-auto pr-1">
               {pool.map((room) => (
                 <li key={room.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-accent/60">
+                  <RoomTypeIcon type={room.roomType} labelled className="size-3.5 shrink-0 text-muted-foreground" />
                   <span className="min-w-0 flex-1 truncate">{room.title}</span>
                   <Button variant="ghost" size="icon-xs" aria-label={`Dodaj ${room.title} do rozdziału`} disabled={!target} onClick={() => addRoom(room.id)}>
                     <Plus />

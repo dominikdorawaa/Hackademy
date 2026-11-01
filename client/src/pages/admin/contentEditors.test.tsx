@@ -16,7 +16,7 @@ import type { PathAdminDetailDto } from '../../types/api';
 
 const path: PathAdminDetailDto = { id: 5, title: 'Web', description: '', bannerUrl: null, hasBanner: false, revision: 2, contentRevision: 3, published: false,
   chapters: [{ id: 11, title: 'Wstęp', roomIds: [] }] };
-const room = { id: 9, title: 'Pokój', description: 'Treść', shortDescription: '', difficulty: 'EASY' as const, category: 'Path', points: 50, flag: '', solutionsCount: 0,
+const room = { id: 9, title: 'Pokój', description: 'Treść', shortDescription: '', difficulty: 'EASY' as const, category: 'Path', points: 50, solutionsCount: 0,
   requiresVpn: false, roomType: 'PATH' as const, hints: ['Podpowiedź'], published: false, contentRevision: 0, createdAt: '2026-10-10T10:00:00', updatedAt: null };
 beforeAll(() => {
   globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
@@ -28,6 +28,10 @@ beforeEach(() => {
     http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(path)), http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] } })));
 });
 afterEach(() => vi.restoreAllMocks());
+async function chooseType(user: ReturnType<typeof userEvent.setup>, type: 'Teoria' | 'CTF') {
+  await user.click(await screen.findByRole('radio', { name: new RegExp(`^${type}`) }));
+  await user.click(screen.getByRole('button', { name: 'Dalej' }));
+}
 function mount(initial: string, entries: (string | { pathname: string; state?: unknown })[] = [initial]) {
   const router = createMemoryRouter(createRoutesFromElements(<Route element={<ThemeProvider><AuthProvider><Outlet /></AuthProvider></ThemeProvider>}>
     {adminRoutes}<Route path="/" element={<p>Główna</p>} /><Route path="/login" element={<p>Logowanie</p>} />
@@ -113,14 +117,20 @@ describe('draft editors and guarded navigation', () => {
     await user.click(screen.getByRole('button', { name: 'Zapisz i przejdź dalej' }));
     await waitFor(() => expect(router.state.location.search).toBe('?pathId=5&chapterId=11&pathRevision=3'));
     expect(await screen.findByText(/Ścieżka: Nowa → Rozdział:/)).toBeInTheDocument();
-    for (const label of ['Tytuł *', 'Opis', 'Flaga', 'Plik do pobrania', 'Wymaga VPN']) expect(screen.getByLabelText(label)).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Dodaj zadanie' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Jaki pokój tworzysz?' })).toBeInTheDocument();
+    await chooseType(user, 'CTF');
+    for (const label of ['Tytuł *', 'Opis', 'Plik do pobrania', 'Wymaga VPN']) expect(screen.getByLabelText(label)).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'CTF' })).toBeChecked();
+    await user.click(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' }));
+    expect(screen.getByLabelText('Flaga')).toHaveAttribute('placeholder', 'HACK{...}');
+    expect(screen.queryByLabelText(/Pytanie/)).not.toBeInTheDocument();
   });
   it('opens an atomic new-parent room form after discarding an unsaved new path', async () => {
     const user = userEvent.setup(); mount('/admin/paths/new');
     await user.type(await screen.findByLabelText('Tytuł *'), 'Odrzucony tytuł');
     await user.click(screen.getByRole('button', { name: 'Utwórz pokój' }));
     await user.click(screen.getByRole('button', { name: 'Wyjdź bez zapisywania' }));
+    await chooseType(user, 'Teoria');
     expect(await screen.findByLabelText('Tytuł ścieżki *')).toHaveValue('');
     expect(screen.getByLabelText('Nazwa rozdziału *')).toHaveValue('Rozdział 1');
     expect(screen.getByLabelText('Tytuł *')).toHaveValue('');
@@ -128,6 +138,7 @@ describe('draft editors and guarded navigation', () => {
   it('focuses the first invalid context field in visual order without losing room edits', async () => {
     const user = userEvent.setup(); mount('/admin/paths/rooms/new', [{ pathname: '/admin/paths/rooms/new', state: { chapterIndex: 0, parentDraft: { revision: 0, chaptersRevision: 0,
       title: '', description: '', bannerUrl: null, published: true, chapters: [{ id: null, title: 'Rozdział', roomIds: [] }] } } }]);
+    await chooseType(user, 'Teoria');
     await user.type(await screen.findByLabelText('Tytuł *'), 'Zachowany pokój');
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     await waitFor(() => expect(screen.getByLabelText('Tytuł ścieżki *')).toHaveFocus());
@@ -180,9 +191,10 @@ describe('draft editors and guarded navigation', () => {
     expect(save.mock.calls[0][1].chapters).toEqual([{ id: 11, title: 'Wstęp', roomIds: [] }, { id: null, title: 'Rozdział 2', roomIds: [9] }]);
   });
   it('resets the native upload field after saving so the same file can be selected again', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] } })));
     const user = userEvent.setup(); mount('/admin/paths/rooms/9'); await screen.findByLabelText('Tytuł *');
     const file = new File(['training'], 'training.bin', { type: 'application/octet-stream' });
-    const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, contentRevision: 1 }, tasks: { revision: 0, tasks: [] } });
+    const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, roomType: 'CTF', contentRevision: 1 }, tasks: { revision: 0, tasks: [] } });
     await user.upload(screen.getByLabelText('Plik do pobrania'), file);
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' })); await screen.findByText('Zapisano szkic pokoju.');
     expect((screen.getByLabelText('Plik do pobrania') as HTMLInputElement).files).toHaveLength(0);
@@ -201,6 +213,54 @@ describe('draft editors and guarded navigation', () => {
   });
 });
 
+describe('room type in the editor', () => {
+  it('switches a theory room to CTF and back without losing its tasks', async () => {
+    const tasks = [{ id: 31, title: 'Pytanie', content: 'Treść', question: 'Polecenie?', answer: 'pwd' }];
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 4, tasks } })));
+    const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, roomType: 'CTF', contentRevision: 1 }, tasks: { revision: 5, tasks } });
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
+    await screen.findByLabelText('Tytuł *');
+    expect(screen.queryByLabelText('Plik do pobrania')).toBeNull();
+    await user.click(screen.getByRole('radio', { name: 'CTF' }));
+    expect(screen.getByLabelText('Trudność *')).toBeInTheDocument();
+    expect(screen.getByLabelText('Plik do pobrania')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Pytanie/ }));
+    expect(screen.getByLabelText('Pytanie (opcjonalnie)')).toHaveValue('Polecenie?');
+    expect(screen.getByLabelText('Flaga')).toHaveValue('pwd');
+    await user.click(screen.getByRole('radio', { name: 'Teoria' }));
+    expect(screen.getByLabelText('Odpowiedź')).toHaveValue('pwd');
+    await user.click(screen.getByRole('radio', { name: 'CTF' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1]).toMatchObject({ roomType: 'CTF', points: 50, tasks });
+  });
+
+  it('asks for a task before publishing and for a flag in every published CTF task', async () => {
+    const save = vi.spyOn(contentApi, 'saveRoom');
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] } })));
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
+    await screen.findByLabelText('Tytuł *');
+    await user.click(screen.getByRole('button', { name: 'Opublikuj' }));
+    expect(await screen.findByText('Dodaj przynajmniej jedno zadanie przed publikacją')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' }));
+    await user.type(screen.getByLabelText('Tytuł zadania *'), 'Flaga');
+    await user.type(screen.getByLabelText('Treść'), 'Szukaj');
+    await user.click(screen.getByRole('button', { name: 'Opublikuj' }));
+    expect(await screen.findByText('To pole jest wymagane')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText('Flaga')).toHaveFocus());
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('opens a new room with the type from the address', async () => {
+    const user = userEvent.setup(); mount('/admin/paths/rooms/new?type=CTF');
+    await screen.findByLabelText('Tytuł *');
+    expect(screen.getByRole('radio', { name: 'CTF' })).toBeChecked();
+    expect(screen.queryByRole('heading', { name: 'Jaki pokój tworzysz?' })).toBeNull();
+    await user.click(screen.getByRole('radio', { name: 'Teoria' }));
+    expect(screen.getByLabelText('XP *')).toBeInTheDocument();
+  });
+});
+
 describe('room title and scoring rules', () => {
   it('shows a duplicate title reported by the backend next to the title field', async () => {
     server.use(http.put(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ message: 'Rozdział tego pokoju ma już pokój o tym tytule', fields: { title: 'Rozdział tego pokoju ma już pokój o tym tytule' } }, { status: 409 })));
@@ -215,6 +275,7 @@ describe('room title and scoring rules', () => {
   it('rejects reserved tutorial titles before saving a new room', async () => {
     const save = vi.spyOn(contentApi, 'saveRoom');
     const user = userEvent.setup(); mount('/admin/paths/rooms/new');
+    await chooseType(user, 'CTF');
     await user.type(await screen.findByLabelText('Tytuł *'), ' tutorial VPN ');
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     expect(await screen.findByText('Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka')).toBeInTheDocument();
@@ -272,16 +333,17 @@ describe('administrative preview', () => {
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: () => 'blob:preview-file' });
     const anchor = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] } })), http.get(`${API_URL}/api/admin/content/rooms/9/preview`, () => HttpResponse.json({ ...room, solved: false, fileName: 'training.bin',
-      unlockedHintIds: [], hints: [{ id: 1, order: 0, description: 'Podpowiedź do testu' }], tasks: [] })),
+      roomType: 'CTF', unlockedHintIds: [], hints: [{ id: 1, order: 0, description: 'Podpowiedź do testu' }],
+      tasks: [{ id: 5, title: 'Flaga', content: 'Znajdź flagę', question: null, requiresAnswer: true, completed: false }] })),
       http.get(`${API_URL}/api/admin/content/rooms/9/file`, () => { downloads++; return new HttpResponse(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'application/octet-stream' } }); }),
       http.post(`${API_URL}/api/rooms/:id/*`, ({ request }) => { writes.push(request.url); return HttpResponse.json({ success: true }); }));
     const user = userEvent.setup(); mount('/admin/preview/rooms/9?kind=CTF');
     await screen.findByRole('heading', { name: 'Pokój', level: 1 });
     await user.click(screen.getByRole('button', { name: /Odblokuj/ }));
     expect(screen.getByText('Podpowiedź do testu')).toBeInTheDocument();
-    await user.type(screen.getByPlaceholderText(/flagę/i), 'CTF{preview}');
-    await user.click(screen.getByRole('button', { name: /Sprawdź|Wyślij|Zatwierdź/i }));
-    expect(await screen.findByText('Tryb podglądu: wynik nie jest zapisywany.')).toBeInTheDocument();
+    await user.type(screen.getByPlaceholderText('HACK{...}'), 'CTF{{preview}');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+    expect(await screen.findByRole('button', { name: 'Poprawne' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: /Pobierz Plik/i }));
     await waitFor(() => expect(anchor).toHaveBeenCalled());
     expect(downloads).toBe(1); expect(writes).toEqual([]);

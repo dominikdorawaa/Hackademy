@@ -68,16 +68,11 @@ public class RoomServiceImpl implements RoomService {
 
     private static final Set<String> RESERVED_TITLES = Set.of("tutorial vm", "tutorial vpn");
 
-    private void checkTitle(Room existing, String title, RoomType roomType) {
+    private void checkTitle(Room existing, String title) {
         boolean renamed = existing == null || !existing.getTitle().equals(title);
         if (renamed && RESERVED_TITLES.contains(title.toLowerCase(Locale.ROOT))) {
             throw new RoomRuleException(HttpStatus.BAD_REQUEST, "title",
                     "Tytuły \u201eTutorial VM\u201d i \u201eTutorial VPN\u201d są zarezerwowane dla pokoi samouczka");
-        }
-        if (roomType == RoomType.CTF && (existing == null
-                ? roomRepository.existsByTitleAndRoomType(title, RoomType.CTF)
-                : roomRepository.existsByTitleAndRoomTypeAndIdNot(title, RoomType.CTF, existing.getId()))) {
-            throw new RoomRuleException(HttpStatus.CONFLICT, "title", "Pokój CTF o tym tytule już istnieje");
         }
         if (existing != null && renamed && chapterRoomRepository.existsOtherRoomWithTitleInSameChapter(existing.getId(), title)) {
             throw new RoomRuleException(HttpStatus.CONFLICT, "title", "Rozdział tego pokoju ma już pokój o tym tytule");
@@ -99,7 +94,7 @@ public class RoomServiceImpl implements RoomService {
     public Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException {
         RoomType roomType = createRoomRequest.roomType() == null ? RoomType.PATH : createRoomRequest.roomType();
         String title = createRoomRequest.title().trim();
-        checkTitle(null, title, roomType);
+        checkTitle(null, title);
         Room room = Room.builder()
                 .published(false)
                 .title(title)
@@ -108,7 +103,6 @@ public class RoomServiceImpl implements RoomService {
                 .difficulty(createRoomRequest.difficulty())
                 .category(createRoomRequest.category())
                 .points(points(roomType, createRoomRequest.difficulty(), createRoomRequest.points()))
-                .flag(createRoomRequest.flag())
                 .requiresVpn(createRoomRequest.requiresVpn())
                 .roomType(roomType)
                 .build();
@@ -139,14 +133,25 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
+        return updateRoom(id, updateRoomRequest, file, true);
+    }
+
+    @Override
+    @Transactional
+    public Room updateRoomBeforeTasks(Long id, UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
+        return updateRoom(id, updateRoomRequest, file, false);
+    }
+
+    private Room updateRoom(Long id, UpdateRoomRequest updateRoomRequest, MultipartFile file, boolean checkTasks) throws IOException {
         Room room = roomRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
         RoomType newRoomType = updateRoomRequest.roomType() == null ? room.getRoomType() : updateRoomRequest.roomType();
-        if (newRoomType != RoomType.PATH && !room.getTasks().isEmpty()) {
-            throw new IllegalArgumentException("Usuń zadania przed zmianą typu pokoju na CTF.");
+        if (checkTasks && newRoomType != room.getRoomType() && !room.getTasks().isEmpty()) {
+            requirePlayable(room.isPublished(), newRoomType, room.getTasks().stream()
+                    .sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).toList());
         }
         String title = updateRoomRequest.title().trim();
-        checkTitle(room, title, newRoomType);
+        checkTitle(room, title);
         int points = points(newRoomType, updateRoomRequest.difficulty(), updateRoomRequest.points());
         room.setContentRevision(room.getContentRevision() + 1);
         room.setTitle(title);
@@ -155,7 +160,6 @@ public class RoomServiceImpl implements RoomService {
         room.setDifficulty(updateRoomRequest.difficulty());
         room.setCategory(updateRoomRequest.category());
         room.setPoints(points);
-        room.setFlag(updateRoomRequest.flag());
         room.setRequiresVpn(updateRoomRequest.requiresVpn());
         room.setRoomType(newRoomType);
 
@@ -256,6 +260,7 @@ public class RoomServiceImpl implements RoomService {
                         .title(t.getTitle())
                         .content(t.getContent())
                         .question(t.getQuestion())
+                        .requiresAnswer(t.getAnswer() != null)
                         .completed(completedTaskIds.contains(t.getId()))
                         .build())
                 .collect(Collectors.toList());
@@ -266,6 +271,7 @@ public class RoomServiceImpl implements RoomService {
                 .description(room.getDescription())
                 .shortDescription(room.getShortDescription())
                 .difficulty(room.getDifficulty())
+                .roomType(room.getRoomType())
                 .points(room.getPoints())
                 .solutionsCount(room.getSolutionsCount())
                 .createdAt(room.getCreatedAt())
@@ -295,7 +301,7 @@ public class RoomServiceImpl implements RoomService {
         }
 
         if (task.getAnswer() != null
-                && !roomAnswerGuard.check(user.getId(), roomId, () -> task.getAnswer().equalsIgnoreCase(answer))) {
+                && !roomAnswerGuard.check(user.getId(), roomId, () -> matches(room.getRoomType(), task.getAnswer(), answer))) {
             return new SolveRoomResponse(false, "Niepoprawna odpowiedź", 0, new ArrayList<>());
         }
 
@@ -324,7 +330,7 @@ public class RoomServiceImpl implements RoomService {
         pathUnlockPolicy.requireUnlocked(roomId, user.getId());
         List<RoomTask> tasks = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(roomId);
         if (tasks.isEmpty()) {
-            return new SolveRoomResponse(false, "Pokój bez zadań wymaga flagi", 0, List.of());
+            return new SolveRoomResponse(false, "Pokój nie ma jeszcze zadań", 0, List.of());
         }
         long completed = userCompletedTaskRepository.countByUserIdAndTaskIdIn(user.getId(),
                 tasks.stream().map(RoomTask::getId).toList());
@@ -336,6 +342,11 @@ public class RoomServiceImpl implements RoomService {
 
     private SolveRoomResponse awardTaskRoomCompletion(User user, Room room) {
         return awardRoomSolve(user, room, "Poprawna odpowiedź! Pokój ukończony!", "Poprawna odpowiedź! (Pokój już ukończony)");
+    }
+
+    // A CTF flag must match exactly; a theory answer ignores letter case.
+    private static boolean matches(RoomType roomType, String expected, String answer) {
+        return roomType == RoomType.CTF ? expected.equals(answer) : expected.equalsIgnoreCase(answer);
     }
 
     private SolveRoomResponse awardRoomSolve(User user, Room room, String solvedMessage, String alreadySolvedMessage) {
@@ -370,31 +381,6 @@ public class RoomServiceImpl implements RoomService {
 
         List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
         return new SolveRoomResponse(true, solvedMessage, (int) pointsToAward, newBadges);
-    }
-
-    @Override
-    @Transactional
-    public SolveRoomResponse solveRoom(Long id, String flag, String username) {
-        visibility.requireRoom(id);
-        Room room = roomRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
-
-        Long userId = userRepository.findIdByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        pathUnlockPolicy.requireUnlocked(id, userId);
-
-        if (flag == null || flag.isBlank() || room.getFlag() == null || room.getFlag().isBlank()) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
-                    "Ten pokój wymaga ukończenia zadań lub podania niepustej flagi");
-        }
-
-        if (!roomAnswerGuard.check(userId, room.getId(), () -> room.getFlag().equals(flag))) {
-            return new SolveRoomResponse(false, "Niepoprawna flaga", 0, new ArrayList<>());
-        }
-
-        User user = userRepository.findByUsernameForUpdate(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        return awardRoomSolve(user, room, "Poprawna flaga!", "Poprawna flaga! (Tryb treningowy - 0 pkt)");
     }
 
     @Override
@@ -458,10 +444,6 @@ public class RoomServiceImpl implements RoomService {
     public RoomTasksAdminDto updateRoomTasks(Long roomId, UpdateRoomTasksRequest request) {
         Room room = roomRepository.findByIdForUpdate(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + roomId));
-        if (room.getRoomType() != RoomType.PATH) {
-            throw new IllegalArgumentException("Zadania można dodawać tylko do pokoi ścieżek");
-        }
-
         if (request.revision() == null || request.revision() != room.getTasksRevision()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Zadania zmieniły się w międzyczasie. Wczytaj aktualną listę przed ponowną edycją.");
@@ -476,12 +458,6 @@ public class RoomServiceImpl implements RoomService {
             position++;
             String question = blankToNull(taskRequest.question());
             String answer = blankToNull(taskRequest.answer());
-            if (room.isPublished() && question != null && answer == null) {
-                throw new IllegalArgumentException("Zadanie " + position + ": podaj odpowiedź na pytanie");
-            }
-            if (room.isPublished() && question == null && answer != null) {
-                throw new IllegalArgumentException("Zadanie " + position + ": odpowiedź wymaga pytania");
-            }
 
             RoomTask task;
             if (taskRequest.id() == null) {
@@ -507,6 +483,7 @@ public class RoomServiceImpl implements RoomService {
             ordered.add(task);
         }
 
+        requirePlayable(room.isPublished(), room.getRoomType(), ordered);
         room.getTasks().removeIf(task -> !keptIds.contains(task.getId()));
         for (RoomTask task : ordered) {
             if (task.getId() == null) {
@@ -519,6 +496,29 @@ public class RoomServiceImpl implements RoomService {
         roomRepository.flush();
 
         return new RoomTasksAdminDto(room.getTasksRevision(), ordered.stream().map(this::mapTaskToAdminDto).toList());
+    }
+
+    // A published room must stay solvable: it has tasks, every CTF task has a flag and theory answers have questions.
+    private static void requirePlayable(boolean published, RoomType roomType, List<RoomTask> tasks) {
+        if (!published) {
+            return;
+        }
+        if (tasks.isEmpty()) {
+            throw new IllegalArgumentException("Dodaj przynajmniej jedno zadanie przed publikacją");
+        }
+        for (int i = 0; i < tasks.size(); i++) {
+            String question = tasks.get(i).getQuestion();
+            String answer = tasks.get(i).getAnswer();
+            if (roomType == RoomType.CTF && answer == null) {
+                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": podaj flagę");
+            }
+            if (question != null && answer == null) {
+                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": podaj odpowiedź na pytanie");
+            }
+            if (roomType == RoomType.PATH && question == null && answer != null) {
+                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": odpowiedź wymaga pytania");
+            }
+        }
     }
 
     private RoomTaskAdminDto mapTaskToAdminDto(RoomTask task) {

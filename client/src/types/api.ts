@@ -65,7 +65,6 @@ export interface RoomWriteRequest {
   difficulty: DifficultyLevel
   category: string
   points: number
-  flag: string
   requiresVpn: boolean
   roomType?: RoomType
   hints?: string[] | null
@@ -383,6 +382,7 @@ export interface RoomTaskDto {
   title: string
   content: string
   question: string | null
+  requiresAnswer: boolean
   completed: boolean
 }
 
@@ -407,6 +407,7 @@ export interface RoomDetailDto {
   description: string
   shortDescription: string
   difficulty: DifficultyLevel
+  roomType: RoomType
   points: number
   solutionsCount: number
   createdAt: ApiDateTime
@@ -457,7 +458,6 @@ export interface RoomAdminDto {
   difficulty: DifficultyLevel
   category: string
   points: number
-  flag: string
   solutionsCount: number
   requiresVpn: boolean
   roomType: RoomType

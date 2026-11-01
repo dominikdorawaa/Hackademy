@@ -40,7 +40,7 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
     private Map<String, Object> room(String title, String type) {
         var room = new LinkedHashMap<String, Object>();
         room.put("title", title); room.put("description", ""); room.put("shortDescription", "");
-        room.put("difficulty", "EASY"); room.put("category", "Web"); room.put("points", 30); room.put("flag", "");
+        room.put("difficulty", "EASY"); room.put("category", "Web"); room.put("points", 30);
         room.put("requiresVpn", false); room.put("roomType", type); room.put("hints", List.of()); room.put("published", false);
         room.put("tasks", List.of()); room.put("revision", 0); room.put("tasksRevision", 0);
         return room;
@@ -87,29 +87,20 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void ctfTitlesAreUniqueAcrossCtfRoomsOnly() throws Exception {
+    void roomTitlesMayRepeatAcrossTypesOutsideAChapter() throws Exception {
         var admin = account(Role.ADMIN);
         String title = uniqueTitle("Ctf");
         save(admin, "rooms", null, room(title, "CTF"), 201);
-        String duplicate = save(admin, "rooms", null, room(" " + title + " ", "CTF"), 409);
-        assertEquals("Pokój CTF o tym tytule już istnieje", field(duplicate, "title"));
-        String legacyDuplicate = legacyRoom(admin, null, """
-                {"title":"%s","description":"d","difficulty":"EASY","category":"Web","flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
-                """.formatted(title), 409);
-        assertEquals("Pokój CTF o tym tytule już istnieje", field(legacyDuplicate, "title"));
-
-        save(admin, "rooms", null, room(title, "PATH"), 201);
-        String loose = uniqueTitle("Loose");
-        save(admin, "rooms", null, room(loose, "PATH"), 201);
-        String sameLoose = save(admin, "rooms", null, room(loose, "PATH"), 201);
-        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM rooms WHERE title = ? AND room_type = 'CTF'", Integer.class, title));
-        assertEquals(2, jdbcTemplate.queryForObject("SELECT count(*) FROM rooms WHERE title = ?", Integer.class, loose));
+        save(admin, "rooms", null, room(title, "CTF"), 201);
+        legacyRoom(admin, null, """
+                {"title":"%s","description":"d","difficulty":"EASY","category":"Web","requiresVpn":false,"roomType":"CTF","hints":[]}
+                """.formatted(title), 201);
+        String theory = save(admin, "rooms", null, room(title, "PATH"), 201);
 
         var change = room(title, "CTF");
-        revise(change, sameLoose);
-        String typeChange = save(admin, "rooms", number(sameLoose, "$.room.id"), change, 409);
-        assertEquals("Pokój CTF o tym tytule już istnieje", field(typeChange, "title"));
-        assertEquals("PATH", jdbcTemplate.queryForObject("SELECT room_type FROM rooms WHERE id = ?", String.class, number(sameLoose, "$.room.id")));
+        revise(change, theory);
+        save(admin, "rooms", number(theory, "$.room.id"), change, 200);
+        assertEquals(4, jdbcTemplate.queryForObject("SELECT count(*) FROM rooms WHERE title = ? AND room_type = 'CTF'", Integer.class, title));
     }
 
     @Test
@@ -193,7 +184,7 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         try {
             var holder = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
                 try {
-                    roomService.updateRoom(renamed, new UpdateRoomRequest(title, "", "", DifficultyLevel.EASY, "Web", 30, "", false, RoomType.PATH, List.of()), null);
+                    roomService.updateRoom(renamed, new UpdateRoomRequest(title, "", "", DifficultyLevel.EASY, "Web", 30, false, RoomType.PATH, List.of()), null);
                     status.flush();
                     ready.countDown();
                     if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Commit barrier timed out");
@@ -232,7 +223,7 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
             assertTrue(field(rejected, "title").contains("zarezerwowane"));
         }
         legacyRoom(admin, null, """
-                {"title":"TUTORIAL VM","description":"d","difficulty":"EASY","category":"Tutorial","flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
+                {"title":"TUTORIAL VM","description":"d","difficulty":"EASY","category":"Tutorial","requiresVpn":false,"roomType":"CTF","hints":[]}
                 """, 400);
 
         var ordinary = room(uniqueTitle("Ordinary"), "CTF");
@@ -242,12 +233,12 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         save(admin, "rooms", number(ordinarySaved, "$.room.id"), ordinary, 400);
 
         long tutorial = jdbcTemplate.queryForObject("""
-                INSERT INTO rooms (title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at, published)
-                VALUES ('Tutorial VM', 'd', 'EASY', 'Tutorial', 50, 'f', 0, false, 'CTF', now(), now(), true) RETURNING id
+                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at, published)
+                VALUES ('Tutorial VM', 'd', 'EASY', 'Tutorial', 50, 0, false, 'CTF', now(), now(), true) RETURNING id
                 """, Long.class);
         try {
             var edit = room("Tutorial VM", "CTF");
-            edit.put("published", true); edit.put("description", "Updated"); edit.put("flag", "f"); edit.put("category", "Tutorial");
+            edit.put("published", true); edit.put("description", "Updated"); edit.put("tasks", List.of(Map.of("title", "Flaga", "content", "Znajdź flagę", "answer", "f"))); edit.put("category", "Tutorial");
             save(admin, "rooms", tutorial, edit, 200);
             assertEquals("Updated", jdbcTemplate.queryForObject("SELECT description FROM rooms WHERE id = ?", String.class, tutorial));
         } finally {
@@ -268,12 +259,12 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         assertEquals(200, number(save(admin, "rooms", ctfId, ctf, 200), "$.room.points"));
 
         String legacy = legacyRoom(admin, null, """
-                {"title":"%s","description":"d","difficulty":"HARD","category":"Web","points":-1,"flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
+                {"title":"%s","description":"d","difficulty":"HARD","category":"Web","points":-1,"requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(uniqueTitle("Legacy")), 201);
         assertEquals(150, number(legacy, "$.points"));
         String legacyTitle = JsonPath.read(legacy, "$.title");
         legacyRoom(admin, number(legacy, "$.id"), """
-                {"title":"%s","description":"d","difficulty":"EASY","points":-5,"category":"Web","flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
+                {"title":"%s","description":"d","difficulty":"EASY","points":-5,"category":"Web","requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(legacyTitle), 200);
         assertEquals(50, jdbcTemplate.queryForObject("SELECT points FROM rooms WHERE id = ?", Integer.class, number(legacy, "$.id")));
 
@@ -285,11 +276,11 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         missing.put("points", null);
         assertTrue(save(admin, "rooms", null, missing, 400).contains("points"));
         String noPoints = legacyRoom(admin, null, """
-                {"title":"%s","description":"d","difficulty":"EASY","category":"Path","flag":"f","requiresVpn":false,"roomType":"PATH","hints":[]}
+                {"title":"%s","description":"d","difficulty":"EASY","category":"Path","requiresVpn":false,"roomType":"PATH","hints":[]}
                 """.formatted(uniqueTitle("No points")), 400);
         assertEquals("Podaj nieujemną liczbę punktów", field(noPoints, "points"));
         String negative = legacyRoom(admin, null, """
-                {"title":"%s","description":"d","difficulty":"EASY","category":"Path","points":-1,"flag":"f","requiresVpn":false,"roomType":"PATH","hints":[]}
+                {"title":"%s","description":"d","difficulty":"EASY","category":"Path","points":-1,"requiresVpn":false,"roomType":"PATH","hints":[]}
                 """.formatted(uniqueTitle("Negative")), 400);
         assertEquals("Podaj nieujemną liczbę punktów", field(negative, "points"));
 
@@ -301,8 +292,9 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
     @Test
     void expertsGetTheSameRuleErrors() throws Exception {
         var expert = account(Role.EXPERT);
-        String title = "Expert " + UUID.randomUUID();
-        save(expert, "rooms", null, room(title, "CTF"), 201);
-        assertEquals("Pokój CTF o tym tytule już istnieje", field(save(expert, "rooms", null, room(title, "CTF"), 409), "title"));
+        assertTrue(field(save(expert, "rooms", null, room("Tutorial VM", "CTF"), 400), "title").contains("zarezerwowane"));
+        var missing = room("Expert " + UUID.randomUUID(), "PATH");
+        missing.put("points", null);
+        assertTrue(save(expert, "rooms", null, missing, 400).contains("points"));
     }
 }

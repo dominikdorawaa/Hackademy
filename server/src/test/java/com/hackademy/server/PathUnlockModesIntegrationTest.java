@@ -61,7 +61,9 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
     }
 
     private long room(Account admin) throws Exception {
-        return createRoom(admin, uniqueTitle("Unlock room"), "PATH");
+        long room = createRoom(admin, uniqueTitle("Unlock room"), "PATH");
+        addFlagTask(room, "flag");
+        return room;
     }
 
     private Account learner(long pathId) throws Exception {
@@ -72,7 +74,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
     }
 
     private ResultActions solve(Account user, long roomId) throws Exception {
-        return postJson(user, "/api/rooms/" + roomId + "/solve", "{\"flag\":\"flag\"}");
+        return solveRoom(user, roomId, "flag");
     }
 
     private List<Boolean> roomLocks(Account user, long pathId) throws Exception {

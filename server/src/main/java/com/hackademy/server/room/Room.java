@@ -1,6 +1,5 @@
 package com.hackademy.server.room;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -47,10 +46,6 @@ public class Room {
     @Min(0)
     @Column(nullable = false)
     private int points;
-
-    @JsonIgnore
-    @Column(nullable = false)
-    private String flag;
 
     @Min(0)
     @Column(name = "solutions_count", nullable = false)

@@ -24,14 +24,14 @@ class RoomAnswerLimitIntegrationTest extends PostgresIntegrationTest {
         var other = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Guessing room"), "CTF");
         long second = createRoom(admin, uniqueTitle("Second guessing room"), "CTF");
-        String solve = "/api/rooms/" + room + "/solve";
+        addFlagTask(room, "HACK{flag}");
+        addFlagTask(second, "HACK{flag}");
 
-        postJson(player, solve, "{\"flag\":\"guess-1\"}").andExpect(status().isBadRequest());
-        postJson(player, solve, "{\"flag\":\"\"}").andExpect(status().isBadRequest());
-        postJson(player, solve, "{\"flag\":\"guess-2\"}").andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message").value("Niepoprawna flaga"));
+        solveRoom(player, room, "guess-1").andExpect(status().isBadRequest());
+        solveRoom(player, room, "hack{flag}").andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message").value("Niepoprawna odpowiedź"));
 
-        postJson(player, solve, "{\"flag\":\"flag\"}")
+        solveRoom(player, room, "HACK{flag}")
                 .andExpect(status().isTooManyRequests())
                 .andExpect(header().string("Retry-After", "3600"))
                 .andExpect(header().string("Cache-Control", "no-store"))
@@ -39,10 +39,26 @@ class RoomAnswerLimitIntegrationTest extends PostgresIntegrationTest {
                         {"message":"Zbyt wiele błędnych odpowiedzi w tym pokoju. Spróbuj ponownie za 3600 s.","retryAfter":3600,"reason":"room-answer"}
                         """, true));
 
-        postJson(other, solve, "{\"flag\":\"flag\"}").andExpect(status().isOk())
+        solveRoom(other, room, "HACK{flag}").andExpect(status().isOk())
                 .andExpect(jsonPath("$.pointsEarned").value(50));
-        postJson(player, "/api/rooms/" + second + "/solve", "{\"flag\":\"flag\"}").andExpect(status().isOk());
-        postJson(player, "/api/rooms/" + second + "/solve", "{\"flag\":\"flag\"}").andExpect(status().isOk())
-                .andExpect(jsonPath("$.message").value("Poprawna flaga! (Tryb treningowy - 0 pkt)"));
+        solveRoom(player, second, "HACK{flag}").andExpect(status().isOk());
+        solveRoom(player, second, "HACK{flag}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Poprawna odpowiedź! (Pokój już ukończony)"));
+    }
+
+    @Test
+    void theoryAnswersIgnoreLetterCaseAndShareTheLimit() throws Exception {
+        var admin = account(Role.ADMIN);
+        var player = account(Role.USER);
+        long room = createRoom(admin, uniqueTitle("Theory room"), "PATH");
+        long task = jdbcTemplate.queryForObject("""
+                INSERT INTO room_tasks (room_id, title, content, question, answer, sort_order)
+                VALUES (?, 'Pytanie', 'Treść', 'Jakie polecenie?', 'pwd', 0) RETURNING id
+                """, Long.class, room);
+        String solve = "/api/rooms/" + room + "/tasks/" + task + "/solve";
+
+        postJson(player, solve, "{\"answer\":\"ls\"}").andExpect(status().isBadRequest());
+        postJson(player, solve, "{\"answer\":\"PWD\"}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.message").value("Poprawna odpowiedź! Pokój ukończony!"));
     }
 }

@@ -40,9 +40,18 @@ class ContentDraftsIntegrationTest {
     Map<String, Object> room(boolean published, String type) {
         var r = new LinkedHashMap<String, Object>();
         r.put("title", "Room " + UUID.randomUUID()); r.put("description", published ? "Ready description" : ""); r.put("shortDescription", "");
-        r.put("difficulty", "EASY"); r.put("category", "Web"); r.put("points", 50); r.put("flag", published ? "CTF{x}" : "");
-        r.put("requiresVpn", false); r.put("roomType", type); r.put("hints", List.of()); r.put("published", published); r.put("tasks", List.of());
+        r.put("difficulty", "EASY"); r.put("category", "Web"); r.put("points", 50);
+        r.put("requiresVpn", false); r.put("roomType", type); r.put("hints", List.of()); r.put("published", published); r.put("tasks", published ? List.of(task(type)) : List.of());
         r.put("revision", 0); r.put("tasksRevision", 0); return r;
+    }
+    Map<String, Object> task(String type) {
+        return "CTF".equals(type) ? Map.of("title", "Flaga", "content", "Znajdź flagę", "answer", "CTF{x}")
+                : Map.of("title", "Pytanie", "content", "Przeczytaj", "question", "Flaga?", "answer", "CTF{x}");
+    }
+    void solve(String token, long room, String answer, int expected) throws Exception {
+        long task = db.queryForObject("SELECT id FROM room_tasks WHERE room_id = ? ORDER BY sort_order LIMIT 1", Long.class, room);
+        mvc.perform(post("/api/rooms/" + room + "/tasks/" + task + "/solve").header("Authorization", "Bearer " + token)
+                .contentType("application/json").content(mapper.writeValueAsString(Map.of("answer", answer)))).andExpect(status().is(expected));
     }
     Map<String, Object> path(boolean published) {
         var p = new LinkedHashMap<String, Object>(); p.put("title", "Path " + UUID.randomUUID()); p.put("description", published ? "Ready path" : "");
@@ -65,7 +74,7 @@ class ContentDraftsIntegrationTest {
         String saved = save("rooms", null, request, admin, 201); long id = number(saved, "$.room.id");
         long hint = db.queryForObject("SELECT id FROM hints WHERE room_id = ?", Long.class, id);
         for (String uri : List.of("/api/rooms/" + id, "/api/rooms/" + id + "/file")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
-        mvc.perform(post("/api/rooms/" + id + "/solve").header("Authorization", "Bearer " + user).contentType("application/json").content("{\"flag\":\"\"}")).andExpect(status().isNotFound());
+        mvc.perform(post("/api/rooms/" + id + "/tasks/complete").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         mvc.perform(post("/api/rooms/" + id + "/hints/" + hint + "/unlock").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         for (String uri : List.of("/api/rooms/top3")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(jsonPath("$[?(@.id == " + id + ")]").isEmpty());
         assertFalse(rooms.findVisibleIds().contains(id));
@@ -76,10 +85,10 @@ class ContentDraftsIntegrationTest {
         assertFalse(rooms.findById(id).orElseThrow().isPublished());
         reviseRoom(request, saved); request.put("published", true);
         String invalid = save("rooms", id, request, admin, 400); assertTrue(invalid.contains("description"));
-        request.put("description", "Published"); request.put("flag", "CTF{x}"); saved = save("rooms", id, request, admin, 200);
+        request.put("description", "Published"); request.put("tasks", List.of(task("CTF"))); saved = save("rooms", id, request, admin, 200);
         mvc.perform(get("/api/rooms/" + id).header("Authorization", "Bearer " + user)).andExpect(status().isOk());
         assertTrue(rooms.findVisibleIds().contains(id));
-        mvc.perform(post("/api/rooms/" + id + "/solve").header("Authorization", "Bearer " + user).contentType("application/json").content("{\"flag\":\"CTF{x}\"}")).andExpect(status().isOk());
+        solve(user, id, "CTF{x}", 200);
         reviseRoom(request, saved); request.put("title", request.get("title") + " updated"); saved = save("rooms", id, request, admin, 200);
         assertTrue(rooms.findById(id).orElseThrow().isPublished());
         reviseRoom(request, saved); request.put("published", false); save("rooms", id, request, admin, 200);
@@ -109,16 +118,13 @@ class ContentDraftsIntegrationTest {
         mvc.perform(get("/api/rooms/" + roomId).header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
     }
 
-    @Test void emptyFlagCannotAwardPointsOrProgressForPublishedTaskRoom() throws Exception {
+    @Test void wrongAnswersCannotAwardPointsOrProgressForPublishedTaskRoom() throws Exception {
         String admin = token(Role.ADMIN), user = token(Role.USER);
-        var r = room(true, "PATH"); r.put("flag", "");
+        var r = room(true, "PATH");
         r.put("tasks", List.of(Map.of("title", "Question", "content", "Read this", "question", "Answer?", "answer", "correct")));
         String saved = save("rooms", null, r, admin, 201); long id = number(saved, "$.room.id");
-        for (String submitted : List.of("", " ", "wrong")) {
-            mvc.perform(post("/api/rooms/" + id + "/solve").header("Authorization", "Bearer " + user)
-                    .contentType("application/json").content(mapper.writeValueAsString(Map.of("flag", submitted))))
-                    .andExpect(status().isBadRequest());
-        }
+        for (String submitted : List.of("", " ", "wrong")) solve(user, id, submitted, 400);
+        mvc.perform(post("/api/rooms/" + id + "/tasks/complete").header("Authorization", "Bearer " + user)).andExpect(status().isBadRequest());
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_completed_tasks WHERE task_id IN (SELECT id FROM room_tasks WHERE room_id = ?)", Integer.class, id));
         assertEquals(0, rooms.findById(id).orElseThrow().getSolutionsCount());
@@ -172,8 +178,7 @@ class ContentDraftsIntegrationTest {
         var p = path(true); p.put("chapters", List.of(Map.of("title", "Chapter", "roomIds", List.of(firstId, secondId))));
         String savedPath = save("paths", null, p, admin, 201); long pathId = number(savedPath, "$.id");
         assertCompletedProfile(user, username, pathId, 0);
-        mvc.perform(post("/api/rooms/" + firstId + "/solve").header("Authorization", "Bearer " + user)
-                .contentType("application/json").content("{\"flag\":\"CTF{x}\"}")).andExpect(status().isOk());
+        solve(user, firstId, "CTF{x}", 200);
         assertCompletedProfile(user, username, pathId, 0);
         reviseRoom(second, savedSecond); second.put("published", false); savedSecond = save("rooms", secondId, second, admin, 200);
         assertCompletedProfile(user, username, pathId, 1);
@@ -183,8 +188,7 @@ class ContentDraftsIntegrationTest {
         assertCompletedProfile(user, username, pathId, 0);
         reviseRoom(first, savedFirst); first.put("published", true); save("rooms", firstId, first, admin, 200);
         assertCompletedProfile(user, username, pathId, 0);
-        mvc.perform(post("/api/rooms/" + secondId + "/solve").header("Authorization", "Bearer " + user)
-                .contentType("application/json").content("{\"flag\":\"CTF{x}\"}")).andExpect(status().isOk());
+        solve(user, secondId, "CTF{x}", 200);
         assertCompletedProfile(user, username, pathId, 1);
         revisePath(p, savedPath); p.put("published", false); savedPath = save("paths", pathId, p, admin, 200);
         assertCompletedProfile(user, username, pathId, 0);
@@ -206,11 +210,8 @@ class ContentDraftsIntegrationTest {
         assertFalse(rooms.findById(id).orElseThrow().isPublished());
     }
 
-    @Test void validatesSanitizedContentAndDuplicateTitleAtTheFieldWithoutPublishingOrLosingData() throws Exception {
-        String admin = token(Role.ADMIN); var first = room(false, "CTF");
-        save("rooms", null, first, admin, 201);
-        String duplicate = save("rooms", null, first, admin, 409);
-        assertTrue(duplicate.contains("title"));
+    @Test void validatesSanitizedContentAtTheFieldWithoutPublishingOrLosingData() throws Exception {
+        String admin = token(Role.ADMIN);
         var malicious = room(true, "PATH"); malicious.put("tasks", List.of(Map.of("title", "Test", "content", "<script>alert(1)</script>")));
         String error = save("rooms", null, malicious, admin, 400);
         assertTrue(error.contains("tasks.0.content"));
@@ -218,7 +219,7 @@ class ContentDraftsIntegrationTest {
 
     @Test void enforcesAllTextLimitsBeforeSaving() throws Exception {
         String admin = token(Role.ADMIN);
-        for (var field : Map.of("title", 255, "description", 20000, "shortDescription", 100, "category", 255, "flag", 255).entrySet()) {
+        for (var field : Map.of("title", 255, "description", 20000, "shortDescription", 100, "category", 255).entrySet()) {
             var r = room(false, "CTF"); r.put(field.getKey(), "x".repeat(field.getValue() + 1));
             assertTrue(save("rooms", null, r, admin, 400).contains(field.getKey()));
         }
@@ -260,7 +261,7 @@ class ContentDraftsIntegrationTest {
         mvc.perform(get("/api/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         reviseRoom(r, roomSaved); String updatedRoom = save("rooms", roomId, r, admin, 200);
         mvc.perform(get("/api/admin/content/rooms/" + roomId + "/file").header("Authorization", "Bearer " + admin)).andExpect(content().bytes(file));
-        reviseRoom(r, updatedRoom); r.put("published", true); r.put("description", "Ready"); r.put("flag", "CTF{x}"); save("rooms", roomId, r, admin, 200);
+        reviseRoom(r, updatedRoom); r.put("published", true); r.put("description", "Ready"); r.put("tasks", List.of(task("CTF"))); save("rooms", roomId, r, admin, 200);
         mvc.perform(get("/api/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isOk()).andExpect(content().bytes(file));
         var learningRoom = room(true, "PATH"); String learning = save("rooms", null, learningRoom, admin, 201); long learningId = number(learning, "$.room.id");
         String latestPath = mvc.perform(get("/api/admin/paths/" + id).header("Authorization", "Bearer " + admin)).andReturn().getResponse().getContentAsString();
@@ -283,7 +284,7 @@ class ContentDraftsIntegrationTest {
         long before = rooms.count(); save("rooms", null, r, admin, 400); assertEquals(before, rooms.count());
         assertEquals(Boolean.TRUE, db.queryForObject("SELECT published FROM paths WHERE id = ?", Boolean.class, pathId));
         assertEquals(1, db.queryForObject("SELECT count(*) FROM path_chapters WHERE path_id = ?", Integer.class, pathId));
-        r.put("published", true); r.put("description", "Ready"); r.put("flag", "CTF{x}");
+        r.put("published", true); r.put("description", "Ready"); r.put("tasks", List.of(task("PATH")));
         String created = save("rooms", null, r, admin, 201); long added = number(created, "$.room.id");
         assertEquals(Boolean.TRUE, db.queryForObject("SELECT published FROM paths WHERE id = ?", Boolean.class, pathId));
         assertEquals(2, db.queryForObject("SELECT count(*) FROM path_chapters WHERE path_id = ?", Integer.class, pathId));

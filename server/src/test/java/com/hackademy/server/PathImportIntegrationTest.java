@@ -121,10 +121,10 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         var admin = account(Role.ADMIN); String path = upload(admin, document().toString(), 201);
         var batch = batch();
         ((ObjectNode) batch.path("rooms").get(0)).put("title", " Terminal ").put("points", -1);
-        ((ObjectNode) batch.path("rooms").get(1)).put("title", "Terminal").remove("flag");
+        ((ObjectNode) batch.path("rooms").get(1)).put("title", "Terminal").remove("tasks");
         var before = counts(); String response = append(admin, number(path, "$.id"), target(path), batch, 400);
         Map<String, String> fields = JsonPath.read(response, "$.fields");
-        assertTrue(fields.keySet().containsAll(List.of("pokój 1: title", "pokój 1: points", "pokój 2: title", "pokój 2: flag")));
+        assertTrue(fields.keySet().containsAll(List.of("pokój 1: title", "pokój 1: points", "pokój 2: title", "pokój 2: tasks")));
         assertEquals(before, counts());
         var invalid = json.createObjectNode().put("title", "Forbidden"); invalid.putArray("rooms");
         append(admin, number(path, "$.id"), target(path), invalid, 400);
@@ -155,8 +155,8 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         long id = number(path, "$.id"), chapter = number(path, "$.chapters[0].id");
         jdbcTemplate.update("""
                 WITH created AS (
-                  INSERT INTO rooms (title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at, published)
-                  SELECT 'Capacity ' || n, 'd', 'EASY', 'Linux', 30, 'flag', 0, false, 'PATH', now(), now(), false FROM generate_series(1, 498) n RETURNING id
+                  INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at, published)
+                  SELECT 'Capacity ' || n, 'd', 'EASY', 'Linux', 30, 0, false, 'PATH', now(), now(), false FROM generate_series(1, 498) n RETURNING id
                 ) INSERT INTO chapter_rooms(room_id, chapter_id, sort_order) SELECT id, ?, row_number() OVER (ORDER BY id) + 1 FROM created
                 """, chapter);
         var before = counts(); String response = append(admin, id, target(path), batch(), 400);
@@ -222,7 +222,12 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
                 JOIN path_chapters c ON c.id = cr.chapter_id WHERE c.path_id = ? ORDER BY c.sort_order, cr.sort_order
                 """, id);
         assertEquals(List.of("Terminal", "Znajdź flagę", "Znajdź flagę"), rows.stream().map(r -> r.get("title")).toList());
-        assertTrue(rows.stream().allMatch(r -> r.get("published").equals(false) && r.get("room_type").equals("PATH") && r.get("points").equals(30)));
+        assertTrue(rows.stream().allMatch(r -> r.get("published").equals(false)));
+        assertEquals(List.of("PATH", "CTF", "CTF"), rows.stream().map(r -> r.get("room_type")).toList());
+        assertEquals(List.of(30, 50, 50), rows.stream().map(r -> r.get("points")).toList());
+        long flagRoom = ((Number) rows.get(1).get("id")).longValue();
+        assertEquals("HACK{linux}", jdbcTemplate.queryForObject("SELECT answer FROM room_tasks WHERE room_id = ?", String.class, flagRoom));
+        assertNull(jdbcTemplate.queryForObject("SELECT question FROM room_tasks WHERE room_id = ?", String.class, flagRoom));
         long first = ((Number) rows.get(0).get("id")).longValue();
         assertEquals(true, rows.get(0).get("requires_vpn"));
         assertEquals("<p>Materiał</p>", jdbcTemplate.queryForObject("SELECT content FROM room_tasks WHERE room_id = ?", String.class, first));
@@ -250,14 +255,14 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         var doc = document();
         doc.put("title", ""); doc.put("description", "x".repeat(20001)); doc.put("unlockMode", "UNKNOWN");
         room(doc, 0).put("title", " tutorial vm ").put("difficulty", "UNKNOWN").put("points", -1).put("requiresVpn", "false");
-        room(doc, 0).put("category", " ").put("shortDescription", "x".repeat(101));
+        room(doc, 0).put("category", " ").put("shortDescription", "x".repeat(101)).put("roomType", "THEORY");
         ((ArrayNode) room(doc, 0).path("hints")).add(1).add("").add("x".repeat(2001));
         var task = (ObjectNode) room(doc, 0).path("tasks").get(0);
         task.put("title", "").put("content", "<script>bad()</script>").put("answer", "");
         ((ArrayNode) room(doc, 0).path("tasks")).addObject().put("title", "A").put("content", "B").put("answer", "orphan");
-        room(doc, 1).remove("flag"); room(doc, 1).put("description", "");
+        ((ObjectNode) room(doc, 1).path("tasks").get(0)).remove("answer"); room(doc, 1).put("description", "");
         var errors = reject(admin, doc);
-        for (String key : List.of("ścieżka: title", "ścieżka: description", "ścieżka: unlockMode", "rozdział 1, pokój 1: title", "rozdział 1, pokój 1: difficulty", "rozdział 1, pokój 1: points", "rozdział 1, pokój 1: requiresVpn", "rozdział 1, pokój 1: category", "rozdział 1, pokój 1: shortDescription", "rozdział 1, pokój 1, podpowiedź 2", "rozdział 1, pokój 1, zadanie 1: content", "rozdział 1, pokój 1, zadanie 1: answer", "rozdział 1, pokój 1, zadanie 2: question", "rozdział 1, pokój 2: flag", "rozdział 1, pokój 2: description")) assertTrue(errors.containsKey(key), key);
+        for (String key : List.of("ścieżka: title", "ścieżka: description", "ścieżka: unlockMode", "rozdział 1, pokój 1: title", "rozdział 1, pokój 1: difficulty", "rozdział 1, pokój 1: points", "rozdział 1, pokój 1: requiresVpn", "rozdział 1, pokój 1: category", "rozdział 1, pokój 1: shortDescription", "rozdział 1, pokój 1, podpowiedź 2", "rozdział 1, pokój 1, zadanie 1: content", "rozdział 1, pokój 1, zadanie 1: answer", "rozdział 1, pokój 1, zadanie 2: question", "rozdział 1, pokój 2, zadanie 1: answer", "rozdział 1, pokój 1: roomType", "rozdział 1, pokój 2: description")) assertTrue(errors.containsKey(key), key);
     }
 
     @Test

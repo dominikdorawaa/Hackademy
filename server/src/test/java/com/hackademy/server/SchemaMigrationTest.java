@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 36;
+    static final int SCHEMA_VERSION = 37;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -471,9 +471,8 @@ class SchemaMigrationTest {
         assertSqlState("23514", "UPDATE rooms SET points = 60 WHERE id = 1");
         assertSqlState("23514", "UPDATE rooms SET difficulty = 'INSANE' WHERE id = 1");
         execute("UPDATE rooms SET difficulty = 'INSANE', points = 200 WHERE id = 1");
-        assertSqlState("23505", "INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (5, 'Hard CTF', 'd', 'HARD', 'Web', 150, 'f', 0, false, 'CTF', now(), now())");
-        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (5, 'Hard CTF', 'd', 'HARD', 'Path', 1, 'f', 0, false, 'PATH', now(), now())");
-        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (6, 'Intro', 'd', 'EASY', 'Path', 1, 'f', 0, false, 'PATH', now(), now())");
+        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (5, 'Hard CTF', 'd', 'HARD', 'Web', 150, 0, false, 'CTF', now(), now())");
+        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (6, 'Intro', 'd', 'EASY', 'Path', 1, 0, false, 'PATH', now(), now())");
         assertSqlState("23505", "INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (6, 1, 2)");
         execute("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (6, 2, 0)");
         assertSqlState("23505", "UPDATE rooms SET title = 'Intro' WHERE id = 4");
@@ -509,7 +508,7 @@ class SchemaMigrationTest {
                 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (6, 50, 0);
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("36").migrate().migrationsExecuted);
 
         assertEquals("1:CTF:vpn|2:CTF:vm|3:CTF:FLAG{sql}|4:CTF:FLAG{c}|5:CTF:|6:PATH:f",
                 text("SELECT string_agg(id || ':' || room_type || ':' || flag, '|' ORDER BY id) FROM rooms"));
@@ -540,8 +539,8 @@ class SchemaMigrationTest {
         assertEquals("1:3,2:5", text("SELECT string_agg(id || ':' || room_id, ',' ORDER BY id) FROM hints"));
         assertEquals(1, scalar("SELECT count(*) FROM user_unlocked_hints WHERE user_id = 1 AND hint_id = 1"));
         assertEquals("dump.pcap:0102", text("SELECT file_name || ':' || encode(data, 'hex') FROM room_files WHERE room_id = 3"));
-        assertEquals(0, flyway().migrate().migrationsExecuted);
-        assertTrue(flyway().validateWithResult().validationSuccessful);
+        assertEquals(0, flyway("36").migrate().migrationsExecuted);
+        assertTrue(flyway("36").validateWithResult().validationSuccessful);
     }
 
     @Test
@@ -553,7 +552,7 @@ class SchemaMigrationTest {
                 FROM generate_series(1, 1001) AS n;
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("36").migrate().migrationsExecuted);
 
         assertEquals("Rozdział 1:0:500:1:500|Rozdział 2:1:500:501:1000|Rozdział 3:2:1:1001:1001", text("""
                 SELECT string_agg(title || ':' || sort_order || ':' || total || ':' || first_room || ':' || last_room, '|' ORDER BY sort_order)
@@ -581,11 +580,71 @@ class SchemaMigrationTest {
                 (2, 'Lekcja', 'd', 'EASY', 'Path', 10, 'f', 0, false, 'PATH', true, now(), now());
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("36").migrate().migrationsExecuted);
 
         assertEquals("ukos", text("SELECT string_agg(coalesce(system_key, title), ',') FROM paths"));
         assertEquals(0, scalar("SELECT count(*) FROM path_chapters"));
         assertEquals(0, scalar("SELECT count(*) FROM path_enrollments"));
+    }
+
+    @Test
+    void turnsRoomFlagsIntoTaskAnswersAndKeepsSolves() throws Exception {
+        flyway("36").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        insertUser(2, "Bob", "bob@example.com");
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, tasks_revision, content_revision, created_at, updated_at) VALUES
+                (1, 'SQL', E'Znajdź <flagę> & wyślij
+Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, now(), now()),
+                (2, 'Lekcja z flagą', 'Opis lekcji', 'EASY', 'Path', 10, 'HACK{path}', 0, false, 'PATH', true, 3, 4, now(), now()),
+                (3, 'Lekcja z zadaniami', 'Opis', 'EASY', 'Path', 10, 'unused', 1, false, 'PATH', true, 1, 1, now(), now()),
+                (4, 'Szkic', '', 'EASY', 'Web', 50, '  ', 0, false, 'CTF', false, 0, 0, now(), now());
+                INSERT INTO room_tasks (id, room_id, title, content, question, answer, sort_order) VALUES (30, 3, 'Pytanie', 'c', 'q?', 'a', 0);
+                INSERT INTO user_solved_rooms (user_id, room_id, solved_at, awarded_points) VALUES
+                (1, 1, TIMESTAMP '2026-10-01 12:00:00', 75), (2, 3, now(), 10);
+                INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (2, 30, now());
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals(0, scalar("SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'rooms' AND column_name = 'flag'"));
+        assertEquals("1:Zdobądź flagę:FLAG{sql}:0|2:Zdobądź flagę:HACK{path}:0|3:Pytanie:a:0", text("""
+                SELECT string_agg(room_id || ':' || title || ':' || answer || ':' || sort_order, '|' ORDER BY room_id) FROM room_tasks
+                """));
+        assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id = 1 AND question IS NOT NULL"));
+        assertEquals("Jaka jest flaga?", text("SELECT question FROM room_tasks WHERE room_id = 2"));
+        assertEquals("<p>Znajdź &lt;flagę&gt; &amp; wyślij<br>Druga linia</p>", text("SELECT content FROM room_tasks WHERE room_id = 1"));
+        assertEquals("<p>Opis lekcji</p>", text("SELECT content FROM room_tasks WHERE room_id = 2"));
+        assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id = 4"));
+        assertEquals("1:1:3-1|2:1:5-4|3:1:1-1|4:0:0-0", text("""
+                SELECT string_agg(r.id || ':' || (SELECT count(*) FROM room_tasks t WHERE t.room_id = r.id) || ':' || r.content_revision || '-' || r.tasks_revision, '|' ORDER BY r.id)
+                FROM rooms r
+                """));
+        assertEquals("1:1:2026-10-01 12:00:00|2:3:-", text("""
+                SELECT string_agg(c.user_id || ':' || t.room_id || ':' || CASE WHEN t.room_id = 1 THEN to_char(c.completed_at, 'YYYY-MM-DD HH24:MI:SS') ELSE '-' END, '|' ORDER BY c.user_id)
+                FROM user_completed_tasks c JOIN room_tasks t ON t.id = c.task_id
+                """));
+        assertEquals("1:1:75,2:3:10", text("SELECT string_agg(user_id || ':' || room_id || ':' || awarded_points, ',' ORDER BY user_id) FROM user_solved_rooms"));
+        assertEquals("1:1|2:0|3:1|4:0", text("SELECT string_agg(id || ':' || solutions_count, '|' ORDER BY id) FROM rooms"));
+        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertTrue(flyway().validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void keepsMigratedTaskContentWithinTheEditorLimit() throws Exception {
+        flyway("36").migrate();
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, created_at, updated_at) VALUES
+                (1, 'Granica', repeat('a', 19993), 'EASY', 'Web', 50, 'F{1}', 0, false, 'CTF', true, now(), now()),
+                (2, 'Za długi', repeat('a', 19994), 'EASY', 'Web', 50, 'F{2}', 0, false, 'CTF', true, now(), now()),
+                (3, 'Znaki', repeat('<', 5000), 'EASY', 'Web', 50, 'F{3}', 0, false, 'CTF', true, now(), now());
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("1:20000|2:56|3:56", text("SELECT string_agg(room_id || ':' || char_length(content), '|' ORDER BY room_id) FROM room_tasks"));
+        assertEquals("<p>Treść zadania znajdziesz w opisie pokoju powyżej.</p>", text("SELECT content FROM room_tasks WHERE room_id = 2"));
+        assertEquals(19994, scalar("SELECT char_length(description) FROM rooms WHERE id = 2"));
     }
 
     @Test
@@ -713,7 +772,7 @@ class SchemaMigrationTest {
         assertEquals(1, flyway("4").migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
         assertEquals(SCHEMA_VERSION - 4, flyway().migrate().migrationsExecuted);
-        assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
+        assertEquals(5, scalar("SELECT sum(tasks_revision) FROM rooms"));
         assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));
         assertEquals("Zadania CTF", text("SELECT p.title FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id JOIN paths p ON p.id = pc.path_id WHERE cr.room_id = 5"));
         assertEquals(0, scalar("SELECT sum(chapters_revision) FROM paths"));
@@ -763,8 +822,9 @@ class SchemaMigrationTest {
     }
 
     private void insertRoom(long id) throws SQLException {
-        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES ("
-                + id + ", 'room " + id + "', 'd', 'EASY', 'Web', 50, 'flag', 0, false, 'CTF', now(), now())");
+        boolean flagged = scalar("SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'rooms' AND column_name = 'flag'") > 0;
+        execute("INSERT INTO rooms (id, title, description, difficulty, category, points" + (flagged ? ", flag" : "") + ", solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES ("
+                + id + ", 'room " + id + "', 'd', 'EASY', 'Web', 50" + (flagged ? ", 'flag'" : "") + ", 0, false, 'CTF', now(), now())");
     }
 
     private void assertSqlState(String expected, String sql) {

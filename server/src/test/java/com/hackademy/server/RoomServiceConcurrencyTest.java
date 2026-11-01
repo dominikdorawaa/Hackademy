@@ -57,7 +57,6 @@ class RoomServiceConcurrencyTest {
                 .difficulty(DifficultyLevel.EASY)
                 .category("Test")
                 .points(10)
-                .flag("unused")
                 .build());
         RoomTask task = roomTaskRepository.save(RoomTask.builder()
                 .room(room)

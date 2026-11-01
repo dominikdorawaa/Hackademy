@@ -46,21 +46,6 @@ public class RoomController {
         }
     }
 
-    @PostMapping("/{id}/solve")
-    public ResponseEntity<SolveRoomResponse> solveRoom(@PathVariable Long id,
-            @RequestBody Map<String, String> payload) {
-        String flag = payload.get("flag");
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        SolveRoomResponse response = roomService.solveRoom(id, flag, userDetails.getUsername());
-
-        if (response.success()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
-        }
-    }
-
     @PostMapping("/{roomId}/tasks/{taskId}/solve")
     public ResponseEntity<SolveRoomResponse> solveTask(
             @PathVariable Long roomId,

@@ -46,7 +46,7 @@ public final class ContentImportValidation {
     }
 
     private void room(JsonNode room, String key, Set<String> titles) {
-        if (!object(room, key, Set.of("title", "description", "shortDescription", "difficulty", "category", "points", "flag", "requiresVpn", "hints", "tasks"))) return;
+        if (!object(room, key, Set.of("title", "roomType", "description", "shortDescription", "difficulty", "category", "points", "requiresVpn", "hints", "tasks"))) return;
         String title = text(room, "title", key, 255, true).trim();
         if (!title.isEmpty() && !titles.add(title)) errors.problem(key + ": title", "Tytuł pokoju powtarza się w tym rozdziale");
         if (Set.of("tutorial vm", "tutorial vpn").contains(title.toLowerCase(Locale.ROOT))) errors.problem(key + ": title", "Tytuł zarezerwowany dla samouczka");
@@ -54,13 +54,16 @@ public final class ContentImportValidation {
         text(room, "shortDescription", key, 100, false);
         text(room, "category", key, 255, true);
         choice(room, "difficulty", key, Set.of("EASY", "MEDIUM", "HARD", "INSANE"), true);
+        choice(room, "roomType", key, Set.of("PATH", "CTF"), false);
+        boolean ctf = "CTF".equals(room.path("roomType").asText(""));
         var points = room.path("points");
-        if (!points.isIntegralNumber() || !points.canConvertToInt() || points.intValue() < 0) errors.problem(key + ": points", "Podaj nieujemną liczbę całkowitą punktów (maksymalnie 2147483647)");
+        // CTF rooms take their XP from the difficulty, so they may leave points out.
+        boolean pointsOptional = ctf && points.isMissingNode();
+        if (!pointsOptional && (!points.isIntegralNumber() || !points.canConvertToInt() || points.intValue() < 0)) errors.problem(key + ": points", "Podaj nieujemną liczbę całkowitą punktów (maksymalnie 2147483647)");
         if (room.has("requiresVpn") && !room.path("requiresVpn").isBoolean()) errors.problem(key + ": requiresVpn", "Podaj true albo false");
         var hints = array(room, "hints", key, 100, false);
         for (int h = 0; h < hints.size(); h++) string(hints.get(h), key + ", podpowiedź " + (h + 1), 2000, true);
-        var tasks = array(room, "tasks", key, 100, false);
-        text(room, "flag", key, 255, tasks.isEmpty());
+        var tasks = array(room, "tasks", key, 100, true);
         for (int t = 0; t < tasks.size(); t++) {
             var task = tasks.get(t);
             String taskKey = key + ", zadanie " + (t + 1);
@@ -69,8 +72,8 @@ public final class ContentImportValidation {
             String content = text(task, "content", taskKey, 20000, true);
             if (!content.isBlank() && TaskContentSanitizer.clean(content).isBlank()) errors.problem(taskKey + ": content", "Podaj treść po usunięciu niedozwolonego HTML");
             String question = text(task, "question", taskKey, 2000, false);
-            String answer = text(task, "answer", taskKey, 255, !question.isBlank());
-            if (question.isBlank() && !answer.isBlank()) errors.problem(taskKey + ": question", "Odpowiedź wymaga pytania");
+            String answer = text(task, "answer", taskKey, 255, ctf || !question.isBlank());
+            if (!ctf && question.isBlank() && !answer.isBlank()) errors.problem(taskKey + ": question", "Odpowiedź wymaga pytania");
         }
     }
 

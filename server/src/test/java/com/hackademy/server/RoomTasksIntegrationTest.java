@@ -240,9 +240,15 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", task(foreignTask, "Obce", "q", "a"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("nie należy do tego pokoju")));
-        putTaskJson(admin, "/api/admin/rooms/" + ctf + "/tasks", task(null, "CTF", "q", "a"))
+        putTaskJson(admin, "/api/admin/rooms/" + ctf + "/tasks", task(null, "CTF", null, null))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("tylko do pokoi ścieżek")));
+                .andExpect(jsonPath("$.message", containsString("podaj flagę")));
+        putTaskJson(admin, "/api/admin/rooms/" + ctf + "/tasks", task(null, "CTF", null, "HACK{ok}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks[0].answer").value("HACK{ok}"));
+        putTaskJson(admin, "/api/admin/rooms/" + ctf + "/tasks", "{\"tasks\":[]}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("przynajmniej jedno zadanie")));
         putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", """
                 {"tasks":[{"id":null,"title":"","content":"c","question":null,"answer":null}]}
                 """)

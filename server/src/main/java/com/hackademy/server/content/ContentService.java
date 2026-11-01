@@ -85,7 +85,7 @@ public class ContentService {
     public static RoomAdminDto adminRoom(Room room) {
         return RoomAdminDto.builder().id(room.getId()).title(room.getTitle()).description(room.getDescription())
                 .shortDescription(room.getShortDescription()).category(room.getCategory()).difficulty(room.getDifficulty())
-                .points(room.getPoints()).flag(room.getFlag()).requiresVpn(room.isRequiresVpn()).roomType(room.getRoomType())
+                .points(room.getPoints()).requiresVpn(room.isRequiresVpn()).roomType(room.getRoomType())
                 .published(room.isPublished()).contentRevision(room.getContentRevision()).solutionsCount(room.getSolutionsCount())
                 .hints(room.getHints().stream().map(Hint::getDescription).toList()).createdAt(room.getCreatedAt()).updatedAt(room.getUpdatedAt()).build();
     }
@@ -102,7 +102,6 @@ public class ContentService {
         v.text("description", r.description(), 20000, r.published());
         v.text("shortDescription", r.shortDescription(), 100, false);
         v.text("category", r.category(), 255, true);
-        v.text("flag", r.flag(), 255, r.published() && (r.tasks() == null || r.tasks().isEmpty()));
         if (r.difficulty() == null) v.problem("difficulty", "Wybierz trudność");
         if (r.roomType() == null) v.problem("roomType", "Wybierz typ pokoju");
         if (r.roomType() == RoomType.PATH && (r.points() == null || r.points() < 0)) v.problem("points", "Podaj nieujemną liczbę punktów");
@@ -111,7 +110,8 @@ public class ContentService {
         for (int i = 0; i < hints.size(); i++) v.text("hints." + i, hints.get(i), 2000, true);
         var tasks = r.tasks() == null ? List.<RoomTaskRequest>of() : r.tasks();
         if (tasks.size() > 100) v.problem("tasks", "Maksymalnie 100 zadań");
-        if (r.roomType() != RoomType.PATH && !tasks.isEmpty()) v.problem("tasks", "Zadania są dostępne w pokojach PATH");
+        if (r.published() && tasks.isEmpty()) v.problem("tasks", "Dodaj przynajmniej jedno zadanie przed publikacją");
+        boolean ctf = r.roomType() == RoomType.CTF;
         for (int i = 0; i < tasks.size(); i++) {
             var t = tasks.get(i); String key = "tasks." + i + ".";
             if (t == null) { v.problem("tasks", "Nieprawidłowe zadanie"); continue; }
@@ -119,13 +119,14 @@ public class ContentService {
             v.text(key + "content", t.content(), 20000, r.published());
             if (r.published() && TaskContentSanitizer.clean(text(t.content())).isBlank()) v.problem(key + "content", "Podaj treść po usunięciu niedozwolonego HTML");
             v.text(key + "question", t.question(), 2000, false);
-            v.text(key + "answer", t.answer(), 255, r.published() && t.question() != null && !t.question().isBlank());
-            if (r.published() && (t.question() == null || t.question().isBlank()) && t.answer() != null && !t.answer().isBlank()) v.problem(key + "question", "Odpowiedź wymaga pytania");
+            boolean asked = t.question() != null && !t.question().isBlank();
+            v.text(key + "answer", t.answer(), 255, r.published() && (ctf || asked));
+            if (r.published() && !ctf && !asked && t.answer() != null && !t.answer().isBlank()) v.problem(key + "question", "Odpowiedź wymaga pytania");
         }
         v.finish();
         Path parent = null; PathChapter chapter = null; boolean publishParent = false;
         if (r.parentDraft() != null) {
-            if (id != null || r.roomType() != RoomType.PATH || r.chapterIndex() == null || r.chapterIndex() < 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nieprawidłowy szkic kontekstu");
+            if (id != null || r.chapterIndex() == null || r.chapterIndex() < 0) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nieprawidłowy szkic kontekstu");
             var auth = org.springframework.security.core.context.SecurityContextHolder.getContext().getAuthentication();
             boolean admin = auth.getAuthorities().stream().anyMatch(a -> a.getAuthority().equals("ROLE_ADMIN"));
             var draft = r.parentDraft();
@@ -135,7 +136,7 @@ public class ContentService {
             parent = paths.findByIdForUpdate(savedPath.id()).orElseThrow();
             chapter = chapters.findById(savedPath.chapters().get(r.chapterIndex()).id()).orElseThrow();
         } else if (r.pathId() != null || r.chapterId() != null) {
-            if (id != null || r.roomType() != RoomType.PATH || r.pathId() == null || r.chapterId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nieprawidłowy kontekst rozdziału");
+            if (id != null || r.pathId() == null || r.chapterId() == null) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Nieprawidłowy kontekst rozdziału");
             parent = paths.findByIdForUpdate(r.pathId()).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             revision(r.pathRevision(), parent.getContentRevision());
             chapter = chapters.findById(r.chapterId()).filter(c -> c.getPathId().equals(r.pathId())).orElseThrow(() -> new ResponseStatusException(HttpStatus.CONFLICT, "Rozdział nie należy do tej ścieżki"));
@@ -145,15 +146,15 @@ public class ContentService {
         }
         Room saved;
         if (id == null) {
-            saved = roomService.createRoom(new CreateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), text(r.flag()), r.requiresVpn(), r.roomType(), hints), file);
+            saved = roomService.createRoom(new CreateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType(), hints), file);
         } else {
             var current = rooms.findByIdForUpdate(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             revision(r.revision(), current.getContentRevision());
             revision(r.tasksRevision(), current.getTasksRevision());
-            saved = roomService.updateRoom(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), text(r.flag()), r.requiresVpn(), r.roomType(), hints), file);
+            saved = roomService.updateRoomBeforeTasks(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType(), hints), file);
         }
         saved.setPublished(r.published());
-        if (r.roomType() == RoomType.PATH) roomService.updateRoomTasks(saved.getId(), new UpdateRoomTasksRequest(saved.getTasksRevision(), tasks));
+        roomService.updateRoomTasks(saved.getId(), new UpdateRoomTasksRequest(saved.getTasksRevision(), tasks));
         saved.setContentRevision(saved.getContentRevision() + 1);
         if (chapter != null) {
             Long targetChapterId = chapter.getId();
@@ -184,8 +185,8 @@ public class ContentService {
         var r = roomService.getRoomById(id);
         var sorted = r.getHints().stream().sorted(Comparator.comparing(Hint::getId)).toList();
         var hints = java.util.stream.IntStream.range(0, sorted.size()).mapToObj(i -> new HintDto(sorted.get(i).getId(), i, sorted.get(i).getDescription())).toList();
-        var tasks = r.getTasks().stream().sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).map(t -> RoomTaskDto.builder().id(t.getId()).title(t.getTitle()).content(t.getContent()).question(t.getQuestion()).completed(false).build()).toList();
-        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).hints(hints).unlockedHintIds(List.of()).fileName(roomFiles.findFileNameByRoomId(r.getId())).tasks(tasks).build();
+        var tasks = r.getTasks().stream().sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).map(t -> RoomTaskDto.builder().id(t.getId()).title(t.getTitle()).content(t.getContent()).question(t.getQuestion()).requiresAnswer(t.getAnswer() != null).completed(false).build()).toList();
+        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).roomType(r.getRoomType()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).hints(hints).unlockedHintIds(List.of()).fileName(roomFiles.findFileNameByRoomId(r.getId())).tasks(tasks).build();
     }
 
     @Transactional(readOnly = true)

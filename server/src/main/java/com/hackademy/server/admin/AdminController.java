@@ -170,7 +170,6 @@ public class AdminController {
                 .difficulty(room.getDifficulty())
                 .points(room.getPoints())
                 .category(room.getCategory())
-                .flag(room.getFlag())
                 .solutionsCount(room.getSolutionsCount())
                 .requiresVpn(room.isRequiresVpn())
                 .roomType(room.getRoomType())
