@@ -538,16 +538,16 @@ class ArenaBotMatchTest {
     }
 
     @Test
-    void aPlayerWhoseAccountCannotBeReadKeepsWaitingForTheNextCheck() {
+    void aPlayerWhoseAccountWasDeletedLeavesTheQueueInsteadOfGettingABot() {
         matchRandom.waits.add(15_000L);
         join(1);
         when(users.findById(1L)).thenReturn(Optional.empty());
         at(15_000);
         assertNull(game(1));
-        assertTrue(matchmaking.isQueued(1L));
+        assertFalse(matchmaking.isQueued(1L));
         when(users.findById(1L)).thenReturn(Optional.of(accounts.get(1L)));
         at(15_500);
-        assertTrue(game(1).getPlayer2Id() < 0);
+        assertNull(game(1));
     }
 
     @Test

@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -35,9 +36,11 @@ class ArenaMatchmakingTest {
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
             mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, mock(ArenaPresence.class), matchmaking);
     private final ArenaController controller = new ArenaController(matchmaking, arena, userService);
+    private final AtomicLong now = new AtomicLong(1_000_000);
 
     @BeforeEach
     void queuePlayers() {
+        matchmaking.useClock(now::get);
         for (long id = 1; id <= 4; id++) {
             User user = new User();
             user.setId(id);
@@ -178,6 +181,40 @@ class ArenaMatchmakingTest {
         assertNull(arena.findCurrentGameForUser(2L));
         assertNotNull(arena.findCurrentGameForUser(3L));
         assertEquals(arena.findCurrentGameForUser(3L).getId(), arena.findCurrentGameForUser(4L).getId());
+    }
+
+    @Test
+    void aDeletedAccountLeavesTheQueueAndItsPartnerPlaysTheBotAfterTheUsualWait() {
+        when(users.findById(1L)).thenReturn(Optional.empty());
+        controller.processMatchmaking();
+        assertFalse(matchmaking.isQueued(1L));
+        assertTrue(matchmaking.isQueued(2L));
+        now.addAndGet(MatchmakingServiceImpl.BOT_WAIT_MIN_MILLIS - 1);
+        controller.processMatchmaking();
+        assertNull(arena.findCurrentGameForUser(2L));
+        now.addAndGet(MatchmakingServiceImpl.BOT_WAIT_MAX_MILLIS);
+        controller.processMatchmaking();
+        assertFalse(matchmaking.isQueued(2L));
+        GameSession game = arena.findCurrentGameForUser(2L);
+        assertNotNull(game);
+        assertTrue(game.getPlayer2Id() < 0);
+    }
+
+    @Test
+    void thePartnerOfADeletedAccountPairsWithTheNextPlayer() {
+        when(users.findById(1L)).thenReturn(Optional.empty());
+        controller.processMatchmaking();
+        User fifth = new User();
+        fifth.setId(5L);
+        fifth.setUsername("player5");
+        fifth.setElo(500);
+        when(users.findById(5L)).thenReturn(Optional.of(fifth));
+        matchmaking.joinQueue(5L, fifth.getUsername());
+        controller.processMatchmaking();
+        assertFalse(matchmaking.isQueued(1L));
+        assertNull(arena.findCurrentGameForUser(1L));
+        assertNotNull(arena.findCurrentGameForUser(2L));
+        assertEquals(arena.findCurrentGameForUser(2L).getId(), arena.findCurrentGameForUser(5L).getId());
     }
 
     @Test

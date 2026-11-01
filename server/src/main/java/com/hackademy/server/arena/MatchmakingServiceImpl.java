@@ -107,7 +107,12 @@ public class MatchmakingServiceImpl implements MatchmakingService {
             User firstUser = userRepository.findById(first.id()).orElse(null);
             User secondUser = userRepository.findById(second.id()).orElse(null);
             if (firstUser == null || secondUser == null) {
-                synchronized (queue) { matching.remove(first.id()); matching.remove(second.id()); }
+                synchronized (queue) {
+                    if (firstUser == null) queue.remove(first);
+                    if (secondUser == null) queue.remove(second);
+                    matching.remove(first.id());
+                    matching.remove(second.id());
+                }
                 continue;
             }
             sessions.add(createGameSession(first, firstUser, second, secondUser));
@@ -115,7 +120,7 @@ public class MatchmakingServiceImpl implements MatchmakingService {
         if (alone != null) {
             User user = userRepository.findById(alone.id()).orElse(null);
             if (user == null) {
-                synchronized (queue) { matching.remove(alone.id()); }
+                synchronized (queue) { queue.remove(alone); matching.remove(alone.id()); }
             } else {
                 sessions.add(createBotSession(alone, user));
             }
