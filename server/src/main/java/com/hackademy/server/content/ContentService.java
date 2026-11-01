@@ -151,7 +151,7 @@ public class ContentService {
             var current = rooms.findByIdForUpdate(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             revision(r.revision(), current.getContentRevision());
             revision(r.tasksRevision(), current.getTasksRevision());
-            saved = roomService.updateRoom(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType(), hints), file);
+            saved = roomService.updateRoomBeforeTasks(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType(), hints), file);
         }
         saved.setPublished(r.published());
         roomService.updateRoomTasks(saved.getId(), new UpdateRoomTasksRequest(saved.getTasksRevision(), tasks));

@@ -611,7 +611,8 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         assertEquals("1:Zdobądź flagę:FLAG{sql}:0|2:Zdobądź flagę:HACK{path}:0|3:Pytanie:a:0", text("""
                 SELECT string_agg(room_id || ':' || title || ':' || answer || ':' || sort_order, '|' ORDER BY room_id) FROM room_tasks
                 """));
-        assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id IN (1, 2) AND question IS NOT NULL"));
+        assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id = 1 AND question IS NOT NULL"));
+        assertEquals("Jaka jest flaga?", text("SELECT question FROM room_tasks WHERE room_id = 2"));
         assertEquals("<p>Znajdź &lt;flagę&gt; &amp; wyślij<br>Druga linia</p>", text("SELECT content FROM room_tasks WHERE room_id = 1"));
         assertEquals("<p>Opis lekcji</p>", text("SELECT content FROM room_tasks WHERE room_id = 2"));
         assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id = 4"));
@@ -627,6 +628,23 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         assertEquals("1:1|2:0|3:1|4:0", text("SELECT string_agg(id || ':' || solutions_count, '|' ORDER BY id) FROM rooms"));
         assertEquals(0, flyway().migrate().migrationsExecuted);
         assertTrue(flyway().validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void keepsMigratedTaskContentWithinTheEditorLimit() throws Exception {
+        flyway("36").migrate();
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, created_at, updated_at) VALUES
+                (1, 'Granica', repeat('a', 19993), 'EASY', 'Web', 50, 'F{1}', 0, false, 'CTF', true, now(), now()),
+                (2, 'Za długi', repeat('a', 19994), 'EASY', 'Web', 50, 'F{2}', 0, false, 'CTF', true, now(), now()),
+                (3, 'Znaki', repeat('<', 5000), 'EASY', 'Web', 50, 'F{3}', 0, false, 'CTF', true, now(), now());
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("1:20000|2:56|3:56", text("SELECT string_agg(room_id || ':' || char_length(content), '|' ORDER BY room_id) FROM room_tasks"));
+        assertEquals("<p>Treść zadania znajdziesz w opisie pokoju powyżej.</p>", text("SELECT content FROM room_tasks WHERE room_id = 2"));
+        assertEquals(19994, scalar("SELECT char_length(description) FROM rooms WHERE id = 2"));
     }
 
     @Test

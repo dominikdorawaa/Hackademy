@@ -627,6 +627,7 @@ class RoomServiceImplTest {
     @Test
     void roomTypeChangesBothWaysWithoutLosingTasks() throws IOException {
         Room room = taskRoom(2L, 10, task(20L, "a"), task(21L, "b"));
+        room.setPublished(false);
         returnSavedRoom();
 
         service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF, null), null);
@@ -843,6 +844,63 @@ class RoomServiceImplTest {
         assertEquals(List.of(21L), room.getTasks().stream().map(RoomTask::getId).filter(java.util.Objects::nonNull).toList());
         assertEquals(2, room.getTasks().size());
         verify(roomTaskRepository).save(argThat(t -> t.getTitle().equals("Nowe") && t.getSortOrder() == 0));
+    }
+
+    @Test
+    void publishedRoomCannotTurnIntoCtfWithATaskWithoutFlag() {
+        Room room = taskRoom(2L, 10, task(20L, null));
+
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF, null), null));
+
+        assertEquals("Zadanie 1: podaj flagę", error.getMessage());
+        assertEquals(RoomType.PATH, room.getRoomType());
+    }
+
+    @Test
+    void publishedRoomCannotTurnIntoTheoryWithAFlagWithoutQuestion() {
+        flagRoom(1L, 100, "FLAG{ok}");
+
+        assertThrows(IllegalArgumentException.class,
+                () -> service.updateRoom(1L, updateRequest("Room 1", RoomType.PATH, null), null));
+    }
+
+    @Test
+    void editorChangesTheTypeBeforeItSavesTheMatchingTasks() throws IOException {
+        Room room = taskRoom(2L, 10, task(20L, null));
+        returnSavedRoom();
+
+        service.updateRoomBeforeTasks(2L, updateRequest("Room 2", RoomType.CTF, null), null);
+
+        assertEquals(RoomType.CTF, room.getRoomType());
+    }
+
+    @Test
+    void publishedRoomWithoutTasksMayStillChangeItsType() throws IOException {
+        Room room = taskRoom(2L, 10);
+        returnSavedRoom();
+
+        service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF, null), null);
+
+        assertEquals(RoomType.CTF, room.getRoomType());
+    }
+
+    @Test
+    void publishedRoomKeepsAtLeastOneTask() {
+        Room room = taskRoom(2L, 10, task(20L, "a"));
+
+        var error = assertThrows(IllegalArgumentException.class,
+                () -> service.updateRoomTasks(2L, new UpdateRoomTasksRequest(0L, List.of())));
+
+        assertEquals("Dodaj przynajmniej jedno zadanie przed publikacją", error.getMessage());
+        assertEquals(1, room.getTasks().size());
+    }
+
+    @Test
+    void draftRoomMayHaveNoTasks() {
+        taskRoom(2L, 10, task(20L, "a")).setPublished(false);
+
+        assertTrue(service.updateRoomTasks(2L, new UpdateRoomTasksRequest(0L, List.of())).tasks().isEmpty());
     }
 
     @Test

@@ -133,9 +133,23 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
+        return updateRoom(id, updateRoomRequest, file, true);
+    }
+
+    @Override
+    @Transactional
+    public Room updateRoomBeforeTasks(Long id, UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
+        return updateRoom(id, updateRoomRequest, file, false);
+    }
+
+    private Room updateRoom(Long id, UpdateRoomRequest updateRoomRequest, MultipartFile file, boolean checkTasks) throws IOException {
         Room room = roomRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
         RoomType newRoomType = updateRoomRequest.roomType() == null ? room.getRoomType() : updateRoomRequest.roomType();
+        if (checkTasks && newRoomType != room.getRoomType() && !room.getTasks().isEmpty()) {
+            requirePlayable(room.isPublished(), newRoomType, room.getTasks().stream()
+                    .sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).toList());
+        }
         String title = updateRoomRequest.title().trim();
         checkTitle(room, title);
         int points = points(newRoomType, updateRoomRequest.difficulty(), updateRoomRequest.points());
@@ -444,15 +458,6 @@ public class RoomServiceImpl implements RoomService {
             position++;
             String question = blankToNull(taskRequest.question());
             String answer = blankToNull(taskRequest.answer());
-            if (room.isPublished() && room.getRoomType() == RoomType.CTF && answer == null) {
-                throw new IllegalArgumentException("Zadanie " + position + ": podaj flagę");
-            }
-            if (room.isPublished() && question != null && answer == null) {
-                throw new IllegalArgumentException("Zadanie " + position + ": podaj odpowiedź na pytanie");
-            }
-            if (room.isPublished() && room.getRoomType() == RoomType.PATH && question == null && answer != null) {
-                throw new IllegalArgumentException("Zadanie " + position + ": odpowiedź wymaga pytania");
-            }
 
             RoomTask task;
             if (taskRequest.id() == null) {
@@ -478,6 +483,7 @@ public class RoomServiceImpl implements RoomService {
             ordered.add(task);
         }
 
+        requirePlayable(room.isPublished(), room.getRoomType(), ordered);
         room.getTasks().removeIf(task -> !keptIds.contains(task.getId()));
         for (RoomTask task : ordered) {
             if (task.getId() == null) {
@@ -490,6 +496,29 @@ public class RoomServiceImpl implements RoomService {
         roomRepository.flush();
 
         return new RoomTasksAdminDto(room.getTasksRevision(), ordered.stream().map(this::mapTaskToAdminDto).toList());
+    }
+
+    // A published room must stay solvable: it has tasks, every CTF task has a flag and theory answers have questions.
+    private static void requirePlayable(boolean published, RoomType roomType, List<RoomTask> tasks) {
+        if (!published) {
+            return;
+        }
+        if (tasks.isEmpty()) {
+            throw new IllegalArgumentException("Dodaj przynajmniej jedno zadanie przed publikacją");
+        }
+        for (int i = 0; i < tasks.size(); i++) {
+            String question = tasks.get(i).getQuestion();
+            String answer = tasks.get(i).getAnswer();
+            if (roomType == RoomType.CTF && answer == null) {
+                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": podaj flagę");
+            }
+            if (question != null && answer == null) {
+                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": podaj odpowiedź na pytanie");
+            }
+            if (roomType == RoomType.PATH && question == null && answer != null) {
+                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": odpowiedź wymaga pytania");
+            }
+        }
     }
 
     private RoomTaskAdminDto mapTaskToAdminDto(RoomTask task) {
