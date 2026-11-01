@@ -20,6 +20,7 @@ import * as userApi from '../services/userApi';
 import type { AvatarConfig } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaBattlePage.css';
+import { formatEloChange } from '../lib/units';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 const NOTICE_MS = 4000;
@@ -147,7 +148,7 @@ export default function ArenaBattlePage() {
             <section className={`battle-result is-${result}`} aria-labelledby="battle-result-title">
               <h1 id="battle-result-title">{outcomeTitle(result)}</h1>
               <p>{finishText(session, me.id)}</p>
-              <p className="battle-result-elo">{change > 0 ? `+${change}` : change} Elo</p>
+              <p className="battle-result-elo">{formatEloChange(change)}</p>
               <Link className="ud-btn ud-btn-solid" to="/arena">Wróć do Areny</Link>
             </section>
           )}

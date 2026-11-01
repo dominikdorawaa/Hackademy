@@ -7,7 +7,7 @@ describe('badge goal progress', () => {
   it('shows actual points and percentage below a threshold', () => {
     render(<BadgeProgress badge={{ ...profileBadges[7], name: '100 punktów',
       progress: { current: 30, target: 100, conditionType: 'POINTS' } }} />);
-    expect(screen.getByText('30 / 100 punktów')).toBeInTheDocument();
+    expect(screen.getByText('30 / 100 XP')).toBeInTheDocument();
     expect(screen.getByText('30%')).toBeInTheDocument();
     expect(screen.getByRole('progressbar')).toHaveAttribute('value', '30');
     expect(screen.getByRole('progressbar')).toHaveAttribute('max', '100');

@@ -75,14 +75,14 @@ const Arena = () => {
                   marginBottom: '30px',
                 }}
               >
-                Pnij się w drabinie rankingowej ELO. System dobierze Ci
+                Pnij się w drabinie rankingowej Elo. System dobierze Ci
                 przeciwnika o równym poziomie – wygrywa ten, kto szybciej
                 przełamie zabezpieczenia systemu.
               </p>
 
               <div className="elo-stats">
-                <span style={{ color: 'var(--primary-blue)' }}>TY (1240 ELO)</span>
-                <span style={{ color: 'var(--primary-red)' }}>RIVAL (1255 ELO)</span>
+                <span style={{ color: 'var(--primary-blue)' }}>TY (1240 Elo)</span>
+                <span style={{ color: 'var(--primary-red)' }}>RIVAL (1255 Elo)</span>
               </div>
 
               <LandingDuel />

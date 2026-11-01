@@ -12,10 +12,10 @@ import { levelFromPoints, rankTitleFromPoints } from '../lib/level';
 import type { RankingEntry, RankingSummaryDto } from '../types/api';
 import '../components/room/room.css';
 import './RankingPage.css';
+import { formatNumberPL, unitFor, type ScoreMetric } from '../lib/units';
 
-type Metric = 'points' | 'elo';
+type Metric = ScoreMetric;
 type Result = { sessionKey: string | null; status: 'loading' | 'ready' | 'error'; data: RankingSummaryDto | null };
-const format = (value: number) => value.toLocaleString('pl-PL');
 const score = (entry: RankingEntry, metric: Metric) => metric === 'points' ? entry.points ?? 0 : entry.elo ?? 500;
 const place = (entry: RankingEntry, metric: Metric) => metric === 'points' ? entry.rankPoints : entry.rankElo;
 
@@ -34,7 +34,7 @@ function Podium({ players, metric, username }: { players: RankingEntry[]; metric
               <span className="ranking-podium-place">#{position}</span>
             </div>
             <div className="ranking-podium-name"><Link to={profile}>{entry.username}</Link>{me && <span className="ranking-you">Ty</span>}</div>
-            <div className="ranking-podium-score"><strong>{format(score(entry, metric))}</strong><span>{metric === 'points' ? 'XP' : 'Elo'}</span></div>
+            <div className="ranking-podium-score"><strong>{formatNumberPL(score(entry, metric))}</strong><span>{unitFor(metric)}</span></div>
             <span className="ranking-podium-detail">{metric === 'points' ? `Poziom ${levelFromPoints(score(entry, metric))}` : leagueFor(score(entry, metric)).league.name}</span>
             <div className="ranking-podium-step" aria-hidden="true"><span>{position}</span></div>
           </li>
@@ -45,7 +45,7 @@ function Podium({ players, metric, username }: { players: RankingEntry[]; metric
 }
 
 function RankingGoal({ own, ranking, metric }: { own: RankingEntry; ranking: RankingEntry[]; metric: Metric }) {
-  const unit = metric === 'points' ? 'XP' : 'Elo';
+  const unit = unitFor(metric);
   const target = ranking.filter(entry => score(entry, metric) > score(own, metric)).sort((a, b) => score(a, metric) - score(b, metric))[0];
   if (place(own, metric) === 1) return <div className="ranking-goal is-leading"><PixelSprite sprite={SPRITES.trophy} still /><div><strong>Jesteś na szczycie!</strong><p>Pierwsze miejsce jest Twoje. Utrzymaj prowadzenie.</p></div></div>;
   if (!target) return null;
@@ -54,7 +54,7 @@ function RankingGoal({ own, ranking, metric }: { own: RankingEntry; ranking: Ran
   const position = place(target, metric);
   return (
     <div className="ranking-goal">
-      <div className="ranking-goal-copy"><span>Twój następny cel{position ? `: #${position}` : ''}</span><strong>{target.username}</strong><p>Do wyprzedzenia <b>{format(gap)} {unit}</b></p></div>
+      <div className="ranking-goal-copy"><span>Twój następny cel{position ? `: #${position}` : ''}</span><strong>{target.username}</strong><p>Do wyprzedzenia <b>{formatNumberPL(gap)} {unit}</b></p></div>
       <Link to={metric === 'points' ? '/learn' : '/arena'} className="ranking-goal-action">{metric === 'points' ? 'Zdobądź XP' : 'Podejmij pojedynek'}<ArrowUpRight size={16} aria-hidden="true" /></Link>
       {goal > 0 && <progress className="ranking-goal-progress" max={goal} value={Math.max(0, score(own, metric))} aria-label={`Twój wynik na drodze do wyprzedzenia ${target.username}`} />}
     </div>
@@ -84,7 +84,7 @@ function PlayerRow({ entry, metric, username }: { entry: RankingEntry; metric: M
           </div>
         </div>
       </td>
-      <td className="ranking-score"><strong>{format(value)}</strong><span>{metric === 'points' ? 'XP' : 'Elo'}</span></td>
+      <td className="ranking-score"><strong>{formatNumberPL(value)}</strong><span>{unitFor(metric)}</span></td>
     </tr>
   );
 }

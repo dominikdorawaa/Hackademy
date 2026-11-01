@@ -21,6 +21,7 @@ import { Bell } from 'lucide-react';
 import { useRoomChrome } from './room/roomChrome';
 import { useArenaClock } from '../hooks/useArenaClock';
 import { secondsLeft } from './arena/battle/battleView';
+import { ELO_UNIT, formatNumberPL } from '../lib/units';
 
 type Notification =
   | { id: number; type: 'FRIEND_REQUEST'; from: string; timestamp: string; data: FriendRequestDto }
@@ -335,7 +336,7 @@ const Navbar = () => {
                                                         <div className="notification-body">
                                                             <p className="notification-message">
                                                                 <strong>{notif.from}</strong>
-                                                                {challenge?.challengerElo != null && <span className="notification-elo"><b>{challenge.challengerElo}</b> Elo</span>}
+                                                                {challenge?.challengerElo != null && <span className="notification-elo"><b>{formatNumberPL(challenge.challengerElo)}</b> {ELO_UNIT}</span>}
                                                             </p>
                                                             <p className="notification-type">
                                                                 {challenge

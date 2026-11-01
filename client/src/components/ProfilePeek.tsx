@@ -12,6 +12,7 @@ import * as friendApi from '../services/friendApi';
 import { levelFromPoints, rankTitleFromPoints } from '../lib/level';
 import type { BadgeDto, FriendshipStatus, UserProfileDto, UserSearchDto } from '../types/api';
 import '../styles/presence.css';
+import { XP_UNIT, formatNumberPL } from '../lib/units';
 
 interface PeekData {
   profile: UserProfileDto;
@@ -240,7 +241,7 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
               {profile.tagline && <span className="ud-peek-tagline">{profile.tagline}</span>}
               <span className="ud-peek-facts">
                 <span>
-                  <strong>{(Number(profile.points) || 0).toLocaleString('pl-PL')}</strong> XP
+                  <strong>{formatNumberPL(profile.points)}</strong> {XP_UNIT}
                 </span>
                 <span className="ud-peek-streak">
                   <i className="fas fa-fire" aria-hidden="true" />

@@ -2,6 +2,7 @@ import UserAvatar from './UserAvatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { RankingEntry } from '../types/api';
+import { formatNumberPL, unitFor, type ScoreMetric } from '../lib/units';
 
 type LeaderboardPlayer = Partial<RankingEntry> & {
   name?: string;
@@ -12,7 +13,7 @@ type LeaderboardPlayer = Partial<RankingEntry> & {
 type LeaderboardProps = {
   players: LeaderboardPlayer[];
   showTitle?: boolean;
-  type?: 'points' | 'elo';
+  type?: ScoreMetric;
   title?: string;
   currentUsername?: string;
   myRank?: RankingEntry | null;
@@ -96,10 +97,10 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                   <div className="player-score">
                     <span>
                         {type === 'points'
-                            ? (player.points || player.score || 0).toLocaleString()
-                            : (player.elo || 500).toLocaleString()}
+                            ? formatNumberPL(player.points || player.score || 0)
+                            : formatNumberPL(player.elo || 500)}
                     </span>
-                    <small>{type === 'points' ? 'punktów' : 'ELO'}</small>
+                    <small>{unitFor(type)}</small>
                   </div>
                 </div>
               );
@@ -133,10 +134,10 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                 <div className="player-score">
                   <span>
                       {type === 'points'
-                          ? myRank.points.toLocaleString()
-                          : myRank.elo.toLocaleString()}
+                          ? formatNumberPL(myRank.points)
+                          : formatNumberPL(myRank.elo)}
                   </span>
-                  <small>{type === 'points' ? 'punktów' : 'ELO'}</small>
+                  <small>{unitFor(type)}</small>
                 </div>
               </div>
             </>

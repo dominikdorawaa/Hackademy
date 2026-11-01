@@ -20,6 +20,8 @@ import RoomSplit from '../components/room/RoomSplit';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
 import { closeRoomActivity, openRoomActivity } from '../services/presenceApi';
+import { formatXp } from '../lib/units';
+import { xpAfterHints } from '../lib/level';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
@@ -31,7 +33,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unlockedHints, setUnlockedHints] = useState<number[]>([]);
-  const [potentialPoints, setPotentialPoints] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hintToUnlock, setHintToUnlock] = useState<number | null>(null);
 
@@ -110,7 +111,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         const unlocked = await response.json();
         setRoom(prev => prev ? { ...prev, hints: prev.hints.map(h => h.id === unlocked.id ? unlocked : h) } : null);
         setUnlockedHints([...unlockedHints, hintToUnlock]);
-        setPotentialPoints(Math.max(0, (room?.points ?? 0) * (1 - (unlockedHints.length + 1) * 0.25)));
         setToast({ message: 'Podpowiedź odblokowana!', type: 'success' });
     } catch (err) {
         setToast({ message: err instanceof Error ? err.message : String(err), type: 'error' });
@@ -194,12 +194,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         if (data.tasks && data.tasks.length > 0) {
             setActiveTask(Math.max(0, data.tasks.findIndex(t => !t.completed)));
         }
-        if (data.unlockedHintIds) {
-          setUnlockedHints(data.unlockedHintIds);
-          setPotentialPoints(Math.max(0, data.points * (1 - data.unlockedHintIds.length * 0.25)));
-        } else {
-          setPotentialPoints(data.points);
-        }
+        if (data.unlockedHintIds) setUnlockedHints(data.unlockedHintIds);
       } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
       finally { setLoading(false); }
     };
@@ -256,7 +251,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   };
 
   const handleCompleteRoom = async () => {
-    if (preview) { setToast({ message: 'Podgląd: postęp i punkty nie są zapisywane.', type: 'success' }); return; }
+    if (preview) { setToast({ message: 'Podgląd: postęp i XP nie są zapisywane.', type: 'success' }); return; }
     if (finishingRoom) return;
     setFinishingRoom(true);
     try {
@@ -296,7 +291,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   if (error) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
   if (!room) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
 
-  const pointsToDeduct = room.points * 0.25;
+  const potentialXp = xpAfterHints(room.points, unlockedHints.length);
+  const hintCost = potentialXp - xpAfterHints(room.points, unlockedHints.length + 1);
   const isSolved = room.solved;
   const showContent = !isSolved || isTrainingMode;
 
@@ -322,7 +318,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const previewBanner = preview && (
     <div role="status" className="room-preview">
-      <span>Podgląd administracyjny: postęp i punkty nie są zapisywane.</span>
+      <span>Podgląd administracyjny: postęp i XP nie są zapisywane.</span>
       <button type="button" className="room-btn room-btn--small" onClick={() => navigate(`/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`)}>Wróć do edycji pokoju</button>
     </div>
   );
@@ -340,7 +336,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const hintsBlock = showContent && room.hints && room.hints.length > 0 && (
     <section className="room-hints" aria-labelledby={`${titleId}-hints`}>
       <h2 className="room-section-title" id={`${titleId}-hints`}>Podpowiedzi</h2>
-      {!isTrainingMode && <p className="room-hints-points">Punkty do zdobycia: <strong>{Math.round(potentialPoints)}</strong></p>}
+      {!isTrainingMode && <p className="room-hints-points">XP do zdobycia: <strong>{formatXp(potentialXp)}</strong></p>}
       <ol>
         {room.hints.map((hint, index) => {
           const isUnlocked = unlockedHints.includes(hint.id);
@@ -354,7 +350,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 <p>{hint.description}</p>
               ) : (
                 <button type="button" onClick={() => handleUnlockHint(hint.id)} className="room-btn room-btn--small" disabled={!canUnlock}>
-                  {canUnlock ? (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${pointsToDeduct} pkt)`) : 'Zablokowane (odblokuj poprzednią)'}
+                  {canUnlock ? (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${formatXp(hintCost)})`) : 'Zablokowane (odblokuj poprzednią)'}
                 </button>
               )}
             </li>
@@ -367,7 +363,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const chips = (
     <div className="room-chips">
       <span className={`room-chip room-chip--${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>
-      <span className="room-chip room-chip--points">{room.points} pkt</span>
+      <span className="room-chip room-chip--points">{formatXp(room.points)}</span>
       {isSolved && <span className="room-chip room-chip--done"><Check aria-hidden="true" />Rozwiązany</span>}
     </div>
   );
@@ -380,7 +376,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     <>
       <ConfirmationModal
         isOpen={isModalOpen}
-        message={isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - brak kosztu punktowego)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${pointsToDeduct} punktów.`}
+        message={isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - bez utraty XP)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${formatXp(hintCost)}.`}
         onConfirm={confirmUnlockHint}
         onCancel={cancelUnlockHint}
       />
@@ -445,7 +441,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
           ) : (
             <div className="room-solved">
               <h2 className="room-section-title">Gratulacje!</h2>
-              <p>Ukończyłeś to wyzwanie i zdobyłeś {room.points} punktów.</p>
+              <p>Ukończyłeś to wyzwanie i zdobyłeś {formatXp(room.points)}.</p>
               <div className="room-solved-actions">
                 <button type="button" onClick={() => setIsTrainingMode(true)} className="room-btn">
                   <RotateCcw aria-hidden="true" />
@@ -461,7 +457,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
     return (
       <RoomFrame nav={nav} label="Pokój z flagą" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
-        footer={<RoomFooterBar title={room.title} badge={<span className="room-chip room-chip--points">{room.points} pkt</span>} next={finish} />}>
+        footer={<RoomFooterBar title={room.title} badge={<span className="room-chip room-chip--points">{formatXp(room.points)}</span>} next={finish} />}>
         {previewBanner}
         <RoomSplit variant="flat" start={descriptionPane} end={solvePane} initial={0.56} />
         {modals}
@@ -494,7 +490,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             onSelect: setActiveTask,
           }}
           title={task.title}
-          badge={<span className="room-chip room-chip--points">{room.points} pkt</span>}
+          badge={<span className="room-chip room-chip--points">{formatXp(room.points)}</span>}
           back={{ label: 'Wstecz', disabled: taskIndex === 0, onClick: () => setActiveTask(taskIndex - 1) }}
           next={next}
         />
