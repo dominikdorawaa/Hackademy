@@ -17,7 +17,7 @@ import CtfImportDialog from './CtfImportDialog';
 const copy: Record<RoomType, { title: string; description: string; empty: string }> = {
   CTF: {
     title: 'Pokoje CTF',
-    description: 'Zadania z flagą dostępne w arenie i rankingu. Punkty wynikają z poziomu trudności.',
+    description: 'Zadania z flagą dostępne w arenie i rankingu. XP wynika z poziomu trudności.',
     empty: 'Nie ma jeszcze pokoi CTF.',
   },
   PATH: {
@@ -124,7 +124,7 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
                 ) : (
                   <TableHead className="hidden sm:table-cell">Ścieżka</TableHead>
                 )}
-                <TableHead className="hidden text-right md:table-cell">Punkty</TableHead>
+                <TableHead className="hidden text-right md:table-cell">XP</TableHead>
                 <TableHead className="hidden md:table-cell">VPN</TableHead>
                 <TableHead className="text-right"><span className="sr-only">Akcje</span></TableHead>
               </TableRow>

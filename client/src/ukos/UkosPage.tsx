@@ -484,7 +484,7 @@ function CoursePage({ account, sessionKey }: { account: string; sessionKey: stri
               ? "Postęp zapisany na koncie"
               : "Postęp czeka na synchronizację"}
         </span>
-        <span>Pliki zostają w tej przeglądarce. Kurs nie daje punktów do rankingu.</span>
+        <span>Pliki zostają w tej przeglądarce. Kurs nie daje XP do rankingu.</span>
       </div>
       {(course.error || course.storageError) && (
         <div className="room-alert zero-alert" role="alert">

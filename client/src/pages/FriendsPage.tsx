@@ -16,6 +16,7 @@ import { levelFromPoints } from '../lib/level';
 import { Check, Mail, Search, Swords, User, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import '../components/room/room.css';
 import './FriendsPage.css';
+import { formatXp } from '../lib/units';
 
 const FriendsPage = () => {
     const { sessionKey } = useAuth();
@@ -236,7 +237,7 @@ const FriendsPage = () => {
                                         </span>
                                     </div>
                                     <p className="friends-card-stats">
-                                        <span className="room-chip room-chip--points">{friend.points} XP</span>
+                                        <span className="room-chip room-chip--points">{formatXp(friend.points)}</span>
                                         <span className="room-chip"><PixelSprite sprite={SPRITES.flame} still={!friend.streak} className="friends-flame" />{friend.streak} dni</span>
                                     </p>
                                     <div className="friends-card-actions">

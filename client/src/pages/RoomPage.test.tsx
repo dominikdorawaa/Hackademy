@@ -246,7 +246,7 @@ describe('CTF room', () => {
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     expect(await screen.findByText('Misja zakończona sukcesem!')).toBeInTheDocument();
     expect(document.querySelector('.success-flag .pixel-sprite')).toBeInTheDocument();
-    expect(screen.getByText('+50')).toBeInTheDocument();
+    expect(screen.getByText('+50 XP')).toBeInTheDocument();
     expect(bit()).toHaveAttribute('data-state', 'idle');
     await user.click(screen.getByRole('button', { name: 'Kontynuuj' }));
     expect(bit()).toHaveAttribute('data-state', 'jump');
@@ -303,26 +303,26 @@ describe('CTF room', () => {
     let unlocks = 0;
     server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => { unlocks++; return HttpResponse.json({ id: 1, order: 0, description: hintTexts[1] }); }));
     mountCtf();
-    expect(await screen.findByText('Punkty do zdobycia:')).toHaveTextContent('50');
+    expect(await screen.findByText('XP do zdobycia:')).toHaveTextContent('50 XP');
     expect(screen.queryByText(hintTexts[1])).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Zablokowane (odblokuj poprzednią)' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' }));
-    expect(screen.getByText('Czy na pewno chcesz odblokować tę podpowiedź? To odejmie 12.5 punktów.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-13 XP)' }));
+    expect(screen.getByText('Czy na pewno chcesz odblokować tę podpowiedź? To odejmie 13 XP.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Anuluj' }));
     expect(unlocks).toBe(0);
-    await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' }));
+    await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-13 XP)' }));
     await user.click(screen.getByRole('button', { name: 'Tak, odblokuj' }));
     expect(await screen.findByText('Zajrzyj do źródła strony')).toBeInTheDocument();
     expect(unlocks).toBe(1);
-    expect(screen.getByText('Punkty do zdobycia:')).toHaveTextContent('38');
-    expect(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' })).toBeEnabled();
+    expect(screen.getByText('XP do zdobycia:')).toHaveTextContent('37 XP');
+    expect(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12 XP)' })).toBeEnabled();
   });
 
   it('shows a failed hint unlock', async () => {
     const user = userEvent.setup();
     server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => HttpResponse.json({ message: 'x' }, { status: 500 })));
     mountCtf();
-    await user.click(await screen.findByRole('button', { name: 'Odblokuj podpowiedź (-12.5 pkt)' }));
+    await user.click(await screen.findByRole('button', { name: 'Odblokuj podpowiedź (-13 XP)' }));
     await user.click(screen.getByRole('button', { name: 'Tak, odblokuj' }));
     expect(await screen.findByText('Failed to unlock hint')).toBeInTheDocument();
     expect(screen.queryByText('Zajrzyj do źródła strony')).not.toBeInTheDocument();
@@ -337,7 +337,7 @@ describe('CTF room', () => {
     expect(screen.getByPlaceholderText('Wklej flagę tutaj...')).toBeInTheDocument();
     expect(screen.getByText('Zajrzyj do źródła strony')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Odblokuj (Trening)' })).toBeEnabled();
-    expect(screen.queryByText('Punkty do zdobycia:')).not.toBeInTheDocument();
+    expect(screen.queryByText('XP do zdobycia:')).not.toBeInTheDocument();
   });
 });
 

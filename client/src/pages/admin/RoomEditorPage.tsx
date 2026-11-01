@@ -16,6 +16,7 @@ import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
 import { roomBasePath, pointsForDifficulty, reservedRoomTitles } from './adminConfig';
 import { useAdminAccess } from './adminAccess';
 import { difficultyLabels } from '../../components/admin/adminFormat';
+import { formatXp } from '../../lib/units';
 
 function empty(kind: RoomType): RoomSave {
   return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: kind === 'PATH' ? 'Path' : 'Web', difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, flag: '', requiresVpn: false, roomType: kind, hints: [], published: false, tasks: [] };
@@ -147,9 +148,9 @@ function RoomEditor({ kind, roomId }: { kind: RoomType; roomId: string }) {
               <div className="md:col-span-2"><TextField name="description" label="Opis" value={form.description} limit={20000} required={form.published} multiline error={errors.description} onChange={description => change({ description })} /></div>
               {kind === 'CTF' && <>
                 <TextField name="category" label="Kategoria" value={form.category} limit={255} required error={errors.category} onChange={category => change({ category })} />
-                <div className="grid gap-2"><label htmlFor="content-difficulty">Trudność *</label><select id="content-difficulty" className="rounded border bg-background p-2" value={form.difficulty} onChange={e => change({ difficulty: e.target.value as DifficultyLevel, points: pointsForDifficulty[e.target.value as DifficultyLevel] })}>{Object.entries(difficultyLabels).map(([level, label]) => <option key={level} value={level}>{label}</option>)}</select><span className="text-xs text-muted-foreground">{pointsForDifficulty[form.difficulty]} pkt</span></div>
+                <div className="grid gap-2"><label htmlFor="content-difficulty">Trudność *</label><select id="content-difficulty" className="rounded border bg-background p-2" value={form.difficulty} onChange={e => change({ difficulty: e.target.value as DifficultyLevel, points: pointsForDifficulty[e.target.value as DifficultyLevel] })}>{Object.entries(difficultyLabels).map(([level, label]) => <option key={level} value={level}>{label}</option>)}</select><span className="text-xs text-muted-foreground">{formatXp(pointsForDifficulty[form.difficulty])}</span></div>
               </>}
-              {kind === 'PATH' && <div className="grid gap-2"><label htmlFor="content-points">Punkty *</label><Input id="content-points" type="number" min={0} value={Number.isNaN(form.points) ? '' : form.points} onChange={e => change({ points: e.target.value === '' ? NaN : Number(e.target.value) })} aria-invalid={!!errors.points} />{errors.points && <p role="alert" className="text-destructive">{errors.points}</p>}</div>}
+              {kind === 'PATH' && <div className="grid gap-2"><label htmlFor="content-points">XP *</label><Input id="content-points" type="number" min={0} value={Number.isNaN(form.points) ? '' : form.points} onChange={e => change({ points: e.target.value === '' ? NaN : Number(e.target.value) })} aria-invalid={!!errors.points} />{errors.points && <p role="alert" className="text-destructive">{errors.points}</p>}</div>}
               <TextField name="flag" label="Flaga" value={form.flag} limit={255} required={form.published && !form.tasks.length} error={errors.flag} onChange={flag => change({ flag })} />
               <div className="grid gap-2"><label htmlFor="content-file">Plik do pobrania</label><FilePicker key={form.revision} id="content-file" file={file} onChange={setFile} /><p className="text-xs text-muted-foreground">Do 50 MB. Pozostaw puste, aby zachować zapisany plik.</p>{errors.file && <p role="alert" className="text-destructive">{errors.file}</p>}</div>
               <div className="flex items-center gap-3"><Switch id="room-vpn" checked={form.requiresVpn} onCheckedChange={requiresVpn => change({ requiresVpn })} /><label htmlFor="room-vpn">Wymaga VPN</label></div>

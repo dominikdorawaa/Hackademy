@@ -39,7 +39,7 @@ export function PrivacyPage() {
         <li>Dane konta: adres e-mail, nazwa użytkownika oraz identyfikator konta u dostawcy logowania.</li>
         <li>Dane z Google lub GitHub, jeśli logujesz się w ten sposób: adres e-mail, imię i nazwisko lub nazwa konta oraz zdjęcie profilowe.</li>
         <li>Profil, który uzupełniasz sam: opis, hasło przewodnie, zainteresowania, awatar i wyróżnione odznaki.</li>
-        <li>Postępy w nauce: zapisy na ścieżki, ukończone zadania i pokoje, odblokowane podpowiedzi, punkty, seria dni, ranking, odznaki i czas aktywności.</li>
+        <li>Postępy w nauce: zapisy na ścieżki, ukończone zadania i pokoje, odblokowane podpowiedzi, punkty doświadczenia (XP), seria dni, ranking, odznaki i czas aktywności.</li>
         <li>Aktywność społeczna: znajomi, wiadomości na czacie podczas pojedynków w Arenie i zgłoszenia tych wiadomości.</li>
         <li>Ustawienia aplikacji: preferencje powiadomień, motyw i postęp samouczka. Część z nich zapisujemy w pamięci przeglądarki.</li>
         <li>Dane techniczne: adres IP, informacje o przeglądarce i dzienniki serwera potrzebne do działania i ochrony serwisu.</li>
@@ -69,7 +69,7 @@ export function PrivacyPage() {
 
       <h2>Co widzą inni użytkownicy</h2>
       <p>
-        Twoja nazwa użytkownika, awatar, profil, odznaki, punkty i miejsce w rankingu są widoczne dla innych użytkowników.
+        Twoja nazwa użytkownika, awatar, profil, odznaki, XP i miejsce w rankingu są widoczne dla innych użytkowników.
         Adres e-mail nie jest pokazywany publicznie.
       </p>
 
@@ -141,7 +141,7 @@ export function TermsPage() {
       <h2>Uczciwa rywalizacja</h2>
       <ul>
         <li>Nie publikuj rozwiązań ani flag zadań i nie podawaj ich innym.</li>
-        <li>Nie zawyżaj punktów, rankingu ani wyników w Arenie przez boty, wiele kont lub błędy serwisu.</li>
+        <li>Nie zawyżaj punktów doświadczenia (XP), rankingu ani wyników w Arenie przez boty, wiele kont lub błędy serwisu.</li>
       </ul>
 
       <h2>Czat i zachowanie</h2>

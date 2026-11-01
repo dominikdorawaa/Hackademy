@@ -17,6 +17,7 @@ import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
 import { ArenaRankPanel } from '../components/dashboard/ArenaRankPanel';
 import type { DashboardUser, RankingEntry, RecentSolvedRoomDto, PathSummaryDto, PathProgressDto, PathRoomMiniDto } from '../types/api';
+import { XP_UNIT, formatNumberPL, formatXp } from '../lib/units';
 
 const clamp01 = (n: number) => Math.min(1, Math.max(0, n));
 
@@ -33,7 +34,6 @@ const formatDuration = (totalSeconds: number) => {
 const formatRelativeTimeFromIso = (isoDateTime: string) =>
   isoDateTime ? formatRelativeTimePL(new Date(isoDateTime).getTime()) : '';
 
-const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
 const flagsLabelPL = (n: number) => {
   const mod10 = n % 10;
@@ -366,7 +366,7 @@ const UserDashboardPage = () => {
       {today.flags > 0 ? (
         <>
           <span className="ud-today-label">{today.capped ? 'Dzisiaj, co najmniej' : 'Dzisiaj'}</span>
-          <span className="ud-today-xp">+{formatNumberPL(today.xp)} XP</span>
+          <span className="ud-today-xp">+{formatXp(today.xp)}</span>
           <span className="ud-today-flags">{flagsLabelPL(today.flags)}</span>
         </>
       ) : (
@@ -518,7 +518,7 @@ const UserDashboardPage = () => {
                 Poziom {stats.level}, {stats.rankTitle}
               </h2>
               <p className="ud-level-xp">
-                <strong>{formatNumberPL(stats.points)}</strong> XP
+                <strong>{formatNumberPL(stats.points)}</strong> {XP_UNIT}
               </p>
               <div
                 className="ud-meter"
@@ -531,7 +531,7 @@ const UserDashboardPage = () => {
                 <span style={{ '--ud-fill': stats.levelProgress } as React.CSSProperties} />
               </div>
               <p className="ud-muted">
-                {xpToNext} XP do poziomu {stats.level + 1}
+                {formatXp(xpToNext)} do poziomu {stats.level + 1}
               </p>
               <dl className="ud-facts">
                 <div>
@@ -565,7 +565,7 @@ const UserDashboardPage = () => {
                         <Link className="ud-flag" to={roomHref(x.roomId, { kind: 'dashboard' })}>
                           <span className="ud-flag-title">{x?.title}</span>
                           <span className={`ud-diff is-${diff.cls}`}>{diff.label}</span>
-                          <span className="ud-flag-xp">+{x?.points ?? 0} XP</span>
+                          <span className="ud-flag-xp">+{formatXp(x?.points ?? 0)}</span>
                           <span className="ud-flag-time">{formatRelativeTimeFromIso(x?.solvedAt)}</span>
                         </Link>
                       </li>
@@ -606,7 +606,7 @@ const UserDashboardPage = () => {
                       <span className="ud-friend-who">
                         <ProfilePeek className="ud-friend-name" username={f.username} sessionKey={sessionKey} />
                         <span className="ud-friend-xp">
-                          {formatNumberPL(f.points)} XP, poziom {levelFromPoints(f.points)}
+                          {formatXp(f.points)}, poziom {levelFromPoints(f.points)}
                         </span>
                       </span>
                       <span className="ud-friend-h2h">
@@ -664,9 +664,9 @@ const UserDashboardPage = () => {
 
               <p className="ud-gap">
                 {board.above
-                  ? `Do miejsca #${board.aboveRank} brakuje Ci ${formatNumberPL(board.gapUp)} XP.`
+                  ? `Do miejsca #${board.aboveRank} brakuje Ci ${formatXp(board.gapUp)}.`
                   : board.below
-                    ? `Prowadzisz. Przewaga nad miejscem #${board.belowRank}: ${formatNumberPL(board.leadDown)} XP.`
+                    ? `Prowadzisz. Przewaga nad miejscem #${board.belowRank}: ${formatXp(board.leadDown)}.`
                     : 'Rozwiąż pokój, żeby pojawić się w rankingu.'}
               </p>
               {board.above && board.position && (
@@ -677,10 +677,10 @@ const UserDashboardPage = () => {
                   <div className="ud-scale-ends">
                     <span className="ud-scale-end">
                       <span className="ud-place">{board.below ? `#${board.belowRank}` : 'Start'}</span>
-                      <span>{formatNumberPL(board.scaleLow)} XP</span>
+                      <span>{formatXp(board.scaleLow)}</span>
                     </span>
                     <span className="ud-scale-end">
-                      <span>{formatNumberPL(board.above.points || 0)} XP</span>
+                      <span>{formatXp(board.above.points || 0)}</span>
                       <span className="ud-place">#{board.aboveRank}</span>
                     </span>
                   </div>
@@ -701,7 +701,7 @@ const UserDashboardPage = () => {
                         ) : (
                           <span className="ud-name">–</span>
                         )}
-                        <span className="ud-pts">{formatNumberPL(p?.points || 0)} XP</span>
+                        <span className="ud-pts">{formatXp(p?.points || 0)}</span>
                       </li>
                     );
                   })}

@@ -234,7 +234,7 @@ describe('room title and scoring rules', () => {
     await screen.findByLabelText('Tytuł *');
     expect(screen.queryByLabelText('Punkty *')).not.toBeInTheDocument();
     await user.selectOptions(screen.getByLabelText('Trudność *'), 'INSANE');
-    expect(screen.getByText('200 pkt')).toBeInTheDocument();
+    expect(screen.getByText('200 XP')).toBeInTheDocument();
   });
   it('shows a duplicate room title in a chapter reported by the backend', async () => {
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: 5, pathTitle: 'Web' }])),
@@ -261,7 +261,7 @@ describe('administrative preview', () => {
     expect(screen.queryByRole('button', { name: 'Zgłoś błąd' })).toBeNull();
     await user.click(screen.getByRole('button', { name: /Przeczytane|Ukończ zadanie|Oznacz/i }));
     await user.click(screen.getByRole('button', { name: /Ukończ pokój/ }));
-    expect(await screen.findByText('Podgląd: postęp i punkty nie są zapisywane.')).toBeInTheDocument();
+    expect(await screen.findByText('Podgląd: postęp i XP nie są zapisywane.')).toBeInTheDocument();
     expect(writes).toEqual([]);
   });
   it('simulates flag and hint actions locally and downloads only from the protected preview endpoint', async () => {

@@ -32,7 +32,7 @@ export function EloHelp() {
         aria-label="Jak działa Elo" onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()}
         onPointerEnter={() => clearTimeout(closeTimer.current)} onPointerLeave={leave}>
         <strong>Elo to Twoja siła w pojedynkach.</strong>
-        <p>Grasz w Trybie rankingowym: wygrywasz, to rośnie, przegrywasz, to spada. Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.</p>
+        <p>Grasz w Trybie rankingowym: wygrywasz, to rośnie, przegrywasz, to spada. Pokonanie mocniejszego gracza daje więcej Elo. Każdy zaczyna z 500.</p>
       </Popover.Content>
     </Popover.Portal>
   </Popover.Root>;

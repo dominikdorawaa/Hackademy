@@ -2,13 +2,14 @@ import type { ReactNode } from 'react';
 import UserAvatar from './UserAvatar';
 import type { AvatarConfig } from '../types/api';
 import './InvitationCard.css';
+import { ELO_UNIT, formatNumberPL } from '../lib/units';
 
 export type InvitationKind = 'friend' | 'challenge';
 
 function Fighter({ name, avatar, elo, label, own }: { name: string; avatar?: AvatarConfig | null; elo?: number | null; label: string; own?: boolean }) {
   return <span className="invite-fighter">
     <UserAvatar className={own ? 'invite-portrait invite-portrait-own' : 'invite-portrait'} username={name} avatar={avatar} alt="" />
-    {elo != null && <span className="invite-elo" aria-label={`${label}: ${elo}`}><b>{elo}</b> Elo</span>}
+    {elo != null && <span className="invite-elo" aria-label={`${label}: ${elo}`}><b>{formatNumberPL(elo)}</b> {ELO_UNIT}</span>}
   </span>;
 }
 
