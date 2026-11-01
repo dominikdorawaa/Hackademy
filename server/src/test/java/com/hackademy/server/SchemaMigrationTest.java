@@ -73,13 +73,13 @@ class SchemaMigrationTest {
     void addsClerkIdentityAfterNotificationMigrationsWithoutChangingExistingAccounts() throws Exception {
         flyway("20").migrate();
         insertUser(1, "Alice", "alice@example.com");
-        execute("INSERT INTO user_notification_preferences (user_id, sound, friend_online, friend_online_bell, game_sounds) VALUES (1, false, false, false, false)");
+        execute("INSERT INTO user_notification_preferences (user_id, sound, friend_online, friend_online_bell) VALUES (1, false, false, false)");
 
         assertEquals(SCHEMA_VERSION - 20, flyway().migrate().migrationsExecuted);
         assertEquals(String.valueOf(SCHEMA_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
         assertEquals("clerk identity", text("SELECT description FROM flyway_schema_history WHERE version = '21'"));
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE id = 1 AND username = 'Alice' AND email = 'alice@example.com' AND password = 'p' AND clerk_user_id IS NULL"));
-        assertEquals(1, scalar("SELECT count(*) FROM user_notification_preferences WHERE user_id = 1 AND NOT sound AND NOT friend_online AND NOT friend_online_bell AND NOT game_sounds"));
+        assertEquals(1, scalar("SELECT count(*) FROM user_notification_preferences WHERE user_id = 1 AND NOT sound AND NOT friend_online AND NOT friend_online_bell AND game_sounds"));
         execute("UPDATE users SET clerk_user_id = 'user_alice', password = NULL WHERE id = 1");
         assertEquals(0, flyway().migrate().migrationsExecuted);
         assertTrue(flyway().validateWithResult().validationSuccessful);

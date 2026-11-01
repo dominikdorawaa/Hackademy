@@ -59,6 +59,8 @@ describe('battle sounds', () => {
     rerender({ left: 3, answered: false });
     rerender({ left: 3, answered: false });
     rerender({ left: 2, answered: false });
+    rerender({ left: 3, answered: false });
+    rerender({ left: 2, answered: false });
     rerender({ left: 1, answered: true });
     expect(sounds.play.mock.calls).toEqual([['arenaTick'], ['arenaTick']]);
   });

@@ -161,7 +161,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       const data = await response.json();
       if (response.ok && data.success) {
         if (!room?.solved) celebrate('room');
-        playSound('roomCompleted');
+        playSound(room?.solved ? 'taskSolved' : 'roomCompleted');
         setSubmitStatus('success');
         setSubmitMessage(data.message ?? '');
         setRoom(prev => prev ? { ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 } : null);
@@ -235,21 +235,22 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         }
         const data = await response.json();
         if (response.ok && data.success) {
+            const roomDone = data.message?.includes('Pokój ukończony') ?? false;
             celebrate(`task:${taskId}`);
-            playSound(data.message?.includes('Pokój ukończony') ? 'roomCompleted' : 'taskSolved');
+            playSound(roomDone ? 'roomCompleted' : 'taskSolved');
             setToast({ message: data.message ?? '', type: 'success' });
             setRoom(prev => prev ? ({
                 ...prev,
                 tasks: prev.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t),
-                solved: data.message?.includes('Pokój ukończony') ? true : prev.solved
+                solved: roomDone ? true : prev.solved
             }) : null);
-            if (data.message?.includes('Pokój ukończony')) {
+            if (roomDone) {
                 setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
                 setSuccessMessage("Wszystkie zadania wykonane! Pokój ukończony.");
                 setShowSuccessModal(true);
             }
         } else {
-            playSound('learningError');
+            if (task.question) playSound('learningError');
             setToast({ message: data.message || 'Niepoprawna odpowiedź', type: 'error' });
         }
     } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
@@ -268,7 +269,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         return;
       }
       if (!room?.solved) celebrate('room');
-      playSound('roomCompleted');
+      playSound(room?.solved ? 'taskSolved' : 'roomCompleted');
       setRoom((previous) => previous ? { ...previous, solved: true } : null);
       setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
       setSuccessMessage('Wszystkie zadania wykonane! Pokój ukończony.');

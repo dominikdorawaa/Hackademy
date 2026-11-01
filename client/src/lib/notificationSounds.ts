@@ -1,7 +1,7 @@
 export type SoundEvent = 'friendRequests' | 'challenges' | 'matchFound' | 'friendOnline';
 export type GameSoundEvent = 'arenaCorrect' | 'arenaWrong' | 'arenaWin' | 'arenaLoss' | 'arenaDraw' | 'arenaTick'
   | 'taskSolved' | 'roomCompleted' | 'learningError';
-type AnySoundEvent = SoundEvent | GameSoundEvent;
+export type AnySoundEvent = SoundEvent | GameSoundEvent;
 
 interface Tone {
   at: number;
@@ -178,7 +178,6 @@ export function playSound(event: AnySoundEvent, variant = selectedVariant(event)
 
 const playingUntil = new Map<GameSoundEvent, number>();
 
-/** Plays a game sound only in a visible tab and never on top of the same, still ringing sound. */
 export function playGameSound(event: GameSoundEvent) {
   if (document.visibilityState === 'hidden') return false;
   const now = Date.now();

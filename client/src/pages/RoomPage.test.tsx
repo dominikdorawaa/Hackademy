@@ -403,7 +403,7 @@ describe('Bit room integration', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Oznacz jako przeczytane' }));
     expect(await screen.findByText('Zapis nieudany')).toBeInTheDocument();
     expect(bit()).toHaveAttribute('data-state', 'idle');
-    expect(sounds.play.mock.calls).toEqual([['learningError']]);
+    expect(sounds.play).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Oznacz jako przeczytane' })).toBeEnabled();
   });
 
@@ -417,6 +417,7 @@ describe('Bit room integration', () => {
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     await user.click(await screen.findByRole('button', { name: 'Kontynuuj' }));
     expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(sounds.play.mock.calls).toEqual([['taskSolved']]);
   });
 
   it('does not treat an unsuccessful flag response as a completion even with HTTP 200', async () => {

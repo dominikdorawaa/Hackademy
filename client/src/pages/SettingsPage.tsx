@@ -19,7 +19,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import type { Icon } from '@phosphor-icons/react';
 import { useUsernameChange, validateUsername } from '../hooks/useUsernameChange';
 import { chooseVariant, playSound, selectedVariant, soundVariants, unlockAudio } from '../lib/notificationSounds';
-import type { GameSoundEvent, SoundEvent } from '../lib/notificationSounds';
+import type { AnySoundEvent, GameSoundEvent, SoundEvent } from '../lib/notificationSounds';
 import { USERNAME_MAX } from '../lib/username';
 import { getActivitySharing, saveActivitySharing } from '../services/presenceApi';
 
@@ -34,7 +34,7 @@ type Section = keyof typeof sections;
 const soundEvents: SoundEvent[] = ['friendRequests', 'challenges', 'matchFound', 'friendOnline'];
 const gameSoundEvents: GameSoundEvent[] = ['arenaCorrect', 'arenaWrong', 'arenaTick', 'arenaWin', 'arenaLoss', 'arenaDraw',
   'taskSolved', 'roomCompleted', 'learningError'];
-const eventNames: Record<SoundEvent | GameSoundEvent, string> = {
+const eventNames: Record<AnySoundEvent, string> = {
   friendRequests: 'Zaproszenie do znajomych', challenges: 'Wyzwanie w Arenie', matchFound: 'Znaleziony mecz', friendOnline: 'Znajomy online',
   arenaCorrect: 'Arena: dobra odpowiedź', arenaWrong: 'Arena: zła odpowiedź', arenaTick: 'Arena: ostatnie sekundy',
   arenaWin: 'Arena: wygrana', arenaLoss: 'Arena: przegrana', arenaDraw: 'Arena: remis',
@@ -131,7 +131,7 @@ export default function SettingsPage() {
   const [sharingFailed, setSharingFailed] = useState(false);
   const [sharingAttempt, setSharingAttempt] = useState(0);
   const [variants, setVariants] = useState(() => Object.fromEntries([...soundEvents, ...gameSoundEvents]
-    .map(event => [event, selectedVariant(event).id])) as Record<SoundEvent | GameSoundEvent, string>);
+    .map(event => [event, selectedVariant(event).id])) as Record<AnySoundEvent, string>);
 
   useEffect(() => {
     if (!sessionKey) return;
@@ -221,7 +221,7 @@ export default function SettingsPage() {
     const saved = await update(key, value);
     if (saved) setFeedback({ message: 'Preferencje zostały zapisane.', error: false });
   };
-  const previewSound = async (event: SoundEvent | GameSoundEvent, game: boolean) => {
+  const previewSound = async (event: AnySoundEvent, game: boolean) => {
     if (!await unlockAudio() || !playSound(event)) {
       setFeedback({ message: 'Ta przeglądarka nie odtwarza dźwięków na tej stronie.', error: true });
       return;
@@ -229,7 +229,7 @@ export default function SettingsPage() {
     const enabled = game ? preferences.gameSounds : preferences.sound;
     setFeedback(enabled ? null : { message: `Tak brzmi ten sygnał. Włącz „${game ? 'Dźwięki gry' : 'Dźwięk'}”, aby grał przy prawdziwych zdarzeniach.`, error: false });
   };
-  const soundPicker = (events: (SoundEvent | GameSoundEvent)[], game: boolean) => <details className="settings-sounds">
+  const soundPicker = (events: (AnySoundEvent)[], game: boolean) => <details className="settings-sounds">
     <summary>Wybierz sygnały<CaretDown size={14} aria-hidden="true" /></summary>
     <ul className="settings-sound-list" aria-label={game ? 'Dźwięki gry do odsłuchania' : 'Sygnały do odsłuchania'}>{events.map(event => <li key={event}>
       <span>{eventNames[event]}</span>
