@@ -133,7 +133,7 @@ describe('chapters editor', () => {
     const pool = within(screen.getByRole('complementary', { name: 'Pula pokoi' }));
     expect(pool.getByText('SQL')).toBeInTheDocument();
     expect(pool.queryByText('Obcy')).toBeNull();
-    expect(pool.queryByText('Flaga CTF')).toBeNull();
+    expect(pool.getByText('Flaga CTF')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Zapisz rozdziały' })).toBeDisabled();
 
     await user.click(screen.getByRole('button', { name: 'Dodaj rozdział' }));

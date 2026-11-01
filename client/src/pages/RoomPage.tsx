@@ -306,7 +306,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const tasks = room.tasks || [];
   const completedTasksCount = tasks.filter(t => t.completed).length;
-  const backTo = preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : roomReturn.to;
+  const backTo = preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/paths/rooms/${id}`) : roomReturn.to;
   const nextRoom = preview ? null : roomReturn.next;
   const reportedTask = tasks.length > 0 ? tasks[Math.min(activeTask, tasks.length - 1)].id : undefined;
 
@@ -327,7 +327,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const previewBanner = preview && (
     <div role="status" className="room-preview">
       <span>Podgląd administracyjny: postęp i XP nie są zapisywane.</span>
-      <button type="button" className="room-btn room-btn--small" onClick={() => navigate(`/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`)}>Wróć do edycji pokoju</button>
+      <button type="button" className="room-btn room-btn--small" onClick={() => navigate(`/admin/paths/rooms/${id}`)}>Wróć do edycji pokoju</button>
     </div>
   );
 

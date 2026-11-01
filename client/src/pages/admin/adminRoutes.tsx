@@ -30,11 +30,9 @@ const adminRoutes = (
     <Route path="preview/rooms/:id" element={<RoomPage preview />} />
     <Route path="preview/paths/:id" element={<PathDetailPage preview />} />
     <Route path="paths" element={<PathsPage />} />
-    <Route path="paths/rooms" element={<RoomsPage key="PATH" kind="PATH" />} />
-    <Route path="paths/rooms/:roomId" element={<RoomEditorPage key="PATH" kind="PATH" />} />
+    <Route path="paths/rooms" element={<RoomsPage />} />
+    <Route path="paths/rooms/:roomId" element={<RoomEditorPage />} />
     <Route path="paths/:pathId" element={<PathEditorPage />} />
-    <Route path="ctf" element={<RoomsPage key="CTF" kind="CTF" />} />
-    <Route path="ctf/:roomId" element={<RoomEditorPage key="CTF" kind="CTF" />} />
     <Route path="*" element={<Navigate to="/admin" replace />} />
   </Route>
 );

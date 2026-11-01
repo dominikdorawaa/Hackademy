@@ -19,7 +19,4 @@ public record UpdateRoomRequest(
         RoomType roomType,
         @Size(max = 100) List<@NotBlank @Size(max = 2000) String> hints
 ) {
-    public UpdateRoomRequest {
-        if (roomType == null) roomType = RoomType.CTF;
-    }
 }

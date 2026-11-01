@@ -97,7 +97,7 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException {
-        RoomType roomType = createRoomRequest.roomType() == null ? RoomType.CTF : createRoomRequest.roomType();
+        RoomType roomType = createRoomRequest.roomType() == null ? RoomType.PATH : createRoomRequest.roomType();
         String title = createRoomRequest.title().trim();
         checkTitle(null, title, roomType);
         Room room = Room.builder()
@@ -132,58 +132,6 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoomSummaryDto> getAllRooms(String username) {
-        return getAllRoomsByType(username, RoomType.CTF);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RoomSummaryDto> getAllRoomsByType(String username, RoomType roomType) {
-        List<RoomSummaryDto> rooms = roomRepository.findAllSummaries();
-        
-        Set<Long> solvedRoomIds;
-        boolean hasTutorialVPN = false;
-        boolean hasTutorialVM = false;
-
-        if (username != null) {
-            Long userId = userRepository.findIdByUsername(username)
-                    .orElseThrow(() -> new UserNotFoundException("User not found"));
-            
-            solvedRoomIds = userSolvedRoomRepository.findSolvedRoomIdsByUserId(userId).stream()
-                    .collect(Collectors.toSet());
-            
-            List<String> solvedTitles = userSolvedRoomRepository.findSolvedRoomTitlesByUserId(
-                    userId,
-                    List.of("Tutorial VPN", "Tutorial VM")
-            );
-            hasTutorialVPN = solvedTitles.contains("Tutorial VPN");
-            hasTutorialVM = solvedTitles.contains("Tutorial VM");
-        } else {
-            solvedRoomIds = Set.of();
-        }
-
-        boolean finalHasTutorialVPN = hasTutorialVPN;
-        boolean finalHasTutorialVM = hasTutorialVM;
-        
-        rooms.forEach(room -> {
-            room.setSolved(solvedRoomIds.contains(room.getId()));
-            
-            if ("Tutorial VPN".equals(room.getTitle()) && !finalHasTutorialVM) {
-                room.setLocked(true);
-            }
-            
-            if (room.isRequiresVpn() && !finalHasTutorialVPN) {
-                room.setLocked(true);
-            }
-        });
-
-        return rooms.stream()
-                .filter(r -> roomType == null || r.getRoomType() == roomType)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public List<RoomAdminSummaryDto> getAllRoomsForAdmin() {
         return roomRepository.findAllAdminSummaries();
     }
@@ -193,11 +141,7 @@ public class RoomServiceImpl implements RoomService {
     public Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
         Room room = roomRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
-        RoomType newRoomType = updateRoomRequest.roomType() == null ? RoomType.CTF : updateRoomRequest.roomType();
-        if (newRoomType != RoomType.PATH && chapterRoomRepository.existsByRoomId(id)) {
-            throw new IllegalArgumentException("Pokój należy do ścieżki. Usuń go z rozdziału, zanim zmienisz jego typ.");
-        }
-
+        RoomType newRoomType = updateRoomRequest.roomType() == null ? room.getRoomType() : updateRoomRequest.roomType();
         if (newRoomType != RoomType.PATH && !room.getTasks().isEmpty()) {
             throw new IllegalArgumentException("Usuń zadania przed zmianą typu pokoju na CTF.");
         }

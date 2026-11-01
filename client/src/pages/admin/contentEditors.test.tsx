@@ -73,14 +73,14 @@ describe('draft editors and guarded navigation', () => {
   it('keeps edits when continuing and discards them only when explicitly leaving', async () => {
     const user = userEvent.setup(); const router = mount('/admin/paths/5');
     await user.type(await screen.findByLabelText('Tytuł *'), ' lokalny');
-    await user.click(screen.getByRole('link', { name: 'Pokoje CTF' }));
+    await user.click(screen.getByRole('link', { name: 'Pokoje' }));
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Kontynuuj edycję' }));
     expect(router.state.location.pathname).toBe('/admin/paths/5');
     expect(screen.getByLabelText('Tytuł *')).toHaveValue('Web lokalny');
-    await user.click(screen.getByRole('link', { name: 'Pokoje CTF' }));
+    await user.click(screen.getByRole('link', { name: 'Pokoje' }));
     await user.click(screen.getByRole('button', { name: 'Wyjdź bez zapisywania' }));
-    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/ctf'));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/rooms'));
   });
   it('does not navigate on failed save-and-leave, focuses first invalid field and keeps all data', async () => {
     const user = userEvent.setup(); const router = mount('/admin/paths/5');
@@ -214,7 +214,7 @@ describe('room title and scoring rules', () => {
   });
   it('rejects reserved tutorial titles before saving a new room', async () => {
     const save = vi.spyOn(contentApi, 'saveRoom');
-    const user = userEvent.setup(); mount('/admin/ctf/new');
+    const user = userEvent.setup(); mount('/admin/paths/rooms/new');
     await user.type(await screen.findByLabelText('Tytuł *'), ' tutorial VPN ');
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     expect(await screen.findByText('Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka')).toBeInTheDocument();
@@ -223,16 +223,19 @@ describe('room title and scoring rules', () => {
   it('keeps the title of an existing tutorial room editable', async () => {
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, title: 'Tutorial VM', roomType: 'CTF', category: 'Tutorial' }, tasks: { revision: 0, tasks: [] } })));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, title: 'Tutorial VM', roomType: 'CTF', category: 'Tutorial' }, tasks: { revision: 0, tasks: [] } });
-    const user = userEvent.setup(); mount('/admin/ctf/9');
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
     await user.type(await screen.findByLabelText('Opis'), ' nowy');
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1].title).toBe('Tutorial VM');
   });
-  it('shows CTF points derived from difficulty without an editable points field', async () => {
-    const user = userEvent.setup(); mount('/admin/ctf/new');
+  it('edits a moved CTF room in the rooms tab with points derived from difficulty', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF', category: 'Web', points: 50 }, tasks: { revision: 0, tasks: [] } })));
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
     await screen.findByLabelText('Tytuł *');
-    expect(screen.queryByLabelText('Punkty *')).not.toBeInTheDocument();
+    expect(screen.queryByLabelText('XP *')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Dodaj zadanie' })).not.toBeInTheDocument();
+    expect(screen.getByRole('link', { name: '← Pokoje' })).toHaveAttribute('href', '/admin/paths/rooms');
     await user.selectOptions(screen.getByLabelText('Trudność *'), 'INSANE');
     expect(screen.getByText('200 XP')).toBeInTheDocument();
   });
@@ -284,6 +287,7 @@ describe('administrative preview', () => {
     expect(downloads).toBe(1); expect(writes).toEqual([]);
     await user.click(screen.getByRole('button', { name: 'Wróć do edycji pokoju' }));
     expect(await screen.findByRole('heading', { name: 'Pokój', level: 1 })).toBeInTheDocument();
+    expect(await screen.findByLabelText('Trudność *')).toBeInTheDocument();
   });
   it('shows chapters and rooms in order and opens a draft room with a return to the path preview', async () => {
     server.use(http.get(`${API_URL}/api/admin/content/paths/5/preview`, () => HttpResponse.json({ ...path, enrolled: true, rooms: [], chapters: [{ id: 11, title: 'Wstęp', totalRooms: 1, solvedRooms: 0, rooms: [{ ...room, solved: false, locked: false }] }] })),

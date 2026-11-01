@@ -13,7 +13,6 @@ export interface RoomSave extends RoomWriteRequest {
 }
 export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null }
 export interface RoomImportTarget { chapterId: number; contentRevision: number; chaptersRevision: number }
-export interface CtfImportResult { roomIds: number[]; count: number }
 export class ContentError extends Error {
   fields: FieldErrors;
   constructor(message: string, fields: FieldErrors = {}) { super(message); this.fields = fields; }
@@ -41,10 +40,6 @@ export function importPath(file: File, sessionKey: string | null) {
   const body = new FormData();
   body.append('file', file);
   return contentRequest<PathAdminDetailDto>('/paths/import', sessionKey, { method: 'POST', body });
-}
-export function importCtfRooms(file: File, sessionKey: string | null) {
-  const body = new FormData(); body.append('file', file);
-  return contentRequest<CtfImportResult>('/ctf/import', sessionKey, { method: 'POST', body });
 }
 export function importPathRooms(id: number, target: RoomImportTarget, file: File, sessionKey: string | null) {
   const body = new FormData();

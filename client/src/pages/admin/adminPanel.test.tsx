@@ -87,10 +87,10 @@ const stats: AdminStatsDto = {
   ],
   solvesBySource: [
     { key: 'path-1', label: 'Web', count: 6 },
-    { key: 'ctf', label: 'CTF', count: 2 },
+    { key: 'paths-unassigned', label: 'Pokoje poza ścieżkami', count: 2 },
   ],
   recentSolves: [
-    { username: 'ania', roomId: 3, roomTitle: 'SQL Injection 101', roomType: 'CTF', pathTitle: null, solvedAt: '2026-10-10T10:00:00' },
+    { username: 'ania', roomId: 3, roomTitle: 'SQL Injection 101', pathTitle: 'Zadania CTF', solvedAt: '2026-10-10T10:00:00' },
   ],
 };
 
@@ -131,9 +131,10 @@ describe('admin panel layout', () => {
     mountAdmin('/admin/users');
 
     expect(await screen.findByRole('heading', { name: 'Użytkownicy', level: 1 })).toBeInTheDocument();
-    for (const name of ['Pulpit', 'Ścieżki', 'Pokoje ścieżek', 'Pokoje CTF', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia błędów']) {
+    for (const name of ['Pulpit', 'Ścieżki', 'Pokoje', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia błędów']) {
       expect(navigation().getByRole('link', { name })).toBeInTheDocument();
     }
+    expect(navigation().queryByRole('link', { name: 'Pokoje CTF' })).toBeNull();
     expect(navigation().getByRole('link', { name: 'Wróć do aplikacji' })).toHaveAttribute('href', '/dashboard');
     expect(navigation().getByRole('link', { name: 'Hackademy, panel administratora' })).toHaveAttribute('href', '/admin');
     expect(screen.getByTestId('location').textContent).toBe('/admin/users:POP');
@@ -147,7 +148,7 @@ describe('admin panel layout', () => {
 
     expect(await screen.findByRole('heading', { name: 'Ścieżki', level: 1 })).toBeInTheDocument();
     expect(screen.getByTestId('location').textContent).toBe('/admin/paths:REPLACE');
-    expect(navigation().getByRole('link', { name: 'Pokoje CTF' })).toBeInTheDocument();
+    expect(navigation().getByRole('link', { name: 'Pokoje' })).toBeInTheDocument();
     for (const name of ['Pulpit', 'Pytania areny', 'Użytkownicy', 'Zgłoszenia błędów']) {
       expect(navigation().queryByRole('link', { name })).toBeNull();
     }
@@ -168,18 +169,80 @@ describe('admin panel layout', () => {
     expect(screen.getByTestId('location').textContent).toBe('/:REPLACE');
   });
 
+  it('lists moved CTF rooms next to lesson rooms in the rooms tab', async () => {
+    const rooms = [room(1, 'Web 1', { roomType: 'CTF', category: 'Web', points: 50, pathId: 4, pathTitle: 'Zadania CTF' }), room(2, 'Lekcja', { pathId: null, pathTitle: null })];
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)));
+    signIn('ADMIN');
+    mountAdmin('/admin/paths/rooms');
+
+    expect(await screen.findByRole('heading', { name: 'Pokoje', level: 1 })).toBeInTheDocument();
+    const ctfRow = within(screen.getByRole('link', { name: 'Web 1' }).closest('tr')!);
+    expect(ctfRow.getByText('CTF')).toBeInTheDocument();
+    expect(ctfRow.getByRole('link', { name: 'Zadania CTF' })).toHaveAttribute('href', '/admin/paths/4');
+    expect(ctfRow.getByRole('link', { name: 'Edytuj Web 1' })).toHaveAttribute('href', '/admin/paths/rooms/1');
+    const lessonRow = within(screen.getByRole('link', { name: 'Lekcja' }).closest('tr')!);
+    expect(lessonRow.queryByText('CTF')).toBeNull();
+    expect(lessonRow.getByText('Bez ścieżki')).toBeInTheDocument();
+    expect(screen.getByText('2 z 2')).toBeInTheDocument();
+  });
+
+  it('searches rooms by title or path and deletes a moved CTF room', async () => {
+    const rooms = [room(1, 'Web 1', { roomType: 'CTF', pathId: 4, pathTitle: 'Zadania CTF' }), room(2, 'Lekcja', { pathId: 5, pathTitle: 'Linux' })];
+    let deleted: string | undefined;
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)),
+      http.delete(`${API_URL}/api/admin/rooms/:id`, ({ params }) => { deleted = String(params.id); return new HttpResponse(null, { status: 204 }); }));
+    signIn('ADMIN');
+    const user = userEvent.setup();
+    mountAdmin('/admin/paths/rooms');
+
+    await screen.findByRole('link', { name: 'Web 1' });
+    await user.type(screen.getByLabelText('Szukaj pokoju'), 'zadania');
+    expect(screen.getByText('1 z 2')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Lekcja' })).toBeNull();
+    await user.clear(screen.getByLabelText('Szukaj pokoju'));
+    await user.type(screen.getByLabelText('Szukaj pokoju'), 'brak');
+    expect(screen.getByText('Brak pasujących pokoi')).toBeInTheDocument();
+    await user.clear(screen.getByLabelText('Szukaj pokoju'));
+
+    await user.click(screen.getByRole('button', { name: 'Usuń Web 1' }));
+    await user.click(await screen.findByRole('button', { name: 'Usuń pokój' }));
+    expect(await screen.findByText('Pokój „Web 1” został usunięty.')).toBeInTheDocument();
+    expect(deleted).toBe('1');
+    expect(screen.queryByRole('link', { name: 'Web 1' })).toBeNull();
+  });
+
+  it('shows an empty rooms tab and a load error', async () => {
+    signIn('ADMIN');
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])));
+    const empty = mountAdmin('/admin/paths/rooms');
+    expect(await screen.findByText('Nie ma jeszcze pokoi.')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Utwórz pierwszy pokój' })).toHaveAttribute('href', '/admin/paths/rooms/new');
+    empty.unmount();
+
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json({ message: 'Baza nie odpowiada' }, { status: 500 })));
+    mountAdmin('/admin/paths/rooms');
+    expect(await screen.findByText('Baza nie odpowiada')).toBeInTheDocument();
+  });
+
+  it('no longer has a standalone CTF rooms route', async () => {
+    signIn('ADMIN');
+    server.use(http.get(`${API_URL}/api/admin/stats`, () => HttpResponse.json(stats)));
+    mountAdmin('/admin/ctf/9');
+    await waitFor(() => expect(screen.getByTestId('location').textContent).toBe('/admin:REPLACE'));
+  });
+
   it('hides room deletion from experts', async () => {
     const rooms = [room(1, 'Web 1', { roomType: 'CTF', category: 'Web', points: 50 })];
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)));
 
     signIn('EXPERT');
-    const expertView = mountAdmin('/admin/ctf');
+    const expertView = mountAdmin('/admin/paths/rooms');
     expect(await screen.findByRole('link', { name: 'Web 1' })).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Usuń Web 1' })).toBeNull();
     expertView.unmount();
 
     signIn('ADMIN');
-    mountAdmin('/admin/ctf');
+    mountAdmin('/admin/paths/rooms');
     expect(await screen.findByRole('button', { name: 'Usuń Web 1' })).toBeInTheDocument();
   });
 });
@@ -206,27 +269,29 @@ describe('content editors', () => {
     const detail = { room: existing, tasks: { revision: 0, tasks: [] } };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => ++loads === 1 ? HttpResponse.json({ message: 'Nie udało się wczytać pokoju' }, { status: 500 }) : HttpResponse.json(detail)));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue(detail as contentApi.RoomEditor);
-    const user = userEvent.setup(); mountAdmin('/admin/ctf/9');
+    const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/9');
     expect(await screen.findByText('Nie udało się wczytać pokoju')).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Edytor pokoju' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
     expect(await screen.findByLabelText('Podpowiedź 1 *')).toHaveValue('Zachowana podpowiedź');
+    expect(screen.getByLabelText('Trudność *')).toHaveValue('MEDIUM');
+    expect(screen.queryByText('Dodaj zadanie')).toBeNull();
     await user.type(screen.getByLabelText('Tytuł *'), ' zmieniony');
     await user.click(screen.getByRole('button', { name: 'Zapisz zmiany' }));
     expect(await screen.findByText('Zapisano opublikowany pokój.')).toBeInTheDocument();
     expect(save.mock.calls[0][1].hints).toEqual(['Zachowana podpowiedź']);
   });
-  it('saves an incomplete CTF as a draft and keeps the new room available for preview', async () => {
+  it('saves an incomplete room as a draft and keeps the new room available for preview', async () => {
     signIn('ADMIN');
-    const created = { id: 9, title: 'Nowy CTF', description: '', shortDescription: '', difficulty: 'EASY', category: 'Web', points: 0,
-      flag: '', solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: [], published: false, contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+    const created = { id: 9, title: 'Nowy CTF', description: '', shortDescription: '', difficulty: 'EASY', category: 'Path', points: 0,
+      flag: '', solutionsCount: 0, requiresVpn: false, roomType: 'PATH', hints: [], published: false, contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: created, tasks: { revision: 0, tasks: [] } })));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 0, tasks: [] } } as contentApi.RoomEditor);
-    const user = userEvent.setup(); mountAdmin('/admin/ctf/new');
+    const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/new');
     await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy CTF');
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     expect(await screen.findByText('Zapisano szkic pokoju.')).toBeInTheDocument();
-    expect(save.mock.calls[0][1]).toMatchObject({ published: false, description: '', flag: '' });
+    expect(save.mock.calls[0][1]).toMatchObject({ published: false, description: '', flag: '', roomType: 'PATH' });
     expect(await screen.findByRole('heading', { level: 1, name: 'Nowy CTF' })).toBeInTheDocument();
   });
 });
@@ -268,6 +333,8 @@ describe('admin dashboard', () => {
     expect(sources.getByText('Web')).toBeInTheDocument();
     expect(sources.getByText('75%')).toBeInTheDocument();
     expect(screen.getByText('SQL Injection 101')).toBeInTheDocument();
+    expect(screen.getAllByText('Zadania CTF')[0]).toBeInTheDocument();
+    expect(sources.queryByText('CTF')).toBeNull();
 
     await userEvent.click(screen.getByRole('radio', { name: 'Ostatnie 7 dni' }));
     await waitFor(() => expect(ranges).toEqual(['30', '7']));

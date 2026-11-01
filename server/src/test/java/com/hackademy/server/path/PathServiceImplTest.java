@@ -390,9 +390,6 @@ class PathServiceImplTest {
         when(roomRepository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
         assertInvalidRooms(List.of(1L));
 
-        when(roomRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(room(2L, "Flaga", RoomType.CTF)));
-        assertInvalidRooms(List.of(2L));
-
         when(roomRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(room(3L, "Zajęty", RoomType.PATH)));
         when(chapterRoomRepository.findOwners(Set.of(3L))).thenReturn(List.of(new Owner(3L, 9L, "Inna")));
         var error = assertInvalidRooms(List.of(3L));

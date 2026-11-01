@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 35;
+    static final int SCHEMA_VERSION = 36;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -465,7 +465,7 @@ class SchemaMigrationTest {
         assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms WHERE id <= 4"));
         assertEquals(10, scalar("SELECT points FROM users WHERE id = 1"));
         assertEquals("1:Easy CTF|7:Easy CTF (7)|8:Solo|9:Intro (9)|10:Loose|11:Loose|12:Tab", text("SELECT string_agg(id || ':' || title, '|' ORDER BY id) FROM rooms WHERE id IN (1, 7, 8, 9, 10, 11, 12)"));
-        assertEquals("Intro,Other,Intro (9)", text("SELECT string_agg(room_title, ',' ORDER BY sort_order) FROM chapter_rooms"));
+        assertEquals("Intro,Other,Intro (9)", text("SELECT string_agg(room_title, ',' ORDER BY sort_order) FROM chapter_rooms WHERE chapter_id = 1"));
         assertSqlState("23514", "UPDATE rooms SET title = ' Padded' WHERE id = 8");
         assertSqlState("23514", "UPDATE rooms SET title = E'Padded\\n' WHERE id = 8");
         assertSqlState("23514", "UPDATE rooms SET points = 60 WHERE id = 1");
@@ -482,6 +482,110 @@ class SchemaMigrationTest {
         execute("UPDATE chapter_rooms SET room_title = 'Forged', chapter_id = 2 WHERE room_id = 4");
         assertEquals("Renamed", text("SELECT room_title FROM chapter_rooms WHERE room_id = 4"));
         assertSqlState("23505", "UPDATE chapter_rooms SET chapter_id = 2 WHERE room_id = 3");
+    }
+
+    @Test
+    void movesStandaloneCtfRoomsAndTutorialsIntoOpenPathsWithoutTouchingProgress() throws Exception {
+        flyway("35").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        insertUser(2, "Bob", "bob@example.com");
+        execute("""
+                UPDATE users SET points = 175 WHERE id = 1;
+                UPDATE users SET points = 50 WHERE id = 2;
+                INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, created_at, updated_at) VALUES
+                (1, 'Tutorial VPN', 'd', 'EASY', 'Tutorial', 50, 'vpn', 1, false, 'CTF', true, now(), now()),
+                (2, 'Tutorial VM', 'd', 'EASY', 'Tutorial', 50, 'vm', 2, false, 'CTF', true, now(), now()),
+                (3, 'SQL', 'd', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, true, 'CTF', true, now() - interval '2 days', now()),
+                (4, 'Crypto', 'd', 'HARD', 'Crypto', 150, 'FLAG{c}', 0, false, 'CTF', true, now() - interval '1 day', now()),
+                (5, 'Szkic', 'd', 'EASY', 'Web', 50, '', 0, false, 'CTF', false, now(), now()),
+                (6, 'Lekcja', 'd', 'EASY', 'Path', 10, 'f', 0, false, 'PATH', true, now(), now());
+                INSERT INTO hints (id, description, room_id) VALUES (1, 'Spójrz na parametr', 3), (2, 'Szkicowa podpowiedź', 5);
+                INSERT INTO user_unlocked_hints (user_id, hint_id) VALUES (1, 1);
+                INSERT INTO room_files (file_name, file_type, data, room_id) VALUES ('dump.pcap', 'application/octet-stream', decode('0102', 'hex'), 3);
+                INSERT INTO user_solved_rooms (user_id, room_id, solved_at, awarded_points) VALUES
+                (1, 2, now() - interval '3 days', 50), (1, 1, now() - interval '2 days', 50), (1, 3, now() - interval '1 day', 75), (2, 2, now(), NULL);
+                INSERT INTO paths (id, title, created_at, updated_at) VALUES (50, 'Linux', now(), now());
+                INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES (50, 50, 'Start', 0, now(), now());
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (6, 50, 0);
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("1:CTF:vpn|2:CTF:vm|3:CTF:FLAG{sql}|4:CTF:FLAG{c}|5:CTF:|6:PATH:f",
+                text("SELECT string_agg(id || ':' || room_type || ':' || flag, '|' ORDER BY id) FROM rooms"));
+        assertEquals("1:50:1|2:50:2|3:100:1|4:150:0|5:50:0|6:10:0",
+                text("SELECT string_agg(id || ':' || points || ':' || solutions_count, '|' ORDER BY id) FROM rooms"));
+        assertEquals(1, scalar("SELECT count(*) FROM paths WHERE title = 'Pierwsze kroki' AND published AND unlock_mode = 'OPEN' AND system_key IS NULL"));
+        assertEquals("Samouczki:Tutorial VM,Tutorial VPN", text("""
+                SELECT pc.title || ':' || string_agg(cr.room_title, ',' ORDER BY cr.sort_order)
+                FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id JOIN paths p ON p.id = pc.path_id
+                WHERE p.title = 'Pierwsze kroki' GROUP BY pc.title
+                """));
+        assertEquals(1, scalar("SELECT count(*) FROM paths WHERE title = 'Zadania CTF' AND published AND unlock_mode = 'OPEN' AND system_key IS NULL"));
+        assertEquals("3:0,4:1", text("""
+                SELECT string_agg(cr.room_id || ':' || cr.sort_order, ',' ORDER BY cr.sort_order)
+                FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id JOIN paths p ON p.id = pc.path_id
+                WHERE p.title = 'Zadania CTF'
+                """));
+        assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
+        assertEquals(0, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND published"));
+        assertEquals(50, scalar("SELECT chapter_id FROM chapter_rooms WHERE room_id = 6"));
+        assertEquals("1:Pierwsze kroki,1:Zadania CTF,2:Pierwsze kroki", text("""
+                SELECT string_agg(e.user_id || ':' || p.title, ',' ORDER BY e.user_id, p.title)
+                FROM path_enrollments e JOIN paths p ON p.id = e.path_id
+                """));
+
+        assertEquals("1:175,2:50", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM users"));
+        assertEquals("1:1:50,1:2:50,1:3:75,2:2:-", text("SELECT string_agg(user_id || ':' || room_id || ':' || coalesce(awarded_points::text, '-'), ',' ORDER BY user_id, room_id) FROM user_solved_rooms"));
+        assertEquals("1:3,2:5", text("SELECT string_agg(id || ':' || room_id, ',' ORDER BY id) FROM hints"));
+        assertEquals(1, scalar("SELECT count(*) FROM user_unlocked_hints WHERE user_id = 1 AND hint_id = 1"));
+        assertEquals("dump.pcap:0102", text("SELECT file_name || ':' || encode(data, 'hex') FROM room_files WHERE room_id = 3"));
+        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertTrue(flyway().validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void splitsMoreThan500MovedCtfRoomsIntoChaptersThatThePathEditorAccepts() throws Exception {
+        flyway("35").migrate();
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, created_at, updated_at)
+                SELECT n, 'CTF ' || n, 'd', 'EASY', 'Web', 50, 'f', 0, false, 'CTF', true, now() + n * interval '1 second', now()
+                FROM generate_series(1, 1001) AS n;
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("Rozdział 1:0:500:1:500|Rozdział 2:1:500:501:1000|Rozdział 3:2:1:1001:1001", text("""
+                SELECT string_agg(title || ':' || sort_order || ':' || total || ':' || first_room || ':' || last_room, '|' ORDER BY sort_order)
+                FROM (
+                    SELECT pc.title, pc.sort_order, count(*) AS total, min(cr.room_id) AS first_room, max(cr.room_id) AS last_room
+                    FROM path_chapters pc JOIN chapter_rooms cr ON cr.chapter_id = pc.id
+                    JOIN paths p ON p.id = pc.path_id WHERE p.title = 'Zadania CTF'
+                    GROUP BY pc.title, pc.sort_order
+                ) chapters
+                """));
+        assertEquals(1, scalar("SELECT count(*) FROM paths WHERE title = 'Zadania CTF'"));
+        assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE sort_order >= 500"));
+        assertEquals("0:1|499:500|0:501", text("""
+                SELECT string_agg(sort_order || ':' || room_id, '|' ORDER BY room_id) FROM chapter_rooms WHERE room_id IN (1, 500, 501)
+                """));
+    }
+
+    @Test
+    void createsNoPathsWhenThereAreNoStandaloneCtfRooms() throws Exception {
+        flyway("35").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, created_at, updated_at) VALUES
+                (1, 'Szkic', 'd', 'EASY', 'Web', 50, '', 0, false, 'CTF', false, now(), now()),
+                (2, 'Lekcja', 'd', 'EASY', 'Path', 10, 'f', 0, false, 'PATH', true, now(), now());
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("ukos", text("SELECT string_agg(coalesce(system_key, title), ',') FROM paths"));
+        assertEquals(0, scalar("SELECT count(*) FROM path_chapters"));
+        assertEquals(0, scalar("SELECT count(*) FROM path_enrollments"));
     }
 
     @Test
@@ -606,14 +710,16 @@ class SchemaMigrationTest {
 
         assertEquals(1, flyway("3").migrate().migrationsExecuted);
         assertEquals(1, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
-        assertEquals(SCHEMA_VERSION - 3, flyway().migrate().migrationsExecuted);
-        assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
+        assertEquals(1, flyway("4").migrate().migrationsExecuted);
         assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE room_id = 5"));
+        assertEquals(SCHEMA_VERSION - 4, flyway().migrate().migrationsExecuted);
+        assertEquals(0, scalar("SELECT sum(tasks_revision) FROM rooms"));
         assertEquals(1, scalar("SELECT count(*) FROM rooms WHERE id = 5 AND room_type = 'CTF'"));
+        assertEquals("Zadania CTF", text("SELECT p.title FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id JOIN paths p ON p.id = pc.path_id WHERE cr.room_id = 5"));
         assertEquals(0, scalar("SELECT sum(chapters_revision) FROM paths"));
 
-        assertEquals(3, scalar("SELECT count(*) FROM path_chapters WHERE title = 'Rozdział 1' AND sort_order = 0"));
-        assertEquals(3, scalar("SELECT count(DISTINCT path_id) FROM path_chapters"));
+        assertEquals(4, scalar("SELECT count(*) FROM path_chapters WHERE title = 'Rozdział 1' AND sort_order = 0"));
+        assertEquals(4, scalar("SELECT count(DISTINCT path_id) FROM path_chapters"));
         assertEquals("3:0,1:1,2:2", text("""
                 SELECT string_agg(cr.room_id || ':' || cr.sort_order, ',' ORDER BY cr.sort_order)
                 FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE pc.path_id = 1

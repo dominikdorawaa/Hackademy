@@ -65,7 +65,7 @@ public class Room {
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "room_type", nullable = false, length = 16)
-    private RoomType roomType = RoomType.CTF;
+    private RoomType roomType = RoomType.PATH;
 
     @Builder.Default
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)

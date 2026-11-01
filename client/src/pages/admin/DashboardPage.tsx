@@ -36,7 +36,7 @@ const timelineConfig = {
   solves: { label: 'Rozwiązania', theme: series[1] },
 } satisfies ChartConfig;
 
-const fixedSliceSlots: Record<string, number> = { 'paths-other': 3, 'paths-unassigned': 4, ctf: 5 };
+const fixedSliceSlots: Record<string, number> = { 'paths-other': 3, 'paths-unassigned': 4 };
 
 function sliceSlots(keys: string[]) {
   let nextPathSlot = 0;
@@ -206,7 +206,7 @@ export default function DashboardPage() {
           </Section>
 
           <div className="grid gap-6 xl:grid-cols-2">
-            <Section title="Rozwiązania według źródła" description="Wszystkie rozwiązania: ścieżki i CTF">
+            <Section title="Rozwiązania według źródła" description="Wszystkie rozwiązania według ścieżek">
               {slices.length === 0 ? (
                 <EmptyState title="Brak rozwiązań" description="Wykres pojawi się po pierwszym rozwiązanym pokoju." />
               ) : (
@@ -254,7 +254,7 @@ export default function DashboardPage() {
                           <TableCell className="truncate">
                             <span className="block truncate" title={solve.roomTitle}>{solve.roomTitle}</span>
                             <span className="block truncate text-xs text-muted-foreground">
-                              {solve.roomType === 'CTF' ? 'CTF' : solve.pathTitle ?? 'Poza ścieżką'}
+                              {solve.pathTitle ?? 'Poza ścieżką'}
                             </span>
                           </TableCell>
                           <TableCell className="pr-5 text-right text-muted-foreground tabular-nums">

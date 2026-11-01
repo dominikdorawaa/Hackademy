@@ -7,10 +7,6 @@ import com.hackademy.server.path.PathService;
 import com.hackademy.server.path.dto.ChapterRequest;
 import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
-import com.hackademy.server.room.RoomService;
-import com.hackademy.server.room.RoomType;
-import com.hackademy.server.room.DifficultyLevel;
-import com.hackademy.server.room.dto.UpdateRoomRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.support.TransactionTemplate;
@@ -40,7 +36,6 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     @Autowired private PathService pathService;
-    @Autowired private RoomService roomService;
     @Autowired private PlatformTransactionManager transactionManager;
 
     @Test
@@ -151,48 +146,9 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 """, Long.class, room));
     }
 
-    @Test
-    void assignmentWaitsForConcurrentTypeChange() throws Exception {
-        var admin = account(Role.ADMIN);
-        String title = uniqueTitle("Concurrent type");
-        long room = createRoom(admin, title, "PATH");
-        long path = createPath(admin, List.of());
-        long chapter = chapterIds(admin, path).get(0);
-
-        assertRoomOperationWaitsAndRejects(
-                () -> changeToCtf(room, title),
-                () -> assign(path, chapter, room));
-        assertEquals("CTF", jdbcTemplate.queryForObject("SELECT room_type FROM rooms WHERE id = ?", String.class, room));
-        assertEquals(0, jdbcTemplate.queryForObject("SELECT count(*) FROM chapter_rooms WHERE room_id = ?", Integer.class, room));
-    }
-
-    @Test
-    void typeChangeWaitsForConcurrentAssignment() throws Exception {
-        var admin = account(Role.ADMIN);
-        String title = uniqueTitle("Concurrent ownership");
-        long room = createRoom(admin, title, "PATH");
-        long path = createPath(admin, List.of());
-        long chapter = chapterIds(admin, path).get(0);
-
-        assertRoomOperationWaitsAndRejects(
-                () -> assign(path, chapter, room),
-                () -> changeToCtf(room, title));
-        assertEquals("PATH", jdbcTemplate.queryForObject("SELECT room_type FROM rooms WHERE id = ?", String.class, room));
-        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM chapter_rooms WHERE room_id = ?", Integer.class, room));
-    }
-
     private void assign(long path, long chapter, long room) {
         pathService.updatePathChapters(path,
                 new UpdatePathChaptersRequest(jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, path), List.of(new ChapterRequest(chapter, "A", List.of(room)))), true);
-    }
-
-    private void changeToCtf(long room, String title) {
-        try {
-            roomService.updateRoom(room, new UpdateRoomRequest(title, "d", null, DifficultyLevel.EASY,
-                    "Web", 50, "f", false, RoomType.CTF, List.of()), null);
-        } catch (java.io.IOException e) {
-            throw new RuntimeException(e);
-        }
     }
 
     private void assertRoomOperationWaitsAndRejects(Runnable first, Runnable second) throws Exception {
@@ -315,7 +271,6 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
         var admin = account(Role.ADMIN);
         long owned = createRoom(admin, uniqueTitle("Owned"), "PATH");
         long free = createRoom(admin, uniqueTitle("Free"), "PATH");
-        long ctf = createRoom(admin, uniqueTitle("Ctf"), "CTF");
         long otherPath = createPath(admin, List.of(owned));
         long pathId = createPath(admin, List.of());
         long chapterId = chapterIds(admin, pathId).get(0);
@@ -324,9 +279,6 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
         putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", owned))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("należy już do ścieżki")));
-        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", ctf))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("nie jest pokojem ścieżki")));
         putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", free, free))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("więcej niż raz")));
@@ -388,21 +340,28 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void keepsRoomsInPathsWhenTheirTypeWouldChange() throws Exception {
+    void acceptsCtfRoomsInChaptersAndKeepsThemThereWhenTheTypeChanges() throws Exception {
         var admin = account(Role.ADMIN);
+        long ctf = createRoom(admin, uniqueTitle("Ctf"), "CTF");
         String title = uniqueTitle("Typed");
-        long room = createRoom(admin, title, "PATH");
-        createPath(admin, List.of(room));
+        long lesson = createRoom(admin, title, "PATH");
+        long pathId = createPath(admin, List.of());
+        long chapterId = chapterIds(admin, pathId).get(0);
+
+        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", ctf, lesson))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.chapters[0].roomIds[0]").value(ctf))
+                .andExpect(jsonPath("$.chapters[0].roomIds[1]").value(lesson));
 
         var roomPart = new MockMultipartFile("room", "", MediaType.APPLICATION_JSON_VALUE, """
                 {"title":"%s","description":"d","difficulty":"EASY","category":"Web","points":50,"flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(title).getBytes(StandardCharsets.UTF_8));
-        mockMvc.perform(multipart(HttpMethod.PUT, "/api/admin/rooms/" + room)
+        mockMvc.perform(multipart(HttpMethod.PUT, "/api/admin/rooms/" + lesson)
                         .file(roomPart)
                         .header("Authorization", "Bearer " + admin.token()))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("Usuń go z rozdziału")));
-        assertEquals("PATH", jdbcTemplate.queryForObject("SELECT room_type FROM rooms WHERE id = ?", String.class, room));
+                .andExpect(status().isOk());
+        assertEquals("CTF", jdbcTemplate.queryForObject("SELECT room_type FROM rooms WHERE id = ?", String.class, lesson));
+        assertEquals(chapterId, jdbcTemplate.queryForObject("SELECT chapter_id FROM chapter_rooms WHERE room_id = ?", Long.class, lesson));
     }
 
     @Test

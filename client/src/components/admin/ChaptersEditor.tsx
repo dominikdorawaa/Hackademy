@@ -75,7 +75,7 @@ export default function ChaptersEditor({
   const pool = useMemo(() => {
     const term = poolQuery.trim().toLowerCase();
     return rooms
-      .filter((room) => room.roomType === 'PATH' && !assigned.has(room.id) && (room.pathId === null || room.pathId === pathId))
+      .filter((room) => !assigned.has(room.id) && (room.pathId === null || room.pathId === pathId))
       .filter((room) => !term || room.title.toLowerCase().includes(term))
       .sort((a, b) => a.title.localeCompare(b.title, 'pl'));
   }, [rooms, assigned, pathId, poolQuery]);
@@ -301,7 +301,7 @@ export default function ChaptersEditor({
 
         <aside aria-label="Pula pokoi" className="h-fit rounded-lg border bg-muted/30 p-3 lg:sticky lg:top-20">
           <h3 className="text-sm font-semibold text-foreground">Pula pokoi</h3>
-          <p className="mb-3 text-xs text-muted-foreground">Pokoje ścieżek bez przypisanego rozdziału.</p>
+          <p className="mb-3 text-xs text-muted-foreground">Pokoje bez przypisanego rozdziału.</p>
           <div className="mb-3 grid gap-1.5">
             <Label htmlFor={`target-${pathId}`} className="text-xs">Dodawaj do</Label>
             <Select disabled={saving} value={target?.key ?? ''} onValueChange={setTargetKey}>

@@ -29,16 +29,6 @@ public class RoomController {
 
     private final RoomService roomService;
 
-    @GetMapping
-    public ResponseEntity<List<RoomSummaryDto>> getAllRooms() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = null;
-        if (principal instanceof UserDetails) {
-            username = ((UserDetails) principal).getUsername();
-        }
-        return ResponseEntity.ok(roomService.getAllRooms(username));
-    }
-
     @GetMapping("/top3")
     public ResponseEntity<List<RoomSummaryDto>> getTop3Rooms() {
         return ResponseEntity.ok(roomService.getTop3Rooms());

@@ -39,7 +39,6 @@ import java.util.Objects;
 import java.util.Set;
 import java.util.function.Function;
 import java.util.stream.Collectors;
-import com.hackademy.server.room.RoomType;
 
 @Service
 @RequiredArgsConstructor
@@ -450,9 +449,6 @@ public class PathServiceImpl implements PathService {
             Room room = rooms.get(roomId);
             if (room == null) {
                 throw new IllegalArgumentException("Pokój " + roomId + " nie istnieje");
-            }
-            if (room.getRoomType() != RoomType.PATH) {
-                throw new IllegalArgumentException("Pokój \u201e" + room.getTitle() + "\u201d nie jest pokojem ścieżki");
             }
         }
         for (ChapterRoomRepository.RoomOwnerView owner : chapterRoomRepository.findOwners(unique)) {

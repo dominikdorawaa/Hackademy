@@ -373,7 +373,6 @@ export interface AdminStatsDto {
     username: string
     roomId: number
     roomTitle: string
-    roomType: RoomType
     pathTitle: string | null
     solvedAt: ApiDateTime
   }[]
