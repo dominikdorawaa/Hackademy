@@ -14,6 +14,7 @@ import './RoomPage.css';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import type { RoomDetailDto } from '../types/api';
 import { useRoomReturn } from '../hooks/useRoomReturn';
+import { useGameSound } from '../hooks/useGameSound';
 import RoomFrame from '../components/room/RoomFrame';
 import RoomFooterBar from '../components/room/RoomFooterBar';
 import RoomSplit from '../components/room/RoomSplit';
@@ -28,6 +29,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const navigate = useNavigate();
   const location = useLocation();
   const { sessionKey } = useAuth();
+  const playSound = useGameSound();
 
   const [room, setRoom] = useState<RoomDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
@@ -159,6 +161,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       const data = await response.json();
       if (response.ok && data.success) {
         if (!room?.solved) celebrate('room');
+        playSound('roomCompleted');
         setSubmitStatus('success');
         setSubmitMessage(data.message ?? '');
         setRoom(prev => prev ? { ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 } : null);
@@ -166,6 +169,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         setSuccessMessage("Misja zakończona sukcesem!");
         setShowSuccessModal(true);
       } else {
+        playSound('learningError');
         setSubmitStatus('error');
         setSubmitMessage(data.message || 'Niepoprawna flaga');
       }
@@ -232,6 +236,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         const data = await response.json();
         if (response.ok && data.success) {
             celebrate(`task:${taskId}`);
+            playSound(data.message?.includes('Pokój ukończony') ? 'roomCompleted' : 'taskSolved');
             setToast({ message: data.message ?? '', type: 'success' });
             setRoom(prev => prev ? ({
                 ...prev,
@@ -244,6 +249,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 setShowSuccessModal(true);
             }
         } else {
+            playSound('learningError');
             setToast({ message: data.message || 'Niepoprawna odpowiedź', type: 'error' });
         }
     } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
@@ -262,6 +268,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         return;
       }
       if (!room?.solved) celebrate('room');
+      playSound('roomCompleted');
       setRoom((previous) => previous ? { ...previous, solved: true } : null);
       setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
       setSuccessMessage('Wszystkie zadania wykonane! Pokój ukończony.');

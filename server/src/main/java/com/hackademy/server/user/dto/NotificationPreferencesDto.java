@@ -9,8 +9,9 @@ public record NotificationPreferencesDto(
         @NotNull Boolean sound,
         @NotNull Boolean browserNotifications,
         @NotNull Boolean friendOnline,
-        @NotNull Boolean friendOnlineBell) {
+        @NotNull Boolean friendOnlineBell,
+        @NotNull Boolean gameSounds) {
     public static NotificationPreferencesDto defaults() {
-        return new NotificationPreferencesDto(true, true, true, true, false, true, true);
+        return new NotificationPreferencesDto(true, true, true, true, false, true, true, true);
     }
 }
