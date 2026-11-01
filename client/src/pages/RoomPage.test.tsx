@@ -30,6 +30,10 @@ vi.mock('../context/RealtimeContext', async () => {
 const sounds = vi.hoisted(() => ({ play: vi.fn(() => true) }));
 vi.mock('../lib/notificationSounds', async importOriginal => ({
   ...await importOriginal<typeof import('../lib/notificationSounds')>(), playGameSound: sounds.play }));
+vi.mock('../context/NotificationPreferencesContext', async () => {
+  const { defaultNotificationPreferences } = await import('../services/userApi');
+  return { useNotificationPreferences: () => ({ preferences: defaultNotificationPreferences, loaded: true }) };
+});
 
 beforeEach(() => { mockRoomViewport(); live.set(true); sounds.play.mockClear(); });
 

@@ -3,12 +3,12 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import type { GameSession } from '../types/api';
 import { battleSound, useBattleSounds } from './useBattleSounds';
 
-const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), enabled: true }));
+const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), enabled: true, loaded: true }));
 vi.mock('../lib/notificationSounds', async importOriginal => ({
   ...await importOriginal<typeof import('../lib/notificationSounds')>(), playGameSound: sounds.play }));
 vi.mock('../context/NotificationPreferencesContext', async () => {
   const { defaultNotificationPreferences } = await import('../services/userApi');
-  return { useNotificationPreferences: () => ({ preferences: { ...defaultNotificationPreferences, gameSounds: sounds.enabled }, loaded: true }) };
+  return { useNotificationPreferences: () => ({ preferences: { ...defaultNotificationPreferences, gameSounds: sounds.enabled }, loaded: sounds.loaded }) };
 });
 
 const ME = 1;
@@ -26,7 +26,7 @@ const reveal = (myChoice: number | undefined, round = 1) => battle({ round, phas
   round, questionId: 1, content: 'Q', answers: ['a', 'b'], correctAnswer: 0, choices: myChoice === undefined ? {} : { [ME]: myChoice }, damage: {} } });
 const finished = (winnerId: number | null, finishReason: GameSession['finishReason'] = 'ROUNDS') => battle({ status: 'FINISHED', winnerId, finishReason });
 
-beforeEach(() => { sounds.play.mockClear(); sounds.enabled = true; });
+beforeEach(() => { sounds.play.mockClear(); sounds.enabled = true; sounds.loaded = true; });
 
 describe('battle sounds', () => {
   it('stays silent on the first snapshot, also when opening an already finished battle', () => {
@@ -73,5 +73,12 @@ describe('battle sounds', () => {
     rerender({ session: battle({ round: 2 }) });
     rerender({ session: reveal(1, 2) });
     expect(sounds.play.mock.calls).toEqual([['arenaCorrect']]);
+  });
+
+  it('stays silent until the saved preferences have loaded', () => {
+    sounds.loaded = false;
+    const { rerender } = renderHook(({ session }) => useBattleSounds(session, ME, 0, true), { initialProps: { session: battle() } });
+    rerender({ session: reveal(0) });
+    expect(sounds.play).not.toHaveBeenCalled();
   });
 });
