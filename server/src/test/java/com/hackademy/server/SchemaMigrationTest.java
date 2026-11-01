@@ -236,7 +236,7 @@ class SchemaMigrationTest {
                 """);
         String previousVersions = text("SELECT string_agg(id || ':' || (version + 1), ',' ORDER BY id) FROM arena_questions");
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("34").migrate().migrationsExecuted);
         assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
         assertEquals(previousLevels, text("""
                 SELECT string_agg(id || ':' || category || ':' || difficulty, ',' ORDER BY id)
@@ -286,9 +286,9 @@ class SchemaMigrationTest {
         assertEquals("Zbierania i korelacji logów", text("SELECT correct_answer FROM arena_questions WHERE content = 'Do czego służy SIEM?'"));
         assertEquals("Automatyzacja reakcji", text("SELECT correct_answer FROM arena_questions WHERE content = 'Co wyróżnia SOAR w obsłudze incydentów?'"));
         assertEquals("Fuzzingu ścieżek i parametrów", text("SELECT correct_answer FROM arena_questions WHERE content = 'Do czego służy ffuf w testach WWW?'"));
-        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertEquals(0, flyway("34").migrate().migrationsExecuted);
         assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
-        assertTrue(flyway().validateWithResult().validationSuccessful);
+        assertTrue(flyway("34").validateWithResult().validationSuccessful);
     }
 
     @Test
@@ -334,7 +334,7 @@ class SchemaMigrationTest {
                 WHERE id <= 8 OR id = 43 OR content = 'Własne pytanie administratora'
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("34").migrate().migrationsExecuted);
         assertEquals(adminEdits, text("""
                 SELECT json_agg(q ORDER BY id)::text FROM arena_questions q
                 WHERE id <= 8 OR id = 43 OR content = 'Własne pytanie administratora'
@@ -342,7 +342,7 @@ class SchemaMigrationTest {
         assertEquals(0, scalar("SELECT count(*) FROM arena_questions WHERE id = 44"));
         assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
         assertEquals("Brakiem kontroli dostępu do obiektu", text("SELECT correct_answer FROM arena_questions WHERE id = 9"));
-        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertEquals(0, flyway("34").migrate().migrationsExecuted);
     }
 
     @Test
