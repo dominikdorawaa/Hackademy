@@ -183,7 +183,7 @@ describe('admin panel layout', () => {
     const lessonRow = within(screen.getByRole('link', { name: 'Lekcja' }).closest('tr')!);
     expect(lessonRow.queryByText('CTF')).toBeNull();
     expect(lessonRow.getByText('Bez ścieżki')).toBeInTheDocument();
-    expect(screen.getByText('2 z 2')).toBeInTheDocument();
+    expect(screen.queryByText(/\d+ z \d+/)).toBeNull();
   });
 
   it('shows the type of every room and filters the list by type', async () => {
@@ -200,7 +200,6 @@ describe('admin panel layout', () => {
     expect(filters.getByRole('button', { name: /Wszystkie/ })).toHaveAttribute('aria-pressed', 'true');
     await user.click(filters.getByRole('button', { name: /CTF/ }));
     expect(filters.getByRole('button', { name: /CTF/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.getByText('2 z 3')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Lekcja' })).toBeNull();
     await user.click(filters.getByRole('button', { name: /Teoria/ }));
     expect(screen.getByRole('link', { name: 'Lekcja' })).toBeInTheDocument();
@@ -221,7 +220,6 @@ describe('admin panel layout', () => {
 
     await screen.findByRole('link', { name: 'Web 1' });
     await user.type(screen.getByLabelText('Szukaj pokoju'), 'zadania');
-    expect(screen.getByText('1 z 2')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Lekcja' })).toBeNull();
     await user.clear(screen.getByLabelText('Szukaj pokoju'));
     await user.type(screen.getByLabelText('Szukaj pokoju'), 'brak');
@@ -313,10 +311,8 @@ describe('content editors', () => {
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: created, tasks: { revision: 0, tasks: [] } })));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 0, tasks: [] } } as contentApi.RoomEditor);
     const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/new');
-    expect(await screen.findByRole('button', { name: 'Dalej' })).toBeDisabled();
-    await user.click(screen.getByRole('radio', { name: /Teoria/ }));
-    await user.click(screen.getByRole('button', { name: 'Dalej' }));
     await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy CTF');
+    expect(screen.getByRole('radio', { name: 'Teoria' })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     expect(await screen.findByText('Zapisano szkic pokoju.')).toBeInTheDocument();
     expect(save.mock.calls[0][1]).toMatchObject({ published: false, description: '', roomType: 'PATH' });
