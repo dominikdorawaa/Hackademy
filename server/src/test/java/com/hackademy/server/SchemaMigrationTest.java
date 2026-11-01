@@ -545,6 +545,33 @@ class SchemaMigrationTest {
     }
 
     @Test
+    void splitsMoreThan500MovedCtfRoomsIntoChaptersThatThePathEditorAccepts() throws Exception {
+        flyway("35").migrate();
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, created_at, updated_at)
+                SELECT n, 'CTF ' || n, 'd', 'EASY', 'Web', 50, 'f', 0, false, 'CTF', true, now() + n * interval '1 second', now()
+                FROM generate_series(1, 1001) AS n;
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("Rozdział 1:0:500:1:500|Rozdział 2:1:500:501:1000|Rozdział 3:2:1:1001:1001", text("""
+                SELECT string_agg(title || ':' || sort_order || ':' || total || ':' || first_room || ':' || last_room, '|' ORDER BY sort_order)
+                FROM (
+                    SELECT pc.title, pc.sort_order, count(*) AS total, min(cr.room_id) AS first_room, max(cr.room_id) AS last_room
+                    FROM path_chapters pc JOIN chapter_rooms cr ON cr.chapter_id = pc.id
+                    JOIN paths p ON p.id = pc.path_id WHERE p.title = 'Zadania CTF'
+                    GROUP BY pc.title, pc.sort_order
+                ) chapters
+                """));
+        assertEquals(1, scalar("SELECT count(*) FROM paths WHERE title = 'Zadania CTF'"));
+        assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms WHERE sort_order >= 500"));
+        assertEquals("0:1|499:500|0:501", text("""
+                SELECT string_agg(sort_order || ':' || room_id, '|' ORDER BY room_id) FROM chapter_rooms WHERE room_id IN (1, 500, 501)
+                """));
+    }
+
+    @Test
     void createsNoPathsWhenThereAreNoStandaloneCtfRooms() throws Exception {
         flyway("35").migrate();
         insertUser(1, "Alice", "alice@example.com");

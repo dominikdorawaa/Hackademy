@@ -32,6 +32,7 @@ WITH tutorials AS (
 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order)
 SELECT t.id, chapter.id, t.position FROM tutorials t CROSS JOIN chapter;
 
+-- A chapter holds at most 500 rooms (ContentService.savePath), so large sets are split into consecutive chapters.
 WITH ctf AS (
     SELECT r.id, (row_number() OVER (ORDER BY r.created_at, r.id) - 1)::integer AS position
     FROM rooms r
@@ -47,14 +48,15 @@ WITH ctf AS (
     RETURNING id
 ), chapter AS (
     INSERT INTO path_chapters (path_id, title, sort_order, created_at, updated_at)
-    SELECT id, 'Rozdział 1', 0, now(), now() FROM path
-    RETURNING id, path_id
+    SELECT path.id, 'Rozdział ' || (part + 1), part, now(), now()
+    FROM path CROSS JOIN generate_series(0, (SELECT max(position) FROM ctf) / 500) AS part
+    RETURNING id, path_id, sort_order
 ), enrollments AS (
     INSERT INTO path_enrollments (user_id, path_id, enrolled_at)
-    SELECT DISTINCT usr.user_id, chapter.path_id, now()
+    SELECT DISTINCT usr.user_id, path.id, now()
     FROM user_solved_rooms usr
     JOIN ctf ON ctf.id = usr.room_id
-    CROSS JOIN chapter
+    CROSS JOIN path
 )
 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order)
-SELECT ctf.id, chapter.id, ctf.position FROM ctf CROSS JOIN chapter;
+SELECT ctf.id, chapter.id, ctf.position % 500 FROM ctf JOIN chapter ON chapter.sort_order = ctf.position / 500;
