@@ -354,7 +354,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.chapters[0].roomIds[1]").value(lesson));
 
         var roomPart = new MockMultipartFile("room", "", MediaType.APPLICATION_JSON_VALUE, """
-                {"title":"%s","description":"d","difficulty":"EASY","category":"Web","points":50,"flag":"f","requiresVpn":false,"roomType":"CTF","hints":[]}
+                {"title":"%s","description":"d","difficulty":"EASY","category":"Web","points":50,"requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(title).getBytes(StandardCharsets.UTF_8));
         mockMvc.perform(multipart(HttpMethod.PUT, "/api/admin/rooms/" + lesson)
                         .file(roomPart)

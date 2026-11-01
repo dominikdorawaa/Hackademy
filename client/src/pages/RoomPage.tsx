@@ -3,7 +3,7 @@ import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
 import { rateLimitMessage, retryAfterSeconds, TOO_MANY_REQUESTS } from '../services/rateLimit';
 import React, { useState, useEffect, useId, useRef } from 'react';
-import { BookOpen, Check, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
+import { BookOpen, Check, Download, Flag, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
@@ -38,10 +38,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hintToUnlock, setHintToUnlock] = useState<number | null>(null);
 
-  const [flag, setFlag] = useState('');
-  const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null); // 'success', 'error', null
-  const [submitMessage, setSubmitMessage] = useState('');
-
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [successMessage, setSuccessMessage] = useState('');
@@ -54,7 +50,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [finishingRoom, setFinishingRoom] = useState(false);
   const [mascotSuccessCount, setMascotSuccessCount] = useState(0);
   const celebrated = useRef(new Set<string>());
-  const pendingFlag = useRef(false);
   const celebrate = (key: string) => {
     if (celebrated.current.has(key)) return;
     celebrated.current.add(key);
@@ -142,45 +137,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       } catch (err) { console.error(err); }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (preview) { setSubmitStatus('success'); setSubmitMessage('Tryb podglądu: wynik nie jest zapisywany.'); return; }
-    if (pendingFlag.current || answersBlocked) return;
-    pendingFlag.current = true;
-    setSubmitStatus(null);
-    setSubmitMessage('');
-
-    try {
-      const response = await roomApi.solveRoom(id ?? '', { flag }, {sessionKey
-      });
-      if (response.status === TOO_MANY_REQUESTS) {
-        await blockAnswers(response);
-        return;
-      }
-
-      const data = await response.json();
-      if (response.ok && data.success) {
-        if (!room?.solved) celebrate('room');
-        playSound(room?.solved ? 'taskSolved' : 'roomCompleted');
-        setSubmitStatus('success');
-        setSubmitMessage(data.message ?? '');
-        setRoom(prev => prev ? { ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 } : null);
-        setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
-        setSuccessMessage("Misja zakończona sukcesem!");
-        setShowSuccessModal(true);
-      } else {
-        playSound('learningError');
-        setSubmitStatus('error');
-        setSubmitMessage(data.message || 'Niepoprawna flaga');
-      }
-    } catch {
-      setSubmitStatus('error');
-      setSubmitMessage('Błąd sieci');
-    } finally {
-      pendingFlag.current = false;
-    }
-  };
-
   const handleCloseSuccessModal = () => {
       setShowSuccessModal(false);
   };
@@ -223,7 +179,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (preview) { setRoom(current => current ? { ...current, tasks: current.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t) } : null); return; }
     const answer = taskAnswers[taskId] || '';
     const task = room?.tasks.find((item) => item.id === taskId);
-    if (!task || task.completed || pendingTask !== null || (task.question && (answersBlocked || !answer))) return;
+    const answered = !!task?.question || !!task?.requiresAnswer;
+    if (!task || task.completed || pendingTask !== null || (answered && (answersBlocked || !answer))) return;
 
     setPendingTask(taskId);
     try {
@@ -250,7 +207,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 setShowSuccessModal(true);
             }
         } else {
-            if (task.question) playSound('learningError');
+            if (answered) playSound('learningError');
             setToast({ message: data.message || 'Niepoprawna odpowiedź', type: 'error' });
         }
     } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
@@ -428,24 +385,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             </div>
           </div>
           {showContent ? (
-            <form onSubmit={handleSubmit} className="room-flag">
-              <h2 className="room-section-title"><label htmlFor={`${titleId}-flag`}>Zgłoś flagę</label></h2>
-              <p className="room-note">Wklej znalezioną flagę dokładnie tak, jak ją widzisz.</p>
-              <div className="room-field">
-                <input
-                  id={`${titleId}-flag`}
-                  type="text"
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="Wklej flagę tutaj..."
-                  value={flag}
-                  onChange={(e) => setFlag(e.target.value)}
-                  className={`room-input${submitStatus === 'error' ? ' is-error' : ''}`}
-                />
-                <button type="submit" className="room-btn room-btn--primary" disabled={answersBlocked}>Zatwierdź</button>
-              </div>
-              {retryNotice || (submitMessage && <p className={`room-message is-${submitStatus}`} role="status">{submitMessage}</p>)}
-            </form>
+            <p className="room-note">Ten pokój nie ma jeszcze zadań. Wróć do niego później.</p>
           ) : (
             <div className="room-solved">
               <h2 className="room-section-title">Gratulacje!</h2>
@@ -464,7 +404,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     );
 
     return (
-      <RoomFrame nav={nav} label="Pokój z flagą" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
+      <RoomFrame nav={nav} label="Pokój bez zadań" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
         footer={<RoomFooterBar title={room.title} badge={<span className="room-chip room-chip--points">{formatXp(room.points)}</span>} next={finish} />}>
         {previewBanner}
         <RoomSplit variant="flat" start={descriptionPane} end={solvePane} initial={0.56} />
@@ -479,6 +419,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const allTasksDone = completedTasksCount === tasks.length;
   const firstOpenTask = tasks.findIndex(t => !t.completed);
   const answerId = `${titleId}-answer`;
+  const flagTask = !task.question && task.requiresAnswer;
 
   const next = !isSolved && allTasksDone
     ? { label: finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój', disabled: finishingRoom, primary: true, onClick: () => void handleCompleteRoom() }
@@ -517,20 +458,21 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
           )}
           {taskIndex === 0 && fileBlock}
           <div className="room-prose task-content" dangerouslySetInnerHTML={{ __html: sanitizeTaskContent(task.content) }} />
-          {task.question ? (
+          {task.question || task.requiresAnswer ? (
             <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(e) => handleTaskSubmit(e, task.id)}>
               <p className="room-question-label">
-                {task.completed ? <Check aria-hidden="true" /> : <HelpCircle aria-hidden="true" />}
-                {task.completed ? 'Zaliczone' : 'Pytanie'}
+                {task.completed ? <Check aria-hidden="true" /> : flagTask ? <Flag aria-hidden="true" /> : <HelpCircle aria-hidden="true" />}
+                {task.completed ? 'Zaliczone' : flagTask ? 'Flaga' : 'Pytanie'}
               </p>
-              <label className="room-question-text" htmlFor={answerId}>{task.question}</label>
+              <label className="room-question-text" htmlFor={answerId}>{flagTask ? 'Wpisz znalezioną flagę dokładnie tak, jak ją widzisz.' : task.question}</label>
               <div className="room-field">
                 <input
                   id={answerId}
                   type="text"
                   autoComplete="off"
+                  spellCheck={room.roomType === 'CTF' ? false : undefined}
                   className={`room-input${task.completed ? ' is-done' : ''}`}
-                  placeholder={task.completed ? 'Ukończono' : 'Twoja odpowiedź...'}
+                  placeholder={task.completed ? 'Ukończono' : room.roomType === 'CTF' ? 'HACK{...}' : 'Twoja odpowiedź...'}
                   value={task.completed ? '' : (taskAnswers[task.id] || '')}
                   onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
                   disabled={task.completed || pendingTask !== null || answersBlocked}

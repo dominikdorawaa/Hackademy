@@ -20,7 +20,11 @@ function Chapters({ create, edit }: { create: (index: number) => void; edit: (id
 }
 function Tasks() {
   const [tasks, setTasks] = useState<RoomTaskRequest[]>([{ id: 1, title: 'Lektura', content: 'Treść', question: null, answer: null }, { id: 2, title: 'Quiz', content: 'Pytanie', question: 'Q?', answer: 'A' }]);
-  return <form><ContentTasks tasks={tasks} errors={{}} published onChange={setTasks} /><output data-testid="tasks-state">{JSON.stringify(tasks)}</output></form>;
+  return <form><ContentTasks tasks={tasks} kind="PATH" errors={{}} published onChange={setTasks} /><output data-testid="tasks-state">{JSON.stringify(tasks)}</output></form>;
+}
+function CtfTasks({ published = true }: { published?: boolean }) {
+  const [tasks, setTasks] = useState<RoomTaskRequest[]>([{ id: 1, title: 'Flaga', content: 'Szukaj', question: null, answer: 'HACK{a}' }, { id: 2, title: 'Z teorii', content: 'Treść', question: 'Stare pytanie?', answer: 'x' }]);
+  return <form><ContentTasks tasks={tasks} kind="CTF" errors={{}} published={published} onChange={setTasks} /><output data-testid="tasks-state">{JSON.stringify(tasks)}</output></form>;
 }
 function state(name: string) { return JSON.parse(screen.getByTestId(`${name}-state`).textContent ?? '[]'); }
 
@@ -64,5 +68,28 @@ describe('content structure editing', () => {
     await user.click(screen.getByRole('button', { name: 'Usuń zadanie 1' })); expect(state('tasks').map((t: RoomTaskRequest) => t.id)).toEqual([2, null]);
     await user.click(screen.getByRole('button', { name: /Quiz/ })); await user.click(screen.getByRole('button', { name: /Quiz/ }));
     expect(state('tasks')[0]).toMatchObject({ id: 2, question: 'Q?', answer: 'A' });
+  });
+  it('edits CTF tasks with a flag field and keeps a question carried over from theory', async () => {
+    const user = userEvent.setup(); render(<CtfTasks />);
+    expect(screen.getAllByText('Z flagą')).toHaveLength(2);
+    await user.click(screen.getByRole('button', { name: /^Flaga/ }));
+    const flag = within(screen.getByRole('button', { name: /^Flaga/ }).closest('li')!);
+    expect(flag.queryByLabelText(/Pytanie/)).toBeNull();
+    const field = flag.getByLabelText('Flaga *');
+    expect(field).toHaveAttribute('placeholder', 'HACK{...}');
+    expect(field).toHaveClass('font-mono');
+    await user.clear(field);
+    expect(screen.getByText('Bez flagi')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /Z teorii/ }));
+    const carried = within(screen.getByRole('button', { name: /Z teorii/ }).closest('li')!);
+    expect(carried.getByLabelText('Pytanie (opcjonalnie)')).toHaveValue('Stare pytanie?');
+    await user.click(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' }));
+    expect(state('tasks')).toHaveLength(3);
+    expect(state('tasks')[1]).toMatchObject({ id: 2, question: 'Stare pytanie?', answer: 'x' });
+  });
+  it('does not require a flag in a CTF draft', async () => {
+    const user = userEvent.setup(); render(<CtfTasks published={false} />);
+    await user.click(screen.getByRole('button', { name: /^Flaga/ }));
+    expect(screen.getByLabelText('Flaga')).toBeInTheDocument();
   });
 });

@@ -17,7 +17,6 @@ public record RoomAdminDto(
     DifficultyLevel difficulty,
     String category,
     int points,
-    String flag,
     int solutionsCount,
     boolean requiresVpn,
     RoomType roomType,

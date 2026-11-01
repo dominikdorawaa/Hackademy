@@ -10,16 +10,16 @@ Format i przykład są dostępne w oknie importu do skopiowania lub pobrania. Ź
 | --- | --- | --- |
 | Ścieżka | `title`, `description`, `chapters` | `unlockMode` (domyślnie `OPEN`) |
 | Rozdział | `title`, `rooms` | brak |
-| Pokój | `title`, `description`, `difficulty`, `category`, `points` | `shortDescription`, `flag`, `requiresVpn` (domyślnie `false`), `hints`, `tasks` |
+| Pokój | `title`, `description`, `difficulty`, `category`, `points` (pokój CTF może je pominąć), `tasks` | `roomType` (`PATH` dla teorii albo `CTF`, domyślnie `PATH`), `shortDescription`, `requiresVpn` (domyślnie `false`), `hints` |
 | Zadanie | `title`, `content` | `question`, `answer` |
 
-`chapters`, `rooms`, `hints` i `tasks` są listami. Listy rozdziałów i pokoi nie mogą być puste. Pominięte listy podpowiedzi i zadań są puste. `hints` zawiera teksty podpowiedzi. Każdy pokój bez zadań wymaga niepustej flagi. Pytanie w zadaniu wymaga odpowiedzi, a odpowiedź wymaga pytania. Treść zadania obsługuje wyłącznie HTML formatowania zgodny z edytorem; niedozwolony HTML jest usuwany i nie może pozostawić pustej treści.
+`chapters`, `rooms`, `hints` i `tasks` są listami. Listy rozdziałów i pokoi nie mogą być puste. Pominięte listy podpowiedzi i zadań są puste. `hints` zawiera teksty podpowiedzi. Każdy pokój ma co najmniej jedno zadanie. W pokoju teorii pytanie wymaga odpowiedzi, a odpowiedź wymaga pytania. W pokoju CTF odpowiedź zadania jest flagą: jest wymagana, pytanie jest opcjonalne, a XP wynika z trudności. Treść zadania obsługuje wyłącznie HTML formatowania zgodny z edytorem; niedozwolony HTML jest usuwany i nie może pozostawić pustej treści.
 
 Tryby odblokowania: `OPEN`, `CHAPTER`, `ROOM`. Trudność: `EASY`, `MEDIUM`, `HARD`, `INSANE`. Punkty pokoi PATH są podawane jako nieujemna liczba całkowita do 2147483647. Kolejność list określa kolejność rozdziałów, pokoi, podpowiedzi i zadań. Tytuły są przycinane na początku i końcu; tytuły pokoi muszą być różne w obrębie rozdziału (wielkość liter jest rozróżniana). Tytuły Tutorial VM i Tutorial VPN są zarezerwowane, niezależnie od wielkości liter. Powtórzenia tytułów w różnych rozdziałach i ścieżkach są dozwolone.
 
-Limity: 5 MB na plik, 100 rozdziałów, 500 pokoi łącznie, 100 podpowiedzi i 100 zadań na pokój. Maksymalne długości: tytuł ścieżki i rozdziału 120, tytuł pokoju i zadania 255, opisy i treść zadania 20000, krótki opis 100, kategoria i flaga 255, podpowiedź i pytanie 2000, odpowiedź 255 znaków.
+Limity: 5 MB na plik, 100 rozdziałów, 500 pokoi łącznie, 100 podpowiedzi i 100 zadań na pokój. Maksymalne długości: tytuł ścieżki i rozdziału 120, tytuł pokoju i zadania 255, opisy i treść zadania 20000, krótki opis 100, kategoria 255, podpowiedź i pytanie 2000, odpowiedź 255 znaków.
 
-Nieznane pola, identyfikatory istniejących materiałów, pola publikacji, bannery i pliki są odrzucane. Typy są sprawdzane bez konwersji, np. `points: "30"` i `requiresVpn: "false"` są błędne. Opcjonalne teksty mogą być null; opcjonalne listy, tryb i boolean po podaniu muszą mieć poprawny typ. Powtórzone klucze JSON i dodatkowa treść po dokumencie są błędami składni. Przy błędnej składni zwracany jest błąd pliku; przy poprawnej składni zbierane są błędy wszystkich elementów, z pozycją od 1, np. `rozdział 2, pokój 3: flag`.
+Nieznane pola, identyfikatory istniejących materiałów, pola publikacji, bannery i pliki są odrzucane. Typy są sprawdzane bez konwersji, np. `points: "30"` i `requiresVpn: "false"` są błędne. Opcjonalne teksty mogą być null; opcjonalne listy, tryb i boolean po podaniu muszą mieć poprawny typ. Powtórzone klucze JSON i dodatkowa treść po dokumencie są błędami składni. Przy błędnej składni zwracany jest błąd pliku; przy poprawnej składni zbierane są błędy wszystkich elementów, z pozycją od 1, np. `rozdział 2, pokój 3, zadanie 1: answer`.
 
 `POST /api/admin/content/paths/import`, multipart z częścią `file`, zwraca 201 i szczegóły nowej ścieżki zgodne z edytorem. Przy walidacji zwraca 400 z `message` i mapą `fields`. Cała struktura jest zapisywana w jednej transakcji, także błąd podczas zapisu wycofuje wszystkie nowe materiały. Import nie modyfikuje istniejących ścieżek ani pokoi. Nie wymaga migracji bazy.
 
@@ -33,4 +33,4 @@ Nowe pokoje są dopisywane na końcu wybranego rozdziału jako szkice; pozostaj�
 
 ## Import CTF (wycofany)
 
-Samodzielny import CTF (`POST /api/admin/content/ctf/import`) usunięto razem z zakładką „Pokoje CTF” (#298). Pokoje CTF żyją w ścieżkach; istniejące samodzielne pokoje przeniosła migracja V36. Pokoje z flagą do rozdziału dodaje się przez import ścieżki.
+Samodzielny import CTF (`POST /api/admin/content/ctf/import`) usunięto razem z zakładką „Pokoje CTF” (#298). Pokoje CTF żyją w ścieżkach; istniejące samodzielne pokoje przeniosła migracja V36. Pokoje CTF do rozdziału dodaje się przez import ścieżki z `"roomType": "CTF"`. Od #299 flaga nie jest polem pokoju, tylko odpowiedzią zadania (migracja V37).

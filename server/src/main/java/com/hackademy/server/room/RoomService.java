@@ -22,7 +22,6 @@ public interface RoomService {
     Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException;
     void deleteRoom(Long id);
     RoomDetailDto getRoomDetail(Long id, String username);
-    SolveRoomResponse solveRoom(Long id, String flag, String username);
     HintDto unlockHint(Long roomId, Long hintId, String username);
     Room getRoomById(Long id);
     RoomFile getRoomFile(Long roomId, String username);

@@ -172,7 +172,7 @@ class AuthAndAdminIntegrationTest {
         for (int index = 0; index < 25; index++) {
             var room = roomRepository.saveAndFlush(Room.builder()
                     .title(username + " room " + index).description("Example room")
-                    .difficulty(DifficultyLevel.EASY).category("Test").points(50).flag("example-flag").build());
+                    .difficulty(DifficultyLevel.EASY).category("Test").points(50).build());
             jdbcTemplate.update("INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (?, ?, ?)",
                     owner.getId(), room.getId(), Timestamp.valueOf(LocalDateTime.of(2026, 1, 1, 12, 0).plusDays(index)));
         }
@@ -251,7 +251,7 @@ class AuthAndAdminIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$.elo").value(610));
         var room = roomRepository.saveAndFlush(Room.builder().title(username + " facts")
                 .description("Example room").difficulty(DifficultyLevel.EASY).category("Test")
-                .points(50).flag("example-flag").build());
+                .points(50).build());
         jdbcTemplate.update("INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (?, ?, ?)",
                 owner.getId(), room.getId(), Timestamp.valueOf(LocalDateTime.now()));
         mockMvc.perform(get("/api/user/me/activity").header("Authorization", "Bearer " + token))
@@ -262,7 +262,7 @@ class AuthAndAdminIntegrationTest {
                 Long.class, "Example hint", room.getId());
         var unsolvedRoom = roomRepository.saveAndFlush(Room.builder().title(username + " unsolved")
                 .description("Example room").difficulty(DifficultyLevel.EASY).category("Test")
-                .points(50).flag("example-flag").build());
+                .points(50).build());
         for (var pathKind : new String[] { "complete", "partial", "empty" }) {
             var pathId = jdbcTemplate.queryForObject(
                     "INSERT INTO paths (title, created_at, updated_at) VALUES (?, ?, ?) RETURNING id",

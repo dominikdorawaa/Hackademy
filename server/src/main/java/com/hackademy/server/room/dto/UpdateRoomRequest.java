@@ -14,7 +14,6 @@ public record UpdateRoomRequest(
         @NotNull(message = "Poziom trudności nie może być pusty") DifficultyLevel difficulty,
         @NotBlank(message = "Kategoria nie może być pusta") @Size(max = 255) String category,
         Integer points,
-        @NotBlank(message = "Flaga nie może być pusta") @Size(max = 255) String flag,
         boolean requiresVpn,
         RoomType roomType,
         @Size(max = 100) List<@NotBlank @Size(max = 2000) String> hints

@@ -6,7 +6,6 @@ import org.junit.jupiter.api.Test;
 import static org.hamcrest.Matchers.hasItem;
 import static org.hamcrest.Matchers.not;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
-import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
@@ -19,8 +18,8 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
         long vm = tutorial("Tutorial VM", "vm");
         long vpn = tutorial("Tutorial VPN", "vpn");
         long vpnRoom = insert("""
-                INSERT INTO rooms (title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, created_at, updated_at)
-                VALUES ('%s', 'd', 'MEDIUM', 'Web', 100, 'FLAG{net}', 0, true, 'CTF', true, now(), now()) RETURNING id
+                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, published, created_at, updated_at)
+                VALUES ('%s', 'd', 'MEDIUM', 'Web', 100, 0, true, 'CTF', true, now(), now()) RETURNING id
                 """.formatted(uniqueTitle("Sieć")));
         try {
             jdbcTemplate.update("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (?, ?, 0), (?, ?, 1), (?, ?, 2)", vm, chapter, vpn, chapter, vpnRoom, chapter);
@@ -57,7 +56,7 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
         long path = insert("INSERT INTO paths (title, description, published, unlock_mode, created_at, updated_at) VALUES ('Zadania CTF', 'd', true, 'OPEN', now(), now()) RETURNING id");
         long chapter = insert("INSERT INTO path_chapters (path_id, title, sort_order, created_at, updated_at) VALUES (" + path + ", 'Rozdział 1', 0, now(), now()) RETURNING id");
         long room = createRoom(admin, uniqueTitle("Moved"), "CTF");
-        jdbcTemplate.update("UPDATE rooms SET published = true, flag = 'FLAG{moved}' WHERE id = ?", room);
+        addFlagTask(room, "FLAG{moved}");
         jdbcTemplate.update("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (?, ?, 0)", room, chapter);
 
         getAs(player, "/api/rooms/" + room).andExpect(status().isOk());
@@ -72,15 +71,16 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
     }
 
     private long tutorial(String title, String flag) {
-        return insert("""
-                INSERT INTO rooms (title, description, difficulty, category, points, flag, solutions_count, requires_vpn, room_type, published, created_at, updated_at)
-                VALUES ('%s', 'd', 'EASY', 'Tutorial', 50, '%s', 0, false, 'CTF', true, now(), now()) RETURNING id
-                """.formatted(title, flag));
+        long room = insert("""
+                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, published, created_at, updated_at)
+                VALUES ('%s', 'd', 'EASY', 'Tutorial', 50, 0, false, 'CTF', true, now(), now()) RETURNING id
+                """.formatted(title));
+        addFlagTask(room, flag);
+        return room;
     }
 
     private void solve(Account account, long room, String flag) throws Exception {
-        mockMvc.perform(post("/api/rooms/" + room + "/solve").header("Authorization", "Bearer " + account.token())
-                        .contentType("application/json").content("{\"flag\":\"" + flag + "\"}"))
+        solveRoom(account, room, flag)
                 .andExpect(status().isOk())
                 .andExpect(jsonPath("$.success").value(true));
     }

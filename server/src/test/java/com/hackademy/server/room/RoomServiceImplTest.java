@@ -103,7 +103,7 @@ class RoomServiceImplTest {
     void correctFlagAwardsRoomPoints() {
         flagRoom(1L, 100, "FLAG{ok}");
 
-        var result = service.solveRoom(1L, "FLAG{ok}", "alice");
+        var result = solveFlag(1L, "FLAG{ok}", "alice");
 
         assertTrue(result.success());
         assertEquals(100, result.pointsEarned());
@@ -114,7 +114,7 @@ class RoomServiceImplTest {
     void correctFlagCountsAnotherSolutionOfTheRoom() {
         flagRoom(1L, 100, "FLAG{ok}");
 
-        service.solveRoom(1L, "FLAG{ok}", "alice");
+        solveFlag(1L, "FLAG{ok}", "alice");
 
         verify(roomRepository).incrementSolutions(1L);
     }
@@ -123,29 +123,18 @@ class RoomServiceImplTest {
     void wrongFlagIsRejectedWithoutPoints() {
         flagRoom(1L, 100, "FLAG{ok}");
 
-        var result = service.solveRoom(1L, "FLAG{nope}", "alice");
+        var result = solveFlag(1L, "FLAG{nope}", "alice");
 
-        assertEquals(new SolveRoomResponse(false, "Niepoprawna flaga", 0, List.of()), result);
+        assertEquals(new SolveRoomResponse(false, "Niepoprawna odpowiedź", 0, List.of()), result);
         assertEquals(40, alice.getPoints());
         verify(roomRepository, never()).incrementSolutions(any());
-    }
-
-    @Test
-    void onlyACorrectFlagLocksTheUser() {
-        flagRoom(1L, 100, "FLAG{ok}");
-
-        service.solveRoom(1L, "FLAG{nope}", "alice");
-        verify(userRepository, never()).findByUsernameForUpdate(any());
-
-        service.solveRoom(1L, "FLAG{ok}", "alice");
-        verify(userRepository).findByUsernameForUpdate("alice");
     }
 
     @Test
     void flagIsCaseSensitive() {
         flagRoom(1L, 100, "FLAG{ok}");
 
-        assertFalse(service.solveRoom(1L, "flag{ok}", "alice").success());
+        assertFalse(solveFlag(1L, "flag{ok}", "alice").success());
     }
 
     @Test
@@ -155,9 +144,9 @@ class RoomServiceImplTest {
         alice.setStreak(3);
         alice.setLastSolvedDate(LocalDate.of(2026, 10, 1));
 
-        var result = service.solveRoom(1L, "FLAG{ok}", "alice");
+        var result = solveFlag(1L, "FLAG{ok}", "alice");
 
-        assertEquals(new SolveRoomResponse(true, "Poprawna flaga! (Tryb treningowy - 0 pkt)", 0, List.of()), result);
+        assertEquals(new SolveRoomResponse(true, "Poprawna odpowiedź! (Pokój już ukończony)", 0, List.of()), result);
         assertEquals(40, alice.getPoints());
         assertEquals(3, alice.getStreak());
     }
@@ -165,34 +154,23 @@ class RoomServiceImplTest {
     @ParameterizedTest
     @NullAndEmptySource
     @ValueSource(strings = "   ")
-    void blankFlagIsABadRequest(String flag) {
+    void blankFlagIsAWrongAnswer(String flag) {
         flagRoom(1L, 100, "FLAG{ok}");
 
-        var error = assertThrows(ResponseStatusException.class, () -> service.solveRoom(1L, flag, "alice"));
-
-        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
-    }
-
-    @ParameterizedTest
-    @NullAndEmptySource
-    void roomWithoutFlagCannotBeSolvedWithOne(String roomFlag) {
-        flagRoom(1L, 100, roomFlag);
-
-        var error = assertThrows(ResponseStatusException.class, () -> service.solveRoom(1L, "FLAG{ok}", "alice"));
-
-        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        assertFalse(solveFlag(1L, flag, "alice").success());
+        verify(userSolvedRoomRepository, never()).save(any());
     }
 
     @Test
     void solvingUnknownRoomFails() {
-        assertThrows(IllegalArgumentException.class, () -> service.solveRoom(99L, "FLAG{ok}", "alice"));
+        assertThrows(IllegalArgumentException.class, () -> solveFlag(99L, "FLAG{ok}", "alice"));
     }
 
     @Test
     void solvingAsUnknownUserFails() {
         flagRoom(1L, 100, "FLAG{ok}");
 
-        assertThrows(UserNotFoundException.class, () -> service.solveRoom(1L, "FLAG{ok}", "bob"));
+        assertThrows(UserNotFoundException.class, () -> solveFlag(1L, "FLAG{ok}", "bob"));
     }
 
     @Test
@@ -200,7 +178,7 @@ class RoomServiceImplTest {
         flagRoom(1L, 100, "FLAG{ok}");
         firstSolveBadgeAvailable();
 
-        var result = service.solveRoom(1L, "FLAG{ok}", "alice");
+        var result = solveFlag(1L, "FLAG{ok}", "alice");
 
         assertEquals(List.of("Pierwsza krew"), result.newBadges().stream().map(BadgeDto::name).toList());
     }
@@ -212,7 +190,7 @@ class RoomServiceImplTest {
         flagRoom(1L, 100, "FLAG{ok}");
         unlockedHints(1L, hints);
 
-        var result = service.solveRoom(1L, "FLAG{ok}", "alice");
+        var result = solveFlag(1L, "FLAG{ok}", "alice");
 
         assertEquals(expected, result.pointsEarned());
         assertEquals(40 + expected, alice.getPoints());
@@ -224,7 +202,7 @@ class RoomServiceImplTest {
         flagRoom(1L, 50, "FLAG{ok}");
         unlockedHints(1L, 1);
 
-        assertEquals(37, service.solveRoom(1L, "FLAG{ok}", "alice").pointsEarned());
+        assertEquals(37, solveFlag(1L, "FLAG{ok}", "alice").pointsEarned());
     }
 
 
@@ -235,7 +213,7 @@ class RoomServiceImplTest {
         alice.setLastSolvedDate(lastSolved);
         alice.setStreak(streak);
 
-        service.solveRoom(1L, "FLAG{ok}", "alice");
+        solveFlag(1L, "FLAG{ok}", "alice");
 
         assertEquals(expected, alice.getStreak());
         assertEquals(LocalDate.of(2026, 10, 15), alice.getLastSolvedDate());
@@ -257,43 +235,41 @@ class RoomServiceImplTest {
 
 
     @Test
-    void wrongFlagsAndTaskAnswersShareOneLimitPerRoom() {
-        Room room = taskRoom(2L, 100, task(20L, "a"));
-        room.setFlag("FLAG{ok}");
+    void wrongAnswersToDifferentTasksShareOneLimitPerRoom() {
+        taskRoom(2L, 100, task(20L, "a"), task(21L, "FLAG{ok}")).setRoomType(RoomType.CTF);
 
-        assertFalse(service.solveRoom(2L, "FLAG{nope}", "alice").success());
+        assertFalse(service.solveTask(2L, 21L, "FLAG{nope}", "alice").success());
         assertFalse(service.solveTask(2L, 20L, "nope", "alice").success());
 
         assertThrows(RoomAnswerLimitException.class, () -> service.solveTask(2L, 20L, "a", "alice"));
-        assertThrows(RoomAnswerLimitException.class, () -> service.solveRoom(2L, "FLAG{ok}", "alice"));
+        assertThrows(RoomAnswerLimitException.class, () -> service.solveTask(2L, 21L, "FLAG{ok}", "alice"));
         verify(userSolvedRoomRepository, never()).save(any());
         verify(userCompletedTaskRepository, never()).save(any());
         assertEquals(40, alice.getPoints());
     }
 
     @Test
-    void rightAnswersAndBlankFlagsDoNotCountTowardsTheLimit() {
+    void rightAnswersDoNotCountTowardsTheLimit() {
         flagRoom(1L, 100, "FLAG{ok}");
         alreadySolved(1L);
 
         for (int i = 0; i < 5; i++) {
-            assertTrue(service.solveRoom(1L, "FLAG{ok}", "alice").success());
-            assertThrows(ResponseStatusException.class, () -> service.solveRoom(1L, " ", "alice"));
+            assertTrue(solveFlag(1L, "FLAG{ok}", "alice").success());
         }
 
-        assertFalse(service.solveRoom(1L, "FLAG{nope}", "alice").success());
-        assertFalse(service.solveRoom(1L, "FLAG{nope}", "alice").success());
-        assertThrows(RoomAnswerLimitException.class, () -> service.solveRoom(1L, "FLAG{nope}", "alice"));
+        assertFalse(solveFlag(1L, "FLAG{nope}", "alice").success());
+        assertFalse(solveFlag(1L, "FLAG{nope}", "alice").success());
+        assertThrows(RoomAnswerLimitException.class, () -> solveFlag(1L, "FLAG{nope}", "alice"));
     }
 
     @Test
     void aBlockedRoomLeavesOtherRoomsSolvable() {
         flagRoom(1L, 100, "FLAG{ok}");
         flagRoom(3L, 50, "FLAG{other}");
-        service.solveRoom(1L, "FLAG{nope}", "alice");
-        service.solveRoom(1L, "FLAG{nope}", "alice");
+        solveFlag(1L, "FLAG{nope}", "alice");
+        solveFlag(1L, "FLAG{nope}", "alice");
 
-        var result = service.solveRoom(3L, "FLAG{other}", "alice");
+        var result = solveFlag(3L, "FLAG{other}", "alice");
 
         assertTrue(result.success());
         assertEquals(50, result.pointsEarned());
@@ -305,6 +281,14 @@ class RoomServiceImplTest {
         taskRoom(2L, 100, task(20L, "FLAG{abc}"), task(21L, "x"));
 
         assertTrue(service.solveTask(2L, 20L, "flag{ABC}", "alice").success());
+    }
+
+    @Test
+    void ctfTaskFlagIsCaseSensitive() {
+        taskRoom(2L, 100, task(20L, "FLAG{abc}"), task(21L, "x")).setRoomType(RoomType.CTF);
+
+        assertFalse(service.solveTask(2L, 20L, "flag{ABC}", "alice").success());
+        assertTrue(service.solveTask(2L, 20L, "FLAG{abc}", "alice").success());
     }
 
     @Test
@@ -403,12 +387,12 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void roomWithoutTasksCannotBeCompletedWithoutFlag() {
+    void roomWithoutTasksCannotBeCompleted() {
         taskRoom(2L, 100);
 
         var result = service.completeTaskRoom(2L, "alice");
 
-        assertEquals(new SolveRoomResponse(false, "Pokój bez zadań wymaga flagi", 0, List.of()), result);
+        assertEquals(new SolveRoomResponse(false, "Pokój nie ma jeszcze zadań", 0, List.of()), result);
     }
 
     @Test
@@ -561,21 +545,12 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void ctfTitleMustBeUnique() {
-        when(roomRepository.existsByTitleAndRoomType("Zajęty", RoomType.CTF)).thenReturn(true);
-
-        var error = assertThrows(RoomRuleException.class,
-                () -> service.createRoom(createRequest("Zajęty", DifficultyLevel.EASY, null, RoomType.CTF, null), null));
-
-        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
-    }
-
-    @Test
-    void pathRoomMayShareTitleWithCtfRoom() throws IOException {
+    void roomsOfBothTypesMayShareATitleOutsideAChapter() throws IOException {
         returnSavedRoom();
-        when(roomRepository.existsByTitleAndRoomType("Zajęty", RoomType.CTF)).thenReturn(true);
 
         assertEquals("Zajęty", service.createRoom(createRequest("Zajęty", DifficultyLevel.EASY, 10, RoomType.PATH, null), null).getTitle());
+        assertEquals("Zajęty", service.createRoom(createRequest("Zajęty", DifficultyLevel.EASY, null, RoomType.CTF, null), null).getTitle());
+        assertEquals("Zajęty", service.createRoom(createRequest("Zajęty", DifficultyLevel.EASY, null, RoomType.CTF, null), null).getTitle());
     }
 
     @Test
@@ -650,11 +625,17 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void pathRoomWithTasksCannotBecomeCtf() {
-        taskRoom(2L, 10, task(20L, "a"));
+    void roomTypeChangesBothWaysWithoutLosingTasks() throws IOException {
+        Room room = taskRoom(2L, 10, task(20L, "a"), task(21L, "b"));
+        returnSavedRoom();
 
-        assertThrows(IllegalArgumentException.class,
-                () -> service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF, null), null));
+        service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF, null), null);
+        assertEquals(RoomType.CTF, room.getRoomType());
+        assertEquals(List.of(20L, 21L), room.getTasks().stream().map(RoomTask::getId).toList());
+
+        service.updateRoom(2L, updateRequest("Room 2", RoomType.PATH, null), null);
+        assertEquals(RoomType.PATH, room.getRoomType());
+        assertEquals(List.of("a", "b"), room.getTasks().stream().map(RoomTask::getAnswer).toList());
     }
 
     @Test
@@ -672,17 +653,6 @@ class RoomServiceImplTest {
 
         assertThrows(RoomRuleException.class,
                 () -> service.updateRoom(1L, updateRequest("Tutorial VPN", RoomType.CTF, null), null));
-    }
-
-    @Test
-    void renamingCtfRoomToAnotherCtfTitleIsRefused() {
-        flagRoom(1L, 100, "FLAG{ok}");
-        when(roomRepository.existsByTitleAndRoomTypeAndIdNot("Zajęty", RoomType.CTF, 1L)).thenReturn(true);
-
-        var error = assertThrows(RoomRuleException.class,
-                () -> service.updateRoom(1L, updateRequest("Zajęty", RoomType.CTF, null), null));
-
-        assertEquals(HttpStatus.CONFLICT, error.getStatusCode());
     }
 
     @Test
@@ -775,6 +745,8 @@ class RoomServiceImplTest {
         assertEquals(List.of(new HintDto(11L, 0, "Podpowiedź 11"), HintDto.locked(12L, 1)), detail.hints());
         assertEquals(List.of(11L), detail.unlockedHintIds());
         assertEquals(List.of(true, false), detail.tasks().stream().map(RoomTaskDto::completed).toList());
+        assertEquals(List.of(true, true), detail.tasks().stream().map(RoomTaskDto::requiresAnswer).toList());
+        assertEquals(RoomType.CTF, detail.roomType());
         assertEquals("dump.pcap", detail.fileName());
         verify(visibility).requireRoom(1L);
         verify(pathUnlockPolicy).requireUnlocked(1L, 7L);
@@ -874,11 +846,17 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void tasksCanOnlyBeAddedToPathRooms() {
-        flagRoom(1L, 100, "FLAG{ok}").setRoomType(RoomType.CTF);
+    void publishedCtfTaskNeedsAFlagButNoQuestion() {
+        Room room = flagRoom(1L, 100, "FLAG{ok}");
+        room.setPublished(true);
 
-        assertThrows(IllegalArgumentException.class,
-                () -> service.updateRoomTasks(1L, new UpdateRoomTasksRequest(0L, List.of())));
+        var result = service.updateRoomTasks(1L, new UpdateRoomTasksRequest(0L, List.of(
+                new RoomTaskRequest(10L, "Flaga", "Znajdź flagę", null, " HACK{x} "))));
+        assertEquals("HACK{x}", result.tasks().get(0).answer());
+        assertNull(result.tasks().get(0).question());
+
+        assertThrows(IllegalArgumentException.class, () -> service.updateRoomTasks(1L,
+                new UpdateRoomTasksRequest(1L, List.of(new RoomTaskRequest(10L, "Flaga", "Znajdź flagę", "Pytanie?", "  ")))));
     }
 
     @ParameterizedTest
@@ -946,10 +924,14 @@ class RoomServiceImplTest {
 
 
     Room flagRoom(Long id, int points, String flag) {
-        Room room = Room.builder().id(id).title("Room " + id).points(points).flag(flag).build();
-        when(roomRepository.findById(id)).thenReturn(Optional.of(room));
-        when(roomRepository.findByIdForUpdate(id)).thenReturn(Optional.of(room));
+        Room room = taskRoom(id, points, task(id * 10, flag));
+        room.setRoomType(RoomType.CTF);
+        completedTasks(1);
         return room;
+    }
+
+    SolveRoomResponse solveFlag(Long roomId, String flag, String username) {
+        return service.solveTask(roomId, roomId * 10, flag, username);
     }
 
     Room taskRoom(Long id, int points, RoomTask... tasks) {
@@ -993,11 +975,11 @@ class RoomServiceImplTest {
     }
 
     static CreateRoomRequest createRequest(String title, DifficultyLevel difficulty, Integer points, RoomType type, List<String> hints) {
-        return new CreateRoomRequest(title, "Opis", "Krótko", difficulty, "Web", points, "FLAG{new}", false, type, hints);
+        return new CreateRoomRequest(title, "Opis", "Krótko", difficulty, "Web", points, false, type, hints);
     }
 
     static UpdateRoomRequest updateRequest(String title, RoomType type, List<String> hints) {
-        return new UpdateRoomRequest(title, "Opis", "Krótko", DifficultyLevel.MEDIUM, "Web", 10, "FLAG{new}", false, type, hints);
+        return new UpdateRoomRequest(title, "Opis", "Krótko", DifficultyLevel.MEDIUM, "Web", 10, false, type, hints);
     }
 
     static RoomSummaryDto summary(Long id, String title, boolean requiresVpn, RoomType type) {

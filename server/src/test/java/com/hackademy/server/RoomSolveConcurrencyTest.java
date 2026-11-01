@@ -73,10 +73,11 @@ class RoomSolveConcurrencyTest {
     void sameRoomFlagSolvesAwardPointsOnce() throws Exception {
         User user = user();
         Room room = room(DifficultyLevel.MEDIUM);
+        Long task = flagTask(room);
 
         List<SolveRoomResponse> results = race(user,
-                () -> roomService.solveRoom(room.getId(), "CTF{race}", user.getUsername()),
-                () -> roomService.solveRoom(room.getId(), "CTF{race}", user.getUsername()));
+                () -> roomService.solveTask(room.getId(), task, "CTF{race}", user.getUsername()),
+                () -> roomService.solveTask(room.getId(), task, "CTF{race}", user.getUsername()));
 
         assertTrue(results.stream().allMatch(SolveRoomResponse::success));
         assertEquals(100, results.stream().mapToInt(SolveRoomResponse::pointsEarned).sum());
@@ -90,37 +91,26 @@ class RoomSolveConcurrencyTest {
         User user = user();
         Room first = room(DifficultyLevel.MEDIUM);
         Room second = room(DifficultyLevel.EASY);
+        Long firstTask = flagTask(first);
+        Long secondTask = flagTask(second);
 
         List<SolveRoomResponse> results = race(user,
-                () -> roomService.solveRoom(first.getId(), "CTF{race}", user.getUsername()),
-                () -> roomService.solveRoom(second.getId(), "CTF{race}", user.getUsername()));
+                () -> roomService.solveTask(first.getId(), firstTask, "CTF{race}", user.getUsername()),
+                () -> roomService.solveTask(second.getId(), secondTask, "CTF{race}", user.getUsername()));
 
         assertTrue(results.stream().allMatch(SolveRoomResponse::success));
         assertEquals(2, userSolvedRoomRepository.countByUser_Id(user.getId()));
         assertEquals(150, userRepository.findById(user.getId()).orElseThrow().getPoints());
     }
 
-    @Test
-    void flagAndLastTaskInSameRoomAwardPointsOnce() throws Exception {
-        User user = user();
-        Room room = room(DifficultyLevel.MEDIUM);
-        RoomTask task = roomTaskRepository.save(RoomTask.builder()
+    private Long flagTask(Room room) {
+        return roomTaskRepository.save(RoomTask.builder()
                 .room(room)
-                .title("Task")
+                .title("Flag")
                 .content("Only task")
-                .answer("answer")
+                .answer("CTF{race}")
                 .sortOrder(0)
-                .build());
-
-        List<SolveRoomResponse> results = race(user,
-                () -> roomService.solveRoom(room.getId(), "CTF{race}", user.getUsername()),
-                () -> roomService.solveTask(room.getId(), task.getId(), "answer", user.getUsername()));
-
-        assertTrue(results.stream().allMatch(SolveRoomResponse::success));
-        assertEquals(100, results.stream().mapToInt(SolveRoomResponse::pointsEarned).sum());
-        assertEquals(1, userSolvedRoomRepository.countByUser_Id(user.getId()));
-        assertEquals(100, userRepository.findById(user.getId()).orElseThrow().getPoints());
-        assertEquals(1, roomRepository.findById(room.getId()).orElseThrow().getSolutionsCount());
+                .build()).getId();
     }
 
     private User user() {
@@ -134,7 +124,6 @@ class RoomSolveConcurrencyTest {
                 .difficulty(difficulty)
                 .category("Test")
                 .points(difficulty.ctfPoints())
-                .flag("CTF{race}")
                 .build());
     }
 

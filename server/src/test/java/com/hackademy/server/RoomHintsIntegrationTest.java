@@ -88,7 +88,8 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.hints[1].description").doesNotExist())
                 .andExpect(jsonPath("$.unlockedHintIds[0]").value(hints.get(0)));
 
-        postJson(user, "/api/rooms/" + roomId + "/solve", "{\"flag\":\"flag\"}").andExpect(status().isOk())
+        addFlagTask(roomId, "flag");
+        solveRoom(user, roomId, "flag").andExpect(status().isOk())
                 .andExpect(jsonPath("$.pointsEarned").value(37));
     }
 

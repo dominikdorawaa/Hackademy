@@ -186,6 +186,30 @@ describe('admin panel layout', () => {
     expect(screen.getByText('2 z 2')).toBeInTheDocument();
   });
 
+  it('shows the type of every room and filters the list by type', async () => {
+    const rooms = [room(1, 'Web 1', { roomType: 'CTF' }), room(2, 'Lekcja', {}), room(3, 'Sieci', { roomType: 'CTF' })];
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)));
+    signIn('ADMIN');
+    const user = userEvent.setup();
+    mountAdmin('/admin/paths/rooms');
+
+    await screen.findByRole('link', { name: 'Web 1' });
+    expect(screen.getByRole('columnheader', { name: 'Typ' })).toBeInTheDocument();
+    expect(within(screen.getByRole('link', { name: 'Lekcja' }).closest('tr')!).getByText('Teoria')).toBeInTheDocument();
+    const filters = within(screen.getByRole('group', { name: 'Filtruj po typie' }));
+    expect(filters.getByRole('button', { name: /Wszystkie/ })).toHaveAttribute('aria-pressed', 'true');
+    await user.click(filters.getByRole('button', { name: /CTF/ }));
+    expect(filters.getByRole('button', { name: /CTF/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByText('2 z 3')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Lekcja' })).toBeNull();
+    await user.click(filters.getByRole('button', { name: /Teoria/ }));
+    expect(screen.getByRole('link', { name: 'Lekcja' })).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Web 1' })).toBeNull();
+    await user.type(screen.getByLabelText('Szukaj pokoju'), 'web');
+    expect(screen.getByText('Brak pasujących pokoi')).toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Utwórz pierwszy pokój' })).toBeNull();
+  });
+
   it('searches rooms by title or path and deletes a moved CTF room', async () => {
     const rooms = [room(1, 'Web 1', { roomType: 'CTF', pathId: 4, pathTitle: 'Zadania CTF' }), room(2, 'Lekcja', { pathId: 5, pathTitle: 'Linux' })];
     let deleted: string | undefined;
@@ -265,8 +289,8 @@ describe('content editors', () => {
   it('blocks an existing room after load failure and preserves hints after retry', async () => {
     signIn('ADMIN'); let loads = 0;
     const existing = { id: 9, title: 'CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web', points: 100,
-      flag: 'CTF{x}', solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'], published: true, contentRevision: 2, createdAt: '2026-10-10T10:00:00', updatedAt: null };
-    const detail = { room: existing, tasks: { revision: 0, tasks: [] } };
+      solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'], published: true, contentRevision: 2, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+    const detail = { room: existing, tasks: { revision: 0, tasks: [{ id: 3, title: 'Flaga', content: 'Znajdź flagę', question: null, answer: 'CTF{x}' }] } };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => ++loads === 1 ? HttpResponse.json({ message: 'Nie udało się wczytać pokoju' }, { status: 500 }) : HttpResponse.json(detail)));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue(detail as contentApi.RoomEditor);
     const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/9');
@@ -275,7 +299,8 @@ describe('content editors', () => {
     await user.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
     expect(await screen.findByLabelText('Podpowiedź 1 *')).toHaveValue('Zachowana podpowiedź');
     expect(screen.getByLabelText('Trudność *')).toHaveValue('MEDIUM');
-    expect(screen.queryByText('Dodaj zadanie')).toBeNull();
+    expect(screen.getByRole('radio', { name: 'CTF' })).toBeChecked();
+    expect(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' })).toBeInTheDocument();
     await user.type(screen.getByLabelText('Tytuł *'), ' zmieniony');
     await user.click(screen.getByRole('button', { name: 'Zapisz zmiany' }));
     expect(await screen.findByText('Zapisano opublikowany pokój.')).toBeInTheDocument();
@@ -284,14 +309,18 @@ describe('content editors', () => {
   it('saves an incomplete room as a draft and keeps the new room available for preview', async () => {
     signIn('ADMIN');
     const created = { id: 9, title: 'Nowy CTF', description: '', shortDescription: '', difficulty: 'EASY', category: 'Path', points: 0,
-      flag: '', solutionsCount: 0, requiresVpn: false, roomType: 'PATH', hints: [], published: false, contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+      solutionsCount: 0, requiresVpn: false, roomType: 'PATH', hints: [], published: false, contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: created, tasks: { revision: 0, tasks: [] } })));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 0, tasks: [] } } as contentApi.RoomEditor);
     const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/new');
+    expect(await screen.findByRole('button', { name: 'Dalej' })).toBeDisabled();
+    await user.click(screen.getByRole('radio', { name: /Teoria/ }));
+    await user.click(screen.getByRole('button', { name: 'Dalej' }));
     await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy CTF');
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     expect(await screen.findByText('Zapisano szkic pokoju.')).toBeInTheDocument();
-    expect(save.mock.calls[0][1]).toMatchObject({ published: false, description: '', flag: '', roomType: 'PATH' });
+    expect(save.mock.calls[0][1]).toMatchObject({ published: false, description: '', roomType: 'PATH' });
+    expect(save.mock.calls[0][1]).not.toHaveProperty('flag');
     expect(await screen.findByRole('heading', { level: 1, name: 'Nowy CTF' })).toBeInTheDocument();
   });
 });

@@ -288,7 +288,7 @@ class RealtimeIntegrationTest {
     void challengesQueueMatchesAndResultsUpdateBothPlayers() throws Exception {
         var a = user(); var b = user();
         rooms.saveAndFlush(Room.builder().title("live" + UUID.randomUUID()).description("test").difficulty(DifficultyLevel.EASY)
-                .category("test").points(10).flag("test").requiresVpn(false).build());
+                .category("test").points(10).requiresVpn(false).build());
         try (var sa = connected(a); var sb = connected(b)) {
             var challenge = arena.createChallenge(a.getId(), a.getUsername(), b.getId(), b.getUsername());
             assertEquals(challenge.getId(), JsonPath.read(RealtimeSocket.body(sa.receive()), "$.state.outgoingChallenges[0].id"));
@@ -417,7 +417,7 @@ class RealtimeIntegrationTest {
     void scheduledMatchmakingPublishesTheSameActiveGameToBothPlayers() throws Exception {
         var a = user(); var b = user();
         rooms.saveAndFlush(Room.builder().title("match" + UUID.randomUUID()).description("test").difficulty(DifficultyLevel.EASY)
-                .category("test").points(10).flag("test").requiresVpn(false).build());
+                .category("test").points(10).requiresVpn(false).build());
         try (var sa = connected(a); var sb = connected(b)) {
             matchmaking.joinQueue(a.getId(), a.getUsername());
             sa.receive();
@@ -495,7 +495,7 @@ class RealtimeIntegrationTest {
         var friend = user();
         befriend(me, friend);
         var room = rooms.saveAndFlush(Room.builder().title("Ukryty skarb " + UUID.randomUUID()).description("test").difficulty(DifficultyLevel.EASY)
-                .category("test").points(10).flag("test").requiresVpn(false).build());
+                .category("test").points(10).requiresVpn(false).build());
         try (var watcher = connected(friend)) {
             var tab = connected(me);
             assertEquals(true, friendField(watcher, "online"));
