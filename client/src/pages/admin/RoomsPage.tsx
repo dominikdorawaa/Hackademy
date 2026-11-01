@@ -7,27 +7,13 @@ import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
-import type { RoomAdminSummaryDto, RoomType } from '../../types/api';
-import { ConfirmAction, DifficultyBadge, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
-import { errorText, numberFormat, plural } from '../../components/admin/adminFormat';
+import type { RoomAdminSummaryDto } from '../../types/api';
+import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
+import { errorText, numberFormat } from '../../components/admin/adminFormat';
 import { useAdminAccess } from './adminAccess';
-import { roomBasePath } from './adminConfig';
-import CtfImportDialog from './CtfImportDialog';
+import { roomsPath as base } from './adminConfig';
 
-const copy: Record<RoomType, { title: string; description: string; empty: string }> = {
-  CTF: {
-    title: 'Pokoje CTF',
-    description: 'Zadania z flagą dostępne w arenie i rankingu. XP wynika z poziomu trudności.',
-    empty: 'Nie ma jeszcze pokoi CTF.',
-  },
-  PATH: {
-    title: 'Pokoje ścieżek',
-    description: 'Lekcje używane w ścieżkach nauki. Pokój należy do jednego rozdziału jednej ścieżki.',
-    empty: 'Nie ma jeszcze pokoi ścieżek.',
-  },
-};
-
-export default function RoomsPage({ kind }: { kind: RoomType }) {
+export default function RoomsPage() {
   const { sessionKey } = useAuth();
   const { isAdmin } = useAdminAccess();
   const [rooms, setRooms] = useState<RoomAdminSummaryDto[]>([]);
@@ -35,20 +21,19 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
   const [error, setError] = useState<string | null>(null);
   const [success, setSuccess] = useState<string | null>(null);
   const [query, setQuery] = useState('');
-  const base = roomBasePath[kind];
 
   const load = useCallback(async () => {
     try {
       setLoading(true);
       const data = (await adminApi.getAllRoomsAdmin(sessionKey)) ?? [];
-      setRooms(data.filter((room) => room.roomType === kind));
+      setRooms(data);
       setError(null);
     } catch (err) {
       setError(errorText(err, 'Nie udało się pobrać pokoi.'));
     } finally {
       setLoading(false);
     }
-  }, [sessionKey, kind]);
+  }, [sessionKey]);
 
   useEffect(() => {
     if (sessionKey) void load();
@@ -75,15 +60,12 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
   return (
     <>
       <PageHeader
-        title={copy[kind].title}
-        description={copy[kind].description}
+        title="Pokoje"
+        description="Lekcje i zadania z flagą używane w ścieżkach nauki. Pokój należy do jednego rozdziału jednej ścieżki."
         actions={
-          <>{kind === 'CTF' && isAdmin && <CtfImportDialog disabled={loading} onImported={count => {
-            setSuccess(`Zaimportowano ${count} ${plural(count, ['pokój', 'pokoje', 'pokoi'])} CTF. Materiały zapisano jako szkice.`);
-            setQuery(''); void load();
-          }} />}<Button asChild>
+          <Button asChild>
             <Link to={`${base}/new`}><Plus />Nowy pokój</Link>
-          </Button></>
+          </Button>
         }
       />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
@@ -91,7 +73,7 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
             aria-label="Szukaj pokoju"
-            placeholder={kind === 'PATH' ? 'Szukaj po tytule lub ścieżce…' : 'Szukaj po tytule…'}
+            placeholder="Szukaj po tytule lub ścieżce…"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
             className="pl-9"
@@ -107,7 +89,7 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
         <LoadingRows label="Ładowanie pokoi" />
       ) : filtered.length === 0 ? (
         <EmptyState
-          title={query ? 'Brak pasujących pokoi' : copy[kind].empty}
+          title={query ? 'Brak pasujących pokoi' : 'Nie ma jeszcze pokoi.'}
           action={!query && <Button asChild variant="outline"><Link to={`${base}/new`}>Utwórz pierwszy pokój</Link></Button>}
         />
       ) : (
@@ -116,14 +98,7 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
             <TableHeader>
               <TableRow>
                 <TableHead>Tytuł</TableHead>
-                {kind === 'CTF' ? (
-                  <>
-                    <TableHead className="hidden sm:table-cell">Kategoria</TableHead>
-                    <TableHead>Trudność</TableHead>
-                  </>
-                ) : (
-                  <TableHead className="hidden sm:table-cell">Ścieżka</TableHead>
-                )}
+                <TableHead className="hidden sm:table-cell">Ścieżka</TableHead>
                 <TableHead className="hidden text-right md:table-cell">XP</TableHead>
                 <TableHead className="hidden md:table-cell">VPN</TableHead>
                 <TableHead className="text-right"><span className="sr-only">Akcje</span></TableHead>
@@ -137,23 +112,17 @@ export default function RoomsPage({ kind }: { kind: RoomType }) {
                     <Link to={`${base}/${room.id}`} className="hover:text-primary hover:underline underline-offset-4">
                       {room.title}
                     </Link>
+                    {room.roomType === 'CTF' && <Badge variant="outline" className="ml-2">CTF</Badge>}
                   </TableCell>
-                  {kind === 'CTF' ? (
-                    <>
-                      <TableCell className="hidden text-muted-foreground sm:table-cell">{room.category}</TableCell>
-                      <TableCell><DifficultyBadge difficulty={room.difficulty} /></TableCell>
-                    </>
-                  ) : (
-                    <TableCell className="hidden sm:table-cell">
-                      {room.pathTitle ? (
-                        <Link to={`/admin/paths/${room.pathId}`} className="text-muted-foreground hover:text-foreground hover:underline underline-offset-4">
-                          {room.pathTitle}
-                        </Link>
-                      ) : (
-                        <Badge variant="outline" className="text-muted-foreground">Bez ścieżki</Badge>
-                      )}
-                    </TableCell>
-                  )}
+                  <TableCell className="hidden sm:table-cell">
+                    {room.pathTitle ? (
+                      <Link to={`/admin/paths/${room.pathId}`} className="text-muted-foreground hover:text-foreground hover:underline underline-offset-4">
+                        {room.pathTitle}
+                      </Link>
+                    ) : (
+                      <Badge variant="outline" className="text-muted-foreground">Bez ścieżki</Badge>
+                    )}
+                  </TableCell>
                   <TableCell className="hidden text-right tabular-nums md:table-cell">{numberFormat.format(room.points)}</TableCell>
                   <TableCell className="hidden md:table-cell">
                     {room.requiresVpn ? (

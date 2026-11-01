@@ -18,8 +18,6 @@ import java.util.List;
 
 public interface RoomService {
     Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException;
-    List<RoomSummaryDto> getAllRooms(String username);
-    List<RoomSummaryDto> getAllRoomsByType(String username, RoomType roomType);
     List<RoomAdminSummaryDto> getAllRoomsForAdmin();
     Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException;
     void deleteRoom(Long id);

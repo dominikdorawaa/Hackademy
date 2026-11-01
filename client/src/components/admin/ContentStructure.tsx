@@ -27,7 +27,7 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
   const [query, setQuery] = useState('');
   const target = chapters[targetIndex] ? targetIndex : Math.max(0, chapters.length - 1);
   const assigned = new Set(chapters.flatMap(c => c.roomIds ?? []));
-  const pool = rooms.filter(r => r.roomType === 'PATH' && !assigned.has(r.id) && (r.pathId == null || r.pathId === pathId))
+  const pool = rooms.filter(r => !assigned.has(r.id) && (r.pathId == null || r.pathId === pathId))
     .filter(r => !query.trim() || r.title.toLocaleLowerCase('pl').includes(query.trim().toLocaleLowerCase('pl')))
     .sort((a, b) => a.title.localeCompare(b.title, 'pl'));
   const update = (index: number, values: Partial<ChapterRequest>) => onChange(chapters.map((c, i) => i === index ? { ...c, ...values } : c));

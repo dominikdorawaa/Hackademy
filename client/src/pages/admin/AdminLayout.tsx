@@ -2,7 +2,6 @@ import { Link, NavLink, Outlet, matchPath, useLocation } from 'react-router-dom'
 import {
   ArrowLeft,
   Bug,
-  Flag,
   LayoutDashboard,
   Route as RouteIcon,
   Swords,
@@ -65,10 +64,9 @@ const navigation: NavGroup[] = [
         match: ['/admin/paths/*'],
         children: [
           { title: 'Lista ścieżek', to: '/admin/paths', match: ['/admin/paths', '/admin/paths/:pathId'], exclude: ['/admin/paths/rooms'] },
-          { title: 'Pokoje ścieżek', to: '/admin/paths/rooms', match: ['/admin/paths/rooms/*'] },
+          { title: 'Pokoje', to: '/admin/paths/rooms', match: ['/admin/paths/rooms/*'] },
         ],
       },
-      { title: 'Pokoje CTF', to: '/admin/ctf', icon: Flag, match: ['/admin/ctf/*'] },
     ],
   },
   {

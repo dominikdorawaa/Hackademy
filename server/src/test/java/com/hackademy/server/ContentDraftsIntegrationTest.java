@@ -67,8 +67,8 @@ class ContentDraftsIntegrationTest {
         for (String uri : List.of("/api/rooms/" + id, "/api/rooms/" + id + "/file")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         mvc.perform(post("/api/rooms/" + id + "/solve").header("Authorization", "Bearer " + user).contentType("application/json").content("{\"flag\":\"\"}")).andExpect(status().isNotFound());
         mvc.perform(post("/api/rooms/" + id + "/hints/" + hint + "/unlock").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
-        for (String uri : List.of("/api/rooms", "/api/rooms/top3")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(jsonPath("$[?(@.id == " + id + ")]").isEmpty());
-        assertFalse(rooms.findAllIds().contains(id));
+        for (String uri : List.of("/api/rooms/top3")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(jsonPath("$[?(@.id == " + id + ")]").isEmpty());
+        assertFalse(rooms.findVisibleIds().contains(id));
         mvc.perform(get("/api/admin/content/rooms/" + id + "/preview").header("Authorization", "Bearer " + user)).andExpect(status().isForbidden());
         for (String t : List.of(admin, expert)) mvc.perform(get("/api/admin/content/rooms/" + id + "/preview").header("Authorization", "Bearer " + t)).andExpect(status().isOk()).andExpect(jsonPath("$.hints[0].description").value("Secret hint"));
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
@@ -78,7 +78,7 @@ class ContentDraftsIntegrationTest {
         String invalid = save("rooms", id, request, admin, 400); assertTrue(invalid.contains("description"));
         request.put("description", "Published"); request.put("flag", "CTF{x}"); saved = save("rooms", id, request, admin, 200);
         mvc.perform(get("/api/rooms/" + id).header("Authorization", "Bearer " + user)).andExpect(status().isOk());
-        assertTrue(rooms.findAllIds().contains(id));
+        assertTrue(rooms.findVisibleIds().contains(id));
         mvc.perform(post("/api/rooms/" + id + "/solve").header("Authorization", "Bearer " + user).contentType("application/json").content("{\"flag\":\"CTF{x}\"}")).andExpect(status().isOk());
         reviseRoom(request, saved); request.put("title", request.get("title") + " updated"); saved = save("rooms", id, request, admin, 200);
         assertTrue(rooms.findById(id).orElseThrow().isPublished());

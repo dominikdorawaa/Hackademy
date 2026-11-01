@@ -19,8 +19,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @org.springframework.data.jpa.repository.Modifying
     @Query("UPDATE Room r SET r.solutionsCount = r.solutionsCount + 1 WHERE r.id = :id")
     int incrementSolutions(@Param("id") Long id);
-    @Query("SELECT r.title FROM Room r WHERE r.roomType = :roomType AND r.title IN :titles")
-    List<String> findExistingTitles(@Param("roomType") RoomType roomType, @Param("titles") java.util.Collection<String> titles);
     String VISIBLE = "r.published = true AND NOT EXISTS (SELECT cr.roomId FROM ChapterRoom cr JOIN PathChapter c ON c.id = cr.chapterId JOIN Path p ON p.id = c.pathId WHERE cr.roomId = r.id AND p.published = false)";
 
     @Query("SELECT r.id FROM Room r WHERE " + VISIBLE)
@@ -38,11 +36,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     Optional<Room> findByIdForUpdate(@Param("id") Long id);
     
     @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +
-           "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
-           "FROM Room r WHERE " + VISIBLE)
-    List<RoomSummaryDto> findAllSummaries();
-
-    @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +
             "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
             "FROM Room r JOIN ChapterRoom cr ON cr.roomId = r.id JOIN PathChapter c ON c.id = cr.chapterId " +
             "WHERE c.pathId = :pathId AND " + VISIBLE)
@@ -56,16 +49,6 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
            "LEFT JOIN Path p ON p.id = c.pathId " +
            "ORDER BY r.id")
     List<RoomAdminSummaryDto> findAllAdminSummaries();
-
-    @Query(value = "SELECT * FROM rooms WHERE published = true AND room_type = 'CTF' AND category != 'Tutorial' ORDER BY RANDOM() LIMIT 1", nativeQuery = true)
-    Optional<Room> findRandomRoom();
-
-    @Query("SELECT r.id FROM Room r WHERE " + VISIBLE + " AND r.category != 'Tutorial'")
-    List<Long> findAllIds();
-
-    @Query("SELECT r.id FROM Room r WHERE " + VISIBLE + " AND r.category != 'Tutorial' AND (:vpnEnabled = true OR r.requiresVpn = false)")
-    List<Long> findIdsByVpnRequirement(@Param("vpnEnabled") boolean vpnEnabled);
-
 
     @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +
            "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +

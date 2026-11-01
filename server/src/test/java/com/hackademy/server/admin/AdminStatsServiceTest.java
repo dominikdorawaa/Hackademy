@@ -1,7 +1,6 @@
 package com.hackademy.server.admin;
 
 import com.hackademy.server.dashboard.ActivityWeek;
-import com.hackademy.server.room.RoomType;
 import org.junit.jupiter.api.Test;
 import org.springframework.http.HttpStatus;
 import org.springframework.jdbc.core.JdbcTemplate;
@@ -63,17 +62,16 @@ class AdminStatsServiceTest {
         jdbc.registrations.add(row("day", today, "total", 2L));
         jdbc.solves.add(row("day", today.minusDays(1), "total", 3L));
         jdbc.sources.addAll(List.of(
-                source("CTF", null, null, 3),
-                source("CTF", 9L, "Ctf in path", 1),
-                source("PATH", null, null, 1),
-                source("PATH", 3L, "beta", 5),
-                source("PATH", 2L, "Alpha", 5),
-                source("PATH", 1L, "alpha", 5),
-                source("PATH", 4L, "delta", 2),
-                source("PATH", 5L, "epsilon", 1)));
+                source(null, null, 4),
+                source(9L, "Zadania CTF", 1),
+                source(3L, "beta", 5),
+                source(2L, "Alpha", 5),
+                source(1L, "alpha", 5),
+                source(4L, "delta", 2),
+                source(5L, "epsilon", 1)));
         var solvedAt = LocalDateTime.of(2026, 10, 1, 12, 0);
         jdbc.recent.add(row("username", "alice", "room_id", 7L, "room_title", "Room",
-                "room_type", "PATH", "path_title", "alpha", "solved_at", solvedAt));
+                "path_title", "alpha", "solved_at", solvedAt));
 
         var stats = service.getStats(30);
 
@@ -86,10 +84,9 @@ class AdminStatsServiceTest {
                 new AdminStatsDto.Slice("path-1", "alpha", 5),
                 new AdminStatsDto.Slice("path-2", "Alpha", 5),
                 new AdminStatsDto.Slice("path-3", "beta", 5),
-                new AdminStatsDto.Slice("paths-other", "Pozostałe ścieżki", 3),
-                new AdminStatsDto.Slice("paths-unassigned", "Pokoje poza ścieżkami", 1),
-                new AdminStatsDto.Slice("ctf", "CTF", 4)), stats.solvesBySource());
-        assertEquals(List.of(new AdminStatsDto.RecentSolve("alice", 7L, "Room", RoomType.PATH, "alpha", solvedAt)),
+                new AdminStatsDto.Slice("paths-other", "Pozostałe ścieżki", 4),
+                new AdminStatsDto.Slice("paths-unassigned", "Pokoje poza ścieżkami", 4)), stats.solvesBySource());
+        assertEquals(List.of(new AdminStatsDto.RecentSolve("alice", 7L, "Room", "alpha", solvedAt)),
                 stats.recentSolves());
     }
 
@@ -98,8 +95,8 @@ class AdminStatsServiceTest {
         assertEquals(90, service.getStats(90).timeline().size());
     }
 
-    private static Map<String, Object> source(String type, Long pathId, String title, long count) {
-        return row("room_type", type, "path_id", pathId, "path_title", title, "total", count);
+    private static Map<String, Object> source(Long pathId, String title, long count) {
+        return row("path_id", pathId, "path_title", title, "total", count);
     }
 
     private static Map<String, Object> row(Object... keyValues) {

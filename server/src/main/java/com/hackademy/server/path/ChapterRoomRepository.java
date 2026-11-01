@@ -105,7 +105,6 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Long> 
             @Param("limit") int limit
     );
 
-    boolean existsByRoomId(Long roomId);
 
     @Query(value = """
             SELECT EXISTS (

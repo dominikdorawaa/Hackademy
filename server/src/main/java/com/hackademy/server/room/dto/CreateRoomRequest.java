@@ -20,6 +20,6 @@ public record CreateRoomRequest(
         @Size(max = 100) List<@NotBlank @Size(max = 2000) String> hints
 ) {
     public CreateRoomRequest {
-        if (roomType == null) roomType = RoomType.CTF;
+        if (roomType == null) roomType = RoomType.PATH;
     }
 }

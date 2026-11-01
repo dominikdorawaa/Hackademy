@@ -1,9 +1,6 @@
-import type { DifficultyLevel, RoomType } from '../../types/api';
+import type { DifficultyLevel } from '../../types/api';
 
-export const roomBasePath: Record<RoomType, string> = {
-  CTF: '/admin/ctf',
-  PATH: '/admin/paths/rooms',
-};
+export const roomsPath = '/admin/paths/rooms';
 
 export const pointsForDifficulty: Record<DifficultyLevel, number> = {
   EASY: 50,

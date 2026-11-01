@@ -146,7 +146,7 @@ Administrator może w sekcji Ścieżki wybrać „Importuj JSON”, obejrzeć, s
 
 W edytorze istniejącej ścieżki „Importuj pokoje z JSON” dopisuje nowe pokoje jako szkice do wybranego rozdziału, bez zmiany obecnych materiałów, postępów i statusu publikacji ścieżki. Przed importem edytor chroni niezapisane zmiany; backend sprawdza wersję ścieżki i tytuły pokoi w rozdziale.
 
-W sekcji Pokoje CTF administrator może wybrać „Importuj CTF z JSON”. Import zapisuje całą listę jako szkice, zbiera błędy i duplikaty tytułów z pliku oraz bazy i sam oblicza punkty z trudności. JSON nie przyjmuje pola `points`. Przykład i format są w oknie importu oraz ADR 0002.
+Nie ma osobnej sekcji pokoi CTF. Pokoje z flagą i lekcje są w zakładce „Pokoje” i należą do ścieżek. Migracja V36 przeniosła dawne samodzielne pokoje CTF do ścieżki „Zadania CTF”, a samouczki VM i VPN do ścieżki „Pierwsze kroki”, bez zmiany rozwiązań, XP i punktów.
 
 ## Testy backendu
 
