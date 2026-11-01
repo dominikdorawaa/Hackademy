@@ -12,15 +12,16 @@ import { ConfirmAction, FilePicker, LoadingRows, PageHeader, Section, StatusMess
 import { TextField, checkText, focusError } from '../../components/admin/ContentFields';
 import type { FieldErrors } from '../../components/admin/ContentFields';
 import { ContentTasks } from '../../components/admin/ContentStructure';
-import { RoomTypeChoice } from '../../components/admin/RoomTypeChoice';
+import { RoomTypeHelp, RoomTypeSwitch } from '../../components/admin/RoomType';
 import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
 import { roomsPath as base, pointsForDifficulty, reservedRoomTitles } from './adminConfig';
 import { useAdminAccess } from './adminAccess';
 import { difficultyLabels } from '../../components/admin/adminFormat';
 import { formatXp } from '../../lib/units';
 
+const defaultCategory = (kind: RoomType) => kind === 'PATH' ? 'Path' : 'Web';
 function empty(kind: RoomType): RoomSave {
-  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: kind === 'PATH' ? 'Path' : 'Web', difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, hints: [], published: false, tasks: [] };
+  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, hints: [], published: false, tasks: [] };
 }
 function fromDetail(d: contentApi.RoomEditor): RoomSave {
   return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, hints: d.room.hints ?? [], revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, published: d.room.published ?? true, tasks: d.tasks.tasks };
@@ -41,8 +42,6 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const [parentId, setParentId] = useState<number | null>(creation?.parentId ?? null);
   const presetType = query.get('type') === 'CTF' || query.get('type') === 'PATH' ? query.get('type') as RoomType : null;
   const initial = empty(presetType ?? 'PATH');
-  const [pickedType, setPickedType] = useState<RoomType | null>(presetType);
-  const [typeChosen, setTypeChosen] = useState(roomId !== 'new' || presetType != null);
   const [id, setId] = useState<number | null>(roomId === 'new' ? null : Number(roomId));
   const idRef = useRef(id);
   const [form, setForm] = useState(initial);
@@ -81,11 +80,10 @@ function RoomEditor({ roomId }: { roomId: string }) {
   }, [sessionKey, contextPath, contextChapter, contextRevision, attempt]);
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file || (parentDraft != null && JSON.stringify(parentDraft) !== JSON.stringify(creation?.parentDraft));
   const change = (values: Partial<RoomSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
-  const changeType = (roomType: RoomType) => change({ roomType, ...(roomType === 'CTF' ? { points: pointsForDifficulty[formRef.current.difficulty] } : {}) });
-  const startWithType = () => {
-    if (!pickedType) return;
-    const next = empty(pickedType);
-    setForm(next); setBaseline(next); setTypeChosen(true);
+  const changeType = (roomType: RoomType) => {
+    const current = formRef.current;
+    const category = current.category === defaultCategory(current.roomType ?? 'PATH') ? { category: defaultCategory(roomType) } : {};
+    change({ roomType, ...category, ...(roomType === 'CTF' ? { points: pointsForDifficulty[current.difficulty] } : {}) });
   };
   const save = async (published = formRef.current.published, notify = true) => {
     if (savingRef.current || !loaded) return false;
@@ -140,15 +138,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
     <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}${contextPath ? `?pathId=${contextPath}` : ''}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description="Pokój, zadania i postępy graczy zostaną trwale usunięte." confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
     {context && <StatusMessage kind="warning">Ścieżka: {context.title} → Rozdział: {context.chapters.find(c => c.id === Number(contextChapter))?.title}. Pokój zostanie przypisany automatycznie.</StatusMessage>}
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
-    {loading ? <LoadingRows label="Ładowanie pokoju" /> : !loaded ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> : !typeChosen ?
-      <section aria-labelledby="room-type-heading" className="mt-6 grid max-w-3xl gap-5">
-        <div className="grid gap-1">
-          <h2 id="room-type-heading" className="text-xl font-semibold">Jaki pokój tworzysz?</h2>
-          <p className="text-sm text-muted-foreground">Typ decyduje o polach zadań i dodatkach. Możesz go zmienić później, zadania zostaną zachowane.</p>
-        </div>
-        <RoomTypeChoice label="Typ pokoju" value={pickedType} onChange={setPickedType} />
-        <div className="flex justify-end"><Button type="button" disabled={!pickedType} onClick={startWithType}>Dalej</Button></div>
-      </section> :
+    {loading ? <LoadingRows label="Ładowanie pokoju" /> : !loaded ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor pokoju">
         <fieldset disabled={saving} className="grid min-w-0 gap-6">
           {parentDraft && <Section title="Ścieżka i rozdział" description={parentDraft.published ? "Ścieżka jest opublikowana. Nowy rozdział wymaga gotowego opublikowanego pokoju; szkic pokoju możesz przygotować po przeniesieniu ścieżki do szkiców." : "Nowy kontekst i pokój zostaną zapisane razem. Nieudany zapis nie pozostawi nieprzypisanego pokoju."}>
@@ -160,7 +150,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
           </Section>}
           <Section title="Dane pokoju" description="Tytuł jest wymagany do zapisu szkicu. Przy publikacji uzupełnij opis i dodaj przynajmniej jedno zadanie.">
             <div className="grid gap-5 md:grid-cols-2">
-              <div className="grid gap-2 md:col-span-2"><span className="text-sm font-medium">Typ pokoju</span><RoomTypeChoice compact label="Typ pokoju" value={kind} onChange={changeType} /><p className="text-xs text-muted-foreground">Zmiana typu zachowuje zadania i postępy graczy.</p></div>
+              <div className="grid gap-2 md:col-span-2"><span className="flex items-center gap-1 text-sm font-medium">Typ pokoju<RoomTypeHelp /></span><RoomTypeSwitch label="Typ pokoju" value={kind} onChange={changeType} /><p className="text-xs text-muted-foreground">Zmiana typu zachowuje zadania i postępy graczy.</p></div>
               <div className="md:col-span-2"><TextField name="title" label="Tytuł" value={form.title} limit={255} required error={errors.title} onChange={title => change({ title })} /></div>
               <div className="md:col-span-2"><TextField name="shortDescription" label="Krótki opis" value={form.shortDescription ?? ''} limit={100} error={errors.shortDescription} onChange={shortDescription => change({ shortDescription })} /></div>
               <div className="md:col-span-2"><TextField name="description" label="Opis" value={form.description} limit={20000} required={form.published} multiline error={errors.description} onChange={description => change({ description })} /></div>

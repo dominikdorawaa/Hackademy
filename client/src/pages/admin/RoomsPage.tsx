@@ -8,7 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { RoomAdminSummaryDto, RoomType } from '../../types/api';
-import { RoomTypeIcon, roomTypeLabel, roomTypes } from '../../components/admin/RoomTypeChoice';
+import { RoomTypeIcon, roomTypeLabel, roomTypes } from '../../components/admin/RoomType';
 import { cn } from '@/lib/utils';
 import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
 import { errorText, numberFormat } from '../../components/admin/adminFormat';
@@ -75,8 +75,7 @@ export default function RoomsPage() {
           </Button>
         }
       />
-      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-        <div className="flex w-full flex-col gap-3 sm:flex-row sm:items-center">
+      <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
         <div className="relative w-full sm:max-w-xs">
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
           <Input
@@ -98,8 +97,6 @@ export default function RoomsPage() {
             </button>
           ))}
         </div>
-        </div>
-        {!loading && <p className="text-sm text-muted-foreground tabular-nums">{filtered.length} z {rooms.length}</p>}
       </div>
       <div className="mb-4 space-y-2">
         {error && <StatusMessage kind="error">{error}</StatusMessage>}

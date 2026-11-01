@@ -29,8 +29,7 @@ beforeEach(() => {
 });
 afterEach(() => vi.restoreAllMocks());
 async function chooseType(user: ReturnType<typeof userEvent.setup>, type: 'Teoria' | 'CTF') {
-  await user.click(await screen.findByRole('radio', { name: new RegExp(`^${type}`) }));
-  await user.click(screen.getByRole('button', { name: 'Dalej' }));
+  await user.click(await screen.findByRole('radio', { name: type }));
 }
 function mount(initial: string, entries: (string | { pathname: string; state?: unknown })[] = [initial]) {
   const router = createMemoryRouter(createRoutesFromElements(<Route element={<ThemeProvider><AuthProvider><Outlet /></AuthProvider></ThemeProvider>}>
@@ -117,7 +116,7 @@ describe('draft editors and guarded navigation', () => {
     await user.click(screen.getByRole('button', { name: 'Zapisz i przejdź dalej' }));
     await waitFor(() => expect(router.state.location.search).toBe('?pathId=5&chapterId=11&pathRevision=3'));
     expect(await screen.findByText(/Ścieżka: Nowa → Rozdział:/)).toBeInTheDocument();
-    expect(screen.getByRole('heading', { name: 'Jaki pokój tworzysz?' })).toBeInTheDocument();
+    expect(screen.getByRole('radio', { name: 'Teoria' })).toBeChecked();
     await chooseType(user, 'CTF');
     for (const label of ['Tytuł *', 'Opis', 'Plik do pobrania', 'Wymaga VPN']) expect(screen.getByLabelText(label)).toBeInTheDocument();
     expect(screen.getByRole('radio', { name: 'CTF' })).toBeChecked();
@@ -255,9 +254,20 @@ describe('room type in the editor', () => {
     const user = userEvent.setup(); mount('/admin/paths/rooms/new?type=CTF');
     await screen.findByLabelText('Tytuł *');
     expect(screen.getByRole('radio', { name: 'CTF' })).toBeChecked();
-    expect(screen.queryByRole('heading', { name: 'Jaki pokój tworzysz?' })).toBeNull();
     await user.click(screen.getByRole('radio', { name: 'Teoria' }));
     expect(screen.getByLabelText('XP *')).toBeInTheDocument();
+  });
+
+  it('gives a new CTF room the CTF category and keeps an edited one', async () => {
+    const user = userEvent.setup(); mount('/admin/paths/rooms/new');
+    await screen.findByLabelText('Tytuł *');
+    await user.click(screen.getByRole('radio', { name: 'CTF' }));
+    expect(screen.getByLabelText('Kategoria *')).toHaveValue('Web');
+    await user.clear(screen.getByLabelText('Kategoria *'));
+    await user.type(screen.getByLabelText('Kategoria *'), 'Crypto');
+    await user.click(screen.getByRole('radio', { name: 'Teoria' }));
+    await user.click(screen.getByRole('radio', { name: 'CTF' }));
+    expect(screen.getByLabelText('Kategoria *')).toHaveValue('Crypto');
   });
 });
 

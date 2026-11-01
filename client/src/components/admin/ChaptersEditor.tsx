@@ -11,7 +11,7 @@ import * as adminApi from '../../services/adminApi';
 import type { ChapterRequest, PathAdminDetailDto, PathChapterAdminDto, RoomAdminSummaryDto } from '../../types/api';
 import { ConfirmAction, Section, StatusMessage } from './AdminUi';
 import { errorText, plural } from './adminFormat';
-import { RoomTypeIcon } from './RoomTypeChoice';
+import { RoomTypeIcon } from './RoomType';
 
 interface DraftChapter {
   key: string;

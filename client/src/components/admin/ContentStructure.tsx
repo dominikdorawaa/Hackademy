@@ -11,7 +11,7 @@ import { Section } from './AdminUi';
 import { TextField } from './ContentFields';
 import type { FieldErrors } from './ContentFields';
 import type { ChapterRequest, RoomAdminSummaryDto, RoomTaskRequest, RoomType } from '../../types/api';
-import { RoomTypeIcon } from './RoomTypeChoice';
+import { RoomTypeIcon } from './RoomType';
 
 export function move<T>(items: T[], index: number, offset: number) {
   const next = [...items];
