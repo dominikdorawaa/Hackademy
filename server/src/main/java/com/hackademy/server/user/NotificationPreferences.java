@@ -23,6 +23,7 @@ public class NotificationPreferences {
     private boolean browserNotifications;
     private boolean friendOnline;
     private boolean friendOnlineBell;
+    private boolean gameSounds;
 
     public NotificationPreferences(Long userId, NotificationPreferencesDto preferences) {
         this.userId = userId;
@@ -33,9 +34,10 @@ public class NotificationPreferences {
         this.browserNotifications = preferences.browserNotifications();
         this.friendOnline = preferences.friendOnline();
         this.friendOnlineBell = preferences.friendOnlineBell();
+        this.gameSounds = preferences.gameSounds();
     }
 
     public NotificationPreferencesDto toDto() {
-        return new NotificationPreferencesDto(friendRequests, challenges, matchFound, sound, browserNotifications, friendOnline, friendOnlineBell);
+        return new NotificationPreferencesDto(friendRequests, challenges, matchFound, sound, browserNotifications, friendOnline, friendOnlineBell, gameSounds);
     }
 }

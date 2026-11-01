@@ -9,9 +9,10 @@ public interface NotificationPreferencesRepository extends JpaRepository<Notific
     @Modifying(clearAutomatically = true)
     @Query(value = """
             INSERT INTO user_notification_preferences
-                (user_id, friend_requests, challenges, match_found, sound, browser_notifications, friend_online, friend_online_bell)
+                (user_id, friend_requests, challenges, match_found, sound, browser_notifications, friend_online, friend_online_bell, game_sounds)
             VALUES (:userId, COALESCE(:friendRequests, TRUE), COALESCE(:challenges, TRUE),
-                COALESCE(:matchFound, TRUE), COALESCE(:sound, TRUE), COALESCE(:browserNotifications, FALSE),\n                COALESCE(:friendOnline, TRUE), COALESCE(:friendOnlineBell, TRUE))
+                COALESCE(:matchFound, TRUE), COALESCE(:sound, TRUE), COALESCE(:browserNotifications, FALSE),
+                COALESCE(:friendOnline, TRUE), COALESCE(:friendOnlineBell, TRUE), COALESCE(:gameSounds, TRUE))
             ON CONFLICT (user_id) DO UPDATE SET
                 friend_requests = COALESCE(:friendRequests, user_notification_preferences.friend_requests),
                 challenges = COALESCE(:challenges, user_notification_preferences.challenges),
@@ -19,10 +20,12 @@ public interface NotificationPreferencesRepository extends JpaRepository<Notific
                 sound = COALESCE(:sound, user_notification_preferences.sound),
                 browser_notifications = COALESCE(:browserNotifications, user_notification_preferences.browser_notifications),
                 friend_online = COALESCE(:friendOnline, user_notification_preferences.friend_online),
-                friend_online_bell = COALESCE(:friendOnlineBell, user_notification_preferences.friend_online_bell)
+                friend_online_bell = COALESCE(:friendOnlineBell, user_notification_preferences.friend_online_bell),
+                game_sounds = COALESCE(:gameSounds, user_notification_preferences.game_sounds)
             """, nativeQuery = true)
     int updatePreference(@Param("userId") Long userId, @Param("friendRequests") Boolean friendRequests,
             @Param("challenges") Boolean challenges, @Param("matchFound") Boolean matchFound,
             @Param("sound") Boolean sound, @Param("browserNotifications") Boolean browserNotifications,
-            @Param("friendOnline") Boolean friendOnline, @Param("friendOnlineBell") Boolean friendOnlineBell);
+            @Param("friendOnline") Boolean friendOnline, @Param("friendOnlineBell") Boolean friendOnlineBell,
+            @Param("gameSounds") Boolean gameSounds);
 }

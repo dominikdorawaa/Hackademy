@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 34;
+    static final int SCHEMA_VERSION = 35;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -79,7 +79,7 @@ class SchemaMigrationTest {
         assertEquals(String.valueOf(SCHEMA_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
         assertEquals("clerk identity", text("SELECT description FROM flyway_schema_history WHERE version = '21'"));
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE id = 1 AND username = 'Alice' AND email = 'alice@example.com' AND password = 'p' AND clerk_user_id IS NULL"));
-        assertEquals(1, scalar("SELECT count(*) FROM user_notification_preferences WHERE user_id = 1 AND NOT sound AND NOT friend_online AND NOT friend_online_bell"));
+        assertEquals(1, scalar("SELECT count(*) FROM user_notification_preferences WHERE user_id = 1 AND NOT sound AND NOT friend_online AND NOT friend_online_bell AND game_sounds"));
         execute("UPDATE users SET clerk_user_id = 'user_alice', password = NULL WHERE id = 1");
         assertEquals(0, flyway().migrate().migrationsExecuted);
         assertTrue(flyway().validateWithResult().validationSuccessful);
@@ -236,7 +236,7 @@ class SchemaMigrationTest {
                 """);
         String previousVersions = text("SELECT string_agg(id || ':' || (version + 1), ',' ORDER BY id) FROM arena_questions");
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("34").migrate().migrationsExecuted);
         assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
         assertEquals(previousLevels, text("""
                 SELECT string_agg(id || ':' || category || ':' || difficulty, ',' ORDER BY id)
@@ -286,9 +286,9 @@ class SchemaMigrationTest {
         assertEquals("Zbierania i korelacji logów", text("SELECT correct_answer FROM arena_questions WHERE content = 'Do czego służy SIEM?'"));
         assertEquals("Automatyzacja reakcji", text("SELECT correct_answer FROM arena_questions WHERE content = 'Co wyróżnia SOAR w obsłudze incydentów?'"));
         assertEquals("Fuzzingu ścieżek i parametrów", text("SELECT correct_answer FROM arena_questions WHERE content = 'Do czego służy ffuf w testach WWW?'"));
-        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertEquals(0, flyway("34").migrate().migrationsExecuted);
         assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
-        assertTrue(flyway().validateWithResult().validationSuccessful);
+        assertTrue(flyway("34").validateWithResult().validationSuccessful);
     }
 
     @Test
@@ -334,7 +334,7 @@ class SchemaMigrationTest {
                 WHERE id <= 8 OR id = 43 OR content = 'Własne pytanie administratora'
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("34").migrate().migrationsExecuted);
         assertEquals(adminEdits, text("""
                 SELECT json_agg(q ORDER BY id)::text FROM arena_questions q
                 WHERE id <= 8 OR id = 43 OR content = 'Własne pytanie administratora'
@@ -342,7 +342,7 @@ class SchemaMigrationTest {
         assertEquals(0, scalar("SELECT count(*) FROM arena_questions WHERE id = 44"));
         assertEquals(382, scalar("SELECT count(*) FROM arena_questions"));
         assertEquals("Brakiem kontroli dostępu do obiektu", text("SELECT correct_answer FROM arena_questions WHERE id = 9"));
-        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertEquals(0, flyway("34").migrate().migrationsExecuted);
     }
 
     @Test

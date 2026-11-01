@@ -11,6 +11,7 @@ import { useRealtime } from '../context/RealtimeContext';
 import { useArenaClock } from '../hooks/useArenaClock';
 import { useArenaSession } from '../hooks/useArenaSession';
 import { useBattlePresence } from '../hooks/useBattlePresence';
+import { useBattleSounds } from '../hooks/useBattleSounds';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { arenaCategoryLabel } from '../components/arena/arenaCategory';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
@@ -42,6 +43,12 @@ export default function ArenaBattlePage() {
   const serverTime = session?.serverTime ?? 0;
   const clock = useArenaClock(serverTime, session?.status === 'ACTIVE');
   useBattlePresence(gameId, sessionKey);
+  const deadline = session ? (session.phase === 'QUESTION' ? session.roundEndsAt : session.nextRoundAt) : 0;
+  const left = session ? frozenSecondsLeft(session, deadline) ?? (clock.serverTime === serverTime
+    ? secondsLeft(deadline, serverTime, clock.receivedAt, clock.now)
+    : Math.max(0, Math.ceil((deadline - serverTime) / 1000))) : 0;
+  useBattleSounds(session, meId, left, !!session && meId !== null
+    && (session.answeredBy.includes(meId) || picked?.round === session.round));
 
   useEffect(() => {
     if (!sessionKey) return;
@@ -83,10 +90,6 @@ export default function ArenaBattlePage() {
 
   const { me, rival } = perspective(session, meId);
   const finished = session.status === 'FINISHED';
-  const deadline = session.phase === 'QUESTION' ? session.roundEndsAt : session.nextRoundAt;
-  const left = frozenSecondsLeft(session, deadline) ?? (clock.serverTime === serverTime
-    ? secondsLeft(deadline, serverTime, clock.receivedAt, clock.now)
-    : Math.max(0, Math.ceil((deadline - serverTime) / 1000)));
   const answered = session.answeredBy.includes(me.id);
   const rivalAnswered = session.answeredBy.includes(rival.id);
   const myPick = picked?.round === session.round ? picked.answer : null;

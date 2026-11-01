@@ -59,6 +59,31 @@ describe('notification sounds', () => {
     expect(sounds.selectedVariant('challenges').id).toBe(sounds.soundVariants.challenges[0].id);
   });
 
+  it('keeps game sounds quiet in a background tab and does not stack the same sound', async () => {
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    const sounds = await load();
+    await sounds.unlockAudio();
+    const visibility = vi.spyOn(document, 'visibilityState', 'get').mockReturnValue('hidden');
+    expect(sounds.playGameSound('arenaWin')).toBe(false);
+    visibility.mockReturnValue('visible');
+    expect(sounds.playGameSound('arenaWin')).toBe(true);
+    expect(sounds.playGameSound('arenaWin')).toBe(false);
+    expect(sounds.playGameSound('arenaTick')).toBe(true);
+    expect(oscillators).toHaveLength(sounds.selectedVariant('arenaWin').tones.length + sounds.selectedVariant('arenaTick').tones.length);
+    visibility.mockRestore();
+  });
+
+  it('lets the same game sound play again once it has finished', async () => {
+    vi.stubGlobal('AudioContext', FakeAudioContext);
+    vi.useFakeTimers();
+    const sounds = await load();
+    await sounds.unlockAudio();
+    expect(sounds.playGameSound('taskSolved')).toBe(true);
+    vi.advanceTimersByTime(1000);
+    expect(sounds.playGameSound('taskSolved')).toBe(true);
+    vi.useRealTimers();
+  });
+
   it('picks the most urgent event of a batch', async () => {
     const { loudestEvent } = await load();
     expect(loudestEvent(['friendRequests', 'matchFound', 'challenges'])).toBe('matchFound');

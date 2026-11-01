@@ -141,7 +141,7 @@ export default function RealtimeNotifications() {
   };
 
   useEffect(() => {
-    if (!preferences.sound || !sessionKey) return;
+    if ((!preferences.sound && !preferences.gameSounds) || !sessionKey) return;
     const unlock = () => { void unlockAudio(); };
     document.addEventListener('pointerdown', unlock);
     document.addEventListener('keydown', unlock);
@@ -149,7 +149,7 @@ export default function RealtimeNotifications() {
       document.removeEventListener('pointerdown', unlock);
       document.removeEventListener('keydown', unlock);
     };
-  }, [preferences.sound, sessionKey]);
+  }, [preferences.sound, preferences.gameSounds, sessionKey]);
 
   useEffect(() => {
     if (!state || !sessionKey) {

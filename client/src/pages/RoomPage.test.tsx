@@ -27,7 +27,15 @@ vi.mock('../context/RealtimeContext', async () => {
   return { useRealtime: () => ({ connected: useSyncExternalStore(live.subscribe, live.get), state: null, error: null, synchronize: async () => {} }) };
 });
 
-beforeEach(() => { mockRoomViewport(); live.set(true); });
+const sounds = vi.hoisted(() => ({ play: vi.fn(() => true) }));
+vi.mock('../lib/notificationSounds', async importOriginal => ({
+  ...await importOriginal<typeof import('../lib/notificationSounds')>(), playGameSound: sounds.play }));
+vi.mock('../context/NotificationPreferencesContext', async () => {
+  const { defaultNotificationPreferences } = await import('../services/userApi');
+  return { useNotificationPreferences: () => ({ preferences: defaultNotificationPreferences, loaded: true }) };
+});
+
+beforeEach(() => { mockRoomViewport(); live.set(true); sounds.play.mockClear(); });
 
 function mount(tasks: RoomTaskDto[]) {
   const room: RoomDetailDto = {
@@ -112,7 +120,18 @@ describe('task room completion', () => {
     await user.click(await screen.findByRole('button', { name: 'Oznacz jako przeczytane' }));
     expect(submitted).toEqual({ answer: '' });
     expect(await screen.findByText('Wszystkie zadania wykonane! Pokój ukończony.')).toBeInTheDocument();
+    expect(sounds.play.mock.calls).toEqual([['roomCompleted']]);
     expect(screen.getByRole('button', { name: 'Przeczytano' })).toBeDisabled();
+  });
+
+  it('plays a task sound for a solved task that does not finish the room', async () => {
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/1/solve`, () => HttpResponse.json({ success: true, message: 'Poprawna odpowiedź!' })));
+    mount([
+      { id: 1, title: 'Pierwsze', content: 'Treść', question: null, completed: false },
+      { id: 2, title: 'Drugie', content: 'Treść', question: null, completed: false },
+    ]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Oznacz jako przeczytane' }));
+    await waitFor(() => expect(sounds.play.mock.calls).toEqual([['taskSolved']]));
   });
 
   it('lets players finish when all remaining tasks were completed before a deletion', async () => {
@@ -241,12 +260,14 @@ describe('CTF room', () => {
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     expect(await screen.findByText('Niepoprawna flaga')).toBeInTheDocument();
     expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(sounds.play.mock.calls).toEqual([['learningError']]);
     await user.clear(input);
     await user.type(input, 'HA-ok');
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     expect(await screen.findByText('Misja zakończona sukcesem!')).toBeInTheDocument();
     expect(document.querySelector('.success-flag .pixel-sprite')).toBeInTheDocument();
     expect(screen.getByText('+50 XP')).toBeInTheDocument();
+    expect(sounds.play.mock.calls).toEqual([['learningError'], ['roomCompleted']]);
     expect(bit()).toHaveAttribute('data-state', 'idle');
     await user.click(screen.getByRole('button', { name: 'Kontynuuj' }));
     expect(bit()).toHaveAttribute('data-state', 'jump');
@@ -386,6 +407,7 @@ describe('Bit room integration', () => {
     await userEvent.click(screen.getByRole('button', { name: 'Oznacz jako przeczytane' }));
     expect(await screen.findByText('Zapis nieudany')).toBeInTheDocument();
     expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(sounds.play).not.toHaveBeenCalled();
     expect(screen.getByRole('button', { name: 'Oznacz jako przeczytane' })).toBeEnabled();
   });
 
@@ -399,6 +421,7 @@ describe('Bit room integration', () => {
     await user.click(screen.getByRole('button', { name: 'Zatwierdź' }));
     await user.click(await screen.findByRole('button', { name: 'Kontynuuj' }));
     expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(sounds.play.mock.calls).toEqual([['taskSolved']]);
   });
 
   it('does not treat an unsuccessful flag response as a completion even with HTTP 200', async () => {
