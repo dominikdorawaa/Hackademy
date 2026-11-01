@@ -38,8 +38,11 @@ describe('room type', () => {
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
     act(() => button.blur());
     fireEvent.pointerDown(button, { pointerType: 'touch' });
+    act(() => button.focus());
     fireEvent.click(button);
     expect(await screen.findByRole('dialog')).toBeInTheDocument();
+    await new Promise(resolve => setTimeout(resolve, 0));
+    expect(screen.getByRole('dialog')).toBeInTheDocument();
     fireEvent.pointerDown(button, { pointerType: 'touch' });
     fireEvent.click(button);
     await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());

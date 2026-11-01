@@ -257,6 +257,18 @@ describe('room type in the editor', () => {
     await user.click(screen.getByRole('radio', { name: 'Teoria' }));
     expect(screen.getByLabelText('XP *')).toBeInTheDocument();
   });
+
+  it('gives a new CTF room the CTF category and keeps an edited one', async () => {
+    const user = userEvent.setup(); mount('/admin/paths/rooms/new');
+    await screen.findByLabelText('Tytuł *');
+    await user.click(screen.getByRole('radio', { name: 'CTF' }));
+    expect(screen.getByLabelText('Kategoria *')).toHaveValue('Web');
+    await user.clear(screen.getByLabelText('Kategoria *'));
+    await user.type(screen.getByLabelText('Kategoria *'), 'Crypto');
+    await user.click(screen.getByRole('radio', { name: 'Teoria' }));
+    await user.click(screen.getByRole('radio', { name: 'CTF' }));
+    expect(screen.getByLabelText('Kategoria *')).toHaveValue('Crypto');
+  });
 });
 
 describe('room title and scoring rules', () => {

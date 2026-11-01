@@ -19,8 +19,9 @@ import { useAdminAccess } from './adminAccess';
 import { difficultyLabels } from '../../components/admin/adminFormat';
 import { formatXp } from '../../lib/units';
 
+const defaultCategory = (kind: RoomType) => kind === 'PATH' ? 'Path' : 'Web';
 function empty(kind: RoomType): RoomSave {
-  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: kind === 'PATH' ? 'Path' : 'Web', difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, hints: [], published: false, tasks: [] };
+  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, hints: [], published: false, tasks: [] };
 }
 function fromDetail(d: contentApi.RoomEditor): RoomSave {
   return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, hints: d.room.hints ?? [], revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, published: d.room.published ?? true, tasks: d.tasks.tasks };
@@ -79,7 +80,11 @@ function RoomEditor({ roomId }: { roomId: string }) {
   }, [sessionKey, contextPath, contextChapter, contextRevision, attempt]);
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file || (parentDraft != null && JSON.stringify(parentDraft) !== JSON.stringify(creation?.parentDraft));
   const change = (values: Partial<RoomSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
-  const changeType = (roomType: RoomType) => change({ roomType, ...(roomType === 'CTF' ? { points: pointsForDifficulty[formRef.current.difficulty] } : {}) });
+  const changeType = (roomType: RoomType) => {
+    const current = formRef.current;
+    const category = current.category === defaultCategory(current.roomType ?? 'PATH') ? { category: defaultCategory(roomType) } : {};
+    change({ roomType, ...category, ...(roomType === 'CTF' ? { points: pointsForDifficulty[current.difficulty] } : {}) });
+  };
   const save = async (published = formRef.current.published, notify = true) => {
     if (savingRef.current || !loaded) return false;
     const current = formRef.current;

@@ -50,6 +50,7 @@ export function RoomTypeHelp() {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const trigger = useRef<HTMLButtonElement>(null);
   const tapped = useRef(false);
+  const pressing = useRef(false);
   const show = () => { clearTimeout(closeTimer.current); setOpen(true); };
   const leave = () => {
     if (document.activeElement === trigger.current) return;
@@ -61,10 +62,11 @@ export function RoomTypeHelp() {
     <Popover.Trigger asChild>
       <button ref={trigger} type="button" aria-label="Czym różnią się typy pokoi?"
         className="inline-flex size-6 items-center justify-center rounded-md text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring"
-        onPointerDown={event => { tapped.current = event.pointerType === 'touch'; }}
+        onPointerDown={event => { tapped.current = event.pointerType === 'touch'; pressing.current = true; }}
         onPointerEnter={event => { if (event.pointerType !== 'touch') show(); }} onPointerLeave={leave}
-        onFocus={show} onClick={event => {
+        onFocus={() => { if (!pressing.current) show(); }} onClick={event => {
           event.preventDefault();
+          pressing.current = false;
           if (open && tapped.current) setOpen(false); else show();
         }}>
         <Info aria-hidden="true" className="size-4" />
