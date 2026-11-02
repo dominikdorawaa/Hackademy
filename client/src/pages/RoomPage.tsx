@@ -3,7 +3,7 @@ import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
 import { rateLimitMessage, retryAfterSeconds, TOO_MANY_REQUESTS } from '../services/rateLimit';
 import React, { useState, useEffect, useId, useRef } from 'react';
-import { BookOpen, Check, Download, Flag, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
+import { BookOpen, Check, CheckCheck, Download, Flag, HelpCircle, Lightbulb, Lock, RotateCcw } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
@@ -18,6 +18,8 @@ import { useGameSound } from '../hooks/useGameSound';
 import RoomFrame from '../components/room/RoomFrame';
 import RoomFooterBar from '../components/room/RoomFooterBar';
 import RoomSplit from '../components/room/RoomSplit';
+import { RoomTaskList, useStoredFlag } from '../components/room/RoomTaskList';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
 import { closeRoomActivity, openRoomActivity } from '../services/presenceApi';
@@ -85,6 +87,12 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   );
 
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [taskFeedback, setTaskFeedback] = useState<{ taskId: number; status: 'success' | 'error'; message: string } | null>(null);
+  const [hintError, setHintError] = useState('');
+  const [completeError, setCompleteError] = useState('');
+  const wide = useMediaQuery('(min-width: 1100px)');
+  const [sidebarHidden, setSidebarHidden] = useStoredFlag('hackademy.roomTaskList.hidden');
+  const sidebar = wide && !sidebarHidden;
 
   const titleId = useId();
   const readerRef = useRef<HTMLDivElement>(null);
@@ -101,16 +109,19 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const confirmUnlockHint = async () => {
     setIsModalOpen(false);
     if (!hintToUnlock) return;
+    setHintError('');
 
     try {
         const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { sessionKey });
-        if (!response.ok) throw new Error('Failed to unlock hint');
+        if (!response.ok) {
+          setHintError('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
+          return;
+        }
         const unlocked = await response.json();
         setRoom(prev => prev ? { ...prev, hints: prev.hints.map(h => h.id === unlocked.id ? unlocked : h) } : null);
         setUnlockedHints([...unlockedHints, hintToUnlock]);
-        setToast({ message: 'Podpowiedź odblokowana!', type: 'success' });
-    } catch (err) {
-        setToast({ message: err instanceof Error ? err.message : String(err), type: 'error' });
+    } catch {
+        setToast({ message: 'Błąd połączenia', type: 'error' });
     } finally {
         setHintToUnlock(null);
     }
@@ -189,6 +200,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (!task || task.completed || pendingTask !== null || (answered && (answersBlocked || !answer))) return;
 
     setPendingTask(taskId);
+    setTaskFeedback(null);
     try {
         const response = await roomApi.solveTask(id ?? '', taskId, { answer }, {sessionKey
             });
@@ -201,7 +213,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             const roomDone = data.message?.includes('Pokój ukończony') ?? false;
             celebrate(`task:${taskId}`);
             playSound(roomDone ? 'roomCompleted' : 'taskSolved');
-            setToast({ message: data.message ?? '', type: 'success' });
+            if (answered && !roomDone) setTaskFeedback({ taskId, status: 'success', message: data.message || 'Poprawna odpowiedź!' });
             setRoom(prev => prev ? ({
                 ...prev,
                 tasks: prev.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t),
@@ -214,21 +226,28 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             }
         } else {
             if (answered) playSound('learningError');
-            setToast({ message: data.message || 'Niepoprawna odpowiedź', type: 'error' });
+            setTaskFeedback({ taskId, status: 'error', message: data.message || 'Niepoprawna odpowiedź' });
         }
     } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
     finally { setPendingTask(null); }
   };
 
   const handleCompleteRoom = async () => {
-    if (preview) { setToast({ message: 'Podgląd: postęp i XP nie są zapisywane.', type: 'success' }); return; }
+    if (preview) {
+      setRoom((previous) => previous ? { ...previous, solved: true } : null);
+      setEarnedPoints(0);
+      setSuccessMessage('Podgląd: postęp i XP nie są zapisywane.');
+      setShowSuccessModal(true);
+      return;
+    }
     if (finishingRoom) return;
     setFinishingRoom(true);
+    setCompleteError('');
     try {
       const response = await roomApi.completeTaskRoom(id ?? '', { sessionKey });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        setToast({ message: data.message || 'Nie udało się ukończyć pokoju', type: 'error' });
+        setCompleteError(data.message || 'Nie udało się ukończyć pokoju');
         return;
       }
       if (!room?.solved) celebrate('room');
@@ -328,13 +347,14 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
           );
         })}
       </ol>
+      {hintError && <p className="room-message is-error" role="alert">{hintError}</p>}
     </section>
   );
 
-  const chips = (
+  const chips = (xp: number) => (
     <div className="room-chips">
       <span className={`room-chip room-chip--${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>
-      <span className="room-chip room-chip--points">{formatXp(room.points)}</span>
+      <span className="room-chip room-chip--points">{formatXp(xp)}</span>
       {isSolved && <span className="room-chip room-chip--done"><Check aria-hidden="true" />Rozwiązany</span>}
     </div>
   );
@@ -371,7 +391,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     const descriptionPane = (
       <section className="room-pane" aria-labelledby={titleId}>
         <div className="room-pane-scroll">
-          {chips}
+          {chips(room.points)}
           <h1 className="room-title" id={titleId}>{room.title}</h1>
           {room.shortDescription && <p className="room-lead">{room.shortDescription}</p>}
           <div className="room-prose"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
@@ -425,7 +445,17 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const allTasksDone = completedTasksCount === tasks.length;
   const firstOpenTask = tasks.findIndex(t => !t.completed);
   const answerId = `${titleId}-answer`;
+  const steps = tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask }));
+  const feedback = taskFeedback?.taskId === task.id && (
+    <p className={`room-message is-${taskFeedback.status}`} role={taskFeedback.status === 'error' ? 'alert' : 'status'}>{taskFeedback.message}</p>
+  );
   const flagTask = !task.question && task.requiresAnswer;
+  const roomMeta = (
+    <>
+      {chips(isSolved ? room.points : potentialXp)}
+      <span className="room-solvers"><CheckCheck aria-hidden="true" />{room.solutionsCount} ukończyło</span>
+    </>
+  );
 
   const next = !isSolved && allTasksDone
     ? { label: finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój', disabled: finishingRoom, primary: true, onClick: () => void handleCompleteRoom() }
@@ -434,75 +464,79 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       : finish;
 
   return (
-    <RoomFrame nav={nav} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
+    <RoomFrame nav={{ ...nav, meta: roomMeta, steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
       footer={
         <RoomFooterBar
           progress={{
-            steps: tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask })),
+            steps,
+            list: !sidebar,
+            onPin: wide && sidebarHidden ? () => setSidebarHidden(false) : undefined,
+            listHeader: roomMeta,
             current: taskIndex,
             unit: 'Zadanie',
             listLabel: 'Lista zadań',
             onSelect: setActiveTask,
           }}
           title={task.title}
-          badge={<span className="room-chip room-chip--points">{formatXp(room.points)}</span>}
           back={{ label: 'Wstecz', disabled: taskIndex === 0, onClick: () => setActiveTask(taskIndex - 1) }}
           next={next}
         />
       }>
       {previewBanner}
-      <div className="room-reader" ref={readerRef}>
-        <div className="room-reader-bar">
-          <div className="room-reader-where"><h1>{room.title}</h1><span>Zadanie {taskIndex + 1} z {tasks.length}</span></div>
-          <span><Users aria-hidden="true" />Ukończyło: {room.solutionsCount}</span>
-        </div>
-        <article key={task.id} className="room-reader-article" aria-labelledby={titleId}>
-          {taskIndex === 0 && chips}
-          <h2 className="room-title" id={titleId}>{String(taskIndex + 1).padStart(2, '0')}. {task.title}</h2>
-          {taskIndex === 0 && room.description && (
-            <div className="room-prose room-intro"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
-          )}
-          {taskIndex === 0 && fileBlock}
-          <div className="room-prose task-content" dangerouslySetInnerHTML={{ __html: sanitizeTaskContent(task.content) }} />
-          {task.question || task.requiresAnswer ? (
-            <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(e) => handleTaskSubmit(e, task.id)}>
-              <p className="room-question-label">
-                {task.completed ? <Check aria-hidden="true" /> : flagTask ? <Flag aria-hidden="true" /> : <HelpCircle aria-hidden="true" />}
-                {task.completed ? 'Zaliczone' : flagTask ? 'Flaga' : 'Pytanie'}
-              </p>
-              <label className="room-question-text" htmlFor={answerId}>{flagTask ? 'Wpisz znalezioną flagę dokładnie tak, jak ją widzisz.' : task.question}</label>
-              <div className="room-field">
-                <input
-                  id={answerId}
-                  type="text"
-                  autoComplete="off"
-                  spellCheck={room.roomType === 'CTF' ? false : undefined}
-                  className={`room-input${task.completed ? ' is-done' : ''}`}
-                  placeholder={task.completed ? 'Ukończono' : room.roomType === 'CTF' ? 'HACK{...}' : 'Twoja odpowiedź...'}
-                  value={task.completed ? '' : (taskAnswers[task.id] || '')}
-                  onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
-                  disabled={task.completed || pendingTask !== null || answersBlocked}
-                />
-                <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null || answersBlocked}>
-                  {task.completed ? 'Poprawne' : 'Sprawdź'}
+      <div className="room-reader-shell" ref={readerRef}>
+        {sidebar && <RoomTaskList steps={steps} current={taskIndex} onSelect={setActiveTask} onHide={() => setSidebarHidden(true)} />}
+        <div className="room-reader">
+          <h1 className="sr-only">{room.title}</h1>
+          <article key={task.id} className="room-reader-article" aria-labelledby={titleId}>
+            <h2 className="room-title" id={titleId}>{String(taskIndex + 1).padStart(2, '0')}. {task.title}</h2>
+            {taskIndex === 0 && room.description && (
+              <div className="room-prose room-intro"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
+            )}
+            {taskIndex === 0 && fileBlock}
+            <div className="room-prose task-content" dangerouslySetInnerHTML={{ __html: sanitizeTaskContent(task.content) }} />
+            {task.question || task.requiresAnswer ? (
+              <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(e) => handleTaskSubmit(e, task.id)}>
+                <p className="room-question-label">
+                  {task.completed ? <Check aria-hidden="true" /> : flagTask ? <Flag aria-hidden="true" /> : <HelpCircle aria-hidden="true" />}
+                  {task.completed ? 'Zaliczone' : flagTask ? 'Flaga' : 'Pytanie'}
+                </p>
+                <label className="room-question-text" htmlFor={answerId}>{flagTask ? 'Wpisz znalezioną flagę dokładnie tak, jak ją widzisz.' : task.question}</label>
+                <div className="room-field">
+                  <input
+                    id={answerId}
+                    type="text"
+                    autoComplete="off"
+                    spellCheck={room.roomType === 'CTF' ? false : undefined}
+                    className={`room-input${task.completed ? ' is-done' : ''}`}
+                    placeholder={task.completed ? 'Ukończono' : room.roomType === 'CTF' ? 'HACK{...}' : 'Twoja odpowiedź...'}
+                    value={task.completed ? '' : (taskAnswers[task.id] || '')}
+                    onChange={(e) => { setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value })); if (taskFeedback?.status === 'error') setTaskFeedback(null); }}
+                    aria-invalid={taskFeedback?.taskId === task.id && taskFeedback.status === 'error' ? true : undefined}
+                    disabled={task.completed || pendingTask !== null || answersBlocked}
+                  />
+                  <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null || answersBlocked}>
+                    {task.completed ? 'Poprawne' : 'Sprawdź'}
+                  </button>
+                </div>
+                {(!task.completed && retryNotice) || feedback}
+              </form>
+            ) : (
+              <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(event) => void handleTaskSubmit(event, task.id)}>
+                <p className="room-question-label">
+                  {task.completed ? <Check aria-hidden="true" /> : <BookOpen aria-hidden="true" />}
+                  {task.completed ? 'Zaliczone' : 'Do przeczytania'}
+                </p>
+                <p className="room-note">Gdy skończysz czytać, oznacz zadanie jako przeczytane.</p>
+                <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
+                  {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
                 </button>
-              </div>
-              {!task.completed && retryNotice}
-            </form>
-          ) : (
-            <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(event) => void handleTaskSubmit(event, task.id)}>
-              <p className="room-question-label">
-                {task.completed ? <Check aria-hidden="true" /> : <BookOpen aria-hidden="true" />}
-                {task.completed ? 'Zaliczone' : 'Do przeczytania'}
-              </p>
-              <p className="room-note">Gdy skończysz czytać, oznacz zadanie jako przeczytane.</p>
-              <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
-                {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
-              </button>
-            </form>
-          )}
-        </article>
-        {hintsBlock}
+                {feedback}
+              </form>
+            )}
+            {completeError && <p className="room-message is-error" role="alert">{completeError}</p>}
+          </article>
+          {hintsBlock}
+        </div>
       </div>
       {modals}
     </RoomFrame>
