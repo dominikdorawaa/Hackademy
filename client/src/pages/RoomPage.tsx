@@ -146,7 +146,13 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       try {
         const response = await (preview ? request<RoomDetailDto>(`/api/admin/content/rooms/${id}/preview`, { auth: { sessionKey } }) : roomApi.getRoom(id ?? '', { sessionKey }));
         if (!response.ok) {
-          const body = await response.json().catch(() => null);
+          const body = await response.json().catch(() => null) as { message?: string; code?: string; pathIds?: number[] } | null;
+          if (body?.code === 'PATH_ENROLLMENT_REQUIRED' && body.pathIds?.length) {
+            const origin = new URLSearchParams(location.search).get('pathId');
+            const pathId = body.pathIds.find(candidate => String(candidate) === origin) ?? body.pathIds[0];
+            navigate(`/learn/paths/${pathId}`, { replace: true });
+            return;
+          }
           throw new Error(body?.message || 'Failed to fetch room details');
         }
         const data = await response.json();
@@ -159,7 +165,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       finally { setLoading(false); }
     };
     if (sessionKey) fetchRoom();
-  }, [id, sessionKey, preview]);
+  }, [id, sessionKey, preview, navigate, location.search]);
 
   const roomId = room?.id;
   const { connected } = useRealtime();

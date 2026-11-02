@@ -50,7 +50,7 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void movedCtfRoomStaysReachableByItsOldLinkWithoutEnrolling() throws Exception {
+    void movedCtfRoomOldLinkLeadsToJoiningItsPath() throws Exception {
         var admin = account(Role.ADMIN);
         var player = account(Role.USER);
         long path = insert("INSERT INTO paths (title, description, published, unlock_mode, created_at, updated_at) VALUES ('Zadania CTF', 'd', true, 'OPEN', now(), now()) RETURNING id");
@@ -59,6 +59,10 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
         addFlagTask(room, "FLAG{moved}");
         jdbcTemplate.update("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (?, ?, 0)", room, chapter);
 
+        getAs(player, "/api/rooms/" + room).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.code").value("PATH_ENROLLMENT_REQUIRED"))
+                .andExpect(jsonPath("$.pathIds[0]").value(path));
+        postJson(player, "/api/paths/" + path + "/enroll", "{}").andExpect(status().isOk());
         getAs(player, "/api/rooms/" + room).andExpect(status().isOk());
         solve(player, room, "FLAG{moved}");
         getAs(admin, "/api/admin/rooms")

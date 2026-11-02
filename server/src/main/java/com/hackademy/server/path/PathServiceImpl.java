@@ -181,6 +181,7 @@ public class PathServiceImpl implements PathService {
                     .pathId(pathId)
                     .build());
             }
+        dashboardSummaryCache.invalidateUserAfterCommit(userId);
     }
 
     @Override
@@ -190,6 +191,13 @@ public class PathServiceImpl implements PathService {
         Long userId = resolveUserId(username);
         if (userId == null) return;
         pathEnrollmentRepository.deleteByUserIdAndPathId(userId, pathId);
+        dashboardSummaryCache.invalidateUserAfterCommit(userId);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Set<Long> getEnrolledPathIds(Long userId) {
+        return pathEnrollmentRepository.findPathIdsByUserId(userId);
     }
 
     @Override
@@ -211,6 +219,7 @@ public class PathServiceImpl implements PathService {
                 .orElseThrow(() -> new IllegalArgumentException("Path not found"));
         Long userId = resolveUserId(username);
         Set<Long> lockedByPath = pathUnlockPolicy.playerLocks(id, unlockMode, userId).roomIds();
+        boolean enrolled = userId != null && pathEnrollmentRepository.existsByUserIdAndPathId(userId, id);
 
         boolean hasTutorialVPN = false;
         boolean hasTutorialVM = false;
@@ -227,9 +236,9 @@ public class PathServiceImpl implements PathService {
         if (safeLimit == 0) {
             List<Long> roomIds = chapterRoomRepository.findRoomIdsOrdered(id);
             int effectiveLimit = roomIds.size();
-            rooms.addAll(mapMiniRooms(id, userId, effectiveLimit, hasTutorialVPN, hasTutorialVM, lockedByPath));
+            rooms.addAll(mapMiniRooms(id, userId, effectiveLimit, enrolled, hasTutorialVPN, hasTutorialVM, lockedByPath));
         } else {
-            rooms.addAll(mapMiniRooms(id, userId, safeLimit, hasTutorialVPN, hasTutorialVM, lockedByPath));
+            rooms.addAll(mapMiniRooms(id, userId, safeLimit, enrolled, hasTutorialVPN, hasTutorialVM, lockedByPath));
         }
 
 
@@ -243,6 +252,7 @@ public class PathServiceImpl implements PathService {
             Long pathId,
             Long userId,
             int limit,
+            boolean enrolled,
             boolean hasTutorialVPN,
             boolean hasTutorialVM,
             Set<Long> lockedByPath
@@ -253,7 +263,7 @@ public class PathServiceImpl implements PathService {
         for (var r : rows) {
             boolean requiresVpn = Boolean.TRUE.equals(r.getRequiresVpn());
             boolean solved = Boolean.TRUE.equals(r.getSolved());
-            boolean locked = lockedByPath.contains(r.getId());
+            boolean locked = !enrolled || lockedByPath.contains(r.getId());
 
             if ("Tutorial VPN".equals(r.getTitle()) && !hasTutorialVM) {
                 locked = true;

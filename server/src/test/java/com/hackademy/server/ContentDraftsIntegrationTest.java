@@ -48,6 +48,9 @@ class ContentDraftsIntegrationTest {
         return "CTF".equals(type) ? Map.of("title", "Flaga", "content", "Znajdź flagę", "answer", "CTF{x}")
                 : Map.of("title", "Pytanie", "content", "Przeczytaj", "question", "Flaga?", "answer", "CTF{x}");
     }
+    void join(String token, long pathId) throws Exception {
+        mvc.perform(post("/api/paths/" + pathId + "/enroll").header("Authorization", "Bearer " + token)).andExpect(status().isOk());
+    }
     void solve(String token, long room, String answer, int expected) throws Exception {
         long task = db.queryForObject("SELECT id FROM room_tasks WHERE room_id = ? ORDER BY sort_order LIMIT 1", Long.class, room);
         mvc.perform(post("/api/rooms/" + room + "/tasks/" + task + "/solve").header("Authorization", "Bearer " + token)
@@ -97,6 +100,8 @@ class ContentDraftsIntegrationTest {
         mvc.perform(get("/api/rooms/" + id).header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         assertFalse(rooms.findVisibleIds().contains(id));
         var p = pathWith(true, id); String savedPath = save("paths", null, p, admin, 201);
+        mvc.perform(get("/api/rooms/" + id).header("Authorization", "Bearer " + user)).andExpect(status().isForbidden());
+        join(user, number(savedPath, "$.id"));
         mvc.perform(get("/api/rooms/" + id).header("Authorization", "Bearer " + user)).andExpect(status().isOk());
         assertTrue(rooms.findVisibleIds().contains(id));
         solve(user, id, "CTF{x}", 200);
@@ -125,6 +130,7 @@ class ContentDraftsIntegrationTest {
         String latest = mvc.perform(get("/api/admin/paths/" + pathId).header("Authorization", "Bearer " + admin)).andReturn().getResponse().getContentAsString();
         revisePath(p, latest); p.put("published", true); p.put("description", "Published description"); p.put("chapters", List.of(Map.of("id", chapter, "title", "Chapter", "roomIds", List.of(roomId))));
         savedPath = save("paths", pathId, p, admin, 200);
+        join(user, pathId);
         mvc.perform(get("/api/rooms/" + roomId).header("Authorization", "Bearer " + user)).andExpect(status().isOk());
         mvc.perform(get("/api/paths/" + pathId).header("Authorization", "Bearer " + user)).andExpect(status().isOk());
         revisePath(p, savedPath); p.put("published", false); save("paths", pathId, p, admin, 200);
@@ -136,7 +142,7 @@ class ContentDraftsIntegrationTest {
         var r = room(true, "PATH");
         r.put("tasks", List.of(Map.of("title", "Question", "content", "Read this", "question", "Answer?", "answer", "correct")));
         String saved = save("rooms", null, r, admin, 201); long id = number(saved, "$.room.id");
-        save("paths", null, pathWith(true, id), admin, 201);
+        join(user, number(save("paths", null, pathWith(true, id), admin, 201), "$.id"));
         for (String submitted : List.of("", " ", "wrong")) solve(user, id, submitted, 400);
         mvc.perform(post("/api/rooms/" + id + "/tasks/complete").header("Authorization", "Bearer " + user)).andExpect(status().isBadRequest());
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
@@ -193,6 +199,7 @@ class ContentDraftsIntegrationTest {
         var p = pathWith(true, firstId, secondId);
         String savedPath = save("paths", null, p, admin, 201); long pathId = number(savedPath, "$.id");
         assertCompletedProfile(user, username, pathId, 0);
+        join(user, pathId);
         solve(user, firstId, "CTF{x}", 200);
         assertCompletedProfile(user, username, pathId, 0);
         chapterRooms(p, savedPath, firstId); savedPath = save("paths", pathId, p, admin, 200);
@@ -295,11 +302,12 @@ class ContentDraftsIntegrationTest {
         String latestPath = mvc.perform(get("/api/admin/paths/" + id).header("Authorization", "Bearer " + admin)).andReturn().getResponse().getContentAsString();
         revisePath(p, latestPath); p.put("published", true); p.put("description", "Ready"); p.put("chapters", List.of(Map.of("id", number(latestPath, "$.chapters[0].id"), "title", "Chapter", "roomIds", List.of(learningId, roomId))));
         save("paths", id, p, admin, 200);
-        mvc.perform(get("/api/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isOk()).andExpect(content().bytes(file));
+        mvc.perform(get("/api/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isForbidden());
         mvc.perform(get("/api/paths/" + id + "/banner")).andExpect(status().isOk()).andExpect(header().string("Cache-Control", "no-store")).andExpect(content().bytes(image));
         mvc.perform(get("/api/paths/" + id + "/enrolled").header("Authorization", "Bearer " + user)).andExpect(status().isOk()).andExpect(content().string("false"));
         mvc.perform(post("/api/paths/" + id + "/enroll").header("Authorization", "Bearer " + user)).andExpect(status().isOk());
         mvc.perform(get("/api/paths/" + id + "/enrolled").header("Authorization", "Bearer " + user)).andExpect(content().string("true"));
+        mvc.perform(get("/api/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isOk()).andExpect(content().bytes(file));
         mvc.perform(get("/api/admin/paths").header("Authorization", "Bearer " + expert)).andExpect(status().isOk()).andExpect(jsonPath("$[?(@.id == " + id + ")].published").value(org.hamcrest.Matchers.contains(true)));
     }
 

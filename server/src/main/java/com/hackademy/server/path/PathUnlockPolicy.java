@@ -19,6 +19,7 @@ public class PathUnlockPolicy {
     }
 
     private final ChapterRoomRepository chapterRoomRepository;
+    private final PathEnrollmentRepository pathEnrollmentRepository;
 
     private record Progress(Locks locks, Map<Long, Long> chapterOfLockedRoom) {}
 
@@ -49,13 +50,13 @@ public class PathUnlockPolicy {
     }
 
     /**
-     * Locks of one path as the player sees them: a room stays open when another published path unlocks it.
+     * Locks of one path as the player sees them: a room stays open when another path the player joined unlocks it.
      */
     public Locks playerLocks(Long pathId, PathUnlockMode mode, Long userId) {
         Progress own = progress(pathId, mode, userId);
         if (own.chapterOfLockedRoom().isEmpty()) return own.locks();
         Set<Long> locked = new HashSet<>(own.locks().roomIds());
-        locked.removeAll(unlocked(chapterRoomRepository.findPublishedPathsOfRooms(locked), pathId, userId));
+        locked.removeAll(unlocked(enrolledOwners(chapterRoomRepository.findPublishedPathsOfRooms(locked), userId), pathId, userId));
         Set<Long> lockedChapters = new HashSet<>();
         for (Long roomId : locked) {
             Long chapterId = own.chapterOfLockedRoom().get(roomId);
@@ -66,11 +67,22 @@ public class PathUnlockPolicy {
 
     public void requireUnlocked(Long roomId, Long userId) {
         var owners = chapterRoomRepository.findPublishedPathsOfRooms(List.of(roomId));
-        if (owners.isEmpty() || !unlocked(owners, null, userId).isEmpty()) return;
-        PathUnlockMode mode = PathUnlockMode.valueOf(owners.get(0).getUnlockMode());
+        if (owners.isEmpty()) return;
+        var joined = enrolledOwners(owners, userId);
+        if (joined.isEmpty()) {
+            throw new PathEnrollmentRequiredException(owners.stream().map(ChapterRoomRepository.RoomPathView::getPathId).toList());
+        }
+        if (!unlocked(joined, null, userId).isEmpty()) return;
+        PathUnlockMode mode = PathUnlockMode.valueOf(joined.get(0).getUnlockMode());
         throw new PathLockedException(mode == PathUnlockMode.CHAPTER
                 ? "Ten rozdział jest jeszcze zablokowany. Ukończ wszystkie pokoje poprzednich rozdziałów."
                 : "Ten pokój jest jeszcze zablokowany. Ukończ poprzednie pokoje ścieżki.");
+    }
+
+    private List<ChapterRoomRepository.RoomPathView> enrolledOwners(List<ChapterRoomRepository.RoomPathView> owners, Long userId) {
+        if (owners.isEmpty() || userId == null) return List.of();
+        Set<Long> enrolled = pathEnrollmentRepository.findPathIdsByUserId(userId);
+        return owners.stream().filter(owner -> enrolled.contains(owner.getPathId())).toList();
     }
 
     private Set<Long> unlocked(List<ChapterRoomRepository.RoomPathView> owners, Long skippedPathId, Long userId) {

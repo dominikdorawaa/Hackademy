@@ -22,6 +22,7 @@ class RoomReadBudgetTest extends PostgresIntegrationTest {
         var learner = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Attachment"), "CTF");
         publishInPath(room);
+        joinPathsOf(learner, room);
         byte[] attachment = new byte[1_048_576];
         jdbcTemplate.update("INSERT INTO room_files(room_id, file_name, file_type, data) VALUES (?, 'capture.bin', 'application/octet-stream', ?)", room, attachment);
         var statistics = factory.unwrap(SessionFactory.class).getStatistics();

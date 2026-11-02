@@ -74,6 +74,7 @@ class RoomSolveConcurrencyTest {
         User user = user();
         Room room = room(DifficultyLevel.MEDIUM);
         Long task = flagTask(room);
+        PublishedPaths.joinPathsOf(jdbcTemplate, user.getId(), room.getId());
 
         List<SolveRoomResponse> results = race(user,
                 () -> roomService.solveTask(room.getId(), task, "CTF{race}", user.getUsername()),
@@ -93,6 +94,7 @@ class RoomSolveConcurrencyTest {
         Room second = room(DifficultyLevel.EASY);
         Long firstTask = flagTask(first);
         Long secondTask = flagTask(second);
+        PublishedPaths.joinPathsOf(jdbcTemplate, user.getId(), first.getId(), second.getId());
 
         List<SolveRoomResponse> results = race(user,
                 () -> roomService.solveTask(first.getId(), firstTask, "CTF{race}", user.getUsername()),

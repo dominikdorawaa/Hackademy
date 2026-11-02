@@ -1,7 +1,7 @@
 import { setClerkSession } from '../test/clerk';
 import { act, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { Route, useNavigate } from 'react-router-dom';
+import { Route, useNavigate, useParams } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
 import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { mockRoomViewport } from '../test/roomViewport';
@@ -50,6 +50,46 @@ function mount(tasks: RoomTaskDto[]) {
 
 const completedRoom = { success: true, message: 'Poprawna odpowiedź! Pokój ukończony!', pointsEarned: 50, newBadges: [] };
 const bit = () => document.querySelector('.room-mascot-zone');
+
+describe('a room of a path the player did not join', () => {
+  const required = (pathIds: number[]) => http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(
+    { message: 'Dołącz do ścieżki, aby otworzyć ten pokój.', code: 'PATH_ENROLLMENT_REQUIRED', pathIds }, { status: 403 }));
+  const open = (url: string) => {
+    setClerkSession(createToken('USER'));
+    renderWithAuth(<>
+      <Route path="/rooms/:id" element={<RoomPage />} />
+      <Route path="/learn/paths/:pathId" element={<PathStub />} />
+    </>, url);
+  };
+  function PathStub() {
+    const { pathId } = useParams();
+    return <p>Strona ścieżki {pathId}</p>;
+  }
+
+  it('leads a direct link to joining the path', async () => {
+    server.use(required([3, 5]));
+    open('/rooms/7');
+    expect(await screen.findByText('Strona ścieżki 3')).toBeInTheDocument();
+  });
+
+  it('prefers the path the player came from', async () => {
+    server.use(required([3, 5]));
+    open('/rooms/7?pathId=5');
+    expect(await screen.findByText('Strona ścieżki 5')).toBeInTheDocument();
+  });
+
+  it('ignores an origin that does not contain the room', async () => {
+    server.use(required([3, 5]));
+    open('/rooms/7?pathId=9');
+    expect(await screen.findByText('Strona ścieżki 3')).toBeInTheDocument();
+  });
+
+  it('keeps showing other refusals on the page', async () => {
+    server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json({ message: 'Ten pokój jest jeszcze zablokowany.' }, { status: 403 })));
+    open('/rooms/7');
+    expect(await screen.findByText(/Ten pokój jest jeszcze zablokowany/)).toBeInTheDocument();
+  });
+});
 
 describe('room activity for friends', () => {
   it('tells the server which room this tab has open, again after a reconnect, and when the player leaves it', async () => {

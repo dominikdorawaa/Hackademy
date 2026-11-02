@@ -31,6 +31,7 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Safe task content"), "PATH");
         publishInPath(room);
+        joinPathsOf(user, room);
         String url = "/api/admin/rooms/" + room + "/tasks";
         String expected = "<p>Wstęp <strong>ważne</strong></p><ul><li>lista</li></ul>link";
         putJson(expert, url, """
@@ -53,6 +54,7 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Concurrent task revision"), "PATH");
         publishInPath(room);
+        joinPathsOf(user, room);
         String url = "/api/admin/rooms/" + room + "/tasks";
         var initial = putJson(admin, url, "{\"revision\":0,\"tasks\":[" + taskJson(null, "A", "q", "a") + "]}")
                 .andExpect(status().isOk()).andReturn();
@@ -103,6 +105,7 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Reading"), "PATH");
         publishInPath(room);
+        joinPathsOf(user, room);
         var saved = putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", task(null, "Lektura", null, null))
                 .andExpect(status().isOk()).andReturn();
         long reading = ((Number) JsonPath.read(saved.getResponse().getContentAsString(), "$.tasks[0].id")).longValue();
@@ -127,6 +130,8 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var otherUser = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Removed task"), "PATH");
         publishInPath(room);
+        joinPathsOf(user, room);
+        joinPathsOf(otherUser, room);
         var created = putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", "{\"tasks\":["
                 + taskJson(null, "A", "q", "a") + "," + taskJson(null, "B", "q", "b") + "]}")
                 .andExpect(status().isOk()).andReturn();
@@ -156,6 +161,7 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
 
         long empty = createRoom(admin, uniqueTitle("Empty tasks"), "PATH");
         publishInPath(empty);
+        joinPathsOf(user, empty);
         postJson(user, "/api/rooms/" + empty + "/tasks/complete", "{}")
                 .andExpect(status().isBadRequest());
     }
@@ -166,6 +172,7 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Tasks"), "PATH");
         publishInPath(room);
+        joinPathsOf(user, room);
 
         var created = putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", """
                 {"tasks":[
@@ -230,6 +237,7 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Validation"), "PATH");
         publishInPath(room);
+        joinPathsOf(user, room);
         long otherRoom = createRoom(admin, uniqueTitle("Other"), "PATH");
         publishInPath(otherRoom);
         long ctf = createRoom(admin, uniqueTitle("Ctf tasks"), "CTF");
@@ -289,6 +297,7 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Stale task draft"), "PATH");
         publishInPath(room);
+        joinPathsOf(user, room);
         String url = "/api/admin/rooms/" + room + "/tasks";
         var initial = putJson(admin, url, "{\"revision\":0,\"tasks\":[" + taskJson(null, "A", "q", "a") + "]}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(1)).andReturn();

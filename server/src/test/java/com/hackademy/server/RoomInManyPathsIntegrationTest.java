@@ -137,7 +137,7 @@ class RoomInManyPathsIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void anyPublishedPathUnlocksTheRoomEvenWhenAnotherPathLocksIt() throws Exception {
+    void anyJoinedPublishedPathUnlocksTheRoomEvenWhenAnotherPathLocksIt() throws Exception {
         var admin = account(Role.ADMIN);
         long intro = room(admin), shared = room(admin);
         long queue = createPath(admin, uniqueTitle("Queue"), "ROOM", List.of(chapter("A", List.of(intro, shared))));
@@ -146,6 +146,9 @@ class RoomInManyPathsIntegrationTest extends PostgresIntegrationTest {
         getAs(user, "/api/rooms/" + shared).andExpect(status().isForbidden());
 
         long open = createPath(admin, uniqueTitle("Open"), "OPEN", List.of(chapter("A", List.of(shared))));
+        getAs(user, "/api/rooms/" + shared).andExpect(status().isForbidden());
+        mockMvc.perform(post("/api/paths/" + open + "/enroll").header("Authorization", "Bearer " + user.token()))
+                .andExpect(status().isOk());
         getAs(user, "/api/rooms/" + shared).andExpect(status().isOk());
         assertEquals(List.of(false, false), roomLocks(user, queue));
         getAs(user, "/api/paths/" + queue + "/rooms-mini?limit=0").andExpect(jsonPath("$.rooms[1].locked").value(false));
@@ -167,7 +170,10 @@ class RoomInManyPathsIntegrationTest extends PostgresIntegrationTest {
         var user = learner(chapters);
         assertEquals(List.of(false, true, true), chapterLocks(user, chapters));
 
-        createPath(admin, uniqueTitle("Open"), "OPEN", List.of(chapter("A", List.of(shared))));
+        long open = createPath(admin, uniqueTitle("Open"), "OPEN", List.of(chapter("A", List.of(shared))));
+        assertEquals(List.of(false, true, true), chapterLocks(user, chapters));
+        mockMvc.perform(post("/api/paths/" + open + "/enroll").header("Authorization", "Bearer " + user.token()))
+                .andExpect(status().isOk());
         assertEquals(List.of(false, false, true), chapterLocks(user, chapters));
         assertEquals(List.of(false, false, true), roomLocks(user, chapters));
     }
@@ -182,6 +188,8 @@ class RoomInManyPathsIntegrationTest extends PostgresIntegrationTest {
         getAs(user, "/api/rooms/" + shared).andExpect(status().isNotFound());
 
         long published = createPath(admin, uniqueTitle("Published"), "OPEN", List.of(chapter("A", List.of(shared))));
+        mockMvc.perform(post("/api/paths/" + published + "/enroll").header("Authorization", "Bearer " + user.token()))
+                .andExpect(status().isOk());
         getAs(user, "/api/rooms/" + shared).andExpect(status().isOk());
         getAs(user, "/api/paths/" + published).andExpect(jsonPath("$.chapters[0].rooms[0].id").value((int) shared));
     }

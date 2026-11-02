@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 39;
+    static final int SCHEMA_VERSION = 40;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -669,7 +669,7 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (1, 10, now()), (1, 50, now());
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(SCHEMA_VERSION - 38, flyway().migrate().migrationsExecuted);
 
         assertEquals(0, scalar("SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'rooms' AND column_name = 'published'"));
         assertEquals(5, scalar("SELECT count(*) FROM rooms"));
@@ -876,6 +876,34 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 .locations("classpath:db/schema")
                 .target(target)
                 .load();
+    }
+
+    @Test
+    void joinsPlayersToPublishedPathsOfTheirSolvedRoomsOnce() throws Exception {
+        flyway("39").migrate();
+        insertUser(1, "Solver", "solver@example.com");
+        insertUser(2, "Member", "member@example.com");
+        insertUser(3, "Fresh", "fresh@example.com");
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES
+                (1, 'Solo', 'd', 'EASY', 'Path', 5, 0, false, 'PATH', now(), now()),
+                (2, 'Shared', 'd', 'EASY', 'Path', 5, 0, false, 'PATH', now(), now()),
+                (3, 'Draft only', 'd', 'EASY', 'Path', 5, 0, false, 'PATH', now(), now());
+                INSERT INTO paths (id, title, published, unlock_mode, created_at, updated_at) VALUES
+                (101, 'First', true, 'OPEN', now(), now()), (102, 'Second', true, 'OPEN', now(), now()), (103, 'Third', true, 'OPEN', now(), now()), (104, 'Draft', false, 'OPEN', now(), now());
+                INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES
+                (101, 101, 'One', 0, now(), now()), (102, 102, 'One', 0, now(), now()), (103, 103, 'One', 0, now(), now()), (104, 104, 'One', 0, now(), now());
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 101, 0), (2, 102, 0), (2, 103, 0), (3, 104, 0);
+                INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (1, 1, now()), (1, 3, now()), (2, 2, now());
+                INSERT INTO path_enrollments (user_id, path_id, enrolled_at) VALUES (2, 103, '2026-01-01');
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("1:101,2:103", text("SELECT string_agg(user_id || ':' || path_id, ',' ORDER BY user_id, path_id) FROM path_enrollments"));
+        assertEquals(1, scalar("SELECT count(*) FROM path_enrollments WHERE user_id = 2 AND path_id = 103 AND enrolled_at = '2026-01-01'"));
+        assertEquals(3, scalar("SELECT count(*) FROM user_solved_rooms"));
+        assertEquals(0, flyway().migrate().migrationsExecuted);
     }
 
     private void insertUser(long id, String username, String email) throws SQLException {

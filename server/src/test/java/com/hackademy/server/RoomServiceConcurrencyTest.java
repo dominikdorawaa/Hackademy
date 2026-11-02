@@ -62,6 +62,7 @@ class RoomServiceConcurrencyTest {
                 .points(10)
                 .build());
         PublishedPaths.publishInPath(dataSource, room.getId());
+        PublishedPaths.joinPathsOf(dataSource, user.getId(), room.getId());
         RoomTask task = roomTaskRepository.save(RoomTask.builder()
                 .room(room)
                 .title("Task 1")
