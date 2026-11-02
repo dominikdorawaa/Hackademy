@@ -25,7 +25,7 @@ export function move<T>(items: T[], index: number, offset: number) {
 }
 type Slot = { chapter: number; index: number };
 // The lifted row follows the pointer: `grab` keeps the spot where it was picked up, `box` its size and column.
-type Drag = { roomId: number; from: Slot; target: Slot | null; y: number; grab: number; box: { left: number; width: number } };
+type Drag = { roomId: number; from: Slot; target: Slot | null; y: number; grab: number; box: { left: number; width: number; height: number } };
 // Difficulty is state text only (DESIGN.md), in the shared difficulty hues.
 const difficultyText: Record<DifficultyLevel, string> = {
   EASY: 'text-[#1a7f37] dark:text-[#56d364]',
@@ -118,7 +118,7 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
     event.currentTarget.setPointerCapture?.(event.pointerId);
     event.currentTarget.focus();
     const row = (event.currentTarget.closest('li') ?? event.currentTarget).getBoundingClientRect();
-    setDrag({ roomId, from, target: null, y: event.clientY, grab: event.clientY - row.top, box: { left: row.left, width: row.width } });
+    setDrag({ roomId, from, target: from, y: event.clientY, grab: event.clientY - row.top, box: { left: row.left, width: row.width, height: row.height } });
   };
   const moveDrag = (event: React.PointerEvent) => {
     if (!drag) return;
@@ -156,9 +156,11 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
         const titleError = errors[`chapters.${index}.title`] ?? (chapter.title.length > 120 ? 'Maksymalnie 120 znaków' : undefined);
         const titleId = `content-chapters.${index}.title`;
         const target = drag?.target?.chapter === index ? drag.target.index : null;
-        const noop = drag != null && drag.target != null && drag.target.chapter === drag.from.chapter && drag.target.index === drag.from.index;
         let slot = 0;
-        const marker = (at: number) => target === at && !noop ? <li key={`drop-${at}`} aria-hidden="true" className="relative h-0"><span className="absolute inset-x-3 -top-px h-0.5 rounded-full bg-primary" /></li> : null;
+        // While dragging, the room leaves its place and an empty slot opens where it would land.
+        const marker = (at: number) => target === at && drag ? <li key={`drop-${at}`} aria-hidden="true" data-drop-slot=""
+          className="rounded-md border-2 border-dashed border-primary/70 bg-primary/10" style={{ height: drag.box.height }} /> : null;
+        const visible = roomIds.filter(id => id !== drag?.roomId).length;
         return <li key={chapter.id ?? `new-${index}`} className="relative min-w-0 pl-10">
           <span aria-hidden="true" className="absolute top-3.5 left-0 flex size-7 items-center justify-center rounded-full border-2 border-primary bg-background text-xs font-semibold text-primary tabular-nums">{index + 1}</span>
           {index < chapters.length - 1 && <span aria-hidden="true" className="absolute top-[2.625rem] bottom-[-1.375rem] left-[13px] border-l-2 border-primary/30" />}
@@ -191,7 +193,7 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
               const rowMarker = dragged ? null : marker(slot++);
               return [rowMarker, <li key={id} data-room-id={id}
                 className={cn('flex min-w-0 items-center gap-2 rounded-md py-2 pr-1 pl-0.5 transition-colors duration-700 motion-reduce:transition-none sm:gap-3 sm:pr-2',
-                  dragged ? 'opacity-40' : 'hover:bg-accent/60', highlightRoomId === id && 'bg-primary/15 hover:bg-primary/15')}>
+                  dragged ? 'pointer-events-none absolute opacity-0' : 'hover:bg-accent/60', highlightRoomId === id && 'bg-primary/15 hover:bg-primary/15')}>
                 <button type="button" ref={node => { if (node) handles.current.set(id, node); else handles.current.delete(id); }}
                   aria-label={`Przesuń ${title}`} aria-describedby="path-chapters-hint"
                   className="flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
@@ -207,7 +209,7 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
               </li>];
             })}
             {marker(slot)}
-            {roomIds.length === 0 && <li className="px-3 py-3 text-sm text-muted-foreground">{drag ? 'Upuść tutaj.' : 'Ten rozdział nie ma jeszcze pokoi.'}</li>}
+            {visible === 0 && target == null && <li className="px-3 py-3 text-sm text-muted-foreground">{drag ? 'Upuść tutaj.' : 'Ten rozdział nie ma jeszcze pokoi.'}</li>}
           </ol>
           <div className="flex flex-wrap gap-1 px-2 pt-1 pb-2 sm:px-3">
             <Button type="button" variant="ghost" size="sm" id={`content-chapters.${index}.rooms`} aria-expanded={adding === index} aria-controls={`chapter-${index}-picker`}

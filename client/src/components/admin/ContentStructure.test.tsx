@@ -156,7 +156,9 @@ describe('content structure editing', () => {
     fireEvent.pointerMove(grip, { clientY: 220 });
     expect(screen.getByText('Ten rozdział nie ma jeszcze pokoi.')).toBeInTheDocument();
     fireEvent.pointerDown(grip, { button: 0, clientY: 25, pointerId: 1 });
-    expect(grip.closest('li')).toHaveClass('opacity-40');
+    expect(grip.closest('li')).toHaveClass('opacity-0');
+    const slot = (name: string) => screen.getByRole('list', { name }).querySelector<HTMLElement>('[data-drop-slot]');
+    expect(slot('Pokoje rozdziału 1')).toHaveStyle({ height: '50px' });
     const ghost = document.body.querySelector<HTMLElement>(':scope > div.fixed')!;
     expect(ghost).toHaveTextContent('VPN');
     expect(ghost.style.top).toBe('0px');
@@ -166,7 +168,9 @@ describe('content structure editing', () => {
     fireEvent.pointerMove(grip, { clientY: 30 });
     fireEvent.pointerMove(grip, { clientY: 30 });
     fireEvent.pointerMove(grip, { clientY: 400 });
-    expect(screen.getByRole('list', { name: 'Pokoje rozdziału 2' }).querySelector('[aria-hidden="true"].h-0')).not.toBeNull();
+    expect(slot('Pokoje rozdziału 2')).not.toBeNull();
+    expect(slot('Pokoje rozdziału 1')).toBeNull();
+    expect(screen.queryByText('Upuść tutaj.')).toBeNull();
     fireEvent.pointerUp(grip);
     expect(state('chapters').map((c: ChapterRequest) => c.roomIds)).toEqual([[10], [9]]);
     const http = screen.getByRole('button', { name: 'Przesuń HTTP' });
@@ -175,7 +179,7 @@ describe('content structure editing', () => {
     fireEvent.pointerMove(http, { clientY: 225 });
     screen.getByLabelText('Nazwa rozdziału 1').focus();
     fireEvent.keyDown(screen.getByLabelText('Nazwa rozdziału 1'), { key: 'Escape' });
-    expect(screen.queryByText('Upuść tutaj.')).toBeNull();
+    expect(document.querySelector('[data-drop-slot]')).toBeNull();
     fireEvent.pointerUp(http);
     expect(state('chapters').map((c: ChapterRequest) => c.roomIds)).toEqual([[10], [9]]);
     fireEvent.pointerDown(http, { button: 0, clientY: 25 });
@@ -184,7 +188,7 @@ describe('content structure editing', () => {
     expect(state('chapters').map((c: ChapterRequest) => c.roomIds)).toEqual([[10], [9]]);
     fireEvent.pointerDown(http, { button: 0, clientY: 25 });
     fireEvent.pointerCancel(http);
-    expect(screen.queryByText('Upuść tutaj.')).toBeNull();
+    expect(document.querySelector('[data-drop-slot]')).toBeNull();
   });
   it('lights up a room that has just arrived', () => {
     render(<Chapters create={vi.fn()} edit={vi.fn()} highlight={10} />);
