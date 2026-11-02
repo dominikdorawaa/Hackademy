@@ -18,8 +18,8 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
         long vm = tutorial("Tutorial VM", "vm");
         long vpn = tutorial("Tutorial VPN", "vpn");
         long vpnRoom = insert("""
-                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, published, created_at, updated_at)
-                VALUES ('%s', 'd', 'MEDIUM', 'Web', 100, 0, true, 'CTF', true, now(), now()) RETURNING id
+                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at)
+                VALUES ('%s', 'd', 'MEDIUM', 'Web', 100, 0, true, 'CTF', now(), now()) RETURNING id
                 """.formatted(uniqueTitle("Sieć")));
         try {
             jdbcTemplate.update("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (?, ?, 0), (?, ?, 1), (?, ?, 2)", vm, chapter, vpn, chapter, vpnRoom, chapter);
@@ -72,8 +72,8 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
 
     private long tutorial(String title, String flag) {
         long room = insert("""
-                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, published, created_at, updated_at)
-                VALUES ('%s', 'd', 'EASY', 'Tutorial', 50, 0, false, 'CTF', true, now(), now()) RETURNING id
+                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at)
+                VALUES ('%s', 'd', 'EASY', 'Tutorial', 50, 0, false, 'CTF', now(), now()) RETURNING id
                 """.formatted(title));
         addFlagTask(room, flag);
         return room;

@@ -27,6 +27,12 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
     private final ObjectMapper mapper = new ObjectMapper();
 
     private long roomWithHints(Account admin, String roomType, String... descriptions) throws Exception {
+        long id = draftWithHints(admin, roomType, descriptions);
+        publishInPath(id);
+        return id;
+    }
+
+    private long draftWithHints(Account admin, String roomType, String... descriptions) throws Exception {
         long id = createRoom(admin, uniqueTitle("Hint room"), roomType);
         for (String description : descriptions) {
             jdbcTemplate.update("INSERT INTO hints (description, room_id) VALUES (?, ?)", description, id);
@@ -136,8 +142,10 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
     @Test
     void pathRoomsHideHintsAndGuardUnlocksBehindThePathQueue() throws Exception {
         var admin = account(Role.ADMIN);
-        long first = roomWithHints(admin, "PATH", "Ścieżka 1");
-        long second = roomWithHints(admin, "PATH", "Ścieżka 2");
+        long first = draftWithHints(admin, "PATH", "Ścieżka 1");
+        long second = draftWithHints(admin, "PATH", "Ścieżka 2");
+        addFlagTask(first, "flag");
+        addFlagTask(second, "flag");
         long pathId = createPath(admin, "ROOM", List.of(first, second));
         var user = account(Role.USER);
         mockMvc.perform(post("/api/paths/" + pathId + "/enroll").header("Authorization", "Bearer " + user.token()))

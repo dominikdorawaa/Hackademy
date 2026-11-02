@@ -54,19 +54,15 @@ public class ContentService {
         if (id != null) revision(request.revision(), path.getContentRevision());
         long chapterRevision = path.getChaptersRevision();
         if (id != null) revision(request.chaptersRevision(), chapterRevision);
-        pathService.updatePathChapters(path.getId(), new UpdatePathChaptersRequest(chapterRevision, list), admin);
         if (request.published()) {
-            for (int i = 0; i < list.size(); i++) {
-                for (Long roomId : list.get(i).roomIds()) {
-                    if (!rooms.findById(roomId).orElseThrow().isPublished()) validation.problem("chapters." + i + ".rooms", "Opublikuj pokoje rozdziału przed publikacją ścieżki");
-                }
-            }
+            for (int i = 0; i < list.size(); i++) requireRoomsReady(validation, "chapters." + i + ".rooms", list.get(i).roomIds());
             validation.finish();
         }
+        path.setPublished(request.published());
+        pathService.updatePathChapters(path.getId(), new UpdatePathChaptersRequest(chapterRevision, list), admin);
         path.setTitle(request.title().trim());
         path.setDescription(text(request.description()));
         path.setBannerUrl(request.bannerUrl() == null || request.bannerUrl().isBlank() ? null : request.bannerUrl());
-        path.setPublished(request.published());
         if (request.unlockMode() != null) path.setUnlockMode(request.unlockMode());
         path.setContentRevision(path.getContentRevision() + 1);
         if (banner != null && !banner.isEmpty()) {
@@ -81,25 +77,40 @@ public class ContentService {
         return pathService.getAdminDetail(path.getId());
     }
 
-    public record RoomEditor(RoomAdminDto room, RoomTasksAdminDto tasks, Long pathId) {}
+    // Players see a room only through a published path, so its content is checked when such a path is published.
+    void requireRoomsReady(ContentValidation validation, String field, Collection<Long> roomIds) {
+        var problems = new ArrayList<String>();
+        for (var room : rooms.findAllById(roomIds)) {
+            var missing = RoomReadiness.problems(room);
+            if (!missing.isEmpty()) problems.add("„" + room.getTitle() + "”: " + String.join(", ", missing));
+        }
+        if (!problems.isEmpty()) validation.problem(field, "Uzupełnij pokoje przed publikacją ścieżki. " + String.join("; ", problems) + ".");
+    }
+
+    // live: a published path holds the room, so players see every saved change and the room must stay ready.
+    public record RoomEditor(RoomAdminDto room, RoomTasksAdminDto tasks, Long pathId, boolean live) {}
     public static RoomAdminDto adminRoom(Room room) {
         return RoomAdminDto.builder().id(room.getId()).title(room.getTitle()).description(room.getDescription())
                 .shortDescription(room.getShortDescription()).category(room.getCategory()).difficulty(room.getDifficulty())
                 .points(room.getPoints()).requiresVpn(room.isRequiresVpn()).roomType(room.getRoomType())
-                .published(room.isPublished()).contentRevision(room.getContentRevision()).solutionsCount(room.getSolutionsCount())
+                .contentRevision(room.getContentRevision()).solutionsCount(room.getSolutionsCount())
                 .hints(room.getHints().stream().map(Hint::getDescription).toList()).createdAt(room.getCreatedAt()).updatedAt(room.getUpdatedAt()).build();
     }
     @Transactional
     public RoomEditor roomEditor(Long id) {
         var room = roomService.getRoomById(id);
-        return new RoomEditor(adminRoom(room), roomService.getRoomTasksForAdmin(id), assignments.findOwners(List.of(id)).stream().map(ChapterRoomRepository.RoomOwnerView::getPathId).findFirst().orElse(null));
+        return new RoomEditor(adminRoom(room), roomService.getRoomTasksForAdmin(id), assignments.findOwners(List.of(id)).stream().map(ChapterRoomRepository.RoomOwnerView::getPathId).findFirst().orElse(null), rooms.isVisible(id));
     }
 
     @Transactional(rollbackFor = IOException.class)
     public RoomEditor saveRoom(Long id, ContentRequests.RoomSave r, MultipartFile file) throws IOException {
         var v = new ContentValidation();
+        // Drafts may stay unfinished; a room that is or becomes part of a published path must be ready.
+        boolean live = id != null ? rooms.isVisible(id)
+                : r.parentDraft() != null ? r.parentDraft().published()
+                : r.pathId() != null && paths.findById(r.pathId()).map(Path::isPublished).orElse(false);
         v.text("title", r.title(), 255, true);
-        v.text("description", r.description(), 20000, r.published());
+        v.text("description", r.description(), 20000, live);
         v.text("shortDescription", r.shortDescription(), 100, false);
         v.text("category", r.category(), 255, true);
         if (r.difficulty() == null) v.problem("difficulty", "Wybierz trudność");
@@ -110,18 +121,18 @@ public class ContentService {
         for (int i = 0; i < hints.size(); i++) v.text("hints." + i, hints.get(i), 2000, true);
         var tasks = r.tasks() == null ? List.<RoomTaskRequest>of() : r.tasks();
         if (tasks.size() > 100) v.problem("tasks", "Maksymalnie 100 zadań");
-        if (r.published() && tasks.isEmpty()) v.problem("tasks", "Dodaj przynajmniej jedno zadanie przed publikacją");
+        if (live && tasks.isEmpty()) v.problem("tasks", "Dodaj przynajmniej jedno zadanie");
         boolean ctf = r.roomType() == RoomType.CTF;
         for (int i = 0; i < tasks.size(); i++) {
             var t = tasks.get(i); String key = "tasks." + i + ".";
             if (t == null) { v.problem("tasks", "Nieprawidłowe zadanie"); continue; }
             v.text(key + "title", t.title(), 255, true);
-            v.text(key + "content", t.content(), 20000, r.published());
-            if (r.published() && TaskContentSanitizer.clean(text(t.content())).isBlank()) v.problem(key + "content", "Podaj treść po usunięciu niedozwolonego HTML");
+            v.text(key + "content", t.content(), 20000, live);
+            if (live && TaskContentSanitizer.clean(text(t.content())).isBlank()) v.problem(key + "content", "Podaj treść po usunięciu niedozwolonego HTML");
             v.text(key + "question", t.question(), 2000, false);
             boolean asked = t.question() != null && !t.question().isBlank();
-            v.text(key + "answer", t.answer(), 255, r.published() && (ctf || asked));
-            if (r.published() && !ctf && !asked && t.answer() != null && !t.answer().isBlank()) v.problem(key + "question", "Odpowiedź wymaga pytania");
+            v.text(key + "answer", t.answer(), 255, live && (ctf || asked));
+            if (live && !ctf && !asked && t.answer() != null && !t.answer().isBlank()) v.problem(key + "question", "Odpowiedź wymaga pytania");
         }
         v.finish();
         Path parent = null; PathChapter chapter = null; boolean publishParent = false;
@@ -153,7 +164,6 @@ public class ContentService {
             revision(r.tasksRevision(), current.getTasksRevision());
             saved = roomService.updateRoomBeforeTasks(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType(), hints), file);
         }
-        saved.setPublished(r.published());
         roomService.updateRoomTasks(saved.getId(), new UpdateRoomTasksRequest(saved.getTasksRevision(), tasks));
         saved.setContentRevision(saved.getContentRevision() + 1);
         if (chapter != null) {
@@ -163,13 +173,12 @@ public class ContentService {
             parent.setChaptersRevision(parent.getChaptersRevision() + 1);
             parent.setContentRevision(parent.getContentRevision() + 1);
             if (publishParent) {
-                if (!saved.isPublished()) v.problem("published", "Opublikuj pokój, aby dodać nowy rozdział do opublikowanej ścieżki, albo przenieś ścieżkę do szkiców.");
-                v.finish();
+                rooms.flush();
                 var updated = pathService.getAdminDetail(parent.getId());
                 v.text("parentDescription", parent.getDescription(), 20000, true);
                 for (var section : updated.chapters()) {
-                    if (section.roomIds().isEmpty()) v.problem("published", "Dodaj opublikowany pokój do każdego rozdziału ścieżki.");
-                    for (Long roomId : section.roomIds()) if (!rooms.findById(roomId).orElseThrow().isPublished()) v.problem("published", "Opublikuj wszystkie pokoje ścieżki.");
+                    if (section.roomIds().isEmpty()) v.problem("path", "Dodaj pokój do każdego rozdziału ścieżki.");
+                    requireRoomsReady(v, "path", section.roomIds());
                 }
                 v.finish();
                 parent.setPublished(true);

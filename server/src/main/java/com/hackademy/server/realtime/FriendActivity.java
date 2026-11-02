@@ -38,8 +38,8 @@ public class FriendActivity {
                 if (roomId != null) roomByFriend.put(friend.id(), roomId);
             }
         }
-        Map<Long, String> titles = roomByFriend.isEmpty() ? Map.of() : rooms.findAllById(Set.copyOf(roomByFriend.values())).stream()
-                .filter(Room::isPublished).collect(Collectors.toMap(Room::getId, Room::getTitle));
+        Map<Long, String> titles = roomByFriend.isEmpty() ? Map.of() : rooms.findVisibleByIdIn(Set.copyOf(roomByFriend.values())).stream()
+                .collect(Collectors.toMap(Room::getId, Room::getTitle));
         return friends.stream().map(friend -> {
             var known = settled.get(friend.id());
             if (known != null) return known;

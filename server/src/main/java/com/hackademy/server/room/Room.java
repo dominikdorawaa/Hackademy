@@ -71,10 +71,6 @@ public class Room {
     private List<Hint> hints = new ArrayList<>();
 
 
-    @Builder.Default
-    @Column(nullable = false)
-    private boolean published = true;
-
     @Column(name = "content_revision", nullable = false)
     private long contentRevision;
 

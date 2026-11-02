@@ -24,7 +24,9 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 37;
+    // Number of migrations; V38 is left to a parallel change.
+    static final int SCHEMA_VERSION = 38;
+    static final int LATEST_VERSION = 39;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -76,7 +78,7 @@ class SchemaMigrationTest {
         execute("INSERT INTO user_notification_preferences (user_id, sound, friend_online, friend_online_bell) VALUES (1, false, false, false)");
 
         assertEquals(SCHEMA_VERSION - 20, flyway().migrate().migrationsExecuted);
-        assertEquals(String.valueOf(SCHEMA_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
+        assertEquals(String.valueOf(LATEST_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
         assertEquals("clerk identity", text("SELECT description FROM flyway_schema_history WHERE version = '21'"));
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE id = 1 AND username = 'Alice' AND email = 'alice@example.com' AND password = 'p' AND clerk_user_id IS NULL"));
         assertEquals(1, scalar("SELECT count(*) FROM user_notification_preferences WHERE user_id = 1 AND NOT sound AND NOT friend_online AND NOT friend_online_bell AND game_sounds"));
@@ -605,7 +607,7 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (2, 30, now());
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("37").migrate().migrationsExecuted);
 
         assertEquals(0, scalar("SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'rooms' AND column_name = 'flag'"));
         assertEquals("1:Zdobądź flagę:FLAG{sql}:0|2:Zdobądź flagę:HACK{path}:0|3:Pytanie:a:0", text("""
@@ -626,8 +628,8 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 """));
         assertEquals("1:1:75,2:3:10", text("SELECT string_agg(user_id || ':' || room_id || ':' || awarded_points, ',' ORDER BY user_id) FROM user_solved_rooms"));
         assertEquals("1:1|2:0|3:1|4:0", text("SELECT string_agg(id || ':' || solutions_count, '|' ORDER BY id) FROM rooms"));
-        assertEquals(0, flyway().migrate().migrationsExecuted);
-        assertTrue(flyway().validateWithResult().validationSuccessful);
+        assertEquals(0, flyway("37").migrate().migrationsExecuted);
+        assertTrue(flyway("37").validateWithResult().validationSuccessful);
     }
 
     @Test
@@ -640,11 +642,50 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 (3, 'Znaki', repeat('<', 5000), 'EASY', 'Web', 50, 'F{3}', 0, false, 'CTF', true, now(), now());
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("37").migrate().migrationsExecuted);
 
         assertEquals("1:20000|2:56|3:56", text("SELECT string_agg(room_id || ':' || char_length(content), '|' ORDER BY room_id) FROM room_tasks"));
         assertEquals("<p>Treść zadania znajdziesz w opisie pokoju powyżej.</p>", text("SELECT content FROM room_tasks WHERE room_id = 2"));
         assertEquals(19994, scalar("SELECT char_length(description) FROM rooms WHERE id = 2"));
+    }
+
+    @Test
+    void dropsRoomPublishingAndDetachesDraftsFromPublishedPathsWithoutTouchingProgress() throws Exception {
+        flyway("37").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, published, created_at, updated_at) VALUES
+                (1, 'Gotowy', 'Opis', 'EASY', 'Web', 50, 1, false, 'CTF', true, now(), now()),
+                (2, 'Szkic w opublikowanej', '', 'EASY', 'Web', 50, 0, false, 'CTF', false, now(), now()),
+                (3, 'Szkic w szkicu', '', 'EASY', 'Path', 10, 0, false, 'PATH', false, now(), now()),
+                (4, 'Gotowy w szkicu', 'Opis', 'EASY', 'Path', 10, 0, false, 'PATH', true, now(), now()),
+                (5, 'Luźny', 'Opis', 'EASY', 'Web', 50, 1, false, 'CTF', true, now(), now());
+                INSERT INTO room_tasks (id, room_id, title, content, answer, sort_order) VALUES (10, 1, 'Flaga', '<p>x</p>', 'F{1}', 0), (50, 5, 'Flaga', '<p>x</p>', 'F{5}', 0);
+                INSERT INTO paths (id, title, description, published, unlock_mode, chapters_revision, content_revision, created_at, updated_at) VALUES
+                (101, 'Opublikowana', 'Opis', true, 'OPEN', 2, 3, now(), now()),
+                (102, 'Szkic', '', false, 'OPEN', 4, 5, now(), now());
+                INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES
+                (101, 101, 'Rozdział', 0, now(), now()), (102, 102, 'Rozdział', 0, now(), now());
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 101, 0), (2, 101, 1), (3, 102, 0), (4, 102, 1);
+                INSERT INTO user_solved_rooms (user_id, room_id, solved_at, awarded_points) VALUES (1, 1, now(), 50), (1, 5, now(), 50);
+                INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (1, 10, now()), (1, 50, now());
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals(0, scalar("SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'rooms' AND column_name = 'published'"));
+        assertEquals(5, scalar("SELECT count(*) FROM rooms"));
+        assertEquals("1:101|3:102|4:102", text("""
+                SELECT string_agg(cr.room_id || ':' || pc.path_id, '|' ORDER BY cr.room_id) FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id
+                """));
+        assertEquals("101:3:4:true|102:4:5:false", text("""
+                SELECT string_agg(id || ':' || chapters_revision || ':' || content_revision || ':' || published, '|' ORDER BY id) FROM paths WHERE id > 100
+                """));
+        assertEquals("1:1:50,1:5:50", text("SELECT string_agg(user_id || ':' || room_id || ':' || awarded_points, ',' ORDER BY room_id) FROM user_solved_rooms"));
+        assertEquals(2, scalar("SELECT count(*) FROM user_completed_tasks WHERE user_id = 1"));
+        assertEquals(2, scalar("SELECT count(*) FROM room_tasks"));
+        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertTrue(flyway().validateWithResult().validationSuccessful);
     }
 
     @Test

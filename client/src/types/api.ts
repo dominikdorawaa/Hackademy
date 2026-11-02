@@ -435,7 +435,6 @@ export interface RoomDto {
 }
 
 export interface RoomAdminSummaryDto {
-  published?: boolean;
   contentRevision?: number;
   id: number
   title: string
@@ -449,7 +448,6 @@ export interface RoomAdminSummaryDto {
 }
 
 export interface RoomAdminDto {
-  published?: boolean;
   contentRevision?: number;
   id: number
   title: string

@@ -12,6 +12,5 @@ public record RoomAdminSummaryDto(
     boolean requiresVpn,
     RoomType roomType,
     Long pathId,
-    String pathTitle,
-    boolean published
+    String pathTitle
 ) {}

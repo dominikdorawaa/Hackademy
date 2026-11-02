@@ -78,7 +78,6 @@ function PathEditor({ pathId }: { pathId: string }) {
     current.chapters.forEach((c, i) => {
       checkText(nextErrors, `chapters.${i}.title`, c.title, 120, true);
       if (published && !c.roomIds?.length) nextErrors[`chapters.${i}.rooms`] = 'Dodaj pokój do rozdziału przed publikacją';
-      else if (published && c.roomIds?.some(roomId => rooms.find(r => r.id === roomId)?.published === false)) nextErrors[`chapters.${i}.rooms`] = 'Opublikuj pokoje rozdziału przed publikacją ścieżki';
     });
     setSuccess(null); setErrors(nextErrors); setError(null);
     if (Object.keys(nextErrors).length) { focusError(nextErrors); return false; }
@@ -126,7 +125,7 @@ function PathEditor({ pathId }: { pathId: string }) {
       existing={{ id, title: baseline.title, contentRevision: baseline.revision, chaptersRevision: baseline.chaptersRevision, chapters: baseline.chapters }}
       requestOpen={open => guard.request(open)} onImported={detail => {
         const next = fromDetail(detail); formRef.current = next; setForm(next); setBaseline(next); setFile(null);
-        setSuccess('Dodano pokoje jako szkice. Istniejąca ścieżka zachowała swój status publikacji.');
+        setSuccess(form.published ? 'Dodano pokoje. Ścieżka jest opublikowana, więc gracze już je widzą.' : 'Dodano pokoje. Gracze zobaczą je po publikacji ścieżki.');
         setErrors({}); setError(null); setLoading(true); setAttempt(value => value + 1);
       }} />}<Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, sessionKey); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}

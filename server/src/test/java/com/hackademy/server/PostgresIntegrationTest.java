@@ -99,17 +99,21 @@ abstract class PostgresIntegrationTest {
                         .header("Authorization", "Bearer " + admin.token()))
                 .andExpect(status().isCreated())
                 .andReturn();
-        long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
-        jdbcTemplate.update("UPDATE rooms SET published = true WHERE id = ?", id);
-        return id;
+        return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+    }
+
+    protected long publishInPath(long... roomIds) {
+        return PublishedPaths.publishInPath(jdbcTemplate, roomIds);
     }
 
     protected long addFlagTask(long room, String flag) {
         return jdbcTemplate.queryForObject("""
-                INSERT INTO room_tasks (room_id, title, content, answer, sort_order)
-                VALUES (?, 'Zdobądź flagę', 'Znajdź flagę', ?, (SELECT count(*) FROM room_tasks WHERE room_id = ?))
+                INSERT INTO room_tasks (room_id, title, content, question, answer, sort_order)
+                VALUES (?, 'Zdobądź flagę', 'Znajdź flagę',
+                        (SELECT CASE WHEN room_type = 'PATH' THEN 'Jaka jest flaga?' END FROM rooms WHERE id = ?),
+                        ?, (SELECT count(*) FROM room_tasks WHERE room_id = ?))
                 RETURNING id
-                """, Long.class, room, flag, room);
+                """, Long.class, room, room, flag, room);
     }
 
     protected ResultActions solveRoom(Account account, long room, String answer) throws Exception {

@@ -21,10 +21,10 @@ import { formatXp } from '../../lib/units';
 
 const defaultCategory = (kind: RoomType) => kind === 'PATH' ? 'Path' : 'Web';
 function empty(kind: RoomType): RoomSave {
-  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, hints: [], published: false, tasks: [] };
+  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, hints: [], tasks: [] };
 }
 function fromDetail(d: contentApi.RoomEditor): RoomSave {
-  return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, hints: d.room.hints ?? [], revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, published: d.room.published ?? true, tasks: d.tasks.tasks };
+  return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, hints: d.room.hints ?? [], revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, tasks: d.tasks.tasks };
 }
 export default function RoomEditorPage() {
   const { roomId } = useParams();
@@ -59,6 +59,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [live, setLive] = useState(false);
   const contextPath = query.get('pathId');
   const contextChapter = query.get('chapterId');
   const contextRevision = query.get('pathRevision');
@@ -68,7 +69,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
       .then(([detail, path]) => {
         if (!active) return;
         if (detail) {
-          const next = fromDetail(detail); setForm(next); setBaseline(next); setParentId(detail.pathId ?? null);
+          const next = fromDetail(detail); setForm(next); setBaseline(next); setParentId(detail.pathId ?? null); setLive(detail.live ?? false);
         }
         if (contextPath) {
           if (!path || !path.chapters.some(c => c.id === Number(contextChapter)) || Number(contextRevision) !== (path.contentRevision ?? 0)) throw new Error('Ścieżka lub rozdział zmieniły się. Wróć do edytora ścieżki i ponownie wybierz „Utwórz pokój”.');
@@ -85,7 +86,9 @@ function RoomEditor({ roomId }: { roomId: string }) {
     const category = current.category === defaultCategory(current.roomType ?? 'PATH') ? { category: defaultCategory(roomType) } : {};
     change({ roomType, ...category, ...(roomType === 'CTF' ? { points: pointsForDifficulty[current.difficulty] } : {}) });
   };
-  const save = async (published = formRef.current.published, notify = true) => {
+  // A room inside a published path is seen by players at once, so it has to stay complete.
+  const ready = live || !!parentDraft?.published || !!context?.published;
+  const save = async (notify = true) => {
     if (savingRef.current || !loaded) return false;
     const current = formRef.current;
     const nextErrors: FieldErrors = {};
@@ -93,16 +96,16 @@ function RoomEditor({ roomId }: { roomId: string }) {
     checkText(nextErrors, 'title', current.title, 255, true);
     if (!nextErrors.title && current.title.trim() !== baseline.title && reservedRoomTitles.includes(current.title.trim().toLowerCase())) nextErrors.title = 'Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka';
     checkText(nextErrors, 'shortDescription', current.shortDescription ?? '', 100);
-    checkText(nextErrors, 'description', current.description, 20000, published);
+    checkText(nextErrors, 'description', current.description, 20000, ready);
     checkText(nextErrors, 'category', current.category, 255, true);
     if (!Number.isSafeInteger(current.points) || current.points < 0 || current.points > 2147483647) nextErrors.points = 'Podaj nieujemną liczbę całkowitą do 2147483647';
-    if (published && !current.tasks.length) nextErrors.tasks = 'Dodaj przynajmniej jedno zadanie przed publikacją';
+    if (ready && !current.tasks.length) nextErrors.tasks = 'Dodaj przynajmniej jedno zadanie';
     current.hints.forEach((hint, i) => checkText(nextErrors, `hints.${i}`, hint, 2000, true));
     current.tasks.forEach((task, i) => {
       checkText(nextErrors, `tasks.${i}.title`, task.title, 255, true);
-      checkText(nextErrors, `tasks.${i}.content`, task.content, 20000, published);
-      checkText(nextErrors, `tasks.${i}.question`, task.question ?? '', 2000, published && current.roomType === 'PATH' && !!task.answer?.trim() && !task.question?.trim());
-      checkText(nextErrors, `tasks.${i}.answer`, task.answer ?? '', 255, published && (current.roomType === 'CTF' || !!task.question?.trim()));
+      checkText(nextErrors, `tasks.${i}.content`, task.content, 20000, ready);
+      checkText(nextErrors, `tasks.${i}.question`, task.question ?? '', 2000, ready && current.roomType === 'PATH' && !!task.answer?.trim() && !task.question?.trim());
+      checkText(nextErrors, `tasks.${i}.answer`, task.answer ?? '', 255, ready && (current.roomType === 'CTF' || !!task.question?.trim()));
     });
     if (file && file.size > 50 * 1024 * 1024) nextErrors.file = 'Plik może mieć maksymalnie 50 MB';
     setErrors(nextErrors); setError(null); setSuccess(null);
@@ -110,12 +113,12 @@ function RoomEditor({ roomId }: { roomId: string }) {
     savingRef.current = true; setSaving(true);
     try {
       const parent = idRef.current == null && parentDraft ? { parentDraft, chapterIndex: creation?.chapterIndex ?? 0, ...(parentId != null ? { pathId: parentId } : {}) } : idRef.current == null && context ? { pathId: context.id, chapterId: Number(contextChapter), pathRevision: context.contentRevision ?? 0 } : {};
-      const detail = await contentApi.saveRoom(idRef.current, { ...current, published, ...parent }, file, sessionKey);
+      const detail = await contentApi.saveRoom(idRef.current, { ...current, ...parent }, file, sessionKey);
       const saved = fromDetail(detail);
-      idRef.current = detail.room.id; setId(detail.room.id); formRef.current = saved;
+      idRef.current = detail.room.id; setId(detail.room.id); formRef.current = saved; setLive(detail.live ?? false);
       setForm(saved); setBaseline(saved); setFile(null);
       if (detail.pathId != null) { setParentId(detail.pathId); setParentDraft(null); }
-      if (notify) setSuccess(published ? 'Zapisano opublikowany pokój.' : 'Zapisano szkic pokoju.');
+      if (notify) setSuccess('Zapisano pokój.');
       return true;
     } catch (e) {
       setError(e instanceof Error ? e.message : 'Nie udało się zapisać pokoju.');
@@ -124,36 +127,36 @@ function RoomEditor({ roomId }: { roomId: string }) {
     } finally { savingRef.current = false; setSaving(false); }
   };
   const guard = useUnsavedChanges(dirty, () => save(), saving);
-  const normalSave = async (published = formRef.current.published) => {
+  const normalSave = async () => {
     const wasNew = idRef.current == null;
-    if (await save(published, !wasNew) && wasNew) {
+    if (await save(!wasNew) && wasNew) {
       guard.allowNavigation();
-      navigate(`${base}/${idRef.current}`, { replace: true, state: { flash: published ? 'Zapisano opublikowany pokój.' : 'Zapisano szkic pokoju.' } });
+      navigate(`${base}/${idRef.current}`, { replace: true, state: { flash: 'Zapisano pokój.' } });
     }
   };
   const returnPath = contextPath || parentId ? `/admin/paths/${contextPath ?? parentId}` : base;
   return <>
     {guard.dialog}
     <Button asChild variant="ghost" className="mb-3"><Link to={returnPath}>← {contextPath || parentId ? 'Wróć do edytora ścieżki' : 'Pokoje'}</Link></Button>
-    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}${contextPath ? `?pathId=${contextPath}` : ''}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description="Pokój, zadania i postępy graczy zostaną trwale usunięte." confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
+    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}${contextPath ? `?pathId=${contextPath}` : ''}`); else setError('Zapisz pokój przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description="Pokój, zadania i postępy graczy zostaną trwale usunięte." confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
     {context && <StatusMessage kind="warning">Ścieżka: {context.title} → Rozdział: {context.chapters.find(c => c.id === Number(contextChapter))?.title}. Pokój zostanie przypisany automatycznie.</StatusMessage>}
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
     {loading ? <LoadingRows label="Ładowanie pokoju" /> : !loaded ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor pokoju">
         <fieldset disabled={saving} className="grid min-w-0 gap-6">
-          {parentDraft && <Section title="Ścieżka i rozdział" description={parentDraft.published ? "Ścieżka jest opublikowana. Nowy rozdział wymaga gotowego opublikowanego pokoju; szkic pokoju możesz przygotować po przeniesieniu ścieżki do szkiców." : "Nowy kontekst i pokój zostaną zapisane razem. Nieudany zapis nie pozostawi nieprzypisanego pokoju."}>
+          {parentDraft && <Section title="Ścieżka i rozdział" description={parentDraft.published ? "Ścieżka jest opublikowana, więc gracze zobaczą nowy rozdział od razu. Uzupełnij opis pokoju i dodaj przynajmniej jedno zadanie." : "Nowy kontekst i pokój zostaną zapisane razem. Nieudany zapis nie pozostawi nieprzypisanego pokoju."}>
             <div className="grid gap-4">
               <TextField name="parentTitle" label="Tytuł ścieżki" value={parentDraft.title} limit={120} required error={errors.parentTitle} onChange={title => setParentDraft({ ...parentDraft, title })} />
               <TextField name="parentDescription" label="Opis ścieżki" value={parentDraft.description} limit={20000} multiline required={parentDraft.published} error={errors.parentDescription} onChange={description => setParentDraft({ ...parentDraft, description })} />
               <TextField name="parentChapter" label="Nazwa rozdziału" value={parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? ''} limit={120} required error={errors.parentChapter} onChange={title => setParentDraft({ ...parentDraft, chapters: parentDraft.chapters.map((c, i) => i === (creation?.chapterIndex ?? 0) ? { ...c, title } : c) })} />
             </div>
           </Section>}
-          <Section title="Dane pokoju" description="Tytuł jest wymagany do zapisu szkicu. Przy publikacji uzupełnij opis i dodaj przynajmniej jedno zadanie.">
+          <Section title="Dane pokoju" description={ready ? 'Gracze widzą ten pokój, więc opis i przynajmniej jedno zadanie są wymagane.' : 'Do zapisu wystarczy tytuł. Opis i przynajmniej jedno zadanie będą potrzebne, gdy opublikujesz ścieżkę z tym pokojem.'}>
             <div className="grid gap-5 md:grid-cols-2">
               <div className="grid gap-2 md:col-span-2"><span className="flex items-center gap-1 text-sm font-medium">Typ pokoju<RoomTypeHelp /></span><RoomTypeSwitch label="Typ pokoju" value={kind} onChange={changeType} /><p className="text-xs text-muted-foreground">Zmiana typu zachowuje zadania i postępy graczy.</p></div>
               <div className="md:col-span-2"><TextField name="title" label="Tytuł" value={form.title} limit={255} required error={errors.title} onChange={title => change({ title })} /></div>
               <div className="md:col-span-2"><TextField name="shortDescription" label="Krótki opis" value={form.shortDescription ?? ''} limit={100} error={errors.shortDescription} onChange={shortDescription => change({ shortDescription })} /></div>
-              <div className="md:col-span-2"><TextField name="description" label="Opis" value={form.description} limit={20000} required={form.published} multiline error={errors.description} onChange={description => change({ description })} /></div>
+              <div className="md:col-span-2"><TextField name="description" label="Opis" value={form.description} limit={20000} required={ready} multiline error={errors.description} onChange={description => change({ description })} /></div>
               {kind === 'CTF' && <>
                 <TextField name="category" label="Kategoria" value={form.category} limit={255} required error={errors.category} onChange={category => change({ category })} />
                 <div className="grid gap-2"><label htmlFor="content-difficulty">Trudność *</label><select id="content-difficulty" className="rounded border bg-background p-2" value={form.difficulty} onChange={e => change({ difficulty: e.target.value as DifficultyLevel, points: pointsForDifficulty[e.target.value as DifficultyLevel] })}>{Object.entries(difficultyLabels).map(([level, label]) => <option key={level} value={level}>{label}</option>)}</select><span className="text-xs text-muted-foreground">{formatXp(pointsForDifficulty[form.difficulty])}</span></div>
@@ -172,11 +175,10 @@ function RoomEditor({ roomId }: { roomId: string }) {
               <Button type="button" variant="outline" onClick={() => change({ hints: [...form.hints, ''] })}>Dodaj podpowiedź</Button>
             </div>
           </Section>
-          <ContentTasks tasks={form.tasks} kind={kind} errors={errors} published={form.published} onChange={tasks => change({ tasks })} />
-          {errors.published && <p role="alert" className="text-destructive">{errors.published}</p>}
+          <ContentTasks tasks={form.tasks} kind={kind} errors={errors} ready={ready} onChange={tasks => change({ tasks })} />
+          {errors.path && <p role="alert" className="text-destructive">{errors.path}</p>}
           <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
-            {form.published ? <Button type="button" variant="outline" onClick={() => void normalSave(false)}>Przenieś do szkiców</Button> : <Button type="button" variant="outline" data-field="published" onClick={() => void normalSave(true)}>Opublikuj</Button>}
-            <Button type="submit">{saving ? 'Zapisywanie…' : form.published ? 'Zapisz zmiany' : 'Zapisz szkic'}</Button>
+            <Button type="submit" data-field="path">{saving ? 'Zapisywanie…' : 'Zapisz'}</Button>
           </div>
         </fieldset>
       </form>}

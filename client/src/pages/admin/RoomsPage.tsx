@@ -126,10 +126,10 @@ export default function RoomsPage() {
               {filtered.map((room) => (
                 <TableRow key={room.id}>
                   <TableCell className="font-medium">
-                    <span className="mr-2 text-xs text-muted-foreground">{room.published === false ? 'Szkic' : 'Opublikowany'}</span>
                     <Link to={`${base}/${room.id}`} className="hover:text-primary hover:underline underline-offset-4">
                       {room.title}
                     </Link>
+                    <span className="block text-xs font-normal text-muted-foreground sm:hidden">{room.pathTitle ?? 'Bez ścieżki'}</span>
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 text-sm"><RoomTypeIcon type={room.roomType} className="size-3.5 text-muted-foreground" />{roomTypeLabel(room.roomType)}</span>

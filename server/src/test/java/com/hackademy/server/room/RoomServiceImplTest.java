@@ -492,12 +492,11 @@ class RoomServiceImplTest {
 
 
     @Test
-    void newRoomIsADraftLessonWithHintsInGivenOrder() throws IOException {
+    void newRoomIsALessonWithHintsInGivenOrder() throws IOException {
         returnSavedRoom();
 
         Room room = service.createRoom(createRequest("  Nowy  ", DifficultyLevel.HARD, 20, null, List.of("Pierwsza", "Druga")), null);
 
-        assertFalse(room.isPublished());
         assertEquals(RoomType.PATH, room.getRoomType());
         assertEquals(20, room.getPoints());
         assertEquals("Nowy", room.getTitle());
@@ -627,7 +626,6 @@ class RoomServiceImplTest {
     @Test
     void roomTypeChangesBothWaysWithoutLosingTasks() throws IOException {
         Room room = taskRoom(2L, 10, task(20L, "a"), task(21L, "b"));
-        room.setPublished(false);
         returnSavedRoom();
 
         service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF, null), null);
@@ -716,7 +714,7 @@ class RoomServiceImplTest {
 
     @Test
     void adminAndLandingListsComeFromRepository() {
-        var admin = List.of(new RoomAdminSummaryDto(1L, "Web", "Web", DifficultyLevel.EASY, 50, false, RoomType.CTF, null, null, true));
+        var admin = List.of(new RoomAdminSummaryDto(1L, "Web", "Web", DifficultyLevel.EASY, 50, false, RoomType.CTF, null, null));
         var top = List.of(summary(1L, "Web", false, RoomType.CTF));
         when(roomRepository.findAllAdminSummaries()).thenReturn(admin);
         when(roomRepository.findTop3ByCategoryNot("Tutorial", PageRequest.of(0, 3))).thenReturn(top);
@@ -847,8 +845,9 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void publishedRoomCannotTurnIntoCtfWithATaskWithoutFlag() {
+    void visibleRoomCannotTurnIntoCtfWithATaskWithoutFlag() {
         Room room = taskRoom(2L, 10, task(20L, null));
+        visible(2L);
 
         var error = assertThrows(IllegalArgumentException.class,
                 () -> service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF, null), null));
@@ -858,8 +857,9 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void publishedRoomCannotTurnIntoTheoryWithAFlagWithoutQuestion() {
+    void visibleRoomCannotTurnIntoTheoryWithAFlagWithoutQuestion() {
         flagRoom(1L, 100, "FLAG{ok}");
+        visible(1L);
 
         assertThrows(IllegalArgumentException.class,
                 () -> service.updateRoom(1L, updateRequest("Room 1", RoomType.PATH, null), null));
@@ -868,6 +868,7 @@ class RoomServiceImplTest {
     @Test
     void editorChangesTheTypeBeforeItSavesTheMatchingTasks() throws IOException {
         Room room = taskRoom(2L, 10, task(20L, null));
+        visible(2L);
         returnSavedRoom();
 
         service.updateRoomBeforeTasks(2L, updateRequest("Room 2", RoomType.CTF, null), null);
@@ -876,8 +877,9 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void publishedRoomWithoutTasksMayStillChangeItsType() throws IOException {
+    void visibleRoomWithoutTasksMayStillChangeItsType() throws IOException {
         Room room = taskRoom(2L, 10);
+        visible(2L);
         returnSavedRoom();
 
         service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF, null), null);
@@ -886,27 +888,28 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void publishedRoomKeepsAtLeastOneTask() {
+    void visibleRoomKeepsAtLeastOneTask() {
         Room room = taskRoom(2L, 10, task(20L, "a"));
+        visible(2L);
 
         var error = assertThrows(IllegalArgumentException.class,
                 () -> service.updateRoomTasks(2L, new UpdateRoomTasksRequest(0L, List.of())));
 
-        assertEquals("Dodaj przynajmniej jedno zadanie przed publikacją", error.getMessage());
+        assertEquals("Dodaj przynajmniej jedno zadanie", error.getMessage());
         assertEquals(1, room.getTasks().size());
     }
 
     @Test
-    void draftRoomMayHaveNoTasks() {
-        taskRoom(2L, 10, task(20L, "a")).setPublished(false);
+    void roomOutsidePublishedPathsMayHaveNoTasks() {
+        taskRoom(2L, 10, task(20L, "a"));
 
         assertTrue(service.updateRoomTasks(2L, new UpdateRoomTasksRequest(0L, List.of())).tasks().isEmpty());
     }
 
     @Test
-    void publishedCtfTaskNeedsAFlagButNoQuestion() {
-        Room room = flagRoom(1L, 100, "FLAG{ok}");
-        room.setPublished(true);
+    void visibleCtfTaskNeedsAFlagButNoQuestion() {
+        flagRoom(1L, 100, "FLAG{ok}");
+        visible(1L);
 
         var result = service.updateRoomTasks(1L, new UpdateRoomTasksRequest(0L, List.of(
                 new RoomTaskRequest(10L, "Flaga", "Znajdź flagę", null, " HACK{x} "))));
@@ -931,16 +934,17 @@ class RoomServiceImplTest {
 
     @ParameterizedTest(name = "question={0}, answer={1}")
     @CsvSource({"Pytanie?,", ",odp"})
-    void publishedRoomNeedsQuestionAndAnswerTogether(String question, String answer) {
-        taskRoom(2L, 10).setPublished(true);
+    void visibleRoomNeedsQuestionAndAnswerTogether(String question, String answer) {
+        taskRoom(2L, 10);
+        visible(2L);
 
         assertThrows(IllegalArgumentException.class, () -> service.updateRoomTasks(2L,
                 new UpdateRoomTasksRequest(0L, List.of(new RoomTaskRequest(null, "T", "Treść", question, answer)))));
     }
 
     @Test
-    void draftRoomMayHaveQuestionWithoutAnswer() {
-        taskRoom(2L, 10).setPublished(false);
+    void roomOutsidePublishedPathsMayHaveQuestionWithoutAnswer() {
+        taskRoom(2L, 10);
 
         var result = service.updateRoomTasks(2L,
                 new UpdateRoomTasksRequest(0L, List.of(new RoomTaskRequest(null, "T", "", "Pytanie?", null))));
@@ -949,8 +953,9 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void publishedRoomTaskNeedsContentAfterSanitizing() {
-        taskRoom(2L, 10).setPublished(true);
+    void visibleRoomTaskNeedsContentAfterSanitizing() {
+        taskRoom(2L, 10);
+        visible(2L);
 
         assertThrows(IllegalArgumentException.class, () -> service.updateRoomTasks(2L,
                 new UpdateRoomTasksRequest(0L, List.of(new RoomTaskRequest(null, "T", "<script>x()</script>", null, null)))));
@@ -980,6 +985,11 @@ class RoomServiceImplTest {
                 () -> service.updateRoomTasks(99L, new UpdateRoomTasksRequest(0L, List.of())));
     }
 
+
+    // The room sits in a published path, so players see it.
+    void visible(Long id) {
+        when(roomRepository.isVisible(id)).thenReturn(true);
+    }
 
     Room flagRoom(Long id, int points, String flag) {
         Room room = taskRoom(id, points, task(id * 10, flag));

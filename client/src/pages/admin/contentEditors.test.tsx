@@ -17,7 +17,7 @@ import type { PathAdminDetailDto } from '../../types/api';
 const path: PathAdminDetailDto = { id: 5, title: 'Web', description: '', bannerUrl: null, hasBanner: false, revision: 2, contentRevision: 3, published: false,
   chapters: [{ id: 11, title: 'Wstęp', roomIds: [] }] };
 const room = { id: 9, title: 'Pokój', description: 'Treść', shortDescription: '', difficulty: 'EASY' as const, category: 'Path', points: 50, solutionsCount: 0,
-  requiresVpn: false, roomType: 'PATH' as const, hints: ['Podpowiedź'], published: false, contentRevision: 0, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+  requiresVpn: false, roomType: 'PATH' as const, hints: ['Podpowiedź'], contentRevision: 0, createdAt: '2026-10-10T10:00:00', updatedAt: null };
 beforeAll(() => {
   globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
   window.matchMedia = ((media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
@@ -57,8 +57,8 @@ describe('draft editors and guarded navigation', () => {
     await user.upload(screen.getByLabelText('Plik JSON (do 5 MB)'), file);
     server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(importedPath)),
       http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: 5 }])));
-    await user.click(screen.getByRole('button', { name: 'Dodaj pokoje jako szkice' }));
-    expect(await screen.findByText(/Dodano pokoje jako szkice/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dodaj pokoje' }));
+    expect(await screen.findByText('Dodano pokoje. Gracze zobaczą je po publikacji ścieżki.')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('list', { name: 'Pokoje rozdziału 1' })).toHaveTextContent('Pokój'));
     expect(contentApi.importPathRooms).toHaveBeenCalledWith(5, { chapterId: 11, contentRevision: 4, chaptersRevision: 3 }, file, expect.any(String));
     expect(save).toHaveBeenCalledOnce();
@@ -139,9 +139,10 @@ describe('draft editors and guarded navigation', () => {
       title: '', description: '', bannerUrl: null, published: true, chapters: [{ id: null, title: 'Rozdział', roomIds: [] }] } } }]);
     await chooseType(user, 'Teoria');
     await user.type(await screen.findByLabelText('Tytuł *'), 'Zachowany pokój');
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(screen.getByLabelText('Tytuł ścieżki *')).toHaveFocus());
-    expect(screen.getAllByText('To pole jest wymagane')).toHaveLength(2);
+    // The path is published, so the new room needs its description as well.
+    expect(screen.getAllByText('To pole jest wymagane')).toHaveLength(3);
     expect(screen.getByLabelText('Tytuł *')).toHaveValue('Zachowany pokój');
   });
   it('shows pasted overflow without truncating content and preserves task and hint edits after server failure', async () => {
@@ -149,13 +150,13 @@ describe('draft editors and guarded navigation', () => {
     const title = await screen.findByLabelText('Tytuł *');
     fireEvent.change(title, { target: { value: 'x'.repeat(256) } });
     expect(title).toHaveValue('x'.repeat(256)); expect(screen.getByText('256/255')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' })); expect(await screen.findByText('Maksymalnie 255 znaków')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Zapisz' })); expect(await screen.findByText('Maksymalnie 255 znaków')).toBeInTheDocument();
     await user.clear(title); await user.type(title, 'Pokój');
     await user.click(screen.getByRole('button', { name: 'Dodaj zadanie' }));
     await user.type(screen.getByLabelText('Tytuł zadania *'), 'Pierwsze');
     await user.type(screen.getByLabelText('Podpowiedź 1 *'), ' lokalna');
     vi.spyOn(contentApi, 'saveRoom').mockRejectedValue(new contentApi.ContentError('Awaria zapisu'));
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('Awaria zapisu')).toBeInTheDocument();
     expect(screen.getByLabelText('Tytuł zadania *')).toHaveValue('Pierwsze');
     expect(screen.getByLabelText('Podpowiedź 1 *')).toHaveValue('Podpowiedź lokalna');
@@ -195,10 +196,10 @@ describe('draft editors and guarded navigation', () => {
     const file = new File(['training'], 'training.bin', { type: 'application/octet-stream' });
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, roomType: 'CTF', contentRevision: 1 }, tasks: { revision: 0, tasks: [] } });
     await user.upload(screen.getByLabelText('Plik do pobrania'), file);
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' })); await screen.findByText('Zapisano szkic pokoju.');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' })); await screen.findByText('Zapisano pokój.');
     expect((screen.getByLabelText('Plik do pobrania') as HTMLInputElement).files).toHaveLength(0);
     await user.upload(screen.getByLabelText('Plik do pobrania'), file);
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(save).toHaveBeenCalledTimes(2));
     expect(save.mock.calls[1][2]).toBe(file);
   });
@@ -229,24 +230,34 @@ describe('room type in the editor', () => {
     await user.click(screen.getByRole('radio', { name: 'Teoria' }));
     expect(screen.getByLabelText('Odpowiedź')).toHaveValue('pwd');
     await user.click(screen.getByRole('radio', { name: 'CTF' }));
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1]).toMatchObject({ roomType: 'CTF', points: 50, tasks });
   });
 
-  it('asks for a task before publishing and for a flag in every published CTF task', async () => {
+  it('has only one save action and no publication of its own', async () => {
+    mount('/admin/paths/rooms/9');
+    await screen.findByLabelText('Tytuł *');
+    expect(screen.getByRole('button', { name: 'Zapisz' })).toBeInTheDocument();
+    for (const name of ['Opublikuj', 'Przenieś do szkiców', 'Zapisz szkic', 'Zapisz zmiany']) expect(screen.queryByRole('button', { name })).toBeNull();
+    expect(screen.queryByText(/Status:/)).toBeNull();
+    expect(screen.getByText(/Do zapisu wystarczy tytuł/)).toBeInTheDocument();
+  });
+
+  it('asks for a task and for a flag in every CTF task once players can see the room', async () => {
     const save = vi.spyOn(contentApi, 'saveRoom');
-    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] } })));
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] }, pathId: 5, live: true })));
     const user = userEvent.setup(); mount('/admin/paths/rooms/9');
     await screen.findByLabelText('Tytuł *');
-    await user.click(screen.getByRole('button', { name: 'Opublikuj' }));
-    expect(await screen.findByText('Dodaj przynajmniej jedno zadanie przed publikacją')).toBeInTheDocument();
+    expect(screen.getByText(/Gracze widzą ten pokój/)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findByText('Dodaj przynajmniej jedno zadanie')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' }));
     await user.type(screen.getByLabelText('Tytuł zadania *'), 'Flaga');
-    await user.type(screen.getByLabelText('Treść'), 'Szukaj');
-    await user.click(screen.getByRole('button', { name: 'Opublikuj' }));
+    await user.type(screen.getByLabelText('Treść *'), 'Szukaj');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('To pole jest wymagane')).toBeInTheDocument();
-    await waitFor(() => expect(screen.getByLabelText('Flaga')).toHaveFocus());
+    await waitFor(() => expect(screen.getByLabelText('Flaga *')).toHaveFocus());
     expect(save).not.toHaveBeenCalled();
   });
 
@@ -277,7 +288,7 @@ describe('room title and scoring rules', () => {
     const user = userEvent.setup(); mount('/admin/paths/rooms/9');
     const title = await screen.findByLabelText('Tytuł *');
     await user.clear(title); await user.type(title, 'Wstęp');
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('Rozdział tego pokoju ma już pokój o tym tytule', { selector: '#content-title-error' })).toBeInTheDocument();
     await waitFor(() => expect(title).toHaveFocus());
     expect(title).toHaveValue('Wstęp');
@@ -287,7 +298,7 @@ describe('room title and scoring rules', () => {
     const user = userEvent.setup(); mount('/admin/paths/rooms/new');
     await chooseType(user, 'CTF');
     await user.type(await screen.findByLabelText('Tytuł *'), ' tutorial VPN ');
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka')).toBeInTheDocument();
     expect(save).not.toHaveBeenCalled();
   });
@@ -296,7 +307,7 @@ describe('room title and scoring rules', () => {
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, title: 'Tutorial VM', roomType: 'CTF', category: 'Tutorial' }, tasks: { revision: 0, tasks: [] } });
     const user = userEvent.setup(); mount('/admin/paths/rooms/9');
     await user.type(await screen.findByLabelText('Opis'), ' nowy');
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1].title).toBe('Tutorial VM');
   });

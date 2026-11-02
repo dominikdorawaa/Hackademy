@@ -96,7 +96,6 @@ public class RoomServiceImpl implements RoomService {
         String title = createRoomRequest.title().trim();
         checkTitle(null, title);
         Room room = Room.builder()
-                .published(false)
                 .title(title)
                 .description(createRoomRequest.description())
                 .shortDescription(createRoomRequest.shortDescription())
@@ -147,7 +146,7 @@ public class RoomServiceImpl implements RoomService {
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
         RoomType newRoomType = updateRoomRequest.roomType() == null ? room.getRoomType() : updateRoomRequest.roomType();
         if (checkTasks && newRoomType != room.getRoomType() && !room.getTasks().isEmpty()) {
-            requirePlayable(room.isPublished(), newRoomType, room.getTasks().stream()
+            requirePlayable(roomRepository.isVisible(room.getId()), newRoomType, room.getTasks().stream()
                     .sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).toList());
         }
         String title = updateRoomRequest.title().trim();
@@ -451,6 +450,7 @@ public class RoomServiceImpl implements RoomService {
 
         Map<Long, RoomTask> existing = room.getTasks().stream()
                 .collect(Collectors.toMap(RoomTask::getId, Function.identity()));
+        boolean visible = roomRepository.isVisible(roomId);
         Set<Long> keptIds = new HashSet<>();
         List<RoomTask> ordered = new ArrayList<>();
         int position = 0;
@@ -473,7 +473,7 @@ public class RoomServiceImpl implements RoomService {
             }
             task.setTitle(taskRequest.title().trim());
             String content = TaskContentSanitizer.clean(taskRequest.content() == null ? "" : taskRequest.content());
-            if (room.isPublished() && content.isBlank()) {
+            if (visible && content.isBlank()) {
                 throw new IllegalArgumentException("Zadanie " + position + ": podaj treść po usunięciu niedozwolonego HTML");
             }
             task.setContent(content);
@@ -483,7 +483,7 @@ public class RoomServiceImpl implements RoomService {
             ordered.add(task);
         }
 
-        requirePlayable(room.isPublished(), room.getRoomType(), ordered);
+        requirePlayable(visible, room.getRoomType(), ordered);
         room.getTasks().removeIf(task -> !keptIds.contains(task.getId()));
         for (RoomTask task : ordered) {
             if (task.getId() == null) {
@@ -498,27 +498,14 @@ public class RoomServiceImpl implements RoomService {
         return new RoomTasksAdminDto(room.getTasksRevision(), ordered.stream().map(this::mapTaskToAdminDto).toList());
     }
 
-    // A published room must stay solvable: it has tasks, every CTF task has a flag and theory answers have questions.
-    private static void requirePlayable(boolean published, RoomType roomType, List<RoomTask> tasks) {
-        if (!published) {
+    // A room players can see through a published path must stay solvable.
+    private static void requirePlayable(boolean visible, RoomType roomType, List<RoomTask> tasks) {
+        if (!visible) {
             return;
         }
-        if (tasks.isEmpty()) {
-            throw new IllegalArgumentException("Dodaj przynajmniej jedno zadanie przed publikacją");
-        }
-        for (int i = 0; i < tasks.size(); i++) {
-            String question = tasks.get(i).getQuestion();
-            String answer = tasks.get(i).getAnswer();
-            if (roomType == RoomType.CTF && answer == null) {
-                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": podaj flagę");
-            }
-            if (question != null && answer == null) {
-                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": podaj odpowiedź na pytanie");
-            }
-            if (roomType == RoomType.PATH && question == null && answer != null) {
-                throw new IllegalArgumentException("Zadanie " + (i + 1) + ": odpowiedź wymaga pytania");
-            }
-        }
+        RoomReadiness.taskProblems(roomType, tasks).stream().findFirst().ifPresent(problem -> {
+            throw new IllegalArgumentException(Character.toUpperCase(problem.charAt(0)) + problem.substring(1));
+        });
     }
 
     private RoomTaskAdminDto mapTaskToAdminDto(RoomTask task) {

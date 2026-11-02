@@ -19,13 +19,17 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @org.springframework.data.jpa.repository.Modifying
     @Query("UPDATE Room r SET r.solutionsCount = r.solutionsCount + 1 WHERE r.id = :id")
     int incrementSolutions(@Param("id") Long id);
-    String VISIBLE = "r.published = true AND NOT EXISTS (SELECT cr.roomId FROM ChapterRoom cr JOIN PathChapter c ON c.id = cr.chapterId JOIN Path p ON p.id = c.pathId WHERE cr.roomId = r.id AND p.published = false)";
+    // A room has no publication of its own: players see it only through a published path.
+    String VISIBLE = "EXISTS (SELECT cr.roomId FROM ChapterRoom cr JOIN PathChapter c ON c.id = cr.chapterId JOIN Path p ON p.id = c.pathId WHERE cr.roomId = r.id AND p.published = true)";
 
     @Query("SELECT r.id FROM Room r WHERE " + VISIBLE)
     List<Long> findVisibleIds();
 
     @Query("SELECT COUNT(r) > 0 FROM Room r WHERE r.id = :id AND " + VISIBLE)
     boolean isVisible(@Param("id") Long id);
+
+    @Query("SELECT r FROM Room r WHERE r.id IN :ids AND " + VISIBLE)
+    List<Room> findVisibleByIdIn(@Param("ids") java.util.Collection<Long> ids);
 
     @Lock(LockModeType.PESSIMISTIC_WRITE)
     @Query("SELECT r FROM Room r WHERE r.id = :id")
@@ -38,7 +42,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     List<RoomSummaryDto> findSummariesInPath(@Param("pathId") Long pathId);
 
     @Query("SELECT new com.hackademy.server.room.dto.RoomAdminSummaryDto(" +
-           "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn, r.roomType, p.id, p.title, r.published) " +
+           "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn, r.roomType, p.id, p.title) " +
            "FROM Room r " +
            "LEFT JOIN ChapterRoom cr ON cr.roomId = r.id " +
            "LEFT JOIN PathChapter c ON c.id = cr.chapterId " +

@@ -46,7 +46,7 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             FROM paths p
             LEFT JOIN path_chapters pc ON pc.path_id = p.id
             LEFT JOIN chapter_rooms pr ON pr.chapter_id = pc.id
-            LEFT JOIN rooms r ON r.id = pr.room_id AND r.published = true
+            LEFT JOIN rooms r ON r.id = pr.room_id
             WHERE p.published = true
             GROUP BY p.id
             ORDER BY p.id
@@ -80,7 +80,7 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             FROM paths p
             LEFT JOIN path_chapters pc ON pc.path_id = p.id
             LEFT JOIN chapter_rooms pr ON pr.chapter_id = pc.id
-            LEFT JOIN rooms r ON r.id = pr.room_id AND r.published = true
+            LEFT JOIN rooms r ON r.id = pr.room_id
             LEFT JOIN users u ON u.username = :username
             LEFT JOIN user_solved_rooms usr ON usr.user_id = u.id AND usr.room_id = pr.room_id
             WHERE p.published = true AND p.system_key IS NULL
@@ -93,12 +93,12 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             SELECT COUNT(*) FROM paths p
             WHERE p.published = true AND EXISTS (
                 SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id
-                JOIN rooms r ON r.id = pr.room_id AND r.published = true
+                JOIN rooms r ON r.id = pr.room_id
                 WHERE pc.path_id = p.id
             )
               AND NOT EXISTS (
                 SELECT 1 FROM path_chapters pc JOIN chapter_rooms pr ON pr.chapter_id = pc.id
-                JOIN rooms r ON r.id = pr.room_id AND r.published = true
+                JOIN rooms r ON r.id = pr.room_id
                 WHERE pc.path_id = p.id
                   AND NOT EXISTS (
                     SELECT 1 FROM user_solved_rooms usr

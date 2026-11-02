@@ -41,7 +41,7 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         var room = new LinkedHashMap<String, Object>();
         room.put("title", title); room.put("description", ""); room.put("shortDescription", "");
         room.put("difficulty", "EASY"); room.put("category", "Web"); room.put("points", 30);
-        room.put("requiresVpn", false); room.put("roomType", type); room.put("hints", List.of()); room.put("published", false);
+        room.put("requiresVpn", false); room.put("roomType", type); room.put("hints", List.of());
         room.put("tasks", List.of()); room.put("revision", 0); room.put("tasksRevision", 0);
         return room;
     }
@@ -233,12 +233,12 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         save(admin, "rooms", number(ordinarySaved, "$.room.id"), ordinary, 400);
 
         long tutorial = jdbcTemplate.queryForObject("""
-                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at, published)
-                VALUES ('Tutorial VM', 'd', 'EASY', 'Tutorial', 50, 0, false, 'CTF', now(), now(), true) RETURNING id
+                INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at)
+                VALUES ('Tutorial VM', 'd', 'EASY', 'Tutorial', 50, 0, false, 'CTF', now(), now()) RETURNING id
                 """, Long.class);
         try {
             var edit = room("Tutorial VM", "CTF");
-            edit.put("published", true); edit.put("description", "Updated"); edit.put("tasks", List.of(Map.of("title", "Flaga", "content", "Znajdź flagę", "answer", "f"))); edit.put("category", "Tutorial");
+            edit.put("description", "Updated"); edit.put("tasks", List.of(Map.of("title", "Flaga", "content", "Znajdź flagę", "answer", "f"))); edit.put("category", "Tutorial");
             save(admin, "rooms", tutorial, edit, 200);
             assertEquals("Updated", jdbcTemplate.queryForObject("SELECT description FROM rooms WHERE id = ?", String.class, tutorial));
         } finally {

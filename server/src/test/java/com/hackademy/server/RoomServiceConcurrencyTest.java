@@ -36,6 +36,9 @@ class RoomServiceConcurrencyTest {
     private UserRepository userRepository;
 
     @Autowired
+    private javax.sql.DataSource dataSource;
+
+    @Autowired
     private RoomRepository roomRepository;
 
     @Autowired
@@ -58,6 +61,7 @@ class RoomServiceConcurrencyTest {
                 .category("Test")
                 .points(10)
                 .build());
+        PublishedPaths.publishInPath(dataSource, room.getId());
         RoomTask task = roomTaskRepository.save(RoomTask.builder()
                 .room(room)
                 .title("Task 1")
