@@ -24,6 +24,7 @@ export function ConfirmAction({
   onConfirm,
   returnFocus,
   pixel = false,
+  tone = 'destructive',
 }: {
   trigger?: ReactNode;
   open?: boolean;
@@ -34,6 +35,8 @@ export function ConfirmAction({
   onConfirm: () => void | Promise<void>;
   returnFocus?: (confirmed: boolean) => HTMLElement | null | undefined;
   pixel?: boolean;
+  /** `default` for actions that are not destructive, such as publishing. */
+  tone?: 'destructive' | 'default';
 }) {
   const [uncontrolledOpen, setUncontrolledOpen] = useState(false);
   const [pending, setPending] = useState(false);
@@ -87,7 +90,7 @@ export function ConfirmAction({
           <AlertDialogCancel className={pixel ? 'px-button' : undefined} disabled={pending}>Anuluj</AlertDialogCancel>
           <AlertDialogAction
             className={pixel ? 'px-button px-button--danger' : undefined}
-            variant="destructive"
+            variant={tone}
             disabled={pending}
             onClick={(event) => {
               event.preventDefault();

@@ -1,5 +1,5 @@
 import { setClerkSession } from '../../test/clerk';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, createRoutesFromElements, Outlet, Route, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -70,7 +70,9 @@ describe('draft editors and guarded navigation', () => {
     expect(router.state.location.pathname).toBe('/admin/paths/new');
     expect(await screen.findByLabelText('Tytuł *')).toHaveValue('');
     expect(screen.getByText('0/120')).toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Utwórz pokój' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Nowy pokój w rozdziale 1' })).toBeInTheDocument();
+    expect(screen.getByText('Szkic')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Zapisz' })).toBeDisabled();
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
   it('keeps edits when continuing and discards them only when explicitly leaving', async () => {
@@ -88,13 +90,13 @@ describe('draft editors and guarded navigation', () => {
   it('does not navigate on failed save-and-leave, focuses first invalid field and keeps all data', async () => {
     const user = userEvent.setup(); const router = mount('/admin/paths/5');
     const title = await screen.findByLabelText('Tytuł *'); await user.clear(title);
-    await user.type(screen.getByLabelText('Nazwa rozdziału 1 *'), ' lokalny');
+    await user.type(screen.getByLabelText('Nazwa rozdziału 1'), ' lokalny');
     await user.click(screen.getByRole('button', { name: 'Podgląd' }));
     await user.click(screen.getByRole('button', { name: 'Zapisz i przejdź dalej' }));
     expect(await screen.findByText('To pole jest wymagane')).toBeInTheDocument();
     await waitFor(() => expect(title).toHaveFocus());
     expect(router.state.location.pathname).toBe('/admin/paths/5');
-    expect(screen.getByLabelText('Nazwa rozdziału 1 *')).toHaveValue('Wstęp lokalny');
+    expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Wstęp lokalny');
   });
   it('blocks browser back and native refresh, while successful save preserves draft status before navigation', async () => {
     const user = userEvent.setup(); const router = mount('/admin/paths/5', ['/admin/paths', '/admin/paths/5']);
@@ -107,43 +109,92 @@ describe('draft editors and guarded navigation', () => {
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths'));
     expect(save.mock.calls[0][1].published).toBe(false);
   });
-  it('saves a new path and chapter before opening the full room form with the exact context', async () => {
+  it('saves a new path quietly as a draft, creates the room in its chapter and returns with the room lit up', async () => {
     const user = userEvent.setup(); const router = mount('/admin/paths/new');
-    vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, title: 'Nowa', chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [] }] });
-    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, title: 'Nowa' })));
+    const savePath = vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, title: 'Nowa', chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [] }] });
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, title: 'Nowa', chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [] }] })));
     await user.type(await screen.findByLabelText('Tytuł *'), 'Nowa');
-    await user.click(screen.getByRole('button', { name: 'Utwórz pokój' }));
-    await user.click(screen.getByRole('button', { name: 'Zapisz i przejdź dalej' }));
+    await user.click(screen.getByRole('button', { name: 'Nowy pokój w rozdziale 1' }));
     await waitFor(() => expect(router.state.location.search).toBe('?pathId=5&chapterId=11&pathRevision=3'));
-    expect(await screen.findByText(/Ścieżka: Nowa → Rozdział:/)).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'Teoria' })).toBeChecked();
+    expect(savePath.mock.calls[0][1].published).toBe(false);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+    const crumbs = await screen.findByRole('navigation', { name: 'Okruszki' });
+    expect(crumbs).toHaveTextContent('Nowa');
+    expect(crumbs).toHaveTextContent('Rozdział 1');
+    expect(crumbs).toHaveTextContent('Nowy pokój');
+    expect(screen.getByRole('link', { name: 'Nowa' })).toHaveAttribute('href', '/admin/paths/5');
+    expect(screen.queryByText(/Pokój zostanie przypisany/)).not.toBeInTheDocument();
+    expect(await screen.findByRole('radio', { name: 'Teoria' })).toBeChecked();
     await chooseType(user, 'CTF');
     for (const label of ['Tytuł *', 'Opis', 'Plik do pobrania', 'Wymaga VPN']) expect(screen.getByLabelText(label)).toBeInTheDocument();
-    expect(screen.getByRole('radio', { name: 'CTF' })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' }));
     expect(screen.getByLabelText('Flaga')).toHaveAttribute('placeholder', 'HACK{...}');
-    expect(screen.queryByLabelText(/Pytanie/)).not.toBeInTheDocument();
-  });
-  it('opens an atomic new-parent room form after discarding an unsaved new path', async () => {
-    const user = userEvent.setup(); mount('/admin/paths/new');
-    await user.type(await screen.findByLabelText('Tytuł *'), 'Odrzucony tytuł');
-    await user.click(screen.getByRole('button', { name: 'Utwórz pokój' }));
-    await user.click(screen.getByRole('button', { name: 'Wyjdź bez zapisywania' }));
-    await chooseType(user, 'Teoria');
-    expect(await screen.findByLabelText('Tytuł ścieżki *')).toHaveValue('');
-    expect(screen.getByLabelText('Nazwa rozdziału *')).toHaveValue('Rozdział 1');
-    expect(screen.getByLabelText('Tytuł *')).toHaveValue('');
-  });
-  it('focuses the first invalid context field in visual order without losing room edits', async () => {
-    const user = userEvent.setup(); mount('/admin/paths/rooms/new', [{ pathname: '/admin/paths/rooms/new', state: { chapterIndex: 0, parentDraft: { revision: 0, chaptersRevision: 0,
-      title: '', description: '', bannerUrl: null, published: true, chapters: [{ id: null, title: 'Rozdział', roomIds: [] }] } } }]);
-    await chooseType(user, 'Teoria');
-    await user.type(await screen.findByLabelText('Tytuł *'), 'Zachowany pokój');
+    await user.type(screen.getByLabelText('Tytuł *'), 'Skaner');
+    await user.type(screen.getByLabelText('Tytuł zadania *'), 'Flaga');
+    const created = { ...room, id: 12, title: 'Skaner', roomType: 'CTF' as const, paths: [{ id: 5, title: 'Nowa', published: false }] };
+    const saveRoom = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 1, tasks: [] }, pathId: 5, paths: created.paths });
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, title: 'Nowa', contentRevision: 4, chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [12] }] })),
+      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([created])));
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
-    await waitFor(() => expect(screen.getByLabelText('Tytuł ścieżki *')).toHaveFocus());
-    // The path is published, so the new room needs its description as well.
-    expect(screen.getAllByText('To pole jest wymagane')).toHaveLength(3);
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/5'));
+    expect(saveRoom.mock.calls[0][1]).toMatchObject({ pathId: 5, chapterId: 11, pathRevision: 3, roomType: 'CTF' });
+    const row = (await screen.findByText('Skaner')).closest('li')!;
+    expect(row).toHaveClass('bg-primary/15');
+    expect(screen.queryByText(/Zapisano/)).not.toBeInTheDocument();
+    await waitFor(() => expect(row).not.toHaveClass('bg-primary/15'), { timeout: 3500 });
+  });
+  it('asks for the path title before it can save the path for a new room', async () => {
+    const user = userEvent.setup(); const router = mount('/admin/paths/new');
+    const save = vi.spyOn(contentApi, 'savePath');
+    await user.click(await screen.findByRole('button', { name: 'Nowy pokój w rozdziale 1' }));
+    expect(await screen.findByText('To pole jest wymagane')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText('Tytuł *')).toHaveFocus());
+    expect(save).not.toHaveBeenCalled();
+    expect(router.state.location.pathname).toBe('/admin/paths/new');
+  });
+  it('carries edits of a published path with the new room, so an empty new chapter can be published with it', async () => {
+    const live = { ...path, description: 'Opis', published: true, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] };
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(live)),
+      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])));
+    const user = userEvent.setup(); const router = mount('/admin/paths/5');
+    const savePath = vi.spyOn(contentApi, 'savePath');
+    await screen.findByLabelText('Tytuł *');
+    await user.click(screen.getByRole('button', { name: 'Dodaj rozdział' }));
+    await user.click(screen.getByRole('button', { name: 'Nowy pokój w rozdziale 2' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/rooms/new'));
+    expect(savePath).not.toHaveBeenCalled();
+    expect(await screen.findByRole('navigation', { name: 'Okruszki' })).toHaveTextContent('Rozdział 2');
+    expect(screen.queryByLabelText('Tytuł ścieżki *')).not.toBeInTheDocument();
+    await user.type(screen.getByLabelText('Tytuł *'), 'Zachowany pokój');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    // The path is published, so the new room needs its description and a task as well.
+    await waitFor(() => expect(screen.getByLabelText('Opis *')).toHaveFocus());
     expect(screen.getByLabelText('Tytuł *')).toHaveValue('Zachowany pokój');
+    const saveRoom = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, id: 13 }, tasks: { revision: 1, tasks: [] }, pathId: 5, paths: [] });
+    await user.type(screen.getByLabelText('Opis *'), 'Opis pokoju');
+    await user.click(screen.getByRole('button', { name: 'Dodaj zadanie' }));
+    await user.type(screen.getByLabelText('Tytuł zadania *'), 'Czytaj'); await user.type(screen.getByLabelText('Treść *'), 'Tekst');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/5'));
+    expect(saveRoom.mock.calls[0][1]).toMatchObject({ pathId: 5, chapterIndex: 1, parentDraft: { published: true, chapters: [{ id: 11, roomIds: [9] }, { id: null, title: 'Rozdział 2', roomIds: [] }] } });
+  });
+  it('still asks a published path for rooms in its other empty chapters before carrying it with a new room', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, description: 'Opis', published: true, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })));
+    const user = userEvent.setup(); const router = mount('/admin/paths/5');
+    await screen.findByLabelText('Tytuł *');
+    await user.click(screen.getByRole('button', { name: 'Dodaj rozdział' }));
+    await user.click(screen.getByRole('button', { name: 'Dodaj rozdział' }));
+    await user.click(screen.getByRole('button', { name: 'Nowy pokój w rozdziale 3' }));
+    expect(await screen.findByText('Dodaj pokój do rozdziału przed publikacją')).toBeInTheDocument();
+    expect(router.state.location.pathname).toBe('/admin/paths/5');
+  });
+  it('opens the new room form straight away for an unchanged published path', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, description: 'Opis', published: true, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })));
+    const user = userEvent.setup(); const router = mount('/admin/paths/5');
+    const savePath = vi.spyOn(contentApi, 'savePath');
+    await user.click(await screen.findByRole('button', { name: 'Nowy pokój w rozdziale 1' }));
+    await waitFor(() => expect(router.state.location.search).toBe('?pathId=5&chapterId=11&pathRevision=3'));
+    expect(savePath).not.toHaveBeenCalled();
   });
   it('shows pasted overflow without truncating content and preserves task and hint edits after server failure', async () => {
     const user = userEvent.setup(); mount('/admin/paths/rooms/9');
@@ -168,7 +219,7 @@ describe('draft editors and guarded navigation', () => {
     await user.type(screen.getByLabelText('Tytuł *'), 'Kolejka');
     await user.selectOptions(screen.getByLabelText('Tryb odblokowania'), 'ROOM');
     expect(screen.getByText(/jedną kolejkę przez całą ścieżkę/)).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1].unlockMode).toBe('ROOM');
   });
@@ -177,18 +228,59 @@ describe('draft editors and guarded navigation', () => {
     mount('/admin/paths/5');
     expect(await screen.findByLabelText('Tryb odblokowania')).toHaveValue('CHAPTER');
   });
-  it('adds a room from the side pool to the selected new chapter and saves its assignment', async () => {
+  it('adds an existing room to the chosen chapter and saves its assignment', async () => {
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [] }])));
     const user = userEvent.setup(); mount('/admin/paths/5');
     const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue(path);
     await screen.findByLabelText('Tytuł *');
+    expect(screen.getByRole('button', { name: 'Zapisz' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Dodaj rozdział' }));
+    expect(screen.getByRole('button', { name: 'Zapisz' })).toBeEnabled();
+    const add = screen.getAllByRole('button', { name: 'Dodaj istniejący' })[1];
+    await user.click(add);
+    expect(add).toHaveAttribute('aria-expanded', 'true');
+    expect(screen.getByRole('searchbox', { name: 'Szukaj pokoju do rozdziału 2' })).toHaveFocus();
+    expect(screen.getByText('Nieprzypisany')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Dodaj Pokój do rozdziału' }));
     expect(screen.getByRole('list', { name: 'Pokoje rozdziału 2' })).toHaveTextContent('Pokój');
-    expect(screen.queryByRole('button', { name: 'Dodaj Pokój do rozdziału' })).not.toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    expect(screen.getByText('Wszystkie pokoje są już w tej ścieżce.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1].chapters).toEqual([{ id: 11, title: 'Wstęp', roomIds: [] }, { id: null, title: 'Rozdział 2', roomIds: [9] }]);
+  });
+  it('shows the publication bar with a warning on a published path and moves it back to drafts', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, description: 'Opis', published: true, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })));
+    const user = userEvent.setup(); mount('/admin/paths/5');
+    const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, description: 'Opis', published: false, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] });
+    await screen.findByLabelText('Tytuł *');
+    const bar = screen.getByRole('region', { name: 'Stan ścieżki' });
+    expect(bar).toHaveTextContent('Opublikowana');
+    expect(bar).toHaveTextContent('Edytujesz opublikowaną ścieżkę. Zmiany po zapisie od razu zobaczą użytkownicy.');
+    expect(bar).toHaveClass('bg-amber-50/95');
+    await user.click(screen.getByRole('button', { name: 'Przenieś do szkiców' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Przenieść ścieżkę do szkiców?' });
+    expect(dialog).toHaveTextContent('Ścieżka i jej rozdziały znikną graczom.');
+    expect(save).not.toHaveBeenCalled();
+    expect(within(dialog).getByRole('button', { name: 'Przenieś do szkiców' })).toHaveClass('bg-destructive');
+    await user.click(within(dialog).getByRole('button', { name: 'Przenieś do szkiców' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1].published).toBe(false);
+    expect(await screen.findByRole('button', { name: 'Opublikuj' })).toBeInTheDocument();
+    expect(screen.getByRole('region', { name: 'Stan ścieżki' })).toHaveTextContent('Szkic');
+    expect(screen.queryByText(/Edytujesz opublikowaną ścieżkę/)).not.toBeInTheDocument();
+  });
+  it('publishes a draft path from the bar', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, description: 'Opis', chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })));
+    const user = userEvent.setup(); mount('/admin/paths/5');
+    const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, description: 'Opis', published: true, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] });
+    await user.type(await screen.findByLabelText('Tytuł *'), ' 2');
+    await user.click(screen.getByRole('button', { name: 'Opublikuj' }));
+    const dialog = await screen.findByRole('alertdialog', { name: 'Opublikować ścieżkę?' });
+    expect(dialog).toHaveTextContent('Gracze od razu zobaczą ścieżkę i wszystkie jej pokoje. Niezapisane zmiany zapiszą się razem z nią.');
+    expect(within(dialog).getByRole('button', { name: 'Opublikuj' })).not.toHaveClass('bg-destructive');
+    await user.click(within(dialog).getByRole('button', { name: 'Opublikuj' }));
+    await waitFor(() => expect(save.mock.calls[0][1]).toMatchObject({ published: true, title: 'Web 2' }));
+    expect(await screen.findByText(/Edytujesz opublikowaną ścieżkę/)).toBeInTheDocument();
   });
   it('resets the native upload field after saving so the same file can be selected again', async () => {
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] } })));
@@ -241,7 +333,8 @@ describe('room type in the editor', () => {
     expect(screen.getByRole('button', { name: 'Zapisz' })).toBeInTheDocument();
     for (const name of ['Opublikuj', 'Przenieś do szkiców', 'Zapisz szkic', 'Zapisz zmiany']) expect(screen.queryByRole('button', { name })).toBeNull();
     expect(screen.queryByText(/Status:/)).toBeNull();
-    expect(screen.getByText(/Do zapisu wystarczy tytuł/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Opis')).not.toBeRequired();
+    expect(screen.queryByText(/Do zapisu wystarczy tytuł/)).not.toBeInTheDocument();
   });
 
   it('asks for a task and for a flag in every CTF task once players can see the room', async () => {
@@ -249,7 +342,7 @@ describe('room type in the editor', () => {
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] }, pathId: 5, live: true })));
     const user = userEvent.setup(); mount('/admin/paths/rooms/9');
     await screen.findByLabelText('Tytuł *');
-    expect(screen.getByText(/Gracze widzą ten pokój/)).toBeInTheDocument();
+    expect(screen.getByLabelText('Opis *')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('Dodaj przynajmniej jedno zadanie')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' }));
@@ -326,10 +419,10 @@ describe('room title and scoring rules', () => {
       http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })),
       http.put(`${API_URL}/api/admin/content/paths/5`, () => HttpResponse.json({ message: 'Rozdział 1 zawiera już pokój „Pokój”', fields: { 'chapters.0.rooms': 'Rozdział 1 zawiera już pokój „Pokój”' } }, { status: 409 })));
     const user = userEvent.setup(); mount('/admin/paths/5');
-    await user.type(await screen.findByLabelText('Nazwa rozdziału 1 *'), ' lokalny');
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.type(await screen.findByLabelText('Nazwa rozdziału 1'), ' lokalny');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findAllByText('Rozdział 1 zawiera już pokój „Pokój”')).not.toHaveLength(0);
-    expect(screen.getByLabelText('Nazwa rozdziału 1 *')).toHaveValue('Wstęp lokalny');
+    expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Wstęp lokalny');
   });
 });
 
@@ -358,9 +451,13 @@ describe('room shared by many paths', () => {
       http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths }])),
       http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));
     const user = userEvent.setup(); const router = mount('/admin/paths/5');
-    await user.click(await screen.findByRole('button', { name: 'Pokój' }));
+    const row = (await screen.findByText('Pokój')).closest('li')!;
+    expect(row).toHaveTextContent('50 XP');
+    expect(row).toHaveTextContent('Też w 2 innych ścieżkach');
+    await user.click(screen.getByRole('button', { name: 'Edytuj Pokój' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/rooms/9'));
-    expect(await screen.findByRole('link', { name: '← Wróć do edytora ścieżki' })).toHaveAttribute('href', '/admin/paths/5');
+    expect(await screen.findByRole('navigation', { name: 'Okruszki' })).toHaveTextContent('Wstęp');
+    expect(screen.getByRole('link', { name: 'Web' })).toHaveAttribute('href', '/admin/paths/5');
   });
   it('returns to the rooms tab when a shared room was opened from the list', async () => {
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));

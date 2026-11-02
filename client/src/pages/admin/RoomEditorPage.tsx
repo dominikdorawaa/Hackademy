@@ -1,4 +1,5 @@
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
+import { ChevronRight } from 'lucide-react';
 import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { Button } from '@/components/ui/button';
 import { Switch } from '@/components/ui/switch';
@@ -38,7 +39,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const navigate = useNavigate();
   const [query] = useSearchParams();
   const location = useLocation();
-  const creation = location.state as { parentDraft?: PathSave; parentId?: number | null; chapterIndex?: number; returnPathId?: number | null } | null;
+  const creation = location.state as { parentDraft?: PathSave; parentId?: number | null; chapterIndex?: number; returnPathId?: number | null; pathTitle?: string; chapterTitle?: string } | null;
   const [parentDraft, setParentDraft] = useState(creation?.parentDraft ?? null);
   const [parentId, setParentId] = useState<number | null>(creation?.parentId ?? creation?.returnPathId ?? null);
   const presetType = query.get('type') === 'CTF' || query.get('type') === 'PATH' ? query.get('type') as RoomType : null;
@@ -94,7 +95,6 @@ function RoomEditor({ roomId }: { roomId: string }) {
     if (savingRef.current || !loaded) return false;
     const current = formRef.current;
     const nextErrors: FieldErrors = {};
-    if (parentDraft) { checkText(nextErrors, 'parentTitle', parentDraft.title, 120, true); checkText(nextErrors, 'parentDescription', parentDraft.description, 20000, parentDraft.published); checkText(nextErrors, 'parentChapter', parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? '', 120, true); }
     checkText(nextErrors, 'title', current.title, 255, true);
     if (!nextErrors.title && current.title.trim() !== baseline.title && reservedRoomTitles.includes(current.title.trim().toLowerCase())) nextErrors.title = 'Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka';
     checkText(nextErrors, 'shortDescription', current.shortDescription ?? '', 100);
@@ -131,30 +131,34 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const guard = useUnsavedChanges(dirty, () => save(), saving);
   const normalSave = async () => {
     const wasNew = idRef.current == null;
+    const fromChapter = wasNew && (contextPath != null || parentDraft != null);
     if (await save(!wasNew) && wasNew) {
       guard.allowNavigation();
-      navigate(`${base}/${idRef.current}`, { replace: true, state: { flash: 'Zapisano pokój.' } });
+      // A room created from a chapter goes straight back to its path, where it is already in place.
+      if (fromChapter) navigate(`/admin/paths/${contextPath ?? parentId}`, { replace: true, state: { arrivedRoomId: idRef.current } });
+      else navigate(`${base}/${idRef.current}`, { replace: true, state: { flash: 'Zapisano pokój.' } });
     }
   };
   const returnPath = contextPath || parentId ? `/admin/paths/${contextPath ?? parentId}` : base;
+  const pathTitle = context?.title ?? parentDraft?.title ?? creation?.pathTitle;
+  const chapterTitle = context?.chapters.find(c => c.id === Number(contextChapter))?.title ?? parentDraft?.chapters[creation?.chapterIndex ?? 0]?.title ?? creation?.chapterTitle;
   return <>
     {guard.dialog}
-    <Button asChild variant="ghost" className="mb-3"><Link to={returnPath}>← {contextPath || parentId ? 'Wróć do edytora ścieżki' : 'Pokoje'}</Link></Button>
+    {(contextPath || parentId) && pathTitle ? <nav aria-label="Okruszki" className="mb-3">
+      <ol className="flex min-w-0 flex-wrap items-center gap-x-1.5 gap-y-1 text-sm text-muted-foreground">
+        <li className="min-w-0"><Link to={returnPath} className="block truncate underline-offset-4 hover:text-foreground hover:underline">{pathTitle}</Link></li>
+        {chapterTitle && <><li aria-hidden="true"><ChevronRight className="size-4" /></li><li className="min-w-0 truncate">{chapterTitle}</li></>}
+        <li aria-hidden="true"><ChevronRight className="size-4" /></li>
+        <li aria-current="page" className="min-w-0 truncate font-medium text-foreground">{id == null ? 'Nowy pokój' : form.title || 'Pokój'}</li>
+      </ol>
+    </nav> : <Button asChild variant="ghost" className="mb-3"><Link to={returnPath}>← {contextPath || parentId ? 'Wróć do edytora ścieżki' : 'Pokoje'}</Link></Button>}
     <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}${contextPath ? `?pathId=${contextPath}` : ''}`); else setError('Zapisz pokój przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description={<DeleteRoomDescription paths={paths} />} confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
-    {context && <StatusMessage kind="warning">Ścieżka: {context.title} → Rozdział: {context.chapters.find(c => c.id === Number(contextChapter))?.title}. Pokój zostanie przypisany automatycznie.</StatusMessage>}
     {publishedPathsWarning(paths) && <StatusMessage kind="warning">{publishedPathsWarning(paths)} Przypisania zmienisz w edytorze ścieżki.</StatusMessage>}
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
     {loading ? <LoadingRows label="Ładowanie pokoju" /> : !loaded ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor pokoju">
         <fieldset disabled={saving} className="grid min-w-0 gap-6">
-          {parentDraft && <Section title="Ścieżka i rozdział" description={parentDraft.published ? "Ścieżka jest opublikowana, więc gracze zobaczą nowy rozdział od razu. Uzupełnij opis pokoju i dodaj przynajmniej jedno zadanie." : "Nowy kontekst i pokój zostaną zapisane razem. Nieudany zapis nie pozostawi nieprzypisanego pokoju."}>
-            <div className="grid gap-4">
-              <TextField name="parentTitle" label="Tytuł ścieżki" value={parentDraft.title} limit={120} required error={errors.parentTitle} onChange={title => setParentDraft({ ...parentDraft, title })} />
-              <TextField name="parentDescription" label="Opis ścieżki" value={parentDraft.description} limit={20000} multiline required={parentDraft.published} error={errors.parentDescription} onChange={description => setParentDraft({ ...parentDraft, description })} />
-              <TextField name="parentChapter" label="Nazwa rozdziału" value={parentDraft.chapters[creation?.chapterIndex ?? 0]?.title ?? ''} limit={120} required error={errors.parentChapter} onChange={title => setParentDraft({ ...parentDraft, chapters: parentDraft.chapters.map((c, i) => i === (creation?.chapterIndex ?? 0) ? { ...c, title } : c) })} />
-            </div>
-          </Section>}
-          <Section title="Dane pokoju" description={ready ? 'Gracze widzą ten pokój, więc opis i przynajmniej jedno zadanie są wymagane.' : 'Do zapisu wystarczy tytuł. Opis i przynajmniej jedno zadanie będą potrzebne, gdy opublikujesz ścieżkę z tym pokojem.'}>
+          <Section title="Dane pokoju">
             <div className="grid gap-5 md:grid-cols-2">
               <div className="grid gap-2 md:col-span-2"><span className="flex items-center gap-1 text-sm font-medium">Typ pokoju<RoomTypeHelp /></span><RoomTypeSwitch label="Typ pokoju" value={kind} onChange={changeType} /><p className="text-xs text-muted-foreground">Zmiana typu zachowuje zadania i postępy graczy.</p></div>
               <div className="md:col-span-2"><TextField name="title" label="Tytuł" value={form.title} limit={255} required error={errors.title} onChange={title => change({ title })} /></div>

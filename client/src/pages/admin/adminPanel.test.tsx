@@ -283,11 +283,11 @@ describe('content editors', () => {
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])), http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(initial)));
     const save = vi.spyOn(contentApi, 'savePath').mockRejectedValue(new contentApi.ContentError('Materiał zmienił się w międzyczasie.'));
     const user = userEvent.setup(); mountAdmin('/admin/paths/5');
-    await user.type(await screen.findByLabelText('Nazwa rozdziału 1 *'), ' lokalny');
+    await user.type(await screen.findByLabelText('Nazwa rozdziału 1'), ' lokalny');
     await user.type(screen.getByLabelText('Tytuł *'), ' zmieniony');
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('Materiał zmienił się w międzyczasie.')).toBeInTheDocument();
-    expect(screen.getByLabelText('Nazwa rozdziału 1 *')).toHaveValue('Rozdział 1 lokalny');
+    expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Rozdział 1 lokalny');
     expect(save.mock.calls[0][1]).toMatchObject({ revision: 3, chaptersRevision: 2, title: 'Web zmieniony', chapters: [{ title: 'Rozdział 1 lokalny' }] });
   });
   it('blocks an existing room after load failure and preserves hints after retry', async () => {
