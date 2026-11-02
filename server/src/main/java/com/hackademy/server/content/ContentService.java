@@ -91,7 +91,7 @@ public class ContentService {
     }
 
     // live: a published path holds the room, so players see every saved change and the room must stay ready.
-    public record RoomEditor(RoomAdminDto room, RoomTasksAdminDto tasks, Long pathId, boolean live) {}
+    public record RoomEditor(RoomAdminDto room, RoomTasksAdminDto tasks, Long pathId, List<RoomPathDto> paths, boolean live) {}
     public static RoomAdminDto adminRoom(Room room) {
         return RoomAdminDto.builder().id(room.getId()).title(room.getTitle()).description(room.getDescription())
                 .shortDescription(room.getShortDescription()).category(room.getCategory()).difficulty(room.getDifficulty())
@@ -102,7 +102,9 @@ public class ContentService {
     @Transactional
     public RoomEditor roomEditor(Long id) {
         var room = roomService.getRoomById(id);
-        return new RoomEditor(adminRoom(room), roomService.getRoomTasksForAdmin(id), assignments.findOwners(List.of(id)).stream().map(ChapterRoomRepository.RoomOwnerView::getPathId).findFirst().orElse(null), rooms.isVisible(id));
+        var owners = assignments.findOwners(List.of(id)).stream()
+                .map(owner -> new RoomPathDto(owner.getPathId(), owner.getPathTitle(), Boolean.TRUE.equals(owner.getPathPublished()))).toList();
+        return new RoomEditor(adminRoom(room), roomService.getRoomTasksForAdmin(id), owners.size() == 1 ? owners.get(0).id() : null, owners, rooms.isVisible(id));
     }
 
     @Transactional(rollbackFor = IOException.class)

@@ -24,9 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    // Number of migrations; V38 is left to a parallel change.
-    static final int SCHEMA_VERSION = 38;
-    static final int LATEST_VERSION = 39;
+    static final int SCHEMA_VERSION = 39;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -78,7 +76,7 @@ class SchemaMigrationTest {
         execute("INSERT INTO user_notification_preferences (user_id, sound, friend_online, friend_online_bell) VALUES (1, false, false, false)");
 
         assertEquals(SCHEMA_VERSION - 20, flyway().migrate().migrationsExecuted);
-        assertEquals(String.valueOf(LATEST_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
+        assertEquals(String.valueOf(SCHEMA_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
         assertEquals("clerk identity", text("SELECT description FROM flyway_schema_history WHERE version = '21'"));
         assertEquals(1, scalar("SELECT count(*) FROM users WHERE id = 1 AND username = 'Alice' AND email = 'alice@example.com' AND password = 'p' AND clerk_user_id IS NULL"));
         assertEquals(1, scalar("SELECT count(*) FROM user_notification_preferences WHERE user_id = 1 AND NOT sound AND NOT friend_online AND NOT friend_online_bell AND game_sounds"));
@@ -651,7 +649,7 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
 
     @Test
     void dropsRoomPublishingAndDetachesDraftsFromPublishedPathsWithoutTouchingProgress() throws Exception {
-        flyway("37").migrate();
+        flyway("38").migrate();
         insertUser(1, "Alice", "alice@example.com");
         execute("""
                 INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, published, created_at, updated_at) VALUES
@@ -686,6 +684,30 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         assertEquals(2, scalar("SELECT count(*) FROM room_tasks"));
         assertEquals(0, flyway().migrate().migrationsExecuted);
         assertTrue(flyway().validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void letsARoomJoinManyPathsButOnlyOneChapterOfEach() throws Exception {
+        flyway("37").migrate();
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, published, created_at, updated_at) VALUES
+                (1, 'Wspólny', 'd', 'EASY', 'Web', 50, 0, false, 'PATH', true, now(), now()),
+                (2, 'Drugi', 'd', 'EASY', 'Web', 50, 0, false, 'PATH', true, now(), now());
+                INSERT INTO paths (id, title, created_at, updated_at) VALUES (101, 'Web', now(), now()), (102, 'Linux', now(), now());
+                INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES
+                (10, 101, 'A', 0, now(), now()), (11, 101, 'B', 1, now(), now()), (20, 102, 'A', 0, now(), now());
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 10, 0), (2, 11, 0);
+                """);
+
+        assertEquals(1, flyway("38").migrate().migrationsExecuted);
+
+        assertEquals("1:10:101:0|2:11:101:0", text("SELECT string_agg(room_id || ':' || chapter_id || ':' || path_id || ':' || sort_order, '|' ORDER BY room_id) FROM chapter_rooms"));
+        execute("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 20, 0)");
+        assertEquals(102, scalar("SELECT path_id FROM chapter_rooms WHERE room_id = 1 AND chapter_id = 20"));
+        assertSqlState("23505", "INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 11, 1)");
+        assertSqlState("23503", "UPDATE chapter_rooms SET path_id = 102 WHERE room_id = 2");
+        execute("DELETE FROM paths WHERE id = 102");
+        assertEquals(2, scalar("SELECT count(*) FROM chapter_rooms"));
     }
 
     @Test
@@ -830,7 +852,7 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 """));
         assertEquals(0, scalar("SELECT count(*) FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE pc.path_id = 3"));
         assertEquals(0, scalar("SELECT count(*) FROM information_schema.tables WHERE table_schema = current_schema() AND table_name = 'path_rooms'"));
-        assertSqlState("23505", "INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) SELECT 3, id, 1 FROM path_chapters WHERE path_id = 2");
+        assertSqlState("23505", "INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) SELECT 3, id, 1 FROM path_chapters WHERE path_id = 1");
         assertSqlState("23514", "INSERT INTO path_chapters (path_id, title, sort_order, created_at, updated_at) VALUES (1, '  ', 1, now(), now())");
     }
 

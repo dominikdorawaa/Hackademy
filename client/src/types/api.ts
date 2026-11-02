@@ -443,8 +443,13 @@ export interface RoomAdminSummaryDto {
   points: number
   requiresVpn: boolean
   roomType: RoomType
-  pathId: number | null
-  pathTitle: string | null
+  paths: RoomPathDto[]
+}
+
+export interface RoomPathDto {
+  id: number
+  title: string
+  published: boolean
 }
 
 export interface RoomAdminDto {

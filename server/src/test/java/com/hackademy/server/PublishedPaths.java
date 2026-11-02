@@ -24,8 +24,10 @@ public final class PublishedPaths {
         long chapter = new SimpleJdbcInsert(jdbc).withTableName("path_chapters").usingColumns("path_id", "title", "sort_order", "created_at", "updated_at")
                 .usingGeneratedKeyColumns("id").executeAndReturnKey(Map.of("path_id", path, "title", "Rozdział", "sort_order", 0,
                         "created_at", now, "updated_at", now)).longValue();
+        var assignments = new SimpleJdbcInsert(jdbc).withTableName("chapter_rooms");
         for (int i = 0; i < roomIds.length; i++) {
-            jdbc.update("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (?, ?, ?)", roomIds[i], chapter, i);
+            // PostgreSQL fills path_id itself; the H2 schema has no such column, and SimpleJdbcInsert skips it there.
+            assignments.execute(Map.of("room_id", roomIds[i], "chapter_id", chapter, "path_id", path, "sort_order", i));
         }
         return path;
     }

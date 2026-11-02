@@ -182,7 +182,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void concurrentAssignmentCannotStealAnotherPathsRoom() throws Exception {
+    void concurrentAssignmentsAddTheRoomToBothPaths() throws Exception {
         var admin = account(Role.ADMIN);
         long room = createRoom(admin, uniqueTitle("Concurrent assignment"), "PATH");
         addFlagTask(room, "flag");
@@ -191,11 +191,11 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
         long firstChapter = chapterIds(admin, firstPath).get(0);
         long secondChapter = chapterIds(admin, secondPath).get(0);
 
-        assertRoomOperationWaitsAndRejects(
+        assertRoomOperationWaitsAndSucceeds(
                 () -> assign(firstPath, firstChapter, room),
                 () -> assign(secondPath, secondChapter, room));
-        assertEquals(firstPath, jdbcTemplate.queryForObject("""
-                SELECT pc.path_id FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE cr.room_id = ?
+        assertEquals(List.of(firstPath, secondPath), jdbcTemplate.queryForList("""
+                SELECT pc.path_id FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE cr.room_id = ? ORDER BY pc.path_id
                 """, Long.class, room));
     }
 
@@ -204,11 +204,16 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 new UpdatePathChaptersRequest(jdbcTemplate.queryForObject("SELECT chapters_revision FROM paths WHERE id = ?", Long.class, path), List.of(new ChapterRequest(chapter, "A", List.of(room)))), true);
     }
 
-    private void assertRoomOperationWaitsAndRejects(Runnable first, Runnable second) throws Exception {
-        assertRoomOperationWaitsAndRejects(first, second, IllegalArgumentException.class);
+    private void assertRoomOperationWaitsAndSucceeds(Runnable first, Runnable second) throws Exception {
+        assertRoomOperationWaits(first, second, null);
     }
 
     private void assertRoomOperationWaitsAndRejects(Runnable first, Runnable second, Class<? extends Throwable> rejection) throws Exception {
+        assertRoomOperationWaits(first, second, rejection);
+    }
+
+    // With no rejection the competing operation must succeed once the first one commits.
+    private void assertRoomOperationWaits(Runnable first, Runnable second, Class<? extends Throwable> rejection) throws Exception {
         var executor = Executors.newFixedThreadPool(2);
         var ready = new CountDownLatch(1);
         var release = new CountDownLatch(1);
@@ -238,8 +243,12 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
             assertTrue(waitingOnRoom, "The competing operation must lock the room before validating it");
             release.countDown();
             holder.get(10, TimeUnit.SECONDS);
-            var rejected = assertThrows(ExecutionException.class, () -> contender.get(10, TimeUnit.SECONDS));
-            assertInstanceOf(rejection, rejected.getCause());
+            if (rejection == null) {
+                contender.get(10, TimeUnit.SECONDS);
+            } else {
+                var rejected = assertThrows(ExecutionException.class, () -> contender.get(10, TimeUnit.SECONDS));
+                assertInstanceOf(rejection, rejected.getCause());
+            }
         } finally {
             release.countDown();
             executor.shutdownNow();
@@ -307,7 +316,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.rooms[2].id").value(second));
 
         var adminRooms = getAs(admin, "/api/admin/rooms").andExpect(status().isOk()).andReturn();
-        List<Number> owners = JsonPath.read(adminRooms.getResponse().getContentAsString(), "$[?(@.id == %d)].pathId".formatted(first));
+        List<Number> owners = JsonPath.read(adminRooms.getResponse().getContentAsString(), "$[?(@.id == %d)].paths[*].id".formatted(first));
         assertEquals(List.of(pathId), owners.stream().map(Number::longValue).toList());
     }
 
@@ -339,12 +348,9 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
         long chapterId = chapterIds(admin, pathId).get(0);
         long foreignChapter = chapterIds(admin, otherPath).get(0);
 
-        putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", owned))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("należy już do ścieżki")));
         putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", free, free))
-                .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("więcej niż raz")));
+                .andExpect(status().isConflict())
+                .andExpect(jsonPath("$.message", containsString("zawiera już pokój")));
         putChapterJson(admin, "/api/admin/paths/" + pathId + "/chapters", chapters(chapterId, "A", 999_999))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("nie istnieje")));

@@ -1,7 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock, Pencil, Plus, Search, Trash2 } from 'lucide-react';
-import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -9,6 +8,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { RoomAdminSummaryDto, RoomType } from '../../types/api';
 import { RoomTypeIcon, roomTypeLabel, roomTypes } from '../../components/admin/RoomType';
+import { DeleteRoomDescription, RoomPathsCell } from '../../components/admin/RoomPaths';
 import { cn } from '@/lib/utils';
 import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
 import { errorText, numberFormat } from '../../components/admin/adminFormat';
@@ -45,7 +45,7 @@ export default function RoomsPage() {
   const filtered = useMemo(() => {
     const term = query.trim().toLowerCase();
     return rooms.filter((room) => (type === 'ALL' || (room.roomType ?? 'PATH') === type)
-      && (!term || room.title.toLowerCase().includes(term) || (room.pathTitle ?? '').toLowerCase().includes(term)));
+      && (!term || room.title.toLowerCase().includes(term) || room.paths.some((path) => path.title.toLowerCase().includes(term))));
   }, [rooms, query, type]);
   const filters: { value: RoomType | 'ALL'; label: string; count: number }[] = [
     { value: 'ALL', label: 'Wszystkie', count: rooms.length },
@@ -68,7 +68,7 @@ export default function RoomsPage() {
     <>
       <PageHeader
         title="Pokoje"
-        description="Pokoje teorii i CTF używane w ścieżkach nauki. Pokój należy do jednego rozdziału jednej ścieżki."
+        description="Pokoje teorii i CTF używane w ścieżkach nauki. Jeden pokój może być w wielu ścieżkach, w każdej w jednym rozdziale. Postęp gracza jest wspólny."
         actions={
           <Button asChild>
             <Link to={`${base}/new`}><Plus />Nowy pokój</Link>
@@ -116,7 +116,7 @@ export default function RoomsPage() {
               <TableRow>
                 <TableHead>Tytuł</TableHead>
                 <TableHead>Typ</TableHead>
-                <TableHead className="hidden sm:table-cell">Ścieżka</TableHead>
+                <TableHead className="hidden sm:table-cell">Ścieżki</TableHead>
                 <TableHead className="hidden text-right md:table-cell">XP</TableHead>
                 <TableHead className="hidden md:table-cell">VPN</TableHead>
                 <TableHead className="text-right"><span className="sr-only">Akcje</span></TableHead>
@@ -129,19 +129,13 @@ export default function RoomsPage() {
                     <Link to={`${base}/${room.id}`} className="hover:text-primary hover:underline underline-offset-4">
                       {room.title}
                     </Link>
-                    <span className="block text-xs font-normal text-muted-foreground sm:hidden">{room.pathTitle ?? 'Bez ścieżki'}</span>
+                    <span className="block text-xs font-normal text-muted-foreground sm:hidden">{room.paths.length ? room.paths.map((path) => path.title).join(', ') : 'Bez ścieżki'}</span>
                   </TableCell>
                   <TableCell>
                     <span className="inline-flex items-center gap-1.5 text-sm"><RoomTypeIcon type={room.roomType} className="size-3.5 text-muted-foreground" />{roomTypeLabel(room.roomType)}</span>
                   </TableCell>
                   <TableCell className="hidden sm:table-cell">
-                    {room.pathTitle ? (
-                      <Link to={`/admin/paths/${room.pathId}`} className="text-muted-foreground hover:text-foreground hover:underline underline-offset-4">
-                        {room.pathTitle}
-                      </Link>
-                    ) : (
-                      <Badge variant="outline" className="text-muted-foreground">Bez ścieżki</Badge>
-                    )}
+                    <RoomPathsCell paths={room.paths} />
                   </TableCell>
                   <TableCell className="hidden text-right tabular-nums md:table-cell">{numberFormat.format(room.points)}</TableCell>
                   <TableCell className="hidden md:table-cell">
@@ -159,7 +153,7 @@ export default function RoomsPage() {
                       {isAdmin && (
                         <ConfirmAction
                           title={`Usunąć pokój „${room.title}”?`}
-                          description="Pokój, jego zadania, podpowiedzi, plik i postępy graczy zostaną trwale usunięte."
+                          description={<DeleteRoomDescription paths={room.paths} />}
                           confirmLabel="Usuń pokój"
                           onConfirm={() => remove(room)}
                           trigger={

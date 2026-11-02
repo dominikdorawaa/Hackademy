@@ -11,7 +11,7 @@ beforeAll(() => {
   Element.prototype.releasePointerCapture = () => undefined;
   Element.prototype.scrollIntoView = () => undefined;
 });
-const room = (id: number, title: string, pathId: number | null = 5): RoomAdminSummaryDto => ({ id, title, roomType: 'PATH', pathId, pathTitle: pathId == null ? null : 'Ścieżka',
+const room = (id: number, title: string, pathId: number | null = 5): RoomAdminSummaryDto => ({ id, title, roomType: 'PATH', paths: pathId == null ? [] : [{ id: pathId, title: `Ścieżka ${pathId}`, published: true }],
   requiresVpn: id === 9, difficulty: 'EASY', points: 50, category: 'Path' });
 function Chapters({ create, edit }: { create: (index: number) => void; edit: (id: number) => void }) {
   const [chapters, setChapters] = useState<ChapterRequest[]>([{ id: 1, title: 'Wstęp', roomIds: [9, 10] }, { id: 2, title: 'Dalej', roomIds: [] }]);
@@ -31,7 +31,6 @@ function state(name: string) { return JSON.parse(screen.getByTestId(`${name}-sta
 describe('content structure editing', () => {
   it('preserves chapter and room identities while ordering, moving, removing and adding from the pool', async () => {
     const create = vi.fn(), edit = vi.fn(); const user = userEvent.setup(); render(<Chapters create={create} edit={edit} />);
-    expect(screen.queryByText('Obca ścieżka')).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Przesuń rozdział 2 w górę' })); expect(state('chapters').map((c: ChapterRequest) => c.id)).toEqual([2, 1]);
     await user.click(screen.getByRole('button', { name: 'Przesuń rozdział 1 w dół' }));
     await user.click(screen.getByRole('button', { name: 'Przesuń pokój 9 w dół' })); expect(state('chapters')[0].roomIds).toEqual([10, 9]);
@@ -41,6 +40,20 @@ describe('content structure editing', () => {
     await user.click(await screen.findByRole('option', { name: '2. Dalej' })); expect(state('chapters')[1].roomIds).toEqual([9]);
     await user.click(screen.getByRole('button', { name: 'Wyjmij HTTP z rozdziału' })); expect(state('chapters')[0].roomIds).toEqual([]);
     await user.click(screen.getByRole('button', { name: 'Utwórz pokój w rozdziale 2' })); expect(create).toHaveBeenCalledWith(1);
+  });
+  it('offers rooms of other paths in the pool and tells where each room already is', async () => {
+    const user = userEvent.setup(); render(<Chapters create={vi.fn()} edit={vi.fn()} />);
+    const pool = within(screen.getByRole('list', { name: 'Dostępne pokoje' }));
+    expect(pool.getByText('Obca ścieżka')).toBeInTheDocument();
+    expect(pool.getByText('W 1 innej ścieżce')).toHaveAttribute('title', 'Ścieżka 6');
+    expect(pool.getByText('Nieprzypisany')).toBeInTheDocument();
+    expect(pool.queryByText('VPN')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Wyjmij HTTP z rozdziału' }));
+    expect(within(screen.getByRole('list', { name: 'Dostępne pokoje' })).getByText('HTTP')).toBeInTheDocument();
+    expect(screen.getAllByText('Nieprzypisany')).toHaveLength(2);
+    expect(screen.queryByText(/Opublikowany|Szkic/)).toBeNull();
+    await user.type(screen.getByRole('textbox', { name: 'Szukaj w puli' }), 'OBCA');
+    expect(within(screen.getByRole('list', { name: 'Dostępne pokoje' })).getAllByRole('listitem')).toHaveLength(1);
   });
   it('filters the side pool and keeps the selected chapter attached to added rooms', async () => {
     const user = userEvent.setup(); render(<Chapters create={vi.fn()} edit={vi.fn()} />);

@@ -7,14 +7,14 @@ import org.springframework.data.repository.query.Param;
 
 import java.util.Collection;
 import java.util.List;
-import java.util.Optional;
 
-public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Long> {
+public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, ChapterRoomId> {
 
     interface RoomOwnerView {
         Long getRoomId();
         Long getPathId();
         String getPathTitle();
+        Boolean getPathPublished();
     }
 
     interface PathRoomMiniRow {
@@ -46,18 +46,20 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Long> 
     List<ProgressionRow> findProgression(@Param("pathId") Long pathId, @Param("userId") Long userId);
 
     interface RoomPathView {
+        Long getRoomId();
         Long getPathId();
         String getUnlockMode();
     }
 
     @Query(value = """
-            SELECT p.id AS pathId, p.unlock_mode AS unlockMode
+            SELECT cr.room_id AS roomId, p.id AS pathId, p.unlock_mode AS unlockMode
             FROM chapter_rooms cr
             JOIN path_chapters pc ON pc.id = cr.chapter_id
             JOIN paths p ON p.id = pc.path_id
-            WHERE cr.room_id = :roomId
+            WHERE cr.room_id IN (:roomIds) AND p.published = true
+            ORDER BY p.id
             """, nativeQuery = true)
-    Optional<RoomPathView> findPathOfRoom(@Param("roomId") Long roomId);
+    List<RoomPathView> findPublishedPathsOfRooms(@Param("roomIds") Collection<Long> roomIds);
 
     @Query("""
             SELECT cr FROM ChapterRoom cr
@@ -76,13 +78,23 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Long> 
     List<Long> findRoomIdsOrdered(@Param("pathId") Long pathId);
 
     @Query(value = """
-            SELECT cr.room_id AS roomId, p.id AS pathId, p.title AS pathTitle
+            SELECT cr.room_id AS roomId, p.id AS pathId, p.title AS pathTitle, p.published AS pathPublished
             FROM chapter_rooms cr
             JOIN path_chapters pc ON pc.id = cr.chapter_id
             JOIN paths p ON p.id = pc.path_id
             WHERE cr.room_id IN (:roomIds)
+            ORDER BY lower(p.title), p.id
             """, nativeQuery = true)
     List<RoomOwnerView> findOwners(@Param("roomIds") Collection<Long> roomIds);
+
+    @Query(value = """
+            SELECT cr.room_id AS roomId, p.id AS pathId, p.title AS pathTitle, p.published AS pathPublished
+            FROM chapter_rooms cr
+            JOIN path_chapters pc ON pc.id = cr.chapter_id
+            JOIN paths p ON p.id = pc.path_id
+            ORDER BY lower(p.title), p.id
+            """, nativeQuery = true)
+    List<RoomOwnerView> findAllOwners();
 
     @Query(value = """
             SELECT

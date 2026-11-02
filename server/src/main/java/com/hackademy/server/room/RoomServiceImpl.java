@@ -4,6 +4,7 @@ import com.hackademy.server.room.dto.CreateRoomRequest;
 import com.hackademy.server.room.dto.HintDto;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
+import com.hackademy.server.room.dto.RoomPathDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.room.dto.RoomTasksAdminDto;
 import com.hackademy.server.room.dto.RoomTaskAdminDto;
@@ -37,6 +38,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -126,7 +128,14 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomAdminSummaryDto> getAllRoomsForAdmin() {
-        return roomRepository.findAllAdminSummaries();
+        Map<Long, List<RoomPathDto>> pathsByRoom = new HashMap<>();
+        for (var owner : chapterRoomRepository.findAllOwners()) {
+            pathsByRoom.computeIfAbsent(owner.getRoomId(), id -> new ArrayList<>())
+                    .add(new RoomPathDto(owner.getPathId(), owner.getPathTitle(), Boolean.TRUE.equals(owner.getPathPublished())));
+        }
+        return roomRepository.findAllAdminSummaries().stream()
+                .map(room -> room.withPaths(pathsByRoom.getOrDefault(room.id(), List.of())))
+                .toList();
     }
 
     @Override

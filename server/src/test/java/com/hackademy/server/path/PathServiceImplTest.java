@@ -385,15 +385,54 @@ class PathServiceImplTest {
     @Test
     void rejectsInvalidRoomLists() {
         assertInvalidRooms(java.util.Arrays.asList(1L, null));
-        assertInvalidRooms(List.of(1L, 1L));
 
         when(roomRepository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
         assertInvalidRooms(List.of(1L));
+        verify(pathRepository, never()).save(any());
+    }
 
-        when(roomRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(room(3L, "Zajęty", RoomType.PATH)));
-        when(chapterRoomRepository.findOwners(Set.of(3L))).thenReturn(List.of(new Owner(3L, 9L, "Inna")));
-        var error = assertInvalidRooms(List.of(3L));
-        assertTrue(error.getMessage().contains("Inna"));
+    @Test
+    void acceptsRoomThatAlreadyBelongsToAnotherPath() {
+        stubPathRooms(room(3L, "Wspólny", RoomType.PATH));
+        when(pathRepository.save(any())).thenAnswer(invocation -> {
+            Path saved = invocation.getArgument(0);
+            saved.setId(7L);
+            return saved;
+        });
+        when(pathChapterRepository.save(any())).thenAnswer(invocation -> {
+            PathChapter chapter = invocation.getArgument(0);
+            chapter.setId(70L);
+            return chapter;
+        });
+
+        service.createPath(new CreatePathRequest("Druga", null, null, List.of(3L)));
+
+        verify(chapterRoomRepository).save(argThat(link -> link.getRoomId() == 3L && link.getChapterId() == 70L));
+        verify(chapterRoomRepository, never()).findOwners(any());
+    }
+
+    @Test
+    void rejectsOneRoomInTwoChaptersOfOnePath() {
+        var path = path(5L, "Web");
+        when(pathRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(path));
+        when(pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(5L)).thenReturn(List.of());
+        stubPathRooms(room(10L, "A", RoomType.PATH));
+
+        var error = assertThrows(RoomRuleException.class, () -> service.updatePathChapters(5L, new UpdatePathChaptersRequest(0L, List.of(
+                new ChapterRequest(null, "Pierwszy", List.of(10L)),
+                new ChapterRequest(null, "Drugi", List.of(10L)))), true));
+
+        assertEquals("chapters.1.rooms", error.field());
+        assertTrue(error.getMessage().contains("rozdziale 1"));
+        verify(chapterRoomRepository, never()).deleteByPathId(any());
+    }
+
+    @Test
+    void rejectsOneRoomTwiceInOneChapter() {
+        stubPathRooms(room(10L, "A", RoomType.PATH));
+
+        assertThrows(RoomRuleException.class,
+                () -> service.createPath(new CreatePathRequest("Web", null, null, List.of(10L, 10L))));
         verify(pathRepository, never()).save(any());
     }
 
@@ -507,7 +546,6 @@ class PathServiceImplTest {
         var removed = chapter(101L, "Usunięty", 1);
         when(pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(5L)).thenReturn(List.of(kept, removed));
         stubPathRooms(room(10L, "A", RoomType.PATH));
-        when(chapterRoomRepository.findOwners(Set.of(10L))).thenReturn(List.of(new Owner(10L, 5L, "Web")));
         List<PathChapter> saved = new ArrayList<>();
         when(pathChapterRepository.save(any())).thenAnswer(invocation -> {
             PathChapter chapter = invocation.getArgument(0);
@@ -674,9 +712,6 @@ class PathServiceImplTest {
 
     private record MiniRow(Long getId, String getTitle, Boolean getRequiresVpn, Boolean getSolved)
             implements ChapterRoomRepository.PathRoomMiniRow {}
-
-    private record Owner(Long getRoomId, Long getPathId, String getPathTitle)
-            implements ChapterRoomRepository.RoomOwnerView {}
 
     private record Progression(Long getChapterId, Long getRoomId, Boolean getSolved)
             implements ChapterRoomRepository.ProgressionRow {}

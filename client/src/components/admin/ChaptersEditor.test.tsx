@@ -29,16 +29,15 @@ const room = (id: number, title: string, overrides: Partial<RoomAdminSummaryDto>
   points: 20,
   requiresVpn: false,
   roomType: 'PATH',
-  pathId: null,
-  pathTitle: null,
+  paths: [],
   ...overrides,
 });
 
 const rooms = [
-  room(1, 'HTTP', { pathId: 5, pathTitle: 'Web' }),
-  room(2, 'Cookies', { pathId: 5, pathTitle: 'Web' }),
+  room(1, 'HTTP', { paths: [{ id: 5, title: 'Web', published: true }] }),
+  room(2, 'Cookies', { paths: [{ id: 5, title: 'Web', published: true }] }),
   room(3, 'SQL'),
-  room(4, 'Obcy', { pathId: 9, pathTitle: 'Linux' }),
+  room(4, 'Obcy', { paths: [{ id: 9, title: 'Linux', published: true }] }),
   room(5, 'Flaga CTF', { roomType: 'CTF' }),
 ];
 
@@ -132,7 +131,8 @@ describe('chapters editor', () => {
 
     const pool = within(screen.getByRole('complementary', { name: 'Pula pokoi' }));
     expect(pool.getByText('SQL')).toBeInTheDocument();
-    expect(pool.queryByText('Obcy')).toBeNull();
+    expect(pool.getByText('Obcy')).toBeInTheDocument();
+    expect(pool.getByText('W 1 innej ścieżce')).toHaveAttribute('title', 'Linux');
     expect(pool.getByText('Flaga CTF')).toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Zapisz rozdziały' })).toBeDisabled();
 

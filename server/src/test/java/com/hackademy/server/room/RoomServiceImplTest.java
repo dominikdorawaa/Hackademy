@@ -14,6 +14,7 @@ import com.hackademy.server.path.PathUnlockPolicy;
 import com.hackademy.server.room.dto.CreateRoomRequest;
 import com.hackademy.server.room.dto.HintDto;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
+import com.hackademy.server.room.dto.RoomPathDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.room.dto.RoomTaskAdminDto;
 import com.hackademy.server.room.dto.RoomTaskDto;
@@ -714,12 +715,15 @@ class RoomServiceImplTest {
 
     @Test
     void adminAndLandingListsComeFromRepository() {
-        var admin = List.of(new RoomAdminSummaryDto(1L, "Web", "Web", DifficultyLevel.EASY, 50, false, RoomType.CTF, null, null));
+        var web = new RoomAdminSummaryDto(1L, "Web", "Web", DifficultyLevel.EASY, 50, false, RoomType.CTF);
+        var linux = new RoomAdminSummaryDto(2L, "Linux", "Linux", DifficultyLevel.EASY, 50, false, RoomType.PATH);
         var top = List.of(summary(1L, "Web", false, RoomType.CTF));
-        when(roomRepository.findAllAdminSummaries()).thenReturn(admin);
+        when(roomRepository.findAllAdminSummaries()).thenReturn(List.of(web, linux));
+        when(chapterRoomRepository.findAllOwners()).thenReturn(List.of(owner(1L, 5L, "Linux 101", true), owner(1L, 6L, "Web Basics", false)));
         when(roomRepository.findTop3ByCategoryNot("Tutorial", PageRequest.of(0, 3))).thenReturn(top);
 
-        assertEquals(admin, service.getAllRoomsForAdmin());
+        assertEquals(List.of(web.withPaths(List.of(new RoomPathDto(5L, "Linux 101", true), new RoomPathDto(6L, "Web Basics", false))), linux),
+                service.getAllRoomsForAdmin());
         assertEquals(top, service.getTop3Rooms());
     }
 
@@ -1068,5 +1072,11 @@ class RoomServiceImplTest {
         when(badgeRepository.findAll()).thenReturn(List.of(badge));
         when(userSolvedRoomRepository.countByUser_Id(7L)).thenReturn(1L);
         when(userRepository.count()).thenReturn(1L);
+    }
+
+    private static ChapterRoomRepository.RoomOwnerView owner(Long roomId, Long pathId, String title, boolean published) {
+        record Owner(Long getRoomId, Long getPathId, String getPathTitle, Boolean getPathPublished)
+                implements ChapterRoomRepository.RoomOwnerView {}
+        return new Owner(roomId, pathId, title, published);
     }
 }
