@@ -337,6 +337,25 @@ describe('room shared by many paths', () => {
     await waitFor(() => expect(deleted).toBe(true));
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/5'));
   });
+  it('returns to the path editor the room was opened from, or to the rooms tab', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));
+    mount('/admin/paths/rooms/9', [{ pathname: '/admin/paths/rooms/9', state: { returnPathId: 6 } }]);
+    expect(await screen.findByRole('link', { name: '← Wróć do edytora ścieżki' })).toHaveAttribute('href', '/admin/paths/6');
+  });
+  it('opens a room from the path editor with that path as the way back', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })),
+      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths }])),
+      http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));
+    const user = userEvent.setup(); const router = mount('/admin/paths/5');
+    await user.click(await screen.findByRole('button', { name: 'Pokój' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/rooms/9'));
+    expect(await screen.findByRole('link', { name: '← Wróć do edytora ścieżki' })).toHaveAttribute('href', '/admin/paths/5');
+  });
+  it('returns to the rooms tab when a shared room was opened from the list', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));
+    mount('/admin/paths/rooms/9');
+    expect(await screen.findByRole('link', { name: '← Pokoje' })).toHaveAttribute('href', '/admin/paths/rooms');
+  });
   it('names a single published path and stays quiet for draft-only paths', async () => {
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: 5, paths: paths.slice(0, 1) })));
     mount('/admin/paths/rooms/9');

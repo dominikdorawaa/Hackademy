@@ -79,6 +79,11 @@ class RoomInManyPathsIntegrationTest extends PostgresIntegrationTest {
                 .andReturn().getResponse().getContentAsString(), "$.chapters[*].rooms[*].locked");
     }
 
+    private List<Boolean> chapterLocks(Account user, long pathId) throws Exception {
+        return JsonPath.read(getAs(user, "/api/paths/" + pathId).andExpect(status().isOk())
+                .andReturn().getResponse().getContentAsString(), "$.chapters[*].locked");
+    }
+
     private int assignments(long roomId) {
         return jdbcTemplate.queryForObject("SELECT count(*) FROM chapter_rooms WHERE room_id = ?", Integer.class, roomId);
     }
@@ -102,7 +107,8 @@ class RoomInManyPathsIntegrationTest extends PostgresIntegrationTest {
         assertEquals(List.of(linuxTitle), JsonPath.read(adminRooms, "$[?(@.id == " + other + ")].paths[*].title"));
         getAs(admin, "/api/admin/content/rooms/" + shared).andExpect(status().isOk())
                 .andExpect(jsonPath("$.paths[*].id").value(contains((int) linux, (int) web)))
-                .andExpect(jsonPath("$.paths[0].published").value(true));
+                .andExpect(jsonPath("$.paths[0].published").value(true))
+                .andExpect(jsonPath("$.pathId").isEmpty());
 
         updatePath(admin, linux, true, List.of(chapter("A", List.of(other))));
         assertEquals(1, assignments(shared));
@@ -150,6 +156,20 @@ class RoomInManyPathsIntegrationTest extends PostgresIntegrationTest {
 
         solveRoom(user, intro, "flag").andExpect(status().isOk());
         solveRoom(user, shared, "flag").andExpect(status().isOk());
+    }
+
+    @Test
+    void chapterOpenedByAnotherPathIsNotShownAsLocked() throws Exception {
+        var admin = account(Role.ADMIN);
+        long intro = room(admin), shared = room(admin), later = room(admin);
+        long chapters = createPath(admin, uniqueTitle("Chapters"), "CHAPTER", List.of(chapter("A", List.of(intro)),
+                chapter("B", List.of(shared)), chapter("C", List.of(later))));
+        var user = learner(chapters);
+        assertEquals(List.of(false, true, true), chapterLocks(user, chapters));
+
+        createPath(admin, uniqueTitle("Open"), "OPEN", List.of(chapter("A", List.of(shared))));
+        assertEquals(List.of(false, false, true), chapterLocks(user, chapters));
+        assertEquals(List.of(false, false, true), roomLocks(user, chapters));
     }
 
     @Test

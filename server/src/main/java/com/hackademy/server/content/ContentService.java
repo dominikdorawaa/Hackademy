@@ -94,7 +94,7 @@ public class ContentService {
         var room = roomService.getRoomById(id);
         var owners = assignments.findOwners(List.of(id)).stream()
                 .map(owner -> new RoomPathDto(owner.getPathId(), owner.getPathTitle(), Boolean.TRUE.equals(owner.getPathPublished()))).toList();
-        return new RoomEditor(adminRoom(room), roomService.getRoomTasksForAdmin(id), owners.isEmpty() ? null : owners.get(0).id(), owners);
+        return new RoomEditor(adminRoom(room), roomService.getRoomTasksForAdmin(id), owners.size() == 1 ? owners.get(0).id() : null, owners);
     }
 
     @Transactional(rollbackFor = IOException.class)

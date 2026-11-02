@@ -38,9 +38,9 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const navigate = useNavigate();
   const [query] = useSearchParams();
   const location = useLocation();
-  const creation = location.state as { parentDraft?: PathSave; parentId?: number | null; chapterIndex?: number } | null;
+  const creation = location.state as { parentDraft?: PathSave; parentId?: number | null; chapterIndex?: number; returnPathId?: number | null } | null;
   const [parentDraft, setParentDraft] = useState(creation?.parentDraft ?? null);
-  const [parentId, setParentId] = useState<number | null>(creation?.parentId ?? null);
+  const [parentId, setParentId] = useState<number | null>(creation?.parentId ?? creation?.returnPathId ?? null);
   const presetType = query.get('type') === 'CTF' || query.get('type') === 'PATH' ? query.get('type') as RoomType : null;
   const initial = empty(presetType ?? 'PATH');
   const [id, setId] = useState<number | null>(roomId === 'new' ? null : Number(roomId));
@@ -70,7 +70,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
       .then(([detail, path]) => {
         if (!active) return;
         if (detail) {
-          const next = fromDetail(detail); setForm(next); setBaseline(next); setParentId(detail.pathId ?? null); setPaths(detail.paths ?? []);
+          const next = fromDetail(detail); setForm(next); setBaseline(next); setParentId(current => current ?? detail.pathId ?? null); setPaths(detail.paths ?? []);
         }
         if (contextPath) {
           if (!path || !path.chapters.some(c => c.id === Number(contextChapter)) || Number(contextRevision) !== (path.contentRevision ?? 0)) throw new Error('Ścieżka lub rozdział zmieniły się. Wróć do edytora ścieżki i ponownie wybierz „Utwórz pokój”.');

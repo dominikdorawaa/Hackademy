@@ -20,10 +20,16 @@ public class PathUnlockPolicy {
 
     private final ChapterRoomRepository chapterRoomRepository;
 
+    private record Progress(Locks locks, Map<Long, Long> chapterOfLockedRoom) {}
+
     public Locks locks(Long pathId, PathUnlockMode mode, Long userId) {
-        if (mode == null || mode == PathUnlockMode.OPEN) return Locks.NONE;
+        return progress(pathId, mode, userId).locks();
+    }
+
+    private Progress progress(Long pathId, PathUnlockMode mode, Long userId) {
+        if (mode == null || mode == PathUnlockMode.OPEN) return new Progress(Locks.NONE, Map.of());
         Set<Long> lockedChapters = new HashSet<>();
-        Set<Long> lockedRooms = new HashSet<>();
+        Map<Long, Long> lockedRooms = new HashMap<>();
         Long currentChapter = null;
         Long frontierChapter = null;
         boolean pastFrontierChapter = false;
@@ -34,23 +40,28 @@ public class PathUnlockPolicy {
             }
             if (row.getRoomId() == null || Boolean.TRUE.equals(row.getSolved())) continue;
             if (mode == PathUnlockMode.ROOM ? frontierChapter != null : pastFrontierChapter) {
-                lockedRooms.add(row.getRoomId());
+                lockedRooms.put(row.getRoomId(), currentChapter);
                 if (pastFrontierChapter) lockedChapters.add(currentChapter);
             }
             if (frontierChapter == null) frontierChapter = currentChapter;
         }
-        return new Locks(lockedChapters, lockedRooms);
+        return new Progress(new Locks(lockedChapters, lockedRooms.keySet()), lockedRooms);
     }
 
     /**
      * Locks of one path as the player sees them: a room stays open when another published path unlocks it.
      */
     public Locks playerLocks(Long pathId, PathUnlockMode mode, Long userId) {
-        Locks own = locks(pathId, mode, userId);
-        if (own.roomIds().isEmpty()) return own;
-        Set<Long> locked = new HashSet<>(own.roomIds());
-        locked.removeAll(unlocked(chapterRoomRepository.findPublishedPathsOfRooms(own.roomIds()), pathId, userId));
-        return new Locks(own.chapterIds(), locked);
+        Progress own = progress(pathId, mode, userId);
+        if (own.chapterOfLockedRoom().isEmpty()) return own.locks();
+        Set<Long> locked = new HashSet<>(own.locks().roomIds());
+        locked.removeAll(unlocked(chapterRoomRepository.findPublishedPathsOfRooms(locked), pathId, userId));
+        Set<Long> lockedChapters = new HashSet<>();
+        for (Long roomId : locked) {
+            Long chapterId = own.chapterOfLockedRoom().get(roomId);
+            if (own.locks().chapterIds().contains(chapterId)) lockedChapters.add(chapterId);
+        }
+        return new Locks(lockedChapters, locked);
     }
 
     public void requireUnlocked(Long roomId, Long userId) {
