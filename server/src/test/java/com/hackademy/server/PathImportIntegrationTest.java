@@ -91,12 +91,11 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void appendsDraftRoomsWithoutChangingExistingPublishedContentOrProgress() throws Exception {
+    void appendsRoomsToAPublishedPathWithoutChangingExistingContentOrProgress() throws Exception {
         var admin = account(Role.ADMIN); var user = account(Role.USER);
         String path = upload(admin, document().toString(), 201);
         long id = number(path, "$.id"), chapter = number(path, "$.chapters[0].id"), first = number(path, "$.chapters[0].roomIds[0]");
         jdbcTemplate.update("UPDATE paths SET published = true, banner_url = 'https://example.com/banner.png' WHERE id = ?", id);
-        jdbcTemplate.update("UPDATE rooms SET published = true WHERE id IN (SELECT room_id FROM chapter_rooms WHERE chapter_id = ?)", chapter);
         jdbcTemplate.update("UPDATE chapter_rooms SET sort_order = 7 WHERE room_id = ?", first);
         jdbcTemplate.update("INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (?, ?, now())", user.id(), first);
         jdbcTemplate.update("INSERT INTO path_enrollments (user_id, path_id, enrolled_at) VALUES (?, ?, now())", user.id(), id);
@@ -107,13 +106,13 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         assertEquals(before, jdbcTemplate.queryForList("SELECT r.* FROM rooms r WHERE r.id IN (?, ?) ORDER BY r.id", first, number(path, "$.chapters[0].roomIds[1]")));
         assertEquals(number(path, "$.revision") + 1, number(updated, "$.revision"));
         assertEquals(number(path, "$.contentRevision") + 1, number(updated, "$.contentRevision"));
-        var added = jdbcTemplate.queryForList("SELECT r.published, r.title, cr.sort_order FROM rooms r JOIN chapter_rooms cr ON cr.room_id = r.id WHERE cr.chapter_id = ? AND cr.sort_order > 7 ORDER BY cr.sort_order", chapter);
+        var added = jdbcTemplate.queryForList("SELECT r.title, cr.sort_order FROM rooms r JOIN chapter_rooms cr ON cr.room_id = r.id WHERE cr.chapter_id = ? AND cr.sort_order > 7 ORDER BY cr.sort_order", chapter);
         assertEquals(List.of("Nowy terminal", "Nowa flaga"), added.stream().map(r -> r.get("title")).toList());
         assertEquals(List.of(8, 9), added.stream().map(r -> r.get("sort_order")).toList());
-        assertTrue(added.stream().allMatch(r -> r.get("published").equals(false)));
         assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE user_id = ? AND room_id = ?", Integer.class, user.id(), first));
         assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM path_enrollments WHERE user_id = ? AND path_id = ?", Integer.class, user.id(), id));
-        getAs(user, "/api/rooms/" + number(updated, "$.chapters[0].roomIds[2]")).andExpect(status().isNotFound());
+        // A published path shows its imported rooms at once: the room is locked by the path queue, not hidden.
+        getAs(user, "/api/rooms/" + number(updated, "$.chapters[0].roomIds[2]")).andExpect(status().isForbidden());
     }
 
     @Test
@@ -155,8 +154,8 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         long id = number(path, "$.id"), chapter = number(path, "$.chapters[0].id");
         jdbcTemplate.update("""
                 WITH created AS (
-                  INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at, published)
-                  SELECT 'Capacity ' || n, 'd', 'EASY', 'Linux', 30, 0, false, 'PATH', now(), now(), false FROM generate_series(1, 498) n RETURNING id
+                  INSERT INTO rooms (title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at)
+                  SELECT 'Capacity ' || n, 'd', 'EASY', 'Linux', 30, 0, false, 'PATH', now(), now() FROM generate_series(1, 498) n RETURNING id
                 ) INSERT INTO chapter_rooms(room_id, chapter_id, sort_order) SELECT id, ?, row_number() OVER (ORDER BY id) + 1 FROM created
                 """, chapter);
         var before = counts(); String response = append(admin, id, target(path), batch(), 400);
@@ -217,12 +216,11 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         assertEquals(false, JsonPath.read(response, "$.published"));
         assertEquals(List.of("Pierwsze kroki", "Powtórka"), JsonPath.read(response, "$.chapters[*].title"));
         var rows = jdbcTemplate.queryForList("""
-                SELECT r.id, r.title, r.published, r.room_type, r.points, r.requires_vpn, cr.sort_order
+                SELECT r.id, r.title, r.room_type, r.points, r.requires_vpn, cr.sort_order
                 FROM rooms r JOIN chapter_rooms cr ON cr.room_id = r.id
                 JOIN path_chapters c ON c.id = cr.chapter_id WHERE c.path_id = ? ORDER BY c.sort_order, cr.sort_order
                 """, id);
         assertEquals(List.of("Terminal", "Znajdź flagę", "Znajdź flagę"), rows.stream().map(r -> r.get("title")).toList());
-        assertTrue(rows.stream().allMatch(r -> r.get("published").equals(false)));
         assertEquals(List.of("PATH", "CTF", "CTF"), rows.stream().map(r -> r.get("room_type")).toList());
         assertEquals(List.of(30, 50, 50), rows.stream().map(r -> r.get("points")).toList());
         long flagRoom = ((Number) rows.get(1).get("id")).longValue();

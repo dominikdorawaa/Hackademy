@@ -12,7 +12,7 @@ beforeAll(() => {
   Element.prototype.scrollIntoView = () => undefined;
 });
 const room = (id: number, title: string, pathId: number | null = 5): RoomAdminSummaryDto => ({ id, title, roomType: 'PATH', paths: pathId == null ? [] : [{ id: pathId, title: `Ścieżka ${pathId}`, published: true }],
-  requiresVpn: id === 9, difficulty: 'EASY', points: 50, category: 'Path', published: id !== 11 });
+  requiresVpn: id === 9, difficulty: 'EASY', points: 50, category: 'Path' });
 function Chapters({ create, edit }: { create: (index: number) => void; edit: (id: number) => void }) {
   const [chapters, setChapters] = useState<ChapterRequest[]>([{ id: 1, title: 'Wstęp', roomIds: [9, 10] }, { id: 2, title: 'Dalej', roomIds: [] }]);
   return <form><ContentChapters chapters={chapters} rooms={[room(9, 'VPN'), room(10, 'HTTP'), room(11, 'Wolny', null), room(12, 'Obca ścieżka', 6)]} pathId={5} errors={{}} onChange={setChapters} onCreateRoom={create} onRoom={edit} canDelete />
@@ -20,11 +20,11 @@ function Chapters({ create, edit }: { create: (index: number) => void; edit: (id
 }
 function Tasks() {
   const [tasks, setTasks] = useState<RoomTaskRequest[]>([{ id: 1, title: 'Lektura', content: 'Treść', question: null, answer: null }, { id: 2, title: 'Quiz', content: 'Pytanie', question: 'Q?', answer: 'A' }]);
-  return <form><ContentTasks tasks={tasks} kind="PATH" errors={{}} published onChange={setTasks} /><output data-testid="tasks-state">{JSON.stringify(tasks)}</output></form>;
+  return <form><ContentTasks tasks={tasks} kind="PATH" errors={{}} ready onChange={setTasks} /><output data-testid="tasks-state">{JSON.stringify(tasks)}</output></form>;
 }
-function CtfTasks({ published = true }: { published?: boolean }) {
+function CtfTasks({ ready = true }: { ready?: boolean }) {
   const [tasks, setTasks] = useState<RoomTaskRequest[]>([{ id: 1, title: 'Flaga', content: 'Szukaj', question: null, answer: 'HACK{a}' }, { id: 2, title: 'Z teorii', content: 'Treść', question: 'Stare pytanie?', answer: 'x' }]);
-  return <form><ContentTasks tasks={tasks} kind="CTF" errors={{}} published={published} onChange={setTasks} /><output data-testid="tasks-state">{JSON.stringify(tasks)}</output></form>;
+  return <form><ContentTasks tasks={tasks} kind="CTF" errors={{}} ready={ready} onChange={setTasks} /><output data-testid="tasks-state">{JSON.stringify(tasks)}</output></form>;
 }
 function state(name: string) { return JSON.parse(screen.getByTestId(`${name}-state`).textContent ?? '[]'); }
 
@@ -45,12 +45,13 @@ describe('content structure editing', () => {
     const user = userEvent.setup(); render(<Chapters create={vi.fn()} edit={vi.fn()} />);
     const pool = within(screen.getByRole('list', { name: 'Dostępne pokoje' }));
     expect(pool.getByText('Obca ścieżka')).toBeInTheDocument();
-    expect(pool.getByText('Opublikowany · W 1 innej ścieżce')).toHaveAttribute('title', 'Ścieżka 6');
-    expect(pool.getByText('Szkic · Nieprzypisany')).toBeInTheDocument();
+    expect(pool.getByText('W 1 innej ścieżce')).toHaveAttribute('title', 'Ścieżka 6');
+    expect(pool.getByText('Nieprzypisany')).toBeInTheDocument();
     expect(pool.queryByText('VPN')).toBeNull();
     await user.click(screen.getByRole('button', { name: 'Wyjmij HTTP z rozdziału' }));
     expect(within(screen.getByRole('list', { name: 'Dostępne pokoje' })).getByText('HTTP')).toBeInTheDocument();
-    expect(screen.getAllByText('Opublikowany · Nieprzypisany')).toHaveLength(1);
+    expect(screen.getAllByText('Nieprzypisany')).toHaveLength(2);
+    expect(screen.queryByText(/Opublikowany|Szkic/)).toBeNull();
     await user.type(screen.getByRole('textbox', { name: 'Szukaj w puli' }), 'OBCA');
     expect(within(screen.getByRole('list', { name: 'Dostępne pokoje' })).getAllByRole('listitem')).toHaveLength(1);
   });
@@ -100,7 +101,7 @@ describe('content structure editing', () => {
     expect(state('tasks')[1]).toMatchObject({ id: 2, question: 'Stare pytanie?', answer: 'x' });
   });
   it('does not require a flag in a CTF draft', async () => {
-    const user = userEvent.setup(); render(<CtfTasks published={false} />);
+    const user = userEvent.setup(); render(<CtfTasks ready={false} />);
     await user.click(screen.getByRole('button', { name: /^Flaga/ }));
     expect(screen.getByLabelText('Flaga')).toBeInTheDocument();
   });

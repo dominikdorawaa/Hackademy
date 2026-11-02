@@ -8,10 +8,10 @@ export interface PathSave {
   published: boolean; chapters: ChapterRequest[]; unlockMode: PathUnlockMode;
 }
 export interface RoomSave extends RoomWriteRequest {
-  revision: number; tasksRevision: number; published: boolean; tasks: RoomTaskRequest[]; hints: string[];
+  revision: number; tasksRevision: number; tasks: RoomTaskRequest[]; hints: string[];
   pathId?: number; chapterId?: number; pathRevision?: number; parentDraft?: PathSave; chapterIndex?: number;
 }
-export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null; paths?: RoomPathDto[] }
+export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null; paths?: RoomPathDto[]; live?: boolean }
 export interface RoomImportTarget { chapterId: number; contentRevision: number; chaptersRevision: number }
 export class ContentError extends Error {
   fields: FieldErrors;

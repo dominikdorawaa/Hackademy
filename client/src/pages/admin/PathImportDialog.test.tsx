@@ -191,7 +191,7 @@ describe('import into an existing path', () => {
     expect(screen.getByRole('link', { name: 'Pobierz przykład' })).toHaveAttribute('download', 'przyklad-pokoi.json');
     const copy = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
     await user.click(screen.getByRole('button', { name: 'Kopiuj przykład' })); expect(copy).toHaveBeenCalledWith(sample);
-    const file = choose(); await user.click(screen.getByRole('button', { name: 'Dodaj pokoje jako szkice' }));
+    const file = choose(); await user.click(screen.getByRole('button', { name: 'Dodaj pokoje' }));
     await waitFor(() => expect(complete).toHaveBeenCalledWith(imported));
     expect(upload).toHaveBeenCalledWith(12, { chapterId: 22, contentRevision: 7, chaptersRevision: 4 }, file, expect.any(String));
     expect(router.state.location.pathname).toBe('/admin/paths');
@@ -202,7 +202,7 @@ describe('import into an existing path', () => {
     const user = userEvent.setup(); mount(existing);
     await user.click(await screen.findByRole('button', { name: 'Importuj pokoje z JSON' }));
     await user.selectOptions(screen.getByLabelText('Dodaj do rozdziału'), '22'); const file = choose();
-    await user.click(screen.getByRole('button', { name: 'Dodaj pokoje jako szkice' }));
+    await user.click(screen.getByRole('button', { name: 'Dodaj pokoje' }));
     expect(await screen.findByText('Ścieżka zmieniła się w międzyczasie.')).toBeInTheDocument();
     expect(screen.getByLabelText('Dodaj do rozdziału')).toHaveValue('22');
     expect(screen.getByText(file.name)).toBeInTheDocument();

@@ -118,13 +118,15 @@ class RoomSolveConcurrencyTest {
     }
 
     private Room room(DifficultyLevel difficulty) {
-        return roomRepository.save(Room.builder()
+        Room room = roomRepository.save(Room.builder()
                 .title("Race " + UUID.randomUUID())
                 .description("Concurrency test")
                 .difficulty(difficulty)
                 .category("Test")
                 .points(difficulty.ctfPoints())
                 .build());
+        PublishedPaths.publishInPath(jdbcTemplate, room.getId());
+        return room;
     }
 
     @SafeVarargs

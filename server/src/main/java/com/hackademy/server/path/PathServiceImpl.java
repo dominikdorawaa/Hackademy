@@ -16,6 +16,7 @@ import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import com.hackademy.server.room.Room;
+import com.hackademy.server.room.RoomReadiness;
 import com.hackademy.server.room.RoomRepository;
 import com.hackademy.server.room.RoomRuleException;
 import com.hackademy.server.room.UserSolvedRoomRepository;
@@ -385,6 +386,15 @@ public class PathServiceImpl implements PathService {
         validateChapterTitles(request.chapters().stream()
                 .map(chapter -> chapter.roomIds() == null ? List.<Long>of() : chapter.roomIds())
                 .toList(), validateRooms(allRoomIds));
+        // Players see every room of a published path at once, so only ready rooms may join it.
+        if (path.isPublished() && !allRoomIds.isEmpty()) {
+            for (Room room : roomRepository.findAllWithTasksByIdIn(allRoomIds)) {
+                List<String> missing = RoomReadiness.problems(room);
+                if (!missing.isEmpty()) {
+                    throw new IllegalArgumentException("Pokój „" + room.getTitle() + "” nie jest gotowy: " + String.join(", ", missing));
+                }
+            }
+        }
 
         chapterRoomRepository.deleteByPathId(id);
         pathChapterRepository.deleteAll(removed);

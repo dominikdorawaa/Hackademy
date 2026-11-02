@@ -435,7 +435,6 @@ export interface RoomDto {
 }
 
 export interface RoomAdminSummaryDto {
-  published?: boolean;
   contentRevision?: number;
   id: number
   title: string
@@ -454,7 +453,6 @@ export interface RoomPathDto {
 }
 
 export interface RoomAdminDto {
-  published?: boolean;
   contentRevision?: number;
   id: number
   title: string

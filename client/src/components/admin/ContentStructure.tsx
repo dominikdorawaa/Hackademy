@@ -67,7 +67,6 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
                   <RoomTypeIcon type={room?.roomType} labelled className="size-3.5 shrink-0 text-muted-foreground" />
                   <button type="button" className="min-w-0 flex-1 basis-28 truncate text-left font-medium underline-offset-4 hover:text-primary hover:underline" onClick={() => onRoom(id)}>{title}</button>
                   {room?.requiresVpn && <Lock className="size-3.5 text-muted-foreground" aria-label="Wymaga VPN" />}
-                  {room?.published === false ? <Badge variant="secondary" className="text-[10px]">Szkic</Badge> : <span className="text-[10px] text-muted-foreground">Opublikowany</span>}
                   <div className="ml-auto flex shrink-0 items-center">
                     {chapters.length > 1 && <Select value="" onValueChange={value => {
                       if (!value) return;
@@ -97,7 +96,7 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
           <Select value={chapters.length ? String(target) : ''} onValueChange={value => { if (value) setTargetIndex(Number(value)); }} disabled={!chapters.length}><SelectTrigger id="content-chapter-target" size="sm" className="w-full"><SelectValue placeholder="Dodaj najpierw rozdział" /></SelectTrigger><SelectContent>{chapters.map((c, i) => <SelectItem key={i} value={String(i)}>{i + 1}. {c.title.trim() || 'Bez nazwy'}</SelectItem>)}</SelectContent></Select>
         </div>
         <div className="relative mb-3"><Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><Input aria-label="Szukaj w puli" value={query} onChange={e => setQuery(e.target.value)} placeholder="Szukaj pokoju…" className="h-8 pl-8 text-sm" /></div>
-        {pool.length ? <ul className="max-h-96 space-y-1 overflow-y-auto" aria-label="Dostępne pokoje">{pool.map(r => <li key={r.id} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-accent/50"><RoomTypeIcon type={r.roomType} labelled className="size-3.5 shrink-0 text-muted-foreground" /><span className="grid min-w-0 flex-1"><span className="truncate text-sm" title={r.title}>{r.title}</span><span className="truncate text-xs text-muted-foreground" title={poolStatus(r.paths, pathId).title}>{r.published === false ? 'Szkic' : 'Opublikowany'} · {poolStatus(r.paths, pathId).label}</span></span><Button type="button" variant="ghost" size="icon-xs" disabled={!chapters.length} aria-label={`Dodaj ${r.title} do rozdziału`} onClick={() => update(target, { roomIds: [...(chapters[target]?.roomIds ?? []), r.id] })}><Plus /></Button></li>)}</ul> : <p className="rounded-md border border-dashed px-3 py-5 text-center text-xs leading-relaxed text-muted-foreground">{query ? 'Brak pasujących pokoi.' : 'Wszystkie pokoje są już w tej ścieżce. Utwórz nowy bezpośrednio w rozdziale.'}</p>}
+        {pool.length ? <ul className="max-h-96 space-y-1 overflow-y-auto" aria-label="Dostępne pokoje">{pool.map(r => <li key={r.id} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-accent/50"><RoomTypeIcon type={r.roomType} labelled className="size-3.5 shrink-0 text-muted-foreground" /><span className="grid min-w-0 flex-1"><span className="truncate text-sm" title={r.title}>{r.title}</span><span className="truncate text-xs text-muted-foreground" title={poolStatus(r.paths, pathId).title}>{poolStatus(r.paths, pathId).label}</span></span><Button type="button" variant="ghost" size="icon-xs" disabled={!chapters.length} aria-label={`Dodaj ${r.title} do rozdziału`} onClick={() => update(target, { roomIds: [...(chapters[target]?.roomIds ?? []), r.id] })}><Plus /></Button></li>)}</ul> : <p className="rounded-md border border-dashed px-3 py-5 text-center text-xs leading-relaxed text-muted-foreground">{query ? 'Brak pasujących pokoi.' : 'Wszystkie pokoje są już w tej ścieżce. Utwórz nowy bezpośrednio w rozdziale.'}</p>}
 
       </aside>
     </div>
@@ -109,9 +108,9 @@ const taskLimits: Record<TaskField, number> = { title: 255, content: 20000, ques
 function taskFields(kind: RoomType, task: RoomTaskRequest): TaskField[] {
   return kind === 'CTF' && !task.question?.trim() ? ['title', 'content', 'answer'] : ['title', 'content', 'question', 'answer'];
 }
-function taskRequired(kind: RoomType, field: TaskField, task: RoomTaskRequest, published: boolean) {
+function taskRequired(kind: RoomType, field: TaskField, task: RoomTaskRequest, ready: boolean) {
   if (field === 'title') return true;
-  if (!published) return false;
+  if (!ready) return false;
   if (field === 'content') return true;
   if (field === 'answer') return kind === 'CTF' || !!task.question?.trim();
   return kind === 'PATH' && !!task.answer?.trim();
@@ -120,7 +119,7 @@ function taskBadge(kind: RoomType, task: RoomTaskRequest) {
   if (kind === 'CTF') return task.answer?.trim() ? 'Z flagą' : 'Bez flagi';
   return task.question?.trim() ? 'Z pytaniem' : 'Lektura';
 }
-export function ContentTasks({ tasks, kind, errors, published, onChange }: { tasks: RoomTaskRequest[]; kind: RoomType; errors: FieldErrors; published: boolean; onChange: (tasks: RoomTaskRequest[]) => void }) {
+export function ContentTasks({ tasks, kind, errors, ready, onChange }: { tasks: RoomTaskRequest[]; kind: RoomType; errors: FieldErrors; ready: boolean; onChange: (tasks: RoomTaskRequest[]) => void }) {
   const [open, setOpen] = useState<Set<number>>(new Set());
   const ctf = kind === 'CTF';
   const update = (index: number, field: keyof RoomTaskRequest, value: string) => onChange(tasks.map((t, i) => i === index ? { ...t, [field]: value } : t));
@@ -147,7 +146,7 @@ export function ContentTasks({ tasks, kind, errors, published, onChange }: { tas
           </div>
         </header>
         {expanded && <div id={`content-task-${index}-panel`} className="grid gap-4 border-t px-4 py-4 md:grid-cols-2">
-          {taskFields(kind, task).map(field => <div key={field} className={field === 'title' || field === 'content' || ctf ? 'md:col-span-2' : ''}><TextField name={`tasks.${index}.${field}`} label={labels[field]} value={task[field] ?? ''} limit={taskLimits[field]} multiline={field === 'content'} mono={ctf && field === 'answer'} placeholder={ctf && field === 'answer' ? 'HACK{...}' : undefined} required={taskRequired(kind, field, task, published)} error={errors[`tasks.${index}.${field}`]} onChange={value => update(index, field, value)} /></div>)}
+          {taskFields(kind, task).map(field => <div key={field} className={field === 'title' || field === 'content' || ctf ? 'md:col-span-2' : ''}><TextField name={`tasks.${index}.${field}`} label={labels[field]} value={task[field] ?? ''} limit={taskLimits[field]} multiline={field === 'content'} mono={ctf && field === 'answer'} placeholder={ctf && field === 'answer' ? 'HACK{...}' : undefined} required={taskRequired(kind, field, task, ready)} error={errors[`tasks.${index}.${field}`]} onChange={value => update(index, field, value)} /></div>)}
           <p className="text-xs leading-relaxed text-muted-foreground md:col-span-2">{ctf ? 'Wielkość liter we fladze ma znaczenie. ' : ''}Treść obsługuje podstawowe formatowanie HTML. Usunięcie zadania usuwa również postęp graczy w tym zadaniu.</p>
         </div>}
       </li>;

@@ -181,7 +181,9 @@ describe('admin panel layout', () => {
     expect(ctfRow.getByRole('link', { name: 'Edytuj Web 1' })).toHaveAttribute('href', '/admin/paths/rooms/1');
     const lessonRow = within(screen.getByRole('link', { name: 'Lekcja' }).closest('tr')!);
     expect(lessonRow.queryByText('CTF')).toBeNull();
-    expect(lessonRow.getByText('Bez ścieżki')).toBeInTheDocument();
+    expect(lessonRow.getAllByText('Bez ścieżki')).not.toHaveLength(0);
+    expect(screen.queryByText('Opublikowany')).toBeNull();
+    expect(screen.queryByText('Szkic')).toBeNull();
     expect(screen.queryByText(/\d+ z \d+/)).toBeNull();
   });
 
@@ -291,7 +293,7 @@ describe('content editors', () => {
   it('blocks an existing room after load failure and preserves hints after retry', async () => {
     signIn('ADMIN'); let loads = 0;
     const existing = { id: 9, title: 'CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web', points: 100,
-      solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'], published: true, contentRevision: 2, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+      solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'], contentRevision: 2, createdAt: '2026-10-10T10:00:00', updatedAt: null };
     const detail = { room: existing, tasks: { revision: 0, tasks: [{ id: 3, title: 'Flaga', content: 'Znajdź flagę', question: null, answer: 'CTF{x}' }] } };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => ++loads === 1 ? HttpResponse.json({ message: 'Nie udało się wczytać pokoju' }, { status: 500 }) : HttpResponse.json(detail)));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue(detail as contentApi.RoomEditor);
@@ -304,22 +306,23 @@ describe('content editors', () => {
     expect(screen.getByRole('radio', { name: 'CTF' })).toBeChecked();
     expect(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' })).toBeInTheDocument();
     await user.type(screen.getByLabelText('Tytuł *'), ' zmieniony');
-    await user.click(screen.getByRole('button', { name: 'Zapisz zmiany' }));
-    expect(await screen.findByText('Zapisano opublikowany pokój.')).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findByText('Zapisano pokój.')).toBeInTheDocument();
     expect(save.mock.calls[0][1].hints).toEqual(['Zachowana podpowiedź']);
   });
   it('saves an incomplete room as a draft and keeps the new room available for preview', async () => {
     signIn('ADMIN');
     const created = { id: 9, title: 'Nowy CTF', description: '', shortDescription: '', difficulty: 'EASY', category: 'Path', points: 0,
-      solutionsCount: 0, requiresVpn: false, roomType: 'PATH', hints: [], published: false, contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+      solutionsCount: 0, requiresVpn: false, roomType: 'PATH', hints: [], contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: created, tasks: { revision: 0, tasks: [] } })));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 0, tasks: [] } } as contentApi.RoomEditor);
     const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/new');
     await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy CTF');
     expect(screen.getByRole('radio', { name: 'Teoria' })).toBeChecked();
-    await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
-    expect(await screen.findByText('Zapisano szkic pokoju.')).toBeInTheDocument();
-    expect(save.mock.calls[0][1]).toMatchObject({ published: false, description: '', roomType: 'PATH' });
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findByText('Zapisano pokój.')).toBeInTheDocument();
+    expect(save.mock.calls[0][1]).toMatchObject({ description: '', roomType: 'PATH' });
+    expect(save.mock.calls[0][1]).not.toHaveProperty('published');
     expect(save.mock.calls[0][1]).not.toHaveProperty('flag');
     expect(await screen.findByRole('heading', { level: 1, name: 'Nowy CTF' })).toBeInTheDocument();
   });

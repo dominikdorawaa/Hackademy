@@ -73,7 +73,7 @@ export default function PathImportDialog({ existing, requestOpen, onImported, di
     <DialogContent className="max-h-[90dvh] overflow-y-auto sm:max-w-2xl" showCloseButton={!busy}>
       <DialogHeader>
         <DialogTitle>{existing ? 'Dodaj pokoje z JSON' : 'Import ścieżki z JSON'}</DialogTitle>
-        <DialogDescription>{existing ? 'Nowe pokoje dopiszemy na końcu wybranego rozdziału jako szkice. Istniejące pokoje i postępy pozostaną bez zmian.' : 'Utwórz nową ścieżkę z rozdziałami i pokojami jako szkic. Bannery, pliki i publikację dodasz później w edytorze.'}</DialogDescription>
+        <DialogDescription>{existing ? 'Nowe pokoje dopiszemy na końcu wybranego rozdziału. W opublikowanej ścieżce gracze zobaczą je od razu. Istniejące pokoje i postępy pozostaną bez zmian.' : 'Utwórz nową ścieżkę z rozdziałami i pokojami jako szkic. Bannery, pliki i publikację dodasz później w edytorze.'}</DialogDescription>
       </DialogHeader>
       <form onSubmit={event => { event.preventDefault(); void submit(); }} className="grid min-w-0 gap-4" aria-busy={busy}>
         {existing && <div className="grid gap-2 rounded-lg border bg-muted/20 p-3">
@@ -100,7 +100,7 @@ export default function PathImportDialog({ existing, requestOpen, onImported, di
         </details>
         <div className="flex flex-wrap justify-end gap-2">
           <Button type="button" variant="outline" disabled={busy} onClick={() => changeOpen(false)}>Anuluj</Button>
-          <Button type="submit" disabled={!file || busy || !!existing && !selectedChapter}>{busy ? 'Importowanie…' : existing ? 'Dodaj pokoje jako szkice' : 'Importuj jako szkic'}</Button>
+          <Button type="submit" disabled={!file || busy || !!existing && !selectedChapter}>{busy ? 'Importowanie…' : existing ? 'Dodaj pokoje' : 'Importuj jako szkic'}</Button>
         </div>
       </form>
     </DialogContent>

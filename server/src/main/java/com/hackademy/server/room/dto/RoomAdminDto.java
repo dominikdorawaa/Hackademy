@@ -9,7 +9,6 @@ import java.util.List;
 @Builder
 public record RoomAdminDto(
     Long id,
-    boolean published,
     long contentRevision,
     String title,
     String description,

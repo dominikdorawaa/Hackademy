@@ -36,7 +36,7 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Chapte
               cr.room_id AS roomId,
               (usr.room_id IS NOT NULL) AS solved
             FROM path_chapters pc
-            LEFT JOIN (chapter_rooms cr JOIN rooms r ON r.id = cr.room_id AND r.published = true)
+            LEFT JOIN chapter_rooms cr
               ON cr.chapter_id = pc.id
             LEFT JOIN user_solved_rooms usr
               ON usr.room_id = cr.room_id AND usr.user_id = :userId
@@ -107,7 +107,7 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Chapte
             JOIN rooms r ON r.id = cr.room_id
             LEFT JOIN user_solved_rooms usr
               ON usr.room_id = r.id AND usr.user_id = :userId
-            WHERE pc.path_id = :pathId AND r.published = true
+            WHERE pc.path_id = :pathId
             ORDER BY pc.sort_order ASC, pc.id ASC, cr.sort_order ASC, cr.room_id ASC
             LIMIT :limit
             """, nativeQuery = true)

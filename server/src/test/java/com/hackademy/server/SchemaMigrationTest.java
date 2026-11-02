@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 38;
+    static final int SCHEMA_VERSION = 39;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -648,6 +648,45 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
     }
 
     @Test
+    void dropsRoomPublishingAndDetachesDraftsFromPublishedPathsWithoutTouchingProgress() throws Exception {
+        flyway("38").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        execute("""
+                INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, published, created_at, updated_at) VALUES
+                (1, 'Gotowy', 'Opis', 'EASY', 'Web', 50, 1, false, 'CTF', true, now(), now()),
+                (2, 'Szkic w opublikowanej', '', 'EASY', 'Web', 50, 0, false, 'CTF', false, now(), now()),
+                (3, 'Szkic w szkicu', '', 'EASY', 'Path', 10, 0, false, 'PATH', false, now(), now()),
+                (4, 'Gotowy w szkicu', 'Opis', 'EASY', 'Path', 10, 0, false, 'PATH', true, now(), now()),
+                (5, 'Luźny', 'Opis', 'EASY', 'Web', 50, 1, false, 'CTF', true, now(), now());
+                INSERT INTO room_tasks (id, room_id, title, content, answer, sort_order) VALUES (10, 1, 'Flaga', '<p>x</p>', 'F{1}', 0), (50, 5, 'Flaga', '<p>x</p>', 'F{5}', 0);
+                INSERT INTO paths (id, title, description, published, unlock_mode, chapters_revision, content_revision, created_at, updated_at) VALUES
+                (101, 'Opublikowana', 'Opis', true, 'OPEN', 2, 3, now(), now()),
+                (102, 'Szkic', '', false, 'OPEN', 4, 5, now(), now());
+                INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES
+                (101, 101, 'Rozdział', 0, now(), now()), (102, 102, 'Rozdział', 0, now(), now());
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 101, 0), (2, 101, 1), (3, 102, 0), (4, 102, 1);
+                INSERT INTO user_solved_rooms (user_id, room_id, solved_at, awarded_points) VALUES (1, 1, now(), 50), (1, 5, now(), 50);
+                INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (1, 10, now()), (1, 50, now());
+                """);
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals(0, scalar("SELECT count(*) FROM information_schema.columns WHERE table_schema = current_schema() AND table_name = 'rooms' AND column_name = 'published'"));
+        assertEquals(5, scalar("SELECT count(*) FROM rooms"));
+        assertEquals("1:101|3:102|4:102", text("""
+                SELECT string_agg(cr.room_id || ':' || pc.path_id, '|' ORDER BY cr.room_id) FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id
+                """));
+        assertEquals("101:3:4:true|102:4:5:false", text("""
+                SELECT string_agg(id || ':' || chapters_revision || ':' || content_revision || ':' || published, '|' ORDER BY id) FROM paths WHERE id > 100
+                """));
+        assertEquals("1:1:50,1:5:50", text("SELECT string_agg(user_id || ':' || room_id || ':' || awarded_points, ',' ORDER BY room_id) FROM user_solved_rooms"));
+        assertEquals(2, scalar("SELECT count(*) FROM user_completed_tasks WHERE user_id = 1"));
+        assertEquals(2, scalar("SELECT count(*) FROM room_tasks"));
+        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertTrue(flyway().validateWithResult().validationSuccessful);
+    }
+
+    @Test
     void letsARoomJoinManyPathsButOnlyOneChapterOfEach() throws Exception {
         flyway("37").migrate();
         execute("""
@@ -660,7 +699,7 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 10, 0), (2, 11, 0);
                 """);
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("38").migrate().migrationsExecuted);
 
         assertEquals("1:10:101:0|2:11:101:0", text("SELECT string_agg(room_id || ':' || chapter_id || ':' || path_id || ':' || sort_order, '|' ORDER BY room_id) FROM chapter_rooms"));
         execute("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (1, 20, 0)");

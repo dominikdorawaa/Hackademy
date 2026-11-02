@@ -496,6 +496,7 @@ class RealtimeIntegrationTest {
         befriend(me, friend);
         var room = rooms.saveAndFlush(Room.builder().title("Ukryty skarb " + UUID.randomUUID()).description("test").difficulty(DifficultyLevel.EASY)
                 .category("test").points(10).requiresVpn(false).build());
+        PublishedPaths.publishInPath(dataSource, room.getId());
         try (var watcher = connected(friend)) {
             var tab = connected(me);
             assertEquals(true, friendField(watcher, "online"));

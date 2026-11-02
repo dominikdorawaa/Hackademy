@@ -13,15 +13,14 @@ public record RoomAdminSummaryDto(
     int points,
     boolean requiresVpn,
     RoomType roomType,
-    boolean published,
     List<RoomPathDto> paths
 ) {
     public RoomAdminSummaryDto(Long id, String title, String category, DifficultyLevel difficulty, int points,
-                               boolean requiresVpn, RoomType roomType, boolean published) {
-        this(id, title, category, difficulty, points, requiresVpn, roomType, published, List.of());
+                               boolean requiresVpn, RoomType roomType) {
+        this(id, title, category, difficulty, points, requiresVpn, roomType, List.of());
     }
 
     public RoomAdminSummaryDto withPaths(List<RoomPathDto> paths) {
-        return new RoomAdminSummaryDto(id, title, category, difficulty, points, requiresVpn, roomType, published, paths);
+        return new RoomAdminSummaryDto(id, title, category, difficulty, points, requiresVpn, roomType, paths);
     }
 }
