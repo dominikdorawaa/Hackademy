@@ -3,7 +3,13 @@ package com.hackademy.server;
 import com.hackademy.server.user.Role;
 import com.jayway.jsonpath.JsonPath;
 import org.junit.jupiter.api.Test;
+import com.hackademy.server.content.ContentRequests;
+import com.hackademy.server.content.ContentService;
+import com.hackademy.server.content.ContentValidation;
 import com.hackademy.server.path.PathService;
+import com.hackademy.server.room.DifficultyLevel;
+import com.hackademy.server.room.RoomType;
+import com.hackademy.server.room.dto.RoomTaskRequest;
 import com.hackademy.server.path.dto.ChapterRequest;
 import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
@@ -36,6 +42,7 @@ import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.
 
 class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     @Autowired private PathService pathService;
+    @Autowired private ContentService contentService;
     @Autowired private PlatformTransactionManager transactionManager;
 
     @Test
@@ -145,6 +152,36 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void roomSaveWaitsForAConcurrentPathPublicationAndThenKeepsTheRoomReady() throws Exception {
+        var admin = account(Role.ADMIN);
+        long room = createRoom(admin, uniqueTitle("Racing room"), "PATH");
+        long task = addFlagTask(room, "flag");
+        long path = createPath(admin, List.of());
+        jdbcTemplate.update("UPDATE paths SET published = false WHERE id = ?", path);
+        long chapter = chapterIds(admin, path).get(0);
+        var revisions = jdbcTemplate.queryForMap("SELECT content_revision, chapters_revision FROM paths WHERE id = ?", path);
+        var roomRevisions = jdbcTemplate.queryForMap("SELECT content_revision, tasks_revision, title FROM rooms WHERE id = ?", room);
+
+        assertRoomOperationWaitsAndRejects(
+                () -> contentService.savePath(path, new ContentRequests.PathSave(((Number) revisions.get("content_revision")).longValue(),
+                        ((Number) revisions.get("chapters_revision")).longValue(), uniqueTitle("Published"), "Opis", null, true,
+                        List.of(new ChapterRequest(chapter, "A", List.of(room))), null), null, true),
+                () -> {
+                    try {
+                        contentService.saveRoom(room, new ContentRequests.RoomSave(((Number) roomRevisions.get("content_revision")).longValue(),
+                                ((Number) roomRevisions.get("tasks_revision")).longValue(), (String) roomRevisions.get("title"), "", "",
+                                DifficultyLevel.EASY, "Web", 50, false, RoomType.PATH, List.of(),
+                                List.of(new RoomTaskRequest(task, "Zdobądź flagę", "Znajdź flagę", "Jaka jest flaga?", "flag")),
+                                null, null, null, null, null), null);
+                    } catch (java.io.IOException e) {
+                        throw new java.io.UncheckedIOException(e);
+                    }
+                },
+                ContentValidation.InvalidContent.class);
+        assertEquals("description", jdbcTemplate.queryForObject("SELECT description FROM rooms WHERE id = ?", String.class, room));
+    }
+
+    @Test
     void concurrentAssignmentCannotStealAnotherPathsRoom() throws Exception {
         var admin = account(Role.ADMIN);
         long room = createRoom(admin, uniqueTitle("Concurrent assignment"), "PATH");
@@ -168,6 +205,10 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     }
 
     private void assertRoomOperationWaitsAndRejects(Runnable first, Runnable second) throws Exception {
+        assertRoomOperationWaitsAndRejects(first, second, IllegalArgumentException.class);
+    }
+
+    private void assertRoomOperationWaitsAndRejects(Runnable first, Runnable second, Class<? extends Throwable> rejection) throws Exception {
         var executor = Executors.newFixedThreadPool(2);
         var ready = new CountDownLatch(1);
         var release = new CountDownLatch(1);
@@ -198,7 +239,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
             release.countDown();
             holder.get(10, TimeUnit.SECONDS);
             var rejected = assertThrows(ExecutionException.class, () -> contender.get(10, TimeUnit.SECONDS));
-            assertInstanceOf(IllegalArgumentException.class, rejected.getCause());
+            assertInstanceOf(rejection, rejected.getCause());
         } finally {
             release.countDown();
             executor.shutdownNow();

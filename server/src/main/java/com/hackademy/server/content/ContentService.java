@@ -78,9 +78,12 @@ public class ContentService {
     }
 
     // Players see a room only through a published path, so its content is checked when such a path is published.
+    // The rooms stay locked until commit, so a concurrent room save waits and then sees the path as published.
     void requireRoomsReady(ContentValidation validation, String field, Collection<Long> roomIds) {
+        if (roomIds.isEmpty()) return;
+        rooms.lockAllById(roomIds);
         var problems = new ArrayList<String>();
-        for (var room : rooms.findAllById(roomIds)) {
+        for (var room : rooms.findAllWithTasksByIdIn(roomIds)) {
             var missing = RoomReadiness.problems(room);
             if (!missing.isEmpty()) problems.add("„" + room.getTitle() + "”: " + String.join(", ", missing));
         }
@@ -106,9 +109,16 @@ public class ContentService {
     public RoomEditor saveRoom(Long id, ContentRequests.RoomSave r, MultipartFile file) throws IOException {
         var v = new ContentValidation();
         // Drafts may stay unfinished; a room that is or becomes part of a published path must be ready.
-        boolean live = id != null ? rooms.isVisible(id)
-                : r.parentDraft() != null ? r.parentDraft().published()
-                : r.pathId() != null && paths.findById(r.pathId()).map(Path::isPublished).orElse(false);
+        // The room or the target path is locked first, so a concurrent path publication cannot slip in between.
+        boolean live;
+        if (id != null) {
+            rooms.findByIdForUpdate(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
+            live = rooms.isVisible(id);
+        } else if (r.parentDraft() != null) {
+            live = r.parentDraft().published();
+        } else {
+            live = r.pathId() != null && paths.findByIdForUpdate(r.pathId()).map(Path::isPublished).orElse(false);
+        }
         v.text("title", r.title(), 255, true);
         v.text("description", r.description(), 20000, live);
         v.text("shortDescription", r.shortDescription(), 100, false);

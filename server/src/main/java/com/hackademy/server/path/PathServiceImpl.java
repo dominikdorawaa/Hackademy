@@ -387,8 +387,8 @@ public class PathServiceImpl implements PathService {
                 .map(chapter -> chapter.roomIds() == null ? List.<Long>of() : chapter.roomIds())
                 .toList(), validateRooms(id, allRoomIds));
         // Players see every room of a published path at once, so only ready rooms may join it.
-        if (path.isPublished()) {
-            for (Room room : roomRepository.findAllById(allRoomIds)) {
+        if (path.isPublished() && !allRoomIds.isEmpty()) {
+            for (Room room : roomRepository.findAllWithTasksByIdIn(allRoomIds)) {
                 List<String> missing = RoomReadiness.problems(room);
                 if (!missing.isEmpty()) {
                     throw new IllegalArgumentException("Pokój „" + room.getTitle() + "” nie jest gotowy: " + String.join(", ", missing));

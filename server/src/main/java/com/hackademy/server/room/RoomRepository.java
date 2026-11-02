@@ -28,6 +28,13 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     @Query("SELECT COUNT(r) > 0 FROM Room r WHERE r.id = :id AND " + VISIBLE)
     boolean isVisible(@Param("id") Long id);
 
+    @Query(value = "SELECT id FROM rooms WHERE id IN (:ids) ORDER BY id FOR UPDATE", nativeQuery = true)
+    List<Long> lockAllById(@Param("ids") java.util.Collection<Long> ids);
+
+    // One query for the rooms and their tasks, for checks that read every task of many rooms.
+    @Query("SELECT DISTINCT r FROM Room r LEFT JOIN FETCH r.tasks WHERE r.id IN :ids")
+    List<Room> findAllWithTasksByIdIn(@Param("ids") java.util.Collection<Long> ids);
+
     @Query("SELECT r FROM Room r WHERE r.id IN :ids AND " + VISIBLE)
     List<Room> findVisibleByIdIn(@Param("ids") java.util.Collection<Long> ids);
 
