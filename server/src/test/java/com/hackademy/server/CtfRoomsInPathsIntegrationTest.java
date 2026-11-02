@@ -62,7 +62,7 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
         getAs(player, "/api/rooms/" + room).andExpect(status().isOk());
         solve(player, room, "FLAG{moved}");
         getAs(admin, "/api/admin/rooms")
-                .andExpect(jsonPath("$[?(@.id == " + room + ")].pathTitle").value(hasItem("Zadania CTF")))
+                .andExpect(jsonPath("$[?(@.id == " + room + ")].paths[*].title").value(hasItem("Zadania CTF")))
                 .andExpect(jsonPath("$[?(@.id == " + room + ")].roomType").value(hasItem("CTF")));
         mockMvc.perform(get("/api/rooms").header("Authorization", "Bearer " + player.token()))
                 .andExpect(status().is4xxClientError());

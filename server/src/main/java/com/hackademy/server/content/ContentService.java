@@ -81,7 +81,7 @@ public class ContentService {
         return pathService.getAdminDetail(path.getId());
     }
 
-    public record RoomEditor(RoomAdminDto room, RoomTasksAdminDto tasks, Long pathId) {}
+    public record RoomEditor(RoomAdminDto room, RoomTasksAdminDto tasks, Long pathId, List<RoomPathDto> paths) {}
     public static RoomAdminDto adminRoom(Room room) {
         return RoomAdminDto.builder().id(room.getId()).title(room.getTitle()).description(room.getDescription())
                 .shortDescription(room.getShortDescription()).category(room.getCategory()).difficulty(room.getDifficulty())
@@ -92,7 +92,9 @@ public class ContentService {
     @Transactional
     public RoomEditor roomEditor(Long id) {
         var room = roomService.getRoomById(id);
-        return new RoomEditor(adminRoom(room), roomService.getRoomTasksForAdmin(id), assignments.findOwners(List.of(id)).stream().map(ChapterRoomRepository.RoomOwnerView::getPathId).findFirst().orElse(null));
+        var owners = assignments.findOwners(List.of(id)).stream()
+                .map(owner -> new RoomPathDto(owner.getPathId(), owner.getPathTitle(), Boolean.TRUE.equals(owner.getPathPublished()))).toList();
+        return new RoomEditor(adminRoom(room), roomService.getRoomTasksForAdmin(id), owners.size() == 1 ? owners.get(0).id() : null, owners);
     }
 
     @Transactional(rollbackFor = IOException.class)

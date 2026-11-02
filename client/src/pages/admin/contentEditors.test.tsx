@@ -56,7 +56,7 @@ describe('draft editors and guarded navigation', () => {
     const file = new File(['{"rooms":[]}'], 'rooms.json', { type: 'application/json' });
     await user.upload(screen.getByLabelText('Plik JSON (do 5 MB)'), file);
     server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(importedPath)),
-      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: 5 }])));
+      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])));
     await user.click(screen.getByRole('button', { name: 'Dodaj pokoje jako szkice' }));
     expect(await screen.findByText(/Dodano pokoje jako szkice/)).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('list', { name: 'Pokoje rozdziału 1' })).toHaveTextContent('Pokój'));
@@ -177,7 +177,7 @@ describe('draft editors and guarded navigation', () => {
     expect(await screen.findByLabelText('Tryb odblokowania')).toHaveValue('CHAPTER');
   });
   it('adds a room from the side pool to the selected new chapter and saves its assignment', async () => {
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: null, pathTitle: null }])));
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [] }])));
     const user = userEvent.setup(); mount('/admin/paths/5');
     const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue(path);
     await screen.findByLabelText('Tytuł *');
@@ -311,7 +311,7 @@ describe('room title and scoring rules', () => {
     expect(screen.getByText('200 XP')).toBeInTheDocument();
   });
   it('shows a duplicate room title in a chapter reported by the backend', async () => {
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, pathId: 5, pathTitle: 'Web' }])),
+    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])),
       http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })),
       http.put(`${API_URL}/api/admin/content/paths/5`, () => HttpResponse.json({ message: 'Rozdział 1 zawiera już pokój „Pokój”', fields: { 'chapters.0.rooms': 'Rozdział 1 zawiera już pokój „Pokój”' } }, { status: 409 })));
     const user = userEvent.setup(); mount('/admin/paths/5');
@@ -319,6 +319,55 @@ describe('room title and scoring rules', () => {
     await user.click(screen.getByRole('button', { name: 'Zapisz szkic' }));
     expect(await screen.findAllByText('Rozdział 1 zawiera już pokój „Pokój”')).not.toHaveLength(0);
     expect(screen.getByLabelText('Nazwa rozdziału 1 *')).toHaveValue('Wstęp lokalny');
+  });
+});
+
+describe('room shared by many paths', () => {
+  const paths = [{ id: 5, title: 'Web Basics', published: true }, { id: 6, title: 'Linux 101', published: true }, { id: 7, title: 'Szkic', published: false }];
+  it('warns that edits go live in every published path and lists them when deleting', async () => {
+    let deleted = false;
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: 5, paths })),
+      http.delete(`${API_URL}/api/admin/rooms/9`, () => { deleted = true; return new HttpResponse(null, { status: 204 }); }));
+    const user = userEvent.setup(); const router = mount('/admin/paths/rooms/9');
+    expect(await screen.findByText(/Ten pokój jest w 2 opublikowanych ścieżkach: Web Basics, Linux 101\. Zmiany po zapisie są od razu widoczne\./)).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Usuń pokój' }));
+    expect(await screen.findByText('Zniknie z 3 ścieżek:', { exact: false })).toBeInTheDocument();
+    expect(screen.getByText('Web Basics, Linux 101, Szkic')).toBeInTheDocument();
+    await user.click(screen.getAllByRole('button', { name: 'Usuń pokój' }).at(-1)!);
+    await waitFor(() => expect(deleted).toBe(true));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/5'));
+  });
+  it('returns to the path editor the room was opened from, or to the rooms tab', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));
+    mount('/admin/paths/rooms/9', [{ pathname: '/admin/paths/rooms/9', state: { returnPathId: 6 } }]);
+    expect(await screen.findByRole('link', { name: '← Wróć do edytora ścieżki' })).toHaveAttribute('href', '/admin/paths/6');
+  });
+  it('opens a room from the path editor with that path as the way back', async () => {
+    server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })),
+      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths }])),
+      http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));
+    const user = userEvent.setup(); const router = mount('/admin/paths/5');
+    await user.click(await screen.findByRole('button', { name: 'Pokój' }));
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/rooms/9'));
+    expect(await screen.findByRole('link', { name: '← Wróć do edytora ścieżki' })).toHaveAttribute('href', '/admin/paths/5');
+  });
+  it('returns to the rooms tab when a shared room was opened from the list', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));
+    mount('/admin/paths/rooms/9');
+    expect(await screen.findByRole('link', { name: '← Pokoje' })).toHaveAttribute('href', '/admin/paths/rooms');
+  });
+  it('names a single published path and stays quiet for draft-only paths', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: 5, paths: paths.slice(0, 1) })));
+    mount('/admin/paths/rooms/9');
+    expect(await screen.findByText(/Ten pokój jest w 1 opublikowanej ścieżce: Web Basics\./)).toBeInTheDocument();
+  });
+  it('shows no warning when the room is only in draft paths', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: 7, paths: paths.slice(2) })));
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
+    await screen.findByLabelText('Tytuł *');
+    expect(screen.queryByText(/opublikowan/)).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Usuń pokój' }));
+    expect(await screen.findByText('Zniknie ze ścieżki', { exact: false })).toBeInTheDocument();
   });
 });
 
