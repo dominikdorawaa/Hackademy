@@ -8,6 +8,7 @@ export function EloHelp() {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const trigger = useRef<HTMLButtonElement>(null);
   const tapped = useRef(false);
+  const pressing = useRef(false);
   const show = () => { clearTimeout(closeTimer.current); setOpen(true); };
   const leave = () => {
     if (document.activeElement === trigger.current) return;
@@ -18,10 +19,12 @@ export function EloHelp() {
   return <Popover.Root open={open} onOpenChange={setOpen}>
     <Popover.Trigger asChild>
       <button ref={trigger} type="button" className="ud-term-btn" aria-label="Co oznacza Elo?"
-        onPointerDown={event => { tapped.current = event.pointerType === 'touch'; }}
+        onPointerDown={event => { tapped.current = event.pointerType === 'touch'; pressing.current = true; }}
+        onPointerCancel={() => { pressing.current = false; }} onBlur={() => { pressing.current = false; }}
         onPointerEnter={event => { if (event.pointerType !== 'touch') show(); }} onPointerLeave={leave}
-        onFocus={show} onClick={event => {
+        onFocus={() => { if (!pressing.current) show(); }} onClick={event => {
           event.preventDefault();
+          pressing.current = false;
           if (open && tapped.current) setOpen(false); else show();
         }}>
         Elo <Info size={14} aria-hidden="true" />
