@@ -165,6 +165,11 @@ describe('draft editors and guarded navigation', () => {
     expect(savePath).not.toHaveBeenCalled();
     expect(await screen.findByRole('navigation', { name: 'Okruszki' })).toHaveTextContent('Rozdział 2');
     expect(screen.queryByLabelText('Tytuł ścieżki *')).not.toBeInTheDocument();
+    // The path edits travel only with this form, so leaving it untouched still asks first.
+    await user.click(screen.getByRole('link', { name: 'Web' }));
+    expect(await screen.findByRole('dialog', { name: 'Niezapisane zmiany' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Kontynuuj edycję' }));
+    expect(router.state.location.pathname).toBe('/admin/paths/rooms/new');
     await user.type(screen.getByLabelText('Tytuł *'), 'Zachowany pokój');
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     // The path is published, so the new room needs its description and a task as well.

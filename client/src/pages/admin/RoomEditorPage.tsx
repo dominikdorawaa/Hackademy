@@ -82,7 +82,8 @@ function RoomEditor({ roomId }: { roomId: string }) {
       }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [sessionKey, contextPath, contextChapter, contextRevision, attempt]);
-  const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file || (parentDraft != null && JSON.stringify(parentDraft) !== JSON.stringify(creation?.parentDraft));
+  // Unsaved path edits carried with a new room live only here, so leaving before the room is saved would drop them.
+  const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file || (parentDraft != null && id == null);
   const change = (values: Partial<RoomSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
   const changeType = (roomType: RoomType) => {
     const current = formRef.current;

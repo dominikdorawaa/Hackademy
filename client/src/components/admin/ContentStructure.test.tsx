@@ -102,6 +102,16 @@ describe('content structure editing', () => {
     await user.type(screen.getByRole('searchbox'), 'Pokój 4');
     expect(list().getAllByRole('listitem')).toHaveLength(6);
   });
+  it('keeps the open picker on its chapter when chapters swap places', async () => {
+    const user = userEvent.setup(); render(<Chapters create={vi.fn()} edit={vi.fn()} />);
+    await user.click(screen.getAllByRole('button', { name: 'Dodaj istniejący' })[1]);
+    await user.click(screen.getByRole('button', { name: 'Przesuń rozdział 2 w górę' }));
+    expect(screen.getByRole('searchbox', { name: 'Szukaj pokoju do rozdziału 1' })).toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: 'Dodaj Wolny do rozdziału' }));
+    expect(state('chapters').map((c: ChapterRequest) => [c.id, c.roomIds])).toEqual([[2, [11]], [1, [9, 10]]]);
+    await user.click(screen.getByRole('button', { name: 'Przesuń rozdział 2 w górę' }));
+    expect(screen.getByRole('searchbox', { name: 'Szukaj pokoju do rozdziału 2' })).toBeInTheDocument();
+  });
   it('keeps the open picker on its chapter when an earlier chapter is deleted', async () => {
     const user = userEvent.setup(); render(<Chapters create={vi.fn()} edit={vi.fn()} />);
     await user.click(screen.getAllByRole('button', { name: 'Dodaj istniejący' })[1]);
@@ -159,8 +169,10 @@ describe('content structure editing', () => {
     expect(state('chapters').map((c: ChapterRequest) => c.roomIds)).toEqual([[10], [9]]);
     const http = screen.getByRole('button', { name: 'Przesuń HTTP' });
     fireEvent.pointerDown(http, { button: 0, clientY: 75 });
+    expect(http).toHaveFocus();
     fireEvent.pointerMove(http, { clientY: 225 });
-    fireEvent.keyDown(http, { key: 'Escape' });
+    screen.getByLabelText('Nazwa rozdziału 1').focus();
+    fireEvent.keyDown(screen.getByLabelText('Nazwa rozdziału 1'), { key: 'Escape' });
     expect(screen.queryByText('Upuść tutaj.')).toBeNull();
     fireEvent.pointerUp(http);
     expect(state('chapters').map((c: ChapterRequest) => c.roomIds)).toEqual([[10], [9]]);

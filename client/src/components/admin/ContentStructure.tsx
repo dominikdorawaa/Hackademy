@@ -74,10 +74,24 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
     setFocusRoom(null);
   }, [focusRoom, chapters]);
 
+  // Escape cancels a pointer drag wherever the keyboard focus happens to be.
+  const dragging = drag != null;
+  useEffect(() => {
+    if (!dragging) return;
+    const cancel = (event: KeyboardEvent) => { if (event.key === 'Escape') setDrag(null); };
+    window.addEventListener('keydown', cancel);
+    return () => window.removeEventListener('keydown', cancel);
+  }, [dragging]);
+
   const update = (index: number, values: Partial<ChapterRequest>) => onChange(chapters.map((c, i) => i === index ? { ...c, ...values } : c));
   const place = (roomId: number, to: Slot) => {
     onChange(placeRoom(chapters, roomId, to));
     setAnnouncement(`${titleOf(roomId)}: rozdział ${to.chapter + 1}, pozycja ${to.index + 1}.`);
+  };
+  // The open picker belongs to its chapter, so it moves along when chapters swap places.
+  const moveChapter = (index: number, offset: -1 | 1) => {
+    onChange(move(chapters, index, offset));
+    setAdding(current => current === index ? index + offset : current === index + offset ? index : current);
   };
   const removeChapter = (index: number) => {
     onChange(chapters.filter((_, i) => i !== index));
@@ -102,6 +116,7 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
     if (event.button !== 0) return;
     event.preventDefault();
     event.currentTarget.setPointerCapture?.(event.pointerId);
+    event.currentTarget.focus();
     const row = (event.currentTarget.closest('li') ?? event.currentTarget).getBoundingClientRect();
     setDrag({ roomId, from, target: null, y: event.clientY, grab: event.clientY - row.top, box: { left: row.left, width: row.width } });
   };
@@ -116,7 +131,6 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
     setDrag(null);
   };
   const keyStep = (event: React.KeyboardEvent, roomId: number, from: Slot) => {
-    if (event.key === 'Escape' && drag) { event.preventDefault(); setDrag(null); return; }
     if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
     event.preventDefault();
     const to = stepRoom(chapters, from, event.key === 'ArrowUp' ? -1 : 1);
@@ -158,8 +172,8 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
             </div>
             <span className="hidden shrink-0 text-xs text-muted-foreground tabular-nums sm:inline">{roomsLabel(roomIds.length)}</span>
             <div className="flex shrink-0 items-center">
-              <Button type="button" variant="ghost" size="icon-sm" disabled={index === 0} onClick={() => onChange(move(chapters, index, -1))} aria-label={`Przesuń rozdział ${index + 1} w górę`}><ArrowUp /></Button>
-              <Button type="button" variant="ghost" size="icon-sm" disabled={index === chapters.length - 1} onClick={() => onChange(move(chapters, index, 1))} aria-label={`Przesuń rozdział ${index + 1} w dół`}><ArrowDown /></Button>
+              <Button type="button" variant="ghost" size="icon-sm" disabled={index === 0} onClick={() => moveChapter(index, -1)} aria-label={`Przesuń rozdział ${index + 1} w górę`}><ArrowUp /></Button>
+              <Button type="button" variant="ghost" size="icon-sm" disabled={index === chapters.length - 1} onClick={() => moveChapter(index, 1)} aria-label={`Przesuń rozdział ${index + 1} w dół`}><ArrowDown /></Button>
               {(canDelete || chapter.id == null) && (roomIds.length ? <ConfirmAction title={`Usunąć rozdział ${index + 1}?`} confirmLabel="Usuń rozdział"
                 description={`Rozdział „${chapter.title.trim() || 'Bez nazwy'}” zniknie ze ścieżki razem z ${roomsLabel(roomIds.length)} po zapisie. Same pokoje zostaną w puli.`}
                 onConfirm={() => removeChapter(index)}
