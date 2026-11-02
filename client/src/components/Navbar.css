@@ -380,6 +380,7 @@
 .navbar--room .logo { flex: none; }
 .navbar--room .logo img { height: 40px; margin: 0; }
 .navbar-room-slot { flex: 1; min-width: 0; display: flex; }
+.navbar--room:has(.room-nav-track) { border-bottom-color: transparent; }
 .navbar .logo .logo-mark { display: none; }
 .navbar .nav-join { padding: 8px 20px; font-size: 0.9rem; }
 

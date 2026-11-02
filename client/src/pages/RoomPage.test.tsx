@@ -1,5 +1,5 @@
 import { setClerkSession } from '../test/clerk';
-import { act, screen, waitFor } from '@testing-library/react';
+import { act, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { Route, useNavigate, useParams } from 'react-router-dom';
 import { http, HttpResponse } from 'msw';
@@ -160,6 +160,8 @@ describe('task room completion', () => {
     await user.click(await screen.findByRole('button', { name: 'Oznacz jako przeczytane' }));
     expect(submitted).toEqual({ answer: '' });
     expect(await screen.findByText('Wszystkie zadania wykonane! Pokój ukończony.')).toBeInTheDocument();
+    expect(screen.getAllByText('Gratulacje!')).toHaveLength(1);
+    expect(document.querySelector('.px-toast')).toBeNull();
     expect(sounds.play.mock.calls).toEqual([['roomCompleted']]);
     expect(screen.getByRole('button', { name: 'Przeczytano' })).toBeDisabled();
   });
@@ -382,6 +384,7 @@ describe('CTF room', () => {
     await user.click(screen.getByRole('button', { name: 'Tak, odblokuj' }));
     expect(await screen.findByText('Zajrzyj do źródła strony')).toBeInTheDocument();
     expect(unlocks).toBe(1);
+    expect(document.querySelector('.px-toast')).toBeNull();
     expect(screen.getByText('XP do zdobycia:')).toHaveTextContent('37 XP');
     expect(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12 XP)' })).toBeEnabled();
   });
@@ -392,8 +395,9 @@ describe('CTF room', () => {
     mountCtf();
     await user.click(await screen.findByRole('button', { name: 'Odblokuj podpowiedź (-13 XP)' }));
     await user.click(screen.getByRole('button', { name: 'Tak, odblokuj' }));
-    expect(await screen.findByText('Failed to unlock hint')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
     expect(screen.queryByText('Zajrzyj do źródła strony')).not.toBeInTheDocument();
+    expect(document.querySelector('.px-toast')).toBeNull();
   });
 
   it('shows a captured flag of a solved CTF room as done', async () => {
@@ -489,6 +493,7 @@ describe('task room reader', () => {
     expect(screen.getByRole('button', { name: 'Wstecz' })).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Lista zadań' }));
+    expect(screen.getByRole('navigation', { name: 'Lista zadań' })).toHaveTextContent('EASY50 XP0 ukończyło');
     expect(screen.getByRole('button', { name: /Drugie/ })).toBeDisabled();
     await user.click(screen.getByRole('button', { name: 'Lista zadań' }));
     await user.type(screen.getByLabelText('Ile?'), '42');
@@ -515,8 +520,80 @@ describe('task room reader', () => {
     ]);
     await user.type(await screen.findByLabelText('Ile?'), 'zle');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
-    expect(await screen.findByText('Niepoprawna odpowiedź')).toBeInTheDocument();
+    expect(await screen.findByRole('alert')).toHaveTextContent('Niepoprawna odpowiedź');
+    expect(screen.getByLabelText('Ile?')).toHaveAttribute('aria-invalid', 'true');
+    expect(document.querySelector('.px-toast')).toBeNull();
     expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
+    await user.type(screen.getByLabelText('Ile?'), 'x');
+    expect(screen.queryByRole('alert')).not.toBeInTheDocument();
+  });
+
+  it('confirms a correct answer inside the task instead of a toast', async () => {
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/1/solve`, () => HttpResponse.json({ success: true, message: 'Poprawna odpowiedź!' })));
+    mount([
+      { id: 1, title: 'Pierwsze', content: 'A', question: 'Ile?', requiresAnswer: true, completed: false },
+      { id: 2, title: 'Drugie', content: 'B', question: 'Co?', requiresAnswer: true, completed: false },
+    ]);
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Ile?'), '42');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+    expect(await screen.findByText('Poprawna odpowiedź!')).toHaveAttribute('role', 'status');
+    expect(document.querySelector('.px-toast')).toBeNull();
+  });
+
+  it('shows one segment per task in the room bar and keeps the footer list on narrow screens', async () => {
+    mount([
+      { id: 1, title: 'Pierwsze', content: 'A', question: null, requiresAnswer: false, completed: true },
+      { id: 2, title: 'Drugie', content: 'B', question: 'Co?', requiresAnswer: true, completed: false },
+      { id: 3, title: 'Trzecie', content: 'C', question: 'Gdzie?', requiresAnswer: true, completed: false },
+    ]);
+    expect(await screen.findByRole('progressbar', { name: 'Postęp pokoju' })).toHaveTextContent('33%');
+    const segments = [...document.querySelectorAll('.room-nav-steps li')];
+    expect(segments.map(segment => segment.className)).toEqual(['is-done', 'is-current', '']);
+    expect(segments[2].querySelector('button')).toBeDisabled();
+    await userEvent.click(segments[0].querySelector('button')!);
+    expect(screen.getByRole('heading', { name: '01. Pierwsze' })).toBeInTheDocument();
+    expect(screen.queryByRole('complementary', { name: 'Spis zadań' })).not.toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Lista zadań' })).toBeInTheDocument();
+  });
+
+  it('lists the tasks beside the reader on wide screens', async () => {
+    const matchMedia = vi.fn((query: string) => ({ matches: query === '(min-width: 1100px)', media: query, addEventListener: vi.fn(), removeEventListener: vi.fn() }));
+    vi.stubGlobal('matchMedia', matchMedia);
+    try {
+      mount([
+        { id: 1, title: 'Pierwsze', content: 'A', question: null, requiresAnswer: false, completed: true },
+        { id: 2, title: 'Drugie', content: 'B', question: 'Co?', requiresAnswer: true, completed: false },
+        { id: 3, title: 'Trzecie', content: 'C', question: 'Gdzie?', requiresAnswer: true, completed: false },
+      ]);
+      const user = userEvent.setup();
+      const list = await screen.findByRole('complementary', { name: 'Spis zadań' });
+      expect(list).not.toHaveTextContent('XP');
+      expect(document.querySelector('.room-nav-meta')).toHaveTextContent('EASY50 XP0 ukończyło');
+      expect(screen.queryByRole('button', { name: 'Lista zadań' })).not.toBeInTheDocument();
+      expect(within(list).getByRole('button', { name: /Drugie/ })).toHaveAttribute('aria-current', 'step');
+      expect(within(list).getByRole('button', { name: /Trzecie/ })).toBeDisabled();
+      await user.click(within(list).getByRole('button', { name: 'Zwiń' }));
+      expect(within(list).queryByRole('button', { name: /Pierwsze/ })).not.toBeInTheDocument();
+      expect(within(list).getAllByRole('button').map(button => button.textContent)).toEqual(['', '2Drugie', 'Trzecie', 'Pokaż wszystkie']);
+      expect(window.localStorage.getItem('hackademy.roomTaskList.short')).toBe('1');
+      await user.click(within(list).getByRole('button', { name: 'Pokaż wszystkie' }));
+      await user.click(within(list).getByRole('button', { name: 'Pierwsze, ukończone' }));
+      expect(screen.getByRole('heading', { name: '01. Pierwsze' })).toBeInTheDocument();
+      expect(within(list).getByRole('button', { name: /Pierwsze/ })).toHaveAttribute('aria-current', 'step');
+
+      await user.click(within(list).getByRole('button', { name: 'Ukryj spis zadań' }));
+      expect(screen.queryByRole('complementary', { name: 'Spis zadań' })).not.toBeInTheDocument();
+      expect(window.localStorage.getItem('hackademy.roomTaskList.hidden')).toBe('1');
+      await user.click(screen.getByRole('button', { name: 'Lista zadań' }));
+      await user.click(screen.getByRole('button', { name: 'Pokaż spis z boku' }));
+      expect(screen.getByRole('complementary', { name: 'Spis zadań' })).toBeInTheDocument();
+      expect(screen.queryByRole('button', { name: 'Lista zadań' })).not.toBeInTheDocument();
+      expect(window.localStorage.getItem('hackademy.roomTaskList.hidden')).toBe('0');
+    } finally {
+      vi.unstubAllGlobals();
+      window.localStorage.clear();
+    }
   });
 
   it('locks task answers with a neutral message when a general write limit answers', async () => {

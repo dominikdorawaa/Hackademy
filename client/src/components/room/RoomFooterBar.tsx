@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronLeft, ChevronRight, List, Lock } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, List, Lock, PanelLeftOpen } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import RoomMascot from './RoomMascot';
 
@@ -19,6 +19,9 @@ interface RoomFooterAction {
 interface RoomFooterSteps {
   steps: RoomStep[];
   current: number;
+  list?: boolean;
+  listHeader?: ReactNode;
+  onPin?: () => void;
   unit: string;
   listLabel: string;
   onSelect: (index: number) => void;
@@ -59,14 +62,26 @@ export default function RoomFooterBar({ progress, title, badge, back, next }: Ro
   return (
     <footer className="room-footer">
       <div className="room-footer-start" ref={root}>
-        {progress && (
+        {progress && progress.list !== false && (
           <button ref={toggle} type="button" className="room-btn room-btn--icon" aria-label={progress.listLabel}
             aria-expanded={open} aria-controls={listId} onClick={() => setOpen(value => !value)}>
             <List aria-hidden="true" />
           </button>
         )}
-        {progress && open && (
+        {progress && progress.list !== false && open && (
           <nav id={listId} className="room-steps" aria-label={progress.listLabel}>
+            <div className="room-steps-head">
+              <div className="room-steps-title">
+                <p className="room-kicker">Zadania</p>
+                {progress.onPin && (
+                  <button type="button" className="room-tasklist-hide" aria-label="Pokaż spis z boku" title="Pokaż spis z boku"
+                    onClick={() => { setOpen(false); progress.onPin?.(); }}>
+                    <PanelLeftOpen aria-hidden="true" />
+                  </button>
+                )}
+              </div>
+              {progress.listHeader && <div className="room-steps-meta">{progress.listHeader}</div>}
+            </div>
             <ol>
               {progress.steps.map((step, index) => (
                 <li key={step.key}>
