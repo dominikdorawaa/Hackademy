@@ -7,12 +7,13 @@ import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import * as contentApi from '../../services/contentApi';
 import type { RoomSave, PathSave } from '../../services/contentApi';
-import type { PathAdminDetailDto, RoomType, DifficultyLevel } from '../../types/api';
+import type { PathAdminDetailDto, RoomPathDto, RoomType, DifficultyLevel } from '../../types/api';
 import { ConfirmAction, FilePicker, LoadingRows, PageHeader, Section, StatusMessage } from '../../components/admin/AdminUi';
 import { TextField, checkText, focusError } from '../../components/admin/ContentFields';
 import type { FieldErrors } from '../../components/admin/ContentFields';
 import { ContentTasks } from '../../components/admin/ContentStructure';
 import { RoomTypeHelp, RoomTypeSwitch } from '../../components/admin/RoomType';
+import { DeleteRoomDescription, publishedPathsWarning } from '../../components/admin/RoomPaths';
 import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
 import { roomsPath as base, pointsForDifficulty, reservedRoomTitles } from './adminConfig';
 import { useAdminAccess } from './adminAccess';
@@ -59,6 +60,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
+  const [paths, setPaths] = useState<RoomPathDto[]>([]);
   const contextPath = query.get('pathId');
   const contextChapter = query.get('chapterId');
   const contextRevision = query.get('pathRevision');
@@ -68,7 +70,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
       .then(([detail, path]) => {
         if (!active) return;
         if (detail) {
-          const next = fromDetail(detail); setForm(next); setBaseline(next); setParentId(detail.pathId ?? null);
+          const next = fromDetail(detail); setForm(next); setBaseline(next); setParentId(detail.pathId ?? null); setPaths(detail.paths ?? []);
         }
         if (contextPath) {
           if (!path || !path.chapters.some(c => c.id === Number(contextChapter)) || Number(contextRevision) !== (path.contentRevision ?? 0)) throw new Error('Ścieżka lub rozdział zmieniły się. Wróć do edytora ścieżki i ponownie wybierz „Utwórz pokój”.');
@@ -113,7 +115,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
       const detail = await contentApi.saveRoom(idRef.current, { ...current, published, ...parent }, file, sessionKey);
       const saved = fromDetail(detail);
       idRef.current = detail.room.id; setId(detail.room.id); formRef.current = saved;
-      setForm(saved); setBaseline(saved); setFile(null);
+      setForm(saved); setBaseline(saved); setFile(null); setPaths(detail.paths ?? []);
       if (detail.pathId != null) { setParentId(detail.pathId); setParentDraft(null); }
       if (notify) setSuccess(published ? 'Zapisano opublikowany pokój.' : 'Zapisano szkic pokoju.');
       return true;
@@ -135,8 +137,9 @@ function RoomEditor({ roomId }: { roomId: string }) {
   return <>
     {guard.dialog}
     <Button asChild variant="ghost" className="mb-3"><Link to={returnPath}>← {contextPath || parentId ? 'Wróć do edytora ścieżki' : 'Pokoje'}</Link></Button>
-    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}${contextPath ? `?pathId=${contextPath}` : ''}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description="Pokój, zadania i postępy graczy zostaną trwale usunięte." confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
+    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}${contextPath ? `?pathId=${contextPath}` : ''}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description={<DeleteRoomDescription paths={paths} />} confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
     {context && <StatusMessage kind="warning">Ścieżka: {context.title} → Rozdział: {context.chapters.find(c => c.id === Number(contextChapter))?.title}. Pokój zostanie przypisany automatycznie.</StatusMessage>}
+    {publishedPathsWarning(paths) && <StatusMessage kind="warning">{publishedPathsWarning(paths)} Przypisania zmienisz w edytorze ścieżki.</StatusMessage>}
     {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
     {loading ? <LoadingRows label="Ładowanie pokoju" /> : !loaded ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor pokoju">

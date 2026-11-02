@@ -12,6 +12,7 @@ import { TextField } from './ContentFields';
 import type { FieldErrors } from './ContentFields';
 import type { ChapterRequest, RoomAdminSummaryDto, RoomTaskRequest, RoomType } from '../../types/api';
 import { RoomTypeIcon } from './RoomType';
+import { poolStatus } from './RoomPaths';
 
 export function move<T>(items: T[], index: number, offset: number) {
   const next = [...items];
@@ -28,7 +29,7 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
   const [query, setQuery] = useState('');
   const target = chapters[targetIndex] ? targetIndex : Math.max(0, chapters.length - 1);
   const assigned = new Set(chapters.flatMap(c => c.roomIds ?? []));
-  const pool = rooms.filter(r => !assigned.has(r.id) && (r.pathId == null || r.pathId === pathId))
+  const pool = rooms.filter(r => !assigned.has(r.id))
     .filter(r => !query.trim() || r.title.toLocaleLowerCase('pl').includes(query.trim().toLocaleLowerCase('pl')))
     .sort((a, b) => a.title.localeCompare(b.title, 'pl'));
   const update = (index: number, values: Partial<ChapterRequest>) => onChange(chapters.map((c, i) => i === index ? { ...c, ...values } : c));
@@ -91,12 +92,12 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
       </ol>
       <aside aria-label="Pula pokoi" className="h-fit min-w-0 rounded-lg border bg-muted/20 p-4 lg:sticky lg:top-20">
         <div className="mb-1 flex items-center gap-2"><LibraryBig className="size-4 text-muted-foreground" /><h3 className="text-sm font-semibold">Pula pokoi</h3><span className="ml-auto text-xs text-muted-foreground tabular-nums">{pool.length}</span></div>
-        <p className="mb-4 text-xs leading-relaxed text-muted-foreground">Wolne pokoje teorii i CTF. Dodaj je do wybranego rozdziału.</p>
+        <p className="mb-4 text-xs leading-relaxed text-muted-foreground">Pokoje teorii i CTF spoza tej ścieżki. Pokój może być w wielu ścieżkach, a postęp gracza jest wspólny.</p>
         <div className="mb-3 grid gap-1.5"><Label htmlFor="content-chapter-target" className="text-xs">Dodawaj do rozdziału</Label>
           <Select value={chapters.length ? String(target) : ''} onValueChange={value => { if (value) setTargetIndex(Number(value)); }} disabled={!chapters.length}><SelectTrigger id="content-chapter-target" size="sm" className="w-full"><SelectValue placeholder="Dodaj najpierw rozdział" /></SelectTrigger><SelectContent>{chapters.map((c, i) => <SelectItem key={i} value={String(i)}>{i + 1}. {c.title.trim() || 'Bez nazwy'}</SelectItem>)}</SelectContent></Select>
         </div>
         <div className="relative mb-3"><Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><Input aria-label="Szukaj w puli" value={query} onChange={e => setQuery(e.target.value)} placeholder="Szukaj pokoju…" className="h-8 pl-8 text-sm" /></div>
-        {pool.length ? <ul className="max-h-96 space-y-1 overflow-y-auto" aria-label="Dostępne pokoje">{pool.map(r => <li key={r.id} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-accent/50"><RoomTypeIcon type={r.roomType} labelled className="size-3.5 shrink-0 text-muted-foreground" /><span className="min-w-0 flex-1 truncate text-sm" title={r.title}>{r.title}</span><span className="text-[10px] text-muted-foreground">{r.published === false ? 'Szkic' : 'Opublikowany'}</span><Button type="button" variant="ghost" size="icon-xs" disabled={!chapters.length} aria-label={`Dodaj ${r.title} do rozdziału`} onClick={() => update(target, { roomIds: [...(chapters[target]?.roomIds ?? []), r.id] })}><Plus /></Button></li>)}</ul> : <p className="rounded-md border border-dashed px-3 py-5 text-center text-xs leading-relaxed text-muted-foreground">{query ? 'Brak pasujących pokoi.' : 'Brak wolnych pokoi. Utwórz nowy bezpośrednio w rozdziale.'}</p>}
+        {pool.length ? <ul className="max-h-96 space-y-1 overflow-y-auto" aria-label="Dostępne pokoje">{pool.map(r => <li key={r.id} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-accent/50"><RoomTypeIcon type={r.roomType} labelled className="size-3.5 shrink-0 text-muted-foreground" /><span className="grid min-w-0 flex-1"><span className="truncate text-sm" title={r.title}>{r.title}</span><span className="truncate text-xs text-muted-foreground" title={poolStatus(r.paths, pathId).title}>{r.published === false ? 'Szkic' : 'Opublikowany'} · {poolStatus(r.paths, pathId).label}</span></span><Button type="button" variant="ghost" size="icon-xs" disabled={!chapters.length} aria-label={`Dodaj ${r.title} do rozdziału`} onClick={() => update(target, { roomIds: [...(chapters[target]?.roomIds ?? []), r.id] })}><Plus /></Button></li>)}</ul> : <p className="rounded-md border border-dashed px-3 py-5 text-center text-xs leading-relaxed text-muted-foreground">{query ? 'Brak pasujących pokoi.' : 'Wszystkie pokoje są już w tej ścieżce. Utwórz nowy bezpośrednio w rozdziale.'}</p>}
 
       </aside>
     </div>

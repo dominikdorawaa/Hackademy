@@ -129,7 +129,7 @@ public class PathServiceImpl implements PathService {
             room.setLocked(("Tutorial VPN".equals(room.getTitle()) && !tutorials.contains("Tutorial VM"))
                     || (room.isRequiresVpn() && !tutorials.contains("Tutorial VPN")));
         });
-        PathUnlockPolicy.Locks locks = pathUnlockPolicy.locks(id, path.getUnlockMode(), userId);
+        PathUnlockPolicy.Locks locks = pathUnlockPolicy.playerLocks(id, path.getUnlockMode(), userId);
 
         List<RoomSummaryDto> rooms = new ArrayList<>();
         List<PathChapterDto> chapterDtos = new ArrayList<>();
@@ -209,7 +209,7 @@ public class PathServiceImpl implements PathService {
         PathUnlockMode unlockMode = pathRepository.findUnlockModeById(id)
                 .orElseThrow(() -> new IllegalArgumentException("Path not found"));
         Long userId = resolveUserId(username);
-        Set<Long> lockedByPath = pathUnlockPolicy.locks(id, unlockMode, userId).roomIds();
+        Set<Long> lockedByPath = pathUnlockPolicy.playerLocks(id, unlockMode, userId).roomIds();
 
         boolean hasTutorialVPN = false;
         boolean hasTutorialVM = false;
@@ -276,7 +276,7 @@ public class PathServiceImpl implements PathService {
     @Transactional
     public PathSummaryDto createPath(CreatePathRequest request) {
         List<Long> roomIds = request.roomIds() != null ? request.roomIds() : List.of();
-        validateChapterTitles(List.of(roomIds), validateRooms(null, roomIds));
+        validateChapterTitles(List.of(roomIds), validateRooms(roomIds));
 
         Path saved = pathRepository.save(Path.builder()
                 .published(false)
@@ -384,7 +384,7 @@ public class PathServiceImpl implements PathService {
                 .toList();
         validateChapterTitles(request.chapters().stream()
                 .map(chapter -> chapter.roomIds() == null ? List.<Long>of() : chapter.roomIds())
-                .toList(), validateRooms(id, allRoomIds));
+                .toList(), validateRooms(allRoomIds));
 
         chapterRoomRepository.deleteByPathId(id);
         pathChapterRepository.deleteAll(removed);
@@ -415,10 +415,16 @@ public class PathServiceImpl implements PathService {
     }
 
     private void validateChapterTitles(List<List<Long>> chapterRoomIds, Map<Long, Room> rooms) {
+        Map<Long, Integer> chapterOfRoom = new HashMap<>();
         for (int index = 0; index < chapterRoomIds.size(); index++) {
             Set<String> titles = new HashSet<>();
             for (Long roomId : chapterRoomIds.get(index)) {
                 String title = rooms.get(roomId).getTitle();
+                Integer previous = chapterOfRoom.putIfAbsent(roomId, index);
+                if (previous != null && previous != index) {
+                    throw new RoomRuleException(HttpStatus.CONFLICT, "chapters." + index + ".rooms",
+                            "Pokój „" + title + "” jest już w rozdziale " + (previous + 1) + " tej ścieżki");
+                }
                 if (!titles.add(title)) {
                     throw new RoomRuleException(HttpStatus.CONFLICT, "chapters." + index + ".rooms",
                             "Rozdział " + (index + 1) + " zawiera już pokój \u201e" + title + "\u201d");
@@ -427,16 +433,11 @@ public class PathServiceImpl implements PathService {
         }
     }
 
-    private Map<Long, Room> validateRooms(Long pathId, List<Long> roomIds) {
+    private Map<Long, Room> validateRooms(List<Long> roomIds) {
         if (roomIds.stream().anyMatch(Objects::isNull)) {
             throw new IllegalArgumentException("Lista pokoi zawiera pusty identyfikator");
         }
-        Set<Long> unique = new HashSet<>();
-        for (Long roomId : roomIds) {
-            if (!unique.add(roomId)) {
-                throw new IllegalArgumentException("Pokój " + roomId + " występuje w ścieżce więcej niż raz");
-            }
-        }
+        Set<Long> unique = new HashSet<>(roomIds);
         if (unique.isEmpty()) return Map.of();
 
         Map<Long, Room> rooms = new HashMap<>();
@@ -449,12 +450,6 @@ public class PathServiceImpl implements PathService {
             Room room = rooms.get(roomId);
             if (room == null) {
                 throw new IllegalArgumentException("Pokój " + roomId + " nie istnieje");
-            }
-        }
-        for (ChapterRoomRepository.RoomOwnerView owner : chapterRoomRepository.findOwners(unique)) {
-            if (!owner.getPathId().equals(pathId)) {
-                throw new IllegalArgumentException("Pokój \u201e" + rooms.get(owner.getRoomId()).getTitle()
-                        + "\u201d należy już do ścieżki \u201e" + owner.getPathTitle() + "\u201d");
             }
         }
         return rooms;

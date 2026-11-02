@@ -1,6 +1,6 @@
 import { request } from './http';
 import { rateLimitText } from './rateLimit';
-import type { ChapterRequest, PathAdminDetailDto, PathUnlockMode, RoomAdminDto, RoomTasksAdminDto, RoomTaskRequest, RoomWriteRequest } from '../types/api';
+import type { ChapterRequest, PathAdminDetailDto, PathUnlockMode, RoomAdminDto, RoomPathDto, RoomTasksAdminDto, RoomTaskRequest, RoomWriteRequest } from '../types/api';
 import type { FieldErrors } from '../components/admin/ContentFields';
 
 export interface PathSave {
@@ -11,7 +11,7 @@ export interface RoomSave extends RoomWriteRequest {
   revision: number; tasksRevision: number; published: boolean; tasks: RoomTaskRequest[]; hints: string[];
   pathId?: number; chapterId?: number; pathRevision?: number; parentDraft?: PathSave; chapterIndex?: number;
 }
-export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null }
+export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null; paths?: RoomPathDto[] }
 export interface RoomImportTarget { chapterId: number; contentRevision: number; chaptersRevision: number }
 export class ContentError extends Error {
   fields: FieldErrors;

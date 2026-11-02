@@ -12,6 +12,7 @@ import type { ChapterRequest, PathAdminDetailDto, PathChapterAdminDto, RoomAdmin
 import { ConfirmAction, Section, StatusMessage } from './AdminUi';
 import { errorText, plural } from './adminFormat';
 import { RoomTypeIcon } from './RoomType';
+import { poolStatus } from './RoomPaths';
 
 interface DraftChapter {
   key: string;
@@ -76,10 +77,10 @@ export default function ChaptersEditor({
   const pool = useMemo(() => {
     const term = poolQuery.trim().toLowerCase();
     return rooms
-      .filter((room) => !assigned.has(room.id) && (room.pathId === null || room.pathId === pathId))
+      .filter((room) => !assigned.has(room.id))
       .filter((room) => !term || room.title.toLowerCase().includes(term))
       .sort((a, b) => a.title.localeCompare(b.title, 'pl'));
-  }, [rooms, assigned, pathId, poolQuery]);
+  }, [rooms, assigned, poolQuery]);
 
   const dirty = JSON.stringify(toRequest(chapters)) !== JSON.stringify(toRequest(toDrafts(savedChapters)));
   const removedChapters = savedChapters.filter((chapter) => !chapters.some((draft) => draft.id === chapter.id));
@@ -321,7 +322,7 @@ export default function ChaptersEditor({
           </div>
           {pool.length === 0 ? (
             <p className="px-1 py-3 text-xs text-muted-foreground">
-              {poolQuery ? 'Brak pasujących pokoi.' : 'Wszystkie wolne pokoje są już w rozdziałach.'}
+              {poolQuery ? 'Brak pasujących pokoi.' : 'Wszystkie pokoje są już w tej ścieżce.'}
               {newRoomHref && (
                 <>
                   {' '}
@@ -334,7 +335,10 @@ export default function ChaptersEditor({
               {pool.map((room) => (
                 <li key={room.id} className="flex items-center gap-2 rounded-md px-1.5 py-1 text-sm hover:bg-accent/60">
                   <RoomTypeIcon type={room.roomType} labelled className="size-3.5 shrink-0 text-muted-foreground" />
-                  <span className="min-w-0 flex-1 truncate">{room.title}</span>
+                  <span className="grid min-w-0 flex-1">
+                    <span className="truncate">{room.title}</span>
+                    <span className="truncate text-xs text-muted-foreground" title={poolStatus(room.paths, pathId).title}>{poolStatus(room.paths, pathId).label}</span>
+                  </span>
                   <Button variant="ghost" size="icon-xs" aria-label={`Dodaj ${room.title} do rozdziału`} disabled={!target} onClick={() => addRoom(room.id)}>
                     <Plus />
                   </Button>

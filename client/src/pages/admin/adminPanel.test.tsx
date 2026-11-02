@@ -73,8 +73,7 @@ const room = (id: number, title: string, overrides: Partial<RoomAdminSummaryDto>
   points: 20,
   requiresVpn: false,
   roomType: 'PATH',
-  pathId: null,
-  pathTitle: null,
+  paths: [],
   ...overrides,
 });
 
@@ -170,7 +169,7 @@ describe('admin panel layout', () => {
   });
 
   it('lists moved CTF rooms next to lesson rooms in the rooms tab', async () => {
-    const rooms = [room(1, 'Web 1', { roomType: 'CTF', category: 'Web', points: 50, pathId: 4, pathTitle: 'Zadania CTF' }), room(2, 'Lekcja', { pathId: null, pathTitle: null })];
+    const rooms = [room(1, 'Web 1', { roomType: 'CTF', category: 'Web', points: 50, paths: [{ id: 4, title: 'Zadania CTF', published: true }] }), room(2, 'Lekcja', { paths: [] })];
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)));
     signIn('ADMIN');
     mountAdmin('/admin/paths/rooms');
@@ -210,7 +209,7 @@ describe('admin panel layout', () => {
   });
 
   it('searches rooms by title or path and deletes a moved CTF room', async () => {
-    const rooms = [room(1, 'Web 1', { roomType: 'CTF', pathId: 4, pathTitle: 'Zadania CTF' }), room(2, 'Lekcja', { pathId: 5, pathTitle: 'Linux' })];
+    const rooms = [room(1, 'Web 1', { roomType: 'CTF', paths: [{ id: 6, title: 'Web Basics', published: false }, { id: 4, title: 'Zadania CTF', published: true }] }), room(2, 'Lekcja', { paths: [{ id: 5, title: 'Linux', published: true }] })];
     let deleted: string | undefined;
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)),
       http.delete(`${API_URL}/api/admin/rooms/:id`, ({ params }) => { deleted = String(params.id); return new HttpResponse(null, { status: 204 }); }));
@@ -226,8 +225,13 @@ describe('admin panel layout', () => {
     expect(screen.getByText('Brak pasujących pokoi')).toBeInTheDocument();
     await user.clear(screen.getByLabelText('Szukaj pokoju'));
 
+    expect(screen.getByRole('columnheader', { name: 'Ścieżki' })).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: '2 ścieżki: Web Basics, Zadania CTF' })).toHaveTextContent('2 ścieżki');
     await user.click(screen.getByRole('button', { name: 'Usuń Web 1' }));
-    await user.click(await screen.findByRole('button', { name: 'Usuń pokój' }));
+    const dialog = within(await screen.findByRole('alertdialog'));
+    expect(dialog.getByText('Web Basics, Zadania CTF')).toBeInTheDocument();
+    expect(dialog.getByText(/Zniknie z 2 ścieżek/)).toBeInTheDocument();
+    await user.click(dialog.getByRole('button', { name: 'Usuń pokój' }));
     expect(await screen.findByText('Pokój „Web 1” został usunięty.')).toBeInTheDocument();
     expect(deleted).toBe('1');
     expect(screen.queryByRole('link', { name: 'Web 1' })).toBeNull();
