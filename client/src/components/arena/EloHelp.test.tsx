@@ -36,6 +36,37 @@ it('closes on a second tap of the term', async () => {
   await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
 });
 
+it('opens on the first touch tap, when focus lands before the click, and closes on the second', async () => {
+  render(<EloHelp />);
+  const button = screen.getByRole('button', { name: 'Co oznacza Elo?' });
+  fireEvent.pointerDown(button, { pointerType: 'touch' });
+  fireEvent.pointerUp(button, { pointerType: 'touch' });
+  act(() => button.focus());
+  fireEvent.click(button);
+  expect(await screen.findByRole('dialog', { name: 'Jak działa Elo' })).toBeInTheDocument();
+  fireEvent.pointerDown(button, { pointerType: 'touch' });
+  fireEvent.pointerUp(button, { pointerType: 'touch' });
+  fireEvent.click(button);
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+});
+
+it('still opens on keyboard focus after a press that never became a click', async () => {
+  render(<EloHelp />);
+  const button = screen.getByRole('button', { name: 'Co oznacza Elo?' });
+  fireEvent.pointerDown(button, { pointerType: 'touch' });
+  fireEvent.pointerCancel(button, { pointerType: 'touch' });
+  act(() => button.focus());
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
+  fireEvent.keyDown(document, { key: 'Escape' });
+  await waitFor(() => expect(screen.queryByRole('dialog')).not.toBeInTheDocument());
+  act(() => button.blur());
+  fireEvent.pointerDown(button, { pointerType: 'mouse' });
+  act(() => button.focus());
+  act(() => button.blur());
+  act(() => button.focus());
+  expect(await screen.findByRole('dialog')).toBeInTheDocument();
+});
+
 it('stays open while moving from the trigger to the explanation', async () => {
   render(<EloHelp />);
   const button = screen.getByRole('button', { name: 'Co oznacza Elo?' });
