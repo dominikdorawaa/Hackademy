@@ -681,7 +681,7 @@
 }
 
 .room-reader-shell:has(> .room-tasklist) > .room-reader { width: 100%; margin: 0; }
-.room-frame-body:has(> .room-reader-shell > .room-tasklist) { container-type: size; }
+.site-shell--room .room-frame-body:has(> .room-reader-shell > .room-tasklist) { container-type: size; }
 
 .room-tasklist {
   position: sticky;
