@@ -199,6 +199,7 @@ export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onC
                   onKeyDown={e => keyStep(e, id, { chapter: index, index: roomIndex })}>
                   <GripVertical aria-hidden="true" className="size-4" />
                 </button>
+                <span className="w-8 shrink-0 text-xs text-muted-foreground tabular-nums">{index + 1}.{roomIndex + 1}</span>
                 <RoomSummary room={room} title={title} pathId={pathId} />
                 <Button type="button" variant="ghost" size="sm" className="shrink-0" aria-label={`Edytuj ${title}`} onClick={() => onRoom(id, index)}>Edytuj</Button>
                 <Button type="button" variant="ghost" size="icon-sm" className="shrink-0 text-muted-foreground hover:text-destructive" aria-label={`Odepnij ${title} od tej ścieżki`} title="Odepnij od tej ścieżki"

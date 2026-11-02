@@ -36,6 +36,8 @@ describe('content structure editing', () => {
     const vpn = first.getByText('VPN', { selector: 'p' }).closest('li')!;
     expect(within(vpn).getByRole('img', { name: 'Teoria' })).toBeInTheDocument();
     expect(vpn).toHaveTextContent('50 XP');
+    expect(vpn).toHaveTextContent('1.1');
+    expect(first.getByText('HTTP').closest('li')).toHaveTextContent('1.2');
     expect(vpn).not.toHaveTextContent('Łatwy');
     expect(within(screen.getByRole('list', { name: 'Pokoje rozdziału 2' })).getByText('Ten rozdział nie ma jeszcze pokoi.')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Edytuj VPN' })); expect(edit).toHaveBeenCalledWith(9, 0);
