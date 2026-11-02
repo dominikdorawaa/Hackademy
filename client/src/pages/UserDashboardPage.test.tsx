@@ -42,6 +42,15 @@ it('shows the arena panel next to the recent flags and keeps Elo out of the XP r
   expect(screen.getAllByRole('button', { name: 'Co oznacza Elo?' })).toHaveLength(1);
 });
 
+it('invites to pick a path instead of showing one the player did not join', async () => {
+  const progress = { id: 2, title: 'Sieci', description: '', bannerUrl: null, totalRooms: 3, solvedRooms: 1, completed: false };
+  server.use(http.get(`${API_URL}/api/dashboard/summary`, () => HttpResponse.json(summary({ pathsProgress: [progress], currentPath: null, currentPathRoomsMini: [] }))));
+  mount();
+  expect(await screen.findByRole('heading', { name: 'Zacznij pierwszą ścieżkę' })).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: /Przeglądaj ścieżki/ })).toHaveAttribute('href', '/learn');
+  expect(screen.queryByText('Sieci')).not.toBeInTheDocument();
+});
+
 it('keeps the dashboard working when the arena rank is missing', async () => {
   server.use(http.get(`${API_URL}/api/dashboard/summary`, () => HttpResponse.json(summary({ myRank: null }))));
   mount();

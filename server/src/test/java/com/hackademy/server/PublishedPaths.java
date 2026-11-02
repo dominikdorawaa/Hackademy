@@ -11,6 +11,21 @@ import org.springframework.jdbc.core.simple.SimpleJdbcInsert;
 public final class PublishedPaths {
     private PublishedPaths() {}
 
+    public static void joinPathsOf(DataSource dataSource, long userId, long... roomIds) {
+        joinPathsOf(new JdbcTemplate(dataSource), userId, roomIds);
+    }
+
+    public static void joinPathsOf(JdbcTemplate jdbc, long userId, long... roomIds) {
+        var enrollments = new SimpleJdbcInsert(jdbc).withTableName("path_enrollments");
+        for (long roomId : roomIds) {
+            var paths = jdbc.queryForList("SELECT DISTINCT pc.path_id FROM chapter_rooms cr JOIN path_chapters pc ON pc.id = cr.chapter_id WHERE cr.room_id = ?", Long.class, roomId);
+            for (long path : paths) {
+                Integer joined = jdbc.queryForObject("SELECT count(*) FROM path_enrollments WHERE user_id = ? AND path_id = ?", Integer.class, userId, path);
+                if (joined == 0) enrollments.execute(Map.of("user_id", userId, "path_id", path, "enrolled_at", LocalDateTime.now()));
+            }
+        }
+    }
+
     public static long publishInPath(DataSource dataSource, long... roomIds) {
         return publishInPath(new JdbcTemplate(dataSource), roomIds);
     }

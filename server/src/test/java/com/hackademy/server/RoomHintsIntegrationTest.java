@@ -71,6 +71,7 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
         long roomId = roomWithHints(admin, "CTF", "Pierwsza tajemnica", "Druga tajemnica");
         List<Long> hints = hintIds(roomId);
         var user = account(Role.USER);
+        joinPathsOf(user, roomId);
 
         String locked = getAs(user, "/api/rooms/" + roomId).andExpect(status().isOk())
                 .andExpect(jsonPath("$.hints[0].id").value(hints.get(0)))
@@ -106,6 +107,7 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
         long otherRoomId = roomWithHints(admin, "CTF", "Obca");
         List<Long> hints = hintIds(roomId);
         var user = account(Role.USER);
+        joinPathsOf(user, roomId);
 
         unlock(user, roomId, hints.get(1)).andExpect(status().isConflict());
         unlock(user, roomId, hintIds(otherRoomId).get(0)).andExpect(status().isNotFound());
@@ -119,6 +121,7 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
         long roomId = roomWithHints(admin, "CTF", "Wyścig");
         long hintId = hintIds(roomId).get(0);
         var user = account(Role.USER);
+        joinPathsOf(user, roomId);
 
         var start = new CountDownLatch(1);
         var pool = Executors.newFixedThreadPool(4);
@@ -165,6 +168,8 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
         long roomId = roomWithHints(admin, "CTF", "Dla autora");
         var expert = account(Role.EXPERT);
         var user = account(Role.USER);
+        joinPathsOf(admin, roomId);
+        joinPathsOf(user, roomId);
 
         getAs(admin, "/api/rooms/" + roomId).andExpect(status().isOk())
                 .andExpect(jsonPath("$.hints[0].description").doesNotExist());

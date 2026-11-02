@@ -1,6 +1,7 @@
 package com.hackademy.server.room;
 
 
+import com.hackademy.server.path.PathEnrollmentRequiredException;
 import com.hackademy.server.user.User;
 
 import com.hackademy.server.room.dto.HintDto;
@@ -70,6 +71,14 @@ public class RoomController {
                 .cacheControl(CacheControl.noStore())
                 .body(Map.of("message", exception.getMessage(), "retryAfter", exception.retryAfterSeconds(),
                         "reason", RoomAnswerGuard.SCOPE));
+    }
+
+    @ExceptionHandler(PathEnrollmentRequiredException.class)
+    public ResponseEntity<Map<String, Object>> enrollmentRequired(PathEnrollmentRequiredException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .cacheControl(CacheControl.noStore())
+                .body(Map.of("message", exception.getReason(), "code", PathEnrollmentRequiredException.CODE,
+                        "pathIds", exception.pathIds()));
     }
 
     @PostMapping("/{roomId}/tasks/complete")

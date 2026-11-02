@@ -11,6 +11,7 @@ import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
+import java.util.Set;
 
 public interface PathService {
     List<PathSummaryDto> listPaths(String username);
@@ -32,5 +33,6 @@ public interface PathService {
     void enrollUser(Long pathId, String username);
     void unenrollUser(Long pathId, String username);
     boolean isEnrolled(Long pathId, String username);
+    Set<Long> getEnrolledPathIds(Long userId);
 }
 

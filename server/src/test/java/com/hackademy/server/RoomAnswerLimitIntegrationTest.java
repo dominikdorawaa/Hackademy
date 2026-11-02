@@ -26,6 +26,8 @@ class RoomAnswerLimitIntegrationTest extends PostgresIntegrationTest {
         publishInPath(room);
         long second = createRoom(admin, uniqueTitle("Second guessing room"), "CTF");
         publishInPath(second);
+        joinPathsOf(player, room, second);
+        joinPathsOf(other, room);
         addFlagTask(room, "HACK{flag}");
         addFlagTask(second, "HACK{flag}");
 
@@ -54,6 +56,7 @@ class RoomAnswerLimitIntegrationTest extends PostgresIntegrationTest {
         var player = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Theory room"), "PATH");
         publishInPath(room);
+        joinPathsOf(player, room);
         long task = jdbcTemplate.queryForObject("""
                 INSERT INTO room_tasks (room_id, title, content, question, answer, sort_order)
                 VALUES (?, 'Pytanie', 'Treść', 'Jakie polecenie?', 'pwd', 0) RETURNING id

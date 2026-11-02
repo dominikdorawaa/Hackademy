@@ -229,6 +229,7 @@ public class RoomServiceImpl implements RoomService {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        pathUnlockPolicy.requireUnlocked(id, user.getId());
 
         if ("Tutorial VPN".equals(room.getTitle())) {
             boolean hasTutorialVM = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VM");
@@ -243,7 +244,6 @@ public class RoomServiceImpl implements RoomService {
                 throw new IllegalStateException("Ten pokój wymaga połączenia VPN. Musisz najpierw ukończyć pokój 'Tutorial VPN'.");
             }
         }
-        pathUnlockPolicy.requireUnlocked(id, user.getId());
 
         boolean isSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
 

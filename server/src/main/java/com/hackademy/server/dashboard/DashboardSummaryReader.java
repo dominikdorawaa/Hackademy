@@ -53,8 +53,10 @@ public class DashboardSummaryReader {
         userInfo.put("avatar", userService.getAvatar(userId));
 
         List<PathProgressDto> progress = pathService.getMyPathsProgress(username);
-        PathProgressDto currentPath = progress.stream().filter(p -> !p.completed()).findFirst()
-                .orElse(progress.isEmpty() ? null : progress.get(0));
+        var enrolledPaths = pathService.getEnrolledPathIds(userId);
+        List<PathProgressDto> joined = progress.stream().filter(p -> enrolledPaths.contains(p.id())).toList();
+        PathProgressDto currentPath = joined.stream().filter(p -> !p.completed()).findFirst()
+                .orElse(joined.isEmpty() ? null : joined.get(0));
 
         List<PathRoomMiniDto> roomsMini = currentPath == null || currentPath.id() == null ? List.of()
                 : pathService.getPathRoomsMini(currentPath.id(), username, 0).rooms();

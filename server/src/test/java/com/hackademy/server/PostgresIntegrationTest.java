@@ -106,6 +106,10 @@ abstract class PostgresIntegrationTest {
         return PublishedPaths.publishInPath(jdbcTemplate, roomIds);
     }
 
+    protected void joinPathsOf(Account account, long... roomIds) {
+        PublishedPaths.joinPathsOf(jdbcTemplate, account.id(), roomIds);
+    }
+
     protected long addFlagTask(long room, String flag) {
         return jdbcTemplate.queryForObject("""
                 INSERT INTO room_tasks (room_id, title, content, question, answer, sort_order)

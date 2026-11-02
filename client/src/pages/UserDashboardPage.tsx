@@ -188,7 +188,7 @@ const UserDashboardPage = () => {
 
         const safeProgress = Array.isArray(data?.pathsProgress) ? data.pathsProgress : [];
         setPathsProgress(safeProgress);
-        setCurrentPath(data?.currentPath ?? (safeProgress[0] || null));
+        setCurrentPath(data?.currentPath ?? null);
         setCurrentPathRoomsMini(Array.isArray(data?.currentPathRoomsMini) ? data.currentPathRoomsMini : []);
       } catch (e) {
         console.error(e);

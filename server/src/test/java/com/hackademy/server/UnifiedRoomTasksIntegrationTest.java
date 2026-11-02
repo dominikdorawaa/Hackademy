@@ -58,6 +58,7 @@ class UnifiedRoomTasksIntegrationTest extends PostgresIntegrationTest {
         String saved = save(admin, null, room("CTF", List.of(flagTask(null, "HACK{exact}"))), 201);
         long id = number(saved, "$.room.id");
         publishInPath(id);
+        joinPathsOf(player, id);
         assertEquals("HACK{exact}", JsonPath.read(saved, "$.tasks.tasks[0].answer"));
         assertEquals(100, number(saved, "$.room.points"));
 
@@ -115,6 +116,7 @@ class UnifiedRoomTasksIntegrationTest extends PostgresIntegrationTest {
         String saved = save(admin, null, room, 201);
         long id = number(saved, "$.room.id");
         publishInPath(id);
+        joinPathsOf(player, id);
         List<Integer> taskIds = JsonPath.read(saved, "$.tasks.tasks[*].id");
         solveRoom(player, id, "PWD").andExpect(status().isOk());
 

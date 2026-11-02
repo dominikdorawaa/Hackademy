@@ -64,7 +64,7 @@ class PathServiceImplTest {
     void setUp() {
         service = new PathServiceImpl(pathRepository, pathChapterRepository, chapterRoomRepository, roomRepository,
                 roomService, pathEnrollmentRepository, userRepository, userSolvedRoomRepository, visibility,
-                new PathUnlockPolicy(chapterRoomRepository), dashboards);
+                new PathUnlockPolicy(chapterRoomRepository, pathEnrollmentRepository), dashboards);
         dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());
     }
 
@@ -265,6 +265,7 @@ class PathServiceImplTest {
     void locksTutorialAndVpnRoomsUntilTutorialsAreSolved() {
         when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
         when(userSolvedRoomRepository.findSolvedRoomTitlesByUserId(1L, List.of("Tutorial VPN", "Tutorial VM")))
                 .thenReturn(List.of());
         when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 3)).thenReturn(List.of(
@@ -286,6 +287,7 @@ class PathServiceImplTest {
     void solvedTutorialsUnlockRooms() {
         when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
         when(userSolvedRoomRepository.findSolvedRoomTitlesByUserId(anyLong(), any()))
                 .thenReturn(List.of("Tutorial VPN", "Tutorial VM"));
         when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 500)).thenReturn(List.of(
@@ -300,15 +302,28 @@ class PathServiceImplTest {
     @Test
     void roomModeLocksEveryRoomAfterTheFirstUnsolvedOne() {
         when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.ROOM));
-        when(chapterRoomRepository.findProgression(5L, -1L)).thenReturn(List.of(
+        when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
+        when(chapterRoomRepository.findProgression(5L, 1L)).thenReturn(List.of(
                 new Progression(100L, 10L, false), new Progression(100L, 11L, false)));
-        when(chapterRoomRepository.findMiniRoomsForUser(5L, -1L, 5)).thenReturn(List.of(
+        when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 5)).thenReturn(List.of(
                 new MiniRow(10L, "Pierwszy", false, false),
                 new MiniRow(11L, "Drugi", false, false)));
 
-        var rooms = service.getPathRoomsMini(5L, null, 5).rooms();
+        var rooms = service.getPathRoomsMini(5L, "alice", 5).rooms();
 
         assertEquals(List.of(false, true), rooms.stream().map(PathRoomMiniDto::locked).toList());
+    }
+
+    @Test
+    void roomsOfAPathThePlayerDidNotJoinAreAlwaysLocked() {
+        when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
+        when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 5)).thenReturn(List.of(new MiniRow(10L, "Pierwszy", false, false)));
+        when(chapterRoomRepository.findMiniRoomsForUser(5L, -1L, 5)).thenReturn(List.of(new MiniRow(10L, "Pierwszy", false, false)));
+
+        assertTrue(service.getPathRoomsMini(5L, "alice", 5).rooms().get(0).locked());
+        assertTrue(service.getPathRoomsMini(5L, null, 5).rooms().get(0).locked());
     }
 
     @Test

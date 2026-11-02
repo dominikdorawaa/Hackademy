@@ -59,5 +59,16 @@ public class DashboardSummaryCache {
         if (userId == null) return;
         byUserId.invalidate(userId);
     }
+
+    public void invalidateUserAfterCommit(Long userId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            invalidateUser(userId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() { invalidateUser(userId); }
+        });
+    }
 }
 
