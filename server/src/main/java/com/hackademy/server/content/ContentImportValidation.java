@@ -77,7 +77,7 @@ public final class ContentImportValidation {
             if (!ctf && question.isBlank() && !answer.isBlank()) errors.problem(taskKey + ": question", "Odpowiedź wymaga pytania");
             var hints = array(task, "hints", taskKey, RoomTaskRequest.MAX_HINTS, false);
             for (int h = 0; h < hints.size(); h++) string(hints.get(h), taskKey + ", podpowiedź " + (h + 1), 2000, true);
-            if (t == 0 && roomHints.size() + hints.size() > RoomTaskRequest.MAX_HINTS) errors.problem(taskKey + ": hints", "Maksymalnie " + RoomTaskRequest.MAX_HINTS + " podpowiedzi w zadaniu");
+            if (t == 0 && !roomHints.isEmpty() && roomHints.size() + hints.size() > RoomTaskRequest.MAX_HINTS) errors.problem(key + ": hints", "Podpowiedzi pokoju trafiają do pierwszego zadania, które może mieć łącznie maksymalnie " + RoomTaskRequest.MAX_HINTS + " podpowiedzi");
         }
     }
 

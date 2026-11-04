@@ -373,7 +373,7 @@ public class RoomServiceImpl implements RoomService {
         int hintIndex = taskHints.indexOf(hint);
 
         if (userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), hintId)) {
-            return mapToDto(hint, hintIndex);
+            return HintDto.of(hint, hintIndex, true);
         }
 
         if (hintIndex > 0) {
@@ -390,7 +390,7 @@ public class RoomServiceImpl implements RoomService {
         UserUnlockedHint userUnlockedHint = new UserUnlockedHint(user, hint);
         userUnlockedHintRepository.save(userUnlockedHint);
 
-        return mapToDto(hint, hintIndex);
+        return HintDto.of(hint, hintIndex, true);
     }
 
     @Override
@@ -489,7 +489,7 @@ public class RoomServiceImpl implements RoomService {
             if (text.isEmpty()) {
                 throw new IllegalArgumentException("Podpowiedź nie może być pusta");
             }
-            Hint hint = unused.stream().filter(candidate -> candidate.getDescription().equals(text)).findFirst().orElse(null);
+            Hint hint = unused.stream().filter(candidate -> candidate.getDescription().trim().equals(text)).findFirst().orElse(null);
             if (hint == null) {
                 hint = new Hint(text, task, kept.size());
             } else {
@@ -506,7 +506,7 @@ public class RoomServiceImpl implements RoomService {
         List<HintDto> hints = new ArrayList<>();
         for (int i = 0; i < task.getHints().size(); i++) {
             Hint hint = task.getHints().get(i);
-            hints.add(unlocked.test(hint.getId()) ? new HintDto(hint.getId(), i, hint.getDescription()) : HintDto.locked(hint.getId(), i));
+            hints.add(HintDto.of(hint, i, unlocked.test(hint.getId())));
         }
         return hints;
     }
@@ -544,9 +544,5 @@ public class RoomServiceImpl implements RoomService {
     @Transactional(readOnly = true)
     public List<RoomSummaryDto> getTop3Rooms() {
         return roomRepository.findTop3ByCategoryNot("Tutorial", PageRequest.of(0, 3));
-    }
-
-    private HintDto mapToDto(Hint hint, int order) {
-        return new HintDto(hint.getId(), order, hint.getDescription());
     }
 }

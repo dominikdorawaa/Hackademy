@@ -4,7 +4,7 @@ FROM hints h
 WHERE NOT EXISTS (SELECT 1 FROM room_tasks t WHERE t.room_id = h.room_id);
 
 INSERT INTO room_tasks (room_id, title, content, question, answer, sort_order)
-SELECT room_id, 'Zadanie 1', '', NULL, NULL, 0
+SELECT room_id, 'Zadanie 1', '', NULL, md5(random()::text || clock_timestamp()::text), 0
 FROM hint_rooms_without_tasks;
 
 INSERT INTO user_completed_tasks (user_id, task_id, completed_at)

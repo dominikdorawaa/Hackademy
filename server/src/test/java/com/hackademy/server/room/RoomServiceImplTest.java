@@ -617,6 +617,18 @@ class RoomServiceImplTest {
     }
 
     @Test
+    void savingTasksKeepsAnOlderHintWithSurroundingWhitespace() {
+        Room room = hintRoom(1L, 11L);
+        RoomTask task = room.getTasks().get(0);
+        task.getHints().get(0).setDescription("Podpowiedź 11\n");
+
+        service.updateRoomTasks(1L, new UpdateRoomTasksRequest(0L, List.of(
+                new RoomTaskRequest(task.getId(), "Zadanie", "Treść", null, "FLAG{ok}", List.of("Podpowiedź 11")))));
+
+        assertEquals(List.of(11L), task.getHints().stream().map(Hint::getId).toList());
+    }
+
+    @Test
     void savingTasksWithoutAHintListKeepsTheHints() {
         Room room = hintRoom(1L, 11L);
         RoomTask task = room.getTasks().get(0);

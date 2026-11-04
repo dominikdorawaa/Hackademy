@@ -394,6 +394,7 @@ class SchemaMigrationTest {
                 FROM hints h JOIN room_tasks t ON t.id = h.task_id WHERE t.room_id = 1
                 """));
         assertEquals("Zadanie 1:Szkic", text("SELECT t.title || ':' || h.description FROM hints h JOIN room_tasks t ON t.id = h.task_id WHERE t.room_id = 2"));
+        assertEquals(32, scalar("SELECT length(answer) FROM room_tasks WHERE room_id = 2"));
         assertEquals(1, scalar("SELECT count(*) FROM user_completed_tasks c JOIN room_tasks t ON t.id = c.task_id WHERE t.room_id = 2 AND c.user_id = 1"));
         assertEquals(revision + 1, scalar("SELECT tasks_revision FROM rooms WHERE id = 2"));
         assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id = 3"));

@@ -86,7 +86,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
   const [taskFeedback, setTaskFeedback] = useState<{ taskId: number; status: 'success' | 'error'; message: string } | null>(null);
-  const [hintError, setHintError] = useState('');
+  const [failedHint, setFailedHint] = useState<number | null>(null);
   const [completeError, setCompleteError] = useState('');
   const wide = useMediaQuery('(min-width: 1100px)');
   const [sidebarHidden, setSidebarHidden] = useStoredFlag('hackademy.roomTaskList.hidden');
@@ -104,11 +104,11 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (preview) { setRevealedHints(current => [...current, hintId]); return; }
     if (pendingHint !== null) return;
     setPendingHint(hintId);
-    setHintError('');
+    setFailedHint(null);
     try {
       const response = await roomApi.unlockHint(id ?? '', hintId, { sessionKey });
       if (!response.ok) {
-        setHintError('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
+        setFailedHint(hintId);
         return;
       }
       const unlocked = await response.json();
@@ -424,7 +424,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
           {`Podpowiedź (${nextHint.order + 1}/${taskHints.length}) · ${hintPrice}`}
         </button>
       )}
-      {hintError && <p className="room-message is-error" role="alert">{hintError}</p>}
+      {taskHints.some(hint => hint.id === failedHint) && <p className="room-message is-error" role="alert">Nie udało się odblokować podpowiedzi. Spróbuj ponownie.</p>}
     </section>
   );
   const roomMeta = (
