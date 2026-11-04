@@ -137,7 +137,7 @@
   line-height: 1;
 }
 
-.px-dialog textarea {
+.px-dialog :is(textarea, input) {
   border: 1px solid var(--px-line-strong);
   border-radius: 4px;
   background: var(--px-board);
@@ -147,8 +147,8 @@
   font-size: 0.875rem;
 }
 
-.px-dialog textarea:focus-visible { border-color: var(--px-link); box-shadow: none; outline: none; }
-.px-dialog textarea::placeholder { color: var(--px-muted); }
+.px-dialog :is(textarea, input):focus-visible { border-color: var(--px-link); box-shadow: none; outline: none; }
+.px-dialog :is(textarea, input)::placeholder { color: var(--px-muted); }
 .px-dialog [data-slot='dialog-close'] { top: 14px; right: 14px; color: var(--px-muted); opacity: 1; }
 .px-dialog [data-slot='dialog-close']:hover { color: var(--px-ink); }
 

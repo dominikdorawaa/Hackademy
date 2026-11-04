@@ -4,6 +4,7 @@ import com.hackademy.server.user.User;
 import lombok.RequiredArgsConstructor;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.oauth2.jwt.Jwt;
 import org.springframework.security.oauth2.jwt.JwtDecoder;
 import org.springframework.security.oauth2.jwt.JwtException;
 import org.springframework.stereotype.Component;
@@ -29,11 +30,13 @@ public class ClerkTokenAuthenticator {
             throw new BadCredentialsException("Missing bearer token");
         }
         User user;
+        Jwt jwt;
         try {
-            user = userResolver.resolve(clerkJwtDecoder.decode(token));
+            jwt = clerkJwtDecoder.decode(token);
+            user = userResolver.resolve(jwt);
         } catch (JwtException exception) {
             throw new BadCredentialsException("Invalid Clerk session token", exception);
         }
-        return UsernamePasswordAuthenticationToken.authenticated(user, null, user.getAuthorities());
+        return UsernamePasswordAuthenticationToken.authenticated(user, jwt, user.getAuthorities());
     }
 }

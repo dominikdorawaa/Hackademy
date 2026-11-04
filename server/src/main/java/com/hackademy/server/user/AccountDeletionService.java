@@ -1,10 +1,16 @@
 package com.hackademy.server.user;
 
+import com.github.benmanes.caffeine.cache.Cache;
+import com.github.benmanes.caffeine.cache.Caffeine;
 import com.hackademy.server.badge.UserBadgeRepository;
 import com.hackademy.server.clerk.ClerkBackendClient;
 import com.hackademy.server.clerk.ClerkProperties;
 import com.hackademy.server.exception.UserNotFoundException;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
+import org.springframework.context.ApplicationEventPublisher;
 import org.springframework.http.HttpStatus;
+import org.springframework.scheduling.annotation.Scheduled;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.PlatformTransactionManager;
 import org.springframework.transaction.TransactionDefinition;
@@ -13,47 +19,129 @@ import org.springframework.web.client.RestClient;
 import org.springframework.web.client.RestClientException;
 import org.springframework.web.server.ResponseStatusException;
 
+import java.time.Duration;
+import java.util.List;
 import java.util.Objects;
+import java.util.concurrent.atomic.AtomicInteger;
+import java.util.function.BooleanSupplier;
 
 @Service
 public class AccountDeletionService {
 
+    static final int PASSWORD_ATTEMPTS = 5;
+    static final String WRONG_PASSWORD = "Hasło jest nieprawidłowe.";
+    static final String NOT_SELF_SERVICE = "Tego konta nie można usunąć samodzielnie. Napisz do administratora.";
+    static final String LAST_ADMIN = "Jesteś jedynym administratorem. Nadaj rolę administratora innej osobie, zanim usuniesz to konto.";
+
+    private static final Logger log = LoggerFactory.getLogger(AccountDeletionService.class);
+
     private final UserRepository users;
     private final AccountDeletionRepository deletions;
     private final UserBadgeRepository badges;
-    private final ClerkProperties properties;
-    private final RestClient.Builder clientBuilder;
+    private final ClerkBackendClient clerk;
+    private final ApplicationEventPublisher events;
     private final TransactionTemplate transaction;
+    private final Cache<Long, AtomicInteger> failedConfirmations = Caffeine.newBuilder()
+            .expireAfterWrite(Duration.ofMinutes(15)).maximumSize(10_000).build();
 
     public AccountDeletionService(UserRepository users, AccountDeletionRepository deletions, UserBadgeRepository badges,
                                   ClerkProperties properties, RestClient.Builder clientBuilder,
-                                  PlatformTransactionManager transactionManager) {
+                                  ApplicationEventPublisher events, PlatformTransactionManager transactionManager) {
         this.users = users;
         this.deletions = deletions;
         this.badges = badges;
-        this.properties = properties;
-        this.clientBuilder = clientBuilder;
+        this.clerk = properties.secretKey() == null ? null : new ClerkBackendClient(clientBuilder.clone(), properties);
+        this.events = events;
         this.transaction = new TransactionTemplate(transactionManager);
         this.transaction.setPropagationBehavior(TransactionDefinition.PROPAGATION_REQUIRES_NEW);
     }
 
+    public void confirmOwner(Long userId, String password, Object factorAges) {
+        var user = users.findById(userId).orElseThrow(() -> new UserNotFoundException("User not found"));
+        if (user.getClerkUserId() == null) throw new ResponseStatusException(HttpStatus.FORBIDDEN, NOT_SELF_SERVICE);
+        if (clerk == null) {
+            throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Usuwanie kont Clerk nie jest skonfigurowane.");
+        }
+        if (!identity(() -> clerk.passwordEnabled(user.getClerkUserId()))) {
+            if (!recentlyVerified(factorAges)) throw new ReverificationRequiredException();
+            return;
+        }
+        if (password == null || password.isEmpty()) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, "Wpisz obecne hasło.");
+        var failures = failedConfirmations.get(userId, ignored -> new AtomicInteger());
+        if (failures.incrementAndGet() > PASSWORD_ATTEMPTS) {
+            failures.decrementAndGet();
+            throw new ResponseStatusException(HttpStatus.TOO_MANY_REQUESTS, "Zbyt wiele nieudanych prób. Spróbuj ponownie za 15 minut.");
+        }
+        boolean confirmed;
+        try {
+            confirmed = identity(() -> clerk.verifyPassword(user.getClerkUserId(), password));
+        } catch (ResponseStatusException exception) {
+            failures.decrementAndGet();
+            throw exception;
+        }
+        if (!confirmed) throw new ResponseStatusException(HttpStatus.BAD_REQUEST, WRONG_PASSWORD);
+        failedConfirmations.invalidate(userId);
+    }
+
+    static boolean recentlyVerified(Object factorAges) {
+        if (!(factorAges instanceof List<?> ages) || ages.size() != 2 || !(ages.get(0) instanceof Number age)) return false;
+        return age.longValue() >= 0 && age.longValue() < ReverificationRequiredException.AFTER_MINUTES;
+    }
+
+    private static boolean identity(BooleanSupplier call) {
+        try {
+            return call.getAsBoolean();
+        } catch (RestClientException | IllegalStateException exception) {
+            throw new ResponseStatusException(HttpStatus.BAD_GATEWAY, "Nie udało się potwierdzić tożsamości. Spróbuj ponownie.");
+        }
+    }
+
     public void delete(Long userId) {
         AccountDeletion deletion = transaction.execute(status -> {
+            var admins = users.findByRoleForUpdate(Role.ADMIN);
             var user = users.findByIdForUpdate(userId);
             var previous = deletions.findById(userId);
             if (previous.isPresent()) return previous.get();
             var target = user.orElseThrow(() -> new UserNotFoundException("User not found"));
-            if (target.getClerkUserId() != null && properties.secretKey() == null) {
+            if (target.getRole() == Role.ADMIN
+                    && admins.stream().filter(admin -> !deletions.existsById(admin.getId())).count() <= 1) {
+                throw new ResponseStatusException(HttpStatus.CONFLICT, LAST_ADMIN);
+            }
+            if (target.getClerkUserId() != null && clerk == null) {
                 throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Usuwanie kont Clerk nie jest skonfigurowane.");
             }
             return deletions.saveAndFlush(new AccountDeletion(userId, target.getClerkUserId()));
         });
-        if (deletion.getClerkUserId() != null) {
+        complete(deletion);
+    }
+
+    @Scheduled(initialDelay = 60_000, fixedDelay = 300_000)
+    public void completePending() {
+        for (var deletion : deletions.findPending()) {
             try {
-                new ClerkBackendClient(clientBuilder.clone(), properties).delete(deletion.getClerkUserId());
+                complete(deletion);
+            } catch (RuntimeException exception) {
+                log.warn("Deletion of account {} is still pending: {}", deletion.getUserId(), exception.getMessage());
+            }
+        }
+    }
+
+    private void complete(AccountDeletion deletion) {
+        Long userId = deletion.getUserId();
+        try {
+            events.publishEvent(new AccountBlockedEvent(userId));
+        } catch (RuntimeException exception) {
+            log.warn("Closing arena activity of account {} failed", userId, exception);
+        }
+        if (deletion.getClerkUserId() != null) {
+            if (clerk == null) {
+                throw new ResponseStatusException(HttpStatus.SERVICE_UNAVAILABLE, "Usuwanie kont Clerk nie jest skonfigurowane.");
+            }
+            try {
+                clerk.delete(deletion.getClerkUserId());
             } catch (RestClientException | IllegalStateException exception) {
                 throw new ResponseStatusException(HttpStatus.BAD_GATEWAY,
-                        "Konto zablokowano. Nie udało się potwierdzić usunięcia w Clerk. Ponów usuwanie.");
+                        "Konto zablokowano. Nie udało się potwierdzić usunięcia w Clerk, dokończymy je automatycznie w ciągu kilku minut.");
             }
         }
         transaction.executeWithoutResult(status -> {

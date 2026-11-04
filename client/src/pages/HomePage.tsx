@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useCallback, useEffect, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import Hero from '../components/Hero';
@@ -8,6 +8,8 @@ import Rooms from '../components/Rooms';
 import Leaderboard from '../components/Leaderboard';
 import Newsletter from '../components/Newsletter';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
+import ToastNotification from '../components/common/ToastNotification';
+import { accountWasDeleted, forgetAccountDeleted } from '../lib/accountDeletion';
 
 const STATIC_LANDING_LEADERBOARD = [
   { username: 'CyberNinja', points: 12450, title: 'Elitarny pentester' },
@@ -18,6 +20,10 @@ const STATIC_LANDING_LEADERBOARD = [
 const HomePage = () => {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
+  const [deleted, setDeleted] = useState(accountWasDeleted);
+  const hideDeleted = useCallback(() => setDeleted(false), []);
+
+  useEffect(() => { if (deleted) forgetAccountDeleted(); }, [deleted]);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
@@ -51,6 +57,7 @@ const HomePage = () => {
       <Rooms />
       <Leaderboard players={STATIC_LANDING_LEADERBOARD} guestLanding />
       <Newsletter />
+      {deleted && <ToastNotification message="Konto zostało trwale usunięte. Dziękujemy za wspólną naukę." type="info" onClose={hideDeleted} />}
     </div>
   );
 };

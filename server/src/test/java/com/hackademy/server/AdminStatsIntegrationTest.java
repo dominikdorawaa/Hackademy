@@ -28,6 +28,7 @@ class AdminStatsIntegrationTest extends PostgresIntegrationTest {
 
     @Test
     void summarizesPlatformActivity() throws Exception {
+        jdbcTemplate.update("DELETE FROM bug_reports");
         jdbcTemplate.update("DELETE FROM users");
         jdbcTemplate.update("DELETE FROM rooms");
         jdbcTemplate.update("DELETE FROM paths");

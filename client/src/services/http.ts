@@ -69,10 +69,10 @@ export async function sessionToken(scope: SessionScope, skipCache = false) {
   return token;
 }
 
-export interface RequestOptions extends RequestInit { auth?: SessionScope; rateLimitNotice?: boolean }
+export interface RequestOptions extends RequestInit { auth?: SessionScope; rateLimitNotice?: boolean; freshToken?: boolean }
 
 export async function request<T, E = ApiError>(path: string, options: RequestOptions = {}): Promise<ApiResponse<T, E>> {
-  const { auth, rateLimitNotice = true, ...init } = options;
+  const { auth, rateLimitNotice = true, freshToken = false, ...init } = options;
   const url = new URL(path, `${API_URL || window.location.origin}/`);
   const api = new URL(API_URL || window.location.origin);
   if (url.origin !== api.origin || !url.pathname.startsWith('/api/')) throw new Error('Nieprawidłowy adres API.');
@@ -86,7 +86,7 @@ export async function request<T, E = ApiError>(path: string, options: RequestOpt
     init.signal?.throwIfAborted();
     return fetch(url.href, { ...init, headers, credentials: 'omit', redirect: 'error' });
   };
-  let response = await send(false);
+  let response = await send(freshToken);
   if (auth?.sessionKey && response.status === 401 && session === current) {
     response = await send(true);
     if (response.status === 401 && session === current) current?.expired();

@@ -34,6 +34,20 @@ public class ClerkBackendClient {
                 .toBodilessEntity();
     }
 
+    public boolean passwordEnabled(String clerkUserId) {
+        ClerkAccount account = restClient.get().uri("/users/{id}", clerkUserId).retrieve().body(ClerkAccount.class);
+        if (account == null) throw new IllegalStateException("Clerk returned no user");
+        return account.passwordEnabled();
+    }
+
+    public boolean verifyPassword(String clerkUserId, String password) {
+        PasswordCheck check = restClient.post().uri("/users/{id}/verify_password", clerkUserId)
+                .contentType(MediaType.APPLICATION_JSON).body(Map.of("password", password)).retrieve()
+                .onStatus(status -> status.value() == 400 || status.value() == 422, (request, response) -> {})
+                .body(PasswordCheck.class);
+        return check != null && Boolean.TRUE.equals(check.verified());
+    }
+
     public ClerkUser create(String externalId, String email, String passwordDigest) {
         Map<String, Object> body = new LinkedHashMap<>();
         body.put("external_id", externalId);
@@ -59,5 +73,13 @@ public class ClerkBackendClient {
 
     @JsonIgnoreProperties(ignoreUnknown = true)
     public record ClerkUser(String id, @JsonProperty("external_id") String externalId) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record ClerkAccount(@JsonProperty("password_enabled") boolean passwordEnabled) {
+    }
+
+    @JsonIgnoreProperties(ignoreUnknown = true)
+    record PasswordCheck(Boolean verified) {
     }
 }

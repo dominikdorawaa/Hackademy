@@ -2,6 +2,7 @@ package com.hackademy.server.handler;
 
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.room.RoomRuleException;
+import com.hackademy.server.user.ReverificationRequiredException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.http.converter.HttpMessageNotReadableException;
@@ -71,6 +72,13 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, Object>> handleRoomRuleException(RoomRuleException ex) {
         return ResponseEntity.status(ex.getStatusCode())
                 .body(Map.of("message", ex.getReason(), "fields", Map.of(ex.field(), ex.getReason())));
+    }
+
+    @ExceptionHandler(ReverificationRequiredException.class)
+    public ResponseEntity<Map<String, Object>> handleReverificationRequired(ReverificationRequiredException ex) {
+        var reverification = Map.of("level", "first_factor", "afterMinutes", ReverificationRequiredException.AFTER_MINUTES);
+        return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", ex.getMessage(), "clerk_error",
+                Map.of("type", "forbidden", "reason", "reverification-error", "metadata", Map.of("reverification", reverification))));
     }
 
     @ExceptionHandler(ObjectOptimisticLockingFailureException.class)
