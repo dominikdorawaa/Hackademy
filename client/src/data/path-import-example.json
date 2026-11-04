@@ -15,13 +15,13 @@
           "category": "Linux",
           "points": 30,
           "requiresVpn": false,
-          "hints": ["Nazwa polecenia zaczyna się od litery p."],
           "tasks": [
             {
               "title": "Bieżący katalog",
               "content": "<p>Polecenie <code>pwd</code> wyświetla bieżący katalog.</p>",
               "question": "Jakie polecenie wyświetla bieżący katalog?",
-              "answer": "pwd"
+              "answer": "pwd",
+              "hints": ["Nazwa polecenia zaczyna się od litery p."]
             }
           ]
         },

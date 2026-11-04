@@ -3,16 +3,15 @@ import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
 import { rateLimitMessage, retryAfterSeconds, TOO_MANY_REQUESTS } from '../services/rateLimit';
 import React, { useState, useEffect, useId, useRef } from 'react';
-import { BookOpen, Check, CheckCheck, Download, Flag, HelpCircle, Lightbulb, Lock, RotateCcw } from 'lucide-react';
+import { BookOpen, Check, CheckCheck, Download, Flag, HelpCircle, Lightbulb, RotateCcw } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
-import ConfirmationModal from '../components/common/ConfirmationModal';
 import ToastNotification from '../components/common/ToastNotification';
 import SuccessModal from '../components/common/SuccessModal';
 import './RoomPage.css';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
-import type { RoomDetailDto } from '../types/api';
+import type { HintDto, RoomDetailDto } from '../types/api';
 import { useRoomReturn } from '../hooks/useRoomReturn';
 import { useGameSound } from '../hooks/useGameSound';
 import RoomFrame from '../components/room/RoomFrame';
@@ -36,9 +35,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [room, setRoom] = useState<RoomDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [unlockedHints, setUnlockedHints] = useState<number[]>([]);
-  const [isModalOpen, setIsModalOpen] = useState(false);
-  const [hintToUnlock, setHintToUnlock] = useState<number | null>(null);
+  const [revealedHints, setRevealedHints] = useState<number[]>([]);
+  const [pendingHint, setPendingHint] = useState<number | null>(null);
 
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
@@ -100,36 +98,26 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const queryParams = new URLSearchParams(location.search);
   const roomReturn = useRoomReturn(preview ? undefined : id, location.search, sessionKey, room?.solved ?? false);
 
-  const handleUnlockHint = (hintId: number) => {
-    if (preview) { setUnlockedHints(current => [...current, hintId]); return; }
-    setHintToUnlock(hintId);
-    setIsModalOpen(true);
-  };
+  const hintUnlocked = (hint: HintDto) => preview ? revealedHints.includes(hint.id) : hint.description != null;
 
-  const confirmUnlockHint = async () => {
-    setIsModalOpen(false);
-    if (!hintToUnlock) return;
+  const unlockHint = async (hintId: number) => {
+    if (preview) { setRevealedHints(current => [...current, hintId]); return; }
+    if (pendingHint !== null) return;
+    setPendingHint(hintId);
     setHintError('');
-
     try {
-        const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { sessionKey });
-        if (!response.ok) {
-          setHintError('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
-          return;
-        }
-        const unlocked = await response.json();
-        setRoom(prev => prev ? { ...prev, hints: prev.hints.map(h => h.id === unlocked.id ? unlocked : h) } : null);
-        setUnlockedHints([...unlockedHints, hintToUnlock]);
+      const response = await roomApi.unlockHint(id ?? '', hintId, { sessionKey });
+      if (!response.ok) {
+        setHintError('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
+        return;
+      }
+      const unlocked = await response.json();
+      setRoom(prev => prev ? { ...prev, tasks: prev.tasks.map(t => ({ ...t, hints: (t.hints ?? []).map(h => h.id === unlocked.id ? unlocked : h) })) } : null);
     } catch {
-        setToast({ message: 'Błąd połączenia', type: 'error' });
+      setToast({ message: 'Błąd połączenia', type: 'error' });
     } finally {
-        setHintToUnlock(null);
+      setPendingHint(null);
     }
-  };
-
-  const cancelUnlockHint = () => {
-    setIsModalOpen(false);
-    setHintToUnlock(null);
   };
 
   const handleDownloadFile = async () => {
@@ -171,7 +159,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         if (data.tasks && data.tasks.length > 0) {
             setActiveTask(Math.max(0, data.tasks.findIndex(t => !t.completed)));
         }
-        if (data.unlockedHintIds) setUnlockedHints(data.unlockedHintIds);
       } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
       finally { setLoading(false); }
     };
@@ -281,8 +268,9 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   if (error) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
   if (!room) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
 
-  const potentialXp = xpAfterHints(room.points, unlockedHints.length);
-  const hintCost = potentialXp - xpAfterHints(room.points, unlockedHints.length + 1);
+  const unlockedHintCount = (room.tasks || []).reduce((count, t) => count + (t.hints ?? []).filter(hintUnlocked).length, 0);
+  const potentialXp = xpAfterHints(room.points, unlockedHintCount);
+  const hintCost = potentialXp - xpAfterHints(room.points, unlockedHintCount + 1);
   const isSolved = room.solved;
   const showContent = !isSolved || isTrainingMode;
 
@@ -323,34 +311,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     </div>
   );
 
-  const hintsBlock = showContent && room.hints && room.hints.length > 0 && (
-    <section className="room-hints" aria-labelledby={`${titleId}-hints`}>
-      <h2 className="room-section-title" id={`${titleId}-hints`}>Podpowiedzi</h2>
-      {!isTrainingMode && <p className="room-hints-points">XP do zdobycia: <strong>{formatXp(potentialXp)}</strong></p>}
-      <ol>
-        {room.hints.map((hint, index) => {
-          const isUnlocked = unlockedHints.includes(hint.id);
-          const isPreviousUnlocked = index === 0 || unlockedHints.includes(room.hints[index - 1].id);
-          const canUnlock = !isUnlocked && isPreviousUnlocked;
-          return (
-            <li key={hint.id} className="room-hint">
-              <span className="room-hint-mark" aria-hidden="true">{isUnlocked ? <Lightbulb size={18} /> : <Lock size={16} />}</span>
-              <h4>Podpowiedź {index + 1}</h4>
-              {isUnlocked ? (
-                <p>{hint.description}</p>
-              ) : (
-                <button type="button" onClick={() => handleUnlockHint(hint.id)} className="room-btn room-btn--small" disabled={!canUnlock}>
-                  {canUnlock ? (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${formatXp(hintCost)})`) : 'Zablokowane (odblokuj poprzednią)'}
-                </button>
-              )}
-            </li>
-          );
-        })}
-      </ol>
-      {hintError && <p className="room-message is-error" role="alert">{hintError}</p>}
-    </section>
-  );
-
   const chips = (xp: number) => (
     <div className="room-chips">
       <span className={`room-chip room-chip--${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>
@@ -365,12 +325,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const modals = (
     <>
-      <ConfirmationModal
-        isOpen={isModalOpen}
-        message={isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - bez utraty XP)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${formatXp(hintCost)}.`}
-        onConfirm={confirmUnlockHint}
-        onCancel={cancelUnlockHint}
-      />
       <SuccessModal
         isOpen={showSuccessModal}
         onClose={handleCloseSuccessModal}
@@ -424,13 +378,12 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
               </div>
             </div>
           )}
-          {hintsBlock}
         </div>
       </section>
     );
 
     return (
-      <RoomFrame nav={nav} label="Pokój bez zadań" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
+      <RoomFrame nav={nav} label="Pokój bez zadań" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: showSuccessModal }}
         footer={<RoomFooterBar title={room.title} badge={<span className="room-chip room-chip--points">{formatXp(room.points)}</span>} next={finish} />}>
         {previewBanner}
         <RoomSplit variant="flat" start={descriptionPane} end={solvePane} initial={0.56} />
@@ -450,6 +403,30 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     <p className={`room-message is-${taskFeedback.status}`} role={taskFeedback.status === 'error' ? 'alert' : 'status'}>{taskFeedback.message}</p>
   );
   const flagTask = !task.question && task.requiresAnswer;
+  const taskHints = task.hints ?? [];
+  const nextHint = taskHints.find(hint => !hintUnlocked(hint));
+  const hintPrice = isSolved || isTrainingMode ? 'bez utraty XP' : hintCost > 0 ? `−${formatXp(hintCost)}` : 'bez dalszej utraty XP';
+  const hintsBlock = showContent && taskHints.length > 0 && (
+    <section className="room-hints" aria-labelledby={`${titleId}-hints`}>
+      <h3 className="room-section-title" id={`${titleId}-hints`}>Podpowiedzi</h3>
+      {taskHints.some(hintUnlocked) && <ol>
+        {taskHints.filter(hintUnlocked).map(hint => (
+          <li key={hint.id} className="room-hint">
+            <span className="room-hint-mark" aria-hidden="true"><Lightbulb size={18} /></span>
+            <h4>Podpowiedź {hint.order + 1}</h4>
+            <p>{hint.description}</p>
+          </li>
+        ))}
+      </ol>}
+      {nextHint && (
+        <button type="button" className="room-btn room-btn--small" disabled={pendingHint !== null} onClick={() => void unlockHint(nextHint.id)}>
+          <Lightbulb aria-hidden="true" />
+          {`Podpowiedź (${nextHint.order + 1}/${taskHints.length}) · ${hintPrice}`}
+        </button>
+      )}
+      {hintError && <p className="room-message is-error" role="alert">{hintError}</p>}
+    </section>
+  );
   const roomMeta = (
     <>
       {chips(isSolved ? room.points : potentialXp)}
@@ -464,7 +441,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       : finish;
 
   return (
-    <RoomFrame nav={{ ...nav, meta: roomMeta, steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
+    <RoomFrame nav={{ ...nav, meta: roomMeta, steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: showSuccessModal }}
       footer={
         <RoomFooterBar
           progress={{
@@ -533,9 +510,9 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 {feedback}
               </form>
             )}
+            {hintsBlock}
             {completeError && <p className="room-message is-error" role="alert">{completeError}</p>}
           </article>
-          {hintsBlock}
         </div>
       </div>
       {modals}

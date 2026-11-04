@@ -844,10 +844,10 @@
   line-height: 1;
 }
 
-.room-hints { margin-top: 40px; }
-.room-hints-points { margin: -4px 0 14px; color: var(--rm-muted); font-size: 0.875rem; }
-.room-hints-points strong { color: var(--rm-gold); font-family: var(--rm-pixel); font-size: 1.25rem; font-weight: 400; }
+.room-hints { display: grid; gap: 12px; margin-top: 28px; }
+.room-hints .room-section-title { margin: 0; }
 .room-hints ol { display: grid; gap: 10px; margin: 0; padding: 0; list-style: none; }
+.room-hints > .room-btn { justify-self: start; }
 
 .room-hint {
   display: grid;
@@ -868,7 +868,6 @@
 
 .room-hint h4 { margin: 0; color: var(--rm-ink); font-family: var(--rm-text); font-size: 0.9375rem; font-weight: 650; }
 .room-hint p { grid-column: 2; margin: 0; color: var(--rm-ink-soft); font-size: 0.9375rem; line-height: 1.55; }
-.room-hint .room-btn { grid-column: 2; justify-self: start; }
 
 .room-preview {
   display: flex;

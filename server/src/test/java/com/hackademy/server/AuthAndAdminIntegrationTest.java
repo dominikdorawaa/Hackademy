@@ -258,8 +258,10 @@ class AuthAndAdminIntegrationTest {
                 .andExpect(status().isOk()).andExpect(jsonPath("$", hasSize(1)))
                 .andExpect(jsonPath("$[0].date").value(java.time.LocalDate.now().toString()))
                 .andExpect(jsonPath("$[0].count").value(1));
-        var hintId = jdbcTemplate.queryForObject("INSERT INTO hints (description, room_id) VALUES (?, ?) RETURNING id",
-                Long.class, "Example hint", room.getId());
+        var taskId = jdbcTemplate.queryForObject("INSERT INTO room_tasks (room_id, title, content, sort_order) VALUES (?, 'Task', 'Content', 0) RETURNING id",
+                Long.class, room.getId());
+        var hintId = jdbcTemplate.queryForObject("INSERT INTO hints (description, task_id, sort_order) VALUES (?, ?, 0) RETURNING id",
+                Long.class, "Example hint", taskId);
         var unsolvedRoom = roomRepository.saveAndFlush(Room.builder().title(username + " unsolved")
                 .description("Example room").difficulty(DifficultyLevel.EASY).category("Test")
                 .points(50).build());

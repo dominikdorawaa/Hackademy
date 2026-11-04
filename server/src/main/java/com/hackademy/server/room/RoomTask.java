@@ -3,6 +3,9 @@ package com.hackademy.server.room;
 import jakarta.persistence.*;
 import lombok.*;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Entity
 @Table(name = "room_tasks")
 @Getter
@@ -34,4 +37,9 @@ public class RoomTask {
 
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("sortOrder ASC, id ASC")
+    private List<Hint> hints = new ArrayList<>();
 }

@@ -5,7 +5,6 @@ import com.hackademy.server.room.RoomType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
 
 public record CreateRoomRequest(
         @NotBlank(message = "Tytuł jest wymagany") @Size(max = 255) String title,
@@ -15,8 +14,7 @@ public record CreateRoomRequest(
         @NotBlank(message = "Kategoria jest wymagana") @Size(max = 255) String category,
         Integer points,
         boolean requiresVpn,
-        RoomType roomType,
-        @Size(max = 100) List<@NotBlank @Size(max = 2000) String> hints
+        RoomType roomType
 ) {
     public CreateRoomRequest {
         if (roomType == null) roomType = RoomType.PATH;

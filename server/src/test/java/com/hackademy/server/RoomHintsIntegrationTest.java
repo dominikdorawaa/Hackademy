@@ -34,14 +34,21 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
 
     private long draftWithHints(Account admin, String roomType, String... descriptions) throws Exception {
         long id = createRoom(admin, uniqueTitle("Hint room"), roomType);
-        for (String description : descriptions) {
-            jdbcTemplate.update("INSERT INTO hints (description, room_id) VALUES (?, ?)", description, id);
-        }
+        addHints(addFlagTask(id, "flag"), descriptions);
         return id;
     }
 
+    private void addHints(long taskId, String... descriptions) {
+        for (int i = 0; i < descriptions.length; i++) {
+            jdbcTemplate.update("INSERT INTO hints (description, task_id, sort_order) VALUES (?, ?, ?)", descriptions[i], taskId, i);
+        }
+    }
+
     private List<Long> hintIds(long roomId) {
-        return jdbcTemplate.queryForList("SELECT id FROM hints WHERE room_id = ? ORDER BY id", Long.class, roomId);
+        return jdbcTemplate.queryForList("""
+                SELECT h.id FROM hints h JOIN room_tasks t ON t.id = h.task_id
+                WHERE t.room_id = ? ORDER BY t.sort_order, h.sort_order, h.id
+                """, Long.class, roomId);
     }
 
     private ResultActions unlock(Account user, long roomId, long hintId) throws Exception {
@@ -74,11 +81,12 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
         joinPathsOf(user, roomId);
 
         String locked = getAs(user, "/api/rooms/" + roomId).andExpect(status().isOk())
-                .andExpect(jsonPath("$.hints[0].id").value(hints.get(0)))
-                .andExpect(jsonPath("$.hints[0].order").value(0))
-                .andExpect(jsonPath("$.hints[0].description").doesNotExist())
-                .andExpect(jsonPath("$.hints[1].order").value(1))
-                .andExpect(jsonPath("$.hints[1].description").doesNotExist())
+                .andExpect(jsonPath("$.hints").doesNotExist())
+                .andExpect(jsonPath("$.tasks[0].hints[0].id").value(hints.get(0)))
+                .andExpect(jsonPath("$.tasks[0].hints[0].order").value(0))
+                .andExpect(jsonPath("$.tasks[0].hints[0].description").doesNotExist())
+                .andExpect(jsonPath("$.tasks[0].hints[1].order").value(1))
+                .andExpect(jsonPath("$.tasks[0].hints[1].description").doesNotExist())
                 .andReturn().getResponse().getContentAsString();
         assertEquals(-1, locked.indexOf("tajemnica"));
 
@@ -91,13 +99,37 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
         assertEquals(1, unlockedRows(user));
 
         getAs(user, "/api/rooms/" + roomId).andExpect(status().isOk())
-                .andExpect(jsonPath("$.hints[0].description").value("Pierwsza tajemnica"))
-                .andExpect(jsonPath("$.hints[1].description").doesNotExist())
-                .andExpect(jsonPath("$.unlockedHintIds[0]").value(hints.get(0)));
+                .andExpect(jsonPath("$.tasks[0].hints[0].description").value("Pierwsza tajemnica"))
+                .andExpect(jsonPath("$.tasks[0].hints[1].description").doesNotExist());
 
-        addFlagTask(roomId, "flag");
         solveRoom(user, roomId, "flag").andExpect(status().isOk())
-                .andExpect(jsonPath("$.pointsEarned").value(37));
+                .andExpect(jsonPath("$.pointsEarned").value(45));
+    }
+
+    @Test
+    void hintsUnlockInOrderWithinTheirTaskAndCostAtMostHalfOfTheRoom() throws Exception {
+        var admin = account(Role.ADMIN);
+        long roomId = createRoom(admin, uniqueTitle("Hint room"), "CTF");
+        long firstTask = addFlagTask(roomId, "a");
+        long secondTask = addFlagTask(roomId, "b");
+        addHints(firstTask, "1", "2", "3", "4");
+        addHints(secondTask, "5", "6", "7");
+        publishInPath(roomId);
+        List<Long> hints = hintIds(roomId);
+        var user = account(Role.USER);
+        joinPathsOf(user, roomId);
+
+        unlock(user, roomId, hints.get(5)).andExpect(status().isConflict());
+        unlock(user, roomId, hints.get(4)).andExpect(status().isOk()).andExpect(jsonPath("$.order").value(0));
+        for (long hint : hints) unlock(user, roomId, hint).andExpect(status().isOk());
+        assertEquals(7, unlockedRows(user));
+
+        getAs(user, "/api/rooms/" + roomId).andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks[0].hints.length()").value(4))
+                .andExpect(jsonPath("$.tasks[1].hints[2].description").value("7"));
+        postJson(user, "/api/rooms/" + roomId + "/tasks/" + firstTask + "/solve", "{\"answer\":\"a\"}").andExpect(status().isOk());
+        postJson(user, "/api/rooms/" + roomId + "/tasks/" + secondTask + "/solve", "{\"answer\":\"b\"}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.pointsEarned").value(25));
     }
 
     @Test
@@ -147,15 +179,13 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
         var admin = account(Role.ADMIN);
         long first = draftWithHints(admin, "PATH", "Ścieżka 1");
         long second = draftWithHints(admin, "PATH", "Ścieżka 2");
-        addFlagTask(first, "flag");
-        addFlagTask(second, "flag");
         long pathId = createPath(admin, "ROOM", List.of(first, second));
         var user = account(Role.USER);
         mockMvc.perform(post("/api/paths/" + pathId + "/enroll").header("Authorization", "Bearer " + user.token()))
                 .andExpect(status().isOk());
 
         getAs(user, "/api/rooms/" + first).andExpect(status().isOk())
-                .andExpect(jsonPath("$.hints[0].description").doesNotExist());
+                .andExpect(jsonPath("$.tasks[0].hints[0].description").doesNotExist());
         unlock(user, second, hintIds(second).get(0)).andExpect(status().isForbidden());
         unlock(user, first, hintIds(first).get(0)).andExpect(status().isOk())
                 .andExpect(jsonPath("$.description").value("Ścieżka 1"));
@@ -172,11 +202,11 @@ class RoomHintsIntegrationTest extends PostgresIntegrationTest {
         joinPathsOf(user, roomId);
 
         getAs(admin, "/api/rooms/" + roomId).andExpect(status().isOk())
-                .andExpect(jsonPath("$.hints[0].description").doesNotExist());
+                .andExpect(jsonPath("$.tasks[0].hints[0].description").doesNotExist());
         for (var staff : Map.of("admin", admin, "expert", expert).values()) {
             getAs(staff, "/api/admin/content/rooms/" + roomId + "/preview").andExpect(status().isOk())
-                    .andExpect(jsonPath("$.hints[0].order").value(0))
-                    .andExpect(jsonPath("$.hints[0].description").value("Dla autora"));
+                    .andExpect(jsonPath("$.tasks[0].hints[0].order").value(0))
+                    .andExpect(jsonPath("$.tasks[0].hints[0].description").value("Dla autora"));
         }
         getAs(user, "/api/admin/content/rooms/" + roomId + "/preview").andExpect(status().isForbidden());
         assertEquals(0, unlockedRows(admin));

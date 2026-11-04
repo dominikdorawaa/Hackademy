@@ -2,6 +2,8 @@ package com.hackademy.server.room.dto;
 
 import lombok.Builder;
 
+import java.util.List;
+
 @Builder
 public record RoomTaskDto(
     Long id,
@@ -9,5 +11,6 @@ public record RoomTaskDto(
     String content,
     String question,
     boolean requiresAnswer,
-    boolean completed
+    boolean completed,
+    List<HintDto> hints
 ) {}

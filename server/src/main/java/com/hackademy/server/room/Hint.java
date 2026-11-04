@@ -20,11 +20,15 @@ public class Hint {
     private String description;
 
     @ManyToOne(fetch = FetchType.LAZY)
-    @JoinColumn(name = "room_id", nullable = false)
-    private Room room;
+    @JoinColumn(name = "task_id", nullable = false)
+    private RoomTask task;
 
-    public Hint(String description, Room room) {
+    @Column(name = "sort_order", nullable = false)
+    private int sortOrder;
+
+    public Hint(String description, RoomTask task, int sortOrder) {
         this.description = description;
-        this.room = room;
+        this.task = task;
+        this.sortOrder = sortOrder;
     }
 }

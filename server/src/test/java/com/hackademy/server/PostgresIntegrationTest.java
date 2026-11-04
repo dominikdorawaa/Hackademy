@@ -92,7 +92,7 @@ abstract class PostgresIntegrationTest {
 
     protected long createRoom(Account admin, String title, String roomType) throws Exception {
         var room = new MockMultipartFile("room", "", MediaType.APPLICATION_JSON_VALUE, """
-                {"title":"%s","description":"description","difficulty":"EASY","category":"Web","points":50,"requiresVpn":false,"roomType":"%s","hints":[]}
+                {"title":"%s","description":"description","difficulty":"EASY","category":"Web","points":50,"requiresVpn":false,"roomType":"%s"}
                 """.formatted(title, roomType).getBytes(StandardCharsets.UTF_8));
         var result = mockMvc.perform(multipart("/api/admin/rooms")
                         .file(room)
@@ -118,6 +118,17 @@ abstract class PostgresIntegrationTest {
                         ?, (SELECT count(*) FROM room_tasks WHERE room_id = ?))
                 RETURNING id
                 """, Long.class, room, room, flag, room);
+    }
+
+    protected long addHint(long room, String description) {
+        Long task = jdbcTemplate.query("SELECT id FROM room_tasks WHERE room_id = ? ORDER BY sort_order, id LIMIT 1",
+                rows -> rows.next() ? rows.getLong(1) : null, room);
+        long owner = task == null ? addFlagTask(room, "flag") : task;
+        return jdbcTemplate.queryForObject("""
+                INSERT INTO hints (description, task_id, sort_order)
+                VALUES (?, ?, (SELECT count(*) FROM hints WHERE task_id = ?))
+                RETURNING id
+                """, Long.class, description, owner, owner);
     }
 
     protected ResultActions solveRoom(Account account, long room, String answer) throws Exception {

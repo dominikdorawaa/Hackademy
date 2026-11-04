@@ -184,7 +184,7 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         try {
             var holder = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
                 try {
-                    roomService.updateRoom(renamed, new UpdateRoomRequest(title, "", "", DifficultyLevel.EASY, "Web", 30, false, RoomType.PATH, List.of()), null);
+                    roomService.updateRoom(renamed, new UpdateRoomRequest(title, "", "", DifficultyLevel.EASY, "Web", 30, false, RoomType.PATH), null);
                     status.flush();
                     ready.countDown();
                     if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Commit barrier timed out");

@@ -66,10 +66,6 @@ public class Room {
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<RoomTask> tasks = new ArrayList<>();
 
-    @Builder.Default
-    @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
-    private List<Hint> hints = new ArrayList<>();
-
 
     @Column(name = "content_revision", nullable = false)
     private long contentRevision;

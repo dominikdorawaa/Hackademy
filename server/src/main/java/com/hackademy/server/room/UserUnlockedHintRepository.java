@@ -9,6 +9,6 @@ import java.util.List;
 public interface UserUnlockedHintRepository extends JpaRepository<UserUnlockedHint, Long> {
     long countByUser_Id(Long userId);
     boolean existsByUser_IdAndHint_Id(Long userId, Long hintId);
-    long countByUser_IdAndHint_Room_Id(Long userId, Long roomId);
-    List<UserUnlockedHint> findByUser_IdAndHint_Room_Id(Long userId, Long roomId);
+    long countByUser_IdAndHint_Task_Room_Id(Long userId, Long roomId);
+    List<UserUnlockedHint> findByUser_IdAndHint_Task_Room_Id(Long userId, Long roomId);
 }

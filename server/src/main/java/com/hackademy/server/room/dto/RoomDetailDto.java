@@ -19,8 +19,6 @@ public record RoomDetailDto(
     LocalDateTime createdAt,
     boolean solved,
     boolean requiresVpn,
-    List<HintDto> hints,
-    List<Long> unlockedHintIds,
     String fileName,
     List<RoomTaskDto> tasks
 ) {}

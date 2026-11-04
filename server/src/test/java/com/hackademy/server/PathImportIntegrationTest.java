@@ -230,9 +230,23 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         assertEquals(true, rows.get(0).get("requires_vpn"));
         assertEquals("<p>Materiał</p>", jdbcTemplate.queryForObject("SELECT content FROM room_tasks WHERE room_id = ?", String.class, first));
         assertEquals("pwd", jdbcTemplate.queryForObject("SELECT answer FROM room_tasks WHERE room_id = ?", String.class, first));
-        assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM hints WHERE room_id = ?", Integer.class, first));
+        assertEquals("Nazwa polecenia zaczyna się od litery p.", jdbcTemplate.queryForObject(
+                "SELECT h.description FROM hints h JOIN room_tasks t ON t.id = h.task_id WHERE t.room_id = ?", String.class, first));
         assertNull(jdbcTemplate.queryForObject("SELECT banner_url FROM paths WHERE id = ?", String.class, id));
         getAs(admin, "/api/admin/content/rooms/" + first).andExpect(status().isOk());
+    }
+
+    @Test
+    void putsRoomHintsFromOlderFilesBeforeTheHintsOfTheFirstTask() throws Exception {
+        var admin = account(Role.ADMIN);
+        var doc = document();
+        room(doc, 0).putArray("hints").add("Ze starego pliku");
+        long id = ((Number) JsonPath.read(upload(admin, doc.toString(), 201), "$.id")).longValue();
+        assertEquals(List.of("Ze starego pliku", "Nazwa polecenia zaczyna się od litery p."), jdbcTemplate.queryForList("""
+                SELECT h.description FROM hints h JOIN room_tasks t ON t.id = h.task_id
+                JOIN chapter_rooms cr ON cr.room_id = t.room_id JOIN path_chapters c ON c.id = cr.chapter_id
+                WHERE c.path_id = ? ORDER BY cr.sort_order, t.sort_order, h.sort_order
+                """, String.class, id));
     }
 
     @Test
@@ -254,13 +268,13 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         doc.put("title", ""); doc.put("description", "x".repeat(20001)); doc.put("unlockMode", "UNKNOWN");
         room(doc, 0).put("title", " tutorial vm ").put("difficulty", "UNKNOWN").put("points", -1).put("requiresVpn", "false");
         room(doc, 0).put("category", " ").put("shortDescription", "x".repeat(101)).put("roomType", "THEORY");
-        ((ArrayNode) room(doc, 0).path("hints")).add(1).add("").add("x".repeat(2001));
         var task = (ObjectNode) room(doc, 0).path("tasks").get(0);
+        ((ArrayNode) task.path("hints")).add(1).add("").add("x".repeat(2001));
         task.put("title", "").put("content", "<script>bad()</script>").put("answer", "");
         ((ArrayNode) room(doc, 0).path("tasks")).addObject().put("title", "A").put("content", "B").put("answer", "orphan");
         ((ObjectNode) room(doc, 1).path("tasks").get(0)).remove("answer"); room(doc, 1).put("description", "");
         var errors = reject(admin, doc);
-        for (String key : List.of("ścieżka: title", "ścieżka: description", "ścieżka: unlockMode", "rozdział 1, pokój 1: title", "rozdział 1, pokój 1: difficulty", "rozdział 1, pokój 1: points", "rozdział 1, pokój 1: requiresVpn", "rozdział 1, pokój 1: category", "rozdział 1, pokój 1: shortDescription", "rozdział 1, pokój 1, podpowiedź 2", "rozdział 1, pokój 1, zadanie 1: content", "rozdział 1, pokój 1, zadanie 1: answer", "rozdział 1, pokój 1, zadanie 2: question", "rozdział 1, pokój 2, zadanie 1: answer", "rozdział 1, pokój 1: roomType", "rozdział 1, pokój 2: description")) assertTrue(errors.containsKey(key), key);
+        for (String key : List.of("ścieżka: title", "ścieżka: description", "ścieżka: unlockMode", "rozdział 1, pokój 1: title", "rozdział 1, pokój 1: difficulty", "rozdział 1, pokój 1: points", "rozdział 1, pokój 1: requiresVpn", "rozdział 1, pokój 1: category", "rozdział 1, pokój 1: shortDescription", "rozdział 1, pokój 1, zadanie 1, podpowiedź 2", "rozdział 1, pokój 1, zadanie 1, podpowiedź 3", "rozdział 1, pokój 1, zadanie 1: content", "rozdział 1, pokój 1, zadanie 1: answer", "rozdział 1, pokój 1, zadanie 2: question", "rozdział 1, pokój 2, zadanie 1: answer", "rozdział 1, pokój 1: roomType", "rozdział 1, pokój 2: description")) assertTrue(errors.containsKey(key), key);
     }
 
     @Test
@@ -299,13 +313,13 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         assertTrue(reject(admin, doc).containsKey("rozdział 1: rooms"));
         doc = document();
         room(doc, 0).put("points", 2147483648L);
-        var hints = (ArrayNode) room(doc, 0).path("hints");
         var tasks = (ArrayNode) room(doc, 0).path("tasks");
+        var hints = (ArrayNode) tasks.get(0).path("hints");
         var task = tasks.get(0).deepCopy();
         for (int i = 0; i < 100; i++) { hints.add("Hint"); tasks.add(task.deepCopy()); }
         var errors = reject(admin, doc);
         assertTrue(errors.containsKey("rozdział 1, pokój 1: points"));
-        assertTrue(errors.containsKey("rozdział 1, pokój 1: hints"));
+        assertTrue(errors.containsKey("rozdział 1, pokój 1, zadanie 1: hints"));
         assertTrue(errors.containsKey("rozdział 1, pokój 1: tasks"));
         doc = document(); ((ArrayNode) doc.path("chapters")).removeAll();
         assertTrue(reject(admin, doc).containsKey("ścieżka: chapters"));

@@ -303,10 +303,26 @@ function taskBadge(kind: RoomType, task: RoomTaskRequest) {
   if (kind === 'CTF') return task.answer?.trim() ? 'Z flagą' : 'Bez flagi';
   return task.question?.trim() ? 'Z pytaniem' : 'Lektura';
 }
+const maxTaskHints = 10;
+function TaskHints({ index, hints, errors, onChange }: { index: number; hints: string[]; errors: FieldErrors; onChange: (hints: string[]) => void }) {
+  const error = errors[`tasks.${index}.hints`];
+  return <div className="grid gap-3 rounded-md border border-dashed p-3 md:col-span-2" data-field={`tasks.${index}.hints`}>
+    <div>
+      <h4 className="text-sm font-medium">Podpowiedzi do tego zadania</h4>
+      <p className="text-xs text-muted-foreground">Gracz odsłania je po kolei. Każda zabiera 10% XP pokoju, łącznie najwyżej 50%.</p>
+    </div>
+    {error && <p role="alert" className="text-sm text-destructive">{error}</p>}
+    {hints.map((hint, h) => <div key={h} className="flex items-start gap-2">
+      <div className="min-w-0 flex-1"><TextField name={`tasks.${index}.hints.${h}`} label={`Podpowiedź ${h + 1}`} value={hint} limit={2000} required error={errors[`tasks.${index}.hints.${h}`]} onChange={value => onChange(hints.map((current, i) => i === h ? value : current))} /></div>
+      <Button type="button" variant="ghost" size="icon-sm" className="mt-7 text-muted-foreground hover:text-destructive" aria-label={`Usuń podpowiedź ${h + 1} z zadania ${index + 1}`} onClick={() => onChange(hints.filter((_, i) => i !== h))}><Trash2 /></Button>
+    </div>)}
+    {hints.length < maxTaskHints && <Button type="button" variant="outline" size="sm" className="justify-self-start" onClick={() => onChange([...hints, ''])}><Plus />Dodaj podpowiedź</Button>}
+  </div>;
+}
 export function ContentTasks({ tasks, kind, errors, ready, onChange }: { tasks: RoomTaskRequest[]; kind: RoomType; errors: FieldErrors; ready: boolean; onChange: (tasks: RoomTaskRequest[]) => void }) {
   const [open, setOpen] = useState<Set<number>>(new Set());
   const ctf = kind === 'CTF';
-  const update = (index: number, field: keyof RoomTaskRequest, value: string) => onChange(tasks.map((t, i) => i === index ? { ...t, [field]: value } : t));
+  const update = (index: number, field: TaskField, value: string) => onChange(tasks.map((t, i) => i === index ? { ...t, [field]: value } : t));
   const toggle = (index: number) => setOpen(current => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; });
   const labels: Record<TaskField, string> = { title: 'Tytuł zadania', content: 'Treść', question: ctf ? 'Pytanie (opcjonalnie)' : 'Pytanie', answer: ctf ? 'Flaga' : 'Odpowiedź' };
   return <Section title="Zadania" description={ctf ? 'Każde zadanie kończy się flagą. Gracz wpisuje ją dokładnie tak, jak ją znalazł.' : 'Ułóż kolejne kroki pokoju. Postępy w zachowanych zadaniach pozostają bez zmian.'}>
@@ -331,10 +347,11 @@ export function ContentTasks({ tasks, kind, errors, ready, onChange }: { tasks: 
         </header>
         {expanded && <div id={`content-task-${index}-panel`} className="grid gap-4 border-t px-4 py-4 md:grid-cols-2">
           {taskFields(kind, task).map(field => <div key={field} className={field === 'title' || field === 'content' || ctf ? 'md:col-span-2' : ''}><TextField name={`tasks.${index}.${field}`} label={labels[field]} value={task[field] ?? ''} limit={taskLimits[field]} multiline={field === 'content'} mono={ctf && field === 'answer'} placeholder={ctf && field === 'answer' ? 'HACK{...}' : undefined} required={taskRequired(kind, field, task, ready)} error={errors[`tasks.${index}.${field}`]} onChange={value => update(index, field, value)} /></div>)}
+          <TaskHints index={index} hints={task.hints ?? []} errors={errors} onChange={hints => onChange(tasks.map((t, i) => i === index ? { ...t, hints } : t))} />
           <p className="text-xs leading-relaxed text-muted-foreground md:col-span-2">{ctf ? 'Wielkość liter we fladze ma znaczenie. ' : ''}Treść obsługuje podstawowe formatowanie HTML. Usunięcie zadania usuwa również postęp graczy w tym zadaniu.</p>
         </div>}
       </li>;
     })}</ol>
-    <Button type="button" variant="outline" className="mt-4" data-field="tasks" onClick={() => { setOpen(current => new Set(current).add(tasks.length)); onChange([...tasks, { id: null, title: '', content: '', question: null, answer: null }]); }}><Plus />{ctf ? 'Dodaj zadanie z flagą' : 'Dodaj zadanie'}</Button>
+    <Button type="button" variant="outline" className="mt-4" data-field="tasks" onClick={() => { setOpen(current => new Set(current).add(tasks.length)); onChange([...tasks, { id: null, title: '', content: '', question: null, answer: null, hints: [] }]); }}><Plus />{ctf ? 'Dodaj zadanie z flagą' : 'Dodaj zadanie'}</Button>
   </Section>;
 }

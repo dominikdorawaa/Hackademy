@@ -4,7 +4,6 @@ import com.hackademy.server.room.DifficultyLevel;
 import com.hackademy.server.room.RoomType;
 import lombok.Builder;
 import java.time.LocalDateTime;
-import java.util.List;
 
 @Builder
 public record RoomAdminDto(
@@ -19,7 +18,6 @@ public record RoomAdminDto(
     int solutionsCount,
     boolean requiresVpn,
     RoomType roomType,
-    List<String> hints,
     LocalDateTime createdAt,
     LocalDateTime updatedAt
 ) {}

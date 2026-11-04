@@ -70,16 +70,19 @@ public class PathImportService {
 
     private void saveRooms(JsonNode items, Long chapterId, int roomOrder) throws IOException {
         for (var item : items) {
-            var hints = new ArrayList<String>();
-            item.path("hints").forEach(hint -> hints.add(hint.asText()));
             var room = roomService.createRoom(new CreateRoomRequest(item.path("title").asText().trim(),
                     item.path("description").asText(), item.path("shortDescription").asText(""),
                     DifficultyLevel.valueOf(item.path("difficulty").asText()), item.path("category").asText(),
                     item.path("points").asInt(0), item.path("requiresVpn").asBoolean(false),
-                    RoomType.valueOf(item.path("roomType").asText("PATH")), hints), null);
+                    RoomType.valueOf(item.path("roomType").asText("PATH"))), null);
             var tasks = new ArrayList<RoomTaskRequest>();
-            item.path("tasks").forEach(task -> tasks.add(new RoomTaskRequest(null, task.path("title").asText(),
-                    task.path("content").asText(), task.path("question").asText(null), task.path("answer").asText(null))));
+            for (var task : item.path("tasks")) {
+                var hints = new ArrayList<String>();
+                if (tasks.isEmpty()) item.path("hints").forEach(hint -> hints.add(hint.asText()));
+                task.path("hints").forEach(hint -> hints.add(hint.asText()));
+                tasks.add(new RoomTaskRequest(null, task.path("title").asText(), task.path("content").asText(),
+                        task.path("question").asText(null), task.path("answer").asText(null), hints));
+            }
             roomService.updateRoomTasks(room.getId(), new UpdateRoomTasksRequest(room.getTasksRevision(), tasks));
             assignments.save(new ChapterRoom(room.getId(), chapterId, roomOrder++));
         }

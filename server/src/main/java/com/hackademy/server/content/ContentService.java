@@ -97,7 +97,7 @@ public class ContentService {
                 .shortDescription(room.getShortDescription()).category(room.getCategory()).difficulty(room.getDifficulty())
                 .points(room.getPoints()).requiresVpn(room.isRequiresVpn()).roomType(room.getRoomType())
                 .contentRevision(room.getContentRevision()).solutionsCount(room.getSolutionsCount())
-                .hints(room.getHints().stream().map(Hint::getDescription).toList()).createdAt(room.getCreatedAt()).updatedAt(room.getUpdatedAt()).build();
+                .createdAt(room.getCreatedAt()).updatedAt(room.getUpdatedAt()).build();
     }
     @Transactional
     public RoomEditor roomEditor(Long id) {
@@ -128,9 +128,6 @@ public class ContentService {
         if (r.difficulty() == null) v.problem("difficulty", "Wybierz trudność");
         if (r.roomType() == null) v.problem("roomType", "Wybierz typ pokoju");
         if (r.roomType() == RoomType.PATH && (r.points() == null || r.points() < 0)) v.problem("points", "Podaj nieujemną liczbę punktów");
-        var hints = r.hints() == null ? List.<String>of() : r.hints();
-        if (hints.size() > 100) v.problem("hints", "Maksymalnie 100 podpowiedzi");
-        for (int i = 0; i < hints.size(); i++) v.text("hints." + i, hints.get(i), 2000, true);
         var tasks = r.tasks() == null ? List.<RoomTaskRequest>of() : r.tasks();
         if (tasks.size() > 100) v.problem("tasks", "Maksymalnie 100 zadań");
         if (live && tasks.isEmpty()) v.problem("tasks", "Dodaj przynajmniej jedno zadanie");
@@ -145,6 +142,9 @@ public class ContentService {
             boolean asked = t.question() != null && !t.question().isBlank();
             v.text(key + "answer", t.answer(), 255, live && (ctf || asked));
             if (live && !ctf && !asked && t.answer() != null && !t.answer().isBlank()) v.problem(key + "question", "Odpowiedź wymaga pytania");
+            var hints = t.hints() == null ? List.<String>of() : t.hints();
+            if (hints.size() > RoomTaskRequest.MAX_HINTS) v.problem(key + "hints", "Maksymalnie " + RoomTaskRequest.MAX_HINTS + " podpowiedzi w zadaniu");
+            for (int h = 0; h < hints.size(); h++) v.text(key + "hints." + h, hints.get(h), 2000, true);
         }
         v.finish();
         Path parent = null; PathChapter chapter = null; boolean publishParent = false;
@@ -169,12 +169,12 @@ public class ContentService {
         }
         Room saved;
         if (id == null) {
-            saved = roomService.createRoom(new CreateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType(), hints), file);
+            saved = roomService.createRoom(new CreateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType()), file);
         } else {
             var current = rooms.findByIdForUpdate(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             revision(r.revision(), current.getContentRevision());
             revision(r.tasksRevision(), current.getTasksRevision());
-            saved = roomService.updateRoomBeforeTasks(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType(), hints), file);
+            saved = roomService.updateRoomBeforeTasks(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType()), file);
         }
         roomService.updateRoomTasks(saved.getId(), new UpdateRoomTasksRequest(saved.getTasksRevision(), tasks));
         saved.setContentRevision(saved.getContentRevision() + 1);
@@ -204,10 +204,8 @@ public class ContentService {
     @Transactional(readOnly = true)
     public RoomDetailDto previewRoom(Long id) {
         var r = roomService.getRoomById(id);
-        var sorted = r.getHints().stream().sorted(Comparator.comparing(Hint::getId)).toList();
-        var hints = java.util.stream.IntStream.range(0, sorted.size()).mapToObj(i -> new HintDto(sorted.get(i).getId(), i, sorted.get(i).getDescription())).toList();
-        var tasks = r.getTasks().stream().sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).map(t -> RoomTaskDto.builder().id(t.getId()).title(t.getTitle()).content(t.getContent()).question(t.getQuestion()).requiresAnswer(t.getAnswer() != null).completed(false).build()).toList();
-        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).roomType(r.getRoomType()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).hints(hints).unlockedHintIds(List.of()).fileName(roomFiles.findFileNameByRoomId(r.getId())).tasks(tasks).build();
+        var tasks = r.getTasks().stream().sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).map(t -> RoomTaskDto.builder().id(t.getId()).title(t.getTitle()).content(t.getContent()).question(t.getQuestion()).requiresAnswer(t.getAnswer() != null).completed(false).hints(RoomServiceImpl.hintDtos(t, hintId -> true)).build()).toList();
+        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).roomType(r.getRoomType()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).fileName(roomFiles.findFileNameByRoomId(r.getId())).tasks(tasks).build();
     }
 
     @Transactional(readOnly = true)

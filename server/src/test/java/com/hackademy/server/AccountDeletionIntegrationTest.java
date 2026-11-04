@@ -262,7 +262,7 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
         long id = owner.id();
         long room = createRoom(admin, uniqueTitle("Pokój"), "CTF");
         long task = jdbcTemplate.queryForObject("INSERT INTO room_tasks (title, content, room_id, sort_order) VALUES ('Zadanie', 'Treść', ?, 0) RETURNING id", Long.class, room);
-        long hint = jdbcTemplate.queryForObject("INSERT INTO hints (description, room_id) VALUES ('Podpowiedź', ?) RETURNING id", Long.class, room);
+        long hint = addHint(room, "Podpowiedź");
         long path = jdbcTemplate.queryForObject("INSERT INTO paths (title, created_at, updated_at) VALUES (?, now(), now()) RETURNING id", Long.class, uniqueTitle("Ścieżka"));
         long badge = jdbcTemplate.queryForObject("SELECT id FROM badges ORDER BY id LIMIT 1", Long.class);
         jdbcTemplate.update("INSERT INTO user_badges (user_id, badge_id, earned_at) VALUES (?, ?, now())", id, badge);

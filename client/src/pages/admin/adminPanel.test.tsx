@@ -290,30 +290,35 @@ describe('content editors', () => {
     expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Rozdział 1 lokalny');
     expect(save.mock.calls[0][1]).toMatchObject({ revision: 3, chaptersRevision: 2, title: 'Web zmieniony', chapters: [{ title: 'Rozdział 1 lokalny' }] });
   });
-  it('blocks an existing room after load failure and preserves hints after retry', async () => {
+  it('blocks an existing room after load failure and preserves task hints after retry', async () => {
     signIn('ADMIN'); let loads = 0;
     const existing = { id: 9, title: 'CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web', points: 100,
-      solutionsCount: 0, requiresVpn: false, roomType: 'CTF', hints: ['Zachowana podpowiedź'], contentRevision: 2, createdAt: '2026-10-10T10:00:00', updatedAt: null };
-    const detail = { room: existing, tasks: { revision: 0, tasks: [{ id: 3, title: 'Flaga', content: 'Znajdź flagę', question: null, answer: 'CTF{x}' }] } };
+      solutionsCount: 0, requiresVpn: false, roomType: 'CTF', contentRevision: 2, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+    const detail = { room: existing, tasks: { revision: 0, tasks: [{ id: 3, title: 'Flaga', content: 'Znajdź flagę', question: null, answer: 'CTF{x}', hints: ['Zachowana podpowiedź'] }] } };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => ++loads === 1 ? HttpResponse.json({ message: 'Nie udało się wczytać pokoju' }, { status: 500 }) : HttpResponse.json(detail)));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue(detail as contentApi.RoomEditor);
     const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/9');
     expect(await screen.findByText('Nie udało się wczytać pokoju')).toBeInTheDocument();
     expect(screen.queryByRole('form', { name: 'Edytor pokoju' })).not.toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
-    expect(await screen.findByLabelText('Podpowiedź 1 *')).toHaveValue('Zachowana podpowiedź');
+    await user.click(await screen.findByRole('button', { name: /Flaga/, expanded: false }));
+    expect(screen.queryByRole('heading', { name: 'Podpowiedzi', level: 2 })).not.toBeInTheDocument();
+    expect(screen.getByRole('heading', { name: 'Podpowiedzi do tego zadania' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Podpowiedź 1 *')).toHaveValue('Zachowana podpowiedź');
+    await user.click(screen.getByRole('button', { name: 'Dodaj podpowiedź' }));
+    await user.type(screen.getByLabelText('Podpowiedź 2 *'), 'Nowa podpowiedź');
     expect(screen.getByLabelText('Trudność *')).toHaveValue('MEDIUM');
     expect(screen.getByRole('radio', { name: 'CTF' })).toBeChecked();
     expect(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' })).toBeInTheDocument();
     await user.type(screen.getByLabelText('Tytuł *'), ' zmieniony');
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('Zapisano pokój.')).toBeInTheDocument();
-    expect(save.mock.calls[0][1].hints).toEqual(['Zachowana podpowiedź']);
+    expect(save.mock.calls[0][1].tasks[0].hints).toEqual(['Zachowana podpowiedź', 'Nowa podpowiedź']);
   });
   it('saves an incomplete room as a draft and keeps the new room available for preview', async () => {
     signIn('ADMIN');
     const created = { id: 9, title: 'Nowy CTF', description: '', shortDescription: '', difficulty: 'EASY', category: 'Path', points: 0,
-      solutionsCount: 0, requiresVpn: false, roomType: 'PATH', hints: [], contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+      solutionsCount: 0, requiresVpn: false, roomType: 'PATH', contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: created, tasks: { revision: 0, tasks: [] } })));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 0, tasks: [] } } as contentApi.RoomEditor);
     const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/new');

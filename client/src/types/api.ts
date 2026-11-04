@@ -67,7 +67,6 @@ export interface RoomWriteRequest {
   points: number
   requiresVpn: boolean
   roomType?: RoomType
-  hints?: string[] | null
 }
 
 export interface PathMetaRequest {
@@ -341,6 +340,7 @@ export interface RoomTaskAdminDto {
   content: string
   question: string | null
   answer: string | null
+  hints: string[]
 }
 
 export interface RoomTasksAdminDto {
@@ -354,6 +354,7 @@ export interface RoomTaskRequest {
   content: string
   question: string | null
   answer: string | null
+  hints?: string[]
 }
 
 export type StatsRange = 7 | 30 | 90
@@ -384,6 +385,7 @@ export interface RoomTaskDto {
   question: string | null
   requiresAnswer: boolean
   completed: boolean
+  hints: HintDto[]
 }
 
 export interface RoomSummaryDto {
@@ -413,8 +415,6 @@ export interface RoomDetailDto {
   createdAt: ApiDateTime
   solved: boolean
   requiresVpn: boolean
-  hints: HintDto[]
-  unlockedHintIds: number[]
   fileName: string | null
   tasks: RoomTaskDto[]
 }
@@ -464,7 +464,6 @@ export interface RoomAdminDto {
   solutionsCount: number
   requiresVpn: boolean
   roomType: RoomType
-  hints: string[]
   createdAt: ApiDateTime
   updatedAt: ApiDateTime | null
 }

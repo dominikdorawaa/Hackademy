@@ -1,6 +1,5 @@
 package com.hackademy.server.admin;
 
-import com.hackademy.server.room.Hint;
 import com.hackademy.server.room.dto.UpdateRoomRequest;
 
 import com.hackademy.server.room.dto.CreateRoomRequest;
@@ -28,7 +27,6 @@ import org.springframework.web.multipart.MultipartFile;
 
 import java.io.IOException;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @RestController
 @RequestMapping("/api/admin")
@@ -156,10 +154,6 @@ public class AdminController {
     }
 
     private RoomAdminDto mapToAdminDto(Room room) {
-        List<String> hintDescriptions = room.getHints().stream()
-                .map(com.hackademy.server.room.Hint::getDescription)
-                .collect(Collectors.toList());
-
         return RoomAdminDto.builder()
                 .id(room.getId())
                 .contentRevision(room.getContentRevision())
@@ -172,7 +166,6 @@ public class AdminController {
                 .solutionsCount(room.getSolutionsCount())
                 .requiresVpn(room.isRequiresVpn())
                 .roomType(room.getRoomType())
-                .hints(hintDescriptions)
                 .createdAt(room.getCreatedAt())
                 .updatedAt(room.getUpdatedAt())
                 .build();
