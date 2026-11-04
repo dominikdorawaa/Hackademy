@@ -26,7 +26,7 @@ public class DashboardSummaryCache {
         });
     }
 
-    private static final long CACHE_MS = 600_000; // 10 minutes (invalidated on user actions)
+    private static final long CACHE_MS = 600_000;
 
     private static final class CacheEntry<T> {
         final long timeMs;
@@ -58,6 +58,17 @@ public class DashboardSummaryCache {
     public void invalidateUser(Long userId) {
         if (userId == null) return;
         byUserId.invalidate(userId);
+    }
+
+    public void invalidateUserAfterCommit(Long userId) {
+        if (!TransactionSynchronizationManager.isSynchronizationActive()) {
+            invalidateUser(userId);
+            return;
+        }
+        TransactionSynchronizationManager.registerSynchronization(new TransactionSynchronization() {
+            @Override
+            public void afterCommit() { invalidateUser(userId); }
+        });
     }
 }
 

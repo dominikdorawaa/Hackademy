@@ -30,6 +30,8 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var expert = account(Role.EXPERT);
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Safe task content"), "PATH");
+        publishInPath(room);
+        joinPathsOf(user, room);
         String url = "/api/admin/rooms/" + room + "/tasks";
         String expected = "<p>Wstęp <strong>ważne</strong></p><ul><li>lista</li></ul>link";
         putJson(expert, url, """
@@ -51,6 +53,8 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var admin = account(Role.ADMIN);
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Concurrent task revision"), "PATH");
+        publishInPath(room);
+        joinPathsOf(user, room);
         String url = "/api/admin/rooms/" + room + "/tasks";
         var initial = putJson(admin, url, "{\"revision\":0,\"tasks\":[" + taskJson(null, "A", "q", "a") + "]}")
                 .andExpect(status().isOk()).andReturn();
@@ -60,7 +64,6 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var executor = Executors.newSingleThreadExecutor();
         try {
             var unrelated = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(tx -> {
-                // Same managed-entity read/write as solveRoom, without its unrelated FK insert locks.
                 var entity = roomRepository.findById(room).orElseThrow();
                 entity.setSolutionsCount(entity.getSolutionsCount() + 1);
                 roomRepository.save(entity);
@@ -101,6 +104,8 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var admin = account(Role.ADMIN);
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Reading"), "PATH");
+        publishInPath(room);
+        joinPathsOf(user, room);
         var saved = putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", task(null, "Lektura", null, null))
                 .andExpect(status().isOk()).andReturn();
         long reading = ((Number) JsonPath.read(saved.getResponse().getContentAsString(), "$.tasks[0].id")).longValue();
@@ -124,6 +129,9 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var user = account(Role.USER);
         var otherUser = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Removed task"), "PATH");
+        publishInPath(room);
+        joinPathsOf(user, room);
+        joinPathsOf(otherUser, room);
         var created = putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", "{\"tasks\":["
                 + taskJson(null, "A", "q", "a") + "," + taskJson(null, "B", "q", "b") + "]}")
                 .andExpect(status().isOk()).andReturn();
@@ -152,6 +160,8 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         assertEquals(50, userRepository.findById(user.id()).orElseThrow().getPoints());
 
         long empty = createRoom(admin, uniqueTitle("Empty tasks"), "PATH");
+        publishInPath(empty);
+        joinPathsOf(user, empty);
         postJson(user, "/api/rooms/" + empty + "/tasks/complete", "{}")
                 .andExpect(status().isBadRequest());
     }
@@ -161,6 +171,8 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var admin = account(Role.ADMIN);
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Tasks"), "PATH");
+        publishInPath(room);
+        joinPathsOf(user, room);
 
         var created = putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", """
                 {"tasks":[
@@ -224,8 +236,12 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var expert = account(Role.EXPERT);
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Validation"), "PATH");
+        publishInPath(room);
+        joinPathsOf(user, room);
         long otherRoom = createRoom(admin, uniqueTitle("Other"), "PATH");
+        publishInPath(otherRoom);
         long ctf = createRoom(admin, uniqueTitle("Ctf tasks"), "CTF");
+        publishInPath(ctf);
 
         var other = putTaskJson(admin, "/api/admin/rooms/" + otherRoom + "/tasks", task(null, "Obce", "q", "a"))
                 .andExpect(status().isOk())
@@ -241,9 +257,15 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", task(foreignTask, "Obce", "q", "a"))
                 .andExpect(status().isBadRequest())
                 .andExpect(jsonPath("$.message", containsString("nie należy do tego pokoju")));
-        putTaskJson(admin, "/api/admin/rooms/" + ctf + "/tasks", task(null, "CTF", "q", "a"))
+        putTaskJson(admin, "/api/admin/rooms/" + ctf + "/tasks", task(null, "CTF", null, null))
                 .andExpect(status().isBadRequest())
-                .andExpect(jsonPath("$.message", containsString("tylko do pokoi ścieżek")));
+                .andExpect(jsonPath("$.message", containsString("podaj flagę")));
+        putTaskJson(admin, "/api/admin/rooms/" + ctf + "/tasks", task(null, "CTF", null, "HACK{ok}"))
+                .andExpect(status().isOk())
+                .andExpect(jsonPath("$.tasks[0].answer").value("HACK{ok}"));
+        putTaskJson(admin, "/api/admin/rooms/" + ctf + "/tasks", "{\"tasks\":[]}")
+                .andExpect(status().isBadRequest())
+                .andExpect(jsonPath("$.message", containsString("przynajmniej jedno zadanie")));
         putTaskJson(admin, "/api/admin/rooms/" + room + "/tasks", """
                 {"tasks":[{"id":null,"title":"","content":"c","question":null,"answer":null}]}
                 """)
@@ -274,6 +296,8 @@ class RoomTasksIntegrationTest extends PostgresIntegrationTest {
         var admin = account(Role.ADMIN);
         var user = account(Role.USER);
         long room = createRoom(admin, uniqueTitle("Stale task draft"), "PATH");
+        publishInPath(room);
+        joinPathsOf(user, room);
         String url = "/api/admin/rooms/" + room + "/tasks";
         var initial = putJson(admin, url, "{\"revision\":0,\"tasks\":[" + taskJson(null, "A", "q", "a") + "]}")
                 .andExpect(status().isOk()).andExpect(jsonPath("$.revision").value(1)).andReturn();

@@ -29,11 +29,11 @@ public record RateLimitProperties(boolean enabled, int maxKeys, Rules rules) {
     }
 
     public record Rules(Rule apiRead, Rule apiWrite, Rule anonymous, Rule publicBanner, Rule websocketHandshake,
-                        Rule websocketTransport, Rule bugReport) {
+                        Rule websocketTransport, Rule bugReport, Rule roomAnswer) {
 
         public Rules {
             if (apiRead == null || apiWrite == null || anonymous == null || publicBanner == null || websocketHandshake == null
-                    || websocketTransport == null || bugReport == null) {
+                    || websocketTransport == null || bugReport == null || roomAnswer == null) {
                 throw new IllegalArgumentException("application.rate-limit.rules must define every group");
             }
         }

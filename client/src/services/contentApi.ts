@@ -1,6 +1,6 @@
 import { request } from './http';
 import { rateLimitText } from './rateLimit';
-import type { ChapterRequest, PathAdminDetailDto, PathUnlockMode, RoomAdminDto, RoomTasksAdminDto, RoomTaskRequest, RoomWriteRequest } from '../types/api';
+import type { ChapterRequest, PathAdminDetailDto, PathUnlockMode, RoomAdminDto, RoomPathDto, RoomTasksAdminDto, RoomTaskRequest, RoomWriteRequest } from '../types/api';
 import type { FieldErrors } from '../components/admin/ContentFields';
 
 export interface PathSave {
@@ -8,12 +8,11 @@ export interface PathSave {
   published: boolean; chapters: ChapterRequest[]; unlockMode: PathUnlockMode;
 }
 export interface RoomSave extends RoomWriteRequest {
-  revision: number; tasksRevision: number; published: boolean; tasks: RoomTaskRequest[]; hints: string[];
+  revision: number; tasksRevision: number; tasks: RoomTaskRequest[]; hints: string[];
   pathId?: number; chapterId?: number; pathRevision?: number; parentDraft?: PathSave; chapterIndex?: number;
 }
-export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null }
+export interface RoomEditor { room: RoomAdminDto; tasks: RoomTasksAdminDto; pathId?: number | null; paths?: RoomPathDto[]; live?: boolean }
 export interface RoomImportTarget { chapterId: number; contentRevision: number; chaptersRevision: number }
-export interface CtfImportResult { roomIds: number[]; count: number }
 export class ContentError extends Error {
   fields: FieldErrors;
   constructor(message: string, fields: FieldErrors = {}) { super(message); this.fields = fields; }
@@ -41,10 +40,6 @@ export function importPath(file: File, sessionKey: string | null) {
   const body = new FormData();
   body.append('file', file);
   return contentRequest<PathAdminDetailDto>('/paths/import', sessionKey, { method: 'POST', body });
-}
-export function importCtfRooms(file: File, sessionKey: string | null) {
-  const body = new FormData(); body.append('file', file);
-  return contentRequest<CtfImportResult>('/ctf/import', sessionKey, { method: 'POST', body });
 }
 export function importPathRooms(id: number, target: RoomImportTarget, file: File, sessionKey: string | null) {
   const body = new FormData();

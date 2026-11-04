@@ -1,0 +1,174 @@
+package com.hackademy.server;
+
+import com.hackademy.server.room.DifficultyLevel;
+import com.hackademy.server.room.Room;
+import com.hackademy.server.room.RoomRepository;
+import com.hackademy.server.room.RoomService;
+import com.hackademy.server.room.RoomTask;
+import com.hackademy.server.room.RoomTaskRepository;
+import com.hackademy.server.room.UserSolvedRoomRepository;
+import com.hackademy.server.room.dto.SolveRoomResponse;
+import com.hackademy.server.user.Role;
+import com.hackademy.server.user.User;
+import com.hackademy.server.user.UserRepository;
+import org.junit.jupiter.api.Test;
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.boot.test.context.SpringBootTest;
+import org.springframework.jdbc.core.JdbcTemplate;
+import org.springframework.test.context.DynamicPropertyRegistry;
+import org.springframework.test.context.DynamicPropertySource;
+import org.testcontainers.junit.jupiter.Container;
+import org.testcontainers.junit.jupiter.Testcontainers;
+import org.testcontainers.postgresql.PostgreSQLContainer;
+
+import javax.sql.DataSource;
+import java.sql.Connection;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.UUID;
+import java.util.concurrent.Callable;
+import java.util.concurrent.Executors;
+import java.util.concurrent.Future;
+import java.util.concurrent.TimeUnit;
+
+import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertTrue;
+import static org.junit.jupiter.api.Assertions.fail;
+
+@SpringBootTest
+@Testcontainers
+class RoomSolveConcurrencyTest {
+    @Container
+    static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
+
+    @DynamicPropertySource
+    static void properties(DynamicPropertyRegistry registry) {
+        registry.add("DB_URL", postgres::getJdbcUrl);
+        registry.add("DB_USERNAME", postgres::getUsername);
+        registry.add("DB_PASSWORD", postgres::getPassword);
+    }
+
+    @Autowired
+    private RoomService roomService;
+
+    @Autowired
+    private UserRepository userRepository;
+
+    @Autowired
+    private RoomRepository roomRepository;
+
+    @Autowired
+    private RoomTaskRepository roomTaskRepository;
+
+    @Autowired
+    private UserSolvedRoomRepository userSolvedRoomRepository;
+
+    @Autowired
+    private DataSource dataSource;
+
+    @Autowired
+    private JdbcTemplate jdbcTemplate;
+
+    @Test
+    void sameRoomFlagSolvesAwardPointsOnce() throws Exception {
+        User user = user();
+        Room room = room(DifficultyLevel.MEDIUM);
+        Long task = flagTask(room);
+        PublishedPaths.joinPathsOf(jdbcTemplate, user.getId(), room.getId());
+
+        List<SolveRoomResponse> results = race(user,
+                () -> roomService.solveTask(room.getId(), task, "CTF{race}", user.getUsername()),
+                () -> roomService.solveTask(room.getId(), task, "CTF{race}", user.getUsername()));
+
+        assertTrue(results.stream().allMatch(SolveRoomResponse::success));
+        assertEquals(100, results.stream().mapToInt(SolveRoomResponse::pointsEarned).sum());
+        assertEquals(1, userSolvedRoomRepository.countByUser_Id(user.getId()));
+        assertEquals(100, userRepository.findById(user.getId()).orElseThrow().getPoints());
+        assertEquals(1, roomRepository.findById(room.getId()).orElseThrow().getSolutionsCount());
+    }
+
+    @Test
+    void differentRoomFlagSolvesKeepEveryPoint() throws Exception {
+        User user = user();
+        Room first = room(DifficultyLevel.MEDIUM);
+        Room second = room(DifficultyLevel.EASY);
+        Long firstTask = flagTask(first);
+        Long secondTask = flagTask(second);
+        PublishedPaths.joinPathsOf(jdbcTemplate, user.getId(), first.getId(), second.getId());
+
+        List<SolveRoomResponse> results = race(user,
+                () -> roomService.solveTask(first.getId(), firstTask, "CTF{race}", user.getUsername()),
+                () -> roomService.solveTask(second.getId(), secondTask, "CTF{race}", user.getUsername()));
+
+        assertTrue(results.stream().allMatch(SolveRoomResponse::success));
+        assertEquals(2, userSolvedRoomRepository.countByUser_Id(user.getId()));
+        assertEquals(150, userRepository.findById(user.getId()).orElseThrow().getPoints());
+    }
+
+    private Long flagTask(Room room) {
+        return roomTaskRepository.save(RoomTask.builder()
+                .room(room)
+                .title("Flag")
+                .content("Only task")
+                .answer("CTF{race}")
+                .sortOrder(0)
+                .build()).getId();
+    }
+
+    private User user() {
+        return ClerkTestTokens.createUser(userRepository, "race" + UUID.randomUUID().toString().substring(0, 8), Role.USER);
+    }
+
+    private Room room(DifficultyLevel difficulty) {
+        Room room = roomRepository.save(Room.builder()
+                .title("Race " + UUID.randomUUID())
+                .description("Concurrency test")
+                .difficulty(difficulty)
+                .category("Test")
+                .points(difficulty.ctfPoints())
+                .build());
+        PublishedPaths.publishInPath(jdbcTemplate, room.getId());
+        return room;
+    }
+
+    @SafeVarargs
+    private List<SolveRoomResponse> race(User user, Callable<SolveRoomResponse>... solves) throws Exception {
+        var pool = Executors.newFixedThreadPool(solves.length);
+        try (Connection holder = dataSource.getConnection()) {
+            holder.setAutoCommit(false);
+            try (var lock = holder.prepareStatement("SELECT id FROM users WHERE id = ? FOR UPDATE")) {
+                lock.setLong(1, user.getId());
+                lock.executeQuery();
+            }
+            var futures = new ArrayList<Future<SolveRoomResponse>>();
+            for (var solve : solves) {
+                futures.add(pool.submit(solve));
+            }
+            awaitSolvesWaitingOnLocks(solves.length);
+            holder.commit();
+            var results = new ArrayList<SolveRoomResponse>();
+            for (var future : futures) {
+                results.add(future.get(10, TimeUnit.SECONDS));
+            }
+            return results;
+        } finally {
+            pool.shutdownNow();
+        }
+    }
+
+    private void awaitSolvesWaitingOnLocks(int count) throws InterruptedException {
+        long deadline = System.nanoTime() + TimeUnit.SECONDS.toNanos(10);
+        while (sessionsWaitingOnLocks() < count) {
+            if (System.nanoTime() > deadline) {
+                fail("Expected " + count + " solves to wait on the user's row lock");
+            }
+            Thread.sleep(20);
+        }
+    }
+
+    private int sessionsWaitingOnLocks() {
+        return jdbcTemplate.queryForObject(
+                "SELECT count(*) FROM pg_stat_activity WHERE datname = current_database() AND wait_event_type = 'Lock'",
+                Integer.class);
+    }
+}

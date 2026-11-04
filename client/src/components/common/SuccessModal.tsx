@@ -1,9 +1,9 @@
 import React, { useEffect } from 'react';
 import './SuccessModal.css';
 import { PixelSprite, SPRITES } from '../PixelSprite';
+import { formatXp } from '../../lib/units';
 
 const SuccessModal = ({ isOpen, onClose, points, message }: { isOpen: boolean; onClose: () => void; points: number; message?: string }) => {
-  // Close on Escape key
   useEffect(() => {
     if (!isOpen) return;
     const handleEsc = (e: KeyboardEvent) => {
@@ -26,8 +26,8 @@ const SuccessModal = ({ isOpen, onClose, points, message }: { isOpen: boolean; o
         <p className="success-message">{message || "Ukończyłeś wyzwanie!"}</p>
 
         <div className="points-display">
-          <span className="points-label">Zdobyte Punkty</span>
-          <div className="points-value">+{points}</div>
+          <span className="points-label">Zdobyte XP</span>
+          <div className="points-value">+{formatXp(points)}</div>
         </div>
 
         <button type="button" className="success-btn px-button px-button--primary" onClick={onClose}>

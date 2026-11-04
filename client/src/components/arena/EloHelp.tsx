@@ -8,6 +8,7 @@ export function EloHelp() {
   const closeTimer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   const trigger = useRef<HTMLButtonElement>(null);
   const tapped = useRef(false);
+  const pressing = useRef(false);
   const show = () => { clearTimeout(closeTimer.current); setOpen(true); };
   const leave = () => {
     if (document.activeElement === trigger.current) return;
@@ -18,11 +19,12 @@ export function EloHelp() {
   return <Popover.Root open={open} onOpenChange={setOpen}>
     <Popover.Trigger asChild>
       <button ref={trigger} type="button" className="ud-term-btn" aria-label="Co oznacza Elo?"
-        onPointerDown={event => { tapped.current = event.pointerType === 'touch'; }}
+        onPointerDown={event => { tapped.current = event.pointerType === 'touch'; pressing.current = true; }}
+        onPointerCancel={() => { pressing.current = false; }} onBlur={() => { pressing.current = false; }}
         onPointerEnter={event => { if (event.pointerType !== 'touch') show(); }} onPointerLeave={leave}
-        onFocus={show} onClick={event => {
+        onFocus={() => { if (!pressing.current) show(); }} onClick={event => {
           event.preventDefault();
-          // A second tap closes it; a mouse click keeps the hover-opened explanation open.
+          pressing.current = false;
           if (open && tapped.current) setOpen(false); else show();
         }}>
         Elo <Info size={14} aria-hidden="true" />
@@ -33,7 +35,7 @@ export function EloHelp() {
         aria-label="Jak działa Elo" onOpenAutoFocus={event => event.preventDefault()} onCloseAutoFocus={event => event.preventDefault()}
         onPointerEnter={() => clearTimeout(closeTimer.current)} onPointerLeave={leave}>
         <strong>Elo to Twoja siła w pojedynkach.</strong>
-        <p>Grasz w Trybie rankingowym: wygrywasz, to rośnie, przegrywasz, to spada. Pokonanie mocniejszego gracza daje więcej punktów. Każdy zaczyna z 500.</p>
+        <p>Grasz w Trybie rankingowym: wygrywasz, to rośnie, przegrywasz, to spada. Pokonanie mocniejszego gracza daje więcej Elo. Każdy zaczyna z 500.</p>
       </Popover.Content>
     </Popover.Portal>
   </Popover.Root>;

@@ -4,6 +4,7 @@ import com.hackademy.server.room.dto.CreateRoomRequest;
 import com.hackademy.server.room.dto.HintDto;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
+import com.hackademy.server.room.dto.RoomPathDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.room.dto.RoomTasksAdminDto;
 import com.hackademy.server.room.dto.RoomTaskAdminDto;
@@ -37,6 +38,7 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
@@ -64,19 +66,15 @@ public class RoomServiceImpl implements RoomService {
     private final com.hackademy.server.content.ContentVisibility visibility;
     private final PathUnlockPolicy pathUnlockPolicy;
     private final Clock clock;
+    private final RoomAnswerGuard roomAnswerGuard;
 
     private static final Set<String> RESERVED_TITLES = Set.of("tutorial vm", "tutorial vpn");
 
-    private void checkTitle(Room existing, String title, RoomType roomType) {
+    private void checkTitle(Room existing, String title) {
         boolean renamed = existing == null || !existing.getTitle().equals(title);
         if (renamed && RESERVED_TITLES.contains(title.toLowerCase(Locale.ROOT))) {
             throw new RoomRuleException(HttpStatus.BAD_REQUEST, "title",
                     "Tytuły \u201eTutorial VM\u201d i \u201eTutorial VPN\u201d są zarezerwowane dla pokoi samouczka");
-        }
-        if (roomType == RoomType.CTF && (existing == null
-                ? roomRepository.existsByTitleAndRoomType(title, RoomType.CTF)
-                : roomRepository.existsByTitleAndRoomTypeAndIdNot(title, RoomType.CTF, existing.getId()))) {
-            throw new RoomRuleException(HttpStatus.CONFLICT, "title", "Pokój CTF o tym tytule już istnieje");
         }
         if (existing != null && renamed && chapterRoomRepository.existsOtherRoomWithTitleInSameChapter(existing.getId(), title)) {
             throw new RoomRuleException(HttpStatus.CONFLICT, "title", "Rozdział tego pokoju ma już pokój o tym tytule");
@@ -96,18 +94,16 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional
     public Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException {
-        RoomType roomType = createRoomRequest.roomType() == null ? RoomType.CTF : createRoomRequest.roomType();
+        RoomType roomType = createRoomRequest.roomType() == null ? RoomType.PATH : createRoomRequest.roomType();
         String title = createRoomRequest.title().trim();
-        checkTitle(null, title, roomType);
+        checkTitle(null, title);
         Room room = Room.builder()
-                .published(false)
                 .title(title)
                 .description(createRoomRequest.description())
                 .shortDescription(createRoomRequest.shortDescription())
                 .difficulty(createRoomRequest.difficulty())
                 .category(createRoomRequest.category())
                 .points(points(roomType, createRoomRequest.difficulty(), createRoomRequest.points()))
-                .flag(createRoomRequest.flag())
                 .requiresVpn(createRoomRequest.requiresVpn())
                 .roomType(roomType)
                 .build();
@@ -131,82 +127,39 @@ public class RoomServiceImpl implements RoomService {
 
     @Override
     @Transactional(readOnly = true)
-    public List<RoomSummaryDto> getAllRooms(String username) {
-        return getAllRoomsByType(username, RoomType.CTF);
-    }
-
-    @Override
-    @Transactional(readOnly = true)
-    public List<RoomSummaryDto> getAllRoomsByType(String username, RoomType roomType) {
-        List<RoomSummaryDto> rooms = roomRepository.findAllSummaries();
-        
-        Set<Long> solvedRoomIds;
-        boolean hasTutorialVPN = false;
-        boolean hasTutorialVM = false;
-
-        if (username != null) {
-            Long userId = userRepository.findIdByUsername(username)
-                    .orElseThrow(() -> new UserNotFoundException("User not found"));
-            
-            // Optimized: Fetch only IDs of solved rooms
-            solvedRoomIds = userSolvedRoomRepository.findSolvedRoomIdsByUserId(userId).stream()
-                    .collect(Collectors.toSet());
-            
-            // Check tutorial unlocks in one query
-            List<String> solvedTitles = userSolvedRoomRepository.findSolvedRoomTitlesByUserId(
-                    userId,
-                    List.of("Tutorial VPN", "Tutorial VM")
-            );
-            hasTutorialVPN = solvedTitles.contains("Tutorial VPN");
-            hasTutorialVM = solvedTitles.contains("Tutorial VM");
-        } else {
-            solvedRoomIds = Set.of();
-        }
-
-        // Set solved and locked status in memory
-        boolean finalHasTutorialVPN = hasTutorialVPN;
-        boolean finalHasTutorialVM = hasTutorialVM;
-        
-        rooms.forEach(room -> {
-            room.setSolved(solvedRoomIds.contains(room.getId()));
-            
-            // Lock Tutorial VPN if Tutorial VM is not solved
-            if ("Tutorial VPN".equals(room.getTitle()) && !finalHasTutorialVM) {
-                room.setLocked(true);
-            }
-            
-            // Lock rooms that require VPN if Tutorial VPN is not solved
-            if (room.isRequiresVpn() && !finalHasTutorialVPN) {
-                room.setLocked(true);
-            }
-        });
-
-        return rooms.stream()
-                .filter(r -> roomType == null || r.getRoomType() == roomType)
-                .collect(Collectors.toList());
-    }
-
-    @Override
-    @Transactional(readOnly = true)
     public List<RoomAdminSummaryDto> getAllRoomsForAdmin() {
-        return roomRepository.findAllAdminSummaries();
+        Map<Long, List<RoomPathDto>> pathsByRoom = new HashMap<>();
+        for (var owner : chapterRoomRepository.findAllOwners()) {
+            pathsByRoom.computeIfAbsent(owner.getRoomId(), id -> new ArrayList<>())
+                    .add(new RoomPathDto(owner.getPathId(), owner.getPathTitle(), Boolean.TRUE.equals(owner.getPathPublished())));
+        }
+        return roomRepository.findAllAdminSummaries().stream()
+                .map(room -> room.withPaths(pathsByRoom.getOrDefault(room.id(), List.of())))
+                .toList();
     }
 
     @Override
     @Transactional
     public Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
+        return updateRoom(id, updateRoomRequest, file, true);
+    }
+
+    @Override
+    @Transactional
+    public Room updateRoomBeforeTasks(Long id, UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException {
+        return updateRoom(id, updateRoomRequest, file, false);
+    }
+
+    private Room updateRoom(Long id, UpdateRoomRequest updateRoomRequest, MultipartFile file, boolean checkTasks) throws IOException {
         Room room = roomRepository.findByIdForUpdate(id)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
-        RoomType newRoomType = updateRoomRequest.roomType() == null ? RoomType.CTF : updateRoomRequest.roomType();
-        if (newRoomType != RoomType.PATH && chapterRoomRepository.existsByRoomId(id)) {
-            throw new IllegalArgumentException("Pokój należy do ścieżki. Usuń go z rozdziału, zanim zmienisz jego typ.");
-        }
-
-        if (newRoomType != RoomType.PATH && !room.getTasks().isEmpty()) {
-            throw new IllegalArgumentException("Usuń zadania przed zmianą typu pokoju na CTF.");
+        RoomType newRoomType = updateRoomRequest.roomType() == null ? room.getRoomType() : updateRoomRequest.roomType();
+        if (checkTasks && newRoomType != room.getRoomType() && !room.getTasks().isEmpty()) {
+            requirePlayable(roomRepository.isVisible(room.getId()), newRoomType, room.getTasks().stream()
+                    .sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).toList());
         }
         String title = updateRoomRequest.title().trim();
-        checkTitle(room, title, newRoomType);
+        checkTitle(room, title);
         int points = points(newRoomType, updateRoomRequest.difficulty(), updateRoomRequest.points());
         room.setContentRevision(room.getContentRevision() + 1);
         room.setTitle(title);
@@ -215,7 +168,6 @@ public class RoomServiceImpl implements RoomService {
         room.setDifficulty(updateRoomRequest.difficulty());
         room.setCategory(updateRoomRequest.category());
         room.setPoints(points);
-        room.setFlag(updateRoomRequest.flag());
         room.setRequiresVpn(updateRoomRequest.requiresVpn());
         room.setRoomType(newRoomType);
 
@@ -277,8 +229,8 @@ public class RoomServiceImpl implements RoomService {
 
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
+        pathUnlockPolicy.requireUnlocked(id, user.getId());
 
-        // Check requirements for Tutorial VPN
         if ("Tutorial VPN".equals(room.getTitle())) {
             boolean hasTutorialVM = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VM");
             if (!hasTutorialVM) {
@@ -286,32 +238,29 @@ public class RoomServiceImpl implements RoomService {
             }
         }
         
-        // Check requirements for VPN rooms
         if (room.isRequiresVpn()) {
             boolean hasTutorialVPN = userSolvedRoomRepository.existsByUser_UsernameAndRoom_Title(username, "Tutorial VPN");
             if (!hasTutorialVPN) {
                 throw new IllegalStateException("Ten pokój wymaga połączenia VPN. Musisz najpierw ukończyć pokój 'Tutorial VPN'.");
             }
         }
-        pathUnlockPolicy.requireUnlocked(id, user.getId());
 
-        // Use new repository to check if solved
         boolean isSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
-
-        // Sort hints by ID to ensure consistent order
-        List<com.hackademy.server.room.dto.HintDto> hintDtos = room.getHints().stream()
-                .sorted(Comparator.comparing(com.hackademy.server.room.Hint::getId))
-                .map(this::mapToDto)
-                .collect(Collectors.toList());
 
         List<Long> unlockedHintIds = userUnlockedHintRepository.findByUser_IdAndHint_Room_Id(user.getId(), room.getId())
                 .stream()
                 .map(unlockedHint -> unlockedHint.getHint().getId())
                 .collect(Collectors.toList());
-        
+
+        List<com.hackademy.server.room.Hint> sortedHints = sortedHints(room);
+        List<HintDto> hintDtos = new ArrayList<>();
+        for (int i = 0; i < sortedHints.size(); i++) {
+            com.hackademy.server.room.Hint hint = sortedHints.get(i);
+            hintDtos.add(unlockedHintIds.contains(hint.getId()) ? mapToDto(hint, i) : HintDto.locked(hint.getId(), i));
+        }
+
         String fileName = roomFileRepository.findFileNameByRoomId(id);
 
-        // Fetch Tasks
         List<Long> completedTaskIds = userCompletedTaskRepository.findCompletedTaskIdsInRoom(user.getId(), id);
         List<RoomTaskDto> taskDtos = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(id).stream()
                 .map(t -> RoomTaskDto.builder()
@@ -319,6 +268,7 @@ public class RoomServiceImpl implements RoomService {
                         .title(t.getTitle())
                         .content(t.getContent())
                         .question(t.getQuestion())
+                        .requiresAnswer(t.getAnswer() != null)
                         .completed(completedTaskIds.contains(t.getId()))
                         .build())
                 .collect(Collectors.toList());
@@ -329,6 +279,7 @@ public class RoomServiceImpl implements RoomService {
                 .description(room.getDescription())
                 .shortDescription(room.getShortDescription())
                 .difficulty(room.getDifficulty())
+                .roomType(room.getRoomType())
                 .points(room.getPoints())
                 .solutionsCount(room.getSolutionsCount())
                 .createdAt(room.getCreatedAt())
@@ -357,17 +308,15 @@ public class RoomServiceImpl implements RoomService {
             throw new IllegalArgumentException("Task does not belong to this room");
         }
 
-        // Check answer
-        if (task.getAnswer() != null && !task.getAnswer().equalsIgnoreCase(answer)) {
+        if (task.getAnswer() != null
+                && !roomAnswerGuard.check(user.getId(), roomId, () -> matches(room.getRoomType(), task.getAnswer(), answer))) {
             return new SolveRoomResponse(false, "Niepoprawna odpowiedź", 0, new ArrayList<>());
         }
 
-        // Save completion if not already completed
         if (!userCompletedTaskRepository.existsByUserIdAndTaskId(user.getId(), taskId)) {
             userCompletedTaskRepository.save(new UserCompletedTask(null, user.getId(), taskId, LocalDateTime.now()));
         }
 
-        // Check if all tasks in room are completed
         List<RoomTask> allTasks = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(roomId);
         long completedCount = userCompletedTaskRepository.countByUserIdAndTaskIdIn(user.getId(), 
                 allTasks.stream().map(RoomTask::getId).collect(Collectors.toList()));
@@ -389,7 +338,7 @@ public class RoomServiceImpl implements RoomService {
         pathUnlockPolicy.requireUnlocked(roomId, user.getId());
         List<RoomTask> tasks = roomTaskRepository.findByRoomIdOrderBySortOrderAsc(roomId);
         if (tasks.isEmpty()) {
-            return new SolveRoomResponse(false, "Pokój bez zadań wymaga flagi", 0, List.of());
+            return new SolveRoomResponse(false, "Pokój nie ma jeszcze zadań", 0, List.of());
         }
         long completed = userCompletedTaskRepository.countByUserIdAndTaskIdIn(user.getId(),
                 tasks.stream().map(RoomTask::getId).toList());
@@ -400,113 +349,51 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private SolveRoomResponse awardTaskRoomCompletion(User user, Room room) {
+        return awardRoomSolve(user, room, "Poprawna odpowiedź! Pokój ukończony!", "Poprawna odpowiedź! (Pokój już ukończony)");
+    }
+
+    // A CTF flag must match exactly; a theory answer ignores letter case.
+    private static boolean matches(RoomType roomType, String expected, String answer) {
+        return roomType == RoomType.CTF ? expected.equals(answer) : expected.equalsIgnoreCase(answer);
+    }
+
+    private SolveRoomResponse awardRoomSolve(User user, Room room, String solvedMessage, String alreadySolvedMessage) {
         Long roomId = room.getId();
-        // Check if already solved
-        if (!userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
-            // Award points only once
-            long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), roomId);
-            double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
-            if (pointsToAward < 0) pointsToAward = 0;
-
-            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
-            userSolvedRoomRepository.save(userSolvedRoom);
-
-            user.setPoints(user.getPoints() + (int) pointsToAward);
-            roomRepository.incrementSolutions(roomId);
-
-            // Streak logic
-            LocalDate today = LocalDate.now(clock);
-            LocalDate lastSolved = user.getLastSolvedDate();
-            if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
-                user.setStreak(user.getStreak() + 1);
-            } else if (!lastSolved.equals(today)) {
-                user.setStreak(1);
-            }
-            user.setLastSolvedDate(today);
-
-            userRepository.save(user);
-            userServiceImpl.invalidateUserComputedCaches(user.getId());
-            userServiceImpl.invalidateGlobalRankingCache();
-            dashboardSummaryCache.invalidateUser(user.getId());
-
-            List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
-            return new SolveRoomResponse(true, "Poprawna odpowiedź! Pokój ukończony!", (int) pointsToAward, newBadges);
+        if (userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
+            return new SolveRoomResponse(true, alreadySolvedMessage, 0, new ArrayList<>());
         }
-        return new SolveRoomResponse(true, "Poprawna odpowiedź! (Pokój już ukończony)", 0, new ArrayList<>());
+
+        long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), roomId);
+        double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
+        if (pointsToAward < 0) pointsToAward = 0;
+
+        UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
+        userSolvedRoomRepository.save(userSolvedRoom);
+
+        user.setPoints(user.getPoints() + (int) pointsToAward);
+        roomRepository.incrementSolutions(roomId);
+
+        LocalDate today = LocalDate.now(clock);
+        LocalDate lastSolved = user.getLastSolvedDate();
+        if (lastSolved == null || lastSolved.equals(today.minusDays(1))) {
+            user.setStreak(user.getStreak() + 1);
+        } else if (!lastSolved.equals(today)) {
+            user.setStreak(1);
+        }
+        user.setLastSolvedDate(today);
+
+        userRepository.save(user);
+        userServiceImpl.invalidateUserComputedCaches(user.getId());
+        userServiceImpl.invalidateGlobalRankingCache();
+        dashboardSummaryCache.invalidateUser(user.getId());
+
+        List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
+        return new SolveRoomResponse(true, solvedMessage, (int) pointsToAward, newBadges);
     }
 
     @Override
     @Transactional
-    public SolveRoomResponse solveRoom(Long id, String flag, String username) {
-        visibility.requireRoom(id);
-        Room room = roomRepository.findById(id)
-                .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + id));
-
-        User user = userRepository.findByUsername(username)
-                .orElseThrow(() -> new UserNotFoundException("User not found"));
-        pathUnlockPolicy.requireUnlocked(id, user.getId());
-
-        if (flag == null || flag.isBlank() || room.getFlag() == null || room.getFlag().isBlank()) {
-            throw new org.springframework.web.server.ResponseStatusException(org.springframework.http.HttpStatus.BAD_REQUEST,
-                    "Ten pokój wymaga ukończenia zadań lub podania niepustej flagi");
-        }
-
-        // Check if already solved
-        boolean alreadySolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
-
-        if (room.getFlag().equals(flag)) {
-            if (alreadySolved) {
-                // If already solved, return success but 0 points and no new badges
-                return new SolveRoomResponse(true, "Poprawna flaga! (Tryb treningowy - 0 pkt)", 0, new ArrayList<>());
-            }
-
-            long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), room.getId());
-            double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
-            if (pointsToAward < 0) {
-                pointsToAward = 0;
-            }
-
-            // Create and save UserSolvedRoom entity manually
-            UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
-            userSolvedRoomRepository.save(userSolvedRoom);
-
-            user.setPoints(user.getPoints() + (int) pointsToAward);
-            room.setSolutionsCount(room.getSolutionsCount() + 1);
-            
-            // Streak Logic
-            LocalDate today = LocalDate.now(clock);
-            LocalDate lastSolved = user.getLastSolvedDate();
-
-            if (lastSolved == null) {
-                user.setStreak(1);
-            } else if (lastSolved.equals(today.minusDays(1))) {
-                user.setStreak(user.getStreak() + 1);
-            } else if (!lastSolved.equals(today)) {
-                // If not today and not yesterday (so older), reset streak
-                user.setStreak(1);
-            }
-            // If solved today, streak remains unchanged (already incremented or set)
-            
-            user.setLastSolvedDate(today);
-            
-            userRepository.save(user);
-            roomRepository.save(room);
-
-            // Check for badges
-            List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
-            
-            userServiceImpl.invalidateUserComputedCaches(user.getId());
-            userServiceImpl.invalidateGlobalRankingCache();
-            dashboardSummaryCache.invalidateUser(user.getId());
-            return new SolveRoomResponse(true, "Poprawna flaga!", (int) pointsToAward, newBadges);
-        }
-
-        return new SolveRoomResponse(false, "Niepoprawna flaga", 0, new ArrayList<>());
-    }
-
-    @Override
-    @Transactional
-    public boolean unlockHint(Long roomId, Long hintId, String username) {
+    public HintDto unlockHint(Long roomId, Long hintId, String username) {
         visibility.requireRoom(roomId);
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
@@ -516,26 +403,10 @@ public class RoomServiceImpl implements RoomService {
         pathUnlockPolicy.requireUnlocked(roomId, user.getId());
 
         com.hackademy.server.room.Hint hint = hintRepository.findById(hintId)
-                .orElseThrow(() -> new IllegalArgumentException("Hint not found with ID: " + hintId));
+                .filter(found -> found.getRoom().getId().equals(roomId))
+                .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Podpowiedź nie istnieje w tym pokoju"));
 
-        if (!hint.getRoom().getId().equals(roomId)) {
-             throw new IllegalArgumentException("Hint does not belong to this room");
-        }
-
-        // Allow unlocking hints even if room is solved (for training purposes)
-        // if (userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId)) {
-        //    return false; // Room already solved
-        // }
-
-        if (userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), hintId)) {
-            return false; // Hint already unlocked
-        }
-
-        // Check if previous hints are unlocked
-        List<com.hackademy.server.room.Hint> allHints = room.getHints().stream()
-                .sorted(Comparator.comparing(com.hackademy.server.room.Hint::getId))
-                .collect(Collectors.toList());
-
+        List<com.hackademy.server.room.Hint> allHints = sortedHints(room);
         int hintIndex = -1;
         for (int i = 0; i < allHints.size(); i++) {
             if (allHints.get(i).getId().equals(hintId)) {
@@ -544,14 +415,17 @@ public class RoomServiceImpl implements RoomService {
             }
         }
 
+        if (userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), hintId)) {
+            return mapToDto(hint, hintIndex);
+        }
+
         if (hintIndex > 0) {
             com.hackademy.server.room.Hint previousHint = allHints.get(hintIndex - 1);
             boolean isPreviousUnlocked = userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), previousHint.getId());
             if (!isPreviousUnlocked) {
-                // In training mode, allow unlocking any hint if room is solved
                 boolean isRoomSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId);
                 if (!isRoomSolved) {
-                    throw new IllegalStateException("Previous hint must be unlocked first");
+                    throw new ResponseStatusException(HttpStatus.CONFLICT, "Najpierw odblokuj poprzednią podpowiedź");
                 }
             }
         }
@@ -559,7 +433,7 @@ public class RoomServiceImpl implements RoomService {
         UserUnlockedHint userUnlockedHint = new UserUnlockedHint(user, hint);
         userUnlockedHintRepository.save(userUnlockedHint);
 
-        return true;
+        return mapToDto(hint, hintIndex);
     }
 
     @Override
@@ -578,10 +452,6 @@ public class RoomServiceImpl implements RoomService {
     public RoomTasksAdminDto updateRoomTasks(Long roomId, UpdateRoomTasksRequest request) {
         Room room = roomRepository.findByIdForUpdate(roomId)
                 .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + roomId));
-        if (room.getRoomType() != RoomType.PATH) {
-            throw new IllegalArgumentException("Zadania można dodawać tylko do pokoi ścieżek");
-        }
-
         if (request.revision() == null || request.revision() != room.getTasksRevision()) {
             throw new ResponseStatusException(HttpStatus.CONFLICT,
                     "Zadania zmieniły się w międzyczasie. Wczytaj aktualną listę przed ponowną edycją.");
@@ -589,6 +459,7 @@ public class RoomServiceImpl implements RoomService {
 
         Map<Long, RoomTask> existing = room.getTasks().stream()
                 .collect(Collectors.toMap(RoomTask::getId, Function.identity()));
+        boolean visible = roomRepository.isVisible(roomId);
         Set<Long> keptIds = new HashSet<>();
         List<RoomTask> ordered = new ArrayList<>();
         int position = 0;
@@ -596,12 +467,6 @@ public class RoomServiceImpl implements RoomService {
             position++;
             String question = blankToNull(taskRequest.question());
             String answer = blankToNull(taskRequest.answer());
-            if (room.isPublished() && question != null && answer == null) {
-                throw new IllegalArgumentException("Zadanie " + position + ": podaj odpowiedź na pytanie");
-            }
-            if (room.isPublished() && question == null && answer != null) {
-                throw new IllegalArgumentException("Zadanie " + position + ": odpowiedź wymaga pytania");
-            }
 
             RoomTask task;
             if (taskRequest.id() == null) {
@@ -617,7 +482,7 @@ public class RoomServiceImpl implements RoomService {
             }
             task.setTitle(taskRequest.title().trim());
             String content = TaskContentSanitizer.clean(taskRequest.content() == null ? "" : taskRequest.content());
-            if (room.isPublished() && content.isBlank()) {
+            if (visible && content.isBlank()) {
                 throw new IllegalArgumentException("Zadanie " + position + ": podaj treść po usunięciu niedozwolonego HTML");
             }
             task.setContent(content);
@@ -627,6 +492,7 @@ public class RoomServiceImpl implements RoomService {
             ordered.add(task);
         }
 
+        requirePlayable(visible, room.getRoomType(), ordered);
         room.getTasks().removeIf(task -> !keptIds.contains(task.getId()));
         for (RoomTask task : ordered) {
             if (task.getId() == null) {
@@ -639,6 +505,16 @@ public class RoomServiceImpl implements RoomService {
         roomRepository.flush();
 
         return new RoomTasksAdminDto(room.getTasksRevision(), ordered.stream().map(this::mapTaskToAdminDto).toList());
+    }
+
+    // A room players can see through a published path must stay solvable.
+    private static void requirePlayable(boolean visible, RoomType roomType, List<RoomTask> tasks) {
+        if (!visible) {
+            return;
+        }
+        RoomReadiness.taskProblems(roomType, tasks).stream().findFirst().ifPresent(problem -> {
+            throw new IllegalArgumentException(Character.toUpperCase(problem.charAt(0)) + problem.substring(1));
+        });
     }
 
     private RoomTaskAdminDto mapTaskToAdminDto(RoomTask task) {
@@ -675,7 +551,13 @@ public class RoomServiceImpl implements RoomService {
         return roomRepository.findTop3ByCategoryNot("Tutorial", PageRequest.of(0, 3));
     }
 
-    private com.hackademy.server.room.dto.HintDto mapToDto(com.hackademy.server.room.Hint hint) {
-        return new com.hackademy.server.room.dto.HintDto(hint.getId(), hint.getDescription());
+    private List<com.hackademy.server.room.Hint> sortedHints(Room room) {
+        return room.getHints().stream()
+                .sorted(Comparator.comparing(com.hackademy.server.room.Hint::getId))
+                .toList();
+    }
+
+    private HintDto mapToDto(com.hackademy.server.room.Hint hint, int order) {
+        return new HintDto(hint.getId(), order, hint.getDescription());
     }
 }

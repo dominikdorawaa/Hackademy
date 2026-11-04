@@ -198,6 +198,79 @@ class RateLimiterTest {
     }
 
     @Test
+    void aReleasedLeaseGivesItsTokenBack() {
+        var lease = limiter.lease("api", "a", RULE);
+        drain("a", 2);
+        assertFalse(limiter.acquire("api", "a", RULE).allowed());
+
+        lease.release();
+        lease.release();
+
+        assertTrue(limiter.acquire("api", "a", RULE).allowed());
+        assertFalse(limiter.acquire("api", "a", RULE).allowed());
+    }
+
+    @Test
+    void releasingNeverRaisesABucketAboveItsBurst() {
+        var lease = limiter.lease("api", "a", RULE);
+        clock.advance(Duration.ofHours(1));
+
+        lease.release();
+
+        assertEquals(3, drain("a", 10));
+    }
+
+    @Test
+    void aRejectedLeaseHasNothingToGiveBack() {
+        drain("a", 3);
+        var rejected = limiter.lease("api", "a", RULE);
+
+        rejected.release();
+
+        assertFalse(rejected.decision().allowed());
+        assertEquals(1000, rejected.decision().retryAfterMillis());
+        assertFalse(limiter.acquire("api", "a", RULE).allowed());
+    }
+
+    @Test
+    void releasingARetiredBucketDoesNotTouchItsReplacement() {
+        var lease = limiter.lease("api", "a", RULE);
+        clock.advance(Duration.ofSeconds(61));
+        limiter.acquire("api", "sweep", RULE);
+        drain("a", 3);
+
+        lease.release();
+
+        assertFalse(limiter.acquire("api", "a", RULE).allowed());
+    }
+
+    @Test
+    void neverAdmitsMoreThanTheBurstWhileLeasesAreHeld() throws Exception {
+        var rule = new RateLimitProperties.Rule(5, 1, Duration.ofHours(1));
+        var allowed = new AtomicInteger();
+        var start = new CountDownLatch(1);
+        var pool = Executors.newFixedThreadPool(16);
+        try {
+            var futures = new ArrayList<Future<?>>();
+            for (int i = 0; i < 16; i++) {
+                futures.add(pool.submit(() -> {
+                    start.await();
+                    for (int j = 0; j < 20; j++) {
+                        if (limiter.lease("api", "shared", rule).decision().allowed()) allowed.incrementAndGet();
+                    }
+                    return null;
+                }));
+            }
+            start.countDown();
+            for (var future : futures) future.get(10, TimeUnit.SECONDS);
+        } finally {
+            pool.shutdownNow();
+        }
+
+        assertEquals(5, allowed.get());
+    }
+
+    @Test
     void rejectsAnEmptyKeyTable() {
         assertThrows(IllegalArgumentException.class, () -> new RateLimiter(clock, 0));
     }

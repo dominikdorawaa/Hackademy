@@ -9,7 +9,6 @@ import java.util.List;
 @Builder
 public record RoomAdminDto(
     Long id,
-    boolean published,
     long contentRevision,
     String title,
     String description,
@@ -17,7 +16,6 @@ public record RoomAdminDto(
     DifficultyLevel difficulty,
     String category,
     int points,
-    String flag,
     int solutionsCount,
     boolean requiresVpn,
     RoomType roomType,

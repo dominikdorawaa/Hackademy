@@ -86,6 +86,16 @@ class NotificationPreferencesIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void gameSoundsAreOnByDefaultAndIndependentOfNotificationSound() throws Exception {
+        var user = account(Role.USER);
+        getAs(user, URL).andExpect(jsonPath("$.gameSounds").value(true));
+        patchPreference(user, "{\"preference\":\"gameSounds\",\"enabled\":false}").andExpect(status().isOk())
+                .andExpect(jsonPath("$.gameSounds").value(false)).andExpect(jsonPath("$.sound").value(true));
+        patchPreference(user, "{\"preference\":\"sound\",\"enabled\":false}").andExpect(status().isOk());
+        getAs(user, URL).andExpect(jsonPath("$.gameSounds").value(false)).andExpect(jsonPath("$.sound").value(false));
+    }
+
+    @Test
     void rejectsIncompletePreferencesWithoutOverwritingPreviousValues() throws Exception {
         var user = account(Role.USER);
         patchPreference(user, "{\"sound\":false}").andExpect(status().isBadRequest());

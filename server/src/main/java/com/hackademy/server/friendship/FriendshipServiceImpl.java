@@ -47,13 +47,13 @@ public class FriendshipServiceImpl implements FriendshipService {
 
     private final FriendshipRepository friendshipRepository;
     private final UserRepository userRepository;
-    private final BadgeService badgeService; // Inject BadgeService
+    private final BadgeService badgeService;
     private final DashboardSummaryCache dashboardSummaryCache;
     private final RealtimeNotifier realtime;
     private final UserAvatarRepository userAvatarRepository;
     private final FriendActivity activity;
 
-    private static final long CACHE_MS = 30_000; // 30 seconds
+    private static final long CACHE_MS = 30_000;
     private static final class CacheEntry<T> {
         final long timeMs;
         final T value;
@@ -107,7 +107,6 @@ public class FriendshipServiceImpl implements FriendshipService {
         friendship.setStatus(FriendshipStatus.ACCEPTED);
         friendshipRepository.save(friendship);
 
-        // Check badges for both users
         badgeService.checkAndAwardBadges(friendship.getReceiver());
         badgeService.checkAndAwardBadges(friendship.getRequester());
 

@@ -22,7 +22,7 @@ export type FriendshipStatus = 'NONE' | 'FRIENDS' | 'REQUEST_SENT' | 'REQUEST_RE
 
 export type ApiId = string | number
 
-export type ArenaQuestionCategory = 'WEB' | 'SIECI' | 'KRYPTOGRAFIA' | 'LINUX' | 'OGOLNE'
+export type ArenaQuestionCategory = 'WEB' | 'SIECI' | 'KRYPTOGRAFIA' | 'LINUX' | 'OGOLNE' | 'WINDOWS' | 'BLUE_TEAM' | 'CHMURA'
 
 export type ArenaQuestionDifficulty = 'VERY_EASY' | 'EASY' | 'MEDIUM' | 'HARD' | 'VERY_HARD'
 
@@ -65,7 +65,6 @@ export interface RoomWriteRequest {
   difficulty: DifficultyLevel
   category: string
   points: number
-  flag: string
   requiresVpn: boolean
   roomType?: RoomType
   hints?: string[] | null
@@ -241,7 +240,8 @@ export interface FriendRequestDto {
 
 export interface HintDto {
   id: number
-  description: string
+  order: number
+  description?: string
 }
 
 export interface PathRoomMiniDto {
@@ -372,7 +372,6 @@ export interface AdminStatsDto {
     username: string
     roomId: number
     roomTitle: string
-    roomType: RoomType
     pathTitle: string | null
     solvedAt: ApiDateTime
   }[]
@@ -383,6 +382,7 @@ export interface RoomTaskDto {
   title: string
   content: string
   question: string | null
+  requiresAnswer: boolean
   completed: boolean
 }
 
@@ -407,6 +407,7 @@ export interface RoomDetailDto {
   description: string
   shortDescription: string
   difficulty: DifficultyLevel
+  roomType: RoomType
   points: number
   solutionsCount: number
   createdAt: ApiDateTime
@@ -434,7 +435,6 @@ export interface RoomDto {
 }
 
 export interface RoomAdminSummaryDto {
-  published?: boolean;
   contentRevision?: number;
   id: number
   title: string
@@ -443,12 +443,16 @@ export interface RoomAdminSummaryDto {
   points: number
   requiresVpn: boolean
   roomType: RoomType
-  pathId: number | null
-  pathTitle: string | null
+  paths: RoomPathDto[]
+}
+
+export interface RoomPathDto {
+  id: number
+  title: string
+  published: boolean
 }
 
 export interface RoomAdminDto {
-  published?: boolean;
   contentRevision?: number;
   id: number
   title: string
@@ -457,7 +461,6 @@ export interface RoomAdminDto {
   difficulty: DifficultyLevel
   category: string
   points: number
-  flag: string
   solutionsCount: number
   requiresVpn: boolean
   roomType: RoomType

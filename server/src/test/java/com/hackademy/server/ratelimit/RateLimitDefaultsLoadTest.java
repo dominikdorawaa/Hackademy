@@ -44,6 +44,11 @@ class RateLimitDefaultsLoadTest {
     }
 
     @Test
+    void allowsFiveWrongRoomAnswersEveryFiveMinutes() {
+        assertEquals(new RateLimitProperties.Rule(5, 5, Duration.ofMinutes(5)), properties.rules().roomAnswer());
+    }
+
+    @Test
     void letsOneAccountSendABugReportEveryThirtySeconds() {
         for (long t = 0; t < 300_000; t += 10_000) {
             at(t, RateLimitGroup.BUG_REPORT, "account:reporter", 1);

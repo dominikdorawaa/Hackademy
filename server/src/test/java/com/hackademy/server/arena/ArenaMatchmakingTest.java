@@ -19,6 +19,7 @@ import org.springframework.security.core.context.SecurityContextHolder;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.concurrent.atomic.AtomicLong;
 
 import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.anyCollection;
@@ -35,14 +36,13 @@ class ArenaMatchmakingTest {
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
             mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, mock(ArenaPresence.class), matchmaking);
     private final ArenaController controller = new ArenaController(matchmaking, arena, userService);
+    private final AtomicLong now = new AtomicLong(1_000_000);
 
     @BeforeEach
     void queuePlayers() {
+        matchmaking.useClock(now::get);
         for (long id = 1; id <= 4; id++) {
-            User user = new User();
-            user.setId(id);
-            user.setUsername("player" + id);
-            user.setElo(500);
+            User user = player(id);
             when(users.findById(id)).thenReturn(Optional.of(user));
             matchmaking.joinQueue(id, user.getUsername());
         }
@@ -53,6 +53,14 @@ class ArenaMatchmakingTest {
     @AfterEach
     void clearUser() {
         SecurityContextHolder.clearContext();
+    }
+
+    private static User player(long id) {
+        User user = new User();
+        user.setId(id);
+        user.setUsername("player" + id);
+        user.setElo(500);
+        return user;
     }
 
     private User signIn(long id) {
@@ -161,12 +169,74 @@ class ArenaMatchmakingTest {
             assertTrue(matchmaking.isQueued(id));
             assertNull(arena.findCurrentGameForUser(id));
         }
-        User third = new User();
-        third.setId(3L);
-        third.setUsername("player3");
-        third.setElo(500);
-        doReturn(Optional.of(third)).when(users).findById(3L);
+        doReturn(Optional.of(player(3L))).when(users).findById(3L);
         controller.processMatchmaking();
         for (long id = 1; id <= 4; id++) assertNotNull(arena.findCurrentGameForUser(id));
+    }
+
+    @Test
+    void aDeletedAccountGetsNoGameAndTheNextPairStillPlays() {
+        when(users.findById(1L)).thenReturn(Optional.empty());
+        controller.processMatchmaking();
+        assertNull(arena.findCurrentGameForUser(1L));
+        assertNull(arena.findCurrentGameForUser(2L));
+        assertNotNull(arena.findCurrentGameForUser(3L));
+        assertEquals(arena.findCurrentGameForUser(3L).getId(), arena.findCurrentGameForUser(4L).getId());
+    }
+
+    @Test
+    void aDeletedAccountLeavesTheQueueAndItsPartnerPlaysTheBotAfterTheUsualWait() {
+        when(users.findById(1L)).thenReturn(Optional.empty());
+        controller.processMatchmaking();
+        assertFalse(matchmaking.isQueued(1L));
+        assertTrue(matchmaking.isQueued(2L));
+        now.addAndGet(MatchmakingServiceImpl.BOT_WAIT_MIN_MILLIS - 1);
+        controller.processMatchmaking();
+        assertNull(arena.findCurrentGameForUser(2L));
+        now.addAndGet(MatchmakingServiceImpl.BOT_WAIT_MAX_MILLIS);
+        controller.processMatchmaking();
+        assertFalse(matchmaking.isQueued(2L));
+        GameSession game = arena.findCurrentGameForUser(2L);
+        assertNotNull(game);
+        assertTrue(game.getPlayer2Id() < 0);
+    }
+
+    @Test
+    void thePartnerOfADeletedAccountPairsWithTheNextPlayer() {
+        when(users.findById(1L)).thenReturn(Optional.empty());
+        controller.processMatchmaking();
+        User fifth = player(5L);
+        when(users.findById(5L)).thenReturn(Optional.of(fifth));
+        matchmaking.joinQueue(5L, fifth.getUsername());
+        controller.processMatchmaking();
+        assertFalse(matchmaking.isQueued(1L));
+        assertNull(arena.findCurrentGameForUser(1L));
+        assertNotNull(arena.findCurrentGameForUser(2L));
+        assertEquals(arena.findCurrentGameForUser(2L).getId(), arena.findCurrentGameForUser(5L).getId());
+    }
+
+    @Test
+    void challengingAnUnknownPlayerAnswersWithTheReason() {
+        when(userService.getUserIdByUsername("ghost")).thenThrow(new IllegalArgumentException("User not found"));
+        signIn(1L);
+        var response = controller.createChallenge(Map.of("targetUsername", "ghost"));
+        assertEquals(400, response.getStatusCode().value());
+        assertEquals(Map.of("message", "User not found"), response.getBody());
+        assertTrue(arena.getPendingChallenges(1L).isEmpty());
+    }
+
+    @Test
+    void theChallengerCanCancelTheirChallengeThroughTheApi() {
+        when(userService.getUserIdByUsername("player2")).thenReturn(2L);
+        signIn(1L);
+        controller.createChallenge(Map.of("targetUsername", "player2"));
+        String challengeId = arena.getPendingChallenges(2L).get(0).getId();
+        signIn(2L);
+        assertEquals(400, controller.cancelChallenge(challengeId).getStatusCode().value());
+        signIn(1L);
+        var response = controller.cancelChallenge(challengeId);
+        assertEquals(200, response.getStatusCode().value());
+        assertEquals(Map.of("message", "Wyzwanie anulowane"), response.getBody());
+        assertTrue(arena.getPendingChallenges(2L).isEmpty());
     }
 }

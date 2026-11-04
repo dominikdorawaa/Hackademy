@@ -16,6 +16,7 @@ import { levelFromPoints } from '../lib/level';
 import { Check, Mail, Search, Swords, User, UserMinus, UserPlus, Users, X } from 'lucide-react';
 import '../components/room/room.css';
 import './FriendsPage.css';
+import { formatXp } from '../lib/units';
 
 const FriendsPage = () => {
     const { sessionKey } = useAuth();
@@ -25,7 +26,6 @@ const FriendsPage = () => {
     const requests = state?.friendRequests ?? [];
     const loading = !state;
 
-    // Search state
     const [searchQuery, setSearchQuery] = useState('');
     const [searchResults, setSearchResults] = useState<UserSearchDto[]>([]);
     const [isSearching, setIsSearching] = useState(false);
@@ -35,7 +35,6 @@ const FriendsPage = () => {
     const friendsHeading = useRef<HTMLHeadingElement>(null);
     const removeButtons = useRef(new Map<number, HTMLButtonElement>());
 
-    // Challenge state
     const challengedFriends = state?.outgoingChallenges.map(challenge => challenge.targetUsername) ?? [];
 
     const handleSearch = async (e: React.FormEvent) => {
@@ -60,7 +59,6 @@ const FriendsPage = () => {
         try {
             const response = await friendApi.sendRequest(username, { sessionKey });
             if (response.ok) {
-                // Update search results to reflect sent request
                 setSearchResults(prev => prev.map(user =>
                     user.username === username ? { ...user, friendshipStatus: 'REQUEST_SENT' } : user
                 ));
@@ -239,7 +237,7 @@ const FriendsPage = () => {
                                         </span>
                                     </div>
                                     <p className="friends-card-stats">
-                                        <span className="room-chip room-chip--points">{friend.points} XP</span>
+                                        <span className="room-chip room-chip--points">{formatXp(friend.points)}</span>
                                         <span className="room-chip"><PixelSprite sprite={SPRITES.flame} still={!friend.streak} className="friends-flame" />{friend.streak} dni</span>
                                     </p>
                                     <div className="friends-card-actions">

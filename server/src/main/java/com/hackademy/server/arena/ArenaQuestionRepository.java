@@ -36,7 +36,6 @@ public interface ArenaQuestionRepository extends JpaRepository<ArenaQuestion, Lo
     Slice<ArenaQuestion> findAdminPage(@Param("query") String query, @Param("category") String category,
                                        @Param("difficulty") String difficulty, Pageable pageable);
 
-    // Locks every row so two concurrent deletions cannot both see a second question and empty the bank.
     @Query(value = "SELECT id FROM arena_questions ORDER BY id FOR UPDATE", nativeQuery = true)
     List<Long> lockAllIds();
 }

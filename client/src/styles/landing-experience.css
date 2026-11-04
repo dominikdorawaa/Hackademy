@@ -1,5 +1,4 @@
 @layer components {
-/* Kotwice pod sticky navbar + płynne przewijanie z linków */
 html {
   scroll-behavior: smooth;
 }
@@ -17,7 +16,6 @@ html {
   scroll-margin-top: clamp(5rem, 12vh, 7.5rem);
 }
 
-/* --- Ujawnianie sekcji --- */
 .landing-reveal {
   opacity: 0;
   transform: translate3d(0, 36px, 0) scale(0.985);
@@ -44,7 +42,6 @@ html {
   }
 }
 
-/* --- Hero: wejście tytułu i terminala --- */
 .hero-entrance .hero-content > * {
   opacity: 0;
   transform: translateY(22px);
@@ -123,7 +120,6 @@ html {
   }
 }
 
-/* --- How it works: kroki --- */
 .hiw-reveal .section-title,
 .hiw-reveal .section-subtitle {
   opacity: 0;
@@ -179,7 +175,6 @@ html {
   }
 }
 
-/* --- Arena: karta ELO --- */
 .arena-reveal .elo-card {
   transition:
     transform 0.45s cubic-bezier(0.22, 1, 0.36, 1),
@@ -208,7 +203,6 @@ html {
   }
 }
 
-/* --- Pokoje: karty --- */
 .rooms-stagger .room-card {
   opacity: 0;
   transform: translateY(32px) scale(0.96);
@@ -254,7 +248,6 @@ html {
   }
 }
 
-/* --- Ranking: karty --- */
 .lb-stagger .leaderboard-card {
   opacity: 0;
   transform: translateX(-20px);
@@ -298,7 +291,6 @@ html {
   }
 }
 
-/* --- Newsletter --- */
 .nl-reveal {
   opacity: 0;
   transform: translateY(24px);

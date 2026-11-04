@@ -20,10 +20,11 @@ export interface NotificationPreferences {
   browserNotifications: boolean;
   friendOnline: boolean;
   friendOnlineBell: boolean;
+  gameSounds: boolean;
 }
 
 export const defaultNotificationPreferences: NotificationPreferences = {
-  friendRequests: true, challenges: true, matchFound: true, sound: true, browserNotifications: false, friendOnline: true, friendOnlineBell: true,
+  friendRequests: true, challenges: true, matchFound: true, sound: true, browserNotifications: false, friendOnline: true, friendOnlineBell: true, gameSounds: true,
 };
 
 export function getNotificationPreferences(auth: SessionScope, signal?: AbortSignal) {

@@ -14,7 +14,6 @@ import java.util.Optional;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.mockito.Mockito.when;
 
-// Saving a single preference is covered end to end by NotificationPreferencesIntegrationTest.
 @ExtendWith(MockitoExtension.class)
 class UserControllerNotificationPreferencesTest {
 
@@ -32,13 +31,13 @@ class UserControllerNotificationPreferencesTest {
     void returnsDefaultsWhenNothingIsStored() {
         when(repository.findById(1L)).thenReturn(Optional.empty());
 
-        assertEquals(new NotificationPreferencesDto(true, true, true, true, false, true, true),
+        assertEquals(new NotificationPreferencesDto(true, true, true, true, false, true, true, true),
                 controller.getNotificationPreferences(authentication));
     }
 
     @Test
     void returnsStoredPreferences() {
-        var stored = new NotificationPreferencesDto(false, true, false, true, true, false, true);
+        var stored = new NotificationPreferencesDto(false, true, false, true, true, false, true, false);
         when(repository.findById(1L)).thenReturn(Optional.of(new NotificationPreferences(1L, stored)));
 
         assertEquals(stored, controller.getNotificationPreferences(authentication));

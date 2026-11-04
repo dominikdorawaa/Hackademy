@@ -3,18 +3,18 @@ import { Textarea } from '@/components/ui/textarea';
 import { Label } from '@/components/ui/label';
 
 export type FieldErrors = Record<string, string>;
-export function TextField({ name, label, value, limit, required = false, multiline = false, compact = false, error, onChange }: {
+export function TextField({ name, label, value, limit, required = false, multiline = false, compact = false, placeholder, mono = false, error, onChange }: {
   name: string; label: string; value: string; limit: number; required?: boolean; multiline?: boolean; compact?: boolean;
-  error?: string; onChange: (value: string) => void;
+  placeholder?: string; mono?: boolean; error?: string; onChange: (value: string) => void;
 }) {
   const problem = error || (value.length > limit ? `Maksymalnie ${limit} znaków` : undefined);
   const id = `content-${name}`;
   const props = { id, name, value, onChange: (event: React.ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) => onChange(event.target.value),
-    'aria-invalid': !!problem, 'aria-describedby': `${id}-count${problem ? ` ${id}-error` : ''}`, 'aria-required': required };
+    'aria-invalid': !!problem, 'aria-describedby': `${id}-count${problem ? ` ${id}-error` : ''}`, 'aria-required': required, placeholder };
   const counter = <span id={`${id}-count`} className={`text-xs tabular-nums ${value.length > limit ? 'text-destructive' : 'text-muted-foreground'}`}>{value.length}/{limit}</span>;
   return <div className={`grid min-w-0 ${compact ? 'gap-1.5' : 'gap-2'}`}>
     <div className="flex items-center justify-between gap-2"><Label htmlFor={id} className={compact ? 'text-xs text-muted-foreground' : undefined}>{label}{required && ' *'}</Label>{compact && counter}</div>
-    {multiline ? <Textarea {...props} className="min-h-28" /> : <Input {...props} className={compact ? 'h-8 font-medium' : undefined} />}
+    {multiline ? <Textarea {...props} className="min-h-28" /> : <Input {...props} spellCheck={mono ? false : undefined} autoComplete={mono ? 'off' : undefined} className={compact ? 'h-8 font-medium' : mono ? 'font-mono' : undefined} />}
     {!compact && counter}
     {problem && <p id={`${id}-error`} role="alert" className="text-sm text-destructive">{problem}</p>}
   </div>;

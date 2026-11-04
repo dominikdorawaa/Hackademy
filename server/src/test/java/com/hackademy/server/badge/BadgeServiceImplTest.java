@@ -56,7 +56,6 @@ class BadgeServiceImplTest {
                 friendshipRepository, userRepository, dashboardSummaryCache, TODAY);
     }
 
-    // ── awarding ────────────────────────────────────────────────────────────
 
     @Test
     void userReachingPointsThresholdEarnsBadge() {
@@ -189,7 +188,6 @@ class BadgeServiceImplTest {
         assertEquals(100.0, service.checkAndAwardBadges(user(100)).get(0).rarityPercentage());
     }
 
-    // ── status and progress ─────────────────────────────────────────────────
 
     @Test
     void earnedBadgeCarriesAcquisitionDateAndRarity() {
@@ -306,7 +304,6 @@ class BadgeServiceImplTest {
         assertEquals(1, service.getAllBadgesWithStatus(7L).size());
     }
 
-    // ── helpers ─────────────────────────────────────────────────────────────
 
     static Badge badge(Long id, String type, int value) {
         Badge badge = new Badge(type + " " + value, "Opis", "icon", type, value);

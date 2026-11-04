@@ -19,7 +19,7 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import type { Icon } from '@phosphor-icons/react';
 import { useUsernameChange, validateUsername } from '../hooks/useUsernameChange';
 import { chooseVariant, playSound, selectedVariant, soundVariants, unlockAudio } from '../lib/notificationSounds';
-import type { SoundEvent } from '../lib/notificationSounds';
+import type { AnySoundEvent, GameSoundEvent, SoundEvent } from '../lib/notificationSounds';
 import { USERNAME_MAX } from '../lib/username';
 import { getActivitySharing, saveActivitySharing } from '../services/presenceApi';
 import { DeleteAccountDialog } from '../components/settings/DeleteAccountDialog';
@@ -34,8 +34,13 @@ const sections: Record<'account' | 'notifications' | 'appearance' | 'security', 
 type Section = keyof typeof sections;
 
 const soundEvents: SoundEvent[] = ['friendRequests', 'challenges', 'matchFound', 'friendOnline'];
-const eventNames: Record<SoundEvent, string> = {
+const gameSoundEvents: GameSoundEvent[] = ['arenaCorrect', 'arenaWrong', 'arenaTick', 'arenaWin', 'arenaLoss', 'arenaDraw',
+  'taskSolved', 'roomCompleted', 'learningError'];
+const eventNames: Record<AnySoundEvent, string> = {
   friendRequests: 'Zaproszenie do znajomych', challenges: 'Wyzwanie w Arenie', matchFound: 'Znaleziony mecz', friendOnline: 'Znajomy online',
+  arenaCorrect: 'Arena: dobra odpowiedź', arenaWrong: 'Arena: zła odpowiedź', arenaTick: 'Arena: ostatnie sekundy',
+  arenaWin: 'Arena: wygrana', arenaLoss: 'Arena: przegrana', arenaDraw: 'Arena: remis',
+  taskSolved: 'Nauka: zaliczone zadanie', roomCompleted: 'Nauka: ukończony pokój', learningError: 'Nauka: zła odpowiedź lub flaga',
 };
 type Channel = 'bell' | 'toast' | 'sound' | 'system';
 type Topic = SoundEvent | 'friendOnlineBell';
@@ -129,7 +134,8 @@ export default function SettingsPage() {
   const [savingSharing, setSavingSharing] = useState(false);
   const [sharingFailed, setSharingFailed] = useState(false);
   const [sharingAttempt, setSharingAttempt] = useState(0);
-  const [variants, setVariants] = useState(() => Object.fromEntries(soundEvents.map(event => [event, selectedVariant(event).id])) as Record<SoundEvent, string>);
+  const [variants, setVariants] = useState(() => Object.fromEntries([...soundEvents, ...gameSoundEvents]
+    .map(event => [event, selectedVariant(event).id])) as Record<AnySoundEvent, string>);
 
   useEffect(() => {
     if (!sessionKey) return;
@@ -205,7 +211,6 @@ export default function SettingsPage() {
     setFeedback(null);
   };
 
-  // The naming rules only show up once the typed name breaks them.
   const unchangedName = !account || username.trim() === account.username;
   const typedNameProblem = unchangedName ? null : validateUsername(username);
   const nameProblem = nameError || typedNameProblem;
@@ -241,13 +246,26 @@ export default function SettingsPage() {
     const saved = await update(key, value);
     if (saved) setFeedback({ message: 'Preferencje zostały zapisane.', error: false });
   };
-  const previewSound = async (event: SoundEvent) => {
+  const previewSound = async (event: AnySoundEvent, game: boolean) => {
     if (!await unlockAudio() || !playSound(event)) {
       setFeedback({ message: 'Ta przeglądarka nie odtwarza dźwięków na tej stronie.', error: true });
       return;
     }
-    setFeedback(preferences.sound ? null : { message: 'Tak brzmi ten sygnał. Włącz „Dźwięk”, aby grał przy prawdziwych zdarzeniach.', error: false });
+    const enabled = game ? preferences.gameSounds : preferences.sound;
+    setFeedback(enabled ? null : { message: `Tak brzmi ten sygnał. Włącz „${game ? 'Dźwięki gry' : 'Dźwięk'}”, aby grał przy prawdziwych zdarzeniach.`, error: false });
   };
+  const soundPicker = (events: (AnySoundEvent)[], game: boolean) => <details className="settings-sounds">
+    <summary>Wybierz sygnały<CaretDown size={14} aria-hidden="true" /></summary>
+    <ul className="settings-sound-list" aria-label={game ? 'Dźwięki gry do odsłuchania' : 'Sygnały do odsłuchania'}>{events.map(event => <li key={event}>
+      <span>{eventNames[event]}</span>
+      <select aria-label={`Wariant sygnału: ${eventNames[event]}`} value={variants[event]} onChange={change => {
+        chooseVariant(event, change.target.value);
+        setVariants(previous => ({ ...previous, [event]: change.target.value }));
+        void previewSound(event, game);
+      }}>{soundVariants[event].map(variant => <option key={variant.id} value={variant.id}>{variant.name}</option>)}</select>
+      <button type="button" className="settings-button settings-button-small" aria-label={`Odtwórz próbnie: ${eventNames[event]}`}
+        onClick={() => void previewSound(event, game)}><Play size={14} aria-hidden="true" />Odtwórz</button>
+    </li>)}</ul></details>;
 
   const previewNotification = async () => {
     if (!notificationsSupported) return;
@@ -262,7 +280,6 @@ export default function SettingsPage() {
       return;
     }
     try {
-      // No tag: a repeated tag silently replaces the previous bubble, so a second test would show nothing.
       const notification = new Notification('Próbne powiadomienie Hackademy', { body: 'Tak zobaczysz zaproszenie, wyzwanie albo znaleziony mecz, gdy Hackademy jest w tle.' });
       notification.onerror = () => setFeedback({ message: 'System nie wyświetlił powiadomienia. Sprawdź, czy ustawienia systemu pozwalają przeglądarce pokazywać powiadomienia.', error: true });
     } catch {
@@ -351,17 +368,11 @@ export default function SettingsPage() {
           </SettingsGroup>
           <SettingsGroup id="channels" title="Jak chcesz się dowiadywać">
           <SettingRow title="Dźwięk" description="Inny sygnał dla każdego zdarzenia, gdy Hackademy jest otwarte."
-            extra={<details className="settings-sounds"><summary>Wybierz sygnały<CaretDown size={14} aria-hidden="true" /></summary>
-              <ul className="settings-sound-list" aria-label="Sygnały do odsłuchania">{soundEvents.map(event => <li key={event}>
-              <span>{eventNames[event]}</span>
-              <select aria-label={`Wariant sygnału: ${eventNames[event]}`} value={variants[event]} onChange={change => {
-                chooseVariant(event, change.target.value);
-                setVariants(previous => ({ ...previous, [event]: change.target.value }));
-                void previewSound(event);
-              }}>{soundVariants[event].map(variant => <option key={variant.id} value={variant.id}>{variant.name}</option>)}</select>
-              <button type="button" className="settings-button settings-button-small" aria-label={`Odtwórz próbnie: ${eventNames[event]}`}
-                onClick={() => void previewSound(event)}><Play size={14} aria-hidden="true" />Odtwórz</button>
-            </li>)}</ul></details>}>{notificationSwitch('sound', 'Dźwięk powiadomień')}</SettingRow>
+            extra={soundPicker(soundEvents, false)}>{notificationSwitch('sound', 'Dźwięk powiadomień')}</SettingRow>
+          <SettingRow title="Dźwięki gry" description={preferences.gameSounds
+            ? 'Odpowiedzi, odliczanie i wynik walki w Arenie oraz postępy w pokojach.'
+            : 'Wyłączone: Arena i pokoje grają po cichu.'}
+            extra={soundPicker(gameSoundEvents, true)}>{notificationSwitch('gameSounds', 'Dźwięki gry')}</SettingRow>
           <SettingRow title="Powiadomienia systemowe" description={notificationsSupported
             ? 'Dymek systemu, gdy Hackademy jest w tle.'
             : 'Ta przeglądarka nie obsługuje powiadomień na tej stronie.'}

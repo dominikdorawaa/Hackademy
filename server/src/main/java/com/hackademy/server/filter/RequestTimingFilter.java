@@ -32,7 +32,6 @@ public class RequestTimingFilter extends OncePerRequestFilter {
             String path = request.getRequestURI();
             int status = response.getStatus();
 
-            // Log only API calls (and optionally only slow ones).
             if (path != null && path.startsWith("/api")) {
                 if (ms >= 200) {
                     log.warn("SLOW {} {} -> {} ({} ms)", method, path, status, ms);

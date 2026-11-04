@@ -21,7 +21,6 @@ public class PathController {
 
     private final PathService pathService;
 
-    // ── helpers ─────────────────────────────────────────────────────────────
 
     private String currentUsername() {
         Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -29,7 +28,6 @@ public class PathController {
         return null;
     }
 
-    // ── public endpoints ─────────────────────────────────────────────────────
 
     @GetMapping
     public ResponseEntity<List<PathSummaryDto>> listPaths() {
@@ -78,7 +76,6 @@ public class PathController {
                 .body(data);
     }
 
-    // ── enrollment endpoints ─────────────────────────────────────────────────
 
     @PostMapping("/{id}/enroll")
     public ResponseEntity<Void> enroll(@PathVariable Long id) {

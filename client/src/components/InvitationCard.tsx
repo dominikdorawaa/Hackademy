@@ -2,17 +2,17 @@ import type { ReactNode } from 'react';
 import UserAvatar from './UserAvatar';
 import type { AvatarConfig } from '../types/api';
 import './InvitationCard.css';
+import { ELO_UNIT, formatNumberPL } from '../lib/units';
 
 export type InvitationKind = 'friend' | 'challenge';
 
 function Fighter({ name, avatar, elo, label, own }: { name: string; avatar?: AvatarConfig | null; elo?: number | null; label: string; own?: boolean }) {
   return <span className="invite-fighter">
     <UserAvatar className={own ? 'invite-portrait invite-portrait-own' : 'invite-portrait'} username={name} avatar={avatar} alt="" />
-    {elo != null && <span className="invite-elo" aria-label={`${label}: ${elo}`}><b>{elo}</b> Elo</span>}
+    {elo != null && <span className="invite-elo" aria-label={`${label}: ${elo}`}><b>{formatNumberPL(elo)}</b> {ELO_UNIT}</span>}
   </span>;
 }
 
-/** The face of an incoming invitation: the sender's pixel portrait and an answer, shared by the live toast and the settings preview. */
 export default function InvitationCard({ kind, actor, avatar, elo, ownName, ownAvatar, ownElo, busy, failed, onAccept, onReject, children }: {
   kind: InvitationKind; actor: string; avatar?: AvatarConfig | null; elo?: number | null; ownName?: string; ownAvatar?: AvatarConfig | null; ownElo?: number | null;
   busy?: boolean; failed?: boolean; onAccept?: () => void; onReject?: () => void; children?: ReactNode;

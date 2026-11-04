@@ -162,7 +162,6 @@ public class AdminController {
 
         return RoomAdminDto.builder()
                 .id(room.getId())
-                .published(room.isPublished())
                 .contentRevision(room.getContentRevision())
                 .title(room.getTitle())
                 .description(room.getDescription())
@@ -170,7 +169,6 @@ public class AdminController {
                 .difficulty(room.getDifficulty())
                 .points(room.getPoints())
                 .category(room.getCategory())
-                .flag(room.getFlag())
                 .solutionsCount(room.getSolutionsCount())
                 .requiresVpn(room.isRequiresVpn())
                 .roomType(room.getRoomType())

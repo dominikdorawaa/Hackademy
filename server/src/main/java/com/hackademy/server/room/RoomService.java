@@ -4,6 +4,7 @@ import com.hackademy.server.room.dto.UpdateRoomRequest;
 
 import com.hackademy.server.badge.BadgeDto;
 import com.hackademy.server.room.dto.CreateRoomRequest;
+import com.hackademy.server.room.dto.HintDto;
 import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomDetailDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
@@ -17,18 +18,17 @@ import java.util.List;
 
 public interface RoomService {
     Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException;
-    List<RoomSummaryDto> getAllRooms(String username); // Changed return type
-    List<RoomSummaryDto> getAllRoomsByType(String username, RoomType roomType);
     List<RoomAdminSummaryDto> getAllRoomsForAdmin();
     Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException;
+    // Saves room details without checking the current tasks against a new type; the caller saves the tasks
+    // in the same transaction right after, and updateRoomTasks checks them.
+    Room updateRoomBeforeTasks(Long id, UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException;
     void deleteRoom(Long id);
     RoomDetailDto getRoomDetail(Long id, String username);
-    SolveRoomResponse solveRoom(Long id, String flag, String username);
-    boolean unlockHint(Long roomId, Long hintId, String username);
-    // For admin to get the raw entity including flag
+    HintDto unlockHint(Long roomId, Long hintId, String username);
     Room getRoomById(Long id);
     RoomFile getRoomFile(Long roomId, String username);
-    List<RoomSummaryDto> getTop3Rooms(); // New method for landing page
+    List<RoomSummaryDto> getTop3Rooms();
     SolveRoomResponse solveTask(Long roomId, Long taskId, String answer, String username);
     SolveRoomResponse completeTaskRoom(Long roomId, String username);
     RoomTasksAdminDto getRoomTasksForAdmin(Long roomId);

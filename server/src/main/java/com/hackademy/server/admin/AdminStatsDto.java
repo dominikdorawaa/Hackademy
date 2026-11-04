@@ -1,7 +1,5 @@
 package com.hackademy.server.admin;
 
-import com.hackademy.server.room.RoomType;
-
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
@@ -23,7 +21,6 @@ public record AdminStatsDto(
         String username,
         Long roomId,
         String roomTitle,
-        RoomType roomType,
         String pathTitle,
         LocalDateTime solvedAt
     ) {}

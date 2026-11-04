@@ -8,6 +8,7 @@
       "rooms": [
         {
           "title": "Terminal",
+          "roomType": "PATH",
           "description": "Przeczytaj materiał i odpowiedz na pytanie.",
           "shortDescription": "Twoje pierwsze polecenie",
           "difficulty": "EASY",
@@ -26,11 +27,18 @@
         },
         {
           "title": "Znajdź flagę",
-          "description": "Znajdź flagę w treści: HACK{linux}.",
+          "roomType": "CTF",
+          "description": "Przeszukaj katalog domowy i zdobądź flagę.",
           "difficulty": "EASY",
           "category": "Linux",
-          "points": 30,
-          "flag": "HACK{linux}"
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Ukryty plik",
+              "content": "<p>Flaga leży w ukrytym pliku <code>.flaga</code> w katalogu domowym.</p>",
+              "answer": "HACK{linux}"
+            }
+          ]
         }
       ]
     }

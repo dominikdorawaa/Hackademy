@@ -1,7 +1,8 @@
 import { request } from '../../services/http';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { Link, useLocation, useNavigate, useParams } from 'react-router-dom';
-import { Lock } from 'lucide-react';
+import { ChevronRight, Eye, Lock, Trash2, TriangleAlert } from 'lucide-react';
+import { cn } from '@/lib/utils';
 import { Button } from '@/components/ui/button';
 import API_URL from '../../apiConfig';
 import { useAuth } from '../../context/AuthContext';
@@ -49,7 +50,9 @@ function PathEditor({ pathId }: { pathId: string }) {
   const savingRef = useRef(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
+  const arrival = location.state as { flash?: string; arrivedRoomId?: number } | null;
+  const [success, setSuccess] = useState<string | null>(arrival?.flash ?? null);
+  const [arrived, setArrived] = useState<number | null>(arrival?.arrivedRoomId ?? null);
   const [attempt, setAttempt] = useState(0);
   const [systemKey, setSystemKey] = useState<string | null>(null);
   useEffect(() => {
@@ -63,10 +66,16 @@ function PathEditor({ pathId }: { pathId: string }) {
       }).catch(e => { if (active) setError(e.message); }).finally(() => { if (active) setLoading(false); });
     return () => { active = false; };
   }, [sessionKey, attempt]);
+  // A room just created from a chapter lights up for a moment where it landed.
+  useEffect(() => {
+    if (arrived == null || loading) return;
+    document.querySelector(`[data-room-id="${arrived}"]`)?.scrollIntoView?.({ block: 'center' });
+    const timer = setTimeout(() => setArrived(null), 2400);
+    return () => clearTimeout(timer);
+  }, [arrived, loading]);
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file;
   const change = (values: Partial<PathSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
-  const save = async (published = formRef.current.published, notify = true) => {
-    if (savingRef.current) return false;
+  const validate = (published: boolean, roomComing: number | null = null) => {
     const current = formRef.current;
     const nextErrors: FieldErrors = {};
     checkText(nextErrors, 'title', current.title, 120, true);
@@ -77,11 +86,16 @@ function PathEditor({ pathId }: { pathId: string }) {
     if (published && !current.chapters.length) nextErrors.chapters = 'Dodaj przynajmniej jeden rozdział';
     current.chapters.forEach((c, i) => {
       checkText(nextErrors, `chapters.${i}.title`, c.title, 120, true);
-      if (published && !c.roomIds?.length) nextErrors[`chapters.${i}.rooms`] = 'Dodaj pokój do rozdziału przed publikacją';
-      else if (published && c.roomIds?.some(roomId => rooms.find(r => r.id === roomId)?.published === false)) nextErrors[`chapters.${i}.rooms`] = 'Opublikuj pokoje rozdziału przed publikacją ścieżki';
+      if (published && !c.roomIds?.length && i !== roomComing) nextErrors[`chapters.${i}.rooms`] = 'Dodaj pokój do rozdziału przed publikacją';
     });
     setSuccess(null); setErrors(nextErrors); setError(null);
     if (Object.keys(nextErrors).length) { focusError(nextErrors); return false; }
+    return true;
+  };
+  const save = async (published = formRef.current.published, notify = true) => {
+    if (savingRef.current) return false;
+    const current = formRef.current;
+    if (!validate(published)) return false;
     savingRef.current = true; setSaving(true);
     try {
       const detail = await contentApi.savePath(idRef.current, { ...current, published }, file, sessionKey);
@@ -105,34 +119,62 @@ function PathEditor({ pathId }: { pathId: string }) {
       navigate(`/admin/paths/${idRef.current}`, { replace: true, state: { flash: published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.' } });
     }
   };
-  const createRoom = (index: number) => guard.request(() => {
-    const chapter = formRef.current.chapters[index];
-    const savedChapter = chapter?.id != null ? baseline.chapters.find(c => c.id === chapter.id) ?? chapter : null;
-    if (idRef.current != null && savedChapter?.id) {
-      navigate(`/admin/paths/rooms/new?pathId=${idRef.current}&chapterId=${savedChapter.id}&pathRevision=${formRef.current.revision}`);
-    } else {
-      const source = idRef.current == null ? empty : baseline;
-      const list = [...source.chapters];
-      const targetIndex = Math.min(index, list.length);
-      if (!list[targetIndex] || list[targetIndex].id != null) list.splice(targetIndex, 0, { id: null, title: `Rozdział ${targetIndex + 1}`, roomIds: [] });
-      navigate('/admin/paths/rooms/new', { state: { parentDraft: { ...source, chapters: list }, parentId: idRef.current, chapterIndex: targetIndex } });
+  // A new room starts from its chapter: a draft path is saved quietly first, so the room editor gets a real chapter.
+  // A published path cannot be saved with an empty chapter, so its edits travel with the room and are saved together.
+  const createRoom = async (index: number) => {
+    if (savingRef.current) return;
+    const crumbs = (chapter: string) => ({ pathTitle: formRef.current.title.trim(), chapterTitle: chapter.trim() });
+    if (formRef.current.published) {
+      const chapter = formRef.current.chapters[index];
+      if (!dirty && chapter.id != null) {
+        navigate(`/admin/paths/rooms/new?pathId=${idRef.current}&chapterId=${chapter.id}&pathRevision=${formRef.current.revision}`, { state: crumbs(chapter.title) });
+        return;
+      }
+      if (file) { setError('Zapisz najpierw nowy banner ścieżki.'); return; }
+      if (!validate(true, index)) return;
+      guard.allowNavigation();
+      navigate('/admin/paths/rooms/new', { state: { parentDraft: formRef.current, parentId: idRef.current, chapterIndex: index, ...crumbs(chapter.title) } });
+      return;
     }
-  });
+    if ((dirty || idRef.current == null) && !await save(false, false)) return;
+    const chapter = formRef.current.chapters[index];
+    guard.allowNavigation();
+    navigate(`/admin/paths/rooms/new?pathId=${idRef.current}&chapterId=${chapter.id}&pathRevision=${formRef.current.revision}`, { state: crumbs(chapter.title) });
+  };
+  const openRoom = (roomId: number, chapterIndex: number) => guard.request(() => navigate(`/admin/paths/rooms/${roomId}`,
+    { state: { returnPathId: idRef.current, pathTitle: formRef.current.title.trim(), chapterTitle: formRef.current.chapters[chapterIndex]?.title.trim() } }));
   if (systemKey) return <SystemPath title={form.title} description={form.description} systemKey={systemKey} />;
+  const published = baseline.published;
   return <>
     {guard.dialog}
-    <Button asChild variant="ghost" className="mb-3"><Link to="/admin/paths">← Ścieżki</Link></Button>
-    <PageHeader title={id == null ? 'Nowa ścieżka' : form.title || 'Ścieżka'} description={`Status: ${form.published ? 'Opublikowany' : 'Szkic'}`} actions={<>{id != null && isAdmin && <PathImportDialog disabled={loading || saving}
-      existing={{ id, title: baseline.title, contentRevision: baseline.revision, chaptersRevision: baseline.chaptersRevision, chapters: baseline.chapters }}
-      requestOpen={open => guard.request(open)} onImported={detail => {
-        const next = fromDetail(detail); formRef.current = next; setForm(next); setBaseline(next); setFile(null);
-        setSuccess('Dodano pokoje jako szkice. Istniejąca ścieżka zachowała swój status publikacji.');
-        setErrors({}); setError(null); setLoading(true); setAttempt(value => value + 1);
-      }} />}<Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, sessionKey); guard.allowNavigation(); navigate('/admin/paths'); }} trigger={<Button variant="outline">Usuń ścieżkę</Button>} />}</>} />
-    {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
+    <div className={cn('sticky top-14 z-[5] -mx-4 -mt-6 mb-6 border-b px-4 py-2.5 backdrop-blur md:-mx-8 md:-mt-8 md:px-8',
+      published ? 'border-amber-500/40 bg-amber-50/95 dark:bg-[#2a2113]/95' : 'bg-background/95')} role="region" aria-label="Stan ścieżki">
+      <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
+        <div className="flex min-w-0 flex-1 basis-64 items-center gap-2">
+          <Link to="/admin/paths" className="shrink-0 text-sm text-muted-foreground underline-offset-4 hover:text-foreground hover:underline">Ścieżki</Link>
+          <ChevronRight aria-hidden="true" className="size-4 shrink-0 text-muted-foreground" />
+          <h1 className="min-w-0 truncate text-lg font-semibold text-foreground">{id == null ? 'Nowa ścieżka' : baseline.title || 'Ścieżka'}</h1>
+          <span className={cn('shrink-0 rounded-[4px] px-2 py-0.5 text-xs font-medium',
+            published ? 'bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-300' : 'bg-muted text-muted-foreground')}>{published ? 'Opublikowana' : 'Szkic'}</span>
+        </div>
+        <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
+          <Button type="button" variant="ghost" size="sm" aria-label="Podgląd" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}><Eye /><span className="hidden sm:inline">Podgląd</span></Button>
+          <ConfirmAction tone={published ? 'destructive' : 'default'} title={published ? 'Przenieść ścieżkę do szkiców?' : 'Opublikować ścieżkę?'} confirmLabel={published ? 'Przenieś do szkiców' : 'Opublikuj'}
+            description={`${published ? 'Ścieżka i jej rozdziały znikną graczom. Pokoje, które są też w innej opublikowanej ścieżce, zostaną tam widoczne.' : 'Gracze od razu zobaczą ścieżkę i wszystkie jej pokoje.'}${dirty ? ' Niezapisane zmiany zapiszą się razem z nią.' : ''}`}
+            onConfirm={() => normalSave(!published)}
+            trigger={<Button type="button" variant="outline" size="sm" className="bg-background dark:bg-background/40" disabled={saving || loading}>{published ? 'Przenieś do szkiców' : 'Opublikuj'}</Button>} />
+          <Button type="submit" form="path-editor" size="sm" className="min-w-20" disabled={saving || loading || !dirty}>{saving ? 'Zapisywanie…' : 'Zapisz'}</Button>
+        </div>
+      </div>
+      {published && <p className="mt-2 flex items-start gap-2 text-xs text-amber-900 sm:text-sm dark:text-amber-100">
+        <TriangleAlert aria-hidden="true" className="mt-px size-4 shrink-0 text-amber-600 dark:text-amber-400" />
+        Edytujesz opublikowaną ścieżkę. Zmiany po zapisie od razu zobaczą użytkownicy.
+      </p>}
+    </div>
+    <div className="grid gap-3 empty:hidden">{error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}</div>
     {loading ? <LoadingRows label="Ładowanie ścieżki" /> : error && id != null && !form.title ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
-      <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor ścieżki">
-        <fieldset disabled={saving} className="grid min-w-0 gap-6">
+      <form id="path-editor" noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-8" aria-label="Edytor ścieżki">
+        <fieldset disabled={saving} className="grid min-w-0 gap-8">
           <Section title="Informacje" description="Tytuł i nazwy rozdziałów są wymagane do zapisu szkicu. Opis i gotowe pokoje są wymagane przy publikacji.">
             <div className="grid gap-5">
               <TextField name="title" label="Tytuł" value={form.title} limit={120} required error={errors.title} onChange={title => change({ title })} />
@@ -144,6 +186,16 @@ function PathEditor({ pathId }: { pathId: string }) {
               <BannerImage source={banner} file={file} url={form.bannerUrl} sessionKey={sessionKey} />
             </div>
           </Section>
+          <ContentChapters chapters={form.chapters} rooms={rooms} pathId={id} errors={errors} canDelete={isAdmin} highlightRoomId={arrived}
+            onChange={chapters => change({ chapters })} onCreateRoom={index => void createRoom(index)} onRoom={openRoom}
+            // The import dialog has its own form; React would bubble its submit out of the portal into this editor's form.
+            actions={id != null && isAdmin && <span className="contents" onSubmit={e => e.stopPropagation()}><PathImportDialog disabled={loading || saving}
+              existing={{ id, title: baseline.title, contentRevision: baseline.revision, chaptersRevision: baseline.chaptersRevision, chapters: baseline.chapters }}
+              requestOpen={open => guard.request(open)} onImported={detail => {
+                const next = fromDetail(detail); formRef.current = next; setForm(next); setBaseline(next); setFile(null);
+                setSuccess(form.published ? 'Dodano pokoje. Ścieżka jest opublikowana, więc gracze już je widzą.' : 'Dodano pokoje. Gracze zobaczą je po publikacji ścieżki.');
+                setErrors({}); setError(null); setLoading(true); setAttempt(value => value + 1);
+              }} /></span>} />
           <Section title="Odblokowywanie" description="Ukończone pokoje pozostają dostępne. Blokady samouczków VM i VPN obowiązują dodatkowo.">
             <div className="grid gap-2">
               <label htmlFor="content-unlockMode">Tryb odblokowania</label>
@@ -153,11 +205,10 @@ function PathEditor({ pathId }: { pathId: string }) {
               <span id="content-unlockMode-help" className="text-xs text-muted-foreground">{unlockModes[form.unlockMode].description}</span>
             </div>
           </Section>
-          <ContentChapters chapters={form.chapters} rooms={rooms} pathId={id} errors={errors} canDelete={isAdmin} onChange={chapters => change({ chapters })} onCreateRoom={createRoom} onRoom={roomId => guard.request(() => navigate(`/admin/paths/rooms/${roomId}`))} />
-          <div className="flex flex-wrap justify-end gap-3 border-t pt-5">
-            {form.published ? <Button type="button" variant="outline" onClick={() => void normalSave(false)}>Przenieś do szkiców</Button> : <Button type="button" variant="outline" onClick={() => void normalSave(true)}>Opublikuj</Button>}
-            <Button type="submit">{saving ? 'Zapisywanie…' : form.published ? 'Zapisz zmiany' : 'Zapisz szkic'}</Button>
-          </div>
+          {id != null && isAdmin && <div className="flex justify-end border-t pt-5">
+            <ConfirmAction title="Usunąć tę ścieżkę?" description="Rozdziały i zapisy graczy zostaną usunięte. Pokoje zostaną w puli." confirmLabel="Usuń ścieżkę" onConfirm={async () => { await adminApi.deletePath(id, sessionKey); guard.allowNavigation(); navigate('/admin/paths'); }}
+              trigger={<Button type="button" variant="ghost" className="text-muted-foreground hover:text-destructive"><Trash2 />Usuń ścieżkę</Button>} />
+          </div>}
         </fieldset>
       </form>}
   </>;

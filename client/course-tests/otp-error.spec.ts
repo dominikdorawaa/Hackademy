@@ -1,7 +1,6 @@
 import { setupClerkTestingToken } from "@clerk/testing/playwright";
 import { expect, test, type Page } from "@playwright/test";
 
-// The sign-up never gets verified, so no Clerk user is left behind.
 async function reachWrongCode(page: Page) {
   await setupClerkTestingToken({ page });
   await page.goto("/register");
@@ -10,7 +9,6 @@ async function reachWrongCode(page: Page) {
   if (await password.isVisible()) await password.fill(`Hk-${Date.now()}-otp-check`);
   await page.locator(".cl-formButtonPrimary").click();
   await page.locator(".cl-otpCodeFieldInput").first().click();
-  // +clerk_test addresses accept only 424242, so this code is always rejected.
   await page.keyboard.type("111111");
   await expect(page.locator(".cl-otpCodeFieldErrorText")).toBeVisible();
 }

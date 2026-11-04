@@ -11,7 +11,6 @@ import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import ToastNotification from '../components/common/ToastNotification';
 import { accountWasDeleted, forgetAccountDeleted } from '../lib/accountDeletion';
 
-/** Przykładowy ranking na landing — bez wywołań do API. */
 const STATIC_LANDING_LEADERBOARD = [
   { username: 'CyberNinja', points: 12450, title: 'Elitarny pentester' },
   { username: 'ByteHunter', points: 10120, title: 'Łowca podatności' },

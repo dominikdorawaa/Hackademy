@@ -2,6 +2,7 @@ import UserAvatar from './UserAvatar';
 import React, { useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import type { RankingEntry } from '../types/api';
+import { formatNumberPL, unitFor, type ScoreMetric } from '../lib/units';
 
 type LeaderboardPlayer = Partial<RankingEntry> & {
   name?: string;
@@ -12,7 +13,7 @@ type LeaderboardPlayer = Partial<RankingEntry> & {
 type LeaderboardProps = {
   players: LeaderboardPlayer[];
   showTitle?: boolean;
-  type?: 'points' | 'elo';
+  type?: ScoreMetric;
   title?: string;
   currentUsername?: string;
   myRank?: RankingEntry | null;
@@ -42,7 +43,6 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
 
   const rankClasses = ['rank-1', 'rank-2', 'rank-3', 'rank-4'];
 
-  // Check if current user is in the top list
   const isCurrentUserInTop = players.some(p => (p.username || p.name) === currentUsername);
 
   return (
@@ -97,17 +97,16 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                   <div className="player-score">
                     <span>
                         {type === 'points'
-                            ? (player.points || player.score || 0).toLocaleString()
-                            : (player.elo || 500).toLocaleString()}
+                            ? formatNumberPL(player.points || player.score || 0)
+                            : formatNumberPL(player.elo || 500)}
                     </span>
-                    <small>{type === 'points' ? 'punktów' : 'ELO'}</small>
+                    <small>{unitFor(type)}</small>
                   </div>
                 </div>
               );
             })
           )}
 
-          {/* Show current user rank if not in top list and myRank is available */}
           {!isCurrentUserInTop && myRank && (
             <>
               <div style={{ textAlign: 'center', margin: '10px 0', color: '#666' }}>...</div>
@@ -135,10 +134,10 @@ const Leaderboard = ({ players, showTitle = true, type = 'points', title = 'Top 
                 <div className="player-score">
                   <span>
                       {type === 'points'
-                          ? myRank.points.toLocaleString()
-                          : myRank.elo.toLocaleString()}
+                          ? formatNumberPL(myRank.points)
+                          : formatNumberPL(myRank.elo)}
                   </span>
-                  <small>{type === 'points' ? 'punktów' : 'ELO'}</small>
+                  <small>{unitFor(type)}</small>
                 </div>
               </div>
             </>

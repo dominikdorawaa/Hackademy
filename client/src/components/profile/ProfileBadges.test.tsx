@@ -52,7 +52,7 @@ describe('achievement showcase', () => {
     expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole('button', { name: 'Zobacz wszystkie odznaki' }));
     const modal = screen.getByRole('dialog');
-    expect(within(modal).getByText('30 / 100 punktów')).toBeInTheDocument();
+    expect(within(modal).getByText('30 / 100 XP')).toBeInTheDocument();
     expect(within(modal).getByRole('progressbar', { name: 'Postęp osiągnięcia: Script Kiddie' })).toHaveAttribute('value', '30');
     fireEvent.click(within(modal).getByRole('tab', { name: 'Osiągnięcia globalne' }));
     expect(within(modal).queryByRole('progressbar', { name: 'Postęp osiągnięcia: Script Kiddie' })).not.toBeInTheDocument();

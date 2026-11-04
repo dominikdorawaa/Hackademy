@@ -19,12 +19,12 @@ import { BugReportButton } from '../components/bugReport/BugReportButton';
 import type { DashboardUser, RankingEntry } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaPage.css';
+import { formatElo, formatNumberPL, formatXp } from '../lib/units';
 
 type ArenaStatus = 'IDLE' | 'QUEUE' | 'GAME' | 'FINISHED';
 type FriendChallenge = 'sending' | { error: string };
 
 const FRIENDS_SHOWN = 6;
-const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
 const ArenaPage = () => {
     const { sessionKey } = useAuth();
@@ -211,7 +211,7 @@ const ArenaPage = () => {
                             </Link>
                             <p className="arena-card-name">{userData.username}</p>
                             <p className="arena-card-elo">
-                                <span className="arena-card-number">{known ? elo : '–'}</span>
+                                <span className="arena-card-number">{known ? formatNumberPL(elo) : '–'}</span>
                                 <EloHelp />
                             </p>
                             {!known ? (
@@ -221,7 +221,7 @@ const ArenaPage = () => {
                                     <div className="ud-meter" role="progressbar" aria-label={`Postęp do ligi ${next.name}`} aria-valuemin={league.min} aria-valuemax={next.min} aria-valuenow={elo}>
                                         <span style={{ '--ud-fill': leagueProgress(elo) } as React.CSSProperties} />
                                     </div>
-                                    <p>Do ligi {next.name} brakuje Ci {formatNumberPL(next.min - elo)} Elo.</p>
+                                    <p>Do ligi {next.name} brakuje Ci {formatElo(next.min - elo)}.</p>
                                 </div>
                             ) : (
                                 <p className="arena-card-next">Najwyższa liga. Broń swojego miejsca.</p>
@@ -241,7 +241,7 @@ const ArenaPage = () => {
                                     </p>
                                 </div>
                             ) : (
-                                <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu punkty Elo.</p>
+                                <p>Twój awatar staje do walki na pytania z cyberbezpieczeństwa. Każda dobra odpowiedź to cios w rywala, a wygrana zabiera mu Elo.</p>
                             )}
                             {status !== 'GAME' && rejected.length > 0 && (
                                 <ul className="arena-rejected" aria-label="Odrzucone wyzwania">
@@ -298,7 +298,7 @@ const ArenaPage = () => {
                                     <LeagueIcon league={item} className="arena-ladder-icon" glint={known && item === league} />
                                     <span className="arena-ladder-bar" aria-hidden="true" />
                                     <span className="arena-ladder-name">{item.name}</span>
-                                    <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${item.min} Elo`}</span>
+                                    <span className="arena-ladder-min">{item.min === 0 ? "start" : `od ${formatElo(item.min)}`}</span>
                                 </li>
                             ))}
                         </ol>
@@ -328,7 +328,7 @@ const ArenaPage = () => {
                                             <UserAvatar className="ud-friend-avatar" username={challenge.challengerUsername} avatar={challenge.challengerAvatar} alt="" />
                                             <span className="ud-friend-who">
                                                 <ProfilePeek className="ud-friend-name" username={challenge.challengerUsername} sessionKey={sessionKey} />
-                                                <span className="ud-friend-xp">{challenge.challengerElo != null && <><b>{challenge.challengerElo} Elo</b> · </>}Wyzywa Cię na pojedynek, wygasa za {timeLeft(challenge.expiresAt)} s</span>
+                                                <span className="ud-friend-xp">{challenge.challengerElo != null && <><b>{formatElo(challenge.challengerElo)}</b> · </>}Wyzywa Cię na pojedynek, wygasa za {timeLeft(challenge.expiresAt)} s</span>
                                             </span>
                                             <span className="ud-friend-act arena-challenge-act">
                                                 {!accepted && (
@@ -372,7 +372,7 @@ const ArenaPage = () => {
                                             <UserAvatar className="ud-friend-avatar" username={friend.username} avatar={friend.avatar} alt="" />
                                             <span className="ud-friend-who">
                                                 <ProfilePeek className="ud-friend-name" username={friend.username} sessionKey={sessionKey} />
-                                                <span className="ud-friend-xp">{formatNumberPL(friend.points)} XP, poziom {levelFromPoints(friend.points)}</span>
+                                                <span className="ud-friend-xp">{formatXp(friend.points)}, poziom {levelFromPoints(friend.points)}</span>
                                             </span>
                                             <span className="ud-friend-h2h">
                                                 {record ? (played > 0 ? <>Bilans <strong>{record.winsAgainst}:{record.lossesAgainst}</strong></> : 'Jeszcze bez pojedynku') : h2h === undefined && statsLoading ? 'Wczytuję bilans…' : 'Bilans niedostępny'}

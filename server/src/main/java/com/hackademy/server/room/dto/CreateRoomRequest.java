@@ -14,12 +14,11 @@ public record CreateRoomRequest(
         @NotNull(message = "Poziom trudności jest wymagany") DifficultyLevel difficulty,
         @NotBlank(message = "Kategoria jest wymagana") @Size(max = 255) String category,
         Integer points,
-        @NotBlank(message = "Flaga jest wymagana") @Size(max = 255) String flag,
         boolean requiresVpn,
         RoomType roomType,
         @Size(max = 100) List<@NotBlank @Size(max = 2000) String> hints
 ) {
     public CreateRoomRequest {
-        if (roomType == null) roomType = RoomType.CTF;
+        if (roomType == null) roomType = RoomType.PATH;
     }
 }

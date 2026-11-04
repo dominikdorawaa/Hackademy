@@ -5,7 +5,6 @@ import java.util.Collections;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
-/** The copy of a bank question a duel plays with, so later edits or deletions do not reach a started match. */
 public record QuestionSnapshot(Long id, String content, String category, List<String> answers, int correctAnswer) {
 
     static QuestionSnapshot shuffled(ArenaQuestion question, RandomGenerator random) {

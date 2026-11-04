@@ -6,17 +6,9 @@ export const CONTENT_LIMIT = 500;
 export const ANSWER_LIMIT = 200;
 export const WRONG_ANSWERS = 3;
 
-export const categoryLabels: Record<ArenaQuestionCategory, string> = {
-  WEB: 'Web',
-  SIECI: 'Sieci',
-  KRYPTOGRAFIA: 'Kryptografia',
-  LINUX: 'Linux',
-  OGOLNE: 'Ogólne',
-};
-
+export { arenaCategoryLabels as categoryLabels, arenaCategories as categories } from '../../components/arena/arenaCategory';
 export { arenaDifficultyLabels };
 
-export const categories = Object.keys(categoryLabels) as ArenaQuestionCategory[];
 export const difficulties = arenaDifficulties;
 
 export interface QuestionForm {
@@ -39,7 +31,6 @@ function answerProblem(answer: string, missing: string) {
   return undefined;
 }
 
-/** Mirrors the server rules so the administrator sees every problem before saving. */
 export function validateQuestion(form: QuestionForm): FieldErrors {
   const errors: FieldErrors = {};
   if (!form.content.trim()) errors.content = 'Treść pytania jest wymagana.';

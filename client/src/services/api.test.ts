@@ -14,7 +14,7 @@ const headers = { sessionKey: 'sessionKey' };
 const jsonHeaders = { ...headers, 'Content-Type': 'application/json' };
 const roomData: RoomWriteRequest = {
   title: 'Room', description: 'Description', difficulty: 'EASY', category: 'Web',
-  points: 50, flag: 'flag', requiresVpn: false, roomType: 'CTF', hints: ['hint'],
+  points: 50, requiresVpn: false, roomType: 'CTF', hints: ['hint'],
 };
 
 beforeEach(() => {
@@ -76,13 +76,13 @@ describe('HTTP compatibility', () => {
     expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual(['{"targetUsername":"alice"}', undefined]);
   });
 
-  it('sends a battle answer and a room flag to separate endpoints', async () => {
+  it('sends a battle answer and a task flag to separate endpoints', async () => {
     await arena.answerQuestion('game-id', 3, 2, jsonHeaders);
-    await room.solveRoom(7, { flag: 'flag' }, jsonHeaders);
+    await room.solveTask(7, 5, { answer: 'HACK{flag}' }, jsonHeaders);
     expect(fetchMock.mock.calls.map(([url]) => url)).toEqual([
-      `${API_URL}/api/arena/game/game-id/answer`, `${API_URL}/api/rooms/7/solve`,
+      `${API_URL}/api/arena/game/game-id/answer`, `${API_URL}/api/rooms/7/tasks/5/solve`,
     ]);
-    expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual(['{"round":3,"answer":2}', '{"flag":"flag"}']);
+    expect(fetchMock.mock.calls.map(([, options]) => options?.body)).toEqual(['{"round":3,"answer":2}', '{"answer":"HACK{flag}"}']);
   });
 });
 

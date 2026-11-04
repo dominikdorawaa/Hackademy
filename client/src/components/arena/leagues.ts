@@ -16,7 +16,6 @@ export function leagueFor(elo: number) {
   return { league: LEAGUES[at], next: LEAGUES[at + 1] ?? null };
 }
 
-// Share of the way from the league's threshold to the next one, 0 to 1; the top league counts as full.
 export function leagueProgress(elo: number) {
   const { league, next } = leagueFor(elo);
   return next ? Math.min(1, Math.max(0, (elo - league.min) / (next.min - league.min))) : 1;

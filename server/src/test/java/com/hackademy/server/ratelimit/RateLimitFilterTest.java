@@ -36,7 +36,7 @@ class RateLimitFilterTest {
     };
 
     private RateLimitFilter filter(boolean enabled) {
-        var rules = new RateLimitProperties.Rules(ONE, ONE, TWO, TWO, ONE, TWO, ONE);
+        var rules = new RateLimitProperties.Rules(ONE, ONE, TWO, TWO, ONE, TWO, ONE, ONE);
         return new RateLimitFilter(new RateLimitProperties(enabled, 100, rules), new RateLimiter(clock, 100), decoder);
     }
 
@@ -109,7 +109,7 @@ class RateLimitFilterTest {
     @Test
     void keepsReadsAndWritesOfOneAccountApart() throws Exception {
         assertEquals(200, send(get("/api/rooms", "alice")).response.getStatus());
-        var write = get("/api/rooms/1/solve", "alice");
+        var write = get("/api/rooms/1/tasks/1/solve", "alice");
         write.setMethod("POST");
 
         assertEquals(200, send(write).response.getStatus());
@@ -124,7 +124,7 @@ class RateLimitFilterTest {
         assertNull(again.chain.getRequest());
         assertEquals(429, again.response.getStatus());
         assertEquals("60", again.response.getHeader("Retry-After"));
-        assertEquals(200, send(post("/api/rooms/1/solve", "alice")).response.getStatus());
+        assertEquals(200, send(post("/api/rooms/1/tasks/1/solve", "alice")).response.getStatus());
         assertEquals(200, send(post("/api/bug-reports", "bob")).response.getStatus());
     }
 

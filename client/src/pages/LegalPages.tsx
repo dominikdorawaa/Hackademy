@@ -10,11 +10,11 @@ function ContactLink() {
   return <a href={`mailto:${CONTACT_EMAIL}`}>{CONTACT_EMAIL}</a>;
 }
 
-function LegalDocument({ title, children }: { title: string; children: ReactNode }) {
+function LegalDocument({ title, children, updatedAt = UPDATED_AT }: { title: string; children: ReactNode; updatedAt?: string }) {
   return (
     <div className="user-dashboard legal-page">
       <article className="legal-document" aria-labelledby="legal-title">
-        <p className="legal-updated">Ostatnia aktualizacja: {UPDATED_AT}</p>
+        <p className="legal-updated">Ostatnia aktualizacja: {updatedAt}</p>
         <h1 id="legal-title">{title}</h1>
         {children}
       </article>
@@ -39,7 +39,7 @@ export function PrivacyPage() {
         <li>Dane konta: adres e-mail, nazwa użytkownika oraz identyfikator konta u dostawcy logowania.</li>
         <li>Dane z Google lub GitHub, jeśli logujesz się w ten sposób: adres e-mail, imię i nazwisko lub nazwa konta oraz zdjęcie profilowe.</li>
         <li>Profil, który uzupełniasz sam: opis, hasło przewodnie, zainteresowania, awatar i wyróżnione odznaki.</li>
-        <li>Postępy w nauce: zapisy na ścieżki, ukończone zadania i pokoje, odblokowane podpowiedzi, punkty, seria dni, ranking, odznaki i czas aktywności.</li>
+        <li>Postępy w nauce: zapisy na ścieżki, ukończone zadania i pokoje, odblokowane podpowiedzi, punkty doświadczenia (XP), seria dni, ranking, odznaki i czas aktywności.</li>
         <li>Aktywność społeczna: znajomi, wiadomości na czacie podczas pojedynków w Arenie i zgłoszenia tych wiadomości.</li>
         <li>Ustawienia aplikacji: preferencje powiadomień, motyw i postęp samouczka. Część z nich zapisujemy w pamięci przeglądarki.</li>
         <li>Dane techniczne: adres IP, informacje o przeglądarce i dzienniki serwera potrzebne do działania i ochrony serwisu.</li>
@@ -69,7 +69,7 @@ export function PrivacyPage() {
 
       <h2>Co widzą inni użytkownicy</h2>
       <p>
-        Twoja nazwa użytkownika, awatar, profil, odznaki, punkty i miejsce w rankingu są widoczne dla innych użytkowników.
+        Twoja nazwa użytkownika, awatar, profil, odznaki, XP i miejsce w rankingu są widoczne dla innych użytkowników.
         Adres e-mail nie jest pokazywany publicznie.
       </p>
 
@@ -104,7 +104,7 @@ export function PrivacyPage() {
 
 export function TermsPage() {
   return (
-    <LegalDocument title="Regulamin">
+    <LegalDocument title="Regulamin" updatedAt="29 października 2026">
       <p>
         Regulamin określa zasady korzystania z Hackademy (hackademy.app), platformy do nauki cyberbezpieczeństwa przez
         zadania, ścieżki i pojedynki.
@@ -118,6 +118,18 @@ export function TermsPage() {
         <li>Nazwa użytkownika, awatar i opis nie mogą być obraźliwe ani podszywać się pod inne osoby.</li>
       </ul>
 
+      <h2 id="educational-materials">Materiały edukacyjne</h2>
+      <p>
+        Pytania areny Hackademy są materiałami ćwiczeniowymi.
+        Za ich dobór i publikację odpowiada operator Hackademy. Treści są weryfikowane i poprawiane,
+        ale mogą zawierać błędy. Możesz je zgłaszać przy pytaniu.
+      </p>
+      <p>
+        Odwołania do certyfikacji i nazw technologii opisują zakres zagadnień. Materiały Hackademy nie są
+        oficjalnym bankiem pytań egzaminacyjnych ani materiałami zatwierdzonymi przez organizatorów certyfikacji.
+        Nazwy i znaki ich właścicieli nie oznaczają współpracy ani rekomendacji.
+      </p>
+
       <h2>Etyczne korzystanie z wiedzy</h2>
       <ul>
         <li>Techniki poznane w Hackademy stosujesz wyłącznie w środowiskach ćwiczeniowych serwisu lub w systemach, do których masz wyraźną zgodę właściciela.</li>
@@ -129,7 +141,7 @@ export function TermsPage() {
       <h2>Uczciwa rywalizacja</h2>
       <ul>
         <li>Nie publikuj rozwiązań ani flag zadań i nie podawaj ich innym.</li>
-        <li>Nie zawyżaj punktów, rankingu ani wyników w Arenie przez boty, wiele kont lub błędy serwisu.</li>
+        <li>Nie zawyżaj punktów doświadczenia (XP), rankingu ani wyników w Arenie przez boty, wiele kont lub błędy serwisu.</li>
       </ul>
 
       <h2>Czat i zachowanie</h2>

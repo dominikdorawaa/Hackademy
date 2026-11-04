@@ -16,7 +16,7 @@ class DashboardAccessIntegrationTest extends PostgresIntegrationTest {
     void preservesExistingVmOrVpnTutorialAccessRule() throws Exception {
         var learner = account(Role.USER);
         assertFalse(metrics.read(learner.id()).vpn());
-        long room = jdbcTemplate.queryForObject("INSERT INTO rooms(title, description, difficulty, category, points, flag, room_type, published, requires_vpn, solutions_count, created_at, updated_at) VALUES ('Tutorial VM', 'test', 'EASY', 'Tutorial', 50, 'flag', 'CTF', true, false, 0, LOCALTIMESTAMP, LOCALTIMESTAMP) RETURNING id", Long.class);
+        long room = jdbcTemplate.queryForObject("INSERT INTO rooms(title, description, difficulty, category, points, room_type, requires_vpn, solutions_count, created_at, updated_at) VALUES ('Tutorial VM', 'test', 'EASY', 'Tutorial', 50, 'CTF', false, 0, LOCALTIMESTAMP, LOCALTIMESTAMP) RETURNING id", Long.class);
         jdbcTemplate.update("INSERT INTO user_solved_rooms(user_id, room_id, solved_at) VALUES (?, ?, LOCALTIMESTAMP)", learner.id(), room);
         assertTrue(metrics.read(learner.id()).vpn());
     }

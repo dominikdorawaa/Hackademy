@@ -53,11 +53,10 @@ class FriendActivityTest {
         return activity.describe(List.of(friend)).get(0);
     }
 
-    private static Room room(long id, String title, boolean published) {
+    private static Room room(long id, String title) {
         Room room = new Room();
         room.setId(id);
         room.setTitle(title);
-        room.setPublished(published);
         return room;
     }
 
@@ -95,12 +94,12 @@ class FriendActivityTest {
     }
 
     @Test
-    void namesOnlyPublishedRoomsWithOneLookupForTheWholeList() {
+    void namesOnlyVisibleRoomsWithOneLookupForTheWholeList() {
         var ola = new FriendDto(3L, "ola", 0, 0).withSharing(true, null);
         when(presence.isOnline(anyLong())).thenReturn(true);
         when(presence.roomOf(2L)).thenReturn(5L);
         when(presence.roomOf(3L)).thenReturn(6L);
-        when(rooms.findAllById(Set.of(5L, 6L))).thenReturn(List.of(room(5L, "Ukryty skarb", true), room(6L, "Szkic", false)));
+        when(rooms.findVisibleByIdIn(Set.of(5L, 6L))).thenReturn(List.of(room(5L, "Ukryty skarb")));
 
         var friends = activity.describe(List.of(bob(true), ola));
 
@@ -109,7 +108,7 @@ class FriendActivityTest {
         assertTrue(friends.get(1).online());
         assertNull(friends.get(1).activity());
         assertNull(friends.get(1).activityRoom());
-        verify(rooms, times(1)).findAllById(any());
+        verify(rooms, times(1)).findVisibleByIdIn(any());
     }
 
     @Test

@@ -24,7 +24,6 @@ public interface UserBadgeRepository extends JpaRepository<UserBadge, Long> {
     @Query("SELECT ub.badge.id AS badgeId, ub.earnedAt AS earnedAt FROM UserBadge ub WHERE ub.user.id = :userId")
     List<EarnedBadgeRow> findEarnedBadgeRowsByUserId(Long userId);
 
-    // Optimized query to get counts for all badges at once
     @Query("SELECT ub.badge.id, COUNT(ub) FROM UserBadge ub GROUP BY ub.badge.id")
     List<Object[]> countAllBadges();
 

@@ -358,6 +358,32 @@ describe('settings', () => {
     expect(await screen.findByText('Ta przeglądarka nie odtwarza dźwięków na tej stronie.')).toBeInTheDocument();
   });
 
+  it('switches game sounds separately from notification sounds and previews their variants', async () => {
+    let saved = { ...defaultNotificationPreferences };
+    server.use(
+      http.get(`${API_URL}/api/user/me/notification-preferences`, () => HttpResponse.json(saved)),
+      http.patch(`${API_URL}/api/user/me/notification-preferences`, async ({ request }) => {
+        const change = await request.json() as { preference: 'gameSounds'; enabled: boolean };
+        expect(change).toEqual({ preference: 'gameSounds', enabled: false });
+        saved = { ...saved, [change.preference]: change.enabled };
+        return HttpResponse.json(saved);
+      }),
+    );
+    mount('notifications');
+    const toggle = await screen.findByRole('switch', { name: 'Dźwięki gry' });
+    await waitFor(() => expect(toggle).toBeEnabled());
+    fireEvent.click(toggle);
+    await screen.findByText('Preferencje zostały zapisane.');
+    expect(screen.getByRole('switch', { name: 'Dźwięki gry' })).toHaveAttribute('aria-checked', 'false');
+    expect(screen.getByRole('switch', { name: 'Dźwięk powiadomień' })).toHaveAttribute('aria-checked', 'true');
+    expect(screen.getByText('Wyłączone: Arena i pokoje grają po cichu.')).toBeInTheDocument();
+
+    fireEvent.change(screen.getByRole('combobox', { name: 'Wariant sygnału: Arena: wygrana' }), { target: { value: 'chord' } });
+    await waitFor(() => expect(sounds.play).toHaveBeenCalledWith('arenaWin'));
+    expect(localStorage.getItem('sound-variant:arenaWin')).toBe('chord');
+    expect(await screen.findByText(/Włącz „Dźwięki gry”/)).toBeInTheDocument();
+  });
+
   it('sends a test system notification or says what is missing', async () => {
     const shown = vi.fn();
     const permission = vi.fn(async () => 'granted');

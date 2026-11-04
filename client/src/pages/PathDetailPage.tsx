@@ -15,6 +15,7 @@ import PathArt from '../components/learn/PathArt';
 import PathRail, { type RailStep } from '../components/learn/PathRail';
 import { LoadingSkeleton, Skeleton, SkeletonText } from '../components/common/Skeleton';
 import type { PathDetailDto, PathUnlockMode, RoomSummaryDto } from '../types/api';
+import { formatXp } from '../lib/units';
 
 const unlockModeHints: Record<PathUnlockMode, string> = {
   OPEN: 'Przechodź rozdziały krok po kroku.',
@@ -130,7 +131,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
 
   return (
     <div className="room-tokens learn-page pd-page">
-      {preview && <div role="status" className="room-preview pd-preview">Podgląd administracyjny: materiał nie jest publikowany, postęp i punkty nie są zapisywane.</div>}
+      {preview && <div role="status" className="room-preview pd-preview">Podgląd administracyjny: materiał nie jest publikowany, postęp i XP nie są zapisywane.</div>}
       {back}
 
       <header className="pd-hero">
@@ -237,7 +238,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
                             <div className="pd-room-meta">
                               <span className={`pd-status is-${status.key}`}>{status.label}</span>
                               <span className={`room-chip room-chip--${r.difficulty.toLowerCase()}`}>{r.difficulty}</span>
-                              {r.points > 0 && <span className="room-chip room-chip--points">{r.points} pkt</span>}
+                              {r.points > 0 && <span className="room-chip room-chip--points">{formatXp(r.points)}</span>}
                             </div>
                           </div>
                           <button

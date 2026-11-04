@@ -94,13 +94,11 @@ public class BadgeServiceImpl implements BadgeService {
     @Override
     @Transactional
     public List<BadgeDto> checkAndAwardBadges(User user) {
-        // This mutates user_badges, so invalidate caches after awarding.
         List<Badge> allBadges = badgeRepository.findAll();
         List<BadgeDto> newBadges = new ArrayList<>();
         long totalUsers = userRepository.count();
         if (totalUsers == 0) totalUsers = 1;
 
-        // Fetch counts once
         Map<Long, Long> badgeCounts = getBadgeCountsMap();
 
         var earnedIds = userBadgeRepository.findEarnedBadgeRowsByUserId(user.getId()).stream()
@@ -141,7 +139,6 @@ public class BadgeServiceImpl implements BadgeService {
                 userBadgeRepository.save(userBadge);
                 
                 long count = badgeCounts.getOrDefault(badge.getId(), 0L);
-                // Add +1 for the current user who just earned it
                 double rarity = ((double) (count + 1) / totalUsers) * 100.0;
 
                 newBadges.add(new BadgeDto(
@@ -163,7 +160,6 @@ public class BadgeServiceImpl implements BadgeService {
         return newBadges;
     }
 
-    // A streak not extended since the day before yesterday has expired, even though the stored value is kept.
     private long effectiveStreak(User user) {
         LocalDate lastSolved = user.getLastSolvedDate();
         if (lastSolved != null && lastSolved.isBefore(LocalDate.now(clock).minusDays(1))) {

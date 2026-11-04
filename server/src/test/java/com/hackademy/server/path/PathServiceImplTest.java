@@ -64,11 +64,10 @@ class PathServiceImplTest {
     void setUp() {
         service = new PathServiceImpl(pathRepository, pathChapterRepository, chapterRoomRepository, roomRepository,
                 roomService, pathEnrollmentRepository, userRepository, userSolvedRoomRepository, visibility,
-                new PathUnlockPolicy(chapterRoomRepository), dashboards);
+                new PathUnlockPolicy(chapterRoomRepository, pathEnrollmentRepository), dashboards);
         dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());
     }
 
-    // ── listing and progress ────────────────────────────────────────────────
 
     @Test
     void listsPathsWithEnrollmentAndBannerForLoggedInUser() {
@@ -113,7 +112,6 @@ class PathServiceImplTest {
         verifyNoInteractions(pathRepository);
     }
 
-    // ── path detail ─────────────────────────────────────────────────────────
 
     @Test
     void enrolledUserSeesRoomsGroupedByChapterWithProgress() {
@@ -203,7 +201,6 @@ class PathServiceImplTest {
                 room(10L, true), room(11L, false), room(10L, false)));
     }
 
-    // ── enrollment ──────────────────────────────────────────────────────────
 
     @Test
     void enrollsUserOnce() {
@@ -263,12 +260,12 @@ class PathServiceImplTest {
         verify(visibility, times(2)).requirePath(5L);
     }
 
-    // ── path room list ──────────────────────────────────────────────────────
 
     @Test
     void locksTutorialAndVpnRoomsUntilTutorialsAreSolved() {
         when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
         when(userSolvedRoomRepository.findSolvedRoomTitlesByUserId(1L, List.of("Tutorial VPN", "Tutorial VM")))
                 .thenReturn(List.of());
         when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 3)).thenReturn(List.of(
@@ -290,6 +287,7 @@ class PathServiceImplTest {
     void solvedTutorialsUnlockRooms() {
         when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
         when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
         when(userSolvedRoomRepository.findSolvedRoomTitlesByUserId(anyLong(), any()))
                 .thenReturn(List.of("Tutorial VPN", "Tutorial VM"));
         when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 500)).thenReturn(List.of(
@@ -304,15 +302,28 @@ class PathServiceImplTest {
     @Test
     void roomModeLocksEveryRoomAfterTheFirstUnsolvedOne() {
         when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.ROOM));
-        when(chapterRoomRepository.findProgression(5L, -1L)).thenReturn(List.of(
+        when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
+        when(chapterRoomRepository.findProgression(5L, 1L)).thenReturn(List.of(
                 new Progression(100L, 10L, false), new Progression(100L, 11L, false)));
-        when(chapterRoomRepository.findMiniRoomsForUser(5L, -1L, 5)).thenReturn(List.of(
+        when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 5)).thenReturn(List.of(
                 new MiniRow(10L, "Pierwszy", false, false),
                 new MiniRow(11L, "Drugi", false, false)));
 
-        var rooms = service.getPathRoomsMini(5L, null, 5).rooms();
+        var rooms = service.getPathRoomsMini(5L, "alice", 5).rooms();
 
         assertEquals(List.of(false, true), rooms.stream().map(PathRoomMiniDto::locked).toList());
+    }
+
+    @Test
+    void roomsOfAPathThePlayerDidNotJoinAreAlwaysLocked() {
+        when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
+        when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 5)).thenReturn(List.of(new MiniRow(10L, "Pierwszy", false, false)));
+        when(chapterRoomRepository.findMiniRoomsForUser(5L, -1L, 5)).thenReturn(List.of(new MiniRow(10L, "Pierwszy", false, false)));
+
+        assertTrue(service.getPathRoomsMini(5L, "alice", 5).rooms().get(0).locked());
+        assertTrue(service.getPathRoomsMini(5L, null, 5).rooms().get(0).locked());
     }
 
     @Test
@@ -331,7 +342,6 @@ class PathServiceImplTest {
         assertThrows(IllegalArgumentException.class, () -> service.getPathRoomsMini(5L, "alice", 3));
     }
 
-    // ── creating, deleting and editing ──────────────────────────────────────
 
     @Test
     void createsUnpublishedPathWithFirstChapterAndOrderedRooms() {
@@ -361,7 +371,6 @@ class PathServiceImplTest {
         verify(chapterRoomRepository, times(2)).save(rooms.capture());
         assertEquals(List.of(17L, 3L), rooms.getAllValues().stream().map(ChapterRoom::getRoomId).toList());
         assertEquals(List.of(0, 1), rooms.getAllValues().stream().map(ChapterRoom::getSortOrder).toList());
-        // Rooms are locked in ascending id order to avoid deadlocks; a HashSet would yield 17 before 3.
         InOrder lockOrder = inOrder(roomRepository);
         lockOrder.verify(roomRepository).findByIdForUpdate(3L);
         lockOrder.verify(roomRepository).findByIdForUpdate(17L);
@@ -391,18 +400,54 @@ class PathServiceImplTest {
     @Test
     void rejectsInvalidRoomLists() {
         assertInvalidRooms(java.util.Arrays.asList(1L, null));
-        assertInvalidRooms(List.of(1L, 1L));
 
         when(roomRepository.findByIdForUpdate(1L)).thenReturn(Optional.empty());
         assertInvalidRooms(List.of(1L));
+        verify(pathRepository, never()).save(any());
+    }
 
-        when(roomRepository.findByIdForUpdate(2L)).thenReturn(Optional.of(room(2L, "Flaga", RoomType.CTF)));
-        assertInvalidRooms(List.of(2L));
+    @Test
+    void acceptsRoomThatAlreadyBelongsToAnotherPath() {
+        stubPathRooms(room(3L, "Wspólny", RoomType.PATH));
+        when(pathRepository.save(any())).thenAnswer(invocation -> {
+            Path saved = invocation.getArgument(0);
+            saved.setId(7L);
+            return saved;
+        });
+        when(pathChapterRepository.save(any())).thenAnswer(invocation -> {
+            PathChapter chapter = invocation.getArgument(0);
+            chapter.setId(70L);
+            return chapter;
+        });
 
-        when(roomRepository.findByIdForUpdate(3L)).thenReturn(Optional.of(room(3L, "Zajęty", RoomType.PATH)));
-        when(chapterRoomRepository.findOwners(Set.of(3L))).thenReturn(List.of(new Owner(3L, 9L, "Inna")));
-        var error = assertInvalidRooms(List.of(3L));
-        assertTrue(error.getMessage().contains("Inna"));
+        service.createPath(new CreatePathRequest("Druga", null, null, List.of(3L)));
+
+        verify(chapterRoomRepository).save(argThat(link -> link.getRoomId() == 3L && link.getChapterId() == 70L));
+        verify(chapterRoomRepository, never()).findOwners(any());
+    }
+
+    @Test
+    void rejectsOneRoomInTwoChaptersOfOnePath() {
+        var path = path(5L, "Web");
+        when(pathRepository.findByIdForUpdate(5L)).thenReturn(Optional.of(path));
+        when(pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(5L)).thenReturn(List.of());
+        stubPathRooms(room(10L, "A", RoomType.PATH));
+
+        var error = assertThrows(RoomRuleException.class, () -> service.updatePathChapters(5L, new UpdatePathChaptersRequest(0L, List.of(
+                new ChapterRequest(null, "Pierwszy", List.of(10L)),
+                new ChapterRequest(null, "Drugi", List.of(10L)))), true));
+
+        assertEquals("chapters.1.rooms", error.field());
+        assertTrue(error.getMessage().contains("rozdziale 1"));
+        verify(chapterRoomRepository, never()).deleteByPathId(any());
+    }
+
+    @Test
+    void rejectsOneRoomTwiceInOneChapter() {
+        stubPathRooms(room(10L, "A", RoomType.PATH));
+
+        assertThrows(RoomRuleException.class,
+                () -> service.createPath(new CreatePathRequest("Web", null, null, List.of(10L, 10L))));
         verify(pathRepository, never()).save(any());
     }
 
@@ -516,7 +561,6 @@ class PathServiceImplTest {
         var removed = chapter(101L, "Usunięty", 1);
         when(pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(5L)).thenReturn(List.of(kept, removed));
         stubPathRooms(room(10L, "A", RoomType.PATH));
-        when(chapterRoomRepository.findOwners(Set.of(10L))).thenReturn(List.of(new Owner(10L, 5L, "Web")));
         List<PathChapter> saved = new ArrayList<>();
         when(pathChapterRepository.save(any())).thenAnswer(invocation -> {
             PathChapter chapter = invocation.getArgument(0);
@@ -588,7 +632,6 @@ class PathServiceImplTest {
                 new UpdatePathChaptersRequest(0L, List.of()), true));
     }
 
-    // ── banner ──────────────────────────────────────────────────────────────
 
     @Test
     void storesBannerAndBumpsContentRevision() {
@@ -648,7 +691,6 @@ class PathServiceImplTest {
         verifyNoInteractions(pathRepository);
     }
 
-    // ── helpers ─────────────────────────────────────────────────────────────
 
     private void stubPathRooms(Room... rooms) {
         for (Room room : rooms) {
@@ -685,9 +727,6 @@ class PathServiceImplTest {
 
     private record MiniRow(Long getId, String getTitle, Boolean getRequiresVpn, Boolean getSolved)
             implements ChapterRoomRepository.PathRoomMiniRow {}
-
-    private record Owner(Long getRoomId, Long getPathId, String getPathTitle)
-            implements ChapterRoomRepository.RoomOwnerView {}
 
     private record Progression(Long getChapterId, Long getRoomId, Boolean getSolved)
             implements ChapterRoomRepository.ProgressionRow {}

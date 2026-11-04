@@ -56,7 +56,6 @@ function PersonRow({ username, avatar, online, status, onNavigate, children }: P
   );
 }
 
-// Quick access to everyday friend actions; /friends stays the place to manage the list.
 export default function NavbarFriends() {
   const { sessionKey, user } = useAuth();
   const { state, synchronize } = useRealtime();
@@ -69,13 +68,11 @@ export default function NavbarFriends() {
   const [error, setError] = useState<string | null>(null);
   const rootRef = useRef<HTMLDivElement | null>(null);
   const toggleRef = useRef<HTMLButtonElement | null>(null);
-  // On touch screens focusing the field would throw the keyboard over the list on every open.
   const focusSearch = typeof window.matchMedia !== 'function' || !window.matchMedia('(pointer: coarse)').matches;
 
   const friends = state?.friends ?? [];
   const requests = state?.friendRequests ?? [];
   const challenged = new Map((state?.outgoingChallenges ?? []).map(challenge => [challenge.targetUsername, challenge.id]));
-  // Pending challenges and the queue run side by side; the server lets the first game to start win.
   const challengeBlocked = state?.gameSession && state.gameSession.status !== 'FINISHED'
     ? 'Trwa Twój pojedynek. Wyzwania wrócą po nim.' : null;
   const needle = query.trim().toLocaleLowerCase('pl');
@@ -89,12 +86,10 @@ export default function NavbarFriends() {
   const otherPlayers = players && players.query === needle
     ? players.results
       .filter(player => !friendNames.has(player.username) && player.username !== user?.username)
-      // Requests arrive live while the results stay put, so the live list wins over the searched status.
       .map(player => receivedFrom.has(player.username) ? { ...player, friendshipStatus: 'REQUEST_RECEIVED' as const }
         : player.friendshipStatus === 'REQUEST_RECEIVED' ? { ...player, friendshipStatus: 'NONE' as const } : player)
     : null;
 
-  // A friend may go offline while the challenge waits; it can be taken back from either list.
   const sentChallenge = (username: string) => (
     <>
       <span className="nav-friends-state">Wysłano</span>

@@ -1,16 +1,20 @@
-import { useState } from 'react';
-import { ArrowDown, ArrowUp, ArrowRightLeft, ChevronDown, LibraryBig, Lock, Plus, Search, Trash2, X } from 'lucide-react';
+import { useEffect, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
+import type { ReactNode } from 'react';
+import { ArrowDown, ArrowUp, ChevronDown, GripVertical, ListPlus, Lock, Plus, Search, Trash2, Unlink } from 'lucide-react';
 import { Input } from '@/components/ui/input';
 import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
 import { cn } from '@/lib/utils';
-import { plural } from './adminFormat';
+import { difficultyLabels, plural } from './adminFormat';
 import { Button } from '@/components/ui/button';
-import { Section } from './AdminUi';
+import { ConfirmAction, Section } from './AdminUi';
 import { TextField } from './ContentFields';
 import type { FieldErrors } from './ContentFields';
-import type { ChapterRequest, RoomAdminSummaryDto, RoomTaskRequest } from '../../types/api';
+import type { ChapterRequest, DifficultyLevel, RoomAdminSummaryDto, RoomTaskRequest, RoomType } from '../../types/api';
+import { formatXp } from '../../lib/units';
+import { RoomTypeIcon } from './RoomType';
+import { poolStatus } from './RoomPaths';
 
 export function move<T>(items: T[], index: number, offset: number) {
   const next = [...items];
@@ -19,93 +23,295 @@ export function move<T>(items: T[], index: number, offset: number) {
   [next[index], next[target]] = [next[target], next[index]];
   return next;
 }
-export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onCreateRoom, onRoom, canDelete }: {
-  chapters: ChapterRequest[]; rooms: RoomAdminSummaryDto[]; pathId: number | null; errors: FieldErrors;
-  onChange: (chapters: ChapterRequest[]) => void; onCreateRoom: (index: number) => void; onRoom: (id: number) => void; canDelete: boolean;
-}) {
-  const [targetIndex, setTargetIndex] = useState(0);
-  const [query, setQuery] = useState('');
-  const target = chapters[targetIndex] ? targetIndex : Math.max(0, chapters.length - 1);
-  const assigned = new Set(chapters.flatMap(c => c.roomIds ?? []));
-  const pool = rooms.filter(r => r.roomType === 'PATH' && !assigned.has(r.id) && (r.pathId == null || r.pathId === pathId))
-    .filter(r => !query.trim() || r.title.toLocaleLowerCase('pl').includes(query.trim().toLocaleLowerCase('pl')))
-    .sort((a, b) => a.title.localeCompare(b.title, 'pl'));
-  const update = (index: number, values: Partial<ChapterRequest>) => onChange(chapters.map((c, i) => i === index ? { ...c, ...values } : c));
-  const reorder = (index: number, offset: number) => {
-    if (target === index) setTargetIndex(index + offset);
-    else if (target === index + offset) setTargetIndex(index);
-    onChange(move(chapters, index, offset));
-  };
-  return <Section title="Rozdziały i pokoje" description="Ułóż program ścieżki. Dodawaj pokoje z puli lub twórz je bezpośrednio w rozdziale.">
-    {errors.chapters && <p role="alert" className="mb-4 text-sm text-destructive">{errors.chapters}</p>}
-    <div className="grid min-w-0 gap-6 lg:grid-cols-[minmax(0,1fr)_17rem]">
-      <ol className="min-w-0 space-y-5" aria-label="Rozdziały ścieżki">
-        {chapters.map((chapter, index) => {
-          const roomIds = chapter.roomIds ?? [];
-          const problem = errors[`chapters.${index}.rooms`];
-          return <li key={chapter.id ?? `new-${index}`} className="relative pl-10">
-            <span aria-hidden="true" className="absolute top-4 left-0 flex size-7 items-center justify-center rounded-full border-2 border-primary/70 bg-background font-mono text-xs font-semibold text-primary tabular-nums">{index + 1}</span>
-            {index < chapters.length - 1 && <span aria-hidden="true" className="absolute top-12 bottom-[-1.25rem] left-[13px] border-l-2 border-primary/20" />}
-            <div className={cn('min-w-0 overflow-hidden rounded-lg border bg-background/30', (problem || errors[`chapters.${index}.title`]) && 'border-destructive/60')}>
-              <header className="flex flex-wrap items-start gap-2 border-b bg-muted/20 px-3 py-3">
-                <div className="min-w-0 flex-1 basis-40">
-                  <TextField compact name={`chapters.${index}.title`} label={`Nazwa rozdziału ${index + 1}`} value={chapter.title} limit={120} required error={errors[`chapters.${index}.title`]} onChange={title => update(index, { title })} />
-                </div>
-                <div className="flex shrink-0 items-center pt-5">
-                  <Button type="button" variant="ghost" size="icon-sm" disabled={index === 0} onClick={() => reorder(index, -1)} aria-label={`Przesuń rozdział ${index + 1} w górę`}><ArrowUp /></Button>
-                  <Button type="button" variant="ghost" size="icon-sm" disabled={index === chapters.length - 1} onClick={() => reorder(index, 1)} aria-label={`Przesuń rozdział ${index + 1} w dół`}><ArrowDown /></Button>
-                  {(canDelete || chapter.id == null) && <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" aria-label={`Usuń rozdział ${index + 1}`} onClick={() => { onChange(chapters.filter((_, i) => i !== index)); if (target > index) setTargetIndex(target - 1); }}><Trash2 /></Button>}
-                </div>
-              </header>
-              {roomIds.length ? <ol className="divide-y" aria-label={`Pokoje rozdziału ${index + 1}`}>{roomIds.map((id, roomIndex) => {
-                const room = rooms.find(r => r.id === id);
-                const title = room?.title ?? `Pokój ${id}`;
-                return <li key={id} className="flex flex-wrap items-center gap-2 px-3 py-2.5 text-sm">
-                  <span className="w-7 shrink-0 font-mono text-xs text-muted-foreground tabular-nums">{index + 1}.{roomIndex + 1}</span>
-                  <button type="button" className="min-w-0 flex-1 basis-28 truncate text-left font-medium underline-offset-4 hover:text-primary hover:underline" onClick={() => onRoom(id)}>{title}</button>
-                  {room?.requiresVpn && <Lock className="size-3.5 text-muted-foreground" aria-label="Wymaga VPN" />}
-                  {room?.published === false ? <Badge variant="secondary" className="text-[10px]">Szkic</Badge> : <span className="text-[10px] text-muted-foreground">Opublikowany</span>}
-                  <div className="ml-auto flex shrink-0 items-center">
-                    {chapters.length > 1 && <Select value="" onValueChange={value => {
-                      if (!value) return;
-                      const destination = Number(value);
-                      onChange(chapters.map((c, i) => i === index ? { ...c, roomIds: (c.roomIds ?? []).filter(r => r !== id) } : i === destination ? { ...c, roomIds: [...(c.roomIds ?? []), id] } : c));
-                    }}><SelectTrigger size="sm" aria-label={`Przenieś pokój ${id}`} className="mr-1 h-8 w-8 justify-center border-transparent bg-transparent px-1.5 text-xs hover:border-border sm:w-28 sm:justify-between sm:px-2.5"><span className="hidden sm:inline"><SelectValue placeholder="Przenieś…" /></span><ArrowRightLeft className="size-3.5 sm:hidden" /></SelectTrigger><SelectContent>{chapters.map((c, i) => i !== index && <SelectItem key={i} value={String(i)}>{i + 1}. {c.title.trim() || 'Bez nazwy'}</SelectItem>)}</SelectContent></Select>}
-                    <Button type="button" variant="ghost" size="icon-sm" disabled={roomIndex === 0} aria-label={`Przesuń pokój ${id} w górę`} onClick={() => update(index, { roomIds: move(roomIds, roomIndex, -1) })}><ArrowUp /></Button>
-                    <Button type="button" variant="ghost" size="icon-sm" disabled={roomIndex === roomIds.length - 1} aria-label={`Przesuń pokój ${id} w dół`} onClick={() => update(index, { roomIds: move(roomIds, roomIndex, 1) })}><ArrowDown /></Button>
-                    <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" aria-label={`Wyjmij ${title} z rozdziału`} onClick={() => update(index, { roomIds: roomIds.filter(r => r !== id) })}><X /></Button>
-                  </div>
-                </li>;
-              })}</ol> : <div className="px-4 py-6"><p className="text-sm text-muted-foreground">Ten rozdział czeka na pierwszy pokój.</p><button type="button" className="mt-1 text-xs text-primary underline-offset-4 hover:underline" onClick={() => setTargetIndex(index)}>Wybierz pokój z puli →</button></div>}
-              <footer className="flex flex-wrap items-center justify-between gap-2 border-t border-border/60 px-3 py-2">
-                <span className="text-xs text-muted-foreground tabular-nums">{roomIds.length} {plural(roomIds.length, ['pokój', 'pokoje', 'pokoi'])}</span>
-                <Button type="button" variant="ghost" size="sm" className="text-primary hover:text-primary" id={`content-chapters.${index}.rooms`} aria-label={chapters.length === 1 ? 'Utwórz pokój' : `Utwórz pokój w rozdziale ${index + 1}`} onClick={() => onCreateRoom(index)}><Plus className="size-3.5" />Utwórz pokój</Button>
-              </footer>
-              {problem && <p role="alert" className="border-t border-destructive/30 px-4 py-2 text-sm text-destructive">{problem}</p>}
-            </div>
-          </li>;
-        })}
-        <li className="pl-10"><Button type="button" variant="outline" data-field="chapters" onClick={() => { setTargetIndex(chapters.length); onChange([...chapters, { id: null, title: `Rozdział ${chapters.length + 1}`, roomIds: [] }]); }}><Plus />Dodaj rozdział</Button></li>
-      </ol>
-      <aside aria-label="Pula pokoi" className="h-fit min-w-0 rounded-lg border bg-muted/20 p-4 lg:sticky lg:top-20">
-        <div className="mb-1 flex items-center gap-2"><LibraryBig className="size-4 text-muted-foreground" /><h3 className="text-sm font-semibold">Pula pokoi</h3><span className="ml-auto text-xs text-muted-foreground tabular-nums">{pool.length}</span></div>
-        <p className="mb-4 text-xs leading-relaxed text-muted-foreground">Wolne pokoje ścieżek. Dodaj je do wybranego rozdziału.</p>
-        <div className="mb-3 grid gap-1.5"><Label htmlFor="content-chapter-target" className="text-xs">Dodawaj do rozdziału</Label>
-          <Select value={chapters.length ? String(target) : ''} onValueChange={value => { if (value) setTargetIndex(Number(value)); }} disabled={!chapters.length}><SelectTrigger id="content-chapter-target" size="sm" className="w-full"><SelectValue placeholder="Dodaj najpierw rozdział" /></SelectTrigger><SelectContent>{chapters.map((c, i) => <SelectItem key={i} value={String(i)}>{i + 1}. {c.title.trim() || 'Bez nazwy'}</SelectItem>)}</SelectContent></Select>
-        </div>
-        <div className="relative mb-3"><Search className="pointer-events-none absolute top-1/2 left-2.5 size-3.5 -translate-y-1/2 text-muted-foreground" aria-hidden="true" /><Input aria-label="Szukaj w puli" value={query} onChange={e => setQuery(e.target.value)} placeholder="Szukaj pokoju…" className="h-8 pl-8 text-sm" /></div>
-        {pool.length ? <ul className="max-h-96 space-y-1 overflow-y-auto" aria-label="Dostępne pokoje">{pool.map(r => <li key={r.id} className="flex items-center gap-2 rounded-md px-2 py-2 hover:bg-accent/50"><span className="min-w-0 flex-1 truncate text-sm" title={r.title}>{r.title}</span><span className="text-[10px] text-muted-foreground">{r.published === false ? 'Szkic' : 'Opublikowany'}</span><Button type="button" variant="ghost" size="icon-xs" disabled={!chapters.length} aria-label={`Dodaj ${r.title} do rozdziału`} onClick={() => update(target, { roomIds: [...(chapters[target]?.roomIds ?? []), r.id] })}><Plus /></Button></li>)}</ul> : <p className="rounded-md border border-dashed px-3 py-5 text-center text-xs leading-relaxed text-muted-foreground">{query ? 'Brak pasujących pokoi.' : 'Brak wolnych pokoi. Utwórz nowy bezpośrednio w rozdziale.'}</p>}
+type Slot = { chapter: number; index: number };
+// The lifted row follows the pointer: `grab` keeps the spot where it was picked up, `box` its size and column.
+type Drag = { roomId: number; from: Slot; target: Slot | null; y: number; grab: number; box: { left: number; width: number; height: number } };
+// Difficulty is state text only (DESIGN.md), in the shared difficulty hues.
+const difficultyText: Record<DifficultyLevel, string> = {
+  EASY: 'text-[#1a7f37] dark:text-[#56d364]',
+  MEDIUM: 'text-[#8a5d00] dark:text-[#e3b341]',
+  HARD: 'text-[#c62828] dark:text-[#ff8a80]',
+  INSANE: 'text-[#7a3fd6] dark:text-[#c9a2ff]',
+};
+const roomsLabel = (count: number) => `${count} ${plural(count, ['pokój', 'pokoje', 'pokoi'])}`;
 
-      </aside>
-    </div>
-  </Section>;
+/** Takes the room out of its chapter and puts it at `to.index` of the target chapter, counted without the room. */
+export function placeRoom(chapters: ChapterRequest[], roomId: number, to: Slot) {
+  return chapters.map(c => ({ ...c, roomIds: (c.roomIds ?? []).filter(id => id !== roomId) }))
+    .map((c, i) => i === to.chapter ? { ...c, roomIds: [...c.roomIds.slice(0, to.index), roomId, ...c.roomIds.slice(to.index)] } : c);
 }
-export function ContentTasks({ tasks, errors, published, onChange }: { tasks: RoomTaskRequest[]; errors: FieldErrors; published: boolean; onChange: (tasks: RoomTaskRequest[]) => void }) {
+/** One keyboard step: within the chapter first, then over its edge into the neighbouring chapter. */
+export function stepRoom(chapters: ChapterRequest[], from: Slot, offset: -1 | 1): Slot | null {
+  const count = chapters[from.chapter]?.roomIds?.length ?? 0;
+  if (offset < 0) {
+    if (from.index > 0) return { chapter: from.chapter, index: from.index - 1 };
+    return from.chapter > 0 ? { chapter: from.chapter - 1, index: chapters[from.chapter - 1].roomIds?.length ?? 0 } : null;
+  }
+  if (from.index < count - 1) return { chapter: from.chapter, index: from.index + 1 };
+  return from.chapter < chapters.length - 1 ? { chapter: from.chapter + 1, index: 0 } : null;
+}
+
+export function ContentChapters({ chapters, rooms, pathId, errors, onChange, onCreateRoom, onRoom, canDelete, highlightRoomId = null, actions }: {
+  chapters: ChapterRequest[]; rooms: RoomAdminSummaryDto[]; pathId: number | null; errors: FieldErrors;
+  onChange: (chapters: ChapterRequest[]) => void; onCreateRoom: (index: number) => void; onRoom: (id: number, chapterIndex: number) => void; canDelete: boolean;
+  highlightRoomId?: number | null; actions?: ReactNode;
+}) {
+  const [adding, setAdding] = useState<number | null>(null);
+  const [drag, setDrag] = useState<Drag | null>(null);
+  const [announcement, setAnnouncement] = useState('');
+  const [focusRoom, setFocusRoom] = useState<number | null>(null);
+  const lists = useRef(new Map<number, HTMLOListElement>());
+  const handles = useRef(new Map<number, HTMLButtonElement>());
+  const addButtons = useRef(new Map<number, HTMLButtonElement>());
+  const byId = new Map(rooms.map(r => [r.id, r]));
+  const assigned = new Set(chapters.flatMap(c => c.roomIds ?? []));
+  const available = rooms.filter(r => !assigned.has(r.id)).sort((a, b) => a.title.localeCompare(b.title, 'pl'));
+  const titleOf = (id: number) => byId.get(id)?.title ?? `Pokój ${id}`;
+  // A room moved into another chapter is a new element, so the keyboard focus is handed back to its grip.
+  useEffect(() => {
+    if (focusRoom == null) return;
+    handles.current.get(focusRoom)?.focus();
+    setFocusRoom(null);
+  }, [focusRoom, chapters]);
+
+  // Escape cancels a pointer drag wherever the keyboard focus happens to be.
+  const dragging = drag != null;
+  useEffect(() => {
+    if (!dragging) return;
+    const cancel = (event: KeyboardEvent) => { if (event.key === 'Escape') setDrag(null); };
+    window.addEventListener('keydown', cancel);
+    return () => window.removeEventListener('keydown', cancel);
+  }, [dragging]);
+
+  const update = (index: number, values: Partial<ChapterRequest>) => onChange(chapters.map((c, i) => i === index ? { ...c, ...values } : c));
+  const place = (roomId: number, to: Slot) => {
+    onChange(placeRoom(chapters, roomId, to));
+    setAnnouncement(`${titleOf(roomId)}: rozdział ${to.chapter + 1}, pozycja ${to.index + 1}.`);
+  };
+  // The open picker belongs to its chapter, so it moves along when chapters swap places.
+  const moveChapter = (index: number, offset: -1 | 1) => {
+    onChange(move(chapters, index, offset));
+    setAdding(current => current === index ? index + offset : current === index + offset ? index : current);
+  };
+  const removeChapter = (index: number) => {
+    onChange(chapters.filter((_, i) => i !== index));
+    setAdding(current => current == null || current < index ? current : current === index ? null : current - 1);
+  };
+  const closePicker = (index: number) => { setAdding(null); addButtons.current.get(index)?.focus(); };
+
+  // Pointer dragging works the same for mouse, pen and touch; the drop slot is read from the rendered rows.
+  const slotAt = (y: number, roomId: number): Slot | null => {
+    let best: { chapter: number; distance: number; list: HTMLOListElement } | null = null;
+    for (const [chapter, list] of lists.current) {
+      const box = list.getBoundingClientRect();
+      const distance = y < box.top ? box.top - y : y > box.bottom ? y - box.bottom : 0;
+      if (!best || distance < best.distance) best = { chapter, distance, list };
+    }
+    if (!best) return null;
+    const rows = [...best.list.querySelectorAll<HTMLElement>('[data-room-id]')].filter(row => Number(row.dataset.roomId) !== roomId);
+    const index = rows.findIndex(row => { const box = row.getBoundingClientRect(); return y < box.top + box.height / 2; });
+    return { chapter: best.chapter, index: index < 0 ? rows.length : index };
+  };
+  const startDrag = (event: React.PointerEvent<HTMLButtonElement>, roomId: number, from: Slot) => {
+    if (event.button !== 0) return;
+    event.preventDefault();
+    event.currentTarget.setPointerCapture?.(event.pointerId);
+    event.currentTarget.focus();
+    const row = (event.currentTarget.closest('li') ?? event.currentTarget).getBoundingClientRect();
+    setDrag({ roomId, from, target: from, y: event.clientY, grab: event.clientY - row.top, box: { left: row.left, width: row.width, height: row.height } });
+  };
+  const moveDrag = (event: React.PointerEvent) => {
+    if (!drag) return;
+    if (event.clientY < 140) window.scrollBy?.(0, -12);
+    else if (event.clientY > window.innerHeight - 60) window.scrollBy?.(0, 12);
+    setDrag({ ...drag, y: event.clientY, target: slotAt(event.clientY, drag.roomId) });
+  };
+  const endDrag = () => {
+    if (drag?.target && (drag.target.chapter !== drag.from.chapter || drag.target.index !== drag.from.index)) place(drag.roomId, drag.target);
+    setDrag(null);
+  };
+  const keyStep = (event: React.KeyboardEvent, roomId: number, from: Slot) => {
+    if (event.key !== 'ArrowUp' && event.key !== 'ArrowDown') return;
+    event.preventDefault();
+    const to = stepRoom(chapters, from, event.key === 'ArrowUp' ? -1 : 1);
+    if (!to) return;
+    place(roomId, to);
+    setFocusRoom(roomId);
+  };
+
+  return <section aria-labelledby="path-chapters-heading" className="grid min-w-0 gap-4">
+    <div className="flex flex-wrap items-end justify-between gap-x-4 gap-y-2">
+      <div className="min-w-0">
+        <h2 id="path-chapters-heading" className="text-lg font-semibold text-foreground">Rozdziały</h2>
+        <p id="path-chapters-hint" className="mt-0.5 text-sm text-muted-foreground">Przeciągnij pokój za uchwyt, żeby zmienić kolejność albo rozdział. Z klawiatury: strzałki na uchwycie.</p>
+      </div>
+      {actions && <div className="flex shrink-0 flex-wrap gap-2">{actions}</div>}
+    </div>
+    {errors.chapters && <p role="alert" className="text-sm text-destructive">{errors.chapters}</p>}
+    <p aria-live="polite" className="sr-only">{announcement}</p>
+    <ol className="grid min-w-0 gap-4" aria-label="Rozdziały ścieżki">
+      {chapters.map((chapter, index) => {
+        const roomIds = chapter.roomIds ?? [];
+        const problem = errors[`chapters.${index}.rooms`];
+        const titleError = errors[`chapters.${index}.title`] ?? (chapter.title.length > 120 ? 'Maksymalnie 120 znaków' : undefined);
+        const titleId = `content-chapters.${index}.title`;
+        const target = drag?.target?.chapter === index ? drag.target.index : null;
+        let slot = 0;
+        // While dragging, the room leaves its place and an empty slot opens where it would land.
+        const marker = (at: number) => target === at && drag ? <li key={`drop-${at}`} aria-hidden="true" data-drop-slot=""
+          className="rounded-md border-2 border-dashed border-primary/70 bg-primary/10" style={{ height: drag.box.height }} /> : null;
+        const visible = roomIds.filter(id => id !== drag?.roomId).length;
+        return <li key={chapter.id ?? `new-${index}`} className="relative min-w-0 pl-10">
+          <span aria-hidden="true" className="absolute top-3.5 left-0 flex size-7 items-center justify-center rounded-full border-2 border-primary bg-background text-xs font-semibold text-primary tabular-nums">{index + 1}</span>
+          {index < chapters.length - 1 && <span aria-hidden="true" className="absolute top-[2.625rem] bottom-[-1.375rem] left-[13px] border-l-2 border-primary/30" />}
+          <div className={cn('min-w-0 rounded-lg border bg-card text-card-foreground', (problem || titleError) && 'border-destructive/60')}>
+          <header className="flex items-center gap-2 px-3 pt-3 pb-2 sm:px-4">
+            <div className="min-w-0 flex-1">
+              <Label htmlFor={titleId} className="sr-only">Nazwa rozdziału {index + 1}</Label>
+              <Input id={titleId} value={chapter.title} aria-required aria-invalid={!!titleError} aria-describedby={titleError ? `${titleId}-error` : undefined}
+                onChange={e => update(index, { title: e.target.value })}
+                className="h-9 border-transparent bg-transparent px-2 text-base font-semibold shadow-none hover:border-input dark:bg-transparent" />
+            </div>
+            <span className="hidden shrink-0 text-xs text-muted-foreground tabular-nums sm:inline">{roomsLabel(roomIds.length)}</span>
+            <div className="flex shrink-0 items-center">
+              <Button type="button" variant="ghost" size="icon-sm" disabled={index === 0} onClick={() => moveChapter(index, -1)} aria-label={`Przesuń rozdział ${index + 1} w górę`}><ArrowUp /></Button>
+              <Button type="button" variant="ghost" size="icon-sm" disabled={index === chapters.length - 1} onClick={() => moveChapter(index, 1)} aria-label={`Przesuń rozdział ${index + 1} w dół`}><ArrowDown /></Button>
+              {(canDelete || chapter.id == null) && (roomIds.length ? <ConfirmAction title={`Usunąć rozdział ${index + 1}?`} confirmLabel="Usuń rozdział"
+                description={`Rozdział „${chapter.title.trim() || 'Bez nazwy'}” zniknie ze ścieżki razem z ${roomsLabel(roomIds.length)} po zapisie. Same pokoje zostaną w puli.`}
+                onConfirm={() => removeChapter(index)}
+                trigger={<Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" aria-label={`Usuń rozdział ${index + 1}`}><Trash2 /></Button>} />
+                : <Button type="button" variant="ghost" size="icon-sm" className="text-muted-foreground hover:text-destructive" aria-label={`Usuń rozdział ${index + 1}`} onClick={() => removeChapter(index)}><Trash2 /></Button>)}
+            </div>
+          </header>
+          {titleError && <p id={`${titleId}-error`} role="alert" className="px-4 pb-2 text-sm text-destructive sm:px-5">{titleError}</p>}
+          <ol ref={node => { if (node) lists.current.set(index, node); else lists.current.delete(index); }} aria-label={`Pokoje rozdziału ${index + 1}`}
+            className={cn('mx-1.5 min-h-12 rounded-md sm:mx-2', drag && 'bg-muted/30')}>
+            {roomIds.map((id, roomIndex) => {
+              const room = byId.get(id);
+              const title = titleOf(id);
+              const dragged = drag?.roomId === id;
+              const rowMarker = dragged ? null : marker(slot++);
+              return [rowMarker, <li key={id} data-room-id={id}
+                className={cn('flex min-w-0 items-center gap-2 rounded-md py-2 pr-1 pl-0.5 transition-colors duration-700 motion-reduce:transition-none sm:gap-3 sm:pr-2',
+                  dragged ? 'pointer-events-none absolute opacity-0' : 'hover:bg-accent/60', highlightRoomId === id && 'bg-primary/15 hover:bg-primary/15')}>
+                <button type="button" ref={node => { if (node) handles.current.set(id, node); else handles.current.delete(id); }}
+                  aria-label={`Przesuń ${title}`} aria-describedby="path-chapters-hint"
+                  className="flex size-8 shrink-0 cursor-grab touch-none items-center justify-center rounded-md text-muted-foreground outline-none hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring active:cursor-grabbing"
+                  onPointerDown={e => startDrag(e, id, { chapter: index, index: roomIndex })} onPointerMove={moveDrag} onPointerUp={endDrag} onPointerCancel={() => setDrag(null)}
+                  onKeyDown={e => keyStep(e, id, { chapter: index, index: roomIndex })}>
+                  <GripVertical aria-hidden="true" className="size-4" />
+                </button>
+                <span className="w-8 shrink-0 text-xs text-muted-foreground tabular-nums">{index + 1}.{roomIndex + 1}</span>
+                <RoomSummary room={room} title={title} pathId={pathId} />
+                <Button type="button" variant="ghost" size="sm" className="shrink-0" aria-label={`Edytuj ${title}`} onClick={() => onRoom(id, index)}>Edytuj</Button>
+                <Button type="button" variant="ghost" size="icon-sm" className="shrink-0 text-muted-foreground hover:text-destructive" aria-label={`Odepnij ${title} od tej ścieżki`} title="Odepnij od tej ścieżki"
+                  onClick={() => update(index, { roomIds: roomIds.filter(r => r !== id) })}><Unlink aria-hidden="true" /></Button>
+              </li>];
+            })}
+            {marker(slot)}
+            {visible === 0 && target == null && <li className="px-3 py-3 text-sm text-muted-foreground">{drag ? 'Upuść tutaj.' : 'Ten rozdział nie ma jeszcze pokoi.'}</li>}
+          </ol>
+          <div className="flex flex-wrap gap-1 px-2 pt-1 pb-2 sm:px-3">
+            <Button type="button" variant="ghost" size="sm" id={`content-chapters.${index}.rooms`} aria-expanded={adding === index} aria-controls={`chapter-${index}-picker`}
+              ref={node => { if (node) addButtons.current.set(index, node); else addButtons.current.delete(index); }}
+              onClick={() => adding === index ? closePicker(index) : setAdding(index)}><ListPlus />Dodaj istniejący</Button>
+            <Button type="button" variant="ghost" size="sm" aria-label={`Nowy pokój w rozdziale ${index + 1}`} onClick={() => onCreateRoom(index)}><Plus />Nowy pokój</Button>
+          </div>
+          {adding === index && <RoomPicker id={`chapter-${index}-picker`} chapter={index + 1} rooms={available} pathId={pathId}
+            onAdd={id => update(index, { roomIds: [...roomIds, id] })} onClose={() => closePicker(index)} />}
+          {problem && <p role="alert" className="border-t border-destructive/30 px-4 py-2 text-sm text-destructive">{problem}</p>}
+          </div>
+        </li>;
+      })}
+    </ol>
+    {drag && createPortal(<div aria-hidden="true" className="pointer-events-none fixed z-50 flex items-center gap-2 rounded-md bg-card py-2 pr-2 pl-0.5 text-card-foreground shadow-[0_0_0_1px_rgba(15,23,36,0.08),0_12px_28px_rgba(15,23,36,0.16)] dark:shadow-[0_0_0_1px_rgba(255,255,255,0.08),0_12px_32px_rgba(0,0,0,0.45)] sm:gap-3"
+      style={{ top: drag.y - drag.grab, left: drag.box.left, width: drag.box.width }}>
+      <span className="flex size-8 shrink-0 items-center justify-center text-foreground"><GripVertical className="size-4" /></span>
+      <RoomSummary room={byId.get(drag.roomId)} title={titleOf(drag.roomId)} pathId={pathId} />
+    </div>, document.body)}
+    <Button type="button" variant="outline" className="ml-10 w-fit" data-field="chapters" onClick={() => onChange([...chapters, { id: null, title: `Rozdział ${chapters.length + 1}`, roomIds: [] }])}><Plus />Dodaj rozdział</Button>
+  </section>;
+}
+
+function RoomSummary({ room, title, pathId }: { room: RoomAdminSummaryDto | undefined; title: string; pathId: number | null }) {
+  const others = room?.paths.filter(p => p.id !== pathId) ?? [];
+  return <>
+    <RoomTypeIcon type={room?.roomType} labelled className="size-4 shrink-0 text-muted-foreground" />
+    <div className="min-w-0 flex-1">
+      <p className="truncate text-sm font-medium" title={title}>{title}</p>
+      <p className="flex flex-wrap gap-x-3 text-xs text-muted-foreground tabular-nums">
+        {room?.roomType === 'CTF' && <span className={difficultyText[room.difficulty]}>{difficultyLabels[room.difficulty]}</span>}
+        {room && <span>{formatXp(room.points)}</span>}
+        {room?.requiresVpn && <span className="inline-flex items-center gap-1"><Lock aria-hidden="true" className="size-3" />VPN</span>}
+        {others.length > 0 && <span title={others.map(p => p.title).join(', ')}>{poolStatus(room?.paths ?? [], pathId).label.replace(/^W /, 'Też w ')}</span>}
+      </p>
+    </div>
+  </>;
+}
+
+// The picker lists rooms a page at a time; the search narrows the whole list.
+const pickerPage = 20;
+
+function RoomPicker({ id, chapter, rooms, pathId, onAdd, onClose }: {
+  id: string; chapter: number; rooms: RoomAdminSummaryDto[]; pathId: number | null; onAdd: (id: number) => void; onClose: () => void;
+}) {
+  const [query, setQuery] = useState('');
+  const [shown, setShown] = useState(pickerPage);
+  const search = useRef<HTMLInputElement>(null);
+  useEffect(() => { search.current?.focus(); }, []);
+  const term = query.trim().toLocaleLowerCase('pl');
+  const found = rooms.filter(r => !term || r.title.toLocaleLowerCase('pl').includes(term));
+  const matches = found.slice(0, shown);
+  return <div id={id} className="mx-2 mb-3 rounded-md bg-muted/50 p-3 sm:mx-3" onKeyDown={e => { if (e.key === 'Escape') { e.preventDefault(); onClose(); } }}>
+    <div className="relative">
+      <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-2.5 size-4 -translate-y-1/2 text-muted-foreground" />
+      <Input ref={search} type="search" aria-label={`Szukaj pokoju do rozdziału ${chapter}`} placeholder="Szukaj po tytule" value={query} onChange={e => { setQuery(e.target.value); setShown(pickerPage); }} className="h-9 bg-background pl-8" />
+    </div>
+    {matches.length ? <ul className="mt-2 max-h-72 overflow-y-auto" aria-label={`Pokoje do dodania w rozdziale ${chapter}`}>
+      {matches.map(r => {
+        const status = poolStatus(r.paths, pathId);
+        return <li key={r.id} className="flex min-w-0 items-center gap-3 rounded-md py-1.5 pr-1 pl-2 hover:bg-background/60">
+          <RoomTypeIcon type={r.roomType} labelled className="size-4 shrink-0 text-muted-foreground" />
+          <span className="min-w-0 flex-1">
+            <span className="block truncate text-sm" title={r.title}>{r.title}</span>
+            <span className="block truncate text-xs text-muted-foreground" title={status.title}>{status.label}</span>
+          </span>
+          <Button type="button" variant="outline" size="sm" aria-label={`Dodaj ${r.title} do rozdziału`} onClick={() => { onAdd(r.id); search.current?.focus(); }}>Dodaj</Button>
+        </li>;
+      })}
+    </ul> : null}
+    {found.length > matches.length && <Button type="button" variant="ghost" size="sm" className="mt-1" onClick={() => setShown(count => count + pickerPage)}>
+      Pokaż więcej <span className="text-muted-foreground tabular-nums">({found.length - matches.length})</span>
+    </Button>}
+    {!matches.length && <p className="px-2 pt-3 pb-1 text-sm text-muted-foreground">{term ? 'Brak pasujących pokoi.' : 'Wszystkie pokoje są już w tej ścieżce.'}</p>}
+  </div>;
+}
+type TaskField = 'title' | 'content' | 'question' | 'answer';
+const taskLimits: Record<TaskField, number> = { title: 255, content: 20000, question: 2000, answer: 255 };
+// A CTF task keeps a question written in theory mode; the field goes away once it is empty.
+function taskFields(kind: RoomType, task: RoomTaskRequest): TaskField[] {
+  return kind === 'CTF' && !task.question?.trim() ? ['title', 'content', 'answer'] : ['title', 'content', 'question', 'answer'];
+}
+function taskRequired(kind: RoomType, field: TaskField, task: RoomTaskRequest, ready: boolean) {
+  if (field === 'title') return true;
+  if (!ready) return false;
+  if (field === 'content') return true;
+  if (field === 'answer') return kind === 'CTF' || !!task.question?.trim();
+  return kind === 'PATH' && !!task.answer?.trim();
+}
+function taskBadge(kind: RoomType, task: RoomTaskRequest) {
+  if (kind === 'CTF') return task.answer?.trim() ? 'Z flagą' : 'Bez flagi';
+  return task.question?.trim() ? 'Z pytaniem' : 'Lektura';
+}
+export function ContentTasks({ tasks, kind, errors, ready, onChange }: { tasks: RoomTaskRequest[]; kind: RoomType; errors: FieldErrors; ready: boolean; onChange: (tasks: RoomTaskRequest[]) => void }) {
   const [open, setOpen] = useState<Set<number>>(new Set());
+  const ctf = kind === 'CTF';
   const update = (index: number, field: keyof RoomTaskRequest, value: string) => onChange(tasks.map((t, i) => i === index ? { ...t, [field]: value } : t));
   const toggle = (index: number) => setOpen(current => { const next = new Set(current); if (next.has(index)) next.delete(index); else next.add(index); return next; });
-  return <Section title="Zadania" description="Ułóż kolejne kroki pokoju. Postępy w zachowanych zadaniach pozostają bez zmian.">
-    {tasks.length === 0 && <p className="mb-4 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">Dodaj zadania, aby poprowadzić gracza krok po kroku. Pokój bez zadań rozwiązuje się flagą.</p>}
+  const labels: Record<TaskField, string> = { title: 'Tytuł zadania', content: 'Treść', question: ctf ? 'Pytanie (opcjonalnie)' : 'Pytanie', answer: ctf ? 'Flaga' : 'Odpowiedź' };
+  return <Section title="Zadania" description={ctf ? 'Każde zadanie kończy się flagą. Gracz wpisuje ją dokładnie tak, jak ją znalazł.' : 'Ułóż kolejne kroki pokoju. Postępy w zachowanych zadaniach pozostają bez zmian.'}>
+    {errors.tasks && <p role="alert" className="mb-4 text-sm text-destructive">{errors.tasks}</p>}
+    {tasks.length === 0 && <p className="mb-4 rounded-lg border border-dashed px-4 py-6 text-center text-sm text-muted-foreground">{ctf ? 'Dodaj zadanie z flagą. Pokój jest rozwiązany, gdy gracz zdobędzie wszystkie flagi.' : 'Dodaj zadania, aby poprowadzić gracza krok po kroku. Pokój jest rozwiązany, gdy gracz ukończy wszystkie zadania.'}</p>}
     <ol className="grid gap-3">{tasks.map((task, index) => {
       const hasError = Object.keys(errors).some(key => key.startsWith(`tasks.${index}.`));
       const expanded = open.has(index) || hasError;
@@ -114,7 +320,7 @@ export function ContentTasks({ tasks, errors, published, onChange }: { tasks: Ro
           <span className="w-6 shrink-0 text-right font-mono text-xs text-muted-foreground tabular-nums">{String(index + 1).padStart(2, '0')}.</span>
           <button type="button" className="flex min-w-0 flex-1 items-center gap-2 rounded py-1 text-left text-sm outline-none focus-visible:ring-2 focus-visible:ring-ring" aria-expanded={expanded} aria-controls={`content-task-${index}-panel`} onClick={() => toggle(index)}>
             <span className={cn('truncate font-medium', !task.title.trim() && 'text-muted-foreground italic')}>{task.title.trim() || 'Zadanie bez tytułu'}</span>
-            <Badge variant="outline" className="hidden text-[10px] text-muted-foreground sm:inline-flex">{task.question?.trim() ? 'Z pytaniem' : 'Lektura'}</Badge>
+            <Badge variant="outline" className="hidden text-[10px] text-muted-foreground sm:inline-flex">{taskBadge(kind, task)}</Badge>
             <ChevronDown className={cn('ml-auto size-4 shrink-0 text-muted-foreground transition-transform', expanded && 'rotate-180')} />
           </button>
           <div className="flex shrink-0 items-center">
@@ -124,11 +330,11 @@ export function ContentTasks({ tasks, errors, published, onChange }: { tasks: Ro
           </div>
         </header>
         {expanded && <div id={`content-task-${index}-panel`} className="grid gap-4 border-t px-4 py-4 md:grid-cols-2">
-          {(['title', 'content', 'question', 'answer'] as const).map(field => <div key={field} className={field === 'title' || field === 'content' ? 'md:col-span-2' : ''}><TextField name={`tasks.${index}.${field}`} label={{ title: 'Tytuł zadania', content: 'Treść', question: 'Pytanie', answer: 'Odpowiedź' }[field]} value={task[field] ?? ''} limit={{ title: 255, content: 20000, question: 2000, answer: 255 }[field]} multiline={field === 'content'} required={field === 'title' || (published && (field === 'content' || field === 'answer' && !!task.question?.trim() || field === 'question' && !!task.answer?.trim()))} error={errors[`tasks.${index}.${field}`]} onChange={value => update(index, field, value)} /></div>)}
-          <p className="text-xs leading-relaxed text-muted-foreground md:col-span-2">Treść obsługuje podstawowe formatowanie HTML. Usunięcie zadania usuwa również postęp graczy w tym zadaniu.</p>
+          {taskFields(kind, task).map(field => <div key={field} className={field === 'title' || field === 'content' || ctf ? 'md:col-span-2' : ''}><TextField name={`tasks.${index}.${field}`} label={labels[field]} value={task[field] ?? ''} limit={taskLimits[field]} multiline={field === 'content'} mono={ctf && field === 'answer'} placeholder={ctf && field === 'answer' ? 'HACK{...}' : undefined} required={taskRequired(kind, field, task, ready)} error={errors[`tasks.${index}.${field}`]} onChange={value => update(index, field, value)} /></div>)}
+          <p className="text-xs leading-relaxed text-muted-foreground md:col-span-2">{ctf ? 'Wielkość liter we fladze ma znaczenie. ' : ''}Treść obsługuje podstawowe formatowanie HTML. Usunięcie zadania usuwa również postęp graczy w tym zadaniu.</p>
         </div>}
       </li>;
     })}</ol>
-    <Button type="button" variant="outline" className="mt-4" onClick={() => { setOpen(current => new Set(current).add(tasks.length)); onChange([...tasks, { id: null, title: '', content: '', question: null, answer: null }]); }}><Plus />Dodaj zadanie</Button>
+    <Button type="button" variant="outline" className="mt-4" data-field="tasks" onClick={() => { setOpen(current => new Set(current).add(tasks.length)); onChange([...tasks, { id: null, title: '', content: '', question: null, answer: null }]); }}><Plus />{ctf ? 'Dodaj zadanie z flagą' : 'Dodaj zadanie'}</Button>
   </Section>;
 }

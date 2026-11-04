@@ -4,10 +4,9 @@ import type { RankingEntry } from '../../types/api';
 import { EloHelp } from '../arena/EloHelp';
 import { LeagueIcon } from '../arena/LeagueIcon';
 import { leagueFor, leagueProgress } from '../arena/leagues';
+import { ELO_UNIT, formatElo, formatNumberPL } from '../../lib/units';
 
-const formatNumberPL = (n: number) => (Number(n) || 0).toLocaleString('pl-PL');
 
-// The dashboard's arena panel: league, Elo, progress to the next league and the place in the Elo ranking.
 export function ArenaRankPanel({ rank }: { rank: RankingEntry | null }) {
   return (
     <section className="ud-panel ud-arena" aria-labelledby="ud-arena-title">
@@ -74,7 +73,7 @@ function ArenaRank({ rank }: { rank: RankingEntry }) {
         {next ? (
           <div>
             <dt>Do awansu</dt>
-            <dd>{formatNumberPL(next.min - elo)} Elo</dd>
+            <dd>{formatElo(next.min - elo)}</dd>
           </div>
         ) : (
           <div>
@@ -91,7 +90,7 @@ function ArenaRankMissing() {
   return (
     <>
       <p className="ud-level-xp">
-        <strong>–</strong> Elo
+        <strong>–</strong> {ELO_UNIT}
       </p>
       <p className="ud-muted" role="status">
         Nie udało się wczytać rangi areny.

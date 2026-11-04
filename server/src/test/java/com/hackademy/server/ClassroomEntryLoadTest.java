@@ -55,7 +55,9 @@ class ClassroomEntryLoadTest extends PostgresIntegrationTest {
             var users = new ArrayList<User>();
             for (int index = 0; index < 30; index++) users.add(userRepository.findById(account(Role.USER).id()).orElseThrow());
             var room = roomRepository.save(Room.builder().title("Classroom " + UUID.randomUUID()).description("Concurrent exercise")
-                    .difficulty(DifficultyLevel.EASY).category("Test").flag("").points(100).published(true).roomType(RoomType.PATH).build());
+                    .difficulty(DifficultyLevel.EASY).category("Test").points(100).roomType(RoomType.PATH).build());
+            publishInPath(room.getId());
+            for (var user : users) PublishedPaths.joinPathsOf(dataSource, user.getId(), room.getId());
             var task = taskRepository.save(RoomTask.builder().room(room).title("Task").content("Question").answer("correct").sortOrder(0).build());
             var awarded = new AtomicInteger();
             var taskResult = measure(90, index -> {

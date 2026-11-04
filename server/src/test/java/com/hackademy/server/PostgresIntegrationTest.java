@@ -92,16 +92,37 @@ abstract class PostgresIntegrationTest {
 
     protected long createRoom(Account admin, String title, String roomType) throws Exception {
         var room = new MockMultipartFile("room", "", MediaType.APPLICATION_JSON_VALUE, """
-                {"title":"%s","description":"description","difficulty":"EASY","category":"Web","points":50,"flag":"flag","requiresVpn":false,"roomType":"%s","hints":[]}
+                {"title":"%s","description":"description","difficulty":"EASY","category":"Web","points":50,"requiresVpn":false,"roomType":"%s","hints":[]}
                 """.formatted(title, roomType).getBytes(StandardCharsets.UTF_8));
         var result = mockMvc.perform(multipart("/api/admin/rooms")
                         .file(room)
                         .header("Authorization", "Bearer " + admin.token()))
                 .andExpect(status().isCreated())
                 .andReturn();
-        long id = ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
-        jdbcTemplate.update("UPDATE rooms SET published = true WHERE id = ?", id);
-        return id;
+        return ((Number) JsonPath.read(result.getResponse().getContentAsString(), "$.id")).longValue();
+    }
+
+    protected long publishInPath(long... roomIds) {
+        return PublishedPaths.publishInPath(jdbcTemplate, roomIds);
+    }
+
+    protected void joinPathsOf(Account account, long... roomIds) {
+        PublishedPaths.joinPathsOf(jdbcTemplate, account.id(), roomIds);
+    }
+
+    protected long addFlagTask(long room, String flag) {
+        return jdbcTemplate.queryForObject("""
+                INSERT INTO room_tasks (room_id, title, content, question, answer, sort_order)
+                VALUES (?, 'Zdobądź flagę', 'Znajdź flagę',
+                        (SELECT CASE WHEN room_type = 'PATH' THEN 'Jaka jest flaga?' END FROM rooms WHERE id = ?),
+                        ?, (SELECT count(*) FROM room_tasks WHERE room_id = ?))
+                RETURNING id
+                """, Long.class, room, room, flag, room);
+    }
+
+    protected ResultActions solveRoom(Account account, long room, String answer) throws Exception {
+        long task = jdbcTemplate.queryForObject("SELECT id FROM room_tasks WHERE room_id = ? ORDER BY sort_order, id LIMIT 1", Long.class, room);
+        return postJson(account, "/api/rooms/" + room + "/tasks/" + task + "/solve", "{\"answer\":\"" + answer + "\"}");
     }
 
     protected String uniqueTitle(String prefix) {

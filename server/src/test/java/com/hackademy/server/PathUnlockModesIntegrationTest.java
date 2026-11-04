@@ -61,7 +61,9 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
     }
 
     private long room(Account admin) throws Exception {
-        return createRoom(admin, uniqueTitle("Unlock room"), "PATH");
+        long room = createRoom(admin, uniqueTitle("Unlock room"), "PATH");
+        addFlagTask(room, "flag");
+        return room;
     }
 
     private Account learner(long pathId) throws Exception {
@@ -72,7 +74,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
     }
 
     private ResultActions solve(Account user, long roomId) throws Exception {
-        return postJson(user, "/api/rooms/" + roomId + "/solve", "{\"flag\":\"flag\"}");
+        return solveRoom(user, roomId, "flag");
     }
 
     private List<Boolean> roomLocks(Account user, long pathId) throws Exception {
@@ -111,7 +113,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
         long a1 = room(admin), a2 = room(admin), hidden = room(admin), b1 = room(admin), c1 = room(admin);
         long pathId = createPath(admin, "CHAPTER", List.of(chapter("A", List.of(a1, a2)), chapter("Hidden", List.of(hidden)),
                 chapter("B", List.of(b1)), chapter("C", List.of(c1))));
-        jdbcTemplate.update("UPDATE rooms SET published = false WHERE id = ?", hidden);
+        jdbcTemplate.update("DELETE FROM chapter_rooms WHERE room_id = ?", hidden);
         var user = learner(pathId);
 
         assertEquals(List.of(false, false, true, true), roomLocks(user, pathId));
@@ -165,7 +167,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void locksAreComputedLiveFromModeProgressAndPublishedRooms() throws Exception {
+    void locksAreComputedLiveFromModeProgressAndThePathsRooms() throws Exception {
         var admin = account(Role.ADMIN);
         long first = room(admin), second = room(admin), third = room(admin);
         long pathId = createPath(admin, null, List.of(chapter("A", List.of(first, second)), chapter("B", List.of(third))));
@@ -178,9 +180,10 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
         solve(user, third).andExpect(status().isOk());
         getAs(user, "/api/rooms/" + second).andExpect(status().isForbidden());
 
-        jdbcTemplate.update("UPDATE rooms SET published = false WHERE id = ?", first);
+        var link = jdbcTemplate.queryForMap("SELECT chapter_id, sort_order FROM chapter_rooms WHERE room_id = ?", first);
+        jdbcTemplate.update("DELETE FROM chapter_rooms WHERE room_id = ?", first);
         getAs(user, "/api/rooms/" + second).andExpect(status().isOk());
-        jdbcTemplate.update("UPDATE rooms SET published = true WHERE id = ?", first);
+        jdbcTemplate.update("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (?, ?, ?)", first, link.get("chapter_id"), link.get("sort_order"));
         getAs(user, "/api/rooms/" + second).andExpect(status().isForbidden());
 
         changeMode(admin, pathId, "CHAPTER");

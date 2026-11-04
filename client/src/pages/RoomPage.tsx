@@ -1,8 +1,9 @@
 import { sanitizeTaskContent } from '../lib/taskContent';
 import * as roomApi from '../services/roomApi';
 import { request } from '../services/http';
+import { rateLimitMessage, retryAfterSeconds, TOO_MANY_REQUESTS } from '../services/rateLimit';
 import React, { useState, useEffect, useId, useRef } from 'react';
-import { BookOpen, Check, Download, HelpCircle, Lightbulb, Lock, RotateCcw, Users } from 'lucide-react';
+import { BookOpen, Check, CheckCheck, Download, Flag, HelpCircle, Lightbulb, Lock, RotateCcw } from 'lucide-react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
@@ -13,55 +14,85 @@ import './RoomPage.css';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
 import type { RoomDetailDto } from '../types/api';
 import { useRoomReturn } from '../hooks/useRoomReturn';
+import { useGameSound } from '../hooks/useGameSound';
 import RoomFrame from '../components/room/RoomFrame';
 import RoomFooterBar from '../components/room/RoomFooterBar';
 import RoomSplit from '../components/room/RoomSplit';
+import { RoomTaskList, useStoredFlag } from '../components/room/RoomTaskList';
+import { useMediaQuery } from '../hooks/useMediaQuery';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
 import { closeRoomActivity, openRoomActivity } from '../services/presenceApi';
+import { formatXp } from '../lib/units';
+import { xpAfterHints } from '../lib/level';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
   const { sessionKey } = useAuth();
+  const playSound = useGameSound();
 
   const [room, setRoom] = useState<RoomDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [unlockedHints, setUnlockedHints] = useState<number[]>([]);
-  const [potentialPoints, setPotentialPoints] = useState(0);
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [hintToUnlock, setHintToUnlock] = useState<number | null>(null);
 
-  const [flag, setFlag] = useState('');
-  const [submitStatus, setSubmitStatus] = useState<'success' | 'error' | null>(null); // 'success', 'error', null
-  const [submitMessage, setSubmitMessage] = useState('');
-
-  // Success Modal State (Normal Mode)
   const [showSuccessModal, setShowSuccessModal] = useState(false);
   const [earnedPoints, setEarnedPoints] = useState(0);
   const [successMessage, setSuccessMessage] = useState('');
 
-  // Training Mode State
   const [isTrainingMode, setIsTrainingMode] = useState(false);
 
-  // Tasks State
   const [taskAnswers, setTaskAnswers] = useState<Record<number, string>>({});
   const [activeTask, setActiveTask] = useState(0);
   const [pendingTask, setPendingTask] = useState<number | null>(null);
   const [finishingRoom, setFinishingRoom] = useState(false);
   const [mascotSuccessCount, setMascotSuccessCount] = useState(0);
   const celebrated = useRef(new Set<string>());
-  const pendingFlag = useRef(false);
   const celebrate = (key: string) => {
     if (celebrated.current.has(key)) return;
     celebrated.current.add(key);
     setMascotSuccessCount(count => count + 1);
   };
 
-  // Toast state
+  const [answersBlockedUntil, setAnswersBlockedUntil] = useState(0);
+  const [wrongAnswersBlock, setWrongAnswersBlock] = useState(false);
+  const [now, setNow] = useState(() => Date.now());
+  const retryIn = Math.max(0, Math.ceil((answersBlockedUntil - now) / 1000));
+  const answersBlocked = retryIn > 0;
+  const blockAnswers = async (response: Response) => {
+    const body: unknown = await response.json().catch(() => null);
+    const seconds = retryAfterSeconds(response.headers, body);
+    setWrongAnswersBlock(!!body && typeof body === 'object' && (body as { reason?: unknown }).reason === 'room-answer');
+    const current = Date.now();
+    setNow(current);
+    setAnswersBlockedUntil(current + seconds * 1000);
+  };
+  useEffect(() => {
+    if (answersBlockedUntil <= Date.now()) return;
+    const timer = window.setInterval(() => {
+      const current = Date.now();
+      setNow(current);
+      if (current >= answersBlockedUntil) window.clearInterval(timer);
+    }, 1000);
+    return () => window.clearInterval(timer);
+  }, [answersBlockedUntil]);
+  const retryNotice = answersBlocked && (
+    <p className="room-message is-error" role="status">
+      {wrongAnswersBlock ? `Zbyt wiele błędnych odpowiedzi. Spróbuj ponownie za ${retryIn} s.` : rateLimitMessage(retryIn)}
+    </p>
+  );
+
   const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
+  const [taskFeedback, setTaskFeedback] = useState<{ taskId: number; status: 'success' | 'error'; message: string } | null>(null);
+  const [hintError, setHintError] = useState('');
+  const [completeError, setCompleteError] = useState('');
+  const wide = useMediaQuery('(min-width: 1100px)');
+  const [sidebarHidden, setSidebarHidden] = useStoredFlag('hackademy.roomTaskList.hidden');
+  const sidebar = wide && !sidebarHidden;
 
   const titleId = useId();
   const readerRef = useRef<HTMLDivElement>(null);
@@ -78,15 +109,19 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const confirmUnlockHint = async () => {
     setIsModalOpen(false);
     if (!hintToUnlock) return;
+    setHintError('');
 
     try {
         const response = await roomApi.unlockHint(id ?? '', hintToUnlock, { sessionKey });
-        if (!response.ok) throw new Error('Failed to unlock hint');
+        if (!response.ok) {
+          setHintError('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
+          return;
+        }
+        const unlocked = await response.json();
+        setRoom(prev => prev ? { ...prev, hints: prev.hints.map(h => h.id === unlocked.id ? unlocked : h) } : null);
         setUnlockedHints([...unlockedHints, hintToUnlock]);
-        setPotentialPoints(Math.max(0, (room?.points ?? 0) * (1 - (unlockedHints.length + 1) * 0.25)));
-        setToast({ message: 'Podpowiedź odblokowana!', type: 'success' });
-    } catch (err) {
-        setToast({ message: err instanceof Error ? err.message : String(err), type: 'error' });
+    } catch {
+        setToast({ message: 'Błąd połączenia', type: 'error' });
     } finally {
         setHintToUnlock(null);
     }
@@ -113,39 +148,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       } catch (err) { console.error(err); }
   };
 
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (preview) { setSubmitStatus('success'); setSubmitMessage('Tryb podglądu: wynik nie jest zapisywany.'); return; }
-    if (pendingFlag.current) return;
-    pendingFlag.current = true;
-    setSubmitStatus(null);
-    setSubmitMessage('');
-
-    try {
-      const response = await roomApi.solveRoom(id ?? '', { flag }, {sessionKey
-      });
-
-      const data = await response.json();
-      if (response.ok && data.success) {
-        if (!room?.solved) celebrate('room');
-        setSubmitStatus('success');
-        setSubmitMessage(data.message ?? '');
-        setRoom(prev => prev ? { ...prev, solved: true, solutionsCount: prev.solutionsCount + 1 } : null);
-        setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
-        setSuccessMessage("Misja zakończona sukcesem!");
-        setShowSuccessModal(true);
-      } else {
-        setSubmitStatus('error');
-        setSubmitMessage(data.message || 'Niepoprawna flaga');
-      }
-    } catch {
-      setSubmitStatus('error');
-      setSubmitMessage('Błąd sieci');
-    } finally {
-      pendingFlag.current = false;
-    }
-  };
-
   const handleCloseSuccessModal = () => {
       setShowSuccessModal(false);
   };
@@ -155,7 +157,13 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       try {
         const response = await (preview ? request<RoomDetailDto>(`/api/admin/content/rooms/${id}/preview`, { auth: { sessionKey } }) : roomApi.getRoom(id ?? '', { sessionKey }));
         if (!response.ok) {
-          const body = await response.json().catch(() => null);
+          const body = await response.json().catch(() => null) as { message?: string; code?: string; pathIds?: number[] } | null;
+          if (body?.code === 'PATH_ENROLLMENT_REQUIRED' && body.pathIds?.length) {
+            const origin = new URLSearchParams(location.search).get('pathId');
+            const pathId = body.pathIds.find(candidate => String(candidate) === origin) ?? body.pathIds[0];
+            navigate(`/learn/paths/${pathId}`, { replace: true });
+            return;
+          }
           throw new Error(body?.message || 'Failed to fetch room details');
         }
         const data = await response.json();
@@ -163,17 +171,12 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         if (data.tasks && data.tasks.length > 0) {
             setActiveTask(Math.max(0, data.tasks.findIndex(t => !t.completed)));
         }
-        if (data.unlockedHintIds) {
-          setUnlockedHints(data.unlockedHintIds);
-          setPotentialPoints(Math.max(0, data.points * (1 - data.unlockedHintIds.length * 0.25)));
-        } else {
-          setPotentialPoints(data.points);
-        }
+        if (data.unlockedHintIds) setUnlockedHints(data.unlockedHintIds);
       } catch (err) { setError(err instanceof Error ? err.message : String(err)); }
       finally { setLoading(false); }
     };
     if (sessionKey) fetchRoom();
-  }, [id, sessionKey, preview]);
+  }, [id, sessionKey, preview, navigate, location.search]);
 
   const roomId = room?.id;
   const { connected } = useRealtime();
@@ -193,45 +196,62 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (preview) { setRoom(current => current ? { ...current, tasks: current.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t) } : null); return; }
     const answer = taskAnswers[taskId] || '';
     const task = room?.tasks.find((item) => item.id === taskId);
-    if (!task || task.completed || pendingTask !== null || (task.question && !answer)) return;
+    const answered = !!task?.question || !!task?.requiresAnswer;
+    if (!task || task.completed || pendingTask !== null || (answered && (answersBlocked || !answer))) return;
 
     setPendingTask(taskId);
+    setTaskFeedback(null);
     try {
         const response = await roomApi.solveTask(id ?? '', taskId, { answer }, {sessionKey
             });
+        if (response.status === TOO_MANY_REQUESTS) {
+            await blockAnswers(response);
+            return;
+        }
         const data = await response.json();
         if (response.ok && data.success) {
+            const roomDone = data.message?.includes('Pokój ukończony') ?? false;
             celebrate(`task:${taskId}`);
-            setToast({ message: data.message ?? '', type: 'success' });
+            playSound(roomDone ? 'roomCompleted' : 'taskSolved');
+            if (answered && !roomDone) setTaskFeedback({ taskId, status: 'success', message: data.message || 'Poprawna odpowiedź!' });
             setRoom(prev => prev ? ({
                 ...prev,
                 tasks: prev.tasks.map(t => t.id === taskId ? { ...t, completed: true } : t),
-                solved: data.message?.includes('Pokój ukończony') ? true : prev.solved
+                solved: roomDone ? true : prev.solved
             }) : null);
-            if (data.message?.includes('Pokój ukończony')) {
+            if (roomDone) {
                 setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
                 setSuccessMessage("Wszystkie zadania wykonane! Pokój ukończony.");
                 setShowSuccessModal(true);
             }
         } else {
-            setToast({ message: data.message || 'Niepoprawna odpowiedź', type: 'error' });
+            if (answered) playSound('learningError');
+            setTaskFeedback({ taskId, status: 'error', message: data.message || 'Niepoprawna odpowiedź' });
         }
     } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
     finally { setPendingTask(null); }
   };
 
   const handleCompleteRoom = async () => {
-    if (preview) { setToast({ message: 'Podgląd: postęp i punkty nie są zapisywane.', type: 'success' }); return; }
+    if (preview) {
+      setRoom((previous) => previous ? { ...previous, solved: true } : null);
+      setEarnedPoints(0);
+      setSuccessMessage('Podgląd: postęp i XP nie są zapisywane.');
+      setShowSuccessModal(true);
+      return;
+    }
     if (finishingRoom) return;
     setFinishingRoom(true);
+    setCompleteError('');
     try {
       const response = await roomApi.completeTaskRoom(id ?? '', { sessionKey });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        setToast({ message: data.message || 'Nie udało się ukończyć pokoju', type: 'error' });
+        setCompleteError(data.message || 'Nie udało się ukończyć pokoju');
         return;
       }
       if (!room?.solved) celebrate('room');
+      playSound(room?.solved ? 'taskSolved' : 'roomCompleted');
       setRoom((previous) => previous ? { ...previous, solved: true } : null);
       setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
       setSuccessMessage('Wszystkie zadania wykonane! Pokój ukończony.');
@@ -261,13 +281,14 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   if (error) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
   if (!room) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;
 
-  const pointsToDeduct = room.points * 0.25;
+  const potentialXp = xpAfterHints(room.points, unlockedHints.length);
+  const hintCost = potentialXp - xpAfterHints(room.points, unlockedHints.length + 1);
   const isSolved = room.solved;
   const showContent = !isSolved || isTrainingMode;
 
   const tasks = room.tasks || [];
   const completedTasksCount = tasks.filter(t => t.completed).length;
-  const backTo = preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`) : roomReturn.to;
+  const backTo = preview ? (queryParams.get('pathId') ? `/admin/preview/paths/${queryParams.get('pathId')}` : `/admin/paths/rooms/${id}`) : roomReturn.to;
   const nextRoom = preview ? null : roomReturn.next;
   const reportedTask = tasks.length > 0 ? tasks[Math.min(activeTask, tasks.length - 1)].id : undefined;
 
@@ -287,8 +308,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const previewBanner = preview && (
     <div role="status" className="room-preview">
-      <span>Podgląd administracyjny: postęp i punkty nie są zapisywane.</span>
-      <button type="button" className="room-btn room-btn--small" onClick={() => navigate(`/admin/${queryParams.get('kind') === 'PATH' ? 'paths/rooms' : 'ctf'}/${id}`)}>Wróć do edycji pokoju</button>
+      <span>Podgląd administracyjny: postęp i XP nie są zapisywane.</span>
+      <button type="button" className="room-btn room-btn--small" onClick={() => navigate(`/admin/paths/rooms/${id}`)}>Wróć do edycji pokoju</button>
     </div>
   );
 
@@ -305,7 +326,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const hintsBlock = showContent && room.hints && room.hints.length > 0 && (
     <section className="room-hints" aria-labelledby={`${titleId}-hints`}>
       <h2 className="room-section-title" id={`${titleId}-hints`}>Podpowiedzi</h2>
-      {!isTrainingMode && <p className="room-hints-points">Punkty do zdobycia: <strong>{Math.round(potentialPoints)}</strong></p>}
+      {!isTrainingMode && <p className="room-hints-points">XP do zdobycia: <strong>{formatXp(potentialXp)}</strong></p>}
       <ol>
         {room.hints.map((hint, index) => {
           const isUnlocked = unlockedHints.includes(hint.id);
@@ -319,20 +340,21 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 <p>{hint.description}</p>
               ) : (
                 <button type="button" onClick={() => handleUnlockHint(hint.id)} className="room-btn room-btn--small" disabled={!canUnlock}>
-                  {canUnlock ? (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${pointsToDeduct} pkt)`) : 'Zablokowane (odblokuj poprzednią)'}
+                  {canUnlock ? (isTrainingMode ? 'Odblokuj (Trening)' : `Odblokuj podpowiedź (-${formatXp(hintCost)})`) : 'Zablokowane (odblokuj poprzednią)'}
                 </button>
               )}
             </li>
           );
         })}
       </ol>
+      {hintError && <p className="room-message is-error" role="alert">{hintError}</p>}
     </section>
   );
 
-  const chips = (
+  const chips = (xp: number) => (
     <div className="room-chips">
       <span className={`room-chip room-chip--${room.difficulty.toLowerCase()}`}>{room.difficulty}</span>
-      <span className="room-chip room-chip--points">{room.points} pkt</span>
+      <span className="room-chip room-chip--points">{formatXp(xp)}</span>
       {isSolved && <span className="room-chip room-chip--done"><Check aria-hidden="true" />Rozwiązany</span>}
     </div>
   );
@@ -345,7 +367,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     <>
       <ConfirmationModal
         isOpen={isModalOpen}
-        message={isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - brak kosztu punktowego)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${pointsToDeduct} punktów.`}
+        message={isTrainingMode ? "Odkryć podpowiedź? (Tryb treningowy - bez utraty XP)" : `Czy na pewno chcesz odblokować tę podpowiedź? To odejmie ${formatXp(hintCost)}.`}
         onConfirm={confirmUnlockHint}
         onCancel={cancelUnlockHint}
       />
@@ -369,7 +391,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     const descriptionPane = (
       <section className="room-pane" aria-labelledby={titleId}>
         <div className="room-pane-scroll">
-          {chips}
+          {chips(room.points)}
           <h1 className="room-title" id={titleId}>{room.title}</h1>
           {room.shortDescription && <p className="room-lead">{room.shortDescription}</p>}
           <div className="room-prose"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
@@ -389,28 +411,11 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             </div>
           </div>
           {showContent ? (
-            <form onSubmit={handleSubmit} className="room-flag">
-              <h2 className="room-section-title"><label htmlFor={`${titleId}-flag`}>Zgłoś flagę</label></h2>
-              <p className="room-note">Wklej znalezioną flagę dokładnie tak, jak ją widzisz.</p>
-              <div className="room-field">
-                <input
-                  id={`${titleId}-flag`}
-                  type="text"
-                  autoComplete="off"
-                  spellCheck={false}
-                  placeholder="Wklej flagę tutaj..."
-                  value={flag}
-                  onChange={(e) => setFlag(e.target.value)}
-                  className={`room-input${submitStatus === 'error' ? ' is-error' : ''}`}
-                />
-                <button type="submit" className="room-btn room-btn--primary">Zatwierdź</button>
-              </div>
-              {submitMessage && <p className={`room-message is-${submitStatus}`} role="status">{submitMessage}</p>}
-            </form>
+            <p className="room-note">Ten pokój nie ma jeszcze zadań. Wróć do niego później.</p>
           ) : (
             <div className="room-solved">
               <h2 className="room-section-title">Gratulacje!</h2>
-              <p>Ukończyłeś to wyzwanie i zdobyłeś {room.points} punktów.</p>
+              <p>Ukończyłeś to wyzwanie i zdobyłeś {formatXp(room.points)}.</p>
               <div className="room-solved-actions">
                 <button type="button" onClick={() => setIsTrainingMode(true)} className="room-btn">
                   <RotateCcw aria-hidden="true" />
@@ -425,8 +430,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     );
 
     return (
-      <RoomFrame nav={nav} label="Pokój z flagą" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
-        footer={<RoomFooterBar title={room.title} badge={<span className="room-chip room-chip--points">{room.points} pkt</span>} next={finish} />}>
+      <RoomFrame nav={nav} label="Pokój bez zadań" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
+        footer={<RoomFooterBar title={room.title} badge={<span className="room-chip room-chip--points">{formatXp(room.points)}</span>} next={finish} />}>
         {previewBanner}
         <RoomSplit variant="flat" start={descriptionPane} end={solvePane} initial={0.56} />
         {modals}
@@ -440,6 +445,17 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const allTasksDone = completedTasksCount === tasks.length;
   const firstOpenTask = tasks.findIndex(t => !t.completed);
   const answerId = `${titleId}-answer`;
+  const steps = tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask }));
+  const feedback = taskFeedback?.taskId === task.id && (
+    <p className={`room-message is-${taskFeedback.status}`} role={taskFeedback.status === 'error' ? 'alert' : 'status'}>{taskFeedback.message}</p>
+  );
+  const flagTask = !task.question && task.requiresAnswer;
+  const roomMeta = (
+    <>
+      {chips(isSolved ? room.points : potentialXp)}
+      <span className="room-solvers"><CheckCheck aria-hidden="true" />{room.solutionsCount} ukończyło</span>
+    </>
+  );
 
   const next = !isSolved && allTasksDone
     ? { label: finishingRoom ? 'Kończenie pokoju…' : 'Ukończ pokój', disabled: finishingRoom, primary: true, onClick: () => void handleCompleteRoom() }
@@ -448,73 +464,79 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       : finish;
 
   return (
-    <RoomFrame nav={nav} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
+    <RoomFrame nav={{ ...nav, meta: roomMeta, steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: isModalOpen || showSuccessModal }}
       footer={
         <RoomFooterBar
           progress={{
-            steps: tasks.map((t, index) => ({ key: t.id, title: t.title, done: t.completed, locked: !preview && !t.completed && firstOpenTask >= 0 && index > firstOpenTask })),
+            steps,
+            list: !sidebar,
+            onPin: wide && sidebarHidden ? () => setSidebarHidden(false) : undefined,
+            listHeader: roomMeta,
             current: taskIndex,
             unit: 'Zadanie',
             listLabel: 'Lista zadań',
             onSelect: setActiveTask,
           }}
           title={task.title}
-          badge={<span className="room-chip room-chip--points">{room.points} pkt</span>}
           back={{ label: 'Wstecz', disabled: taskIndex === 0, onClick: () => setActiveTask(taskIndex - 1) }}
           next={next}
         />
       }>
       {previewBanner}
-      <div className="room-reader" ref={readerRef}>
-        <div className="room-reader-bar">
-          <div className="room-reader-where"><h1>{room.title}</h1><span>Zadanie {taskIndex + 1} z {tasks.length}</span></div>
-          <span><Users aria-hidden="true" />Ukończyło: {room.solutionsCount}</span>
-        </div>
-        <article key={task.id} className="room-reader-article" aria-labelledby={titleId}>
-          {taskIndex === 0 && chips}
-          <h2 className="room-title" id={titleId}>{String(taskIndex + 1).padStart(2, '0')}. {task.title}</h2>
-          {taskIndex === 0 && room.description && (
-            <div className="room-prose room-intro"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
-          )}
-          {taskIndex === 0 && fileBlock}
-          <div className="room-prose task-content" dangerouslySetInnerHTML={{ __html: sanitizeTaskContent(task.content) }} />
-          {task.question ? (
-            <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(e) => handleTaskSubmit(e, task.id)}>
-              <p className="room-question-label">
-                {task.completed ? <Check aria-hidden="true" /> : <HelpCircle aria-hidden="true" />}
-                {task.completed ? 'Zaliczone' : 'Pytanie'}
-              </p>
-              <label className="room-question-text" htmlFor={answerId}>{task.question}</label>
-              <div className="room-field">
-                <input
-                  id={answerId}
-                  type="text"
-                  autoComplete="off"
-                  className={`room-input${task.completed ? ' is-done' : ''}`}
-                  placeholder={task.completed ? 'Ukończono' : 'Twoja odpowiedź...'}
-                  value={task.completed ? '' : (taskAnswers[task.id] || '')}
-                  onChange={(e) => setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value }))}
-                  disabled={task.completed || pendingTask !== null}
-                />
+      <div className="room-reader-shell" ref={readerRef}>
+        {sidebar && <RoomTaskList steps={steps} current={taskIndex} onSelect={setActiveTask} onHide={() => setSidebarHidden(true)} />}
+        <div className="room-reader">
+          <h1 className="sr-only">{room.title}</h1>
+          <article key={task.id} className="room-reader-article" aria-labelledby={titleId}>
+            <h2 className="room-title" id={titleId}>{String(taskIndex + 1).padStart(2, '0')}. {task.title}</h2>
+            {taskIndex === 0 && room.description && (
+              <div className="room-prose room-intro"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
+            )}
+            {taskIndex === 0 && fileBlock}
+            <div className="room-prose task-content" dangerouslySetInnerHTML={{ __html: sanitizeTaskContent(task.content) }} />
+            {task.question || task.requiresAnswer ? (
+              <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(e) => handleTaskSubmit(e, task.id)}>
+                <p className="room-question-label">
+                  {task.completed ? <Check aria-hidden="true" /> : flagTask ? <Flag aria-hidden="true" /> : <HelpCircle aria-hidden="true" />}
+                  {task.completed ? 'Zaliczone' : flagTask ? 'Flaga' : 'Pytanie'}
+                </p>
+                <label className="room-question-text" htmlFor={answerId}>{flagTask ? 'Wpisz znalezioną flagę dokładnie tak, jak ją widzisz.' : task.question}</label>
+                <div className="room-field">
+                  <input
+                    id={answerId}
+                    type="text"
+                    autoComplete="off"
+                    spellCheck={room.roomType === 'CTF' ? false : undefined}
+                    className={`room-input${task.completed ? ' is-done' : ''}`}
+                    placeholder={task.completed ? 'Ukończono' : room.roomType === 'CTF' ? 'HACK{...}' : 'Twoja odpowiedź...'}
+                    value={task.completed ? '' : (taskAnswers[task.id] || '')}
+                    onChange={(e) => { setTaskAnswers(prev => ({ ...prev, [task.id]: e.target.value })); if (taskFeedback?.status === 'error') setTaskFeedback(null); }}
+                    aria-invalid={taskFeedback?.taskId === task.id && taskFeedback.status === 'error' ? true : undefined}
+                    disabled={task.completed || pendingTask !== null || answersBlocked}
+                  />
+                  <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null || answersBlocked}>
+                    {task.completed ? 'Poprawne' : 'Sprawdź'}
+                  </button>
+                </div>
+                {(!task.completed && retryNotice) || feedback}
+              </form>
+            ) : (
+              <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(event) => void handleTaskSubmit(event, task.id)}>
+                <p className="room-question-label">
+                  {task.completed ? <Check aria-hidden="true" /> : <BookOpen aria-hidden="true" />}
+                  {task.completed ? 'Zaliczone' : 'Do przeczytania'}
+                </p>
+                <p className="room-note">Gdy skończysz czytać, oznacz zadanie jako przeczytane.</p>
                 <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
-                  {task.completed ? 'Poprawne' : 'Sprawdź'}
+                  {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
                 </button>
-              </div>
-            </form>
-          ) : (
-            <form className={`room-question${task.completed ? ' is-done' : ''}`} onSubmit={(event) => void handleTaskSubmit(event, task.id)}>
-              <p className="room-question-label">
-                {task.completed ? <Check aria-hidden="true" /> : <BookOpen aria-hidden="true" />}
-                {task.completed ? 'Zaliczone' : 'Do przeczytania'}
-              </p>
-              <p className="room-note">Gdy skończysz czytać, oznacz zadanie jako przeczytane.</p>
-              <button type="submit" className="room-btn room-btn--primary" disabled={task.completed || pendingTask !== null}>
-                {task.completed ? 'Przeczytano' : 'Oznacz jako przeczytane'}
-              </button>
-            </form>
-          )}
-        </article>
-        {hintsBlock}
+                {feedback}
+              </form>
+            )}
+            {completeError && <p className="room-message is-error" role="alert">{completeError}</p>}
+          </article>
+          {hintsBlock}
+        </div>
       </div>
       {modals}
     </RoomFrame>

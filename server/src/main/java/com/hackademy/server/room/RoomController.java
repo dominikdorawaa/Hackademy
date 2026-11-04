@@ -1,15 +1,19 @@
 package com.hackademy.server.room;
 
 
-import com.hackademy.server.path.PathLockedException;
+import com.hackademy.server.path.PathEnrollmentRequiredException;
 import com.hackademy.server.user.User;
 
+import com.hackademy.server.room.dto.HintDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import com.hackademy.server.room.dto.SolveRoomResponse;
 import lombok.RequiredArgsConstructor;
 import org.springframework.core.io.ByteArrayResource;
 import org.springframework.core.io.Resource;
+import org.springframework.dao.DataIntegrityViolationException;
+import org.springframework.http.CacheControl;
 import org.springframework.http.HttpHeaders;
+import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.context.SecurityContextHolder;
@@ -26,16 +30,6 @@ public class RoomController {
 
     private final RoomService roomService;
 
-    @GetMapping
-    public ResponseEntity<List<RoomSummaryDto>> getAllRooms() {
-        Object principal = SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-        String username = null;
-        if (principal instanceof UserDetails) {
-            username = ((UserDetails) principal).getUsername();
-        }
-        return ResponseEntity.ok(roomService.getAllRooms(username));
-    }
-
     @GetMapping("/top3")
     public ResponseEntity<List<RoomSummaryDto>> getTop3Rooms() {
         return ResponseEntity.ok(roomService.getTop3Rooms());
@@ -49,23 +43,7 @@ public class RoomController {
             UserDetails userDetails = (UserDetails) principal;
             return ResponseEntity.ok(roomService.getRoomDetail(id, userDetails.getUsername()));
         } else {
-            // Should be handled by Security filter, but just in case
             return ResponseEntity.status(401).body(Map.of("message", "User not authenticated"));
-        }
-    }
-
-    @PostMapping("/{id}/solve")
-    public ResponseEntity<SolveRoomResponse> solveRoom(@PathVariable Long id,
-            @RequestBody Map<String, String> payload) {
-        String flag = payload.get("flag");
-        UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
-
-        SolveRoomResponse response = roomService.solveRoom(id, flag, userDetails.getUsername());
-
-        if (response.success()) {
-            return ResponseEntity.ok(response);
-        } else {
-            return ResponseEntity.badRequest().body(response);
         }
     }
 
@@ -86,6 +64,23 @@ public class RoomController {
         }
     }
 
+    @ExceptionHandler(RoomAnswerLimitException.class)
+    public ResponseEntity<Map<String, Object>> answerLimited(RoomAnswerLimitException exception) {
+        return ResponseEntity.status(HttpStatus.TOO_MANY_REQUESTS)
+                .header(HttpHeaders.RETRY_AFTER, Long.toString(exception.retryAfterSeconds()))
+                .cacheControl(CacheControl.noStore())
+                .body(Map.of("message", exception.getMessage(), "retryAfter", exception.retryAfterSeconds(),
+                        "reason", RoomAnswerGuard.SCOPE));
+    }
+
+    @ExceptionHandler(PathEnrollmentRequiredException.class)
+    public ResponseEntity<Map<String, Object>> enrollmentRequired(PathEnrollmentRequiredException exception) {
+        return ResponseEntity.status(HttpStatus.FORBIDDEN)
+                .cacheControl(CacheControl.noStore())
+                .body(Map.of("message", exception.getReason(), "code", PathEnrollmentRequiredException.CODE,
+                        "pathIds", exception.pathIds()));
+    }
+
     @PostMapping("/{roomId}/tasks/complete")
     public ResponseEntity<SolveRoomResponse> completeTaskRoom(@PathVariable Long roomId) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -94,23 +89,12 @@ public class RoomController {
     }
 
     @PostMapping("/{roomId}/hints/{hintId}/unlock")
-    public ResponseEntity<?> unlockHint(@PathVariable Long roomId, @PathVariable Long hintId) {
+    public ResponseEntity<HintDto> unlockHint(@PathVariable Long roomId, @PathVariable Long hintId) {
         UserDetails userDetails = (UserDetails) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
         try {
-            boolean unlocked = roomService.unlockHint(roomId, hintId, userDetails.getUsername());
-            // If unlocked is false, it means hint was already unlocked.
-            // In training mode, we want to treat this as success or at least not an error
-            // that blocks UI.
-            if (unlocked) {
-                return ResponseEntity.ok(Map.of("message", "Hint unlocked."));
-            } else {
-                // Return OK even if already unlocked, so frontend doesn't show error
-                return ResponseEntity.ok(Map.of("message", "Hint already unlocked."));
-            }
-        } catch (PathLockedException e) {
-            throw e;
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
+            return ResponseEntity.ok(roomService.unlockHint(roomId, hintId, userDetails.getUsername()));
+        } catch (DataIntegrityViolationException e) {
+            return ResponseEntity.ok(roomService.unlockHint(roomId, hintId, userDetails.getUsername()));
         }
     }
 

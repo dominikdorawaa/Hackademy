@@ -2,9 +2,6 @@ import { useState, useEffect } from 'react';
 
 const SECTION_IDS = ['start', 'arena', 'rooms', 'leaderboard'];
 
-/**
- * Która sekcja landing jest „w centrum” widoku — pod podświetlenie linków w navbarze.
- */
 export function useLandingScrollSpy(enabled: boolean) {
   const [activeId, setActiveId] = useState('start');
 

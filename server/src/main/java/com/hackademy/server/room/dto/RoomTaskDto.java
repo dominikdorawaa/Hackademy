@@ -8,5 +8,6 @@ public record RoomTaskDto(
     String title,
     String content,
     String question,
+    boolean requiresAnswer,
     boolean completed
 ) {}

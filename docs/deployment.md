@@ -247,6 +247,7 @@ Backend ogranicza ruch filtrem `RateLimitFilter` (#132) niezależnie od reguły 
 | `public-banner` | adres IP | 1000 | 1000 na minutę | bannery ścieżek ładowane przez `<img>` bez tokenu |
 | `websocket-handshake` | adres IP | 540 | 540 na minutę | `/ws/info` i otwarcie WebSocket |
 | `websocket-transport` | adres IP | 600 | 3600 na minutę | pozostałe żądania SockJS (`xhr_send`, `xhr`, `xhr_streaming`) |
+| `room-answer` | konto i pokój | 5 | 5 na 5 minut | tylko błędne flagi i odpowiedzi na pytania zadań w jednym pokoju |
 
 - Limit to token bucket: burst to pojemność, próg to tempo odnawiania. Nie liczymy `/health`, `/` ani preflight CORS (`OPTIONS`). Statyczny frontend serwuje Cloudflare Pages.
 - Konto ustalamy z podpisanego JWT Clerka bez zapytania do bazy. Żądanie z nieważnym tokenem liczy się do adresu IP.
@@ -257,6 +258,6 @@ Backend ogranicza ruch filtrem `RateLimitFilter` (#132) niezależnie od reguły 
 - Liczniki są w pamięci jednej instancji i znikają po restarcie. Tabela ma najwyżej `max-keys` (50 000) kluczy. Klucze, których limit odnowił się w całości, są usuwane. Gdy tabela jest pełna, nowe klucze dzielą jeden wspólny limit grupy.
 - Progi dobrał test `RateLimitDefaultsLoadTest` na podstawie ruchu klienta: klasa 30 osób za jednym NAT przez 10 minut (logowanie, szybka nawigacja, bannery ścieżek, przeładowania, zablokowany WebSocket), ponowne połączenie 60 kart po restarcie i pełny pojedynek z reakcjami przechodzą bez odmowy. Limity na adres IP mają zapas co najmniej trzykrotny dla jednej klasy; większa szkoła za jednym adresem wymaga podniesienia progów.
 - Nie ma lokalnych endpointów logowania ani rejestracji. Logowanie chroni Clerk. Zakładanie konta przy pierwszym żądaniu z nowym tokenem jest objęte limitem konta.
-- `RateLimiter.acquire(scope, id, rule)` może posłużyć do limitu błędnych flag (#40) z własnym zakresem i regułą.
+- Grupę `room-answer` (#40) liczy `RoomAnswerGuard` w `POST /api/rooms/{id}/solve` i `POST /api/rooms/{roomId}/tasks/{taskId}/solve`, a nie filtr. Rezerwuje token przed porównaniem odpowiedzi i oddaje go, gdy odpowiedź jest poprawna, więc równoległe próby nie przekroczą burstu. Pusta flaga i zadania bez pytania się nie liczą. Podczas blokady każda odpowiedź, także poprawna, dostaje `429` bez porównania, z treścią `{"message": "...", "retryAfter": N, "reason": "room-answer"}`. Klient po `reason` odróżnia blokadę pokoju od ogólnego limitu `api-write` i wyłącza formularze odpowiedzi na czas odliczania.
 
-Progi zmieniamy zmiennymi środowiskowymi, np. `APPLICATION_RATELIMIT_RULES_APIREAD_BURST=200`. `RATE_LIMIT_ENABLED=false` wyłącza filtr. Zmiana zmiennej restartuje dyno i zeruje liczniki.
+Progi zmieniamy zmiennymi środowiskowymi, np. `APPLICATION_RATELIMIT_RULES_APIREAD_BURST=200`. `RATE_LIMIT_ENABLED=false` wyłącza filtr i limit `room-answer`. Zmiana zmiennej restartuje dyno i zeruje liczniki.

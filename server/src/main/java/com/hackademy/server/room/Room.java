@@ -1,6 +1,5 @@
 package com.hackademy.server.room;
 
-import com.fasterxml.jackson.annotation.JsonIgnore;
 import jakarta.persistence.*;
 import jakarta.validation.constraints.Min;
 import jakarta.validation.constraints.NotBlank;
@@ -48,10 +47,6 @@ public class Room {
     @Column(nullable = false)
     private int points;
 
-    @JsonIgnore
-    @Column(nullable = false)
-    private String flag;
-
     @Min(0)
     @Column(name = "solutions_count", nullable = false)
     private int solutionsCount;
@@ -65,7 +60,7 @@ public class Room {
     @Builder.Default
     @Enumerated(EnumType.STRING)
     @Column(name = "room_type", nullable = false, length = 16)
-    private RoomType roomType = RoomType.CTF;
+    private RoomType roomType = RoomType.PATH;
 
     @Builder.Default
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
@@ -75,10 +70,6 @@ public class Room {
     @OneToMany(mappedBy = "room", cascade = CascadeType.ALL, orphanRemoval = true)
     private List<Hint> hints = new ArrayList<>();
 
-
-    @Builder.Default
-    @Column(nullable = false)
-    private boolean published = true;
 
     @Column(name = "content_revision", nullable = false)
     private long contentRevision;

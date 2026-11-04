@@ -31,7 +31,6 @@ class SshVpnShellTest {
         previousLevel = logger.getLevel();
         previousAdditive = logger.isAdditive();
         logger.setLevel(Level.DEBUG);
-        // Keep the root console appender out, so anything on stdout/stderr comes from println.
         logger.setAdditive(false);
         events.start();
         logger.addAppender(events);

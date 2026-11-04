@@ -111,7 +111,6 @@
     background: var(--tb-alert);
   }
 
-  /* Room for the dock: page content and every bottom-pinned notice stay above it. */
   .site-shell--tabbar {
     --tabbar-clearance: calc(84px + max(12px, env(safe-area-inset-bottom)));
     padding-bottom: calc(76px + max(12px, env(safe-area-inset-bottom)));

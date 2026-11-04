@@ -13,6 +13,7 @@ import type { ShownReaction } from './quickChat';
 import { animatedRound, choreography, finisher, impactAt, MAX_HP } from './battleView';
 import type { Fighter } from './battleView';
 import type { GameSession } from '../../../types/api';
+import { formatElo } from '../../../lib/units';
 
 function Plate({ fighter, side, hp, quickChat }: { fighter: Fighter; side: 'me' | 'rival'; hp: number; quickChat?: { onPick: (id: string) => void; notice: string | null } }) {
   const percent = Math.round((hp / MAX_HP) * 100);
@@ -22,7 +23,7 @@ function Plate({ fighter, side, hp, quickChat }: { fighter: Fighter; side: 'me' 
       {quickChat ? <QuickChatMenu onPick={quickChat.onPick} notice={quickChat.notice}>{avatar}</QuickChatMenu> : avatar}
       <div className="battle-plate-info">
         <p className="battle-plate-name">{side === 'me' ? `${fighter.username} (Ty)` : fighter.username}</p>
-        <p className="battle-plate-elo">Elo {fighter.elo}</p>
+        <p className="battle-plate-elo">{formatElo(fighter.elo)}</p>
         <div className="battle-hp" role="meter" aria-label={`HP: ${fighter.username}`} aria-valuemin={0} aria-valuemax={MAX_HP} aria-valuenow={hp}>
           <span style={{ width: `${percent}%` }} data-low={hp <= 40} />
         </div>
