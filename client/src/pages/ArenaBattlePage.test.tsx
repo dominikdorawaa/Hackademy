@@ -109,8 +109,10 @@ it('reveals the correct answer, both choices and who hit', async () => {
   expect(await screen.findByText('Trafiasz! Rywal traci 20 HP.')).toBeInTheDocument();
   const answers = screen.getAllByRole('listitem');
   expect(within(answers[1]).getByText('Poprawna')).toBeInTheDocument();
-  expect(within(answers[1]).getByText('Ty')).toBeInTheDocument();
-  expect(within(answers[3]).getByText('opponent')).toBeInTheDocument();
+  expect(within(answers[1]).getByRole('img', { name: 'Ty' })).toBeInTheDocument();
+  expect(within(answers[1]).queryByRole('img', { name: 'opponent' })).not.toBeInTheDocument();
+  expect(within(answers[3]).getByRole('img', { name: 'opponent' })).toBeInTheDocument();
+  expect(within(answers[0]).queryByRole('img')).not.toBeInTheDocument();
   await waitFor(() => expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '80'));
   expect(screen.getByRole('timer', { name: 'Następna runda za' })).toHaveTextContent('3');
   expect(screen.getByTestId('shot-me')).toHaveTextContent('-20');
@@ -141,8 +143,8 @@ it('reveals the correct answer at the position the server drew', async () => {
     expect.stringContaining('25'), expect.stringContaining('21'), expect.stringContaining('23'), expect.stringContaining('22'),
   ]);
   expect(within(answers[3]).getByText('Poprawna')).toBeInTheDocument();
-  expect(within(answers[3]).getByText('Ty')).toBeInTheDocument();
-  expect(within(answers[0]).getByText('opponent')).toBeInTheDocument();
+  expect(within(answers[3]).getByRole('img', { name: 'Ty' })).toBeInTheDocument();
+  expect(within(answers[0]).getByRole('img', { name: 'opponent' })).toBeInTheDocument();
 });
 
 it('hides the shots when the player asked for reduced motion', async () => {

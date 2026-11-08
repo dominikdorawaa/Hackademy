@@ -19,6 +19,7 @@ import { arenaCategoryLabel } from '../components/arena/arenaCategory';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
 import RoomFooterBar from '../components/room/RoomFooterBar';
+import UserAvatar from '../components/UserAvatar';
 import RoomFrame from '../components/room/RoomFrame';
 import * as arenaApi from '../services/arenaApi';
 import * as userApi from '../services/userApi';
@@ -214,11 +215,11 @@ export default function ArenaBattlePage() {
                         <li key={index} className={`battle-answer${correct ? ' is-correct' : ''}${mine && !correct ? ' is-wrong' : ''}`}>
                           <span className="battle-answer-letter">{LETTERS[index]}</span>
                           <span className="battle-answer-text">{text}</span>
-                          <span className="battle-answer-tags">
-                            {correct && <span>Poprawna</span>}
-                            {mine && <span>Ty</span>}
-                            {theirs && <span>{rival.username}</span>}
-                          </span>
+                          {correct && <span className="sr-only">Poprawna</span>}
+                          {(mine || theirs) && <span className="battle-pickers">
+                            {mine && <UserAvatar className="battle-picker is-me" username={me.username} avatar={me.avatar} alt="Ty" />}
+                            {theirs && <UserAvatar className="battle-picker is-rival" username={rival.username} avatar={rival.avatar} alt={rival.username} />}
+                          </span>}
                         </li>
                       );
                     })}

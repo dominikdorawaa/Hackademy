@@ -832,17 +832,31 @@ button.battle-answer:disabled {
   background: rgb(255 255 255 / 0.2);
 }
 
-.battle-answer-tags {
-  display: flex;
-  gap: 6px;
-  font-size: 0.75rem;
-  font-weight: 700;
+.battle-answers.is-reveal .battle-answer {
+  position: relative;
+  grid-template-columns: 32px minmax(0, 1fr);
 }
 
-.battle-answer-tags span {
-  padding: 2px 6px;
-  border-radius: 4px;
-  background: rgb(255 255 255 / 0.14);
+.battle-pickers {
+  position: absolute;
+  top: -12px;
+  right: 8px;
+  display: flex;
+  gap: 4px;
+}
+
+.battle-picker {
+  width: 30px;
+  height: 30px;
+  border: 2px solid var(--battle-me);
+  border-radius: 3px;
+  background: #0b111c;
+  box-shadow: 0 2px 0 #050a14;
+  object-fit: cover;
+}
+
+.battle-picker.is-rival {
+  border-color: var(--battle-rival);
 }
 
 .battle-summary {
