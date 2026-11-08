@@ -163,7 +163,7 @@ it('shows the result with the Elo change when the battle ends', async () => {
   })) };
   mount();
   expect(await screen.findByRole('heading', { name: 'Zwycięstwo' })).toBeInTheDocument();
-  expect(screen.getByText('Rywal padł po Twoim ciosie.')).toBeInTheDocument();
+  expect(screen.queryByText('Rywal padł po Twoim ciosie.')).not.toBeInTheDocument();
   expect(screen.getByText('+16 Elo')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Wróć do Areny' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Poddaj walkę' })).not.toBeInTheDocument();

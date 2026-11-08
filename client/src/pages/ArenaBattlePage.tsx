@@ -197,7 +197,7 @@ export default function ArenaBattlePage() {
                 </div>
               </BattleScene>
 
-              {finished && <BattleResult result={result} title={outcomeTitle(result)} text={finishText(session, me.id)} change={change} still={reducedMotion} />}
+              {finished && <BattleResult result={result} title={outcomeTitle(result)} text={result === 'cancelled' ? finishText(session, me.id) : null} change={change} still={reducedMotion} />}
               {absence && <p className="battle-absence" role="status">{absence}</p>}
               {pause ? (
                 <BattlePause pause={pause} me={me} rival={rival} />
