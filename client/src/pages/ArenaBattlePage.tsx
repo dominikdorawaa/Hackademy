@@ -1,6 +1,5 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
-import { Swords } from 'lucide-react';
 import { BattlePause } from '../components/arena/battle/BattlePause';
 import { BattleResult } from '../components/arena/battle/BattleResult';
 import { BattleScene } from '../components/arena/battle/BattleScene';
@@ -182,9 +181,6 @@ export default function ArenaBattlePage() {
         />
       }>
       <section className="room-pane battle-pane" aria-label="Pojedynek">
-        <div className="room-pane-tab">
-          <span><Swords aria-hidden="true" />Pojedynek</span>
-        </div>
         <div className="user-dashboard battle-page" data-still={reducedMotion} data-result={finished ? result : undefined}>
           <div className="battle-shell">
             <div className="battle-arena" data-paused={pause !== null} data-danger={!finished && me.hp > 0 && me.hp < LOW_HP}>
