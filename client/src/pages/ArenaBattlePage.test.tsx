@@ -356,3 +356,20 @@ it.each([
   mount();
   expect(await screen.findByText(label)).toBeInTheDocument();
 });
+
+it('lands a right answer on the rival straight away without waiting for their answer', async () => {
+  server.use(http.post(`${API_URL}/api/arena/game/game/answer`, () => HttpResponse.json({ message: 'ok', correct: true, damage: 18 })));
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: /22/ }));
+  await waitFor(() => expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '82'));
+  expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '100');
+  expect(screen.getByText('Odpowiedź wysłana. Czekamy na rywala.')).toBeInTheDocument();
+});
+
+it('keeps the rival untouched after a wrong answer until the round ends', async () => {
+  server.use(http.post(`${API_URL}/api/arena/game/game/answer`, () => HttpResponse.json({ message: 'ok', correct: false, damage: 0 })));
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: /21/ }));
+  expect(await screen.findByText('Odpowiedź wysłana. Czekamy na rywala.')).toBeInTheDocument();
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
+});

@@ -225,6 +225,21 @@ export function choreography(session: GameSession, fighterId: number, opponentId
   return segments;
 }
 
+export function strikeChoreography(attacker: boolean): Segment[] {
+  return attacker
+    ? [{ frames: ATTACK, loop: false, frameTime: ATTACK_FRAME_MS, ms: CAST_MS }, IDLE]
+    : [{ ...IDLE, ms: IMPACT_MS }, { frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT_MS }, IDLE];
+}
+
+export function strikeRound(session: GameSession, attackerId: number, targetId: number, damage: number): RoundResult {
+  return { round: session.round, questionId: 0, content: '', answers: [], correctAnswer: -1, choices: {}, damage: { [attackerId]: 0, [targetId]: damage } };
+}
+
+export function withoutStrike(session: GameSession, targetId: number): GameSession {
+  if (!session.lastRound) return session;
+  return { ...session, lastRound: { ...session.lastRound, damage: { ...session.lastRound.damage, [targetId]: 0 } } };
+}
+
 export function secondsLeft(deadline: number, serverTime: number, receivedAt: number, now: number) {
   const serverNow = now + (serverTime - receivedAt);
   return Math.max(0, Math.ceil((deadline - serverNow) / 1000));

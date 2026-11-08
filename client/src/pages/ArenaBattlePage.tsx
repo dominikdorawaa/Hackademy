@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import { createPortal } from 'react-dom';
 import { Link, useParams } from 'react-router-dom';
+import { Flag } from 'lucide-react';
 import { BattlePause } from '../components/arena/battle/BattlePause';
+import { BattleResult } from '../components/arena/battle/BattleResult';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
@@ -16,12 +19,14 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { arenaCategoryLabel } from '../components/arena/arenaCategory';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
+import RoomNavInfo from '../components/room/RoomNavInfo';
+import { useRoomMode } from '../components/room/roomChrome';
+import '../components/room/room.css';
 import * as arenaApi from '../services/arenaApi';
 import * as userApi from '../services/userApi';
 import type { AvatarConfig } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaBattlePage.css';
-import { formatEloChange } from '../lib/units';
 
 const LETTERS = ['A', 'B', 'C', 'D'];
 const NOTICE_MS = 4000;
@@ -38,8 +43,10 @@ export default function ArenaBattlePage() {
   const [picked, setPicked] = useState<{ round: number; answer: number } | null>(null);
   const [error, setError] = useState<{ round: number | null; message: string } | null>(null);
   const [confirmSurrender, setConfirmSurrender] = useState(false);
+  const [strike, setStrike] = useState<{ game: string; round: number; damage: number } | null>(null);
   const [reactionNotice, setReactionNotice] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
+  const chrome = useRoomMode();
   const serverTime = session?.serverTime ?? 0;
   const clock = useArenaClock(serverTime, session?.status === 'ACTIVE');
   useBattlePresence(gameId, sessionKey);
@@ -112,7 +119,11 @@ export default function ArenaBattlePage() {
         const body = await response.json().catch(() => null);
         setPicked(previous => previous?.round === round ? null : previous);
         setError({ round, message: body?.message ?? 'Nie udało się wysłać odpowiedzi.' });
+        return;
       }
+      const body = await response.json().catch(() => null);
+      const damage = body?.correct ? body.damage ?? 0 : 0;
+      if (Number.isInteger(damage) && damage > 0) setStrike({ game: session.id, round, damage });
     } catch {
       setPicked(previous => previous?.round === round ? null : previous);
       setError({ round, message: 'Błąd sieci. Spróbuj jeszcze raz.' });
@@ -135,11 +146,46 @@ export default function ArenaBattlePage() {
     if (!response?.ok) setError({ round: null, message: 'Nie udało się poddać walki.' });
   };
 
+  const navInfo = (
+    <RoomNavInfo
+      back={finished
+        ? { title: 'Arena', label: 'Arena', to: '/arena' }
+        : { title: 'Arena', label: 'Wyjdź z walki', onClick: () => setConfirmSurrender(true) }}
+      title={`${me.username} vs ${rival.username}`}
+      progress={{ value: finished ? session.totalRounds : session.round - 1, max: session.totalRounds, label: 'Przebieg walki' }}
+      steps={{
+        items: Array.from({ length: session.totalRounds }, (_, index) => ({
+          key: index + 1, title: `Runda ${index + 1}`, done: finished || index + 1 < session.round, locked: true,
+        })),
+        current: finished ? -1 : session.round - 1,
+        onSelect: () => undefined,
+      }}
+      action={
+        <div className="battle-nav-actions">
+          <BugReportButton className="room-nav-report" context={{ source: 'ARENA', gameId: session.id }} />
+          {!finished && (confirmSurrender ? (
+            <>
+              <span className="battle-nav-warning">Poddanie oznacza porażkę.</span>
+              <button type="button" className="battle-nav-btn is-danger" onClick={() => void surrender()}>Tak, poddaję walkę</button>
+              <button type="button" className="battle-nav-btn" onClick={() => setConfirmSurrender(false)}>Walczę dalej</button>
+            </>
+          ) : (
+            <button type="button" className="battle-nav-btn" onClick={() => setConfirmSurrender(true)}>
+              <Flag aria-hidden="true" /><span>Poddaj walkę</span>
+            </button>
+          ))}
+        </div>
+      }
+    />
+  );
+
   return (
-    <div className="user-dashboard battle-page" data-still={reducedMotion}>
+    <div className="user-dashboard battle-page" data-still={reducedMotion} data-result={finished ? result : undefined}>
+      {chrome ? chrome.slot && createPortal(navInfo, chrome.slot) : <div className="battle-inline-bar">{navInfo}</div>}
       <div className="battle-shell">
         <div className="battle-arena" data-paused={pause !== null}>
           <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
+            strike={strike?.game === session.id && strike.round === session.round ? strike.damage : null}
             quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>
             <div className="battle-round">
               <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
@@ -147,14 +193,7 @@ export default function ArenaBattlePage() {
             </div>
           </BattleScene>
 
-          {finished && (
-            <section className={`battle-result is-${result}`} aria-labelledby="battle-result-title">
-              <h1 id="battle-result-title">{outcomeTitle(result)}</h1>
-              <p>{finishText(session, me.id)}</p>
-              <p className="battle-result-elo">{formatEloChange(change)}</p>
-              <Link className="ud-btn ud-btn-solid" to="/arena">Wróć do Areny</Link>
-            </section>
-          )}
+          {finished && <BattleResult result={result} title={outcomeTitle(result)} text={finishText(session, me.id)} change={change} still={reducedMotion} />}
           {absence && <p className="battle-absence" role="status">{absence}</p>}
           {pause ? (
             <BattlePause pause={pause} me={me} rival={rival} />
@@ -203,19 +242,6 @@ export default function ArenaBattlePage() {
               {visibleError && <p role="alert" className="battle-error">{visibleError}</p>}
             </section>
           ) : null}
-        </div>
-
-        <div className="battle-actions">
-          <BugReportButton labelled className="ud-btn ud-btn-small battle-report" context={{ source: 'ARENA', gameId: session.id }} />
-          {!finished && (confirmSurrender ? (
-            <>
-              <span>Poddanie oznacza porażkę.</span>
-              <button type="button" className="ud-btn ud-btn-small battle-surrender" onClick={() => void surrender()}>Tak, poddaję walkę</button>
-              <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(false)}>Walczę dalej</button>
-            </>
-          ) : (
-            <button type="button" className="ud-btn ud-btn-small" onClick={() => setConfirmSurrender(true)}>Poddaj walkę</button>
-          ))}
         </div>
       </div>
     </div>

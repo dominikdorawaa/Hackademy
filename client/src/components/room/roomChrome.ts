@@ -1,4 +1,4 @@
-import { createContext, useContext } from 'react';
+import { createContext, useContext, useEffect } from 'react';
 
 export interface RoomChrome {
   active: boolean;
@@ -11,4 +11,15 @@ export const RoomChromeContext = createContext<RoomChrome | null>(null);
 
 export function useRoomChrome() {
   return useContext(RoomChromeContext);
+}
+
+export function useRoomMode() {
+  const chrome = useRoomChrome();
+  const setActive = chrome?.setActive;
+  useEffect(() => {
+    if (!setActive) return;
+    setActive(true);
+    return () => setActive(false);
+  }, [setActive]);
+  return chrome;
 }

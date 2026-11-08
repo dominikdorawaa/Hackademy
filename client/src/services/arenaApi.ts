@@ -1,6 +1,6 @@
 import { request } from './http';
 import type { SessionScope } from './http';
-import type { ApiId, MessageResponse, ChallengeRequest, Challenge, GameSession } from '../types/api';
+import type { AnswerResponse, ApiId, MessageResponse, ChallengeRequest, Challenge, GameSession } from '../types/api';
 
 export function getStatus(auth: SessionScope) {
   return request<GameSession>(`/api/arena/status`, {
@@ -68,7 +68,7 @@ export function getGame(id: ApiId, auth: SessionScope) {
 }
 
 export function answerQuestion(id: ApiId, round: number, answer: number, auth: SessionScope) {
-  return request<MessageResponse>(`/api/arena/game/${id}/answer`, {
+  return request<AnswerResponse>(`/api/arena/game/${id}/answer`, {
     method: 'POST',
     auth, headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ round, answer }),

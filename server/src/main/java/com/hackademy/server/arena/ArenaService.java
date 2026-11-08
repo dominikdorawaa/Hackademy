@@ -11,6 +11,7 @@ public interface ArenaService {
     GameSession findActiveGameForUser(Long userId);
     GameSession findCurrentGameForUser(Long userId);
     BattleEngine.AnswerResult answer(String gameId, Long userId, int round, int answer);
+    AnswerOutcome submitAnswer(String gameId, Long userId, int round, int answer);
     SurrenderResult surrenderGame(String gameId, Long userId);
     ReactionOutcome react(String gameId, Long userId, String reaction);
     boolean leaveView(String gameId, Long userId);

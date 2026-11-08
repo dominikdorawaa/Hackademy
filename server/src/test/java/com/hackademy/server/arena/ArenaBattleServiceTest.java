@@ -97,6 +97,18 @@ class ArenaBattleServiceTest {
     }
 
     @Test
+    void tellsTheAnsweringPlayerRightAwayHowHardTheirAnswerHitsBeforeTheRivalAnswers() {
+        now.addAndGet(2_500);
+        var hit = arena.submitAnswer("game", 1L, 1, 2);
+        assertEquals(new AnswerOutcome(BattleEngine.AnswerResult.ACCEPTED, 18), hit);
+        assertEquals("QUESTION", state().getPhase());
+        assertEquals(Map.of(1L, 100, 2L, 100), state().getHp());
+        assertEquals(new AnswerOutcome(BattleEngine.AnswerResult.ACCEPTED, 0), arena.submitAnswer("game", 2L, 1, 0));
+        assertEquals(Map.of(1L, 0, 2L, 18), state().getLastRound().damage());
+        assertEquals(AnswerOutcome.refused(BattleEngine.AnswerResult.NOT_ACTIVE), arena.submitAnswer("game", 1L, 1, 2));
+    }
+
+    @Test
     void usesTheServerClockAndFirstAcceptedAnswerIndependentlyForBothPlayers() {
         now.addAndGet(999);
         assertEquals(BattleEngine.AnswerResult.ACCEPTED, arena.answer("game", 1L, 1, 2));

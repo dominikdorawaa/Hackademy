@@ -249,15 +249,21 @@ public class ArenaServiceImpl implements ArenaService {
 
     @Override
     public BattleEngine.AnswerResult answer(String gameId, Long userId, int round, int answer) {
+        return submitAnswer(gameId, userId, round, answer).result();
+    }
+
+    @Override
+    public AnswerOutcome submitAnswer(String gameId, Long userId, int round, int answer) {
         GameSession session = activeGames.get(gameId);
-        if (session == null) return BattleEngine.AnswerResult.NOT_PLAYER;
+        if (session == null) return AnswerOutcome.refused(BattleEngine.AnswerResult.NOT_PLAYER);
         synchronized (session) {
             long now = clock.getAsLong();
             var result = BattleEngine.answer(session, userId, round, answer, now);
-            if (result != BattleEngine.AnswerResult.ACCEPTED) return result;
+            if (result != BattleEngine.AnswerResult.ACCEPTED) return AnswerOutcome.refused(result);
+            int damage = BattleEngine.strike(session, userId);
             if (BattleEngine.roundOver(session, now)) resolveRound(session, now);
             if (!"FINISHED".equals(session.getStatus())) realtime.arenaChanged(session.people());
-            return result;
+            return new AnswerOutcome(result, damage);
         }
     }
 

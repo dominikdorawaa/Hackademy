@@ -82,9 +82,10 @@ public class ArenaController {
         if (round == null || round < 1) {
             return ResponseEntity.badRequest().body(Map.of("message", "Podaj numer rundy, na którą odpowiadasz."));
         }
-        var result = arenaService.answer(gameId, currentUser().getId(), round, answer);
+        var outcome = arenaService.submitAnswer(gameId, currentUser().getId(), round, answer);
+        var result = outcome.result();
         if (result == BattleEngine.AnswerResult.ACCEPTED) {
-            return ResponseEntity.ok(Map.of("message", "Odpowiedź przyjęta"));
+            return ResponseEntity.ok(Map.of("message", "Odpowiedź przyjęta", "correct", outcome.damage() > 0, "damage", outcome.damage()));
         }
         if (result == BattleEngine.AnswerResult.NOT_PLAYER) {
             return ResponseEntity.notFound().build();
