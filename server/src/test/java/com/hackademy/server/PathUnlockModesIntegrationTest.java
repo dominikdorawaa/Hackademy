@@ -139,8 +139,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
     void roomModeIsOneQueueAcrossChaptersAndGuardsEveryRoomAction() throws Exception {
         var admin = account(Role.ADMIN);
         long a1 = room(admin), a2 = room(admin), b1 = room(admin);
-        jdbcTemplate.update("INSERT INTO hints (description, room_id) VALUES ('Hint', ?)", b1);
-        long hint = jdbcTemplate.queryForObject("SELECT id FROM hints WHERE room_id = ?", Long.class, b1);
+        long hint = addHint(b1, "Hint");
         long pathId = createPath(admin, "ROOM", List.of(chapter("A", List.of(a1, a2)), chapter("B", List.of(b1))));
         var user = learner(pathId);
 

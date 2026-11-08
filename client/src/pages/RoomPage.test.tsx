@@ -9,7 +9,7 @@ import API_URL from '../apiConfig';
 import { server } from '../test/mocks/server';
 import { createToken } from '../test/fixtures/auth';
 import { renderWithAuth } from '../test/renderWithAuth';
-import type { RoomDetailDto, RoomTaskDto } from '../types/api';
+import type { HintDto, RoomDetailDto, RoomTaskDto } from '../types/api';
 import { onRateLimit } from '../services/rateLimit';
 import RoomPage from './RoomPage';
 
@@ -37,11 +37,14 @@ vi.mock('../context/NotificationPreferencesContext', async () => {
 
 beforeEach(() => { mockRoomViewport(); live.set(true); sounds.play.mockClear(); });
 
-function mount(tasks: RoomTaskDto[]) {
+type TaskFixture = Omit<RoomTaskDto, 'hints'> & { hints?: HintDto[] };
+const withHints = (tasks: TaskFixture[]): RoomTaskDto[] => tasks.map(task => ({ hints: [], ...task }));
+
+function mount(tasks: TaskFixture[]) {
   const room: RoomDetailDto = {
     id: 7, title: 'HTTP', description: 'Opis', shortDescription: '', difficulty: 'EASY', roomType: 'PATH',
     points: 50, solutionsCount: 0, createdAt: '2026-10-01T00:00:00', solved: false,
-    requiresVpn: false, hints: [], unlockedHintIds: [], fileName: null, tasks,
+    requiresVpn: false, fileName: null, tasks: withHints(tasks),
   };
   server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
   setClerkSession(createToken('USER'));
@@ -100,8 +103,8 @@ describe('room activity for friends', () => {
     );
     const room: RoomDetailDto = {
       id: 7, title: 'HTTP', description: 'Opis', shortDescription: '', difficulty: 'EASY', roomType: 'PATH', points: 50, solutionsCount: 0,
-      createdAt: '2026-10-01T00:00:00', solved: false, requiresVpn: false, hints: [], unlockedHintIds: [], fileName: null,
-      tasks: [{ id: 1, title: 'Zadanie', content: 'Treść', question: 'Pytanie?', requiresAnswer: true, completed: false }],
+      createdAt: '2026-10-01T00:00:00', solved: false, requiresVpn: false, fileName: null,
+      tasks: [{ id: 1, title: 'Zadanie', content: 'Treść', question: 'Pytanie?', requiresAnswer: true, completed: false, hints: [] }],
     };
     server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
     setClerkSession(createToken('USER'));
@@ -274,15 +277,13 @@ describe('return navigation', () => {
 
 const hintTexts: Record<number, string> = { 1: 'Zajrzyj do źródła strony', 2: 'Szukaj komentarza' };
 
-function mountCtf(overrides: Partial<RoomDetailDto> = {}, url = '/rooms/7') {
-  const unlockedHintIds = overrides.unlockedHintIds ?? [];
+function mountCtf({ unlockedHintIds = [], tasks, ...overrides }: Partial<Omit<RoomDetailDto, 'tasks'>> & { unlockedHintIds?: number[]; tasks?: TaskFixture[] } = {}, url = '/rooms/7') {
   const hints = [1, 2].map((id, order) => unlockedHintIds.includes(id) ? { id, order, description: hintTexts[id] } : { id, order });
   const solved = overrides.solved ?? false;
   const room: RoomDetailDto = {
     id: 7, title: 'Pierwsza flaga', description: 'Znajdź flagę', shortDescription: 'Rozgrzewka', difficulty: 'EASY', roomType: 'CTF',
-    points: 50, solutionsCount: 3, createdAt: '2026-10-01T00:00:00', solved, requiresVpn: false,
-    hints, unlockedHintIds, fileName: null,
-    tasks: [{ id: 5, title: 'Ukryta flaga', content: '<p>Flaga jest w kodzie strony.</p>', question: null, requiresAnswer: true, completed: solved }],
+    points: 50, solutionsCount: 3, createdAt: '2026-10-01T00:00:00', solved, requiresVpn: false, fileName: null,
+    tasks: withHints(tasks ?? [{ id: 5, title: 'Ukryta flaga', content: '<p>Flaga jest w kodzie strony.</p>', question: null, requiresAnswer: true, completed: solved, hints }]),
     ...overrides,
   };
   server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)));
@@ -368,33 +369,40 @@ describe('CTF room', () => {
     expect(bit()).toHaveAttribute('data-state', 'idle');
   });
 
-  it('unlocks hints in order after confirming the point cost', async () => {
+  it('reveals the next hint of the task in place and shows its XP cost on the button', async () => {
     const user = userEvent.setup();
     let unlocks = 0;
     server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => { unlocks++; return HttpResponse.json({ id: 1, order: 0, description: hintTexts[1] }); }));
     mountCtf();
-    expect(await screen.findByText('XP do zdobycia:')).toHaveTextContent('50 XP');
+    const first = await screen.findByRole('button', { name: 'Podpowiedź (1/2) · −5 XP' });
     expect(screen.queryByText(hintTexts[1])).not.toBeInTheDocument();
-    expect(screen.getByRole('button', { name: 'Zablokowane (odblokuj poprzednią)' })).toBeDisabled();
-    await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-13 XP)' }));
-    expect(screen.getByText('Czy na pewno chcesz odblokować tę podpowiedź? To odejmie 13 XP.')).toBeInTheDocument();
-    await user.click(screen.getByRole('button', { name: 'Anuluj' }));
-    expect(unlocks).toBe(0);
-    await user.click(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-13 XP)' }));
-    await user.click(screen.getByRole('button', { name: 'Tak, odblokuj' }));
-    expect(await screen.findByText('Zajrzyj do źródła strony')).toBeInTheDocument();
+    expect(document.querySelector('.room-chip--points')).toHaveTextContent('50 XP');
+    await user.click(first);
+    expect(await screen.findByText(hintTexts[1])).toBeInTheDocument();
     expect(unlocks).toBe(1);
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(document.querySelector('.px-toast')).toBeNull();
-    expect(screen.getByText('XP do zdobycia:')).toHaveTextContent('37 XP');
-    expect(screen.getByRole('button', { name: 'Odblokuj podpowiedź (-12 XP)' })).toBeEnabled();
+    expect(document.querySelector('.room-chip--points')).toHaveTextContent('45 XP');
+    expect(screen.getByRole('button', { name: 'Podpowiedź (2/2) · −5 XP' })).toBeEnabled();
+    expect(screen.queryByText(hintTexts[2])).not.toBeInTheDocument();
+  });
+
+  it('stops charging once hints took half of the room', async () => {
+    const unlocked = (id: number) => ({ id, order: id - 1, description: `Podpowiedź numer ${id}` });
+    mount([
+      { id: 1, title: 'Pierwsze', content: 'Treść', question: 'Co?', requiresAnswer: true, completed: false, hints: [unlocked(1), unlocked(2), { id: 3, order: 2 }] },
+      { id: 2, title: 'Drugie', content: 'Treść', question: 'Co?', requiresAnswer: true, completed: false, hints: [1, 2, 3].map(unlocked) },
+    ]);
+    expect(await screen.findByText('Podpowiedź numer 2')).toBeInTheDocument();
+    expect(screen.getByRole('button', { name: 'Podpowiedź (3/3) · bez dalszej utraty XP' })).toBeEnabled();
+    expect(document.querySelector('.room-chip--points')).toHaveTextContent('25 XP');
   });
 
   it('shows a failed hint unlock', async () => {
     const user = userEvent.setup();
     server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => HttpResponse.json({ message: 'x' }, { status: 500 })));
     mountCtf();
-    await user.click(await screen.findByRole('button', { name: 'Odblokuj podpowiedź (-13 XP)' }));
-    await user.click(screen.getByRole('button', { name: 'Tak, odblokuj' }));
+    await user.click(await screen.findByRole('button', { name: 'Podpowiedź (1/2) · −5 XP' }));
     expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
     expect(screen.queryByText('Zajrzyj do źródła strony')).not.toBeInTheDocument();
     expect(document.querySelector('.px-toast')).toBeNull();
@@ -405,7 +413,7 @@ describe('CTF room', () => {
     expect(await screen.findByText('Rozwiązany')).toBeInTheDocument();
     expect(screen.getByPlaceholderText('Ukończono')).toBeDisabled();
     expect(screen.getByRole('button', { name: 'Poprawne' })).toBeDisabled();
-    expect(screen.queryByText('XP do zdobycia:')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /Podpowiedź/ })).not.toBeInTheDocument();
   });
 
   it('tells the player when a room has no tasks yet', async () => {
@@ -416,8 +424,8 @@ describe('CTF room', () => {
 });
 
 describe('Bit room integration', () => {
-  it('keeps Bit in the footer lane, away from long content, questions and expanded hints', async () => {
-    mountCtf({ description: 'Długa treść '.repeat(1000), unlockedHintIds: [1, 2], requiresVpn: true, title: 'Tutorial VPN', tasks: [] });
+  it('keeps Bit in the footer lane, away from long content and questions', async () => {
+    mountCtf({ description: 'Długa treść '.repeat(1000), requiresVpn: true, title: 'Tutorial VPN', tasks: [] });
     await screen.findByRole('heading', { name: 'Tutorial VPN' });
     expect(bit()).toHaveAttribute('data-state', 'idle');
     expect(bit()?.parentElement).toHaveClass('room-footer-lane');
@@ -425,7 +433,6 @@ describe('Bit room integration', () => {
     expect(document.querySelector('.room-body-shell .room-pane-scroll')).toHaveTextContent('Długa treść');
     expect(bit()?.querySelector('input, .room-prose, .room-hints')).toBeNull();
     expect(bit()?.querySelectorAll('button')).toHaveLength(1);
-    expect(screen.getByText('Szukaj komentarza')).toBeInTheDocument();
   });
 
   it('reacts to a new task once, preserves its state when changing tasks and ignores restored completion', async () => {
@@ -637,11 +644,11 @@ describe('next room in a path', () => {
     chapters: [{ id: 10, title: 'Start', totalRooms: 2, solvedRooms: 1, rooms: [{ id: 7, title: 'HTTP' }, { id: 8, title: 'DNS' }] }],
   };
 
-  function mountSolved(tasks: RoomTaskDto[], url: string) {
+  function mountSolved(tasks: TaskFixture[], url: string) {
     const room: RoomDetailDto = {
       id: 7, title: 'HTTP', description: 'Opis', shortDescription: '', difficulty: 'EASY', roomType: 'PATH',
       points: 50, solutionsCount: 2, createdAt: '2026-10-01T00:00:00', solved: true,
-      requiresVpn: false, hints: [], unlockedHintIds: [], fileName: null, tasks,
+      requiresVpn: false, fileName: null, tasks: withHints(tasks),
     };
     server.use(
       http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(room)),

@@ -2,6 +2,10 @@ package com.hackademy.server.room;
 
 import jakarta.persistence.*;
 import lombok.*;
+import org.hibernate.annotations.BatchSize;
+
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "room_tasks")
@@ -34,4 +38,10 @@ public class RoomTask {
 
     @Column(name = "sort_order", nullable = false)
     private int sortOrder;
+
+    @Builder.Default
+    @OneToMany(mappedBy = "task", cascade = CascadeType.ALL, orphanRemoval = true)
+    @BatchSize(size = 100)
+    @OrderBy("sortOrder ASC, id ASC")
+    private List<Hint> hints = new ArrayList<>();
 }

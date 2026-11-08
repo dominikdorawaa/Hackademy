@@ -1,8 +1,10 @@
 export const levelFromPoints = (points: number) => Math.floor((Number(points) || 0) / 100) + 1;
 
-const HINT_PENALTY = 0.25;
+const HINT_PENALTY_PERCENT = 10;
+const MAX_HINT_PENALTY_PERCENT = 50;
 
-export const xpAfterHints = (points: number, hints: number) => Math.max(0, Math.trunc((Number(points) || 0) * (1 - hints * HINT_PENALTY)));
+export const xpAfterHints = (points: number, hints: number) =>
+  Math.trunc(Math.max(0, Number(points) || 0) * (100 - Math.min(Math.max(0, hints) * HINT_PENALTY_PERCENT, MAX_HINT_PENALTY_PERCENT)) / 100);
 
 export const rankTitleFromPoints = (points: number) => {
   const level = levelFromPoints(points);

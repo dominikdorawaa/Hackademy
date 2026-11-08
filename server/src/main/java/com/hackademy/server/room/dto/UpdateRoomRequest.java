@@ -5,7 +5,6 @@ import com.hackademy.server.room.RoomType;
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import jakarta.validation.constraints.NotNull;
-import java.util.List;
 
 public record UpdateRoomRequest(
         @NotBlank(message = "Tytuł nie może być pusty") @Size(max = 255) String title,
@@ -15,7 +14,6 @@ public record UpdateRoomRequest(
         @NotBlank(message = "Kategoria nie może być pusta") @Size(max = 255) String category,
         Integer points,
         boolean requiresVpn,
-        RoomType roomType,
-        @Size(max = 100) List<@NotBlank @Size(max = 2000) String> hints
+        RoomType roomType
 ) {
 }

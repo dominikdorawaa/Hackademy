@@ -170,7 +170,7 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                     try {
                         contentService.saveRoom(room, new ContentRequests.RoomSave(((Number) roomRevisions.get("content_revision")).longValue(),
                                 ((Number) roomRevisions.get("tasks_revision")).longValue(), (String) roomRevisions.get("title"), "", "",
-                                DifficultyLevel.EASY, "Web", 50, false, RoomType.PATH, List.of(),
+                                DifficultyLevel.EASY, "Web", 50, false, RoomType.PATH,
                                 List.of(new RoomTaskRequest(task, "Zdobądź flagę", "Znajdź flagę", "Jaka jest flaga?", "flag")),
                                 null, null, null, null, null), null);
                     } catch (java.io.IOException e) {

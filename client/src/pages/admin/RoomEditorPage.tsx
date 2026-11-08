@@ -23,10 +23,10 @@ import { formatXp } from '../../lib/units';
 
 const defaultCategory = (kind: RoomType) => kind === 'PATH' ? 'Path' : 'Web';
 function empty(kind: RoomType): RoomSave {
-  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, hints: [], tasks: [] };
+  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, tasks: [] };
 }
 function fromDetail(d: contentApi.RoomEditor): RoomSave {
-  return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, hints: d.room.hints ?? [], revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, tasks: d.tasks.tasks };
+  return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, tasks: d.tasks.tasks.map(task => ({ ...task, hints: task.hints ?? [] })) };
 }
 export default function RoomEditorPage() {
   const { roomId } = useParams();
@@ -103,12 +103,12 @@ function RoomEditor({ roomId }: { roomId: string }) {
     checkText(nextErrors, 'category', current.category, 255, true);
     if (!Number.isSafeInteger(current.points) || current.points < 0 || current.points > 2147483647) nextErrors.points = 'Podaj nieujemną liczbę całkowitą do 2147483647';
     if (ready && !current.tasks.length) nextErrors.tasks = 'Dodaj przynajmniej jedno zadanie';
-    current.hints.forEach((hint, i) => checkText(nextErrors, `hints.${i}`, hint, 2000, true));
     current.tasks.forEach((task, i) => {
       checkText(nextErrors, `tasks.${i}.title`, task.title, 255, true);
       checkText(nextErrors, `tasks.${i}.content`, task.content, 20000, ready);
       checkText(nextErrors, `tasks.${i}.question`, task.question ?? '', 2000, ready && current.roomType === 'PATH' && !!task.answer?.trim() && !task.question?.trim());
       checkText(nextErrors, `tasks.${i}.answer`, task.answer ?? '', 255, ready && (current.roomType === 'CTF' || !!task.question?.trim()));
+      task.hints?.forEach((hint, h) => checkText(nextErrors, `tasks.${i}.hints.${h}`, hint, 2000, true));
     });
     if (file && file.size > 50 * 1024 * 1024) nextErrors.file = 'Plik może mieć maksymalnie 50 MB';
     setErrors(nextErrors); setError(null); setSuccess(null);
@@ -178,11 +178,6 @@ function RoomEditor({ roomId }: { roomId: string }) {
               <div className="grid content-start gap-2"><div className="flex items-center gap-3"><Switch id="room-vpn" checked={form.requiresVpn} onCheckedChange={requiresVpn => change({ requiresVpn })} /><label htmlFor="room-vpn">Wymaga VPN</label></div><p className="text-xs text-muted-foreground">Gracz otworzy pokój po ukończeniu samouczka VPN.</p></div>
             </div>
           </Section>}
-          <Section title="Podpowiedzi" description="Każda odblokowana podpowiedź zmniejsza nagrodę gracza o 25%.">
-            <div className="grid gap-4">{form.hints.map((hint, index) => <div key={index} className="grid gap-2 rounded border p-3"><TextField name={`hints.${index}`} label={`Podpowiedź ${index + 1}`} value={hint} limit={2000} required error={errors[`hints.${index}`]} onChange={value => change({ hints: form.hints.map((h, i) => i === index ? value : h) })} /><Button type="button" variant="outline" onClick={() => change({ hints: form.hints.filter((_, i) => i !== index) })}>Usuń podpowiedź</Button></div>)}
-              <Button type="button" variant="outline" onClick={() => change({ hints: [...form.hints, ''] })}>Dodaj podpowiedź</Button>
-            </div>
-          </Section>
           <ContentTasks tasks={form.tasks} kind={kind} errors={errors} ready={ready} onChange={tasks => change({ tasks })} />
           {errors.path && <p role="alert" className="text-destructive">{errors.path}</p>}
           <div className="flex flex-wrap justify-end gap-3 border-t pt-5">

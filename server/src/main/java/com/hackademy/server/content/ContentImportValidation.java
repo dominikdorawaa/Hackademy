@@ -2,6 +2,7 @@ package com.hackademy.server.content;
 
 import tools.jackson.databind.JsonNode;
 import com.hackademy.server.room.TaskContentSanitizer;
+import com.hackademy.server.room.dto.RoomTaskRequest;
 import java.util.HashSet;
 import java.util.Locale;
 import java.util.Set;
@@ -61,19 +62,22 @@ public final class ContentImportValidation {
         boolean pointsOptional = ctf && points.isMissingNode();
         if (!pointsOptional && (!points.isIntegralNumber() || !points.canConvertToInt() || points.intValue() < 0)) errors.problem(key + ": points", "Podaj nieujemną liczbę całkowitą punktów (maksymalnie 2147483647)");
         if (room.has("requiresVpn") && !room.path("requiresVpn").isBoolean()) errors.problem(key + ": requiresVpn", "Podaj true albo false");
-        var hints = array(room, "hints", key, 100, false);
-        for (int h = 0; h < hints.size(); h++) string(hints.get(h), key + ", podpowiedź " + (h + 1), 2000, true);
+        var roomHints = array(room, "hints", key, RoomTaskRequest.MAX_HINTS, false);
+        for (int h = 0; h < roomHints.size(); h++) string(roomHints.get(h), key + ", podpowiedź " + (h + 1), 2000, true);
         var tasks = array(room, "tasks", key, 100, true);
         for (int t = 0; t < tasks.size(); t++) {
             var task = tasks.get(t);
             String taskKey = key + ", zadanie " + (t + 1);
-            if (!object(task, taskKey, Set.of("title", "content", "question", "answer"))) continue;
+            if (!object(task, taskKey, Set.of("title", "content", "question", "answer", "hints"))) continue;
             text(task, "title", taskKey, 255, true);
             String content = text(task, "content", taskKey, 20000, true);
             if (!content.isBlank() && TaskContentSanitizer.clean(content).isBlank()) errors.problem(taskKey + ": content", "Podaj treść po usunięciu niedozwolonego HTML");
             String question = text(task, "question", taskKey, 2000, false);
             String answer = text(task, "answer", taskKey, 255, ctf || !question.isBlank());
             if (!ctf && question.isBlank() && !answer.isBlank()) errors.problem(taskKey + ": question", "Odpowiedź wymaga pytania");
+            var hints = array(task, "hints", taskKey, RoomTaskRequest.MAX_HINTS, false);
+            for (int h = 0; h < hints.size(); h++) string(hints.get(h), taskKey + ", podpowiedź " + (h + 1), 2000, true);
+            if (t == 0 && !roomHints.isEmpty() && roomHints.size() + hints.size() > RoomTaskRequest.MAX_HINTS) errors.problem(key + ": hints", "Podpowiedzi pokoju trafiają do pierwszego zadania, które może mieć łącznie maksymalnie " + RoomTaskRequest.MAX_HINTS + " podpowiedzi");
         }
     }
 

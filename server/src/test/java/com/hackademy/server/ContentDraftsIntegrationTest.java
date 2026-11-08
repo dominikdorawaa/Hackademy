@@ -41,7 +41,7 @@ class ContentDraftsIntegrationTest {
         var r = new LinkedHashMap<String, Object>();
         r.put("title", "Room " + UUID.randomUUID()); r.put("description", ready ? "Ready description" : ""); r.put("shortDescription", "");
         r.put("difficulty", "EASY"); r.put("category", "Web"); r.put("points", 50);
-        r.put("requiresVpn", false); r.put("roomType", type); r.put("hints", List.of()); r.put("tasks", ready ? List.of(task(type)) : List.of());
+        r.put("requiresVpn", false); r.put("roomType", type); r.put("tasks", ready ? List.of(task(type)) : List.of());
         r.put("revision", 0); r.put("tasksRevision", 0); return r;
     }
     Map<String, Object> task(String type) {
@@ -82,16 +82,17 @@ class ContentDraftsIntegrationTest {
 
     @Test void roomOutsidePublishedPathsIsHiddenAcrossListsDirectLinksActionsAndPreviewHasNoSideEffects() throws Exception {
         String admin = token(Role.ADMIN), user = token(Role.USER), expert = token(Role.EXPERT);
-        var request = room(false, "CTF"); request.put("hints", List.of("Secret hint"));
+        var request = room(false, "CTF"); var hinted = new HashMap<String, Object>(task("CTF")); hinted.put("hints", List.of("Secret hint")); request.put("tasks", List.of(hinted));
         String saved = save("rooms", null, request, admin, 201); long id = number(saved, "$.room.id");
-        long hint = db.queryForObject("SELECT id FROM hints WHERE room_id = ?", Long.class, id);
+        assertEquals(List.of("Secret hint"), JsonPath.read(saved, "$.tasks.tasks[0].hints"));
+        long hint = db.queryForObject("SELECT h.id FROM hints h JOIN room_tasks t ON t.id = h.task_id WHERE t.room_id = ?", Long.class, id);
         for (String uri : List.of("/api/rooms/" + id, "/api/rooms/" + id + "/file")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         mvc.perform(post("/api/rooms/" + id + "/tasks/complete").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         mvc.perform(post("/api/rooms/" + id + "/hints/" + hint + "/unlock").header("Authorization", "Bearer " + user)).andExpect(status().isNotFound());
         for (String uri : List.of("/api/rooms/top3")) mvc.perform(get(uri).header("Authorization", "Bearer " + user)).andExpect(jsonPath("$[?(@.id == " + id + ")]").isEmpty());
         assertFalse(rooms.findVisibleIds().contains(id));
         mvc.perform(get("/api/admin/content/rooms/" + id + "/preview").header("Authorization", "Bearer " + user)).andExpect(status().isForbidden());
-        for (String t : List.of(admin, expert)) mvc.perform(get("/api/admin/content/rooms/" + id + "/preview").header("Authorization", "Bearer " + t)).andExpect(status().isOk()).andExpect(jsonPath("$.hints[0].description").value("Secret hint"));
+        for (String t : List.of(admin, expert)) mvc.perform(get("/api/admin/content/rooms/" + id + "/preview").header("Authorization", "Bearer " + t)).andExpect(status().isOk()).andExpect(jsonPath("$.tasks[0].hints[0].description").value("Secret hint"));
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
         assertEquals(0, db.queryForObject("SELECT count(*) FROM user_unlocked_hints WHERE hint_id = ?", Integer.class, hint));
         assertEquals(false, JsonPath.read(saved, "$.live"));
@@ -269,8 +270,10 @@ class ContentDraftsIntegrationTest {
             task.put(field.getKey(), "x".repeat(field.getValue() + 1)); r.put("tasks", List.of(task));
             assertTrue(save("rooms", null, r, admin, 400).contains("tasks.0." + field.getKey()));
         }
-        var r = room(false, "CTF"); r.put("hints", List.of("x".repeat(2001)));
-        assertTrue(save("rooms", null, r, admin, 400).contains("hints.0"));
+        var r = room(false, "CTF"); var hinted = new HashMap<String, Object>(task("CTF")); hinted.put("hints", List.of("x".repeat(2001))); r.put("tasks", List.of(hinted));
+        assertTrue(save("rooms", null, r, admin, 400).contains("tasks.0.hints.0"));
+        hinted.put("hints", java.util.Collections.nCopies(11, "Podpowiedź"));
+        assertTrue(save("rooms", null, r, admin, 400).contains("tasks.0.hints"));
     }
 
     @Test void protectsDraftBannerAndRoomFileAndPreservesUploadsDuringEdits() throws Exception {

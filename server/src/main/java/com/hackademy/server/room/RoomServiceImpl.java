@@ -45,6 +45,7 @@ import java.util.Locale;
 import java.util.Map;
 import java.util.Set;
 import java.util.function.Function;
+import java.util.function.Predicate;
 import java.util.stream.Collectors;
 
 @Service
@@ -108,13 +109,6 @@ public class RoomServiceImpl implements RoomService {
                 .roomType(roomType)
                 .build();
 
-        if (createRoomRequest.hints() != null && !createRoomRequest.hints().isEmpty()) {
-            List<com.hackademy.server.room.Hint> hints = createRoomRequest.hints().stream()
-                    .map(desc -> new com.hackademy.server.room.Hint(desc, room))
-                    .collect(Collectors.toList());
-            room.setHints(hints);
-        }
-
         Room savedRoom = roomRepository.save(room);
 
         if (file != null && !file.isEmpty()) {
@@ -171,29 +165,6 @@ public class RoomServiceImpl implements RoomService {
         room.setRequiresVpn(updateRoomRequest.requiresVpn());
         room.setRoomType(newRoomType);
 
-        List<String> newHintDescriptions = updateRoomRequest.hints();
-        if (newHintDescriptions == null) {
-            newHintDescriptions = new ArrayList<>();
-        }
-
-        List<com.hackademy.server.room.Hint> oldHints = new ArrayList<>(room.getHints());
-        room.getHints().clear();
-        
-        for (String desc : newHintDescriptions) {
-            boolean found = false;
-            for (int i = 0; i < oldHints.size(); i++) {
-                if (oldHints.get(i).getDescription().equals(desc)) {
-                    room.getHints().add(oldHints.get(i));
-                    oldHints.remove(i);
-                    found = true;
-                    break;
-                }
-            }
-            if (!found) {
-                room.getHints().add(new com.hackademy.server.room.Hint(desc, room));
-            }
-        }
-        
         Room savedRoom = roomRepository.save(room);
 
         if (file != null && !file.isEmpty()) {
@@ -247,17 +218,10 @@ public class RoomServiceImpl implements RoomService {
 
         boolean isSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), room.getId());
 
-        List<Long> unlockedHintIds = userUnlockedHintRepository.findByUser_IdAndHint_Room_Id(user.getId(), room.getId())
+        Set<Long> unlockedHintIds = userUnlockedHintRepository.findByUser_IdAndHint_Task_Room_Id(user.getId(), room.getId())
                 .stream()
                 .map(unlockedHint -> unlockedHint.getHint().getId())
-                .collect(Collectors.toList());
-
-        List<com.hackademy.server.room.Hint> sortedHints = sortedHints(room);
-        List<HintDto> hintDtos = new ArrayList<>();
-        for (int i = 0; i < sortedHints.size(); i++) {
-            com.hackademy.server.room.Hint hint = sortedHints.get(i);
-            hintDtos.add(unlockedHintIds.contains(hint.getId()) ? mapToDto(hint, i) : HintDto.locked(hint.getId(), i));
-        }
+                .collect(Collectors.toSet());
 
         String fileName = roomFileRepository.findFileNameByRoomId(id);
 
@@ -270,6 +234,7 @@ public class RoomServiceImpl implements RoomService {
                         .question(t.getQuestion())
                         .requiresAnswer(t.getAnswer() != null)
                         .completed(completedTaskIds.contains(t.getId()))
+                        .hints(hintDtos(t, unlockedHintIds::contains))
                         .build())
                 .collect(Collectors.toList());
 
@@ -285,8 +250,6 @@ public class RoomServiceImpl implements RoomService {
                 .createdAt(room.getCreatedAt())
                 .solved(isSolved)
                 .requiresVpn(room.isRequiresVpn())
-                .hints(hintDtos)
-                .unlockedHintIds(unlockedHintIds)
                 .fileName(fileName)
                 .tasks(taskDtos)
                 .build();
@@ -363,14 +326,13 @@ public class RoomServiceImpl implements RoomService {
             return new SolveRoomResponse(true, alreadySolvedMessage, 0, new ArrayList<>());
         }
 
-        long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Room_Id(user.getId(), roomId);
-        double pointsToAward = room.getPoints() * (1 - (unlockedHintsCount * 0.25));
-        if (pointsToAward < 0) pointsToAward = 0;
+        long unlockedHintsCount = userUnlockedHintRepository.countByUser_IdAndHint_Task_Room_Id(user.getId(), roomId);
+        int pointsToAward = RoomScoring.pointsAfterHints(room.getPoints(), unlockedHintsCount);
 
-        UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, (int) pointsToAward);
+        UserSolvedRoom userSolvedRoom = new UserSolvedRoom(user, room, pointsToAward);
         userSolvedRoomRepository.save(userSolvedRoom);
 
-        user.setPoints(user.getPoints() + (int) pointsToAward);
+        user.setPoints(user.getPoints() + pointsToAward);
         roomRepository.incrementSolutions(roomId);
 
         LocalDate today = LocalDate.now(clock);
@@ -388,7 +350,7 @@ public class RoomServiceImpl implements RoomService {
         dashboardSummaryCache.invalidateUser(user.getId());
 
         List<BadgeDto> newBadges = badgeService.checkAndAwardBadges(user);
-        return new SolveRoomResponse(true, solvedMessage, (int) pointsToAward, newBadges);
+        return new SolveRoomResponse(true, solvedMessage, pointsToAward, newBadges);
     }
 
     @Override
@@ -398,29 +360,24 @@ public class RoomServiceImpl implements RoomService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UserNotFoundException("User not found"));
 
-        Room room = roomRepository.findById(roomId)
-                .orElseThrow(() -> new IllegalArgumentException("Room not found with ID: " + roomId));
+        if (!roomRepository.existsById(roomId)) {
+            throw new IllegalArgumentException("Room not found with ID: " + roomId);
+        }
         pathUnlockPolicy.requireUnlocked(roomId, user.getId());
 
-        com.hackademy.server.room.Hint hint = hintRepository.findById(hintId)
-                .filter(found -> found.getRoom().getId().equals(roomId))
+        Hint hint = hintRepository.findById(hintId)
+                .filter(found -> found.getTask().getRoom().getId().equals(roomId))
                 .orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND, "Podpowiedź nie istnieje w tym pokoju"));
 
-        List<com.hackademy.server.room.Hint> allHints = sortedHints(room);
-        int hintIndex = -1;
-        for (int i = 0; i < allHints.size(); i++) {
-            if (allHints.get(i).getId().equals(hintId)) {
-                hintIndex = i;
-                break;
-            }
-        }
+        List<Hint> taskHints = hint.getTask().getHints();
+        int hintIndex = taskHints.indexOf(hint);
 
         if (userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), hintId)) {
-            return mapToDto(hint, hintIndex);
+            return HintDto.of(hint, hintIndex, true);
         }
 
         if (hintIndex > 0) {
-            com.hackademy.server.room.Hint previousHint = allHints.get(hintIndex - 1);
+            Hint previousHint = taskHints.get(hintIndex - 1);
             boolean isPreviousUnlocked = userUnlockedHintRepository.existsByUser_IdAndHint_Id(user.getId(), previousHint.getId());
             if (!isPreviousUnlocked) {
                 boolean isRoomSolved = userSolvedRoomRepository.existsByUser_IdAndRoom_Id(user.getId(), roomId);
@@ -433,7 +390,7 @@ public class RoomServiceImpl implements RoomService {
         UserUnlockedHint userUnlockedHint = new UserUnlockedHint(user, hint);
         userUnlockedHintRepository.save(userUnlockedHint);
 
-        return mapToDto(hint, hintIndex);
+        return HintDto.of(hint, hintIndex, true);
     }
 
     @Override
@@ -489,6 +446,7 @@ public class RoomServiceImpl implements RoomService {
             task.setQuestion(question);
             task.setAnswer(answer);
             task.setSortOrder(position - 1);
+            replaceHints(task, taskRequest.hints());
             ordered.add(task);
         }
 
@@ -517,8 +475,45 @@ public class RoomServiceImpl implements RoomService {
         });
     }
 
+    private static void replaceHints(RoomTask task, List<String> descriptions) {
+        if (descriptions == null) {
+            return;
+        }
+        if (descriptions.size() > RoomTaskRequest.MAX_HINTS) {
+            throw new IllegalArgumentException("Zadanie może mieć maksymalnie " + RoomTaskRequest.MAX_HINTS + " podpowiedzi");
+        }
+        List<Hint> unused = new ArrayList<>(task.getHints());
+        List<Hint> kept = new ArrayList<>();
+        for (String description : descriptions) {
+            String text = description == null ? "" : description.trim();
+            if (text.isEmpty()) {
+                throw new IllegalArgumentException("Podpowiedź nie może być pusta");
+            }
+            Hint hint = unused.stream().filter(candidate -> candidate.getDescription().trim().equals(text)).findFirst().orElse(null);
+            if (hint == null) {
+                hint = new Hint(text, task, kept.size());
+            } else {
+                unused.remove(hint);
+                hint.setSortOrder(kept.size());
+            }
+            kept.add(hint);
+        }
+        task.getHints().clear();
+        task.getHints().addAll(kept);
+    }
+
+    public static List<HintDto> hintDtos(RoomTask task, Predicate<Long> unlocked) {
+        List<HintDto> hints = new ArrayList<>();
+        for (int i = 0; i < task.getHints().size(); i++) {
+            Hint hint = task.getHints().get(i);
+            hints.add(HintDto.of(hint, i, unlocked.test(hint.getId())));
+        }
+        return hints;
+    }
+
     private RoomTaskAdminDto mapTaskToAdminDto(RoomTask task) {
-        return new RoomTaskAdminDto(task.getId(), task.getTitle(), task.getContent(), task.getQuestion(), task.getAnswer());
+        return new RoomTaskAdminDto(task.getId(), task.getTitle(), task.getContent(), task.getQuestion(), task.getAnswer(),
+                task.getHints().stream().map(Hint::getDescription).toList());
     }
 
     private static String blankToNull(String value) {
@@ -549,15 +544,5 @@ public class RoomServiceImpl implements RoomService {
     @Transactional(readOnly = true)
     public List<RoomSummaryDto> getTop3Rooms() {
         return roomRepository.findTop3ByCategoryNot("Tutorial", PageRequest.of(0, 3));
-    }
-
-    private List<com.hackademy.server.room.Hint> sortedHints(Room room) {
-        return room.getHints().stream()
-                .sorted(Comparator.comparing(com.hackademy.server.room.Hint::getId))
-                .toList();
-    }
-
-    private HintDto mapToDto(com.hackademy.server.room.Hint hint, int order) {
-        return new HintDto(hint.getId(), order, hint.getDescription());
     }
 }

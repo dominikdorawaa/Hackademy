@@ -11,8 +11,6 @@
   gap: 32px;
 }
 
-.room-solve > .room-hints { margin-top: 0; }
-
 .room-solve-status {
   display: flex;
   align-items: center;

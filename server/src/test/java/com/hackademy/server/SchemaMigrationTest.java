@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 41;
+    static final int SCHEMA_VERSION = 42;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -364,11 +364,45 @@ class SchemaMigrationTest {
         insertUser(1, "Alice", "alice@example.com");
         insertUser(2, "Bob", "bob@example.com");
         execute("INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (1, 'ARENA', 'Mecz się zawiesił', now()), (2, 'ARENA', 'Pytanie jest błędne', now())");
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("41").migrate().migrationsExecuted);
         execute("DELETE FROM users WHERE id = 1");
         assertEquals("Mecz się zawiesił", text("SELECT description FROM bug_reports WHERE reporter_id IS NULL"));
         assertEquals(1, scalar("SELECT count(*) FROM bug_reports WHERE reporter_id = 2"));
         assertSqlState("23503", "INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (99, 'ARENA', 'Nieznany autor zgłoszenia', now())");
+        assertTrue(flyway("41").validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void movesRoomHintsToTheFirstTaskOfTheRoomAndKeepsUnlocks() throws Exception {
+        flyway("41").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        insertRoom(1);
+        insertRoom(2);
+        insertRoom(3);
+        execute("""
+                INSERT INTO room_tasks (id, room_id, title, content, sort_order) VALUES (10, 1, 'Drugie', 'c', 1), (11, 1, 'Pierwsze', 'c', 0);
+                INSERT INTO hints (id, room_id, description) VALUES (5, 1, 'Druga'), (3, 1, 'Pierwsza'), (7, 2, 'Szkic');
+                INSERT INTO user_unlocked_hints (user_id, hint_id) VALUES (1, 3), (1, 7);
+                INSERT INTO user_solved_rooms (user_id, room_id, solved_at) VALUES (1, 2, now());
+                """);
+        long revision = scalar("SELECT tasks_revision FROM rooms WHERE id = 2");
+
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+
+        assertEquals("3:11:0:Pierwsza,5:11:1:Druga", text("""
+                SELECT string_agg(h.id || ':' || h.task_id || ':' || h.sort_order || ':' || h.description, ',' ORDER BY h.id)
+                FROM hints h JOIN room_tasks t ON t.id = h.task_id WHERE t.room_id = 1
+                """));
+        assertEquals("Zadanie 1:Szkic", text("SELECT t.title || ':' || h.description FROM hints h JOIN room_tasks t ON t.id = h.task_id WHERE t.room_id = 2"));
+        assertEquals(32, scalar("SELECT length(answer) FROM room_tasks WHERE room_id = 2"));
+        assertEquals(1, scalar("SELECT count(*) FROM user_completed_tasks c JOIN room_tasks t ON t.id = c.task_id WHERE t.room_id = 2 AND c.user_id = 1"));
+        assertEquals(revision + 1, scalar("SELECT tasks_revision FROM rooms WHERE id = 2"));
+        assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id = 3"));
+        assertEquals("3,7", text("SELECT string_agg(hint_id::text, ',' ORDER BY hint_id) FROM user_unlocked_hints"));
+        assertSqlState("23503", "INSERT INTO hints (description, task_id, sort_order) VALUES ('x', 999, 0)");
+        execute("DELETE FROM room_tasks WHERE id = 11");
+        assertEquals(0, scalar("SELECT count(*) FROM hints WHERE task_id = 11"));
+        assertEquals("7", text("SELECT string_agg(hint_id::text, ',') FROM user_unlocked_hints"));
         assertTrue(flyway().validateWithResult().validationSuccessful);
     }
 
@@ -788,7 +822,7 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         insertRoom(1);
         execute("""
                 INSERT INTO room_tasks (id, room_id, title, content, sort_order) VALUES (1, 1, 't', 'c', 0);
-                INSERT INTO hints (id, room_id, description) VALUES (1, 1, 'h');
+                INSERT INTO hints (id, task_id, description, sort_order) VALUES (1, 1, 'h', 0);
                 INSERT INTO room_files (room_id, file_name, data) VALUES (1, 'f.txt', '\\x00'::bytea);
                 INSERT INTO paths (id, title, created_at, updated_at) VALUES (100, 'p', now(), now());
                 INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES (1, 100, 'c', 0, now(), now());

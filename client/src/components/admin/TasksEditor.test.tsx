@@ -12,8 +12,8 @@ import type { RoomTaskAdminDto, RoomTaskRequest } from '../../types/api';
 import TasksEditor from './TasksEditor';
 
 const tasks: RoomTaskAdminDto[] = [
-  { id: 1, title: 'Wstęp', content: 'Czytaj', question: null, answer: null },
-  { id: 2, title: 'Metody', content: 'GET i POST', question: 'Metoda formularza?', answer: 'POST' },
+  { id: 1, title: 'Wstęp', content: 'Czytaj', question: null, answer: null, hints: [] },
+  { id: 2, title: 'Metody', content: 'GET i POST', question: 'Metoda formularza?', answer: 'POST', hints: [] },
 ];
 
 function mount(respond: (body: RoomTaskRequest[]) => Response | Promise<Response>, initial: RoomTaskAdminDto[] | (() => Response) = tasks) {

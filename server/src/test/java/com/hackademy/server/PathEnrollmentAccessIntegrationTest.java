@@ -65,8 +65,7 @@ class PathEnrollmentAccessIntegrationTest extends PostgresIntegrationTest {
         var admin = account(Role.ADMIN);
         long room = room(admin);
         long path = createPath(admin, "OPEN", List.of(room));
-        jdbcTemplate.update("INSERT INTO hints (description, room_id) VALUES ('Tajemnica', ?)", room);
-        long hint = jdbcTemplate.queryForObject("SELECT id FROM hints WHERE room_id = ?", Long.class, room);
+        long hint = addHint(room, "Tajemnica");
         var user = account(Role.USER);
 
         expectJoinRequired(getAs(user, "/api/rooms/" + room), path);

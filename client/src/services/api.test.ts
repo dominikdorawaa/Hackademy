@@ -14,7 +14,7 @@ const headers = { sessionKey: 'sessionKey' };
 const jsonHeaders = { ...headers, 'Content-Type': 'application/json' };
 const roomData: RoomWriteRequest = {
   title: 'Room', description: 'Description', difficulty: 'EASY', category: 'Web',
-  points: 50, requiresVpn: false, roomType: 'CTF', hints: ['hint'],
+  points: 50, requiresVpn: false, roomType: 'CTF',
 };
 
 beforeEach(() => {

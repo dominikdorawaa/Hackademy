@@ -17,7 +17,7 @@ import type { PathAdminDetailDto } from '../../types/api';
 const path: PathAdminDetailDto = { id: 5, title: 'Web', description: '', bannerUrl: null, hasBanner: false, revision: 2, contentRevision: 3, published: false,
   chapters: [{ id: 11, title: 'Wstęp', roomIds: [] }] };
 const room = { id: 9, title: 'Pokój', description: 'Treść', shortDescription: '', difficulty: 'EASY' as const, category: 'Path', points: 50, solutionsCount: 0,
-  requiresVpn: false, roomType: 'PATH' as const, hints: ['Podpowiedź'], contentRevision: 0, createdAt: '2026-10-10T10:00:00', updatedAt: null };
+  requiresVpn: false, roomType: 'PATH' as const, contentRevision: 0, createdAt: '2026-10-10T10:00:00', updatedAt: null };
 beforeAll(() => {
   globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
   window.matchMedia = ((media: string) => ({ matches: false, media, addEventListener() {}, removeEventListener() {} })) as unknown as typeof window.matchMedia;
@@ -210,7 +210,8 @@ describe('draft editors and guarded navigation', () => {
     await user.clear(title); await user.type(title, 'Pokój');
     await user.click(screen.getByRole('button', { name: 'Dodaj zadanie' }));
     await user.type(screen.getByLabelText('Tytuł zadania *'), 'Pierwsze');
-    await user.type(screen.getByLabelText('Podpowiedź 1 *'), ' lokalna');
+    await user.click(screen.getByRole('button', { name: 'Dodaj podpowiedź' }));
+    await user.type(screen.getByLabelText('Podpowiedź 1 *'), 'Podpowiedź lokalna');
     vi.spyOn(contentApi, 'saveRoom').mockRejectedValue(new contentApi.ContentError('Awaria zapisu'));
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('Awaria zapisu')).toBeInTheDocument();
@@ -312,7 +313,7 @@ describe('draft editors and guarded navigation', () => {
 
 describe('room type in the editor', () => {
   it('switches a theory room to CTF and back without losing its tasks', async () => {
-    const tasks = [{ id: 31, title: 'Pytanie', content: 'Treść', question: 'Polecenie?', answer: 'pwd' }];
+    const tasks = [{ id: 31, title: 'Pytanie', content: 'Treść', question: 'Polecenie?', answer: 'pwd', hints: [] }];
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 4, tasks } })));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, roomType: 'CTF', contentRevision: 1 }, tasks: { revision: 5, tasks } });
     const user = userEvent.setup(); mount('/admin/paths/rooms/9');
@@ -488,11 +489,13 @@ describe('administrative preview', () => {
   it('uses the player room view, reveals saved draft hints and never writes player progress', async () => {
     const writes: string[] = [];
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9/preview`, () => HttpResponse.json({ ...room, solved: false, fileName: null,
-      unlockedHintIds: [1], hints: [{ id: 1, order: 0, description: 'Tajna podpowiedź' }], tasks: [{ id: 3, title: 'Zadanie', content: '<strong>Treść HTML</strong>', question: null, completed: false }] })),
+      tasks: [{ id: 3, title: 'Zadanie', content: '<strong>Treść HTML</strong>', question: null, completed: false, hints: [{ id: 1, order: 0, description: 'Tajna podpowiedź' }] }] })),
       http.post(`${API_URL}/api/rooms/:id/*`, ({ request }) => { writes.push(request.url); return HttpResponse.json({ success: true }); }));
     const user = userEvent.setup(); mount('/admin/preview/rooms/9?kind=PATH');
     expect(await screen.findByRole('heading', { name: 'Pokój', level: 1 })).toBeInTheDocument();
     expect(screen.getByText('Treść HTML').tagName).toBe('STRONG');
+    expect(screen.queryByText('Tajna podpowiedź')).not.toBeInTheDocument();
+    await user.click(screen.getByRole('button', { name: /^Podpowiedź \(1\/1\)/ }));
     expect(screen.getByText('Tajna podpowiedź')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Zgłoś błąd' })).toBeNull();
     await user.click(screen.getByRole('button', { name: /Przeczytane|Ukończ zadanie|Oznacz/i }));
@@ -505,13 +508,13 @@ describe('administrative preview', () => {
     Object.defineProperty(URL, 'createObjectURL', { configurable: true, value: () => 'blob:preview-file' });
     const anchor = vi.spyOn(HTMLAnchorElement.prototype, 'click').mockImplementation(() => undefined);
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF' }, tasks: { revision: 0, tasks: [] } })), http.get(`${API_URL}/api/admin/content/rooms/9/preview`, () => HttpResponse.json({ ...room, solved: false, fileName: 'training.bin',
-      roomType: 'CTF', unlockedHintIds: [], hints: [{ id: 1, order: 0, description: 'Podpowiedź do testu' }],
-      tasks: [{ id: 5, title: 'Flaga', content: 'Znajdź flagę', question: null, requiresAnswer: true, completed: false }] })),
+      roomType: 'CTF',
+      tasks: [{ id: 5, title: 'Flaga', content: 'Znajdź flagę', question: null, requiresAnswer: true, completed: false, hints: [{ id: 1, order: 0, description: 'Podpowiedź do testu' }] }] })),
       http.get(`${API_URL}/api/admin/content/rooms/9/file`, () => { downloads++; return new HttpResponse(new Uint8Array([1, 2, 3]), { headers: { 'Content-Type': 'application/octet-stream' } }); }),
       http.post(`${API_URL}/api/rooms/:id/*`, ({ request }) => { writes.push(request.url); return HttpResponse.json({ success: true }); }));
     const user = userEvent.setup(); mount('/admin/preview/rooms/9?kind=CTF');
     await screen.findByRole('heading', { name: 'Pokój', level: 1 });
-    await user.click(screen.getByRole('button', { name: /Odblokuj/ }));
+    await user.click(screen.getByRole('button', { name: /^Podpowiedź \(1\/1\)/ }));
     expect(screen.getByText('Podpowiedź do testu')).toBeInTheDocument();
     await user.type(screen.getByPlaceholderText('HACK{...}'), 'CTF{{preview}');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
@@ -525,7 +528,7 @@ describe('administrative preview', () => {
   });
   it('shows chapters and rooms in order and opens a draft room with a return to the path preview', async () => {
     server.use(http.get(`${API_URL}/api/admin/content/paths/5/preview`, () => HttpResponse.json({ ...path, enrolled: true, rooms: [], chapters: [{ id: 11, title: 'Wstęp', totalRooms: 1, solvedRooms: 0, rooms: [{ ...room, solved: false, locked: false }] }] })),
-      http.get(`${API_URL}/api/admin/content/rooms/9/preview`, () => HttpResponse.json({ ...room, solved: false, hints: [], unlockedHintIds: [], tasks: [], fileName: null })));
+      http.get(`${API_URL}/api/admin/content/rooms/9/preview`, () => HttpResponse.json({ ...room, solved: false, tasks: [], fileName: null })));
     const user = userEvent.setup(); const router = mount('/admin/preview/paths/5');
     expect(await screen.findByRole('heading', { name: 'Web', level: 1 })).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: /Start/ }));
