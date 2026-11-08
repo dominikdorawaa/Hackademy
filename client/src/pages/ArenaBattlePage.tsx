@@ -43,7 +43,6 @@ export default function ArenaBattlePage() {
   const [confirmSurrender, setConfirmSurrender] = useState(false);
   const [strike, setStrike] = useState<{ game: string; round: number; damage: number } | null>(null);
   const [reactionNotice, setReactionNotice] = useState<string | null>(null);
-  const [hits, setHits] = useState(0);
   const reducedMotion = useReducedMotion();
   const navigate = useNavigate();
   const serverTime = session?.serverTime ?? 0;
@@ -125,10 +124,7 @@ export default function ArenaBattlePage() {
       }
       const body = await response.json().catch(() => null);
       const damage = body?.correct ? body.damage ?? 0 : 0;
-      if (Number.isInteger(damage) && damage > 0) {
-        setStrike({ game: session.id, round, damage });
-        setHits(count => count + 1);
-      }
+      if (Number.isInteger(damage) && damage > 0) setStrike({ game: session.id, round, damage });
     } catch {
       setPicked(previous => previous?.round === round ? null : previous);
       setError({ round, message: 'Błąd sieci. Spróbuj jeszcze raz.' });
@@ -164,7 +160,6 @@ export default function ArenaBattlePage() {
     <RoomFrame
       label="Pojedynek na arenie"
       className="room-frame--panels battle-frame"
-      mascot={{ successCount: hits, paused: pause !== null }}
       nav={{
         back: finished
           ? { title: 'Arena', label: 'Arena', to: '/arena' }
@@ -176,8 +171,8 @@ export default function ArenaBattlePage() {
       }}
       footer={
         <RoomFooterBar
-          title={confirmSurrender && !finished ? 'Poddanie oznacza porażkę.' : finished ? outcomeTitle(result) : `Walka z ${rival.username}`}
-          progress={{ steps: rounds, current: session.round - 1, unit: 'Runda', list: false, listLabel: 'Rundy walki', onSelect: () => undefined }}
+          title={finished ? undefined : confirmSurrender ? 'Poddanie oznacza porażkę.' : `Walka z ${rival.username}`}
+          mascot={false}
           back={confirmSurrender && !finished ? { label: 'Walczę dalej', onClick: () => setConfirmSurrender(false) } : undefined}
           next={next}
         />
