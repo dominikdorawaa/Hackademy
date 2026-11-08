@@ -19,7 +19,6 @@ it('counts the Elo gain up while announcing only the final value, and throws con
   act(() => { vi.advanceTimersByTime(ELO_COUNT_MS + 100); });
   expect(document.querySelector('.battle-result-elo')).not.toHaveClass('is-counting');
   expect(screen.getByText('+16 Elo')).not.toHaveClass('sr-only');
-  expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
 });
 
 it('shows a loss without confetti and skips the counter without motion', () => {

@@ -1,7 +1,6 @@
 import { useEffect, useState } from 'react';
-import { createPortal } from 'react-dom';
-import { Link, useParams } from 'react-router-dom';
-import { Flag } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { Swords } from 'lucide-react';
 import { BattlePause } from '../components/arena/battle/BattlePause';
 import { BattleResult } from '../components/arena/battle/BattleResult';
 import { BattleScene } from '../components/arena/battle/BattleScene';
@@ -19,9 +18,8 @@ import { useReducedMotion } from '../hooks/useReducedMotion';
 import { arenaCategoryLabel } from '../components/arena/arenaCategory';
 import { ArenaLoader } from '../components/arena/ArenaLoader';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
-import RoomNavInfo from '../components/room/RoomNavInfo';
-import { useRoomMode } from '../components/room/roomChrome';
-import '../components/room/room.css';
+import RoomFooterBar from '../components/room/RoomFooterBar';
+import RoomFrame from '../components/room/RoomFrame';
 import * as arenaApi from '../services/arenaApi';
 import * as userApi from '../services/userApi';
 import type { AvatarConfig } from '../types/api';
@@ -45,8 +43,9 @@ export default function ArenaBattlePage() {
   const [confirmSurrender, setConfirmSurrender] = useState(false);
   const [strike, setStrike] = useState<{ game: string; round: number; damage: number } | null>(null);
   const [reactionNotice, setReactionNotice] = useState<string | null>(null);
+  const [hits, setHits] = useState(0);
   const reducedMotion = useReducedMotion();
-  const chrome = useRoomMode();
+  const navigate = useNavigate();
   const serverTime = session?.serverTime ?? 0;
   const clock = useArenaClock(serverTime, session?.status === 'ACTIVE');
   useBattlePresence(gameId, sessionKey);
@@ -83,15 +82,18 @@ export default function ArenaBattlePage() {
   if (!session || meId === null) {
     const failed = identityError === sessionKey && sessionKey !== null;
     return (
-      <div className="user-dashboard battle-page">
-        <div className="battle-shell">
-          {missing ? <p role="status" className="ud-empty">Tej walki nie ma już na serwerze. Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło.</p> : failed ? <>
-            <p role="alert" className="battle-error">Nie udało się pobrać Twojego konta. Walka trwa dalej. Spróbuj ponownie.</p>
-            <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setIdentityError(null); setIdentityAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
-          </> : <ArenaLoader label="Wczytuję walkę" avatar={identity?.sessionKey === sessionKey ? identity.avatar : null} />}
-          <Link className="ud-link" to="/arena">Wróć do Areny</Link>
+      <RoomFrame label="Pojedynek na arenie" className="room-frame--panels battle-frame"
+        nav={{ back: { title: 'Arena', label: 'Arena', to: '/arena' }, title: 'Pojedynek', progress: { value: 0, max: 1, label: 'Przebieg walki' } }}>
+        <div className="user-dashboard battle-page">
+          <div className="battle-shell">
+            {missing ? <p role="status" className="ud-empty">Tej walki nie ma już na serwerze. Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło.</p> : failed ? <>
+              <p role="alert" className="battle-error">Nie udało się pobrać Twojego konta. Walka trwa dalej. Spróbuj ponownie.</p>
+              <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setIdentityError(null); setIdentityAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
+            </> : <ArenaLoader label="Wczytuję walkę" avatar={identity?.sessionKey === sessionKey ? identity.avatar : null} />}
+            <Link className="ud-link" to="/arena">Wróć do Areny</Link>
+          </div>
         </div>
-      </div>
+      </RoomFrame>
     );
   }
 
@@ -123,7 +125,10 @@ export default function ArenaBattlePage() {
       }
       const body = await response.json().catch(() => null);
       const damage = body?.correct ? body.damage ?? 0 : 0;
-      if (Number.isInteger(damage) && damage > 0) setStrike({ game: session.id, round, damage });
+      if (Number.isInteger(damage) && damage > 0) {
+        setStrike({ game: session.id, round, damage });
+        setHits(count => count + 1);
+      }
     } catch {
       setPicked(previous => previous?.round === round ? null : previous);
       setError({ round, message: 'Błąd sieci. Spróbuj jeszcze raz.' });
@@ -146,104 +151,106 @@ export default function ArenaBattlePage() {
     if (!response?.ok) setError({ round: null, message: 'Nie udało się poddać walki.' });
   };
 
-  const navInfo = (
-    <RoomNavInfo
-      back={finished
-        ? { title: 'Arena', label: 'Arena', to: '/arena' }
-        : { title: 'Arena', label: 'Wyjdź z walki', onClick: () => setConfirmSurrender(true) }}
-      title={`${me.username} vs ${rival.username}`}
-      progress={{ value: finished ? session.totalRounds : session.round - 1, max: session.totalRounds, label: 'Przebieg walki' }}
-      steps={{
-        items: Array.from({ length: session.totalRounds }, (_, index) => ({
-          key: index + 1, title: `Runda ${index + 1}`, done: finished || index + 1 < session.round, locked: true,
-        })),
-        current: finished ? -1 : session.round - 1,
-        onSelect: () => undefined,
-      }}
-      action={
-        <div className="battle-nav-actions">
-          <BugReportButton className="room-nav-report" context={{ source: 'ARENA', gameId: session.id }} />
-          {!finished && (confirmSurrender ? (
-            <>
-              <span className="battle-nav-warning">Poddanie oznacza porażkę.</span>
-              <button type="button" className="battle-nav-btn is-danger" onClick={() => void surrender()}>Tak, poddaję walkę</button>
-              <button type="button" className="battle-nav-btn" onClick={() => setConfirmSurrender(false)}>Walczę dalej</button>
-            </>
-          ) : (
-            <button type="button" className="battle-nav-btn" onClick={() => setConfirmSurrender(true)}>
-              <Flag aria-hidden="true" /><span>Poddaj walkę</span>
-            </button>
-          ))}
-        </div>
-      }
-    />
-  );
+  const rounds = Array.from({ length: session.totalRounds }, (_, index) => ({
+    key: index + 1, title: `Runda ${index + 1}`, done: finished || index + 1 < session.round, locked: true,
+  }));
+  const next = finished
+    ? { label: 'Wróć do Areny', primary: true, onClick: () => navigate('/arena') }
+    : confirmSurrender
+      ? { label: 'Tak, poddaję walkę', primary: true, onClick: () => void surrender() }
+      : { label: 'Poddaj walkę', onClick: () => setConfirmSurrender(true) };
 
   return (
-    <div className="user-dashboard battle-page" data-still={reducedMotion} data-result={finished ? result : undefined}>
-      {chrome ? chrome.slot && createPortal(navInfo, chrome.slot) : <div className="battle-inline-bar">{navInfo}</div>}
-      <div className="battle-shell">
-        <div className="battle-arena" data-paused={pause !== null}>
-          <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
-            strike={strike?.game === session.id && strike.round === session.round ? strike.damage : null}
-            quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>
-            <div className="battle-round">
-              <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
-              {!finished && <p className={`battle-timer${pause ? ' is-paused' : ''}`} role="timer" aria-label={session.phase === 'QUESTION' ? 'Czas na odpowiedź' : 'Następna runda za'}>{left}</p>}
-            </div>
-          </BattleScene>
-
-          {finished && <BattleResult result={result} title={outcomeTitle(result)} text={finishText(session, me.id)} change={change} still={reducedMotion} />}
-          {absence && <p className="battle-absence" role="status">{absence}</p>}
-          {pause ? (
-            <BattlePause pause={pause} me={me} rival={rival} />
-          ) : reveal ? (
-            <section className="battle-card" aria-labelledby="battle-question">
-              <p className="battle-card-meta">Wynik rundy {reveal.round}</p>
-              <h1 id="battle-question" className="battle-question">{reveal.content}</h1>
-              <ol className="battle-answers is-reveal">
-                {reveal.answers.map((text, index) => {
-                  const correct = index === reveal.correctAnswer;
-                  const mine = reveal.choices[me.id] === index;
-                  const theirs = reveal.choices[rival.id] === index;
-                  return (
-                    <li key={index} className={`battle-answer${correct ? ' is-correct' : ''}${mine && !correct ? ' is-wrong' : ''}`}>
-                      <span className="battle-answer-letter">{LETTERS[index]}</span>
-                      <span className="battle-answer-text">{text}</span>
-                      <span className="battle-answer-tags">
-                        {correct && <span>Poprawna</span>}
-                        {mine && <span>Ty</span>}
-                        {theirs && <span>{rival.username}</span>}
-                      </span>
-                    </li>
-                  );
-                })}
-              </ol>
-              <p className="battle-summary" role="status" aria-live="polite">{roundSummary(reveal, me.id, rival.id)}</p>
-            </section>
-          ) : !finished && session.question ? (
-            <section className="battle-card" aria-labelledby="battle-question">
-              <p className="battle-card-meta">{arenaCategoryLabel(session.question.category)}</p>
-              <h1 id="battle-question" className="battle-question">{session.question.content}</h1>
-              <div className="battle-answers" role="group" aria-label="Odpowiedzi">
-                {session.question.answers.map((text, index) => (
-                  <button key={index} type="button" className={`battle-answer${myPick === index ? ' is-picked' : ''}`}
-                    onClick={() => void answer(index)} disabled={answered || myPick !== null} aria-pressed={myPick === index}>
-                    <span className="battle-answer-letter">{LETTERS[index]}</span>
-                    <span className="battle-answer-text">{text}</span>
-                  </button>
-                ))}
-              </div>
-              <p className="battle-summary" role="status" aria-live="polite">
-                {answered || myPick !== null
-                  ? (rivalAnswered ? 'Oboje odpowiedzieliście. Za chwilę wynik rundy.' : 'Odpowiedź wysłana. Czekamy na rywala.')
-                  : (rivalAnswered ? 'Rywal już odpowiedział.' : 'Wybierz jedną odpowiedź.')}
-              </p>
-              {visibleError && <p role="alert" className="battle-error">{visibleError}</p>}
-            </section>
-          ) : null}
+    <RoomFrame
+      label="Pojedynek na arenie"
+      className="room-frame--panels battle-frame"
+      mascot={{ successCount: hits, paused: pause !== null }}
+      nav={{
+        back: finished
+          ? { title: 'Arena', label: 'Arena', to: '/arena' }
+          : { title: 'Arena', label: 'Wyjdź z walki', onClick: () => setConfirmSurrender(true) },
+        title: `${me.username} vs ${rival.username}`,
+        progress: { value: finished ? session.totalRounds : session.round - 1, max: session.totalRounds, label: 'Przebieg walki' },
+        steps: { items: rounds, current: finished ? -1 : session.round - 1, onSelect: () => undefined },
+        action: <BugReportButton className="room-nav-report" context={{ source: 'ARENA', gameId: session.id }} />,
+      }}
+      footer={
+        <RoomFooterBar
+          title={confirmSurrender && !finished ? 'Poddanie oznacza porażkę.' : finished ? outcomeTitle(result) : `Walka z ${rival.username}`}
+          progress={{ steps: rounds, current: session.round - 1, unit: 'Runda', list: false, listLabel: 'Rundy walki', onSelect: () => undefined }}
+          back={confirmSurrender && !finished ? { label: 'Walczę dalej', onClick: () => setConfirmSurrender(false) } : undefined}
+          next={next}
+        />
+      }>
+      <section className="room-pane battle-pane" aria-label="Pojedynek">
+        <div className="room-pane-tab">
+          <span><Swords aria-hidden="true" />Pojedynek</span>
         </div>
-      </div>
-    </div>
+        <div className="user-dashboard battle-page" data-still={reducedMotion} data-result={finished ? result : undefined}>
+          <div className="battle-shell">
+            <div className="battle-arena" data-paused={pause !== null}>
+              <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
+                strike={strike?.game === session.id && strike.round === session.round ? strike.damage : null}
+                quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>
+                <div className="battle-round">
+                  <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
+                  {!finished && <p className={`battle-timer${pause ? ' is-paused' : ''}`} role="timer" aria-label={session.phase === 'QUESTION' ? 'Czas na odpowiedź' : 'Następna runda za'}>{left}</p>}
+                </div>
+              </BattleScene>
+
+              {finished && <BattleResult result={result} title={outcomeTitle(result)} text={finishText(session, me.id)} change={change} still={reducedMotion} />}
+              {absence && <p className="battle-absence" role="status">{absence}</p>}
+              {pause ? (
+                <BattlePause pause={pause} me={me} rival={rival} />
+              ) : reveal ? (
+                <section className="battle-card" aria-labelledby="battle-question">
+                  <p className="battle-card-meta">Wynik rundy {reveal.round}</p>
+                  <h1 id="battle-question" className="battle-question">{reveal.content}</h1>
+                  <ol className="battle-answers is-reveal">
+                    {reveal.answers.map((text, index) => {
+                      const correct = index === reveal.correctAnswer;
+                      const mine = reveal.choices[me.id] === index;
+                      const theirs = reveal.choices[rival.id] === index;
+                      return (
+                        <li key={index} className={`battle-answer${correct ? ' is-correct' : ''}${mine && !correct ? ' is-wrong' : ''}`}>
+                          <span className="battle-answer-letter">{LETTERS[index]}</span>
+                          <span className="battle-answer-text">{text}</span>
+                          <span className="battle-answer-tags">
+                            {correct && <span>Poprawna</span>}
+                            {mine && <span>Ty</span>}
+                            {theirs && <span>{rival.username}</span>}
+                          </span>
+                        </li>
+                      );
+                    })}
+                  </ol>
+                  <p className="battle-summary" role="status" aria-live="polite">{roundSummary(reveal, me.id, rival.id)}</p>
+                </section>
+              ) : !finished && session.question ? (
+                <section className="battle-card" aria-labelledby="battle-question">
+                  <p className="battle-card-meta">{arenaCategoryLabel(session.question.category)}</p>
+                  <h1 id="battle-question" className="battle-question">{session.question.content}</h1>
+                  <div className="battle-answers" role="group" aria-label="Odpowiedzi">
+                    {session.question.answers.map((text, index) => (
+                      <button key={index} type="button" className={`battle-answer${myPick === index ? ' is-picked' : ''}`}
+                        onClick={() => void answer(index)} disabled={answered || myPick !== null} aria-pressed={myPick === index}>
+                        <span className="battle-answer-letter">{LETTERS[index]}</span>
+                        <span className="battle-answer-text">{text}</span>
+                      </button>
+                    ))}
+                  </div>
+                  <p className="battle-summary" role="status" aria-live="polite">
+                    {answered || myPick !== null
+                      ? (rivalAnswered ? 'Oboje odpowiedzieliście. Za chwilę wynik rundy.' : 'Odpowiedź wysłana. Czekamy na rywala.')
+                      : (rivalAnswered ? 'Rywal już odpowiedział.' : 'Wybierz jedną odpowiedź.')}
+                  </p>
+                  {visibleError && <p role="alert" className="battle-error">{visibleError}</p>}
+                </section>
+              ) : null}
+            </div>
+          </div>
+        </div>
+      </section>
+    </RoomFrame>
   );
 }

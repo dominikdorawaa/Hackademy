@@ -165,7 +165,7 @@ it('shows the result with the Elo change when the battle ends', async () => {
   expect(await screen.findByRole('heading', { name: 'Zwycięstwo' })).toBeInTheDocument();
   expect(screen.getByText('Rywal padł po Twoim ciosie.')).toBeInTheDocument();
   expect(screen.getByText('+16 Elo')).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
+  expect(screen.getByRole('button', { name: 'Wróć do Areny' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Poddaj walkę' })).not.toBeInTheDocument();
   expect(screen.queryByRole('timer')).not.toBeInTheDocument();
 });

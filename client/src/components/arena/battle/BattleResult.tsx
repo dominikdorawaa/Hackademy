@@ -1,5 +1,4 @@
 import { useEffect, useState, type CSSProperties } from 'react';
-import { Link } from 'react-router-dom';
 import { formatEloChange } from '../../../lib/units';
 import type { Outcome } from './battleView';
 
@@ -59,7 +58,6 @@ export function BattleResult({ result, title, text, change, still }: { result: O
       <h1 id="battle-result-title">{title}</h1>
       <p>{text}</p>
       <EloCount change={change} still={still} />
-      <Link className="ud-btn ud-btn-solid" to="/arena">Wróć do Areny</Link>
     </section>
   </>;
 }
