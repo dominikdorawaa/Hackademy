@@ -36,6 +36,7 @@ export function BattleEffects({ round, meId, rivalId, finish = null }: { round: 
         <div key={shot.from} className={`battle-shot from-${shot.from}`} data-testid={`shot-${shot.from}`}>
           <img className="battle-packet" src={`${EFFECTS}data-packet.png`} alt="" />
           <img className="battle-burst" src={`${EFFECTS}data-burst.png`} alt="" />
+          <span className="battle-sparks">{Array.from({ length: 10 }, (_, index) => <i key={index} style={{ '--spark': index } as CSSProperties} />)}</span>
           <span className="battle-damage">-{shot.damage}</span>
         </div>
       ))}

@@ -82,6 +82,15 @@ export function roundSummary(result: RoundResult, meId: number, rivalId: number)
 }
 
 export const ABSENCE_MS = 30_000;
+export const ROUND_MS = 15_000;
+export const BANNER_MS = 1_800;
+export const DANGER_HP = 30;
+
+export function roundBanner(session: GameSession, serverNow: number) {
+  if (session.status !== 'ACTIVE' || session.phase !== 'QUESTION' || session.pause) return null;
+  if (session.roundEndsAt - serverNow <= ROUND_MS - BANNER_MS) return null;
+  return session.round === session.totalRounds ? 'Ostatnia runda' : `Runda ${session.round}`;
+}
 
 export const PAUSE_SECONDS = 10;
 
@@ -229,6 +238,20 @@ export function strikeChoreography(attacker: boolean): Segment[] {
   return attacker
     ? [{ frames: ATTACK, loop: false, frameTime: ATTACK_FRAME_MS, ms: CAST_MS }, IDLE]
     : [{ ...IDLE, ms: IMPACT_MS }, { frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT_MS }, IDLE];
+}
+
+export function missChoreography(): Segment[] {
+  return [{ frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT_MS }, IDLE];
+}
+
+export function streakOf(hits: Record<number, boolean>) {
+  const rounds = Object.keys(hits).map(Number).sort((a, b) => b - a);
+  let streak = 0;
+  for (const round of rounds) {
+    if (!hits[round]) break;
+    streak++;
+  }
+  return streak;
 }
 
 export function strikeRound(session: GameSession, attackerId: number, targetId: number, damage: number): RoundResult {

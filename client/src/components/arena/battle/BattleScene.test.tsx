@@ -264,3 +264,48 @@ it('keeps a knockout blow for the reveal so the finisher plays in full', () => {
   expect(fighter()).toHaveAttribute('data-frames', '0');
   expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '15');
 });
+
+const verdictScene = (session: GameSession, miss: boolean, strike: number | null = null) => <BattleScene session={session} {...perspective(session, 1)} reducedMotion={false} serverNow={session.serverTime} miss={miss} strike={strike}>
+  <p>Runda {session.round}</p>
+</BattleScene>;
+const revealed = (round: number, damage: Record<number, number>) => createGameSession({
+  round, phase: 'REVEAL', question: null,
+  lastRound: { round, questionId: 11, content: 'Pytanie', answers: ['A', 'B', 'C', 'D'], correctAnswer: 1, choices: {}, damage },
+});
+
+it('stumbles right after a wrong answer and clears the miss once the round moves on', () => {
+  const view = render(verdictScene(createGameSession({ round: 4 }), true));
+  expect(document.querySelector('.battle-tag.is-miss')).toHaveTextContent('Pudło!');
+  expect(fighter()).toHaveAttribute('data-frames', '37,38,39,40');
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
+  view.rerender(verdictScene(revealed(5, { 1: 0, 2: 18 }), false));
+  expect(document.querySelector('.battle-tag.is-miss')).toBeNull();
+});
+
+it('counts a streak of hits, shows it over my fighter and drops it after a miss', () => {
+  const view = render(verdictScene(revealed(1, { 1: 0, 2: 20 }), false));
+  expect(document.querySelector('.battle-tag.is-streak')).toBeNull();
+  view.rerender(verdictScene(createGameSession({ round: 2 }), false, 18));
+  expect(document.querySelector('.battle-tag.is-streak')).toHaveTextContent('x2 seria');
+  expect(fighter()).toHaveAttribute('data-streak', '2');
+  view.rerender(verdictScene(revealed(2, { 1: 0, 2: 18 }), false));
+  view.rerender(verdictScene(createGameSession({ round: 3 }), false, 16));
+  expect(document.querySelector('.battle-tag.is-streak')).toHaveTextContent('x3 seria');
+  expect(fighter()).toHaveAttribute('data-streak', '3');
+  view.rerender(verdictScene(revealed(3, { 1: 0, 2: 16 }), false));
+  view.rerender(verdictScene(createGameSession({ round: 4 }), true));
+  expect(document.querySelector('.battle-tag.is-streak')).toBeNull();
+  expect(fighter()).not.toHaveAttribute('data-streak');
+});
+
+it('marks the rival as ready once they answer and flashes whoever takes a hit', () => {
+  const view = render(verdictScene(createGameSession({ answeredBy: [2] }), false));
+  expect(document.querySelector('.battle-tag.is-ready')).toHaveTextContent('Gotowe');
+  expect(fighter('rival')).toHaveAttribute('data-ready', 'true');
+  view.rerender(verdictScene(exchange({ 1: 0, 2: 20 }), false));
+  expect(fighter('rival')).not.toHaveAttribute('data-hit');
+  advance(900);
+  expect(fighter('rival')).toHaveAttribute('data-hit', 'true');
+  expect(fighter()).not.toHaveAttribute('data-hit');
+  expect(screen.getByRole('region', { name: 'Arena walki' })).toHaveAttribute('data-impact', 'true');
+});

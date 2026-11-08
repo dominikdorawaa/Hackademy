@@ -373,3 +373,12 @@ it('keeps the rival untouched after a wrong answer until the round ends', async 
   expect(await screen.findByText('Odpowiedź wysłana. Czekamy na rywala.')).toBeInTheDocument();
   expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
 });
+
+it('colours the picked answer by its verdict and warns when my health runs low', async () => {
+  server.use(http.post(`${API_URL}/api/arena/game/game/answer`, () => HttpResponse.json({ message: 'ok', correct: false, damage: 0 })));
+  realtime.value = { ...realtime.value, state: live(createGameSession({ hp: { 1: 25, 2: 100 } })) };
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: /21/ }));
+  await waitFor(() => expect(screen.getByRole('button', { name: /21/ })).toHaveAttribute('data-verdict', 'miss'));
+  expect(document.querySelector('.battle-arena')).toHaveAttribute('data-danger', 'true');
+});

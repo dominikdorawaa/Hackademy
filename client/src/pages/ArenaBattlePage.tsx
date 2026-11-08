@@ -6,7 +6,7 @@ import { BattleResult } from '../components/arena/battle/BattleResult';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
-  absenceNotice, eloChange, finishText, frozenSecondsLeft, outcome, outcomeTitle, pauseNotice, perspective, roundSummary, secondsLeft,
+  absenceNotice, DANGER_HP, eloChange, finishText, frozenSecondsLeft, outcome, outcomeTitle, pauseNotice, perspective, roundBanner, roundSummary, secondsLeft,
 } from '../components/arena/battle/battleView';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
@@ -41,7 +41,7 @@ export default function ArenaBattlePage() {
   const [picked, setPicked] = useState<{ round: number; answer: number } | null>(null);
   const [error, setError] = useState<{ round: number | null; message: string } | null>(null);
   const [confirmSurrender, setConfirmSurrender] = useState(false);
-  const [strike, setStrike] = useState<{ game: string; round: number; damage: number } | null>(null);
+  const [verdict, setVerdict] = useState<{ game: string; round: number; damage: number } | null>(null);
   const [reactionNotice, setReactionNotice] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
   const navigate = useNavigate();
@@ -104,11 +104,13 @@ export default function ArenaBattlePage() {
   const reveal = !finished && session.phase === 'REVEAL' ? session.lastRound : null;
   const result = outcome(session, me.id);
   const change = eloChange(session, me.id);
+  const currentVerdict = verdict?.game === session.id && verdict.round === session.round ? verdict : null;
   const visibleError = error && (error.round === null || error.round === session.round) ? error.message : null;
   const headers = { sessionKey };
   const serverNow = clock.serverTime === serverTime ? clock.now + (serverTime - clock.receivedAt) : serverTime;
   const pause = pauseNotice(session, me.id, serverNow);
   const absence = absenceNotice(session, me.id, serverNow);
+  const banner = roundBanner(session, serverNow);
 
   const answer = async (choice: number) => {
     const round = session.round;
@@ -123,8 +125,9 @@ export default function ArenaBattlePage() {
         return;
       }
       const body = await response.json().catch(() => null);
-      const damage = body?.correct ? body.damage ?? 0 : 0;
-      if (Number.isInteger(damage) && damage > 0) setStrike({ game: session.id, round, damage });
+      if (typeof body?.correct !== 'boolean') return;
+      const damage = body.correct ? body.damage ?? 0 : 0;
+      if (Number.isInteger(damage) && damage >= 0) setVerdict({ game: session.id, round, damage });
     } catch {
       setPicked(previous => previous?.round === round ? null : previous);
       setError({ round, message: 'Błąd sieci. Spróbuj jeszcze raz.' });
@@ -183,9 +186,12 @@ export default function ArenaBattlePage() {
         </div>
         <div className="user-dashboard battle-page" data-still={reducedMotion} data-result={finished ? result : undefined}>
           <div className="battle-shell">
-            <div className="battle-arena" data-paused={pause !== null}>
+            <div className="battle-arena" data-paused={pause !== null} data-danger={!finished && me.hp > 0 && me.hp <= DANGER_HP}>
+              {banner && !reducedMotion && <p key={`banner-${session.round}`} className="battle-banner" aria-hidden="true" data-last={session.round === session.totalRounds}>
+                <span>{banner}</span><strong>Walcz!</strong>
+              </p>}
               <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
-                strike={strike?.game === session.id && strike.round === session.round ? strike.damage : null}
+                strike={currentVerdict && currentVerdict.damage > 0 ? currentVerdict.damage : null} miss={currentVerdict?.damage === 0}
                 quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>
                 <div className="battle-round">
                   <p className="battle-round-label">Runda {session.round}/{session.totalRounds}</p>
@@ -228,6 +234,7 @@ export default function ArenaBattlePage() {
                   <div className="battle-answers" role="group" aria-label="Odpowiedzi">
                     {session.question.answers.map((text, index) => (
                       <button key={index} type="button" className={`battle-answer${myPick === index ? ' is-picked' : ''}`}
+                        data-verdict={myPick === index && currentVerdict ? (currentVerdict.damage > 0 ? 'hit' : 'miss') : undefined}
                         onClick={() => void answer(index)} disabled={answered || myPick !== null} aria-pressed={myPick === index}>
                         <span className="battle-answer-letter">{LETTERS[index]}</span>
                         <span className="battle-answer-text">{text}</span>
