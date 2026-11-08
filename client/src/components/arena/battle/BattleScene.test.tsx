@@ -287,15 +287,12 @@ it('counts a streak of hits, shows it over my fighter and drops it after a miss'
   expect(document.querySelector('.battle-tag.is-streak')).toBeNull();
   view.rerender(verdictScene(createGameSession({ round: 2 }), false, 18));
   expect(document.querySelector('.battle-tag.is-streak')).toHaveTextContent('x2 seria');
-  expect(fighter()).toHaveAttribute('data-streak', '2');
   view.rerender(verdictScene(revealed(2, { 1: 0, 2: 18 }), false));
   view.rerender(verdictScene(createGameSession({ round: 3 }), false, 16));
   expect(document.querySelector('.battle-tag.is-streak')).toHaveTextContent('x3 seria');
-  expect(fighter()).toHaveAttribute('data-streak', '3');
   view.rerender(verdictScene(revealed(3, { 1: 0, 2: 16 }), false));
   view.rerender(verdictScene(createGameSession({ round: 4 }), true));
   expect(document.querySelector('.battle-tag.is-streak')).toBeNull();
-  expect(fighter()).not.toHaveAttribute('data-streak');
 });
 
 it('marks the rival as ready once they answer and flashes whoever takes a hit', () => {

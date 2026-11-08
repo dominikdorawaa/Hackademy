@@ -6,7 +6,7 @@ import { BattleResult } from '../components/arena/battle/BattleResult';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
-  absenceNotice, DANGER_HP, eloChange, finishText, frozenSecondsLeft, outcome, outcomeTitle, pauseNotice, perspective, roundBanner, roundSummary, secondsLeft,
+  absenceNotice, eloChange, finishText, frozenSecondsLeft, LOW_HP, outcome, outcomeTitle, pauseNotice, perspective, roundBanner, roundSummary, secondsLeft,
 } from '../components/arena/battle/battleView';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
@@ -186,10 +186,8 @@ export default function ArenaBattlePage() {
         </div>
         <div className="user-dashboard battle-page" data-still={reducedMotion} data-result={finished ? result : undefined}>
           <div className="battle-shell">
-            <div className="battle-arena" data-paused={pause !== null} data-danger={!finished && me.hp > 0 && me.hp <= DANGER_HP}>
-              {banner && !reducedMotion && <p key={`banner-${session.round}`} className="battle-banner" aria-hidden="true" data-last={session.round === session.totalRounds}>
-                <span>{banner}</span><strong>Walcz!</strong>
-              </p>}
+            <div className="battle-arena" data-paused={pause !== null} data-danger={!finished && me.hp > 0 && me.hp < LOW_HP}>
+              {banner && !reducedMotion && <p key={`banner-${session.round}`} className="battle-banner" aria-hidden="true"><strong>{banner}</strong></p>}
               <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
                 strike={currentVerdict && currentVerdict.damage > 0 ? currentVerdict.damage : null} miss={currentVerdict?.damage === 0}
                 quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>

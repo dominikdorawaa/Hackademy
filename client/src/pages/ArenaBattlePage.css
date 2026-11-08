@@ -1400,68 +1400,16 @@ button.battle-answer:disabled {
 }
 }
 
-.battle-fighter {
-  --glow: var(--battle-me);
-  --outline: calc(0.75 * var(--battle-pixel));
-}
-
-.battle-fighter.is-rival {
-  --glow: var(--battle-rival);
-}
-
 .battle-fighter::before {
   content: '';
   position: absolute;
-  left: 12%;
-  right: 12%;
+  left: 14%;
+  right: 14%;
   bottom: calc(5 * var(--battle-pixel));
   z-index: -1;
-  height: calc(12 * var(--battle-pixel));
+  height: calc(10 * var(--battle-pixel));
   border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 55%, transparent), color-mix(in srgb, var(--glow) 18%, transparent) 60%, transparent);
-}
-
-.battle-fighter::after {
-  content: '';
-  position: absolute;
-  inset: 8% 4% 6%;
-  z-index: -2;
-  border-radius: 50%;
-  background: radial-gradient(closest-side, color-mix(in srgb, var(--glow) 22%, transparent), transparent);
-}
-
-.battle-fighter .avatar-sprite {
-  filter:
-    drop-shadow(var(--outline) 0 0 color-mix(in srgb, var(--glow) 80%, transparent))
-    drop-shadow(calc(-1 * var(--outline)) 0 0 color-mix(in srgb, var(--glow) 80%, transparent))
-    drop-shadow(0 var(--outline) 0 color-mix(in srgb, var(--glow) 80%, transparent))
-    drop-shadow(0 calc(-1 * var(--outline)) 0 color-mix(in srgb, var(--glow) 80%, transparent));
-}
-
-.battle-fighter[data-streak='2'] .avatar-sprite {
-  filter:
-    drop-shadow(var(--outline) 0 0 var(--glow)) drop-shadow(calc(-1 * var(--outline)) 0 0 var(--glow))
-    drop-shadow(0 var(--outline) 0 var(--glow)) drop-shadow(0 calc(-1 * var(--outline)) 0 var(--glow))
-    drop-shadow(0 0 calc(3 * var(--battle-pixel)) color-mix(in srgb, var(--glow) 70%, transparent));
-}
-
-.battle-fighter[data-streak='3'],
-.battle-fighter[data-streak='4'] {
-  --glow: #ffd84d;
-}
-
-.battle-fighter[data-streak='3'] .avatar-sprite,
-.battle-fighter[data-streak='4'] .avatar-sprite {
-  filter:
-    drop-shadow(var(--outline) 0 0 var(--glow)) drop-shadow(calc(-1 * var(--outline)) 0 0 var(--glow))
-    drop-shadow(0 var(--outline) 0 var(--glow)) drop-shadow(0 calc(-1 * var(--outline)) 0 var(--glow))
-    drop-shadow(0 0 calc(5 * var(--battle-pixel)) rgb(255 200 60 / 0.75));
-}
-
-.battle-fighter[data-streak='3']::after,
-.battle-fighter[data-streak='4']::after {
-  background: radial-gradient(closest-side, rgb(255 200 60 / 0.35), transparent);
-  animation: battle-aura-ring 700ms ease-in-out infinite alternate;
+  background: radial-gradient(closest-side, rgb(2 6 14 / 0.55), rgb(2 6 14 / 0.2) 60%, transparent);
 }
 
 .battle-fighter[data-ready] {
@@ -1584,7 +1532,7 @@ button.battle-answer:disabled {
   transition: width 160ms ease-out;
 }
 
-.battle-hp[data-low='true'] {
+.battle-hp[data-critical='true'] {
   animation: battle-hp-low 900ms ease-in-out infinite;
 }
 
@@ -1605,25 +1553,15 @@ button.battle-answer:disabled {
   animation: battle-banner 1700ms cubic-bezier(0.2, 0.9, 0.3, 1) both;
 }
 
-.battle-banner span {
-  color: var(--battle-glass-muted);
-  font-family: var(--ud-pixel);
-  font-size: 1.75rem;
-  line-height: 1;
-  text-transform: uppercase;
-}
 
 .battle-banner strong {
-  color: #ffe066;
+  color: var(--battle-bad);
   font-family: var(--font-heading);
   font-size: clamp(2.5rem, 2rem + 3vw, 4.5rem);
   line-height: 1;
   text-shadow: 4px 4px 0 #050a14;
 }
 
-.battle-banner[data-last='true'] span {
-  color: var(--battle-bad);
-}
 
 .battle-arena[data-danger='true']::before {
   content: '';
@@ -1647,10 +1585,6 @@ button.battle-answer:disabled {
   animation: battle-answer-miss 420ms ease-in-out;
 }
 
-@keyframes battle-aura-ring {
-  from { opacity: 0.6; scale: 0.95; }
-  to { opacity: 1; scale: 1.08; }
-}
 
 @keyframes battle-hop {
   0%, 100% { translate: 0 0; }
@@ -1726,7 +1660,6 @@ button.battle-answer:disabled {
 }
 
 .battle-page[data-still='true'] :is(.battle-fighter, .battle-fighter .avatar-sprite, .battle-stage, .battle-tag, .battle-hp, .battle-answer),
-.battle-page[data-still='true'] .battle-fighter::after,
 .battle-page[data-still='true'] .battle-arena::before {
   animation: none;
 }
@@ -1734,7 +1667,6 @@ button.battle-answer:disabled {
 @media (prefers-reduced-motion: reduce) {
   .battle-fighter,
   .battle-fighter .avatar-sprite,
-  .battle-fighter::after,
   .battle-stage,
   .battle-tag,
   .battle-hp,

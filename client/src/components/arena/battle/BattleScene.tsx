@@ -10,7 +10,7 @@ import { PixelSprite } from '../../PixelSprite';
 import { ArenaLoader } from '../ArenaLoader';
 import { reactionDance, shownReaction } from './quickChat';
 import type { ShownReaction } from './quickChat';
-import { animatedRound, choreography, finisher, impactAt, MAX_HP, missChoreography, streakOf, strikeChoreography, strikeRound, withoutStrike } from './battleView';
+import { animatedRound, choreography, finisher, impactAt, LOW_HP, MAX_HP, missChoreography, streakOf, strikeChoreography, strikeRound, withoutStrike } from './battleView';
 import type { Fighter } from './battleView';
 import type { GameSession } from '../../../types/api';
 import { formatElo } from '../../../lib/units';
@@ -24,7 +24,7 @@ function Plate({ fighter, side, hp, quickChat }: { fighter: Fighter; side: 'me' 
       <div className="battle-plate-info">
         <p className="battle-plate-name">{side === 'me' ? `${fighter.username} (Ty)` : fighter.username}</p>
         <p className="battle-plate-elo">{formatElo(fighter.elo)}</p>
-        <div className="battle-hp" role="meter" aria-label={`HP: ${fighter.username}`} aria-valuemin={0} aria-valuemax={MAX_HP} aria-valuenow={hp} data-low={hp <= 40}>
+        <div className="battle-hp" role="meter" aria-label={`HP: ${fighter.username}`} aria-valuemin={0} aria-valuemax={MAX_HP} aria-valuenow={hp} data-critical={hp > 0 && hp < LOW_HP}>
           <span className="battle-hp-trail" style={{ width: `${percent}%` }} />
           <span className="battle-hp-fill" style={{ width: `${percent}%` }} data-low={hp <= 40} />
         </div>
@@ -104,8 +104,7 @@ export function BattleScene({ session: live, me, rival, reducedMotion, serverNow
       {meAtlas && rivalAtlas ? <>
         <BattleReferee session={session} meId={me.id} serverNow={serverNow} reducedMotion={reducedMotion} finish={finish} />
         <BattleFighter key={`me-${motionKey}`} look={me.look} atlas={meAtlas} segments={segments(me, rival)} reducedMotion={reducedMotion}
-          label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} finishedBy={finishedBy(me)} reaction={reactionDance(meReaction)}
-          hit={hit(me)} streak={live.status === 'ACTIVE' ? streak : 0} />
+          label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} finishedBy={finishedBy(me)} reaction={reactionDance(meReaction)} hit={hit(me)} />
         <BattleFighter key={`rival-${motionKey}`} look={rival.look} atlas={rivalAtlas} segments={segments(rival, me)} reducedMotion={reducedMotion}
           label={`Awatar rywala, ${rival.username}`} side="rival" motionKey={motionKey} finishedBy={finishedBy(rival)} reaction={reactionDance(rivalReaction)}
           hit={hit(rival)} ready={rivalReady} />

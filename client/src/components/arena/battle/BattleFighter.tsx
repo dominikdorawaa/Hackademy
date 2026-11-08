@@ -25,16 +25,16 @@ function useSegment(segments: Segment[], motionKey: string, reducedMotion: boole
   return { segment: segments[index], index };
 }
 
-export function BattleFighter({ look, atlas, segments, reducedMotion, label, side, motionKey, finishedBy = null, reaction = null, hit = false, ready = false, streak = 0 }: {
+export function BattleFighter({ look, atlas, segments, reducedMotion, label, side, motionKey, finishedBy = null, reaction = null, hit = false, ready = false }: {
   look: Avatar; atlas: AvatarAtlas; segments: Segment[]; reducedMotion: boolean; label: string; side: 'me' | 'rival'; motionKey: string; finishedBy?: Finisher | null;
-  reaction?: { key: number; frames: number[] } | null; hit?: boolean; ready?: boolean; streak?: number;
+  reaction?: { key: number; frames: number[] } | null; hit?: boolean; ready?: boolean;
 }) {
   const { segment, index } = useSegment(segments, motionKey, reducedMotion);
   const idle = segment.loop && segment.frames.length === 1;
   const dance = reaction && idle && index === segments.length - 1 && !reducedMotion ? reaction : null;
   return (
     <div className={`battle-fighter is-${side}`} data-idle={idle && !dance} data-frames={(dance?.frames ?? segment.frames).join(',')} data-finished-by={finishedBy?.move}
-      data-hit={hit || undefined} data-ready={ready || undefined} data-streak={streak > 1 ? Math.min(streak, 4) : undefined}
+      data-hit={hit || undefined} data-ready={ready || undefined}
       style={finishedBy ? { '--finish-impact': `${finishedBy.impact}ms`, '--knockback': `${KNOCKBACK_MS}ms` } as CSSProperties : undefined}>
       {dance ? <AvatarSprite key={`reaction-${dance.key}`} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[look.outfit].atlasHeight}
           frames={dance.frames} loop={false} frameTime={REACTION_FRAME_MS} label={label} />

@@ -191,9 +191,9 @@ describe('battle view', () => {
 });
 
 describe('roundBanner', () => {
-  it('announces a fresh round for a moment and calls out the last one', () => {
-    expect(roundBanner(createGameSession(), 1_000_000)).toBe('Runda 1');
-    expect(roundBanner(createGameSession(), 1_001_900)).toBeNull();
+  it('calls out only the last round, for a moment after it starts', () => {
+    expect(roundBanner(createGameSession(), 1_000_000)).toBeNull();
+    expect(roundBanner(createGameSession({ round: 10 }), 1_001_900)).toBeNull();
     expect(roundBanner(createGameSession({ round: 10 }), 1_000_500)).toBe('Ostatnia runda');
     expect(roundBanner(createGameSession({ phase: 'REVEAL' }), 1_000_000)).toBeNull();
     expect(roundBanner(createGameSession({ pause: { players: [2], startedAt: 1_000_000, endsAt: 1_010_000 } }), 1_000_000)).toBeNull();

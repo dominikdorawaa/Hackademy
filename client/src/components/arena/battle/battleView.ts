@@ -84,12 +84,12 @@ export function roundSummary(result: RoundResult, meId: number, rivalId: number)
 export const ABSENCE_MS = 30_000;
 export const ROUND_MS = 15_000;
 export const BANNER_MS = 1_800;
-export const DANGER_HP = 30;
+export const LOW_HP = 20;
 
 export function roundBanner(session: GameSession, serverNow: number) {
   if (session.status !== 'ACTIVE' || session.phase !== 'QUESTION' || session.pause) return null;
   if (session.roundEndsAt - serverNow <= ROUND_MS - BANNER_MS) return null;
-  return session.round === session.totalRounds ? 'Ostatnia runda' : `Runda ${session.round}`;
+  return session.round === session.totalRounds ? 'Ostatnia runda' : null;
 }
 
 export const PAUSE_SECONDS = 10;
