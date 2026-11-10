@@ -98,10 +98,11 @@
 
 .battle-intro-fighter {
   flex: 0 1 auto;
-  min-width: 120px;
-  width: clamp(180px, 27vw, 520px);
+  min-width: 160px;
+  width: clamp(260px, 36vw, 720px);
+  max-width: 70dvh;
   aspect-ratio: 1;
-  margin-bottom: -9%;
+  margin: 0 -11% -10%;
   filter: drop-shadow(0 6px 0 rgb(3 6 16 / 0.55));
   animation: battle-intro-drop 360ms steps(4, end) 650ms both;
 }
@@ -479,7 +480,8 @@
   }
 
   .battle-intro-fighter {
-    width: 96px;
+    width: 150px;
+    margin: 0 -8% -10%;
   }
 
   .battle-intro-card {

@@ -199,21 +199,21 @@
 
 .battle-reaction {
   position: absolute;
-  bottom: calc(29 * var(--fighter-scale) * var(--battle-pixel));
-  z-index: 1;
+  bottom: calc(46 * var(--fighter-scale) * var(--battle-pixel));
+  z-index: 3;
   line-height: 0;
-  transform-origin: 0 100%;
+  translate: -50% 0;
+  transform-origin: 50% 100%;
   filter: drop-shadow(0 4px 0 rgb(5 10 20 / 0.45));
   animation: battle-reaction-pop 3000ms ease-out both;
 }
 
 .battle-reaction.is-me {
-  left: calc(var(--left-edge) + 0.8 * var(--fighter));
+  left: calc(var(--left-edge) + 0.53 * var(--fighter));
 }
 
 .battle-reaction.is-rival {
-  right: calc(100% - var(--right-edge) + 0.8 * var(--fighter));
-  transform-origin: 100% 100%;
+  left: calc(var(--right-edge) - 0.53 * var(--fighter));
 }
 
 @keyframes battle-reaction-pop {
@@ -288,7 +288,7 @@
 
 .battle-stage {
   container-type: inline-size;
-  --fighter-scale: 1.5;
+  --fighter-scale: 1.15;
   --fighter: calc(64 * var(--fighter-scale) * var(--battle-pixel));
   --left-edge: 9%;
   --right-edge: 91%;
