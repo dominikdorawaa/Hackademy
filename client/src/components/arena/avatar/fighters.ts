@@ -8,11 +8,12 @@ const DANCES: Record<VictoryDance, number> = { groove: 6, sixseven: 8, scuba: 13
 const RUN = 10;
 const FINISHERS: Record<FinisherMove, number> = { beam: 2, combo: 11 };
 export const KNOCKED_OUT = 53;
+const DRAGGED = 140;
 
 export const AVATAR_ATLASES: Record<AvatarOutfit, AvatarAtlasSource> = {
-  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: 140 },
-  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: KNOCKED_OUT },
-  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: KNOCKED_OUT },
+  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
+  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
+  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
 };
 
 export function atlasViewBox(index: number) {

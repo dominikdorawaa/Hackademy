@@ -182,7 +182,7 @@
 .battle-podium-bit {
   --p: calc(var(--loser) / 64);
   position: absolute;
-  left: calc(-20.5 * var(--p));
+  left: calc(-19.5 * var(--p));
   bottom: calc(9 * var(--p));
   z-index: 1;
   width: calc(32 * var(--p));

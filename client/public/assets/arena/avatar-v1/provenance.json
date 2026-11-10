@@ -85,8 +85,8 @@
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
     "fighter.png": "161e89ed2cf2ce2ab286b78924f45bbc2757ed6766fafb520c1953aba4b815b1",
-    "hoodie/fighter.png": "752e3f12f3b6baa13ed1690595c3cfcb4f50d97c302b88f09d7eb17a8cdb08b2",
-    "track/fighter.png": "e85f76af00dbccd8185ddccc8c097c7ea9fa02d14705d72faa91ba6ac0abb398"
+    "hoodie/fighter.png": "3ea686deb8738a409301ad9bf0adba7f19b07bbfd81dff780f68a708d0a8fcd5",
+    "track/fighter.png": "c5974f78022bf6c0f30785089e079926f39782398330a4297c32e37ffa0883bb"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -445,8 +445,26 @@
         "seed": 95801,
         "image": 0,
         "description": "Same bald fighter in the same dark T-shirt, grey trousers and dark shoes, same size and palette, lying knocked out face down on the floor. He is being dragged by the ankles toward the left: the legs lie almost flat and straight on the floor, only the feet are lifted very slightly, a few pixels off the ground, pointing to the left edge, the arms trail limply stretched out past the head along the floor to the right, the eyes are closed. Side view. Transparent background."
+      },
+      "bluza": {
+        "cell": 140,
+        "endpoint": "edit-image-pixen",
+        "from": "hoodie cell 53 (lying knocked out)",
+        "seed": 95801,
+        "image": 0,
+        "description": "Same bald fighter in the same green hoodie, dark blue jeans and white sneakers, same size and palette, lying knocked out face down on the floor. He is being dragged by the ankles toward the left: the legs lie almost flat and straight on the floor, only the feet are lifted very slightly, a few pixels off the ground, pointing to the left edge, the arms trail limply stretched out past the head along the floor to the right, the eyes are closed. Side view. Transparent background.",
+        "head": "head and hands replaced by the base pose head (skin and outline pixels at x 41 and right), one hole filled"
+      },
+      "dres": {
+        "cell": 140,
+        "endpoint": "edit-image-pixen",
+        "from": "tracksuit cell 53 (lying knocked out)",
+        "seed": 95801,
+        "image": 0,
+        "description": "Same bald fighter in the same striped tracksuit and shoes, same size and palette, lying knocked out face down on the floor. He is being dragged by the ankles toward the left: the legs lie almost flat and straight on the floor, only the feet are lifted very slightly, a few pixels off the ground, pointing to the left edge, the arms trail limply stretched out past the head along the floor to the right, the eyes are closed. Side view. Transparent background.",
+        "head": "head and hands replaced by the base pose head moved 1 px down, one hole filled"
       }
     },
-    "processing": "Alpha cut at 128 and every pixel snapped to the nearest colour of the outfit palette (OUTFIT_SPECS), then placed in the empty cell 140. anchors.json gets a cell 140 head anchor at angle 0, offset from the idle head by the shift of the head skin centroid, so hair and hats sit on the head. The hoodie and tracksuit atlases keep cell 140 empty for now and are dragged in their knockout pose (cell 53)."
+    "processing": "Alpha cut at 128 and every pixel snapped to the nearest colour of its outfit palette (OUTFIT_SPECS), then placed in the empty cell 140 of each atlas. The generated hoodie and tracksuit heads came out blurred, so their head and hands are the base pose pixels. Each anchors.json gets a cell 140 head anchor at angle 0, offset from that outfit's idle head by the shift of the head skin centroid, so hair and hats sit on the head."
   }
 }
