@@ -299,7 +299,8 @@
   height: calc(72 * var(--battle-pixel));
   margin: -8px calc(-1 * var(--arena-pad)) 0;
   padding: 0;
-  overflow: hidden;
+  overflow-x: clip;
+  overflow-y: visible;
 }
 
 .battle-fighter {
