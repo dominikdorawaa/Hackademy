@@ -49,6 +49,11 @@ export interface MessageResponse {
   message: string
 }
 
+export interface AnswerResponse extends MessageResponse {
+  correct?: boolean
+  damage?: number
+}
+
 export interface LoginRequest {
   email: string
   password: string

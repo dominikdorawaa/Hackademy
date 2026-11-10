@@ -165,7 +165,7 @@ it('shows the result with the Elo change when the battle ends', async () => {
   expect(await screen.findByRole('heading', { name: 'Zwycięstwo' })).toBeInTheDocument();
   expect(screen.getByText('Rywal padł po Twoim ciosie.')).toBeInTheDocument();
   expect(screen.getByText('+16 Elo')).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Wróć do Areny' })).toHaveAttribute('href', '/arena');
+  expect(screen.getByRole('button', { name: 'Wróć do Areny' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Poddaj walkę' })).not.toBeInTheDocument();
   expect(screen.queryByRole('timer')).not.toBeInTheDocument();
 });
@@ -355,4 +355,21 @@ it.each([
   server.use(http.get(`${API_URL}/api/arena/game/:id`, () => HttpResponse.json(session)));
   mount();
   expect(await screen.findByText(label)).toBeInTheDocument();
+});
+
+it('lands a right answer on the rival straight away without waiting for their answer', async () => {
+  server.use(http.post(`${API_URL}/api/arena/game/game/answer`, () => HttpResponse.json({ message: 'ok', correct: true, damage: 18 })));
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: /22/ }));
+  await waitFor(() => expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '82'));
+  expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '100');
+  expect(screen.getByText('Odpowiedź wysłana. Czekamy na rywala.')).toBeInTheDocument();
+});
+
+it('keeps the rival untouched after a wrong answer until the round ends', async () => {
+  server.use(http.post(`${API_URL}/api/arena/game/game/answer`, () => HttpResponse.json({ message: 'ok', correct: false, damage: 0 })));
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: /21/ }));
+  expect(await screen.findByText('Odpowiedź wysłana. Czekamy na rywala.')).toBeInTheDocument();
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
 });

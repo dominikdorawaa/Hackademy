@@ -1,8 +1,8 @@
-import { useEffect, type ReactNode } from 'react';
+import type { ReactNode } from 'react';
 import { createPortal } from 'react-dom';
 import { cn } from '../../lib/utils';
 import RoomNavInfo, { type RoomNavProps } from './RoomNavInfo';
-import { useRoomChrome } from './roomChrome';
+import { useRoomMode } from './roomChrome';
 import { RoomMascotContext, type RoomMascotState } from './RoomMascot';
 import './room.css';
 
@@ -16,14 +16,7 @@ interface RoomFrameProps {
 }
 
 export default function RoomFrame({ nav, footer, children, className, label, mascot = { successCount: 0 } }: RoomFrameProps) {
-  const chrome = useRoomChrome();
-  const setActive = chrome?.setActive;
-
-  useEffect(() => {
-    if (!setActive) return;
-    setActive(true);
-    return () => setActive(false);
-  }, [setActive]);
+  const chrome = useRoomMode();
 
   const info = <RoomNavInfo {...nav} />;
   return (

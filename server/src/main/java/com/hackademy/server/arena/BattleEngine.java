@@ -112,6 +112,12 @@ public final class BattleEngine {
         return session.getHp().containsValue(0) ? "KNOCKOUT" : "ROUNDS";
     }
 
+    public static int strike(GameSession session, Long attacker) {
+        Long target = attacker.equals(session.getPlayer1Id()) ? session.getPlayer2Id() : session.getPlayer1Id();
+        boolean correct = session.getChoices().get(attacker) == session.getQuestions().get(session.getRound() - 1).correctAnswer();
+        return damage(session, attacker, target, correct);
+    }
+
     private static int damage(GameSession session, Long attacker, Long target, boolean correct) {
         Long elapsed = session.getAnswerElapsedMillis().get(attacker);
         if (!correct || elapsed == null) return 0;

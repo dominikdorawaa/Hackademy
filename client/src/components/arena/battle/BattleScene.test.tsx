@@ -233,3 +233,34 @@ it('shows the animated PixelLab emote above the fighter', () => {
   view.rerender(scene(reacted('ez', 2), true));
   expect(document.querySelector('.battle-reaction .pixel-sprite')).toHaveAttribute('data-still', 'true');
 });
+
+const strikeScene = (session: GameSession, strike: number | null) => <BattleScene session={session} {...perspective(session, 1)} reducedMotion={false} serverNow={session.serverTime} strike={strike}>
+  <p>Runda {session.round}</p>
+</BattleScene>;
+
+it('attacks as soon as the right answer lands and does not repeat the hit when the round is revealed', () => {
+  const question = createGameSession();
+  const view = render(strikeScene(question, 17));
+  expect(fighter()).toHaveAttribute('data-frames', '10,11,12,13,14,15,16,17');
+  expect(screen.getByTestId('shot-me')).toHaveTextContent('-17');
+  expect(screen.queryByTestId('shot-rival')).not.toBeInTheDocument();
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
+  advance(900);
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '83');
+  expect(fighter('rival')).toHaveAttribute('data-frames', '37,38,39,40');
+  advance(2000);
+  view.rerender(strikeScene(exchange({ 1: 12, 2: 17 }), 17));
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
+  expect(screen.getByTestId('shot-rival')).toHaveTextContent('-12');
+  expect(fighter()).not.toHaveAttribute('data-frames', '10,11,12,13,14,15,16,17');
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '83');
+  advance(900);
+  expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '88');
+});
+
+it('keeps a knockout blow for the reveal so the finisher plays in full', () => {
+  render(strikeScene(createGameSession({ hp: { 1: 100, 2: 15 } }), 15));
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
+  expect(fighter()).toHaveAttribute('data-frames', '0');
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '15');
+});

@@ -29,13 +29,14 @@ interface RoomFooterSteps {
 
 interface RoomFooterBarProps {
   progress?: RoomFooterSteps;
-  title: string;
+  title?: string;
   badge?: ReactNode;
   back?: RoomFooterAction;
   next: RoomFooterAction & { primary?: boolean };
+  mascot?: boolean;
 }
 
-export default function RoomFooterBar({ progress, title, badge, back, next }: RoomFooterBarProps) {
+export default function RoomFooterBar({ progress, title, badge, back, next, mascot = true }: RoomFooterBarProps) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -100,7 +101,7 @@ export default function RoomFooterBar({ progress, title, badge, back, next }: Ro
           </nav>
         )}
         <div className="room-footer-where">
-          <strong title={title}>{title}</strong>
+          {title && <strong title={title}>{title}</strong>}
           {(progress || badge) && (
             <span>
               {progress && `${progress.unit} ${Math.min(progress.current + 1, progress.steps.length)} / ${progress.steps.length}`}
@@ -109,7 +110,7 @@ export default function RoomFooterBar({ progress, title, badge, back, next }: Ro
           )}
         </div>
       </div>
-      <div className="room-footer-lane"><RoomMascot /></div>
+      <div className="room-footer-lane">{mascot && <RoomMascot />}</div>
       <div className="room-footer-end">
         {back && (
           <button type="button" className="room-btn" disabled={back.disabled} onClick={back.onClick}>
