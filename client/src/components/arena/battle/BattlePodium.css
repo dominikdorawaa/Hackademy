@@ -123,7 +123,7 @@
 
 .battle-podium-loser .battle-podium-sprite {
   height: var(--loser);
-  filter: brightness(0.45) saturate(0.35);
+  filter: brightness(0.78) saturate(0.7) drop-shadow(0 4px 0 rgb(3 6 16 / 0.35));
 }
 
 .battle-podium-tie {

@@ -8,6 +8,9 @@ import './BattlePodium.css';
 
 const FRAME_MS = 110;
 export const STANDING = 73;
+export const FALL = [45, 46, 47, 48, 49, 50, 51, 52, 53];
+export const FALL_DELAY_MS = 1600;
+const FALL_FRAME_MS = 120;
 
 function Dancer({ fighter, still }: { fighter: Fighter; still: boolean }) {
   const atlas = useAvatarAtlas(fighter.look);
@@ -30,6 +33,19 @@ function Pose({ fighter, frames, frameTime, still, label }: { fighter: Fighter; 
     frames={frames} frameTime={frameTime} reducedMotion={still} label={label} />;
 }
 
+function Fallen({ fighter, still }: { fighter: Fighter; still: boolean }) {
+  const atlas = useAvatarAtlas(fighter.look);
+  const [falling, setFalling] = useState(still);
+  useEffect(() => {
+    if (falling) return;
+    const timer = setTimeout(() => setFalling(true), FALL_DELAY_MS);
+    return () => clearTimeout(timer);
+  }, [falling]);
+  if (!atlas) return null;
+  return <AvatarSprite key={falling ? 'fall' : 'stand'} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[fighter.look.outfit].atlasHeight}
+    frames={falling ? FALL : [0]} loop={false} frameTime={FALL_FRAME_MS} reducedMotion={still} label={`${fighter.username} przegrywa`} />;
+}
+
 function NameTag({ fighter, mine }: { fighter: Fighter; mine: boolean }) {
   return <p className="battle-podium-name">{fighter.username}{mine && <span>Ty</span>}</p>;
 }
@@ -48,7 +64,7 @@ export function BattlePodium({ me, rival, result, title, change, still }: {
         {winner && loser ? <>
           <figure className="battle-podium-loser">
             <div className="battle-podium-sprite">
-              <Pose fighter={loser} frames={[STANDING]} frameTime={FRAME_MS} still={still} label={`${loser.username} przegrywa`} />
+              <Fallen fighter={loser} still={still} />
             </div>
             <figcaption><NameTag fighter={loser} mine={loser.id === me.id} /></figcaption>
           </figure>

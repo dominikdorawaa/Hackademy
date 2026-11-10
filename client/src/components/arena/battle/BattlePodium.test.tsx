@@ -1,6 +1,7 @@
 import { render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
-import { BattlePodium, STANDING } from './BattlePodium';
+import { act } from '@testing-library/react';
+import { BattlePodium, FALL, FALL_DELAY_MS, STANDING } from './BattlePodium';
 import { podiumDelay, perspective } from './battleView';
 import { createGameSession } from '../../../test/fixtures/arena';
 
@@ -11,15 +12,19 @@ vi.mock('../avatar/useAvatarAtlas', () => ({
 
 const { me, rival } = perspective(createGameSession(), 1);
 
-it('lets the winner dance on the podium while the dimmed loser stands still at the back', () => {
+it('lets the winner dance on the podium while the loser falls down at the back', () => {
+  vi.useFakeTimers();
   render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still={false} />);
   expect(screen.getByRole('heading', { name: 'Zwycięstwo' })).toBeInTheDocument();
   const winner = document.querySelector('.battle-podium-winner') as HTMLElement;
   expect(within(winner).getByRole('img', { name: `${me.username} tańczy` })).toBeInTheDocument();
   expect(within(winner).getByText('Ty')).toBeInTheDocument();
   const loser = document.querySelector('.battle-podium-loser') as HTMLElement;
-  expect(within(loser).getByRole('img', { name: `${rival.username} przegrywa` })).toHaveAttribute('data-frame', String(STANDING));
-  expect(loser.querySelector('.battle-podium-tears')).toBeNull();
+  expect(within(loser).getByRole('img', { name: `${rival.username} przegrywa` })).toHaveAttribute('data-frame', '0');
+  act(() => { vi.advanceTimersByTime(FALL_DELAY_MS); });
+  for (let step = 0; step < FALL.length; step++) act(() => { vi.advanceTimersByTime(120); });
+  expect(within(loser).getByRole('img', { name: `${rival.username} przegrywa` })).toHaveAttribute('data-frame', String(FALL.at(-1)));
+  vi.useRealTimers();
 });
 
 it('puts the rival on the podium after a loss', () => {
