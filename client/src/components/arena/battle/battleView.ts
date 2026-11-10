@@ -89,7 +89,7 @@ export const INTRO_EXIT_MS = 900;
 
 export function roundBanner(session: GameSession, serverNow: number) {
   if (session.status !== 'ACTIVE' || session.phase !== 'QUESTION' || session.pause) return null;
-  if (session.roundEndsAt - serverNow <= ROUND_MS - BANNER_MS) return null;
+  if (session.roundEndsAt - serverNow <= (session.roundMillis ?? ROUND_MS) - BANNER_MS) return null;
   return session.round === session.totalRounds ? 'Ostatnia runda' : null;
 }
 

@@ -403,3 +403,16 @@ it('introduces the rival before the first round and then opens the arena', async
   expect(document.querySelector('.battle-intro')).toBeNull();
   vi.useRealTimers();
 });
+
+it('skips the intro exit and keeps the pause visible when the duel stops during the intro', async () => {
+  const intro = createGameSession({ phase: 'INTRO', round: 0, question: null, roundEndsAt: 0, nextRoundAt: 1_007_000,
+    pause: { players: [2], startedAt: 1_000_000, endsAt: 1_010_000 }, absences: { 2: { reason: 'DISCONNECTED', since: 1_000_000 } } });
+  realtime.value = { ...realtime.value, state: live(intro) };
+  const view = mount();
+  expect(await screen.findByRole('dialog', { name: 'Pojedynek' })).toBeInTheDocument();
+  expect(document.querySelector('.battle-arena > .battle-pause')).not.toBeNull();
+  realtime.value = { ...realtime.value, state: live({ ...intro, pause: null, status: 'FINISHED', finishReason: 'SURRENDER', winnerId: 1 }) };
+  view.rerender(battle());
+  expect(await screen.findByRole('heading', { name: 'Zwycięstwo' })).toBeInTheDocument();
+  expect(document.querySelector('.battle-intro')).toBeNull();
+});

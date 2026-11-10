@@ -7,7 +7,7 @@ import { BattleResult } from '../components/arena/battle/BattleResult';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
-  absenceNotice, eloChange, finishText, frozenSecondsLeft, INTRO_EXIT_MS, LOW_HP, outcome, outcomeTitle, pauseNotice, perspective, podiumDelay, roundBanner, roundSummary, secondsLeft,
+  absenceNotice, eloChange, finishText, frozenSecondsLeft, INTRO_EXIT_MS, LOW_HP, ROUND_MS, outcome, outcomeTitle, pauseNotice, perspective, podiumDelay, roundBanner, roundSummary, secondsLeft,
 } from '../components/arena/battle/battleView';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
@@ -75,9 +75,9 @@ export default function ArenaBattlePage() {
     return () => controller.abort();
   }, [sessionKey, identityAttempt]);
 
-  const introPhase = session?.phase === 'INTRO';
+  const introPhase = session?.phase === 'INTRO' && session.status === 'ACTIVE';
   if (session && introPhase && introGame?.id !== session.id) setIntroGame({ id: session.id, leaving: true });
-  const introLeaving = !!session && !introPhase && introGame?.id === session.id && introGame.leaving && !reducedMotion;
+  const introLeaving = !!session && session.status === 'ACTIVE' && !introPhase && introGame?.id === session.id && introGame.leaving && !reducedMotion;
   if (session?.status === 'ACTIVE' && watched !== session.id) setWatched(session.id);
   const finishedId = session?.status === 'FINISHED' ? session.id : null;
   const celebrateIn = session && finishedId ? podiumDelay(session, watched === finishedId, reducedMotion) : 0;
@@ -202,9 +202,9 @@ export default function ArenaBattlePage() {
           <div className="battle-shell">
             <div className="battle-arena" data-paused={pause !== null} data-danger={!finished && me.hp > 0 && me.hp < LOW_HP}>
               {(introPhase || introLeaving) && <BattleIntro me={me} rival={rival} cards={session.intro} secondsLeft={left} totalRounds={session.totalRounds}
-                roundSeconds={Math.round((session.roundMillis ?? 15_000) / 1000)} leaving={introLeaving} reducedMotion={reducedMotion} />}
+                roundSeconds={Math.round((session.roundMillis ?? ROUND_MS) / 1000)} leaving={introLeaving} reducedMotion={reducedMotion} />}
               {banner && !reducedMotion && <p key={`banner-${session.round}`} className="battle-banner" aria-hidden="true"><strong>{banner}</strong></p>}
-              <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
+              <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow} afterIntro={introGame?.id === session.id && !reducedMotion}
                 strike={currentVerdict && currentVerdict.damage > 0 ? currentVerdict.damage : null} miss={currentVerdict?.damage === 0}
                 quickChat={{ onPick: reaction => void react(reaction), notice: reactionNotice }}>
                 <div className="battle-round">

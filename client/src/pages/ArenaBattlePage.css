@@ -1293,6 +1293,11 @@ button.battle-answer:disabled {
   overflow: hidden;
 }
 
+.battle-arena:has(> .battle-intro) > :is(.battle-pause, .battle-absence) {
+  position: relative;
+  z-index: 21;
+}
+
 .battle-pane {
   border: 2px solid var(--rm-line);
   border-radius: 6px;
