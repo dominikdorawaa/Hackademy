@@ -89,7 +89,7 @@ export const INTRO_EXIT_MS = 900;
 
 export function roundBanner(session: GameSession, serverNow: number) {
   if (session.status !== 'ACTIVE' || session.phase !== 'QUESTION' || session.pause) return null;
-  if (session.roundEndsAt - serverNow <= ROUND_MS - BANNER_MS) return null;
+  if (session.roundEndsAt - serverNow <= (session.roundMillis ?? ROUND_MS) - BANNER_MS) return null;
   return session.round === session.totalRounds ? 'Ostatnia runda' : null;
 }
 
@@ -183,6 +183,17 @@ export function finisher(session: GameSession): Finisher | null {
   const spec = FINISHERS[move];
   const start = (round.damage[winnerId] ?? 0) > 0 ? IMPACT_MS + HURT_MS : 0;
   return { move, winnerId, loserId, start, impact: start + spec.impact * FINISHER_FRAME_MS, end: start + spec.frames.length * FINISHER_FRAME_MS };
+}
+
+export const PODIUM_PAUSE_MS = 2000;
+export const PODIUM_QUIET_MS = 900;
+
+export function podiumDelay(session: GameSession, watched: boolean, still: boolean) {
+  if (!watched || still) return 0;
+  if (session.finishReason !== 'KNOCKOUT' && session.finishReason !== 'ROUNDS') return PODIUM_QUIET_MS;
+  const finish = finisher(session);
+  const end = finish ? Math.max(finish.end, finish.impact + KNOCKBACK_MS) : IMPACT_MS + HURT_MS;
+  return end + PODIUM_PAUSE_MS;
 }
 
 export function impactAt(session: GameSession, fighterId: number) {

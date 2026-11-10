@@ -68,7 +68,7 @@
 .battle-intro-title {
   margin: 0;
   font-family: var(--font-heading);
-  font-size: clamp(1.75rem, 4vw, 3rem);
+  font-size: clamp(2rem, 4.5vw, 3.75rem);
   line-height: 1;
   text-transform: uppercase;
   text-shadow: 3px 0 var(--intro-ink), -3px 0 var(--intro-ink), 0 3px var(--intro-ink), 0 -3px var(--intro-ink), 3px 3px var(--intro-ink), -3px -3px var(--intro-ink), 3px -3px var(--intro-ink), -3px 3px var(--intro-ink);
@@ -78,7 +78,7 @@
   margin: 6px 0 0;
   color: #ffe066;
   font-family: var(--ud-pixel);
-  font-size: 1rem;
+  font-size: clamp(1rem, 1.6vw, 1.5rem);
   text-shadow: 2px 2px 0 var(--intro-ink);
 }
 
@@ -98,9 +98,10 @@
 
 .battle-intro-fighter {
   flex: 0 1 auto;
-  width: clamp(150px, 19vw, 300px);
+  min-width: 120px;
+  width: clamp(180px, 27vw, 520px);
   aspect-ratio: 1;
-  margin-bottom: -6%;
+  margin-bottom: -9%;
   filter: drop-shadow(0 6px 0 rgb(3 6 16 / 0.55));
   animation: battle-intro-drop 360ms steps(4, end) 650ms both;
 }
@@ -122,10 +123,9 @@
 
 .battle-intro-card {
   --side: var(--intro-me);
-  flex: 0 1 260px;
+  flex: 0 0 clamp(250px, 21vw, 340px);
   min-width: 0;
-  max-width: 260px;
-  padding: 14px;
+  padding: 18px;
   border: 3px solid var(--intro-ink);
   border-radius: 4px;
   background: rgb(10 16 36 / 0.9);
@@ -147,7 +147,7 @@
   overflow: hidden;
   margin: 0;
   font-family: var(--font-heading);
-  font-size: 1.125rem;
+  font-size: clamp(1.125rem, 1.6vw, 1.625rem);
   line-height: 1.2;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -160,22 +160,22 @@
   background: var(--side);
   color: var(--intro-ink);
   font-family: var(--ud-pixel);
-  font-size: 0.8125rem;
+  font-size: 1rem;
 }
 
 .battle-intro-league {
   display: flex;
   align-items: center;
   gap: 6px;
-  margin: 6px 0 10px;
+  margin: 8px 0 12px;
   color: var(--league);
   font-family: var(--ud-pixel);
-  font-size: 0.9375rem;
+  font-size: clamp(1rem, 1.3vw, 1.25rem);
 }
 
 .battle-intro-league-icon {
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
 }
 
 .battle-intro-league-icon img {
@@ -186,19 +186,19 @@
 .battle-intro-stats {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6px;
+  gap: 8px;
   margin: 0;
 }
 
 .battle-intro-stats div {
-  padding: 6px 8px;
+  padding: 8px 10px;
   border-radius: 3px;
   background: rgb(255 255 255 / 0.06);
 }
 
 .battle-intro-stats dt {
   color: #9fb0d0;
-  font-size: 0.6875rem;
+  font-size: 0.8125rem;
   font-weight: 700;
   text-transform: uppercase;
 }
@@ -206,7 +206,7 @@
 .battle-intro-stats dd {
   margin: 0;
   font-family: var(--ud-pixel);
-  font-size: 1.25rem;
+  font-size: clamp(1.25rem, 2vw, 1.875rem);
   line-height: 1.2;
 }
 
@@ -229,8 +229,8 @@
 .battle-intro-recent li {
   display: grid;
   place-items: center;
-  width: 28px;
-  height: 28px;
+  width: 36px;
+  height: 36px;
   border: 2px solid var(--intro-ink);
   border-radius: 3px;
   animation: battle-intro-pop 220ms steps(3, end) both;
@@ -260,8 +260,8 @@
 }
 
 .battle-intro-recent svg {
-  width: 18px;
-  height: 18px;
+  width: 22px;
+  height: 22px;
   stroke-width: 3.5;
 }
 
@@ -269,7 +269,7 @@
   margin: 0;
   color: #ffe066;
   font-family: var(--ud-pixel);
-  font-size: 1rem;
+  font-size: 1.25rem;
   text-align: center;
 }
 
@@ -280,7 +280,7 @@
   gap: 4px;
   margin: 6px 0 0;
   color: #9fb0d0;
-  font-size: 0.75rem;
+  font-size: 0.9375rem;
   font-weight: 700;
 }
 
@@ -299,7 +299,7 @@
   margin: 0;
   color: #ffe066;
   font-family: var(--font-heading);
-  font-size: clamp(3.5rem, 8vw, 6.5rem);
+  font-size: clamp(4rem, 9vw, 8rem);
   line-height: 1;
   text-shadow: 4px 0 var(--intro-ink), -4px 0 var(--intro-ink), 0 4px var(--intro-ink), 0 -4px var(--intro-ink), 4px 4px var(--intro-ink), -4px -4px var(--intro-ink), 4px -4px var(--intro-ink), -4px 4px var(--intro-ink), 0 10px 0 rgb(3 6 16 / 0.6);
   animation: battle-intro-stamp 420ms steps(5, end) 800ms both;
@@ -309,7 +309,7 @@
   min-width: 2ch;
   margin: 0;
   font-family: var(--font-heading);
-  font-size: clamp(2rem, 4vw, 3rem);
+  font-size: clamp(2.5rem, 4.5vw, 4rem);
   line-height: 1;
   text-align: center;
   text-shadow: 3px 0 var(--intro-ink), -3px 0 var(--intro-ink), 0 3px var(--intro-ink), 0 -3px var(--intro-ink);
@@ -318,7 +318,7 @@
 
 .battle-intro-count[data-counting] {
   color: #fff;
-  font-size: clamp(3rem, 6vw, 4.5rem);
+  font-size: clamp(3.5rem, 7vw, 6rem);
   animation: battle-intro-stamp 360ms steps(4, end) both;
 }
 

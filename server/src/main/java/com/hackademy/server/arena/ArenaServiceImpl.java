@@ -10,6 +10,7 @@ import com.hackademy.server.user.UserAvatarRepository;
 import com.hackademy.server.user.UserRepository;
 import com.hackademy.server.user.UserServiceImpl;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.convert.DurationStyle;
@@ -39,6 +40,7 @@ import java.util.random.RandomGenerator;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+@Slf4j
 @Service
 @RequiredArgsConstructor
 public class ArenaServiceImpl implements ArenaService {
@@ -255,7 +257,13 @@ public class ArenaServiceImpl implements ArenaService {
         if (!session.isBot(session.getPlayer2Id())) session.setPlayer2Avatar(avatars.get(session.getPlayer2Id()));
         session.setStartTime(LocalDateTime.now());
         int elo = QuestionDraw.averageElo(session.getPlayer1Elo(), session.getPlayer2Elo());
-        if (history != null) session.setIntro(introCards(session));
+        if (history != null) {
+            try {
+                session.setIntro(introCards(session));
+            } catch (RuntimeException failure) {
+                log.warn("Arena intro cards unavailable for game {}", session.getId(), failure);
+            }
+        }
         BattleEngine.start(session, questionRepository.drawForElo(elo, BattleEngine.ROUNDS, random), clock.getAsLong(), random, introMillis);
         BotPlayer.plan(session, random);
     }
@@ -265,7 +273,7 @@ public class ArenaServiceImpl implements ArenaService {
         for (Long player : List.of(session.getPlayer1Id(), session.getPlayer2Id())) {
             int playerElo = session.eloOf(player);
             String name = player.equals(session.getPlayer1Id()) ? session.getPlayer1Username() : session.getPlayer2Username();
-            cards.put(player, session.isBot(player) ? history.botCard(name, playerElo) : history.card(player, playerElo));
+            cards.put(player, session.isBot(player) ? history.botCard(name, playerElo) : history.card(player));
         }
         return cards;
     }
@@ -387,7 +395,13 @@ public class ArenaServiceImpl implements ArenaService {
         session.setPlayer2EloChange(0);
         if (winnerId != null && session.getBotId() != null) recordBotGame(session, winnerId);
         else if (winnerId != null) recordWin(session, winnerId);
-        if (history != null) history.record(session);
+        if (history != null) {
+            try {
+                history.record(session);
+            } catch (RuntimeException failure) {
+                log.warn("Arena match history not saved for game {}", session.getId(), failure);
+            }
+        }
         realtime.changed(session.people());
         realtime.activityChanged(session.people());
     }

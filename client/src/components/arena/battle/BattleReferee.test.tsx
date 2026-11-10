@@ -27,6 +27,8 @@ describe('referee calls', () => {
     expect(refereeCall(opening(), 1, NOW + 4_000, null)).toMatchObject({ move: 'idle' });
     expect(refereeCall(opening({ round: 2 }), 1, NOW, null)).toMatchObject({ move: 'idle' });
     expect(refereeCall(opening({ phase: 'REVEAL' }), 1, NOW, null)).toMatchObject({ move: 'idle' });
+    expect(refereeCall(opening({ intro: { 1: { games: 0, wins: 0, losses: 0, streak: 0, recent: [], rank: 1 } } }), 1, NOW, null)).toMatchObject({ move: 'start', delay: 0 });
+    expect(refereeCall(opening(), 1, NOW + 300, null, true)).toMatchObject({ move: 'start', delay: 600 });
     expect(refereeCall(opening({ pause: { players: [2], startedAt: NOW, endsAt: NOW + 10_000 } }), 1, NOW, null)).toMatchObject({ move: 'idle' });
   });
 

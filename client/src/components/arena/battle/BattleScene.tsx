@@ -42,8 +42,8 @@ function EmoteBubble({ side, shown, still }: { side: 'me' | 'rival'; shown: Show
   </p>;
 }
 
-export function BattleScene({ session: live, me, rival, reducedMotion, serverNow, quickChat, strike = null, miss = false, children }: {
-  session: GameSession; me: Fighter; rival: Fighter; reducedMotion: boolean; serverNow: number;
+export function BattleScene({ session: live, me, rival, reducedMotion, serverNow, quickChat, strike = null, miss = false, afterIntro = false, children }: {
+  session: GameSession; me: Fighter; rival: Fighter; reducedMotion: boolean; serverNow: number; afterIntro?: boolean;
   quickChat?: { onPick: (id: string) => void; notice: string | null }; strike?: number | null; miss?: boolean; children: ReactNode;
 }) {
   const meAtlas = useAvatarAtlas(me.look);
@@ -99,8 +99,8 @@ export function BattleScene({ session: live, me, rival, reducedMotion, serverNow
     </header>
     <section className="battle-stage" aria-label="Arena walki" aria-busy={!ready} data-impact={hit(me) || hit(rival) || undefined}>
       {meAtlas && rivalAtlas ? <>
-        <BattleReferee session={session} meId={me.id} serverNow={serverNow} reducedMotion={reducedMotion} finish={finish}
-          remark={missing ? { key: `miss-${strikeKey}`, text: 'Pudło!', toward: 'me', tone: 'miss' } : rivalReady ? { key: `ready-${strikeKey}`, text: 'Rywal gotowy!', toward: 'rival', tone: 'ready' } : null} />
+        <BattleReferee session={session} meId={me.id} serverNow={serverNow} reducedMotion={reducedMotion} finish={finish} afterIntro={afterIntro}
+          remark={missing ? { key: `miss-${strikeKey}`, text: 'Pudło!', toward: 'me', tone: 'miss' } : rivalReady ? { key: `ready-${strikeKey}`, text: 'Rywal gotowy!', toward: 'me', tone: 'ready' } : null} />
         <BattleFighter key={`me-${motionKey}`} look={me.look} atlas={meAtlas} segments={segments(me, rival)} reducedMotion={reducedMotion}
           label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} finishedBy={finishedBy(me)} reaction={reactionDance(meReaction)} hit={hit(me)} />
         <BattleFighter key={`rival-${motionKey}`} look={rival.look} atlas={rivalAtlas} segments={segments(rival, me)} reducedMotion={reducedMotion}

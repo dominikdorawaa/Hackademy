@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { HURT_MS, IMPACT_MS, INTRO_EXIT_MS, KNOCKBACK_MS } from './battleView';
+import { HURT_MS, IMPACT_MS, INTRO_EXIT_MS, KNOCKBACK_MS, ROUND_MS } from './battleView';
 import type { Finisher } from './battleView';
 import type { GameSession } from '../../../types/api';
 
@@ -12,7 +12,6 @@ export const REFEREE_SHEETS = {
   start: { src: `${BASE}referee-start.png`, frames: 13 },
   winner: { src: `${BASE}referee-winner.png`, frames: 10 },
 } as const;
-export const DEFAULT_ROUND_MS = 15_000;
 export const START_WINDOW_MS = 4_000;
 export const VERDICT_PAUSE_MS = 400;
 export const START_MS = REFEREE_SHEETS.start.frames * REFEREE_FRAME_MS;
@@ -28,23 +27,23 @@ function verdictDelay(session: GameSession, finish: Finisher | null) {
   return Math.max(finish.end, finish.move === 'combo' ? finish.impact + KNOCKBACK_MS : 0) + VERDICT_PAUSE_MS;
 }
 
-export function refereeCall(session: GameSession, meId: number, serverNow: number, finish: Finisher | null): RefereeCall {
+export function refereeCall(session: GameSession, meId: number, serverNow: number, finish: Finisher | null, afterIntro = false): RefereeCall {
   if (session.status === 'FINISHED') {
     if (session.winnerId == null || session.finishReason === 'CANCELLED' || session.finishReason === 'ABANDONED') return { move: 'idle', key: 'idle', delay: 0, toward: null };
     return { move: 'winner', key: `winner-${session.id}`, delay: verdictDelay(session, finish), toward: session.winnerId === meId ? 'me' : 'rival' };
   }
-  const roundMs = session.roundMillis ?? DEFAULT_ROUND_MS;
+  const roundMs = session.roundMillis ?? ROUND_MS;
   const elapsed = roundMs - (session.roundEndsAt - serverNow);
   if (session.round === 1 && session.phase === 'QUESTION' && !session.pause && elapsed < START_WINDOW_MS) {
-    return { move: 'start', key: `start-${session.id}`, delay: session.intro ? Math.max(0, INTRO_EXIT_MS - elapsed) : 0, toward: null };
+    return { move: 'start', key: `start-${session.id}`, delay: afterIntro ? Math.max(0, INTRO_EXIT_MS - elapsed) : 0, toward: null };
   }
   return { move: 'idle', key: 'idle', delay: 0, toward: null };
 }
 
-export function BattleReferee({ session, meId, serverNow, reducedMotion, finish, remark = null }: {
-  session: GameSession; meId: number; serverNow: number; reducedMotion: boolean; finish: Finisher | null; remark?: RefereeRemark | null;
+export function BattleReferee({ session, meId, serverNow, reducedMotion, finish, remark = null, afterIntro = false }: {
+  session: GameSession; meId: number; serverNow: number; reducedMotion: boolean; finish: Finisher | null; remark?: RefereeRemark | null; afterIntro?: boolean;
 }) {
-  const call = refereeCall(session, meId, serverNow, finish);
+  const call = refereeCall(session, meId, serverNow, finish, afterIntro);
   const played = useRef(new Set<string>());
   const [current, setCurrent] = useState<{ key: string; move: RefereeMove } | null>(null);
   useEffect(() => {
