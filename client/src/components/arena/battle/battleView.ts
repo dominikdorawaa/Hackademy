@@ -244,15 +244,6 @@ export function missChoreography(): Segment[] {
   return [{ frames: HURT, loop: false, frameTime: HURT_FRAME_MS, ms: HURT_MS }, IDLE];
 }
 
-export function streakOf(hits: Record<number, boolean>) {
-  const rounds = Object.keys(hits).map(Number).sort((a, b) => b - a);
-  let streak = 0;
-  for (const round of rounds) {
-    if (!hits[round]) break;
-    streak++;
-  }
-  return streak;
-}
 
 export function strikeRound(session: GameSession, attackerId: number, targetId: number, damage: number): RoundResult {
   return { round: session.round, questionId: 0, content: '', answers: [], correctAnswer: -1, choices: {}, damage: { [attackerId]: 0, [targetId]: damage } };

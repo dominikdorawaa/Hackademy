@@ -82,7 +82,7 @@ export default function ArenaBattlePage() {
     const failed = identityError === sessionKey && sessionKey !== null;
     return (
       <RoomFrame label="Pojedynek na arenie" className="room-frame--panels battle-frame"
-        nav={{ back: { title: 'Arena', label: 'Arena', to: '/arena' }, title: 'Pojedynek', progress: { value: 0, max: 1, label: 'Przebieg walki' } }}>
+        nav={{ back: { title: 'Arena', label: 'Arena', to: '/arena' }, title: 'Pojedynek' }}>
         <div className="user-dashboard battle-page">
           <div className="battle-shell">
             {missing ? <p role="status" className="ud-empty">Tej walki nie ma już na serwerze. Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło.</p> : failed ? <>
@@ -150,9 +150,6 @@ export default function ArenaBattlePage() {
     if (!response?.ok) setError({ round: null, message: 'Nie udało się poddać walki.' });
   };
 
-  const rounds = Array.from({ length: session.totalRounds }, (_, index) => ({
-    key: index + 1, title: `Runda ${index + 1}`, done: finished || index + 1 < session.round, locked: true,
-  }));
   const next = finished
     ? { label: 'Wróć do Areny', primary: true, onClick: () => navigate('/arena') }
     : confirmSurrender
@@ -168,8 +165,6 @@ export default function ArenaBattlePage() {
           ? { title: 'Arena', label: 'Arena', to: '/arena' }
           : { title: 'Arena', label: 'Wyjdź z walki', onClick: () => setConfirmSurrender(true) },
         title: `${me.username} vs ${rival.username}`,
-        progress: { value: finished ? session.totalRounds : session.round - 1, max: session.totalRounds, label: 'Przebieg walki' },
-        steps: { items: rounds, current: finished ? -1 : session.round - 1, onSelect: () => undefined },
         action: <BugReportButton className="room-nav-report" context={{ source: 'ARENA', gameId: session.id }} />,
       }}
       footer={

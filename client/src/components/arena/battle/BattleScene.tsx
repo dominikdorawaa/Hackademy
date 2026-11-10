@@ -10,7 +10,7 @@ import { PixelSprite } from '../../PixelSprite';
 import { ArenaLoader } from '../ArenaLoader';
 import { reactionDance, shownReaction } from './quickChat';
 import type { ShownReaction } from './quickChat';
-import { animatedRound, choreography, finisher, impactAt, LOW_HP, MAX_HP, missChoreography, streakOf, strikeChoreography, strikeRound, withoutStrike } from './battleView';
+import { animatedRound, choreography, finisher, IMPACT_MS, impactAt, LOW_HP, MAX_HP, missChoreography, strikeChoreography, strikeRound, withoutStrike } from './battleView';
 import type { Fighter } from './battleView';
 import type { GameSession } from '../../../types/api';
 import { formatElo } from '../../../lib/units';
@@ -50,20 +50,18 @@ export function BattleScene({ session: live, me, rival, reducedMotion, serverNow
   const rivalAtlas = useAvatarAtlas(rival.look);
   const ready = Boolean(meAtlas && rivalAtlas);
   const strikeKey = `${live.id}-${live.round}`;
-  const striking = strike !== null && strike > 0 && strike < rival.hp && live.status === 'ACTIVE' && live.phase === 'QUESTION';
+  const rivalReady = live.status === 'ACTIVE' && live.phase === 'QUESTION' && live.answeredBy.includes(rival.id);
+  const canStrike = strike !== null && strike > 0 && strike < rival.hp && live.status === 'ACTIVE' && live.phase === 'QUESTION';
+  const [started, setStarted] = useState<string | null>(null);
+  if (canStrike && !rivalReady && started !== strikeKey) setStarted(strikeKey);
+  const striking = canStrike && (!rivalReady || started === strikeKey);
   const [struck, setStruck] = useState<string | null>(null);
-  if (striking && struck !== strikeKey) setStruck(strikeKey);
+  useEffect(() => {
+    if (!striking) return;
+    const timer = setTimeout(() => setStruck(strikeKey), ready && !reducedMotion ? IMPACT_MS : 0);
+    return () => clearTimeout(timer);
+  }, [striking, strikeKey, ready, reducedMotion]);
   const missing = miss && !striking && live.status === 'ACTIVE' && live.phase === 'QUESTION';
-  const [record, setRecord] = useState<{ game: string; hits: Record<number, boolean> }>({ game: live.id, hits: {} });
-  const learned: Record<number, boolean> = {};
-  if (live.lastRound) learned[live.lastRound.round] = (live.lastRound.damage[rival.id] ?? 0) > 0;
-  if (striking) learned[live.round] = true;
-  if (missing) learned[live.round] = false;
-  const known = record.game === live.id ? record.hits : {};
-  if (record.game !== live.id || Object.entries(learned).some(([round, hit]) => known[Number(round)] !== hit)) {
-    setRecord({ game: live.id, hits: { ...known, ...learned } });
-  }
-  const streak = streakOf({ ...known, ...learned });
   const session = struck === strikeKey && live.lastRound?.round === live.round ? withoutStrike(live, rival.id) : live;
   const exchange = striking ? strikeRound(session, me.id, rival.id, strike) : animatedRound(session);
   const motionKey = `${session.id}-${session.round}-${session.phase}-${session.status}${striking ? '-strike' : missing ? '-miss' : ''}`;
@@ -89,7 +87,6 @@ export function BattleScene({ session: live, me, rival, reducedMotion, serverNow
     : choreography(session, fighter.id, opponent.id);
   const hit = (fighter: Fighter) => animate && landed.key === motionKey && landed.ids.includes(fighter.id)
     && (exchange?.damage[fighter.id] ?? 0) > 0 && !finishedBy(fighter);
-  const rivalReady = live.status === 'ACTIVE' && live.phase === 'QUESTION' && live.answeredBy.includes(rival.id);
   const finishedBy = (fighter: Fighter) => finish && animate && finish.loserId === fighter.id ? finish : null;
   const meReaction = shownReaction(session, me.id, serverNow), rivalReaction = shownReaction(session, rival.id, serverNow);
   const announced = [meReaction && `Ty: ${meReaction.reaction.name}`, rivalReaction && `${rival.username}: ${rivalReaction.reaction.name}`].filter(Boolean).join('. ');
@@ -102,15 +99,13 @@ export function BattleScene({ session: live, me, rival, reducedMotion, serverNow
     </header>
     <section className="battle-stage" aria-label="Arena walki" aria-busy={!ready} data-impact={hit(me) || hit(rival) || undefined}>
       {meAtlas && rivalAtlas ? <>
-        <BattleReferee session={session} meId={me.id} serverNow={serverNow} reducedMotion={reducedMotion} finish={finish} />
+        <BattleReferee session={session} meId={me.id} serverNow={serverNow} reducedMotion={reducedMotion} finish={finish}
+          remark={missing ? { key: `miss-${strikeKey}`, text: 'Pudło!', toward: 'me', tone: 'miss' } : rivalReady ? { key: `ready-${strikeKey}`, text: 'Rywal gotowy!', toward: 'rival', tone: 'ready' } : null} />
         <BattleFighter key={`me-${motionKey}`} look={me.look} atlas={meAtlas} segments={segments(me, rival)} reducedMotion={reducedMotion}
           label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} finishedBy={finishedBy(me)} reaction={reactionDance(meReaction)} hit={hit(me)} />
         <BattleFighter key={`rival-${motionKey}`} look={rival.look} atlas={rivalAtlas} segments={segments(rival, me)} reducedMotion={reducedMotion}
           label={`Awatar rywala, ${rival.username}`} side="rival" motionKey={motionKey} finishedBy={finishedBy(rival)} reaction={reactionDance(rivalReaction)}
           hit={hit(rival)} ready={rivalReady} />
-        {rivalReady && <p className="battle-tag is-rival is-ready" aria-hidden="true">Gotowe</p>}
-        {missing && <p key={`miss-${motionKey}`} className="battle-tag is-me is-miss" aria-hidden="true">Pudło!</p>}
-        {streak > 1 && live.status === 'ACTIVE' && !missing && <p key={`streak-${streak}`} className="battle-tag is-me is-streak" aria-hidden="true" data-level={Math.min(streak, 4)}>x{streak} seria</p>}
         <EmoteBubble side="me" shown={meReaction} still={reducedMotion} />
         <EmoteBubble side="rival" shown={rivalReaction} still={reducedMotion} />
         {!reducedMotion && <BattleEffects key={motionKey} round={exchange} meId={me.id} rivalId={rival.id} finish={finish} />}
