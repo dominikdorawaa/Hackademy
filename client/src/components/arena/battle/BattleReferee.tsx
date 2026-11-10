@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import type { CSSProperties } from 'react';
-import { HURT_MS, IMPACT_MS, KNOCKBACK_MS } from './battleView';
+import { HURT_MS, IMPACT_MS, INTRO_EXIT_MS, KNOCKBACK_MS } from './battleView';
 import type { Finisher } from './battleView';
 import type { GameSession } from '../../../types/api';
 
@@ -16,6 +16,7 @@ export const DEFAULT_ROUND_MS = 15_000;
 export const START_WINDOW_MS = 4_000;
 export const VERDICT_PAUSE_MS = 400;
 export const START_MS = REFEREE_SHEETS.start.frames * REFEREE_FRAME_MS;
+export const TURN_FRAME = 6;
 
 export type RefereeMove = keyof typeof REFEREE_SHEETS;
 export interface RefereeCall { move: RefereeMove; key: string; delay: number; toward: 'me' | 'rival' | null }
@@ -33,7 +34,10 @@ export function refereeCall(session: GameSession, meId: number, serverNow: numbe
     return { move: 'winner', key: `winner-${session.id}`, delay: verdictDelay(session, finish), toward: session.winnerId === meId ? 'me' : 'rival' };
   }
   const roundMs = session.roundMillis ?? DEFAULT_ROUND_MS;
-  if (session.round === 1 && session.phase === 'QUESTION' && !session.pause && session.roundEndsAt - serverNow > roundMs - START_WINDOW_MS) return { move: 'start', key: `start-${session.id}`, delay: 0, toward: null };
+  const elapsed = roundMs - (session.roundEndsAt - serverNow);
+  if (session.round === 1 && session.phase === 'QUESTION' && !session.pause && elapsed < START_WINDOW_MS) {
+    return { move: 'start', key: `start-${session.id}`, delay: session.intro ? Math.max(0, INTRO_EXIT_MS - elapsed) : 0, toward: null };
+  }
   return { move: 'idle', key: 'idle', delay: 0, toward: null };
 }
 
@@ -64,10 +68,17 @@ export function BattleReferee({ session, meId, serverNow, reducedMotion, finish,
   } as CSSProperties;
   const frame = { '--referee-width': REFEREE_FRAME.width, '--referee-height': REFEREE_FRAME.height, '--referee-knee': REFEREE_FRAME.knee, '--referee-call': `${START_MS}ms` } as CSSProperties;
   const said = move === 'idle' ? remark : null;
-  return <div className="battle-referee" style={frame} data-move={move} data-toward={move === 'winner' ? call.toward : said?.toward} aria-hidden="true">
+  const turned = `${TURN_FRAME / (REFEREE_SHEETS.winner.frames - 1) * 100}%`;
+  const turn = {
+    '--referee-src': `url(${REFEREE_SHEETS.winner.src})`, '--referee-frames': REFEREE_SHEETS.winner.frames, '--referee-to': turned,
+    backgroundPositionX: reducedMotion ? turned : undefined,
+    animation: reducedMotion ? undefined : `battle-referee-turn ${(TURN_FRAME + 1) * REFEREE_FRAME_MS}ms steps(${TURN_FRAME + 1}, jump-none) both`,
+  } as CSSProperties;
+  return <div className="battle-referee" style={frame} data-move={said ? 'turn' : move} data-toward={move === 'winner' ? call.toward : said?.toward} aria-hidden="true">
     {move === 'start' && <p className="battle-referee-call">Walka!</p>}
     {said && <p key={said.key} className="battle-referee-call is-remark" data-tone={said.tone}>{said.text}</p>}
-    {move === 'idle' ? <>
+    {said ? <span key={`turn-${said.key}`} className="battle-referee-sprite" data-still={reducedMotion} style={turn} />
+      : move === 'idle' ? <>
       <span className="battle-referee-sprite is-legs" data-still={reducedMotion} style={style} />
       <span className="battle-referee-sprite is-body" data-still={reducedMotion} style={style} />
     </> : <span key={`${move}-${current?.key ?? call.key}`} className="battle-referee-sprite" data-still={reducedMotion} style={style} />}

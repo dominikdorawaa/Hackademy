@@ -11,7 +11,7 @@ public final class BattleEngine {
     public static final int DAMAGE = 20;
     public static final int ANSWERS = 4;
     public static final long ROUND_MILLIS = 15_000;
-    public static final long REVEAL_MILLIS = 5_000;
+    public static final long REVEAL_MILLIS = 4_000;
     public static final long DISCONNECT_MILLIS = 30_000;
     public static final long PAUSE_MILLIS = 10_000;
     public static final int NO_ANSWER = -1;
@@ -21,13 +21,24 @@ public final class BattleEngine {
     private BattleEngine() {}
 
     public static void start(GameSession session, List<ArenaQuestion> questions, long now, RandomGenerator random) {
+        start(session, questions, now, random, 0);
+    }
+
+    public static void start(GameSession session, List<ArenaQuestion> questions, long now, RandomGenerator random, long introMillis) {
         if (questions.isEmpty()) throw new IllegalStateException("Brak pytań do walki.");
         session.setQuestions(questions.stream().map(question -> QuestionSnapshot.shuffled(question, random)).toList());
         session.setTotalRounds(Math.min(ROUNDS, questions.size()));
         session.getHp().put(session.getPlayer1Id(), MAX_HP);
         session.getHp().put(session.getPlayer2Id(), MAX_HP);
         session.setStatus("ACTIVE");
-        openRound(session, 1, now);
+        if (introMillis <= 0) {
+            openRound(session, 1, now);
+            return;
+        }
+        session.setRound(0);
+        session.setPhase("INTRO");
+        session.setRoundEndsAt(0);
+        session.setNextRoundAt(now + introMillis);
     }
 
     public static AnswerResult answer(GameSession session, Long userId, int round, int answer, long now) {
@@ -72,7 +83,7 @@ public final class BattleEngine {
     }
 
     public static boolean nextRoundDue(GameSession session, long now) {
-        return "REVEAL".equals(session.getPhase()) && "ACTIVE".equals(session.getStatus()) && !waiting(session)
+        return ("REVEAL".equals(session.getPhase()) || "INTRO".equals(session.getPhase())) && "ACTIVE".equals(session.getStatus()) && !waiting(session)
                 && now >= session.getNextRoundAt();
     }
 

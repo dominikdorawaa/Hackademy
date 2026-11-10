@@ -139,7 +139,7 @@ export interface GameSession {
   round: number
   totalRounds: number
   roundMillis?: number
-  phase: 'QUESTION' | 'REVEAL'
+  phase: 'INTRO' | 'QUESTION' | 'REVEAL'
   roundEndsAt: number
   nextRoundAt: number
   serverTime: number
@@ -151,6 +151,16 @@ export interface GameSession {
   pause?: ArenaPause | null
   pausesUsed?: number[]
   absences?: Record<string, ArenaAbsence>
+  intro?: Record<string, ArenaIntroCard>
+}
+
+export interface ArenaIntroCard {
+  games: number
+  wins: number
+  losses: number
+  streak: number
+  recent: ('WIN' | 'LOSS' | 'DRAW')[]
+  rank: number
 }
 
 export interface ArenaPause {

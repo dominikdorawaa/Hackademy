@@ -386,3 +386,20 @@ it('colours the picked answer by its verdict and warns when my health runs low',
   expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('data-critical', 'true');
   expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('data-critical', 'false');
 });
+
+it('introduces the rival before the first round and then opens the arena', async () => {
+  vi.useFakeTimers({ shouldAdvanceTime: true });
+  const intro = createGameSession({ phase: 'INTRO', round: 0, question: null, roundEndsAt: 0, nextRoundAt: 1_007_000,
+    intro: { 1: { games: 3, wins: 2, losses: 1, streak: 1, recent: ['WIN', 'LOSS', 'WIN'], rank: 4 }, 2: { games: 0, wins: 0, losses: 0, streak: 0, recent: [], rank: 9 } } });
+  realtime.value = { ...realtime.value, state: live(intro) };
+  const view = mount();
+  expect(await screen.findByRole('dialog', { name: 'Pojedynek' })).toBeInTheDocument();
+  expect(screen.queryByRole('group', { name: 'Odpowiedzi' })).not.toBeInTheDocument();
+  realtime.value = { ...realtime.value, state: live(createGameSession({ intro: intro.intro })) };
+  view.rerender(battle());
+  expect(await screen.findByRole('group', { name: 'Odpowiedzi' })).toBeInTheDocument();
+  expect(document.querySelector('.battle-intro')).toHaveAttribute('data-leaving', 'true');
+  await act(async () => { vi.advanceTimersByTime(1_000); });
+  expect(document.querySelector('.battle-intro')).toBeNull();
+  vi.useRealTimers();
+});

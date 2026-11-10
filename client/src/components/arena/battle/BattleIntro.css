@@ -1,0 +1,522 @@
+@layer components {
+.battle-intro {
+  --intro-me: #5aa9ff;
+  --intro-rival: #ffa24c;
+  --intro-ink: #050a14;
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-rows: auto minmax(0, 1fr);
+  align-items: center;
+  gap: 8px 16px;
+  padding: 20px 24px 28px;
+  overflow: hidden;
+  isolation: isolate;
+  background: #060a18;
+  color: #f4f7ff;
+}
+
+.battle-intro.is-loading {
+  position: relative;
+  inset: auto;
+  flex: 1 1 auto;
+  display: grid;
+  place-items: center;
+  min-height: 420px;
+  border-radius: 4px;
+}
+
+.battle-intro-backdrop {
+  position: absolute;
+  inset: -6%;
+  z-index: -2;
+  background: url('/assets/arena/stages/versus-tunnel.png') center / cover no-repeat;
+  image-rendering: pixelated;
+  filter: brightness(0.62) saturate(1.15);
+  animation: battle-intro-arrive 900ms steps(9, end) both, battle-intro-rush 1.6s steps(4, end) 900ms infinite alternate;
+}
+
+.battle-intro.is-loading .battle-intro-backdrop {
+  animation: battle-intro-rush 1.2s steps(4, end) infinite alternate;
+  filter: brightness(0.5) saturate(1.1);
+}
+
+.battle-intro-split {
+  position: absolute;
+  inset: 0;
+  z-index: -1;
+  background:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.22) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at center, transparent 30%, rgb(3 6 16 / 0.7) 100%),
+    linear-gradient(112deg, rgb(30 100 255 / 0.32) 0 49.4%, rgb(220 245 255 / 0.85) 49.4% 50.6%, rgb(255 120 30 / 0.28) 50.6%);
+}
+
+.battle-intro.is-loading .battle-intro-split {
+  background:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.22) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at center, transparent 20%, rgb(3 6 16 / 0.8) 100%);
+}
+
+.battle-intro-top {
+  grid-column: 1 / -1;
+  text-align: center;
+  animation: battle-intro-drop 420ms steps(5, end) 150ms both;
+}
+
+.battle-intro-title {
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(1.75rem, 4vw, 3rem);
+  line-height: 1;
+  text-transform: uppercase;
+  text-shadow: 3px 0 var(--intro-ink), -3px 0 var(--intro-ink), 0 3px var(--intro-ink), 0 -3px var(--intro-ink), 3px 3px var(--intro-ink), -3px -3px var(--intro-ink), 3px -3px var(--intro-ink), -3px 3px var(--intro-ink);
+}
+
+.battle-intro-rules {
+  margin: 6px 0 0;
+  color: #ffe066;
+  font-family: var(--ud-pixel);
+  font-size: 1rem;
+  text-shadow: 2px 2px 0 var(--intro-ink);
+}
+
+.battle-intro-side {
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  gap: 4px;
+  min-width: 0;
+  animation: battle-intro-from-left 520ms steps(6, end) 250ms both;
+}
+
+.battle-intro-side.is-rival {
+  flex-direction: row-reverse;
+  animation-name: battle-intro-from-right;
+}
+
+.battle-intro-fighter {
+  flex: 0 1 auto;
+  width: clamp(150px, 19vw, 300px);
+  aspect-ratio: 1;
+  margin-bottom: -6%;
+  filter: drop-shadow(0 6px 0 rgb(3 6 16 / 0.55));
+  animation: battle-intro-drop 360ms steps(4, end) 650ms both;
+}
+
+.battle-intro-side.is-rival .battle-intro-fighter .avatar-sprite {
+  transform: scaleX(-1);
+}
+
+.battle-intro-fighter .avatar-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.battle-intro-fighter .avatar-sprite-body {
+  animation: battle-breathe 1.2s steps(1, end) infinite;
+}
+
+.battle-intro-card {
+  --side: var(--intro-me);
+  flex: 0 1 260px;
+  min-width: 0;
+  max-width: 260px;
+  padding: 14px;
+  border: 3px solid var(--intro-ink);
+  border-radius: 4px;
+  background: rgb(10 16 36 / 0.9);
+  box-shadow: inset 0 0 0 2px var(--side), 0 6px 0 var(--intro-ink);
+}
+
+.battle-intro-card.is-rival {
+  --side: var(--intro-rival);
+}
+
+.battle-intro-head {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-width: 0;
+}
+
+.battle-intro-head h2 {
+  overflow: hidden;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: 1.125rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.battle-intro-you {
+  flex: none;
+  padding: 2px 6px;
+  border-radius: 3px;
+  background: var(--side);
+  color: var(--intro-ink);
+  font-family: var(--ud-pixel);
+  font-size: 0.8125rem;
+}
+
+.battle-intro-league {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  margin: 6px 0 10px;
+  color: var(--league);
+  font-family: var(--ud-pixel);
+  font-size: 0.9375rem;
+}
+
+.battle-intro-league-icon {
+  width: 22px;
+  height: 22px;
+}
+
+.battle-intro-league-icon img {
+  width: 100%;
+  height: 100%;
+}
+
+.battle-intro-stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6px;
+  margin: 0;
+}
+
+.battle-intro-stats div {
+  padding: 6px 8px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.battle-intro-stats dt {
+  color: #9fb0d0;
+  font-size: 0.6875rem;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.battle-intro-stats dd {
+  margin: 0;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  line-height: 1.2;
+}
+
+.battle-intro-history {
+  margin-top: 10px;
+  padding: 8px;
+  border-radius: 3px;
+  background: rgb(255 255 255 / 0.06);
+}
+
+.battle-intro-recent {
+  display: flex;
+  justify-content: center;
+  gap: 6px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.battle-intro-recent li {
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border: 2px solid var(--intro-ink);
+  border-radius: 3px;
+  animation: battle-intro-pop 220ms steps(3, end) both;
+}
+
+.battle-intro-recent li:nth-child(1) { animation-delay: 900ms; }
+.battle-intro-recent li:nth-child(2) { animation-delay: 980ms; }
+.battle-intro-recent li:nth-child(3) { animation-delay: 1060ms; }
+.battle-intro-recent li:nth-child(4) { animation-delay: 1140ms; }
+.battle-intro-recent li:nth-child(5) { animation-delay: 1220ms; }
+
+.battle-intro-recent li[data-result='WIN'] {
+  background: #1f9e74;
+}
+
+.battle-intro-recent li[data-result='LOSS'] {
+  background: #c2453b;
+}
+
+.battle-intro-recent li[data-result='DRAW'] {
+  background: #5c6680;
+}
+
+.battle-intro-recent li[data-result='none'] {
+  border-style: dashed;
+  border-color: rgb(255 255 255 / 0.2);
+}
+
+.battle-intro-recent svg {
+  width: 18px;
+  height: 18px;
+  stroke-width: 3.5;
+}
+
+.battle-intro-debut {
+  margin: 0;
+  color: #ffe066;
+  font-family: var(--ud-pixel);
+  font-size: 1rem;
+  text-align: center;
+}
+
+.battle-intro-caption {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  margin: 6px 0 0;
+  color: #9fb0d0;
+  font-size: 0.75rem;
+  font-weight: 700;
+}
+
+.battle-intro-flame {
+  zoom: 0.75;
+}
+
+.battle-intro-center {
+  display: grid;
+  justify-items: center;
+  gap: 4px;
+  min-width: 120px;
+}
+
+.battle-intro-vs {
+  margin: 0;
+  color: #ffe066;
+  font-family: var(--font-heading);
+  font-size: clamp(3.5rem, 8vw, 6.5rem);
+  line-height: 1;
+  text-shadow: 4px 0 var(--intro-ink), -4px 0 var(--intro-ink), 0 4px var(--intro-ink), 0 -4px var(--intro-ink), 4px 4px var(--intro-ink), -4px -4px var(--intro-ink), 4px -4px var(--intro-ink), -4px 4px var(--intro-ink), 0 10px 0 rgb(3 6 16 / 0.6);
+  animation: battle-intro-stamp 420ms steps(5, end) 800ms both;
+}
+
+.battle-intro-count {
+  min-width: 2ch;
+  margin: 0;
+  font-family: var(--font-heading);
+  font-size: clamp(2rem, 4vw, 3rem);
+  line-height: 1;
+  text-align: center;
+  text-shadow: 3px 0 var(--intro-ink), -3px 0 var(--intro-ink), 0 3px var(--intro-ink), 0 -3px var(--intro-ink);
+  animation: battle-intro-pop 260ms steps(3, end) 1000ms both;
+}
+
+.battle-intro-count[data-counting] {
+  color: #fff;
+  font-size: clamp(3rem, 6vw, 4.5rem);
+  animation: battle-intro-stamp 360ms steps(4, end) both;
+}
+
+.battle-intro-flash {
+  position: absolute;
+  inset: 0;
+  z-index: 5;
+  background: radial-gradient(circle at center, #fff 0 20%, #7ff3ff 35%, transparent 70%);
+  opacity: 0;
+  pointer-events: none;
+}
+
+.battle-intro-loader {
+  display: grid;
+  justify-items: center;
+  gap: 12px;
+}
+
+.battle-intro-loader .arena-runner-ground {
+  background: repeating-linear-gradient(90deg, #7ff3ff 0 16px, transparent 16px 28px);
+}
+
+.battle-intro-loading-text {
+  margin: 0;
+  font-family: var(--ud-pixel);
+  font-size: 1.25rem;
+  text-shadow: 2px 2px 0 var(--intro-ink);
+}
+
+.battle-intro-loading-text span {
+  animation: battle-intro-dot 1.2s steps(1, end) infinite;
+}
+
+.battle-intro-loading-text span:nth-child(2) { animation-delay: 0.2s; }
+.battle-intro-loading-text span:nth-child(3) { animation-delay: 0.4s; }
+
+.battle-intro[data-leaving] {
+  background: transparent;
+  pointer-events: none;
+  animation: battle-intro-out 900ms steps(9, end) both;
+}
+
+.battle-intro[data-leaving] .battle-intro-backdrop {
+  animation: battle-intro-dive 900ms steps(9, end) both;
+}
+
+.battle-intro[data-leaving] .battle-intro-split {
+  animation: battle-intro-fade 500ms steps(5, end) both;
+}
+
+.battle-intro[data-leaving] .battle-intro-side.is-me {
+  animation: battle-intro-to-left 450ms steps(5, end) both;
+}
+
+.battle-intro[data-leaving] .battle-intro-side.is-rival {
+  animation: battle-intro-to-right 450ms steps(5, end) both;
+}
+
+.battle-intro[data-leaving] .battle-intro-top {
+  animation: battle-intro-fade 300ms steps(3, end) both;
+}
+
+.battle-intro[data-leaving] .battle-intro-center {
+  animation: battle-intro-zoom 600ms steps(6, end) both;
+}
+
+.battle-intro[data-leaving] .battle-intro-flash {
+  animation: battle-intro-flash 900ms steps(9, end) both;
+}
+
+@keyframes battle-intro-arrive {
+  0% { scale: 2.2; filter: brightness(2) saturate(0.4); }
+  100% { scale: 1; filter: brightness(0.62) saturate(1.15); }
+}
+
+@keyframes battle-intro-rush {
+  from { scale: 1; }
+  to { scale: 1.05; }
+}
+
+@keyframes battle-intro-dive {
+  0% { scale: 1; opacity: 1; filter: brightness(0.62); }
+  60% { opacity: 1; filter: brightness(1.6); }
+  100% { scale: 3.4; opacity: 0; filter: brightness(2.2); }
+}
+
+@keyframes battle-intro-out {
+  0%, 70% { opacity: 1; }
+  100% { opacity: 0; }
+}
+
+@keyframes battle-intro-fade {
+  to { opacity: 0; }
+}
+
+@keyframes battle-intro-zoom {
+  0% { scale: 1; opacity: 1; }
+  100% { scale: 2.6; opacity: 0; }
+}
+
+@keyframes battle-intro-flash {
+  0%, 30% { opacity: 0; scale: 0.2; }
+  55% { opacity: 1; scale: 1.4; }
+  100% { opacity: 0; scale: 2.4; }
+}
+
+@keyframes battle-intro-from-left {
+  from { translate: -110vw 0; }
+  to { translate: 0 0; }
+}
+
+@keyframes battle-intro-from-right {
+  from { translate: 110vw 0; }
+  to { translate: 0 0; }
+}
+
+@keyframes battle-intro-to-left {
+  to { translate: -110vw 0; }
+}
+
+@keyframes battle-intro-to-right {
+  to { translate: 110vw 0; }
+}
+
+@keyframes battle-intro-drop {
+  from { translate: 0 -40px; opacity: 0; }
+  to { translate: 0 0; opacity: 1; }
+}
+
+@keyframes battle-intro-stamp {
+  0% { scale: 3; opacity: 0; }
+  60% { scale: 0.9; opacity: 1; }
+  100% { scale: 1; opacity: 1; }
+}
+
+@keyframes battle-intro-pop {
+  from { scale: 0.3; opacity: 0; }
+  to { scale: 1; opacity: 1; }
+}
+
+@keyframes battle-intro-dot {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0; }
+}
+
+@media (max-width: 720px) {
+  .battle-intro {
+    grid-template-columns: minmax(0, 1fr);
+    grid-template-rows: auto auto auto auto;
+    align-content: center;
+    gap: 8px;
+    padding: 16px;
+  }
+
+  .battle-intro-side,
+  .battle-intro-side.is-rival {
+    justify-content: center;
+  }
+
+  .battle-intro-fighter {
+    width: 96px;
+  }
+
+  .battle-intro-card {
+    flex-basis: 240px;
+    padding: 10px;
+  }
+
+  .battle-intro-stats {
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+  }
+
+  .battle-intro-stats dd {
+    font-size: 1rem;
+  }
+
+  .battle-intro-center {
+    grid-auto-flow: column;
+    align-items: center;
+    gap: 16px;
+  }
+
+  .battle-intro-vs {
+    font-size: 2.5rem;
+  }
+}
+
+.battle-intro[data-still],
+.battle-intro[data-still] *,
+.battle-page[data-still='true'] .battle-intro,
+.battle-page[data-still='true'] .battle-intro * {
+  animation: none !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle-intro,
+  .battle-intro * {
+    animation: none !important;
+  }
+}
+}
