@@ -19,6 +19,7 @@ export const START_MS = REFEREE_SHEETS.start.frames * REFEREE_FRAME_MS;
 
 export type RefereeMove = keyof typeof REFEREE_SHEETS;
 export interface RefereeCall { move: RefereeMove; key: string; delay: number; toward: 'me' | 'rival' | null }
+export interface RefereeRemark { key: string; text: string; toward: 'me' | 'rival'; tone: 'miss' | 'ready' }
 
 function verdictDelay(session: GameSession, finish: Finisher | null) {
   if (session.finishReason !== 'KNOCKOUT' && session.finishReason !== 'ROUNDS') return 0;
@@ -36,8 +37,8 @@ export function refereeCall(session: GameSession, meId: number, serverNow: numbe
   return { move: 'idle', key: 'idle', delay: 0, toward: null };
 }
 
-export function BattleReferee({ session, meId, serverNow, reducedMotion, finish }: {
-  session: GameSession; meId: number; serverNow: number; reducedMotion: boolean; finish: Finisher | null;
+export function BattleReferee({ session, meId, serverNow, reducedMotion, finish, remark = null }: {
+  session: GameSession; meId: number; serverNow: number; reducedMotion: boolean; finish: Finisher | null; remark?: RefereeRemark | null;
 }) {
   const call = refereeCall(session, meId, serverNow, finish);
   const played = useRef(new Set<string>());
@@ -62,8 +63,10 @@ export function BattleReferee({ session, meId, serverNow, reducedMotion, finish 
     animation: move === 'idle' || reducedMotion ? undefined : `battle-referee-play ${sheet.frames * REFEREE_FRAME_MS}ms steps(${sheet.frames}, jump-none) both`,
   } as CSSProperties;
   const frame = { '--referee-width': REFEREE_FRAME.width, '--referee-height': REFEREE_FRAME.height, '--referee-knee': REFEREE_FRAME.knee, '--referee-call': `${START_MS}ms` } as CSSProperties;
-  return <div className="battle-referee" style={frame} data-move={move} data-toward={move === 'winner' ? call.toward : undefined} aria-hidden="true">
+  const said = move === 'idle' ? remark : null;
+  return <div className="battle-referee" style={frame} data-move={move} data-toward={move === 'winner' ? call.toward : said?.toward} aria-hidden="true">
     {move === 'start' && <p className="battle-referee-call">Walka!</p>}
+    {said && <p key={said.key} className="battle-referee-call is-remark" data-tone={said.tone}>{said.text}</p>}
     {move === 'idle' ? <>
       <span className="battle-referee-sprite is-legs" data-still={reducedMotion} style={style} />
       <span className="battle-referee-sprite is-body" data-still={reducedMotion} style={style} />

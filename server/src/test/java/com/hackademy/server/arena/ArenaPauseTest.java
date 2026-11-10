@@ -140,7 +140,7 @@ class ArenaPauseTest {
         assertEquals(1, state().getRound());
         offline.remove(2L);
         at(BattleEngine.ROUND_MILLIS + 20_000);
-        assertEquals(START + BattleEngine.ROUND_MILLIS + 22_000, state().getNextRoundAt());
+        assertEquals(START + BattleEngine.ROUND_MILLIS + 19_000 + BattleEngine.REVEAL_MILLIS, state().getNextRoundAt());
     }
 
     @Test

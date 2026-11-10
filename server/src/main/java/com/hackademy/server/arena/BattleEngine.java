@@ -11,7 +11,7 @@ public final class BattleEngine {
     public static final int DAMAGE = 20;
     public static final int ANSWERS = 4;
     public static final long ROUND_MILLIS = 15_000;
-    public static final long REVEAL_MILLIS = 3_000;
+    public static final long REVEAL_MILLIS = 5_000;
     public static final long DISCONNECT_MILLIS = 30_000;
     public static final long PAUSE_MILLIS = 10_000;
     public static final int NO_ANSWER = -1;

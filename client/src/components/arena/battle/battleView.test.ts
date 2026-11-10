@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { createGameSession } from '../../../test/fixtures/arena';
 import {
-  roundBanner, streakOf,
+  roundBanner,
   absenceNotice, animatedRound, CAST_MS, choreography, eloChange, finisher, FINISHER_FRAME_MS, FINISHERS, finishText, frozenSecondsLeft, IMPACT_MS, impactAt, outcome, outcomeTitle,
   pauseNotice, perspective, roundSummary, secondsLeft,
 } from './battleView';
@@ -197,13 +197,5 @@ describe('roundBanner', () => {
     expect(roundBanner(createGameSession({ round: 10 }), 1_000_500)).toBe('Ostatnia runda');
     expect(roundBanner(createGameSession({ phase: 'REVEAL' }), 1_000_000)).toBeNull();
     expect(roundBanner(createGameSession({ pause: { players: [2], startedAt: 1_000_000, endsAt: 1_010_000 } }), 1_000_000)).toBeNull();
-  });
-});
-
-describe('streakOf', () => {
-  it('counts the latest hits in a row', () => {
-    expect(streakOf({})).toBe(0);
-    expect(streakOf({ 1: true, 2: false, 3: true, 4: true })).toBe(2);
-    expect(streakOf({ 1: true, 2: true, 3: false })).toBe(0);
   });
 });

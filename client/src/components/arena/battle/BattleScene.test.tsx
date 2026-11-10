@@ -258,6 +258,23 @@ it('attacks as soon as the right answer lands and does not repeat the hit when t
   expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('aria-valuenow', '88');
 });
 
+it('plays the whole attack in the reveal when the round ends before the early strike lands', () => {
+  const view = render(strikeScene(createGameSession(), 17));
+  advance(300);
+  view.rerender(strikeScene(exchange({ 1: 0, 2: 17 }), 17));
+  expect(fighter()).toHaveAttribute('data-frames', '10,11,12,13,14,15,16,17');
+  expect(screen.getByTestId('shot-me')).toHaveTextContent('-17');
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
+  advance(900);
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '83');
+});
+
+it('waits for the reveal instead of striking early when the rival has already answered', () => {
+  render(strikeScene(createGameSession({ answeredBy: [2] }), 17));
+  expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
+  expect(fighter()).toHaveAttribute('data-frames', '0');
+});
+
 it('keeps a knockout blow for the reveal so the finisher plays in full', () => {
   render(strikeScene(createGameSession({ hp: { 1: 100, 2: 15 } }), 15));
   expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
@@ -275,29 +292,19 @@ const revealed = (round: number, damage: Record<number, number>) => createGameSe
 
 it('stumbles right after a wrong answer and clears the miss once the round moves on', () => {
   const view = render(verdictScene(createGameSession({ round: 4 }), true));
-  expect(document.querySelector('.battle-tag.is-miss')).toHaveTextContent('Pudło!');
+  expect(document.querySelector('.battle-referee-call')).toHaveTextContent('Pudło!');
+  expect(document.querySelector('.battle-referee')).toHaveAttribute('data-toward', 'me');
   expect(fighter()).toHaveAttribute('data-frames', '37,38,39,40');
   expect(screen.queryByTestId('shot-me')).not.toBeInTheDocument();
   view.rerender(verdictScene(revealed(5, { 1: 0, 2: 18 }), false));
-  expect(document.querySelector('.battle-tag.is-miss')).toBeNull();
+  expect(document.querySelector('.battle-referee-call')).toBeNull();
 });
 
-it('counts a streak of hits, shows it over my fighter and drops it after a miss', () => {
-  const view = render(verdictScene(revealed(1, { 1: 0, 2: 20 }), false));
-  expect(document.querySelector('.battle-tag.is-streak')).toBeNull();
-  view.rerender(verdictScene(createGameSession({ round: 2 }), false, 18));
-  expect(document.querySelector('.battle-tag.is-streak')).toHaveTextContent('x2 seria');
-  view.rerender(verdictScene(revealed(2, { 1: 0, 2: 18 }), false));
-  view.rerender(verdictScene(createGameSession({ round: 3 }), false, 16));
-  expect(document.querySelector('.battle-tag.is-streak')).toHaveTextContent('x3 seria');
-  view.rerender(verdictScene(revealed(3, { 1: 0, 2: 16 }), false));
-  view.rerender(verdictScene(createGameSession({ round: 4 }), true));
-  expect(document.querySelector('.battle-tag.is-streak')).toBeNull();
-});
 
 it('marks the rival as ready once they answer and flashes whoever takes a hit', () => {
   const view = render(verdictScene(createGameSession({ answeredBy: [2] }), false));
-  expect(document.querySelector('.battle-tag.is-ready')).toHaveTextContent('Gotowe');
+  expect(document.querySelector('.battle-referee-call')).toHaveTextContent('Rywal gotowy!');
+  expect(document.querySelector('.battle-referee')).toHaveAttribute('data-toward', 'rival');
   expect(fighter('rival')).toHaveAttribute('data-ready', 'true');
   view.rerender(verdictScene(exchange({ 1: 0, 2: 20 }), false));
   expect(fighter('rival')).not.toHaveAttribute('data-hit');

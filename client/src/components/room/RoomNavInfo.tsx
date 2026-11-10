@@ -27,17 +27,17 @@ export interface RoomNavSteps {
 export interface RoomNavProps {
   back: RoomNavBack;
   title: string;
-  progress: RoomNavProgress;
+  progress?: RoomNavProgress;
   steps?: RoomNavSteps;
   meta?: ReactNode;
   action?: ReactNode;
 }
 
 export default function RoomNavInfo({ back, title, progress, steps, meta, action }: RoomNavProps) {
-  const ratio = progress.max > 0 ? Math.min(1, Math.max(0, progress.value / progress.max)) : 0;
+  const ratio = progress && progress.max > 0 ? Math.min(1, Math.max(0, progress.value / progress.max)) : 0;
   const percent = Math.round(ratio * 100);
   const backContent = <><ChevronLeft aria-hidden="true" /><span>{back.title}</span></>;
-  const meter = { role: 'progressbar', 'aria-label': progress.label, 'aria-valuemin': 0, 'aria-valuemax': progress.max, 'aria-valuenow': progress.value, 'aria-valuetext': `${percent}%` } as const;
+  const meter = progress && { role: 'progressbar', 'aria-label': progress.label, 'aria-valuemin': 0, 'aria-valuemax': progress.max, 'aria-valuenow': progress.value, 'aria-valuetext': `${percent}%` } as const;
   return (
     <div className="room-nav room-tokens">
       <div className="room-nav-trail">
@@ -51,7 +51,7 @@ export default function RoomNavInfo({ back, title, progress, steps, meta, action
         <strong className="room-nav-title" title={title}>{title}</strong>
         {meta && <div className="room-nav-meta">{meta}</div>}
       </div>
-      {!steps && (
+      {!steps && meter && (
         <div className="room-nav-progress">
           <div className="room-meter" {...meter}>
             <span style={{ transform: `scaleX(${ratio})` }} />
@@ -70,7 +70,7 @@ export default function RoomNavInfo({ back, title, progress, steps, meta, action
               </li>
             ))}
           </ol>
-          <span className="sr-only" {...meter}>{percent}%</span>
+          {meter && <span className="sr-only" {...meter}>{percent}%</span>}
         </div>
       )}
     </div>
