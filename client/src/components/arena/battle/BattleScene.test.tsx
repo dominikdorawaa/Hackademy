@@ -304,7 +304,7 @@ it('stumbles right after a wrong answer and clears the miss once the round moves
 it('marks the rival as ready once they answer and flashes whoever takes a hit', () => {
   const view = render(verdictScene(createGameSession({ answeredBy: [2] }), false));
   expect(document.querySelector('.battle-referee-call')).toHaveTextContent('Rywal gotowy!');
-  expect(document.querySelector('.battle-referee')).toHaveAttribute('data-toward', 'rival');
+  expect(document.querySelector('.battle-referee')).toHaveAttribute('data-toward', 'me');
   expect(fighter('rival')).toHaveAttribute('data-ready', 'true');
   view.rerender(verdictScene(exchange({ 1: 0, 2: 20 }), false));
   expect(fighter('rival')).not.toHaveAttribute('data-hit');

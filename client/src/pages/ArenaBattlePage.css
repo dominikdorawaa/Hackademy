@@ -1375,16 +1375,6 @@ button.battle-answer:disabled {
   background: #ff8a80;
 }
 
-.battle-page[data-result='loss'] .battle-arena::after {
-  content: '';
-  position: absolute;
-  inset: 0;
-  z-index: 1;
-  background: linear-gradient(180deg, rgb(4 9 20 / 0.15), rgb(4 9 20 / 0.6));
-  backdrop-filter: grayscale(0.7);
-  pointer-events: none;
-  animation: battle-fade-in 1.4s 1.6s ease-out both;
-}
 
 .battle-confetti {
   position: absolute;

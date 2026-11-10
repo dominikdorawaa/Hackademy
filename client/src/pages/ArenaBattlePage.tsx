@@ -2,11 +2,12 @@ import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
 import { BattleIntro, BattleIntroLoading } from '../components/arena/battle/BattleIntro';
 import { BattlePause } from '../components/arena/battle/BattlePause';
+import { BattlePodium } from '../components/arena/battle/BattlePodium';
 import { BattleResult } from '../components/arena/battle/BattleResult';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
-  absenceNotice, eloChange, finishText, frozenSecondsLeft, INTRO_EXIT_MS, LOW_HP, outcome, outcomeTitle, pauseNotice, perspective, roundBanner, roundSummary, secondsLeft,
+  absenceNotice, eloChange, finishText, frozenSecondsLeft, INTRO_EXIT_MS, LOW_HP, outcome, outcomeTitle, pauseNotice, perspective, podiumDelay, roundBanner, roundSummary, secondsLeft,
 } from '../components/arena/battle/battleView';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
@@ -44,6 +45,8 @@ export default function ArenaBattlePage() {
   const [verdict, setVerdict] = useState<{ game: string; round: number; damage: number } | null>(null);
   const [reactionNotice, setReactionNotice] = useState<string | null>(null);
   const [introGame, setIntroGame] = useState<{ id: string; leaving: boolean } | null>(null);
+  const [watched, setWatched] = useState<string | null>(null);
+  const [podiumFor, setPodiumFor] = useState<string | null>(null);
   const reducedMotion = useReducedMotion();
   const navigate = useNavigate();
   const serverTime = session?.serverTime ?? 0;
@@ -75,6 +78,15 @@ export default function ArenaBattlePage() {
   const introPhase = session?.phase === 'INTRO';
   if (session && introPhase && introGame?.id !== session.id) setIntroGame({ id: session.id, leaving: true });
   const introLeaving = !!session && !introPhase && introGame?.id === session.id && introGame.leaving && !reducedMotion;
+  if (session?.status === 'ACTIVE' && watched !== session.id) setWatched(session.id);
+  const finishedId = session?.status === 'FINISHED' ? session.id : null;
+  const celebrateIn = session && finishedId ? podiumDelay(session, watched === finishedId, reducedMotion) : 0;
+  useEffect(() => {
+    if (!finishedId || podiumFor === finishedId) return;
+    const timer = setTimeout(() => setPodiumFor(finishedId), celebrateIn);
+    return () => clearTimeout(timer);
+  }, [finishedId, celebrateIn, podiumFor]);
+
   useEffect(() => {
     if (!introLeaving) return;
     const timer = setTimeout(() => setIntroGame(shown => shown && { ...shown, leaving: false }), INTRO_EXIT_MS);
@@ -201,7 +213,8 @@ export default function ArenaBattlePage() {
                 </div>
               </BattleScene>
 
-              {finished && <BattleResult result={result} title={outcomeTitle(result)} text={result === 'cancelled' ? finishText(session, me.id) : null} change={change} still={reducedMotion} />}
+              {finished && result === 'cancelled' && <BattleResult result={result} title={outcomeTitle(result)} text={finishText(session, me.id)} change={change} still={reducedMotion} />}
+              {finished && result !== 'cancelled' && podiumFor === session.id && <BattlePodium me={me} rival={rival} result={result} title={outcomeTitle(result)} change={change} still={reducedMotion} />}
               {absence && <p className="battle-absence" role="status">{absence}</p>}
               {pause ? (
                 <BattlePause pause={pause} me={me} rival={rival} />

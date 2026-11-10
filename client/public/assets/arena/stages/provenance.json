@@ -32,6 +32,19 @@
       "seed": 81101,
       "processing": "The dark letterbox bands above row 19 and below row 204 are cropped, so the image is 400x186. Used behind the duel introduction and the arena loading screen.",
       "sha256": "28567295ed64d8228b75d584d0aa904c6cddee70f22735e59b6083e5e9f7c4b2"
+    },
+    {
+      "file": "victory-stage.png",
+      "endpoint": "create-image-pixflux-background",
+      "generatedAt": "2026-11-10",
+      "description": "Esports championship victory stage inside a futuristic server hall, seen from the front at eye level: a wide raised round metal podium platform glowing with cyan edge lights in the lower middle of the image, two tall spotlight beams shining down onto the empty podium from the ceiling, giant dark wall screens and server racks with small blue lights in the far background, a few gold and cyan confetti pieces floating in the air, dark navy and deep blue base with warm gold and cyan accents, festive and dramatic. Side-view 2D fighting game stage background. Chunky clean pixel art matching simple 64px browser fighting game characters, limited palette. The podium and the area above it stay empty. No people, no characters, no text, no letters, no numbers, no logos, no UI.",
+      "imageSize": {
+        "width": 400,
+        "height": 224
+      },
+      "seed": 82102,
+      "processing": "None. Used behind the duel result, where the winner dances on the podium.",
+      "sha256": "ad947534d022b89a60677a8a6646fdccabb9f1a7d5055b8b71abe0bb7ddb5545"
     }
   ]
 }

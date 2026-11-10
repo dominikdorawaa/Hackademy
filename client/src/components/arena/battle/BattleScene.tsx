@@ -100,7 +100,7 @@ export function BattleScene({ session: live, me, rival, reducedMotion, serverNow
     <section className="battle-stage" aria-label="Arena walki" aria-busy={!ready} data-impact={hit(me) || hit(rival) || undefined}>
       {meAtlas && rivalAtlas ? <>
         <BattleReferee session={session} meId={me.id} serverNow={serverNow} reducedMotion={reducedMotion} finish={finish}
-          remark={missing ? { key: `miss-${strikeKey}`, text: 'Pudło!', toward: 'me', tone: 'miss' } : rivalReady ? { key: `ready-${strikeKey}`, text: 'Rywal gotowy!', toward: 'rival', tone: 'ready' } : null} />
+          remark={missing ? { key: `miss-${strikeKey}`, text: 'Pudło!', toward: 'me', tone: 'miss' } : rivalReady ? { key: `ready-${strikeKey}`, text: 'Rywal gotowy!', toward: 'me', tone: 'ready' } : null} />
         <BattleFighter key={`me-${motionKey}`} look={me.look} atlas={meAtlas} segments={segments(me, rival)} reducedMotion={reducedMotion}
           label={`Twój awatar, ${me.username}`} side="me" motionKey={motionKey} finishedBy={finishedBy(me)} reaction={reactionDance(meReaction)} hit={hit(me)} />
         <BattleFighter key={`rival-${motionKey}`} look={rival.look} atlas={rivalAtlas} segments={segments(rival, me)} reducedMotion={reducedMotion}

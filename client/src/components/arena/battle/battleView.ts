@@ -185,6 +185,17 @@ export function finisher(session: GameSession): Finisher | null {
   return { move, winnerId, loserId, start, impact: start + spec.impact * FINISHER_FRAME_MS, end: start + spec.frames.length * FINISHER_FRAME_MS };
 }
 
+export const PODIUM_PAUSE_MS = 2000;
+export const PODIUM_QUIET_MS = 900;
+
+export function podiumDelay(session: GameSession, watched: boolean, still: boolean) {
+  if (!watched || still) return 0;
+  if (session.finishReason !== 'KNOCKOUT' && session.finishReason !== 'ROUNDS') return PODIUM_QUIET_MS;
+  const finish = finisher(session);
+  const end = finish ? Math.max(finish.end, finish.impact + KNOCKBACK_MS) : IMPACT_MS + HURT_MS;
+  return end + PODIUM_PAUSE_MS;
+}
+
 export function impactAt(session: GameSession, fighterId: number) {
   const finish = finisher(session);
   return finish?.loserId === fighterId ? finish.impact : IMPACT_MS;

@@ -1,0 +1,261 @@
+@layer components {
+.battle-podium {
+  --podium-ink: #050a14;
+  --winner: min(60cqh, 56cqw);
+  --loser: calc(var(--winner) * 0.56);
+  position: absolute;
+  inset: 0;
+  z-index: 20;
+  container-type: size;
+  overflow: hidden;
+  isolation: isolate;
+  background: #070c1c;
+  color: #eef4ff;
+  animation: battle-podium-iris 760ms steps(8, end) both;
+}
+
+.battle-podium-backdrop {
+  position: absolute;
+  inset: 0;
+  z-index: -2;
+  background: url('/assets/arena/stages/victory-stage.png') center bottom / cover no-repeat;
+  image-rendering: pixelated;
+}
+
+.battle-podium[data-result='loss'] .battle-podium-backdrop {
+  filter: saturate(0.75) brightness(0.85);
+}
+
+.battle-podium-backdrop::after {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    repeating-linear-gradient(0deg, rgb(0 0 0 / 0.16) 0 2px, transparent 2px 4px),
+    radial-gradient(ellipse at 50% 70%, transparent 35%, rgb(3 6 16 / 0.65) 100%);
+}
+
+.battle-podium-beams span {
+  position: absolute;
+  top: -10%;
+  left: 50%;
+  z-index: -1;
+  width: 34cqw;
+  height: 110%;
+  background: linear-gradient(180deg, rgb(255 236 150 / 0.4), rgb(255 236 150 / 0.06) 85%, transparent);
+  clip-path: polygon(46% 0, 54% 0, 100% 100%, 0 100%);
+  mix-blend-mode: screen;
+  transform-origin: 50% 0;
+  translate: -50% 0;
+  animation: battle-podium-sweep 2.4s steps(6, end) infinite alternate;
+}
+
+.battle-podium-beams span:last-child {
+  animation-delay: -1.2s;
+  animation-direction: alternate-reverse;
+}
+
+.battle-podium[data-result='loss'] .battle-podium-beams span {
+  background: linear-gradient(180deg, rgb(255 170 120 / 0.32), rgb(255 170 120 / 0.05) 85%, transparent);
+}
+
+.battle-podium .battle-result {
+  position: absolute;
+  top: 5cqh;
+  left: 0;
+  right: 0;
+  z-index: 3;
+  max-width: none;
+  margin: 0;
+  padding: 0 16px;
+  border: 0;
+  border-radius: 0;
+  background: none;
+  box-shadow: none;
+  backdrop-filter: none;
+  text-align: center;
+}
+
+.battle-podium-stage {
+  position: absolute;
+  inset: 0;
+}
+
+.battle-podium figure {
+  position: absolute;
+  margin: 0;
+}
+
+.battle-podium-sprite {
+  position: relative;
+}
+
+.battle-podium-sprite .avatar-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  image-rendering: pixelated;
+}
+
+.battle-podium-winner {
+  left: 50%;
+  bottom: calc(15cqh - 0.13 * var(--winner));
+  z-index: 2;
+  width: var(--winner);
+  translate: -50% 0;
+  animation: battle-podium-drop 520ms steps(6, end) 520ms both;
+}
+
+.battle-podium-winner .battle-podium-sprite {
+  height: var(--winner);
+  filter: drop-shadow(0 8px 0 rgb(3 6 16 / 0.45));
+}
+
+.battle-podium-loser {
+  left: 15cqw;
+  bottom: calc(21cqh - 0.13 * var(--loser));
+  z-index: 1;
+  width: var(--loser);
+  animation: battle-podium-slink 700ms steps(7, end) 900ms both;
+}
+
+.battle-podium-loser .battle-podium-sprite {
+  height: var(--loser);
+  filter: brightness(0.72) saturate(0.6) drop-shadow(0 6px 0 rgb(3 6 16 / 0.4));
+  animation: battle-podium-sob 840ms steps(2, end) infinite;
+}
+
+.battle-podium-tie {
+  bottom: calc(17cqh - 0.1 * var(--loser));
+  width: calc(var(--winner) * 0.8);
+  translate: -50% 0;
+  animation: battle-podium-drop 520ms steps(6, end) 520ms both;
+}
+
+.battle-podium-tie:first-child {
+  left: 38%;
+}
+
+.battle-podium-tie:last-child {
+  left: 62%;
+}
+
+.battle-podium-tie .battle-podium-sprite {
+  height: calc(var(--winner) * 0.8);
+}
+
+.battle-podium-tears i {
+  --tear: calc(var(--loser) / 64);
+  position: absolute;
+  top: 26%;
+  width: calc(1.5 * var(--tear));
+  height: calc(3 * var(--tear));
+  background: #b8ecff;
+  box-shadow: 0 0 0 calc(var(--tear) * 0.5) #1d4f8a;
+  opacity: 0;
+  animation: battle-podium-tear 900ms steps(6, end) infinite;
+}
+
+.battle-podium-tears i:nth-child(1) { left: 43%; animation-delay: 1.5s; }
+.battle-podium-tears i:nth-child(2) { left: 54%; animation-delay: 1.8s; }
+.battle-podium-tears i:nth-child(3) { left: 43%; animation-delay: 2.1s; }
+.battle-podium-tears i:nth-child(4) { left: 54%; animation-delay: 2.35s; }
+
+.battle-podium figcaption {
+  display: flex;
+  justify-content: center;
+  margin-top: -14%;
+}
+
+.battle-podium-name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin: 0;
+  padding: 4px 10px;
+  border: 2px solid var(--podium-ink);
+  border-radius: 3px;
+  background: rgb(10 16 36 / 0.88);
+  box-shadow: 0 3px 0 var(--podium-ink);
+  font-family: var(--ud-pixel);
+  font-size: clamp(0.875rem, 1.4vw, 1.25rem);
+  white-space: nowrap;
+}
+
+.battle-podium-winner .battle-podium-name {
+  border-color: #ffe066;
+  color: #ffe066;
+}
+
+.battle-podium-name span {
+  padding: 1px 5px;
+  border-radius: 2px;
+  background: #5aa9ff;
+  color: var(--podium-ink);
+  font-size: 0.8em;
+}
+
+@keyframes battle-podium-iris {
+  from { clip-path: circle(0% at 50% 60%); }
+  to { clip-path: circle(120% at 50% 60%); }
+}
+
+@keyframes battle-podium-sweep {
+  from { rotate: -14deg; }
+  to { rotate: 14deg; }
+}
+
+@keyframes battle-podium-drop {
+  0% { opacity: 0; transform: translateY(-60cqh); }
+  70% { opacity: 1; transform: translateY(3cqh); }
+  100% { opacity: 1; transform: none; }
+}
+
+@keyframes battle-podium-slink {
+  from { opacity: 0; transform: translateX(-20cqw); }
+  to { opacity: 1; transform: none; }
+}
+
+@keyframes battle-podium-sob {
+  0%, 100% { transform: none; }
+  50% { transform: translateY(calc(var(--loser) / 64)); }
+}
+
+@keyframes battle-podium-tear {
+  0% { opacity: 1; transform: translateY(0); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translateY(calc(var(--loser) * 0.32)); }
+}
+
+@media (max-width: 720px) {
+  .battle-podium {
+    --winner: min(48cqh, 70cqw);
+  }
+
+  .battle-podium-loser {
+    left: 4cqw;
+  }
+}
+
+.battle-podium[data-still],
+.battle-podium[data-still] *,
+.battle-page[data-still='true'] .battle-podium,
+.battle-page[data-still='true'] .battle-podium * {
+  animation: none !important;
+}
+
+.battle-podium[data-still] .battle-podium-tears {
+  display: none;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .battle-podium,
+  .battle-podium * {
+    animation: none !important;
+  }
+
+  .battle-podium-tears {
+    display: none;
+  }
+}
+}
