@@ -109,8 +109,10 @@ it('reveals the correct answer, both choices and who hit', async () => {
   expect(await screen.findByText('Trafiasz! Rywal traci 20 HP.')).toBeInTheDocument();
   const answers = screen.getAllByRole('listitem');
   expect(within(answers[1]).getByText('Poprawna')).toBeInTheDocument();
-  expect(within(answers[1]).getByText('Ty')).toBeInTheDocument();
-  expect(within(answers[3]).getByText('opponent')).toBeInTheDocument();
+  expect(within(answers[1]).getByRole('img', { name: 'Ty' })).toBeInTheDocument();
+  expect(within(answers[1]).queryByRole('img', { name: 'opponent' })).not.toBeInTheDocument();
+  expect(within(answers[3]).getByRole('img', { name: 'opponent' })).toBeInTheDocument();
+  expect(within(answers[0]).queryByRole('img')).not.toBeInTheDocument();
   await waitFor(() => expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '80'));
   expect(screen.getByRole('timer', { name: 'Następna runda za' })).toHaveTextContent('3');
   expect(screen.getByTestId('shot-me')).toHaveTextContent('-20');
@@ -141,8 +143,8 @@ it('reveals the correct answer at the position the server drew', async () => {
     expect.stringContaining('25'), expect.stringContaining('21'), expect.stringContaining('23'), expect.stringContaining('22'),
   ]);
   expect(within(answers[3]).getByText('Poprawna')).toBeInTheDocument();
-  expect(within(answers[3]).getByText('Ty')).toBeInTheDocument();
-  expect(within(answers[0]).getByText('opponent')).toBeInTheDocument();
+  expect(within(answers[3]).getByRole('img', { name: 'Ty' })).toBeInTheDocument();
+  expect(within(answers[0]).getByRole('img', { name: 'opponent' })).toBeInTheDocument();
 });
 
 it('hides the shots when the player asked for reduced motion', async () => {
@@ -163,7 +165,7 @@ it('shows the result with the Elo change when the battle ends', async () => {
   })) };
   mount();
   expect(await screen.findByRole('heading', { name: 'Zwycięstwo' })).toBeInTheDocument();
-  expect(screen.getByText('Rywal padł po Twoim ciosie.')).toBeInTheDocument();
+  expect(screen.queryByText('Rywal padł po Twoim ciosie.')).not.toBeInTheDocument();
   expect(screen.getByText('+16 Elo')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Wróć do Areny' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Poddaj walkę' })).not.toBeInTheDocument();
@@ -372,4 +374,15 @@ it('keeps the rival untouched after a wrong answer until the round ends', async 
   fireEvent.click(await screen.findByRole('button', { name: /21/ }));
   expect(await screen.findByText('Odpowiedź wysłana. Czekamy na rywala.')).toBeInTheDocument();
   expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('aria-valuenow', '100');
+});
+
+it('colours the picked answer by its verdict and warns when my health runs low', async () => {
+  server.use(http.post(`${API_URL}/api/arena/game/game/answer`, () => HttpResponse.json({ message: 'ok', correct: false, damage: 0 })));
+  realtime.value = { ...realtime.value, state: live(createGameSession({ hp: { 1: 15, 2: 100 } })) };
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: /21/ }));
+  await waitFor(() => expect(screen.getByRole('button', { name: /21/ })).toHaveAttribute('data-verdict', 'miss'));
+  expect(document.querySelector('.battle-arena')).toHaveAttribute('data-danger', 'true');
+  expect(screen.getByRole('meter', { name: 'HP: tester' })).toHaveAttribute('data-critical', 'true');
+  expect(screen.getByRole('meter', { name: 'HP: opponent' })).toHaveAttribute('data-critical', 'false');
 });

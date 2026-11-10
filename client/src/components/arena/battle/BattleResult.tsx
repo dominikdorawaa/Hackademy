@@ -51,12 +51,12 @@ function Confetti() {
   );
 }
 
-export function BattleResult({ result, title, text, change, still }: { result: Outcome; title: string; text: string; change: number; still: boolean }) {
+export function BattleResult({ result, title, text, change, still }: { result: Outcome; title: string; text?: string | null; change: number; still: boolean }) {
   return <>
     {result === 'win' && !still && <Confetti />}
     <section className={`battle-result is-${result}`} aria-labelledby="battle-result-title">
       <h1 id="battle-result-title">{title}</h1>
-      <p>{text}</p>
+      {text && <p>{text}</p>}
       <EloCount change={change} still={still} />
     </section>
   </>;
