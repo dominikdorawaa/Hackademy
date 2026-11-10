@@ -1,17 +1,18 @@
 import type { AvatarOutfit, FinisherMove, VictoryDance } from './avatarModel';
 
 export type { FinisherMove };
-export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: Record<VictoryDance, number>; run: number; finishers: Record<FinisherMove, number> }
+export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: Record<VictoryDance, number>; run: number; finishers: Record<FinisherMove, number>; dragged: number }
 
 const BASE = '/assets/arena/avatar-v1/';
 const DANCES: Record<VictoryDance, number> = { groove: 6, sixseven: 8, scuba: 13 };
 const RUN = 10;
 const FINISHERS: Record<FinisherMove, number> = { beam: 2, combo: 11 };
+export const KNOCKED_OUT = 53;
 
 export const AVATAR_ATLASES: Record<AvatarOutfit, AvatarAtlasSource> = {
-  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS },
-  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS },
-  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS },
+  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: 140 },
+  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: KNOCKED_OUT },
+  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: KNOCKED_OUT },
 };
 
 export function atlasViewBox(index: number) {

@@ -56,6 +56,39 @@
       "frameWidth": 56,
       "frameHeight": 57,
       "sha256": "e02e345499b48d3b18cf827fe591c790f00782e7de5a2e7bb801f15492736aa3"
+    },
+    {
+      "file": "referee-drag.png",
+      "frames": 8,
+      "frameWidth": 64,
+      "frameHeight": 64,
+      "sha256": "65b56895b49cfceff2d17c9658004c2e677630a6199a415603d8dde18d983685"
     }
-  ]
+  ],
+  "drag": {
+    "sources": "local-prototype-backups/arena-drag-v1",
+    "generatedAt": "2026-11-10",
+    "side": {
+      "endpoint": "edit-image-pixen",
+      "from": "mascot walk-side frame 0 (Bit facing right)",
+      "seed": 95401,
+      "image": 0,
+      "description": "Same cute chibi penguin mascot Bit seen from the side facing right, same size, pose, face, big eye, orange beak and feet, exactly two flippers. Dress him as a sports referee: remove the teal hood, replace the hoodie with a black and white vertically striped referee shirt with a black collar and a silver whistle on a black cord. Keep the white belly. Transparent background."
+    },
+    "pullPose": {
+      "endpoint": "edit-image-pixen",
+      "from": "side",
+      "seed": 95503,
+      "image": 0,
+      "description": "Same cute chibi referee penguin Bit seen from the side facing right, same size, face, striped referee shirt, orange beak and feet. He has exactly two flippers and both now reach forward: the two flippers are stretched out in front of him to the right, low at knee height, as if gripping two ankles. No flipper behind the back. His body leans back to the left with effort, the feet are braced apart, the eye is squinted. No other objects. Transparent background."
+    },
+    "animation": {
+      "endpoint": "animate-with-text-v3",
+      "seed": 95702,
+      "frameCount": 8,
+      "firstAndLastFrame": "pullPose",
+      "action": "the referee penguin takes small heavy steps backward in place: only the orange feet step one after the other and the body bobs down a little on each step, both flippers stay locked stretched forward and low in exactly the same position in every frame, leaning back the whole time, same size, seamless loop"
+    },
+    "processing": "Alpha cut at 128, the first eight frames packed side by side as 64x64 cells."
+  }
 }

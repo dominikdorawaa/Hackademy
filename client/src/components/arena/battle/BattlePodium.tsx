@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react';
+import type { CSSProperties } from 'react';
 import { AvatarSprite } from '../avatar/AvatarSprite';
-import { AVATAR_ATLASES, victoryDance } from '../avatar/fighters';
+import { AVATAR_ATLASES, KNOCKED_OUT, victoryDance } from '../avatar/fighters';
 import { useAvatarAtlas } from '../avatar/useAvatarAtlas';
 import { BattleResult } from './BattleResult';
 import type { Fighter, Outcome } from './battleView';
@@ -8,9 +9,28 @@ import './BattlePodium.css';
 
 const FRAME_MS = 110;
 export const STANDING = 73;
-export const FALL = [45, 46, 47, 48, 49, 50, 51, 52, 53];
+export const FALL = [45, 46, 47, 48, 49, 50, 51, 52, KNOCKED_OUT];
 export const FALL_DELAY_MS = 1600;
 const FALL_FRAME_MS = 120;
+export const ARRIVE_AT_MS = 3400;
+export const ARRIVE_MS = 3200;
+export const GRAB_MS = 400;
+export const DRAG_MS = 4200;
+export type LoserPhase = 'stand' | 'fall' | 'down' | 'arrive' | 'grab' | 'drag';
+const PHASES: [LoserPhase, number][] = [
+  ['fall', FALL_DELAY_MS], ['down', FALL_DELAY_MS + FALL.length * FALL_FRAME_MS], ['arrive', ARRIVE_AT_MS],
+  ['grab', ARRIVE_AT_MS + ARRIVE_MS], ['drag', ARRIVE_AT_MS + ARRIVE_MS + GRAB_MS],
+];
+
+function useLoserPhase(still: boolean) {
+  const [phase, setPhase] = useState<LoserPhase>(still ? 'down' : 'stand');
+  useEffect(() => {
+    if (still) return;
+    const timers = PHASES.map(([next, at]) => setTimeout(() => setPhase(next), at));
+    return () => timers.forEach(clearTimeout);
+  }, [still]);
+  return still ? 'down' : phase;
+}
 
 function Dancer({ fighter, still }: { fighter: Fighter; still: boolean }) {
   const atlas = useAvatarAtlas(fighter.look);
@@ -33,17 +53,13 @@ function Pose({ fighter, frames, frameTime, still, label }: { fighter: Fighter; 
     frames={frames} frameTime={frameTime} reducedMotion={still} label={label} />;
 }
 
-function Fallen({ fighter, still }: { fighter: Fighter; still: boolean }) {
+function Loser({ fighter, phase, still }: { fighter: Fighter; phase: LoserPhase; still: boolean }) {
   const atlas = useAvatarAtlas(fighter.look);
-  const [falling, setFalling] = useState(still);
-  useEffect(() => {
-    if (falling) return;
-    const timer = setTimeout(() => setFalling(true), FALL_DELAY_MS);
-    return () => clearTimeout(timer);
-  }, [falling]);
   if (!atlas) return null;
-  return <AvatarSprite key={falling ? 'fall' : 'stand'} atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[fighter.look.outfit].atlasHeight}
-    frames={falling ? FALL : [0]} loop={false} frameTime={FALL_FRAME_MS} reducedMotion={still} label={`${fighter.username} przegrywa`} />;
+  const source = AVATAR_ATLASES[fighter.look.outfit];
+  const frames = phase === 'stand' ? [0] : phase === 'fall' ? FALL : phase === 'drag' || phase === 'grab' ? [source.dragged] : [KNOCKED_OUT];
+  return <AvatarSprite key={phase === 'fall' ? 'fall' : frames.join()} atlas={atlas.atlas} atlasHeight={source.atlasHeight}
+    frames={frames} loop={false} frameTime={FALL_FRAME_MS} reducedMotion={still} label={`${fighter.username} przegrywa`} />;
 }
 
 function NameTag({ fighter, mine }: { fighter: Fighter; mine: boolean }) {
@@ -55,6 +71,7 @@ export function BattlePodium({ me, rival, result, title, change, still }: {
 }) {
   const winner = result === 'win' ? me : result === 'loss' ? rival : null;
   const loser = result === 'win' ? rival : result === 'loss' ? me : null;
+  const phase = useLoserPhase(still);
   return (
     <div className="battle-podium" data-result={result} data-still={still || undefined}>
       <div className="battle-podium-backdrop" aria-hidden="true" />
@@ -62,9 +79,10 @@ export function BattlePodium({ me, rival, result, title, change, still }: {
       <BattleResult result={result} title={title} change={change} still={still} />
       <div className="battle-podium-stage">
         {winner && loser ? <>
-          <figure className="battle-podium-loser">
+          <figure className="battle-podium-loser" data-phase={phase} style={{ '--drag-ms': `${DRAG_MS}ms`, '--arrive-ms': `${ARRIVE_MS}ms` } as CSSProperties}>
             <div className="battle-podium-sprite">
-              <Fallen fighter={loser} still={still} />
+              <Loser fighter={loser} phase={phase} still={still} />
+              {(phase === 'arrive' || phase === 'grab' || phase === 'drag') && <span className="battle-podium-bit" role="img" aria-label="Bit wyciąga przegranego z areny" />}
             </div>
             <figcaption><NameTag fighter={loser} mine={loser.id === me.id} /></figcaption>
           </figure>

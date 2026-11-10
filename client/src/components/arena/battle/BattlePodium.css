@@ -171,6 +171,36 @@
   white-space: nowrap;
 }
 
+.battle-podium-loser[data-phase='drag'] {
+  animation: battle-podium-haul var(--drag-ms) linear both;
+}
+
+.battle-podium-loser[data-phase='drag'] .battle-podium-sprite .avatar-sprite {
+  animation: battle-podium-bump 700ms steps(1, end) infinite;
+}
+
+.battle-podium-bit {
+  --p: calc(var(--loser) / 64);
+  position: absolute;
+  left: calc(-20.5 * var(--p));
+  bottom: calc(9 * var(--p));
+  z-index: 1;
+  width: calc(32 * var(--p));
+  height: calc(32 * var(--p));
+  background: url('/assets/arena/referee/referee-drag.png') 0 0 / 800% 100% no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 3px 0 rgb(3 6 16 / 0.35));
+  animation: battle-podium-bit-step 1.4s steps(8, jump-none) infinite;
+}
+
+.battle-podium-loser[data-phase='arrive'] .battle-podium-bit {
+  animation: battle-podium-bit-step 1.4s steps(8, jump-none) infinite reverse, battle-podium-bit-arrive var(--arrive-ms) linear both;
+}
+
+.battle-podium-loser[data-phase='grab'] .battle-podium-bit {
+  animation: none;
+}
+
 .battle-podium-loser figcaption {
   top: auto;
   bottom: 36%;
@@ -187,6 +217,24 @@
   background: #5aa9ff;
   color: var(--podium-ink);
   font-size: 0.8em;
+}
+
+@keyframes battle-podium-haul {
+  from { transform: translateX(0); }
+  to { transform: translateX(calc(-1 * (8cqw + var(--loser)))); }
+}
+
+@keyframes battle-podium-bump {
+  50% { translate: 0 calc(-1 * var(--loser) / 64); }
+}
+
+@keyframes battle-podium-bit-step {
+  to { background-position-x: 100%; }
+}
+
+@keyframes battle-podium-bit-arrive {
+  from { transform: translateX(-38cqw); }
+  to { transform: translateX(0); }
 }
 
 @keyframes battle-podium-iris {

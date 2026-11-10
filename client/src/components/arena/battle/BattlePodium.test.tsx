@@ -1,7 +1,8 @@
 import { render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { act } from '@testing-library/react';
-import { BattlePodium, FALL, FALL_DELAY_MS, STANDING } from './BattlePodium';
+import { ARRIVE_AT_MS, ARRIVE_MS, BattlePodium, FALL, FALL_DELAY_MS, GRAB_MS, STANDING } from './BattlePodium';
+import { AVATAR_ATLASES, KNOCKED_OUT } from '../avatar/fighters';
 import { podiumDelay, perspective } from './battleView';
 import { createGameSession } from '../../../test/fixtures/arena';
 
@@ -48,4 +49,25 @@ it('waits for the last blow before the podium only when the fight was watched li
   expect(podiumDelay(knockout, true, true)).toBe(0);
   expect(podiumDelay(knockout, true, false)).toBeGreaterThan(2000);
   expect(podiumDelay({ ...knockout, finishReason: 'SURRENDER' }, true, false)).toBe(900);
+});
+
+it('sends Bit to drag the knocked out loser off the stage by the ankles', () => {
+  vi.useFakeTimers();
+  render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still={false} />);
+  const loser = document.querySelector('.battle-podium-loser') as HTMLElement;
+  expect(screen.queryByRole('img', { name: 'Bit wyciąga przegranego z areny' })).not.toBeInTheDocument();
+  act(() => { vi.advanceTimersByTime(ARRIVE_AT_MS); });
+  expect(loser).toHaveAttribute('data-phase', 'arrive');
+  expect(screen.getByRole('img', { name: 'Bit wyciąga przegranego z areny' })).toBeInTheDocument();
+  expect(within(loser).getByRole('img', { name: `${rival.username} przegrywa` })).toHaveAttribute('data-frame', String(KNOCKED_OUT));
+  act(() => { vi.advanceTimersByTime(ARRIVE_MS + GRAB_MS); });
+  expect(loser).toHaveAttribute('data-phase', 'drag');
+  expect(within(loser).getByRole('img', { name: `${rival.username} przegrywa` })).toHaveAttribute('data-frame', String(AVATAR_ATLASES[rival.look.outfit].dragged));
+  vi.useRealTimers();
+});
+
+it('leaves the loser lying still without Bit when motion is reduced', () => {
+  render(<BattlePodium me={me} rival={rival} result="loss" title="Porażka" change={-16} still />);
+  expect(within(document.querySelector('.battle-podium-loser') as HTMLElement).getByRole('img', { name: `${me.username} przegrywa` })).toHaveAttribute('data-frame', String(KNOCKED_OUT));
+  expect(screen.queryByRole('img', { name: 'Bit wyciąga przegranego z areny' })).not.toBeInTheDocument();
 });
