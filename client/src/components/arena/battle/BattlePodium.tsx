@@ -8,8 +8,6 @@ import './BattlePodium.css';
 
 const FRAME_MS = 110;
 export const STANDING = 73;
-export const SOBBING = [STANDING, STANDING, 118, 117, 118, 118];
-const SOB_MS = 420;
 
 function Dancer({ fighter, still }: { fighter: Fighter; still: boolean }) {
   const atlas = useAvatarAtlas(fighter.look);
@@ -50,8 +48,7 @@ export function BattlePodium({ me, rival, result, title, change, still }: {
         {winner && loser ? <>
           <figure className="battle-podium-loser">
             <div className="battle-podium-sprite">
-              <Pose fighter={loser} frames={SOBBING} frameTime={SOB_MS} still={still} label={`${loser.username} płacze`} />
-              <span className="battle-podium-tears" aria-hidden="true"><i /><i /><i /><i /></span>
+              <Pose fighter={loser} frames={[STANDING]} frameTime={FRAME_MS} still={still} label={`${loser.username} przegrywa`} />
             </div>
             <figcaption><NameTag fighter={loser} mine={loser.id === me.id} /></figcaption>
           </figure>

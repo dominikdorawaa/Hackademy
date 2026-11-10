@@ -3,6 +3,8 @@
   --podium-ink: #050a14;
   --winner: min(60cqh, 56cqw);
   --loser: calc(var(--winner) * 0.56);
+  --surface: max(20.5cqh, 11.5cqw);
+  --feet: 0.156;
   position: absolute;
   inset: 0;
   z-index: 20;
@@ -99,7 +101,7 @@
 
 .battle-podium-winner {
   left: 50%;
-  bottom: calc(15cqh - 0.13 * var(--winner));
+  bottom: calc(var(--surface) - var(--feet) * var(--winner));
   z-index: 2;
   width: var(--winner);
   translate: -50% 0;
@@ -113,7 +115,7 @@
 
 .battle-podium-loser {
   left: 15cqw;
-  bottom: calc(21cqh - 0.13 * var(--loser));
+  bottom: calc(var(--surface) + 4cqh - var(--feet) * var(--loser));
   z-index: 1;
   width: var(--loser);
   animation: battle-podium-slink 700ms steps(7, end) 900ms both;
@@ -121,12 +123,11 @@
 
 .battle-podium-loser .battle-podium-sprite {
   height: var(--loser);
-  filter: brightness(0.72) saturate(0.6) drop-shadow(0 6px 0 rgb(3 6 16 / 0.4));
-  animation: battle-podium-sob 840ms steps(2, end) infinite;
+  filter: brightness(0.45) saturate(0.35);
 }
 
 .battle-podium-tie {
-  bottom: calc(17cqh - 0.1 * var(--loser));
+  bottom: calc(var(--surface) - var(--feet) * var(--winner) * 0.8);
   width: calc(var(--winner) * 0.8);
   translate: -50% 0;
   animation: battle-podium-drop 520ms steps(6, end) 520ms both;
@@ -144,27 +145,14 @@
   height: calc(var(--winner) * 0.8);
 }
 
-.battle-podium-tears i {
-  --tear: calc(var(--loser) / 64);
-  position: absolute;
-  top: 26%;
-  width: calc(1.5 * var(--tear));
-  height: calc(3 * var(--tear));
-  background: #b8ecff;
-  box-shadow: 0 0 0 calc(var(--tear) * 0.5) #1d4f8a;
-  opacity: 0;
-  animation: battle-podium-tear 900ms steps(6, end) infinite;
-}
-
-.battle-podium-tears i:nth-child(1) { left: 43%; animation-delay: 1.5s; }
-.battle-podium-tears i:nth-child(2) { left: 54%; animation-delay: 1.8s; }
-.battle-podium-tears i:nth-child(3) { left: 43%; animation-delay: 2.1s; }
-.battle-podium-tears i:nth-child(4) { left: 54%; animation-delay: 2.35s; }
 
 .battle-podium figcaption {
+  position: absolute;
+  top: 88%;
+  left: 0;
+  right: 0;
   display: flex;
   justify-content: center;
-  margin-top: -14%;
 }
 
 .battle-podium-name {
@@ -216,16 +204,7 @@
   to { opacity: 1; transform: none; }
 }
 
-@keyframes battle-podium-sob {
-  0%, 100% { transform: none; }
-  50% { transform: translateY(calc(var(--loser) / 64)); }
-}
 
-@keyframes battle-podium-tear {
-  0% { opacity: 1; transform: translateY(0); }
-  80% { opacity: 1; }
-  100% { opacity: 0; transform: translateY(calc(var(--loser) * 0.32)); }
-}
 
 @media (max-width: 720px) {
   .battle-podium {
@@ -244,18 +223,11 @@
   animation: none !important;
 }
 
-.battle-podium[data-still] .battle-podium-tears {
-  display: none;
-}
 
 @media (prefers-reduced-motion: reduce) {
   .battle-podium,
   .battle-podium * {
     animation: none !important;
-  }
-
-  .battle-podium-tears {
-    display: none;
   }
 }
 }

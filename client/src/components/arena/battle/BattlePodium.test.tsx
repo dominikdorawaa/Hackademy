@@ -1,6 +1,6 @@
 import { render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
-import { BattlePodium, SOBBING, STANDING } from './BattlePodium';
+import { BattlePodium, STANDING } from './BattlePodium';
 import { podiumDelay, perspective } from './battleView';
 import { createGameSession } from '../../../test/fixtures/arena';
 
@@ -11,21 +11,21 @@ vi.mock('../avatar/useAvatarAtlas', () => ({
 
 const { me, rival } = perspective(createGameSession(), 1);
 
-it('lets the winner dance on the podium while the loser cries at the back', () => {
+it('lets the winner dance on the podium while the dimmed loser stands still at the back', () => {
   render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still={false} />);
   expect(screen.getByRole('heading', { name: 'Zwycięstwo' })).toBeInTheDocument();
   const winner = document.querySelector('.battle-podium-winner') as HTMLElement;
   expect(within(winner).getByRole('img', { name: `${me.username} tańczy` })).toBeInTheDocument();
   expect(within(winner).getByText('Ty')).toBeInTheDocument();
   const loser = document.querySelector('.battle-podium-loser') as HTMLElement;
-  expect(within(loser).getByRole('img', { name: `${rival.username} płacze` })).toHaveAttribute('data-frame', String(SOBBING[0]));
-  expect(loser.querySelectorAll('.battle-podium-tears i')).toHaveLength(4);
+  expect(within(loser).getByRole('img', { name: `${rival.username} przegrywa` })).toHaveAttribute('data-frame', String(STANDING));
+  expect(loser.querySelector('.battle-podium-tears')).toBeNull();
 });
 
 it('puts the rival on the podium after a loss', () => {
   render(<BattlePodium me={me} rival={rival} result="loss" title="Porażka" change={-16} still={false} />);
   expect(within(document.querySelector('.battle-podium-winner') as HTMLElement).getByRole('img', { name: `${rival.username} tańczy` })).toBeInTheDocument();
-  expect(within(document.querySelector('.battle-podium-loser') as HTMLElement).getByRole('img', { name: `${me.username} płacze` })).toBeInTheDocument();
+  expect(within(document.querySelector('.battle-podium-loser') as HTMLElement).getByRole('img', { name: `${me.username} przegrywa` })).toBeInTheDocument();
 });
 
 it('stands both fighters side by side after a draw', () => {
