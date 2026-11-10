@@ -85,6 +85,7 @@ export const ABSENCE_MS = 30_000;
 export const ROUND_MS = 15_000;
 export const BANNER_MS = 1_800;
 export const LOW_HP = 20;
+export const INTRO_EXIT_MS = 900;
 
 export function roundBanner(session: GameSession, serverNow: number) {
   if (session.status !== 'ACTIVE' || session.phase !== 'QUESTION' || session.pause) return null;

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 42;
+    static final int SCHEMA_VERSION = 43;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -373,6 +373,20 @@ class SchemaMigrationTest {
     }
 
     @Test
+    void keepsArenaResultsPerPlayerAndDropsThemWithTheAccount() throws Exception {
+        flyway("42").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        insertUser(2, "Bob", "bob@example.com");
+        assertEquals(1, flyway("43").migrate().migrationsExecuted);
+        execute("INSERT INTO arena_matches (user_id, game_id, opponent_name, result, elo_change, finished_at) VALUES (1, 'g1', 'Bob', 'WIN', 16, now()), (2, 'g1', 'Alice', 'LOSS', -16, now())");
+        assertSqlState("23505", "INSERT INTO arena_matches (user_id, game_id, opponent_name, result, finished_at) VALUES (1, 'g1', 'Bob', 'WIN', now())");
+        assertSqlState("23514", "INSERT INTO arena_matches (user_id, game_id, opponent_name, result, finished_at) VALUES (1, 'g2', 'Bob', 'TIE', now())");
+        execute("DELETE FROM users WHERE id = 1");
+        assertEquals(1, scalar("SELECT count(*) FROM arena_matches"));
+        assertTrue(flyway("43").validateWithResult().validationSuccessful);
+    }
+
+    @Test
     void movesRoomHintsToTheFirstTaskOfTheRoomAndKeepsUnlocks() throws Exception {
         flyway("41").migrate();
         insertUser(1, "Alice", "alice@example.com");
@@ -387,7 +401,7 @@ class SchemaMigrationTest {
                 """);
         long revision = scalar("SELECT tasks_revision FROM rooms WHERE id = 2");
 
-        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(1, flyway("42").migrate().migrationsExecuted);
 
         assertEquals("3:11:0:Pierwsza,5:11:1:Druga", text("""
                 SELECT string_agg(h.id || ':' || h.task_id || ':' || h.sort_order || ':' || h.description, ',' ORDER BY h.id)
@@ -403,7 +417,7 @@ class SchemaMigrationTest {
         execute("DELETE FROM room_tasks WHERE id = 11");
         assertEquals(0, scalar("SELECT count(*) FROM hints WHERE task_id = 11"));
         assertEquals("7", text("SELECT string_agg(hint_id::text, ',') FROM user_unlocked_hints"));
-        assertTrue(flyway().validateWithResult().validationSuccessful);
+        assertTrue(flyway("42").validateWithResult().validationSuccessful);
     }
 
     @Test

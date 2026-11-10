@@ -10,6 +10,7 @@ import com.hackademy.server.user.UserAvatarRepository;
 import com.hackademy.server.user.UserRepository;
 import com.hackademy.server.user.UserServiceImpl;
 import lombok.RequiredArgsConstructor;
+import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.beans.factory.annotation.Value;
 import org.springframework.boot.convert.DurationStyle;
 import org.springframework.context.event.ContextClosedEvent;
@@ -81,6 +82,8 @@ public class ArenaServiceImpl implements ArenaService {
     private LongSupplier clock = System::currentTimeMillis;
     private RandomGenerator random = new SecureRandom();
     private volatile long challengeExpiryMillis = DEFAULT_CHALLENGE_EXPIRY.toMillis();
+    private volatile long introMillis;
+    private ArenaHistory history;
     private volatile boolean closing;
 
     private record Notice(Challenge challenge, long at) {}
@@ -99,6 +102,21 @@ public class ArenaServiceImpl implements ArenaService {
             throw new IllegalArgumentException("application.arena.challenge-expiry must be positive");
         }
         challengeExpiryMillis = expiry.toMillis();
+    }
+
+    @Value("${application.arena.intro:0s}")
+    void useIntro(String intro) {
+        useIntro(DurationStyle.detectAndParse(intro));
+    }
+
+    void useIntro(Duration intro) {
+        if (intro == null || intro.isNegative()) throw new IllegalArgumentException("application.arena.intro must not be negative");
+        introMillis = intro.toMillis();
+    }
+
+    @Autowired(required = false)
+    void useHistory(ArenaHistory history) {
+        this.history = history;
     }
 
     void useRandom(RandomGenerator random) {
@@ -237,8 +255,19 @@ public class ArenaServiceImpl implements ArenaService {
         if (!session.isBot(session.getPlayer2Id())) session.setPlayer2Avatar(avatars.get(session.getPlayer2Id()));
         session.setStartTime(LocalDateTime.now());
         int elo = QuestionDraw.averageElo(session.getPlayer1Elo(), session.getPlayer2Elo());
-        BattleEngine.start(session, questionRepository.drawForElo(elo, BattleEngine.ROUNDS, random), clock.getAsLong(), random);
+        if (history != null) session.setIntro(introCards(session));
+        BattleEngine.start(session, questionRepository.drawForElo(elo, BattleEngine.ROUNDS, random), clock.getAsLong(), random, introMillis);
         BotPlayer.plan(session, random);
+    }
+
+    private Map<Long, ArenaIntroCard> introCards(GameSession session) {
+        Map<Long, ArenaIntroCard> cards = new HashMap<>();
+        for (Long player : List.of(session.getPlayer1Id(), session.getPlayer2Id())) {
+            int playerElo = session.eloOf(player);
+            String name = player.equals(session.getPlayer1Id()) ? session.getPlayer1Username() : session.getPlayer2Username();
+            cards.put(player, session.isBot(player) ? history.botCard(name, playerElo) : history.card(player, playerElo));
+        }
+        return cards;
     }
 
     @Override
@@ -358,6 +387,7 @@ public class ArenaServiceImpl implements ArenaService {
         session.setPlayer2EloChange(0);
         if (winnerId != null && session.getBotId() != null) recordBotGame(session, winnerId);
         else if (winnerId != null) recordWin(session, winnerId);
+        if (history != null) history.record(session);
         realtime.changed(session.people());
         realtime.activityChanged(session.people());
     }

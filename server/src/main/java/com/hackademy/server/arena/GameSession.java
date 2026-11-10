@@ -49,6 +49,7 @@ public class GameSession {
     private ArenaPause pause;
     private List<Long> pausesUsed = new ArrayList<>();
     private Map<Long, ArenaAbsence> absences = new HashMap<>();
+    private Map<Long, ArenaIntroCard> intro = new HashMap<>();
 
     @JsonIgnore
     private List<QuestionSnapshot> questions = new ArrayList<>();
@@ -123,6 +124,7 @@ public class GameSession {
         copy.pause = pause;
         copy.pausesUsed = new ArrayList<>(pausesUsed);
         copy.absences = new HashMap<>(absences);
+        copy.intro = new HashMap<>(intro);
         return copy;
     }
 }

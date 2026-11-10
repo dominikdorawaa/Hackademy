@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BattleIntro, BattleIntroLoading } from '../components/arena/battle/BattleIntro';
 import { BattlePause } from '../components/arena/battle/BattlePause';
 import { BattleResult } from '../components/arena/battle/BattleResult';
 import { BattleScene } from '../components/arena/battle/BattleScene';
 import { reactionRefusal } from '../components/arena/battle/quickChat';
 import {
-  absenceNotice, eloChange, finishText, frozenSecondsLeft, LOW_HP, outcome, outcomeTitle, pauseNotice, perspective, roundBanner, roundSummary, secondsLeft,
+  absenceNotice, eloChange, finishText, frozenSecondsLeft, INTRO_EXIT_MS, LOW_HP, outcome, outcomeTitle, pauseNotice, perspective, roundBanner, roundSummary, secondsLeft,
 } from '../components/arena/battle/battleView';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
@@ -15,7 +16,6 @@ import { useBattlePresence } from '../hooks/useBattlePresence';
 import { useBattleSounds } from '../hooks/useBattleSounds';
 import { useReducedMotion } from '../hooks/useReducedMotion';
 import { arenaCategoryLabel } from '../components/arena/arenaCategory';
-import { ArenaLoader } from '../components/arena/ArenaLoader';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
 import RoomFooterBar from '../components/room/RoomFooterBar';
 import UserAvatar from '../components/UserAvatar';
@@ -43,6 +43,7 @@ export default function ArenaBattlePage() {
   const [confirmSurrender, setConfirmSurrender] = useState(false);
   const [verdict, setVerdict] = useState<{ game: string; round: number; damage: number } | null>(null);
   const [reactionNotice, setReactionNotice] = useState<string | null>(null);
+  const [introGame, setIntroGame] = useState<{ id: string; leaving: boolean } | null>(null);
   const reducedMotion = useReducedMotion();
   const navigate = useNavigate();
   const serverTime = session?.serverTime ?? 0;
@@ -71,6 +72,15 @@ export default function ArenaBattlePage() {
     return () => controller.abort();
   }, [sessionKey, identityAttempt]);
 
+  const introPhase = session?.phase === 'INTRO';
+  if (session && introPhase && introGame?.id !== session.id) setIntroGame({ id: session.id, leaving: true });
+  const introLeaving = !!session && !introPhase && introGame?.id === session.id && introGame.leaving && !reducedMotion;
+  useEffect(() => {
+    if (!introLeaving) return;
+    const timer = setTimeout(() => setIntroGame(shown => shown && { ...shown, leaving: false }), INTRO_EXIT_MS);
+    return () => clearTimeout(timer);
+  }, [introLeaving]);
+
   useEffect(() => {
     if (!reactionNotice) return;
     const timer = setTimeout(() => setReactionNotice(null), NOTICE_MS);
@@ -88,8 +98,8 @@ export default function ArenaBattlePage() {
             {missing ? <p role="status" className="ud-empty">Tej walki nie ma już na serwerze. Jeśli trwała podczas restartu serwera, została anulowana, a Elo się nie zmieniło.</p> : failed ? <>
               <p role="alert" className="battle-error">Nie udało się pobrać Twojego konta. Walka trwa dalej. Spróbuj ponownie.</p>
               <button type="button" className="ud-btn ud-btn-solid" onClick={() => { setIdentityError(null); setIdentityAttempt(attempt => attempt + 1); }}>Spróbuj ponownie</button>
-            </> : <ArenaLoader label="Wczytuję walkę" avatar={identity?.sessionKey === sessionKey ? identity.avatar : null} />}
-            <Link className="ud-link" to="/arena">Wróć do Areny</Link>
+            </> : <BattleIntroLoading label="Wczytuję walkę" avatar={identity?.sessionKey === sessionKey ? identity.avatar : null} />}
+            <Link className="ud-link battle-loading-back" to="/arena">Wróć do Areny</Link>
           </div>
         </div>
       </RoomFrame>
@@ -179,6 +189,8 @@ export default function ArenaBattlePage() {
         <div className="user-dashboard battle-page" data-still={reducedMotion} data-result={finished ? result : undefined}>
           <div className="battle-shell">
             <div className="battle-arena" data-paused={pause !== null} data-danger={!finished && me.hp > 0 && me.hp < LOW_HP}>
+              {(introPhase || introLeaving) && <BattleIntro me={me} rival={rival} cards={session.intro} secondsLeft={left} totalRounds={session.totalRounds}
+                roundSeconds={Math.round((session.roundMillis ?? 15_000) / 1000)} leaving={introLeaving} reducedMotion={reducedMotion} />}
               {banner && !reducedMotion && <p key={`banner-${session.round}`} className="battle-banner" aria-hidden="true"><strong>{banner}</strong></p>}
               <BattleScene session={session} me={me} rival={rival} reducedMotion={reducedMotion} serverNow={serverNow}
                 strike={currentVerdict && currentVerdict.damage > 0 ? currentVerdict.damage : null} miss={currentVerdict?.damage === 0}

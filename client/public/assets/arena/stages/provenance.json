@@ -19,6 +19,19 @@
       },
       "processing": "The dark bottom band below row 287 is cropped, so the image is 400x288. Used behind the whole battle arena.",
       "sha256": "508f5e2c96004516247b1cd30974425a63de2c39657d733fa9db4366442e5e87"
+    },
+    {
+      "file": "versus-tunnel.png",
+      "endpoint": "create-image-pixflux-background",
+      "generatedAt": "2026-11-10",
+      "description": "Fighting game versus screen backdrop inside cyberspace: a glowing digital data tunnel with circuit board lines and streams of tiny pixel data blocks rushing toward a bright vanishing point in the center. The left half is lit in cool electric blue, the right half in warm orange, split by a jagged diagonal lightning seam of white and cyan energy running from the top right to the bottom left. Dark navy base, chunky clean pixel art, limited palette, strong contrast, dramatic and energetic. The left third and right third stay calmer for character cards. No people, no characters, no text, no letters, no numbers, no logos, no UI.",
+      "imageSize": {
+        "width": 400,
+        "height": 224
+      },
+      "seed": 81101,
+      "processing": "The dark letterbox bands above row 19 and below row 204 are cropped, so the image is 400x186. Used behind the duel introduction and the arena loading screen.",
+      "sha256": "28567295ed64d8228b75d584d0aa904c6cddee70f22735e59b6083e5e9f7c4b2"
     }
   ]
 }
