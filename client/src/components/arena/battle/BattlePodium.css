@@ -2,7 +2,8 @@
 .battle-podium {
   --podium-ink: #050a14;
   --winner: min(60cqh, 56cqw);
-  --loser: calc(var(--winner) * 0.56);
+  --loser: calc(var(--winner) * 0.72);
+  --floor: max(5cqh, 2.8cqw);
   --surface: max(20.5cqh, 11.5cqw);
   --feet: 0.156;
   position: absolute;
@@ -114,9 +115,9 @@
 }
 
 .battle-podium-loser {
-  left: 15cqw;
-  bottom: calc(var(--surface) + 4cqh - var(--feet) * var(--loser));
-  z-index: 1;
+  left: 3cqw;
+  bottom: calc(var(--floor) - var(--feet) * var(--loser));
+  z-index: 3;
   width: var(--loser);
   animation: battle-podium-slink 700ms steps(7, end) 900ms both;
 }
@@ -170,6 +171,11 @@
   white-space: nowrap;
 }
 
+.battle-podium-loser figcaption {
+  top: auto;
+  bottom: 36%;
+}
+
 .battle-podium-winner .battle-podium-name {
   border-color: #ffe066;
   color: #ffe066;
@@ -212,7 +218,7 @@
   }
 
   .battle-podium-loser {
-    left: 4cqw;
+    left: -6cqw;
   }
 }
 
