@@ -41,7 +41,7 @@ it('moves between categories with the keyboard', () => {
 
 it('shows the front and fight switch only on the look tabs and remembers the chosen view', () => {
   render(<Harness reducedMotion />);
-  expect(screen.getByRole('img', { name: 'Twój awatar, widok z przodu' })).toHaveAttribute('src', 'blob:front');
+  expect(screen.getByRole('img', { name: 'Twój awatar, widok z przodu' }).style.backgroundImage).toContain('blob:front');
   const views = within(screen.getByRole('group', { name: 'Widok podglądu' })).getAllByRole('button');
   expect(views.map(button => button.textContent)).toEqual(['Przód', 'W walce']);
   fireEvent.click(screen.getByRole('button', { name: 'W walce' }));

@@ -59,7 +59,10 @@ async function portraitPixels(avatar: AvatarLook) {
   const source = await loadView(avatar.outfit, view.image);
   const pixels = recolorAtlas(source.pixels, source.width, source.map, spec, avatar.colors);
   await dressHead(pixels, source.width, avatar, view.anchors, avatar.pose === 'profil' ? '' : 'front/');
-  return pixels;
+  if (source.width === 64) return pixels;
+  const first = new Uint8ClampedArray(64 * 64 * 4);
+  for (let y = 0; y < 64; y++) first.set(pixels.subarray(y * source.width * 4, y * source.width * 4 + 256), y * 256);
+  return first;
 }
 
 async function dressHead(pixels: Uint8ClampedArray, width: number, avatar: AvatarLook, anchorFile: string, prefix: string) {
@@ -86,7 +89,7 @@ async function frontUrl(avatar: AvatarLook) {
     const front = await loadFront(avatar.outfit);
     const pixels = recolorAtlas(front.pixels, front.width, front.map, OUTFIT_SPECS[avatar.outfit], avatar.colors);
     await dressHead(pixels, front.width, avatar, FRONT_VIEWS[avatar.outfit].anchors, 'front/');
-    return await toUrl(toCanvas(pixels, front.width, front.height));
+    return { url: await toUrl(toCanvas(pixels, front.width, front.height)), frames: Math.max(1, front.width / 64) };
   } catch { return null; }
 }
 
@@ -94,7 +97,7 @@ function toUrl(canvas: HTMLCanvasElement) {
   return new Promise<string>((resolve, reject) => canvas.toBlob(blob => blob ? resolve(URL.createObjectURL(blob)) : reject(new Error('Empty image')), 'image/png'));
 }
 
-export interface AvatarAtlas { atlas: string; front: string | null }
+export interface AvatarAtlas { atlas: string; front: string | null; frontFrames?: number }
 
 export function useAvatarAtlas(avatar: Avatar) {
   const [result, setResult] = useState<{ key: string; value: AvatarAtlas } | null>(null);
@@ -108,9 +111,9 @@ export function useAvatarAtlas(avatar: Avatar) {
       await dressHead(pixels, source.width, current, HEAD_ANCHORS[current.outfit], '');
       const canvas = toCanvas(pixels, source.width, source.height);
       const front = await frontUrl(current);
-      created = [await toUrl(canvas), ...(front ? [front] : [])];
+      created = [await toUrl(canvas), ...(front ? [front.url] : [])];
       if (cancelled) { created.forEach(url => URL.revokeObjectURL(url)); return; }
-      setResult({ key, value: { atlas: created[0], front } });
+      setResult({ key, value: { atlas: created[0], front: front?.url ?? null, frontFrames: front?.frames ?? 1 } });
     })().catch(() => undefined);
     return () => { cancelled = true; created.forEach(url => URL.revokeObjectURL(url)); };
   }, [key]);

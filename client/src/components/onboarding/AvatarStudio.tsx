@@ -1,5 +1,5 @@
 import { useId, useRef, useState } from 'react';
-import type { KeyboardEvent, ReactNode } from 'react';
+import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
 import { Check } from 'lucide-react';
 import { AvatarSprite } from '../arena/avatar/AvatarSprite';
 import { useAvatarAtlas, useAvatarPortrait } from '../arena/avatar/useAvatarAtlas';
@@ -67,7 +67,8 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
             frames={finisherPreview(avatar.finisher, reducedMotion)} frameTime={100} reducedMotion={reducedMotion} label={`Twój finisher: ${FINISHER_OPTIONS[avatar.finisher].name}`} />
           : tab === 'dance' ? <AvatarSprite key={`dance-${avatar.dance}`} atlas={atlas.atlas} atlasHeight={height}
             frames={dancePreview(avatar.dance, reducedMotion)} frameTime={110} reducedMotion={reducedMotion} label={`Twój taniec zwycięstwa: ${DANCE_OPTIONS[avatar.dance].name}`} />
-          : view === 'front' && atlas.front ? <img className="studio-front" src={atlas.front} alt="Twój awatar, widok z przodu" />
+          : view === 'front' && atlas.front ? <span className="studio-front" role="img" aria-label="Twój awatar, widok z przodu" data-still={reducedMotion || undefined}
+            style={{ backgroundImage: `url(${atlas.front})`, '--front-frames': atlas.frontFrames ?? 1 } as CSSProperties} />
           : <AvatarSprite key={avatar.outfit} atlas={atlas.atlas} atlasHeight={height}
             frames={[0, 0, 0, 0, 0, 0, ...ATTACK]} frameTime={110} reducedMotion={reducedMotion} label="Twój awatar w walce" />}
       </div>
