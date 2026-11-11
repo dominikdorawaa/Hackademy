@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "6096aee8dada752090434cf3f36cbc9aabb7e2a274e14f0e7b802697a6f0c689",
-    "hoodie/fighter.png": "7d1969a49fad14c780425ade808960463a82e8e68190aaf1228ca6a2293cbf5b",
-    "track/fighter.png": "a637ae8bc588f95a77629f9d4aacdd8cbb1b7705deda99c6737c45248947040f"
+    "fighter.png": "a2eca45f6f92c18bf852ece3e00033929840f677a4a49323f433321c9573d2e7",
+    "hoodie/fighter.png": "60aa88d8140c97e849dec3d0a5a709121e5ba2fe3307227b39cf9231d7c43b6b",
+    "track/fighter.png": "f397ca8e22898c730f9ee15486ed6dd5f3e7710304741909b27333508993bb8e"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -423,8 +423,8 @@
       "scuba": "The fighter drops the boxing guard and turns in place from a side view facing right to face the camera, ending facing the camera with one hand pinching the nose and the other arm raised across the chest, exactly like the last frame. Smooth natural body rotation through a three-quarter view, feet stay planted on the same ground line, the character keeps the same size. Same bald character, clothes and colours, full body visible, fixed camera, no ground, no effects."
     },
     "overlaysSha256": {
-      "hair-short.png": "975b997256b53b8ec4c555e777299818a951cd56e68bfacc8d2a95b6aa77e046",
-      "hair-mohawk.png": "1fb3176ceed6744795f92ac15204f5f6a6ae3f79b686e50d225081c219e0f8e8",
+      "hair-short.png": "42edc09d41dd9981f9e8c73817608eea67651c21e8cebd7921580e33133d85b1",
+      "hair-mohawk.png": "5815c0c2f0bfc660e1f0b5bccc250da59343e1151400385c70ba15800cc3963b",
       "hair-ponytail.png": "492016f1368966b307757c2d8001802091a6eac76056e6b83c8bf7a1cdb4f64c",
       "hat-beanie.png": "46b7daf6922ffb4098b4477edd49b2cf6934f0b1520355e8be1937c6b88ec66d",
       "hat-cap.png": "94a9751efff41a543fabf2917973698201836d21c4c4b37dce23a464a4f28796"
@@ -482,8 +482,8 @@
       "scuba": "the previous Scuba frames of each outfit with the new head moved by the previous head offsets and the new legs; the hoodie greens are matched to the new hoodie; the knees dip by a pixel at both ends of the sway and the hips follow the sway by up to a pixel, fading to nothing at the knees"
     },
     "turn": "animate-with-text-v3 from the side stance to the new front (seed 96503), four of its frames in columns 1 to 4 of rows 15 and 16",
-    "overlays": "front/ and dance/ hair and hats are the difference between hair edits of the base front and the bald base front",
-    "processing": "every new frame is moved so the feet stand on row 54 and snapped to the outfit palette by material: outline only on the silhouette edge or between face skin, skin only for clearly skin tones, shoes below the ankles, trousers only on the lower body, the rest to the nearest clothing material; within each material the shade spread of each animation is matched by quantile to how often each palette colour appears in the previous atlas (turn and Luz frames follow the new front frames); enclosed see-through gaps are filled",
+    "overlays": "front/ and dance/ hair and hats are the difference between hair edits of the base front and the bald base front; light scalp-edge pixels left over from cutting the head out are removed from the hair overlays, so they do not turn into pale streaks after the hair recolour",
+    "processing": "every new frame is moved so the feet stand on row 54 and snapped to the outfit palette by material: outline only on the silhouette edge or between face skin, skin only for clearly skin tones, shoes below the ankles, trousers only on the lower body, the rest to the nearest clothing material; each pixel then takes the nearest colour of its own material, the hoodie green is first tone-mapped to the previous hoodie; enclosed see-through gaps are filled",
     "groove": "animate-with-skeleton-v3 from the side stance of each outfit (seed 98203) with the joint motion read from the previous Luz frames, so the dancer turns from the side to the front and back to the beat; each frame gets a side or a front head anchor depending on which head template fits"
   }
 }
