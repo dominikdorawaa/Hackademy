@@ -4,7 +4,11 @@ import { AvatarSprite } from '../avatar/AvatarSprite';
 import { AVATAR_ATLASES, KNOCKED_OUT, victoryDance } from '../avatar/fighters';
 import { useAvatarAtlas } from '../avatar/useAvatarAtlas';
 import { BattleResult } from './BattleResult';
+import { PixelSprite } from '../../PixelSprite';
+import { PODIUM_DANCES, PODIUM_EMOTES, podiumDance, podiumEmote } from './quickChat';
 import type { Fighter, Outcome } from './battleView';
+import type { VictoryDance } from '../avatar/avatarModel';
+import type { GameSession } from '../../../types/api';
 import './BattlePodium.css';
 
 const FRAME_MS = 110;
@@ -32,10 +36,10 @@ function useLoserPhase(still: boolean) {
   return still ? 'down' : phase;
 }
 
-function Dancer({ fighter, still }: { fighter: Fighter; still: boolean }) {
+function Dancer({ fighter, still, dance, intro }: { fighter: Fighter; still: boolean; dance: VictoryDance; intro: boolean }) {
   const atlas = useAvatarAtlas(fighter.look);
-  const { turn, loop } = victoryDance(fighter.look.dance);
-  const [turned, setTurned] = useState(still || turn.length === 0);
+  const { turn, loop } = victoryDance(dance);
+  const [turned, setTurned] = useState(still || !intro || turn.length === 0);
   useEffect(() => {
     if (turned) return;
     const timer = setTimeout(() => setTurned(true), turn.length * FRAME_MS);
@@ -62,16 +66,48 @@ function Loser({ fighter, phase, still }: { fighter: Fighter; phase: LoserPhase;
     frames={frames} loop={false} frameTime={FALL_FRAME_MS} reducedMotion={still} label={`${fighter.username} przegrywa`} />;
 }
 
+function Emote({ session, fighter, serverNow, still }: { session?: GameSession; fighter: Fighter; serverNow: number; still: boolean }) {
+  const shown = session ? podiumEmote(session, fighter.id, serverNow) : null;
+  const sprite = shown?.reaction.sprite;
+  if (!shown || !sprite) return null;
+  return <p key={shown.key} className="battle-podium-emote" data-reaction={shown.reaction.id} role="img" aria-label={`${fighter.username}: ${shown.reaction.name}`}>
+    <PixelSprite sprite={sprite} scale={2} duration={sprite.frames * 110} still={still} />
+  </p>;
+}
+
+function Controls({ dance, canDance, onReact, notice }: { dance: VictoryDance | null; canDance: boolean; onReact: (id: string) => void; notice: string | null }) {
+  return (
+    <div className="battle-podium-controls">
+      {canDance && <div className="battle-podium-choice" role="group" aria-label="Twój taniec">
+        <span aria-hidden="true">Taniec</span>
+        {PODIUM_DANCES.map(option => <button key={option.id} type="button" aria-pressed={dance === option.dance} onClick={() => onReact(option.id)}>{option.name}</button>)}
+      </div>}
+      <div className="battle-podium-choice" role="group" aria-label="Szybki czat">
+        <span aria-hidden="true">Czat</span>
+        {PODIUM_EMOTES.map(option => <button key={option.id} type="button" onClick={() => onReact(option.id)}>{option.text}</button>)}
+      </div>
+      {notice && <p className="battle-podium-notice" role="status">{notice}</p>}
+    </div>
+  );
+}
+
 function NameTag({ fighter, mine }: { fighter: Fighter; mine: boolean }) {
   return <p className="battle-podium-name">{fighter.username}{mine && <span>Ty</span>}</p>;
 }
 
-export function BattlePodium({ me, rival, result, title, change, still }: {
+export function BattlePodium({ me, rival, result, title, change, still, session, serverNow = 0, onReact, notice = null }: {
   me: Fighter; rival: Fighter; result: Exclude<Outcome, 'cancelled'>; title: string; change: number; still: boolean;
+  session?: GameSession; serverNow?: number; onReact?: (id: string) => void; notice?: string | null;
 }) {
   const winner = result === 'win' ? me : result === 'loss' ? rival : null;
   const loser = result === 'win' ? rival : result === 'loss' ? me : null;
   const phase = useLoserPhase(still);
+  const chosen = (fighter: Fighter) => session ? podiumDance(session, fighter.id) : null;
+  const dancer = (fighter: Fighter) => {
+    const picked = chosen(fighter);
+    return <Dancer key={picked ?? 'own'} fighter={fighter} still={still} dance={picked ?? fighter.look.dance} intro={!picked} />;
+  };
+  const emote = (fighter: Fighter) => <Emote session={session} fighter={fighter} serverNow={serverNow} still={still} />;
   return (
     <div className="battle-podium" data-result={result} data-still={still || undefined}>
       <div className="battle-podium-backdrop" aria-hidden="true" />
@@ -82,23 +118,26 @@ export function BattlePodium({ me, rival, result, title, change, still }: {
           <figure className="battle-podium-loser" data-phase={phase} style={{ '--drag-ms': `${DRAG_MS}ms`, '--arrive-ms': `${ARRIVE_MS}ms` } as CSSProperties}>
             <div className="battle-podium-sprite">
               <Loser fighter={loser} phase={phase} still={still} />
+              {emote(loser)}
               {(phase === 'arrive' || phase === 'grab' || phase === 'drag') && <span className="battle-podium-bit" role="img" aria-label="Bit wyciąga przegranego z areny" />}
             </div>
             <figcaption><NameTag fighter={loser} mine={loser.id === me.id} /></figcaption>
           </figure>
           <figure className="battle-podium-winner">
-            <div className="battle-podium-sprite"><Dancer fighter={winner} still={still} /></div>
+            <div className="battle-podium-sprite">{dancer(winner)}{emote(winner)}</div>
             <figcaption><NameTag fighter={winner} mine={winner.id === me.id} /></figcaption>
           </figure>
         </> : [me, rival].map(fighter => (
           <figure key={fighter.id} className="battle-podium-tie">
             <div className="battle-podium-sprite">
-              <Pose fighter={fighter} frames={[STANDING]} frameTime={FRAME_MS} still={still} label={fighter.username} />
+              {chosen(fighter) ? dancer(fighter) : <Pose fighter={fighter} frames={[STANDING]} frameTime={FRAME_MS} still={still} label={fighter.username} />}
+              {emote(fighter)}
             </div>
             <figcaption><NameTag fighter={fighter} mine={fighter.id === me.id} /></figcaption>
           </figure>
         ))}
       </div>
+      {onReact && <Controls dance={winner ? (winner.id === me.id ? chosen(me) ?? me.look.dance : null) : chosen(me)} canDance={!winner || winner.id === me.id} onReact={onReact} notice={notice} />}
     </div>
   );
 }

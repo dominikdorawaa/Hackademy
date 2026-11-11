@@ -219,6 +219,85 @@
   font-size: 0.8em;
 }
 
+.battle-podium-emote {
+  position: absolute;
+  bottom: 100%;
+  left: 50%;
+  z-index: 4;
+  margin: 0;
+  line-height: 0;
+  translate: -50% 10%;
+  filter: drop-shadow(0 4px 0 rgb(5 10 20 / 0.45));
+  animation: battle-reaction-pop 3000ms ease-out both;
+}
+
+.battle-podium-loser .battle-podium-emote {
+  bottom: 40%;
+}
+
+.battle-podium-controls {
+  position: absolute;
+  right: 12px;
+  bottom: 12px;
+  z-index: 6;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 8px;
+  max-width: calc(100% - 24px);
+}
+
+.battle-podium-choice {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 8px;
+  border: 2px solid var(--podium-ink);
+  border-radius: 4px;
+  background: rgb(10 16 36 / 0.88);
+  box-shadow: 0 3px 0 var(--podium-ink);
+}
+
+.battle-podium-choice span {
+  color: #9fb0d0;
+  font-family: var(--ud-pixel);
+  font-size: 0.875rem;
+}
+
+.battle-podium-choice button {
+  min-height: 32px;
+  padding: 4px 10px;
+  border: 2px solid var(--podium-ink);
+  border-radius: 3px;
+  background: #22304f;
+  color: #eef4ff;
+  font-family: var(--ud-pixel);
+  font-size: 0.9375rem;
+  cursor: pointer;
+}
+
+.battle-podium-choice button:hover {
+  background: #2d3f66;
+}
+
+.battle-podium-choice button:focus-visible {
+  outline: 2px solid #ffe066;
+  outline-offset: 2px;
+}
+
+.battle-podium-choice button[aria-pressed='true'] {
+  background: #ffe066;
+  color: var(--podium-ink);
+}
+
+.battle-podium-notice {
+  margin: 0;
+  color: #ff8a80;
+  font-size: 0.875rem;
+  text-align: center;
+  text-shadow: 1px 1px 0 var(--podium-ink);
+}
+
 @keyframes battle-podium-haul {
   from { transform: translateX(0); }
   to { transform: translateX(calc(-1 * (8cqw + var(--loser)))); }

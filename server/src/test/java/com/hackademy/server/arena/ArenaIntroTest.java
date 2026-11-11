@@ -119,6 +119,17 @@ class ArenaIntroTest {
     }
 
     @Test
+    void stampsTheEndOfTheDuelAndStillTakesReactionsOnTheVictoryStage() {
+        now.set(30_000);
+        arena.finishGame("game", 1L);
+        assertEquals(30_000, state().getFinishedAt());
+        now.set(32_000);
+        assertEquals(ReactionOutcome.Status.SENT, arena.react("game", 1L, "scuba").status());
+        assertEquals("scuba", state().getReactions().get(state().getReactions().size() - 1).reaction());
+        assertTrue(state().getReactions().get(state().getReactions().size() - 1).sentAt() > state().getFinishedAt());
+    }
+
+    @Test
     void doesNotRecordCancelledDuels() {
         arena.cancelActiveGames();
         verify(matches, never()).saveAll(any());

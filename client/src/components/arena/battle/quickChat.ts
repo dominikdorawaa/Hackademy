@@ -1,4 +1,5 @@
 import { turnedDance } from '../avatar/fighters';
+import type { VictoryDance } from '../avatar/avatarModel';
 import type { SpriteSheet } from '../../PixelSprite';
 import type { ArenaReaction, GameSession } from '../../../types/api';
 
@@ -46,6 +47,28 @@ export function shownReaction(session: GameSession, senderId: number, serverNow:
   const age = serverNow - latest.sentAt;
   if (!reaction || age < 0 || age >= Math.max(REACTION_MS, (reaction.frames?.length ?? 0) * REACTION_FRAME_MS + REACTION_SLACK_MS)) return null;
   return { key: latest.id, reaction, age };
+}
+
+export const DANCE_BY_REACTION: Record<string, VictoryDance> = { '67': 'sixseven', groove: 'groove', scuba: 'scuba' };
+export const PODIUM_DANCES: { id: string; dance: VictoryDance; name: string }[] = [
+  { id: 'groove', dance: 'groove', name: 'Luz' },
+  { id: '67', dance: 'sixseven', name: 'Six-seven' },
+  { id: 'scuba', dance: 'scuba', name: 'Scuba' },
+];
+export const PODIUM_EMOTES = QUICK_REACTIONS.filter(reaction => reaction.kind === 'emote');
+
+export function podiumDance(session: GameSession, playerId: number): VictoryDance | null {
+  const since = session.finishedAt ?? Infinity;
+  const latest = (session.reactions ?? []).reduce<ArenaReaction | null>((found, item) =>
+    item.senderId === playerId && item.sentAt >= since && DANCE_BY_REACTION[item.reaction] && (!found || item.id > found.id) ? item : found, null);
+  return latest ? DANCE_BY_REACTION[latest.reaction] : null;
+}
+
+export function podiumEmote(session: GameSession, playerId: number, serverNow: number): ShownReaction | null {
+  const shown = shownReaction(session, playerId, serverNow);
+  if (!shown || shown.reaction.kind !== 'emote') return null;
+  const sent = (session.reactions ?? []).find(item => item.id === shown.key);
+  return sent && sent.sentAt >= (session.finishedAt ?? Infinity) ? shown : null;
 }
 
 export function reactionDance(shown: ShownReaction | null) {

@@ -41,6 +41,7 @@ public class GameSession {
     private long roundEndsAt;
     private long nextRoundAt;
     private long serverTime;
+    private long finishedAt;
     private Map<Long, Integer> hp = new HashMap<>();
     private List<Long> answeredBy = new ArrayList<>();
     private BattleQuestion question;
@@ -116,6 +117,7 @@ public class GameSession {
         copy.roundEndsAt = roundEndsAt;
         copy.nextRoundAt = nextRoundAt;
         copy.serverTime = System.currentTimeMillis();
+        copy.finishedAt = finishedAt;
         copy.hp = new HashMap<>(hp);
         copy.answeredBy = new ArrayList<>(answeredBy);
         copy.question = question;

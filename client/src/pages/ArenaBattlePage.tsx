@@ -214,7 +214,8 @@ export default function ArenaBattlePage() {
               </BattleScene>
 
               {finished && result === 'cancelled' && <BattleResult result={result} title={outcomeTitle(result)} text={finishText(session, me.id)} change={change} still={reducedMotion} />}
-              {finished && result !== 'cancelled' && podiumFor === session.id && <BattlePodium me={me} rival={rival} result={result} title={outcomeTitle(result)} change={change} still={reducedMotion} />}
+              {finished && result !== 'cancelled' && podiumFor === session.id && <BattlePodium me={me} rival={rival} result={result} title={outcomeTitle(result)} change={change} still={reducedMotion}
+                session={session} serverNow={serverNow} onReact={reaction => void react(reaction)} notice={reactionNotice} />}
               {absence && <p className="battle-absence" role="status">{absence}</p>}
               {pause ? (
                 <BattlePause pause={pause} me={me} rival={rival} />
