@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "60cdfaaffbd50da0195640bdb6e04289285fcdcba2b7c23ff542a5a6da50f285",
-    "hoodie/fighter.png": "1157c3bd33721b5f6faf48c7041186d8f8af1885bf175cc7556801e325b49ddc",
-    "track/fighter.png": "5eb3f715040d624969a651568d8ae0cae0641b97d1e2e9352b1e432f786d88d8"
+    "fighter.png": "6096aee8dada752090434cf3f36cbc9aabb7e2a274e14f0e7b802697a6f0c689",
+    "hoodie/fighter.png": "7d1969a49fad14c780425ade808960463a82e8e68190aaf1228ca6a2293cbf5b",
+    "track/fighter.png": "a637ae8bc588f95a77629f9d4aacdd8cbb1b7705deda99c6737c45248947040f"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -483,7 +483,7 @@
     },
     "turn": "animate-with-text-v3 from the side stance to the new front (seed 96503), four of its frames in columns 1 to 4 of rows 15 and 16",
     "overlays": "front/ and dance/ hair and hats are the difference between hair edits of the base front and the bald base front",
-    "processing": "every new frame is moved so the feet stand on row 54, snapped to the outfit palette and has enclosed see-through gaps filled; the hoodie greens are tone-mapped to the shade spread of the hoodie side sprite so the chosen colour lands on the middle shades",
+    "processing": "every new frame is moved so the feet stand on row 54 and snapped to the outfit palette by material: outline only on the silhouette edge or between face skin, skin only for clearly skin tones, shoes below the ankles, trousers only on the lower body, the rest to the nearest clothing material; within each material the shade spread of each animation is matched by quantile to how often each palette colour appears in the previous atlas (turn and Luz frames follow the new front frames); enclosed see-through gaps are filled",
     "groove": "animate-with-skeleton-v3 from the side stance of each outfit (seed 98203) with the joint motion read from the previous Luz frames, so the dancer turns from the side to the front and back to the beat; each frame gets a side or a front head anchor depending on which head template fits"
   }
 }
