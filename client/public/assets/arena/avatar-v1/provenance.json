@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "80808f77a5ed9d1c33d914042a6016a2708da39817d54ab26d60106b5fc7a846",
-    "hoodie/fighter.png": "5ac0e7d025d00958e9b2f0d375e567855696da339339180d72c13630d7b42dab",
-    "track/fighter.png": "6259ac8fb6a56fbec86037de94f03f3737c2c07d4eab66cf798c69c8fd8e73f5"
+    "fighter.png": "dc1575b62d88f8b6a1b44c992317147852cd0ef6e0dff11ee32fa3d796aec63c",
+    "hoodie/fighter.png": "fb4af620c8bdbfc9fcca0cb8c59308a4726dfd1d412b18c84187ed98f6f0511d",
+    "track/fighter.png": "410e605ed765640176f4e107dd4e0090216f547952d0febaaa90a0b993ab3107"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -483,6 +483,7 @@
     },
     "turn": "animate-with-text-v3 from the side stance to the new front (seed 96503), four of its frames in columns 1 to 4 of rows 15 and 16",
     "overlays": "front/ and dance/ hair and hats are the difference between hair edits of the base front and the bald base front",
-    "processing": "every new frame is moved so the feet stand on row 54, snapped to the outfit palette and has enclosed see-through gaps filled; the hoodie greens are tone-mapped to the shade spread of the hoodie side sprite so the chosen colour lands on the middle shades"
+    "processing": "every new frame is moved so the feet stand on row 54, snapped to the outfit palette and has enclosed see-through gaps filled; the hoodie greens are tone-mapped to the shade spread of the hoodie side sprite so the chosen colour lands on the middle shades",
+    "groove": "animate-with-skeleton-v3 from the side stance of each outfit (seed 98203) with the joint motion read from the previous Luz frames, so the dancer turns from the side to the front and back to the beat; each frame gets a side or a front head anchor depending on which head template fits"
   }
 }
