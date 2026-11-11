@@ -104,7 +104,7 @@ it('chooses a hairstyle and a hat, and hides the hair under the hat', () => {
 
 it('shows the avatar from the front by default and falls back to the side view', () => {
   const { unmount } = setup();
-  expect(screen.getByRole('img', { name: 'Twój awatar, widok z przodu' })).toHaveAttribute('src', 'blob:front');
+  expect(screen.getByRole('img', { name: 'Twój awatar, widok z przodu' }).style.backgroundImage).toContain('blob:front');
   fireEvent.click(screen.getByRole('button', { name: 'W walce' }));
   expect(screen.queryByRole('img', { name: 'Twój awatar, widok z przodu' })).not.toBeInTheDocument();
   unmount();

@@ -78,7 +78,22 @@
 }
 
 .studio-front {
-  object-fit: contain;
+  display: block;
+  aspect-ratio: 1;
+  width: auto;
+  max-width: 92%;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  background-size: calc(100% * var(--front-frames)) 100%;
+  animation: studio-front-breathe 2.6s steps(var(--front-frames), jump-none) infinite;
+}
+
+.studio-front[data-still] {
+  animation: none;
+}
+
+@keyframes studio-front-breathe {
+  to { background-position-x: 100%; }
 }
 
 .studio-icon-frame {

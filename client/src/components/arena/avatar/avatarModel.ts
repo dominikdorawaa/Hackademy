@@ -172,7 +172,7 @@ export const PROFILE_VIEWS: Record<AvatarOutfit, { image: string; anchors: strin
 };
 export const AVATAR_POSES = ['przod', 'postawa', 'profil'] as const;
 export type AvatarPose = typeof AVATAR_POSES[number];
-export const PORTRAIT_CROPS: Record<AvatarPose, [number, number]> = { przod: [16, 0], postawa: [18, 1], profil: [17, 0] };
+export const PORTRAIT_CROPS: Record<AvatarPose, [number, number]> = { przod: [16, 3], postawa: [18, 1], profil: [17, 0] };
 const toPose = (value: unknown): AvatarPose => (AVATAR_POSES as readonly unknown[]).includes(value) ? value as AvatarPose : 'przod';
 export const FINISHER_MOVES = ['beam', 'combo'] as const;
 export type FinisherMove = typeof FINISHER_MOVES[number];

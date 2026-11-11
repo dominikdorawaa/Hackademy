@@ -63,7 +63,7 @@ it('greets a new account, requires a confirmed avatar and saves the chosen look'
   const updated = vi.fn();
   window.addEventListener(PROFILE_UPDATED, updated);
   await openStudio();
-  expect(screen.getByRole('img', { name: 'Twój awatar, widok z przodu' })).toHaveAttribute('src', 'blob:front');
+  expect(screen.getByRole('img', { name: 'Twój awatar, widok z przodu' }).style.backgroundImage).toContain('blob:front');
   fireEvent.click(screen.getByRole('radio', { name: /Dres/ }));
   fireEvent.click(screen.getByRole('tab', { name: 'Kolory' }));
   fireEvent.click(screen.getByRole('radio', { name: 'Góra: Czerwony' }));

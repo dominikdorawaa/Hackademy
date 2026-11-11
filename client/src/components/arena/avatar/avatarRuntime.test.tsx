@@ -31,7 +31,7 @@ afterEach(() => {
 
 it('creates a recolored atlas and portrait and releases them when the avatar changes', async () => {
   const { result, rerender, unmount } = renderHook(({ avatar }) => useAvatarAtlas(avatar), { initialProps: { avatar: DEFAULT_AVATAR } });
-  await waitFor(() => expect(result.current).toEqual({ atlas: expect.stringMatching(/^blob:/), front: expect.stringMatching(/^blob:/) }));
+  await waitFor(() => expect(result.current).toEqual({ atlas: expect.stringMatching(/^blob:/), front: expect.stringMatching(/^blob:/), frontFrames: expect.any(Number) }));
   const first = result.current!;
   rerender({ avatar: { ...DEFAULT_AVATAR, colors: { ...DEFAULT_AVATAR.colors, top: 'czerwony' } } });
   expect(result.current).toBeNull();
