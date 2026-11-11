@@ -1,8 +1,8 @@
-import { render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, within } from '@testing-library/react';
 import { expect, it, vi } from 'vitest';
 import { act } from '@testing-library/react';
 import { ARRIVE_AT_MS, ARRIVE_MS, BattlePodium, FALL, FALL_DELAY_MS, GRAB_MS, STANDING } from './BattlePodium';
-import { AVATAR_ATLASES, KNOCKED_OUT } from '../avatar/fighters';
+import { AVATAR_ATLASES, KNOCKED_OUT, victoryDance } from '../avatar/fighters';
 import { podiumDelay, perspective } from './battleView';
 import { createGameSession } from '../../../test/fixtures/arena';
 
@@ -70,4 +70,36 @@ it('leaves the loser lying still without Bit when motion is reduced', () => {
   render(<BattlePodium me={me} rival={rival} result="loss" title="Porażka" change={-16} still />);
   expect(within(document.querySelector('.battle-podium-loser') as HTMLElement).getByRole('img', { name: `${me.username} przegrywa` })).toHaveAttribute('data-frame', String(KNOCKED_OUT));
   expect(screen.queryByRole('img', { name: 'Bit wyciąga przegranego z areny' })).not.toBeInTheDocument();
+});
+
+const stage = (overrides: Partial<ReturnType<typeof createGameSession>> = {}) => createGameSession({ status: 'FINISHED', winnerId: 1, finishedAt: 1_000_000, reactions: [], ...overrides });
+
+it('lets the winner switch their podium dance and shows it to both players', () => {
+  const onReact = vi.fn();
+  const view = render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still session={stage()} serverNow={1_001_000} onReact={onReact} />);
+  const dances = screen.getByRole('group', { name: 'Twój taniec' });
+  expect(within(dances).getByRole('button', { name: 'Luz' })).toHaveAttribute('aria-pressed', String(me.look.dance === 'groove'));
+  fireEvent.click(within(dances).getByRole('button', { name: 'Scuba' }));
+  expect(onReact).toHaveBeenCalledWith('scuba');
+  view.rerender(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still
+    session={stage({ reactions: [{ id: 3, senderId: 1, reaction: 'scuba', sentAt: 1_000_500 }] })} serverNow={1_001_000} onReact={onReact} />);
+  expect(within(dances).getByRole('button', { name: 'Scuba' })).toHaveAttribute('aria-pressed', 'true');
+  expect(within(document.querySelector('.battle-podium-winner') as HTMLElement).getByRole('img', { name: `${me.username} tańczy` }).getAttribute('data-frame')).toBe(String(victoryDance('scuba').loop[0]));
+});
+
+it('ignores dances sent during the fight and hides the dance choice from the loser', () => {
+  render(<BattlePodium me={me} rival={rival} result="loss" title="Porażka" change={-16} still
+    session={stage({ winnerId: 2, reactions: [{ id: 1, senderId: 1, reaction: 'scuba', sentAt: 999_000 }] })} serverNow={1_001_000} onReact={vi.fn()} />);
+  expect(screen.queryByRole('group', { name: 'Twój taniec' })).not.toBeInTheDocument();
+  expect(screen.getByRole('group', { name: 'Szybki czat' })).toBeInTheDocument();
+});
+
+it('shows quick chat emotes sent on the victory stage above the sender', () => {
+  const onReact = vi.fn();
+  render(<BattlePodium me={me} rival={rival} result="loss" title="Porażka" change={-16} still
+    session={stage({ winnerId: 2, reactions: [{ id: 4, senderId: 2, reaction: 'gg', sentAt: 1_000_800 }, { id: 2, senderId: 1, reaction: 'ez', sentAt: 998_000 }] })} serverNow={1_001_000} onReact={onReact} />);
+  expect(screen.getByRole('img', { name: `${rival.username}: GG` })).toBeInTheDocument();
+  expect(screen.queryByRole('img', { name: `${me.username}: EZ` })).not.toBeInTheDocument();
+  fireEvent.click(within(screen.getByRole('group', { name: 'Szybki czat' })).getByRole('button', { name: 'GG' }));
+  expect(onReact).toHaveBeenCalledWith('gg');
 });

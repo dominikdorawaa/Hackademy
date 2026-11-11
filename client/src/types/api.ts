@@ -152,6 +152,7 @@ export interface GameSession {
   pausesUsed?: number[]
   absences?: Record<string, ArenaAbsence>
   intro?: Record<string, ArenaIntroCard>
+  finishedAt?: number
 }
 
 export interface ArenaIntroCard {

@@ -385,7 +385,8 @@ public class ArenaServiceImpl implements ArenaService {
         if ("FINISHED".equals(session.getStatus())) return;
         session.setStatus("FINISHED");
         session.setPause(null);
-        finishedAt.put(session.getId(), clock.getAsLong());
+        session.setFinishedAt(clock.getAsLong());
+        finishedAt.put(session.getId(), session.getFinishedAt());
         synchronized (players) {
             for (Long person : session.people()) playingIn.remove(person, session.getId());
         }
