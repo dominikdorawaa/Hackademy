@@ -561,6 +561,7 @@
 .room-state svg { width: 16px; height: 16px; }
 .room-state--done { color: var(--rm-teal); }
 
+.room-body-shell { position: relative; flex: 1 1 auto; min-height: 0; display: flex; flex-direction: column; isolation: isolate; }
 .room-footer {
   --room-footer-pad: 14px;
   position: sticky;
