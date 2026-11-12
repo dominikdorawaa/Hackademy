@@ -24,7 +24,7 @@
 }
 .room-bit-sprite[data-animated] { animation: room-bit-play 1200ms steps(12, end) 360ms 1; }
 .room-bit-layer[data-side='side'] .room-bit { left: 0; bottom: calc(var(--bit-size) * -0.06); --bit-rest: translateX(calc(var(--bit-size) * -0.6)) scaleX(-1); --bit-out: translateX(calc(var(--bit-size) * -0.2)) scaleX(-1); --bit-finish: translateX(calc(var(--bit-size) * -0.04)) scaleX(-1); }
-.room-bit-layer[data-side='top'] .room-bit { top: 0; right: 72px; --bit-rest: translateY(calc(var(--bit-size) * -0.7)); --bit-out: translateY(calc(var(--bit-size) * -0.34)); --bit-finish: translateY(calc(var(--bit-size) * -0.26)); }
+.room-bit-layer[data-side='top'] .room-bit { top: 0; right: 26%; --bit-rest: translateY(calc(var(--bit-size) * -0.7)); --bit-out: translateY(calc(var(--bit-size) * -0.34)); --bit-finish: translateY(calc(var(--bit-size) * -0.26)); }
 .room-bit-layer[data-pose='idle'] .room-bit { --bit-from: var(--bit-out); --bit-at: var(--bit-rest); }
 .room-bit-layer:is([data-pose='correct'], [data-pose='wrong'], [data-pose='hint']) .room-bit { --bit-from: var(--bit-rest); --bit-at: var(--bit-out); }
 .room-bit-layer[data-pose='finish'] .room-bit { --bit-from: var(--bit-rest); --bit-at: var(--bit-finish); }
@@ -44,7 +44,7 @@
   animation: room-bit-say 2560ms steps(4, end) both;
 }
 .room-bit-layer[data-side='side'] .room-bit-bubble { left: calc(var(--bit-size) * 0.85); bottom: calc(var(--bit-size) * 0.8); }
-.room-bit-layer[data-side='top'] .room-bit-bubble { top: 28px; right: calc(72px + var(--bit-size)); }
+.room-bit-layer[data-side='top'] .room-bit-bubble { top: 28px; right: calc(26% + var(--bit-size)); }
 @keyframes room-bit-move { from { transform: var(--bit-from); } to { transform: var(--bit-at); } }
 @keyframes room-bit-play { to { background-position-x: calc(var(--bit-size) * var(--bit-frames) * -1); } }
 @keyframes room-bit-say { 0%, 12% { opacity: 0; } 18%, 88% { opacity: 1; } 100% { opacity: 0; } }
