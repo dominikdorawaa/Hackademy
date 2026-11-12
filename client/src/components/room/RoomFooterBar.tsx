@@ -1,7 +1,6 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
 import { Check, ChevronLeft, ChevronRight, List, Lock, PanelLeftOpen } from 'lucide-react';
 import { cn } from '../../lib/utils';
-import RoomMascot from './RoomMascot';
 
 export interface RoomStep {
   key: string | number;
@@ -33,10 +32,9 @@ interface RoomFooterBarProps {
   badge?: ReactNode;
   back?: RoomFooterAction;
   next: RoomFooterAction & { primary?: boolean };
-  mascot?: boolean;
 }
 
-export default function RoomFooterBar({ progress, title, badge, back, next, mascot = true }: RoomFooterBarProps) {
+export default function RoomFooterBar({ progress, title, badge, back, next }: RoomFooterBarProps) {
   const [open, setOpen] = useState(false);
   const listId = useId();
   const root = useRef<HTMLDivElement>(null);
@@ -110,7 +108,7 @@ export default function RoomFooterBar({ progress, title, badge, back, next, masc
           )}
         </div>
       </div>
-      <div className="room-footer-lane">{mascot && <RoomMascot />}</div>
+      <div className="room-footer-lane" />
       <div className="room-footer-end">
         {back && (
           <button type="button" className="room-btn" disabled={back.disabled} onClick={back.onClick}>

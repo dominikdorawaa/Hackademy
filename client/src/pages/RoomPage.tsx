@@ -48,13 +48,14 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [activeTask, setActiveTask] = useState(0);
   const [pendingTask, setPendingTask] = useState<number | null>(null);
   const [finishingRoom, setFinishingRoom] = useState(false);
-  const [mascotSuccessCount, setMascotSuccessCount] = useState(0);
+  const [bit, setBit] = useState({ successCount: 0, wrongCount: 0, hintCount: 0, finishCount: 0 });
   const celebrated = useRef(new Set<string>());
-  const celebrate = (key: string) => {
+  const celebrate = (key: string, finished = false) => {
     if (celebrated.current.has(key)) return;
     celebrated.current.add(key);
-    setMascotSuccessCount(count => count + 1);
+    setBit(current => finished ? { ...current, finishCount: current.finishCount + 1 } : { ...current, successCount: current.successCount + 1 });
   };
+  const react = (kind: 'wrongCount' | 'hintCount') => setBit(current => ({ ...current, [kind]: current[kind] + 1 }));
 
   const [answersBlockedUntil, setAnswersBlockedUntil] = useState(0);
   const [wrongAnswersBlock, setWrongAnswersBlock] = useState(false);
@@ -101,7 +102,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const hintUnlocked = (hint: HintDto) => preview ? revealedHints.includes(hint.id) : hint.description != null;
 
   const unlockHint = async (hintId: number) => {
-    if (preview) { setRevealedHints(current => [...current, hintId]); return; }
+    if (preview) { setRevealedHints(current => [...current, hintId]); react('hintCount'); return; }
     if (pendingHint !== null) return;
     setPendingHint(hintId);
     setFailedHint(null);
@@ -113,6 +114,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       }
       const unlocked = await response.json();
       setRoom(prev => prev ? { ...prev, tasks: prev.tasks.map(t => ({ ...t, hints: (t.hints ?? []).map(h => h.id === unlocked.id ? unlocked : h) })) } : null);
+      react('hintCount');
     } catch {
       setToast({ message: 'Błąd połączenia', type: 'error' });
     } finally {
@@ -198,7 +200,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         const data = await response.json();
         if (response.ok && data.success) {
             const roomDone = data.message?.includes('Pokój ukończony') ?? false;
-            celebrate(`task:${taskId}`);
+            celebrate(`task:${taskId}`, roomDone);
             playSound(roomDone ? 'roomCompleted' : 'taskSolved');
             if (answered && !roomDone) setTaskFeedback({ taskId, status: 'success', message: data.message || 'Poprawna odpowiedź!' });
             setRoom(prev => prev ? ({
@@ -212,7 +214,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
                 setShowSuccessModal(true);
             }
         } else {
-            if (answered) playSound('learningError');
+            if (answered) { playSound('learningError'); react('wrongCount'); }
             setTaskFeedback({ taskId, status: 'error', message: data.message || 'Niepoprawna odpowiedź' });
         }
     } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
@@ -237,7 +239,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         setCompleteError(data.message || 'Nie udało się ukończyć pokoju');
         return;
       }
-      if (!room?.solved) celebrate('room');
+      if (!room?.solved) celebrate('room', true);
       playSound(room?.solved ? 'taskSolved' : 'roomCompleted');
       setRoom((previous) => previous ? { ...previous, solved: true } : null);
       setEarnedPoints(Number('pointsEarned' in data ? data.pointsEarned : 0) || 0);
@@ -383,7 +385,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     );
 
     return (
-      <RoomFrame nav={nav} label="Pokój bez zadań" className="room-frame--split" mascot={{ successCount: mascotSuccessCount, paused: showSuccessModal }}
+      <RoomFrame nav={nav} label="Pokój bez zadań" className="room-frame--split" mascot={bit}
         footer={<RoomFooterBar title={room.title} badge={<span className="room-chip room-chip--points">{formatXp(room.points)}</span>} next={finish} />}>
         {previewBanner}
         <RoomSplit variant="flat" start={descriptionPane} end={solvePane} initial={0.56} />
@@ -441,7 +443,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       : finish;
 
   return (
-    <RoomFrame nav={{ ...nav, meta: roomMeta, steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }} label="Pokój z zadaniami" className="room-frame--reader" mascot={{ successCount: mascotSuccessCount, paused: showSuccessModal }}
+    <RoomFrame nav={{ ...nav, meta: roomMeta, steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }} label="Pokój z zadaniami" className="room-frame--reader" mascot={bit}
       footer={
         <RoomFooterBar
           progress={{

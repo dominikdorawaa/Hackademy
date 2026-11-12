@@ -1,0 +1,54 @@
+.room-bit-anchor { display: none; }
+.room-bit-layer {
+  --bit-size: 160px;
+  position: fixed;
+  z-index: 1001;
+  overflow: hidden;
+  pointer-events: none;
+  user-select: none;
+}
+.room-bit {
+  position: absolute;
+  width: var(--bit-size);
+  height: var(--bit-size);
+  transform: var(--bit-at);
+  animation: room-bit-move 360ms steps(6, end) both;
+}
+.room-bit-sprite {
+  display: block;
+  width: 100%;
+  height: 100%;
+  background: var(--bit-sheet) 0 0 / calc(var(--bit-size) * var(--bit-frames)) var(--bit-size) no-repeat;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 3px 0 rgb(5 10 20 / 0.3));
+}
+.room-bit-sprite[data-animated] { animation: room-bit-play 1200ms steps(12, end) 360ms 1; }
+.room-bit-layer[data-side='side'] .room-bit { right: 0; bottom: 72px; --bit-rest: translateX(calc(var(--bit-size) * 0.5)) rotate(-6deg); --bit-out: translateX(calc(var(--bit-size) * 0.22)) rotate(-6deg); --bit-finish: translateX(calc(var(--bit-size) * 0.06)) rotate(-4deg); }
+.room-bit-layer[data-side='top'] .room-bit { top: 0; right: 72px; --bit-rest: translateY(calc(var(--bit-size) * -0.6)); --bit-out: translateY(calc(var(--bit-size) * -0.34)); --bit-finish: translateY(calc(var(--bit-size) * -0.26)); }
+.room-bit-layer[data-pose='idle'] .room-bit { --bit-from: var(--bit-out); --bit-at: var(--bit-rest); }
+.room-bit-layer:is([data-pose='correct'], [data-pose='wrong'], [data-pose='hint']) .room-bit { --bit-from: var(--bit-rest); --bit-at: var(--bit-out); }
+.room-bit-layer[data-pose='finish'] .room-bit { --bit-from: var(--bit-rest); --bit-at: var(--bit-finish); }
+.room-bit-bubble {
+  position: absolute;
+  max-width: 220px;
+  margin: 0;
+  padding: 6px 10px;
+  border: 2px solid #050a14;
+  border-radius: 4px;
+  background: #f4f6ff;
+  color: #050a14;
+  font-family: var(--ud-pixel, inherit);
+  font-size: 0.9375rem;
+  font-weight: 700;
+  box-shadow: 0 3px 0 #050a14;
+  animation: room-bit-say 2560ms steps(4, end) both;
+}
+.room-bit-layer[data-side='side'] .room-bit-bubble { right: calc(var(--bit-size) * 0.85); bottom: calc(72px + var(--bit-size) * 0.85); }
+.room-bit-layer[data-side='top'] .room-bit-bubble { top: 28px; right: calc(72px + var(--bit-size)); }
+@keyframes room-bit-move { from { transform: var(--bit-from); } to { transform: var(--bit-at); } }
+@keyframes room-bit-play { to { background-position-x: calc(var(--bit-size) * var(--bit-frames) * -1); } }
+@keyframes room-bit-say { 0%, 12% { opacity: 0; } 18%, 88% { opacity: 1; } 100% { opacity: 0; } }
+.room-bit-layer[data-reduced] *,
+html[data-reduced-motion='true'] .room-bit-layer * { animation: none !important; }
+@media (prefers-reduced-motion: reduce) { .room-bit-layer * { animation: none !important; } }
+@media (max-width: 720px) { .room-bit-layer { --bit-size: 112px; } .room-bit-layer[data-side='top'] .room-bit { right: 16px; } }

@@ -108,7 +108,6 @@ describe('room footer', () => {
       </>,
     );
     expect(screen.getByText('Krok 2 / 3')).toBeInTheDocument();
-    expect(document.querySelector('.room-footer-lane .room-mascot-zone')).not.toBeNull();
     const toggle = screen.getByRole('button', { name: 'Kroki' });
     await user.click(toggle);
     const list = screen.getByRole('navigation', { name: 'Kroki' });
@@ -138,7 +137,6 @@ describe('room footer', () => {
     expect(screen.getByText('50 pkt')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Kroki' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /Wstecz/ })).not.toBeInTheDocument();
-    expect(document.querySelector('.room-footer-lane .room-mascot-actor')).not.toBeNull();
     await userEvent.click(screen.getByRole('button', { name: 'Zakończ' }));
     expect(next).toHaveBeenCalled();
   });

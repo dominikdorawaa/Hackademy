@@ -52,7 +52,7 @@ function mount(tasks: TaskFixture[]) {
 }
 
 const completedRoom = { success: true, message: 'Poprawna odpowiedź! Pokój ukończony!', pointsEarned: 50, newBadges: [] };
-const bit = () => document.querySelector('.room-mascot-zone');
+const bit = () => document.querySelector('.room-bit-layer');
 
 describe('a room of a path the player did not join', () => {
   const required = (pathIds: number[]) => http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(
@@ -311,7 +311,7 @@ describe('CTF room', () => {
     await user.type(input, 'zla');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
     expect(await screen.findByText('Niepoprawna odpowiedź')).toBeInTheDocument();
-    expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(bit()).toHaveAttribute('data-pose', 'wrong');
     expect(sounds.play.mock.calls).toEqual([['learningError']]);
     await user.clear(input);
     await user.type(input, 'HACK{{ok}');
@@ -321,7 +321,7 @@ describe('CTF room', () => {
     expect(screen.getByText('+50 XP')).toBeInTheDocument();
     expect(sounds.play.mock.calls).toEqual([['learningError'], ['roomCompleted']]);
     await user.click(screen.getByRole('button', { name: 'Kontynuuj' }));
-    expect(bit()).toHaveAttribute('data-state', 'jump');
+    expect(bit()).toHaveAttribute('data-pose', 'finish');
     expect(screen.getByRole('button', { name: 'Poprawne' })).toBeDisabled();
   });
 
@@ -366,7 +366,7 @@ describe('CTF room', () => {
     await user.type(await screen.findByPlaceholderText('HACK{...}'), 'x');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
     expect(await screen.findByText('Błąd połączenia')).toBeInTheDocument();
-    expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(bit()).toHaveAttribute('data-pose', 'idle');
   });
 
   it('reveals the next hint of the task in place and shows its XP cost on the button', async () => {
@@ -380,6 +380,7 @@ describe('CTF room', () => {
     await user.click(first);
     expect(await screen.findByText(hintTexts[1])).toBeInTheDocument();
     expect(unlocks).toBe(1);
+    expect(bit()).toHaveAttribute('data-pose', 'hint');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(document.querySelector('.px-toast')).toBeNull();
     expect(document.querySelector('.room-chip--points')).toHaveTextContent('45 XP');
@@ -424,62 +425,68 @@ describe('CTF room', () => {
 });
 
 describe('Bit room integration', () => {
-  it('keeps Bit in the footer lane, away from long content and questions', async () => {
+  it('keeps Bit peeking from one edge of the room outside the content', async () => {
     mountCtf({ description: 'Długa treść '.repeat(1000), requiresVpn: true, title: 'Tutorial VPN', tasks: [] });
     await screen.findByRole('heading', { name: 'Tutorial VPN' });
-    expect(bit()).toHaveAttribute('data-state', 'idle');
-    expect(bit()?.parentElement).toHaveClass('room-footer-lane');
-    expect(bit()?.closest('.room-body-shell, .room-pane-scroll')).toBeNull();
-    expect(document.querySelector('.room-body-shell .room-pane-scroll')).toHaveTextContent('Długa treść');
-    expect(bit()?.querySelector('input, .room-prose, .room-hints')).toBeNull();
-    expect(bit()?.querySelectorAll('button')).toHaveLength(1);
+    expect(bit()).toHaveAttribute('data-pose', 'idle');
+    expect(['top', 'side']).toContain(bit()?.getAttribute('data-side'));
+    expect(bit()).toHaveAttribute('aria-hidden', 'true');
+    expect(bit()?.closest('.room-frame')).toBeNull();
+    expect(bit()?.querySelector('input, button, .room-prose, .room-hints')).toBeNull();
+    expect(document.querySelector('.room-footer-lane')).toBeEmptyDOMElement();
   });
 
-  it('reacts to a new task once, preserves its state when changing tasks and ignores restored completion', async () => {
+  it('cheers for a correct answer, keeps its side and stays calm when changing tasks', async () => {
     const tasks = [
-      { id: 1, title: 'Pytanie', content: 'Treść '.repeat(1000), question: 'Co wpiszesz?', requiresAnswer: true, completed: false },
+      { id: 1, title: 'Pytanie', content: 'Treść', question: 'Co wpiszesz?', requiresAnswer: true, completed: false },
       { id: 2, title: 'Lektura', content: 'Druga treść', question: null, requiresAnswer: false, completed: false },
     ];
     server.use(http.post(`${API_URL}/api/rooms/7/tasks/1/solve`, () => HttpResponse.json({ success: true, message: 'Poprawna odpowiedź!' })));
     mount(tasks);
     const user = userEvent.setup();
     const input = await screen.findByRole('textbox', { name: 'Co wpiszesz?' });
-    expect(bit()?.closest('.room-footer')).not.toBeNull();
-    expect(bit()?.closest('.room-reader')).toBeNull();
-    expect(bit()).toHaveAttribute('data-state', 'idle');
+    const side = bit()?.getAttribute('data-side');
     await user.type(input, 'pwd');
     await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
-    await waitFor(() => expect(bit()).toHaveAttribute('data-state', 'jump'));
-    const reaction = bit()?.getAttribute('data-reaction');
+    await waitFor(() => expect(bit()).toHaveAttribute('data-pose', 'correct'));
+    expect(bit()?.querySelector('.room-bit-bubble')?.textContent).toMatch(/Dokładnie tak!|Brawo!|Świetnie!/);
     await user.click(screen.getByRole('button', { name: 'Dalej' }));
     expect(await screen.findByRole('heading', { name: '02. Lektura' })).toBeInTheDocument();
-    expect(bit()).toHaveAttribute('data-reaction', reaction);
+    expect(bit()).toHaveAttribute('data-pose', 'correct');
+    expect(bit()).toHaveAttribute('data-side', side);
   });
 
-  it('does not celebrate previously completed tasks or unsuccessful task writes', async () => {
+  it('winces at a wrong answer and celebrates the finished room', async () => {
+    let correct = false;
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/5/solve`, () => correct
+      ? HttpResponse.json({ success: true, message: 'Pokój ukończony!', pointsEarned: 50 })
+      : HttpResponse.json({ success: false, message: 'Niepoprawna odpowiedź' })));
+    mountCtf();
+    const user = userEvent.setup();
+    const flag = await screen.findByPlaceholderText('HACK{...}');
+    await user.type(flag, 'HA-ok');
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+    expect(await screen.findByText('Niepoprawna odpowiedź')).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-pose', 'wrong');
+    expect(screen.queryByText('Wszystkie zadania wykonane! Pokój ukończony.')).not.toBeInTheDocument();
+    correct = true;
+    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
+    expect(await screen.findByText('Wszystkie zadania wykonane! Pokój ukończony.')).toBeInTheDocument();
+    expect(bit()).toHaveAttribute('data-pose', 'finish');
+  });
+
+  it('does not react to previously completed tasks or unsuccessful reading writes', async () => {
     server.use(http.post(`${API_URL}/api/rooms/7/tasks/2/solve`, () => HttpResponse.json({ success: false, message: 'Zapis nieudany' })));
     mount([
       { id: 1, title: 'Zrobione', content: 'Treść', question: null, requiresAnswer: false, completed: true },
       { id: 2, title: 'Nowe', content: 'Treść', question: null, requiresAnswer: false, completed: false },
     ]);
     expect(await screen.findByRole('heading', { name: '02. Nowe' })).toBeInTheDocument();
-    expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(bit()).toHaveAttribute('data-pose', 'idle');
     await userEvent.click(screen.getByRole('button', { name: 'Oznacz jako przeczytane' }));
     expect(await screen.findByText('Zapis nieudany')).toBeInTheDocument();
-    expect(bit()).toHaveAttribute('data-state', 'idle');
+    expect(bit()).toHaveAttribute('data-pose', 'idle');
     expect(sounds.play).not.toHaveBeenCalled();
-    expect(screen.getByRole('button', { name: 'Oznacz jako przeczytane' })).toBeEnabled();
-  });
-
-  it('does not treat an unsuccessful flag response as a completion even with HTTP 200', async () => {
-    server.use(http.post(`${API_URL}/api/rooms/7/tasks/5/solve`, () => HttpResponse.json({ success: false, message: 'Nie zapisano' })));
-    mountCtf();
-    const user = userEvent.setup();
-    await user.type(await screen.findByPlaceholderText('HACK{...}'), 'HA-ok');
-    await user.click(screen.getByRole('button', { name: 'Sprawdź' }));
-    expect(await screen.findByText('Nie zapisano')).toBeInTheDocument();
-    expect(bit()).toHaveAttribute('data-state', 'idle');
-    expect(screen.queryByText('Wszystkie zadania wykonane! Pokój ukończony.')).not.toBeInTheDocument();
   });
 });
 

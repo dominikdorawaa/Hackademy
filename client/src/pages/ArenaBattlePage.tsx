@@ -192,7 +192,6 @@ export default function ArenaBattlePage() {
       footer={
         <RoomFooterBar
           title={finished ? undefined : confirmSurrender ? 'Poddanie oznacza porażkę.' : `Walka z ${rival.username}`}
-          mascot={false}
           back={confirmSurrender && !finished ? { label: 'Walczę dalej', onClick: () => setConfirmSurrender(false) } : undefined}
           next={next}
         />

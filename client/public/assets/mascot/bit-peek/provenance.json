@@ -1,0 +1,30 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-11-12",
+  "sources": "local-prototype-backups/bit-peek-v1",
+  "base": "the onboarding penguin base (create-image-pixflux, seed 99602)",
+  "poses": {
+    "endpoint": "edit-image-pixen",
+    "side": "the penguin leans in sideways from the right edge, tilted to the left, gripping the edge with one flipper; hood up, headphones around the neck (seed 99911)",
+    "hang": "an upright front pose with the hood up and the headphones around the neck (seed 99921), flipped upside down so the feet hold the top edge"
+  },
+  "animations": {
+    "endpoint": "animate-with-text-v3",
+    "frameCount": 12,
+    "seed": 99931,
+    "note": "each reaction starts and ends on the idle pose; hang sheets are animated upright and flipped upside down"
+  },
+  "processing": "alpha cut at 128, the grey ground shadow removed, the first twelve frames packed side by side as 64x64 cells",
+  "sha256": {
+    "side-idle.png": "29c8b475a81d94b547efa9a7a0dfe21947b3b4be00b09c545b63de6f878efd3c",
+    "hang-idle.png": "c1112ace16d5aad92f06d2f0e94f4d0d43b495a7eccd3e709689f8dd0fc2e865",
+    "side-correct.png": "03000b63662e33219708541fb2aaa2d2647395f1258a7ac5eafa8d660370bf8d",
+    "hang-correct.png": "e399cad02ca826de1f8f559cec7b38eb254f006222b092e8c29f2e7df9085ec9",
+    "side-wrong.png": "af4b01f2d62e99926ba8a6ef7fa5c037eda7acb305c041c2e3394d7c5eb34fc4",
+    "hang-wrong.png": "ad8d8eaa6055f42d36b533148ce95326bd64be75242678fc4691b567f1ee97dc",
+    "side-hint.png": "3ab8eca4698973cbf2974a73d82cb0df3094728935ac7e0da5457e92900d6bfa",
+    "hang-hint.png": "a6207f7de22904eda33fc4b520f5a42861a8cc528dfdc49ad8924c6b545d2975",
+    "side-finish.png": "2a6188227ed373bdab8bdad3691748e21b7e2148bff58021a8170034017c5afa",
+    "hang-finish.png": "833a749e8a60aaa720e7606e04ed7da14fd96e45b9ffb2e8d15724cab4676ef7"
+  }
+}
