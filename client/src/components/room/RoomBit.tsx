@@ -31,7 +31,10 @@ function useShellRect(anchor: React.RefObject<HTMLSpanElement | null>) {
   useLayoutEffect(() => {
     const shell = anchor.current?.parentElement;
     if (!shell) return;
-    const measure = () => setRect(shell.getBoundingClientRect());
+    const measure = () => {
+      const next = shell.getBoundingClientRect();
+      setRect(previous => previous && previous.top === next.top && previous.left === next.left && previous.width === next.width && previous.height === next.height ? previous : next);
+    };
     measure();
     const observer = typeof ResizeObserver === 'function' ? new ResizeObserver(measure) : null;
     observer?.observe(shell);

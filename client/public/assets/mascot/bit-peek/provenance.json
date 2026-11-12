@@ -5,7 +5,7 @@
   "base": "the onboarding penguin base (create-image-pixflux, seed 99602)",
   "poses": {
     "endpoint": "edit-image-pixen",
-    "side": "the penguin leans in sideways from the right edge, tilted to the left, gripping the edge with one flipper; hood up, headphones around the neck (seed 99911)",
+    "side": "the penguin leans in sideways from the right edge, tilted to the left, gripping the edge with one flipper; hood up, headphones around the neck; idle, correct and wrong from seed 99911, hint and finish from seed 99921; mirrored in the room so Bit faces the content from the left edge",
     "hang": "an upright front pose with the hood up and the headphones around the neck (seed 99921), flipped upside down so the feet hold the top edge"
   },
   "animations": {
