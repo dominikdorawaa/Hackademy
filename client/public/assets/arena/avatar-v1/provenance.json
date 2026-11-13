@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "a2eca45f6f92c18bf852ece3e00033929840f677a4a49323f433321c9573d2e7",
-    "hoodie/fighter.png": "60aa88d8140c97e849dec3d0a5a709121e5ba2fe3307227b39cf9231d7c43b6b",
-    "track/fighter.png": "f397ca8e22898c730f9ee15486ed6dd5f3e7710304741909b27333508993bb8e"
+    "fighter.png": "288025b2308abd4b6f97f5d76344d3981fe9623764029f8d429640b42664a02b",
+    "hoodie/fighter.png": "16648905c8a6c6a900cd9538c015a3070db2be908b92a239c611c2f9c1c76e30",
+    "track/fighter.png": "f974e18bfa58495a4afeb078a85a71f08d7284d5f43c1f58a65265faeef4737c"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -748,5 +748,19 @@
     },
     "crab": "the Crab dance with the coat front as the first frame, same keypoints and seed as the other outfits",
     "processing": "the base head is located in every cell (with rotation for falls and lying cells) and replaced by the unchanged base head, which gives the head anchors; in the upper body pixels further than 3 pixels from the base silhouette are removed (glow streaks and beams the generator added), as are loose specks under 12 pixels; every pixel is snapped to the palette of the coat stance, coat front and base stances; held cells reuse the same frame; the front strip is the coat front with the same breathing as the other outfits; the profile is edit-image-pixen seed 87002 like the other outfits with the base head restamped"
+  },
+  "danceCleanup": {
+    "generatedAt": "2026-11-13",
+    "sources": "local-prototype-backups/shop-items-v1 (clean.cjs, armline.cjs, assemble.cjs, segment.cjs)",
+    "specks": "in every dance row (6 to 9 and 13 to 18) of baza, the hoodie and the track suit, and in every cell of the coat, small groups of up to six pixels whose colour the recolouring reads as another material than the pixels around them (skin specks on trousers, trouser and shirt specks on fists, shoe specks on legs) take the most common colour of the surrounding material at the same shade, and lone groups of fewer than twelve pixels away from the body are removed",
+    "armOutlines": "in the same dance rows, every clothing pixel that touches an arm or hand below the chin becomes the outline colour, so forearms crossing the chest stay visible with a light shirt and light skin",
+    "turnSkin": "the baza turn frames (cells 136 to 139 and 145 to 148) used darker skin colours than the rest of the dance, so their two darker skin shades move up by one",
+    "coatDances": {
+      "endpoint": "edit-image-pixen",
+      "seed": 99501,
+      "from": "the matching baza cell of every Groove, Six-seven, Scuba and turn frame (cells 55 to 62, 64 to 71, 73 to 80, 82 to 89, 118 to 125, 127 to 134, 136 to 139)",
+      "description": "Same bald fighter, same pose, head, hands and feet. Only the clothes change: a long bright red trench coat to the knees, open over a black shirt, thin glowing cyan trim on the front edges and hem. Sleeves cover the arms to the wrists with cyan cuffs, bare hands stay in place. Sleeves have a dark outline so the arms stand out. Light grey trousers, dark purple shoes.",
+      "processing": "of the two images the one closer to the previous frame is kept; every pixel gets a material from its colour and the baza pixel under it (red is the coat, dark pixels on the torso are the black shirt drawn in the outline colour, grey is trousers, purple at the feet or where baza has shoes is shoes, skin only next to baza skin) and takes the coat atlas colour of that material and shade, the head above the chin is copied from baza so the hair and hats keep the baza head anchors, cells 145 to 148 copy the turn, then the speck cleanup and arm outlines run on these cells"
+    }
   }
 }
