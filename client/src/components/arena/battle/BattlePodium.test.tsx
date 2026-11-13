@@ -122,8 +122,8 @@ it('keeps paid dances and chat lines out of reach until they are bought', () => 
   expect(onReact).toHaveBeenCalledWith('nt');
 });
 
-it('shows a chat line sent on the victory stage as a speech bubble', () => {
+it('shows a chat line sent on the victory stage above the sender', () => {
   render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still
     session={stage({ reactions: [{ id: 5, senderId: 2, reaction: 'glhf', sentAt: 1_000_800 }] })} serverNow={1_001_000} onReact={vi.fn()} />);
-  expect(screen.getByRole('img', { name: `${rival.username}: GL HF` })).toHaveTextContent('GL HF');
+  expect(screen.getByRole('img', { name: `${rival.username}: GL HF` })).toHaveAttribute('data-reaction', 'glhf');
 });

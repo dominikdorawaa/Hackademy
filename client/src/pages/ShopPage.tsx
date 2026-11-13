@@ -14,6 +14,7 @@ import { DANCE_OPTIONS, OUTFITS } from '../components/arena/avatar/avatarOptions
 import { dancePreview } from '../components/arena/avatar/movePreviews';
 import { findReaction } from '../components/arena/battle/quickChat';
 import { BytesAmount } from '../components/shop/BytesAmount';
+import { PixelSprite } from '../components/PixelSprite';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { buyItem, errorMessage } from '../services/shopApi';
 import { formatBytes } from '../lib/bytes';
@@ -52,9 +53,19 @@ function DancePreview({ dance }: { dance: VictoryDance }) {
   </span>;
 }
 
+function ChatPreview({ reference }: { reference: string }) {
+  const reduced = useReducedMotion();
+  const reaction = findReaction(reference);
+  const sprite = reaction?.sprite;
+  return <span className="shop-item-stage">
+    {sprite ? <PixelSprite sprite={sprite} scale={sprite.width > 60 ? 2 : 3} duration={sprite.frames * 110} still={reduced} />
+      : <span className="shop-item-bubble">{reaction?.text ?? reference}</span>}
+  </span>;
+}
+
 function ItemPreview({ item }: { item: ShopItem }) {
   if (item.category === 'DANCE') return <DancePreview dance={item.reference as VictoryDance} />;
-  if (item.category === 'QUICK_CHAT') return <span className="shop-item-stage"><span className="shop-item-bubble is-slang">{findReaction(item.reference)?.text ?? item.reference}</span></span>;
+  if (item.category === 'QUICK_CHAT') return <ChatPreview reference={item.reference} />;
   return <span className="shop-item-stage" aria-hidden="true" />;
 }
 

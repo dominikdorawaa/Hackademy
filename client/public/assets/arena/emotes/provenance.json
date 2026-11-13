@@ -102,6 +102,118 @@
       },
       "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
       "sha256": "a5fd8aff2d941728c7dbd7e7bd470f3fb9d00f8e5a22915630865f61930d4f25"
+    },
+    {
+      "file": "wp.png",
+      "frames": 8,
+      "frameWidth": 37,
+      "frameHeight": 26,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "game chat sticker emote, bold chunky 3D pixel letters WP, bright green with lighter top bevel and darker bottom, thick black outline, small white sparkles around",
+        "imageSize": {
+          "width": 48,
+          "height": 48
+        },
+        "seed": 99004,
+        "initImage": "hand drawn block letters, init-wp.png",
+        "initImageStrength": 60
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the letters W and P stay exactly the same shape and size, only a small white star sparkle twinkles on the top right corner and a thin light glint slides over the letters",
+        "frameCount": 8,
+        "seed": 99203,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 5, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
+      "sha256": "92fae3142f9a6527da03d1d5d54771ca7f5c86201eea9fe3b083d717dd12a227",
+      "generatedAt": "2026-11-13",
+      "sources": "local-prototype-backups/chat-emotes-v1"
+    },
+    {
+      "file": "nt.png",
+      "frames": 8,
+      "frameWidth": 39,
+      "frameHeight": 29,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "game chat sticker emote, bold chunky 3D pixel letters NT, bright orange with lighter top bevel and darker bottom, thick black outline, next to the letters a tiny red and white target with an arrow stuck just outside the bullseye, near miss",
+        "imageSize": {
+          "width": 64,
+          "height": 48
+        },
+        "seed": 99004,
+        "initImage": "hand drawn block letters, init-nt.png",
+        "initImageStrength": 60
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the letters N and T stay exactly the same shape and size, the tiny target next to them wobbles a little as if just hit beside the center, a thin light glint slides over the letters",
+        "frameCount": 8,
+        "seed": 99204,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 5, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
+      "sha256": "86370ec276ee292c12cb26d3eed8929553bbad560f44d3e29ab5cceada56fb01",
+      "generatedAt": "2026-11-13",
+      "sources": "local-prototype-backups/chat-emotes-v1"
+    },
+    {
+      "file": "rip.png",
+      "frames": 8,
+      "frameWidth": 51,
+      "frameHeight": 26,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "game chat sticker emote, bold chunky 3D pixel letters RIP, pale silver white stone letters with lighter top bevel and darker bottom, thick black outline, a small grey cartoon tombstone with a cross behind the letters, tiny green grass tuft at the bottom, a little ghost wisp",
+        "imageSize": {
+          "width": 64,
+          "height": 48
+        },
+        "seed": 99006,
+        "initImage": "hand drawn block letters, init-rip.png",
+        "initImageStrength": 60
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the letters R and P and the small tombstone stay exactly the same shape and size, a tiny pale ghost wisp rises slowly from behind the tombstone and fades, a thin light glint slides over the letters",
+        "frameCount": 8,
+        "seed": 99205,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 5, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
+      "sha256": "25f3424ff22018fec1b3125a6041a7c36d48184f66c762038132bfd42180cfbe",
+      "generatedAt": "2026-11-13",
+      "sources": "local-prototype-backups/chat-emotes-v1"
+    },
+    {
+      "file": "glhf.png",
+      "frames": 8,
+      "frameWidth": 79,
+      "frameHeight": 27,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "game chat sticker emote, bold chunky 3D pixel letters GL HF, bright pink and purple with lighter top bevel and darker bottom, thick black outline, a tiny green four leaf clover and a tiny game controller next to the letters, small sparkles",
+        "imageSize": {
+          "width": 80,
+          "height": 48
+        },
+        "seed": 99004,
+        "initImage": "hand drawn block letters, init-glhf.png",
+        "initImageStrength": 60
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "the letters G L H F stay exactly the same shape, size and color in every frame, only the tiny green four leaf clover in the middle sways gently left and right and two tiny white star sparkles twinkle near the corners",
+        "frameCount": 8,
+        "seed": 99207,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, generated frames 0, 1, 2, 3, 4, 5, 6, 7 cropped to their shared bounds and packed side by side as a looping sprite sheet.",
+      "sha256": "bd6ec7085e2c2a54ef59f8314489344b093130b806070a70487ff5ca498c8f66",
+      "generatedAt": "2026-11-13",
+      "sources": "local-prototype-backups/chat-emotes-v1"
     }
   ]
 }

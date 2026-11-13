@@ -305,12 +305,6 @@
   }
 }
 
-.shop-item-bubble.is-slang {
-  padding: 10px 22px;
-  background: #ffe066;
-  font-size: 2.5rem;
-  letter-spacing: 0.04em;
-}
 
 .shop-hero.is-compact {
   min-height: clamp(200px, 22vw, 280px);

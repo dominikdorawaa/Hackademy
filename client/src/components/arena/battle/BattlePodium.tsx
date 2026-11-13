@@ -70,9 +70,9 @@ function Loser({ fighter, phase, still }: { fighter: Fighter; phase: LoserPhase;
 function Emote({ session, fighter, serverNow, still }: { session?: GameSession; fighter: Fighter; serverNow: number; still: boolean }) {
   const shown = session ? podiumEmote(session, fighter.id, serverNow) : null;
   const sprite = shown?.reaction.sprite;
-  if (!shown) return null;
+  if (!shown || !sprite) return null;
   return <p key={shown.key} className="battle-podium-emote" data-reaction={shown.reaction.id} role="img" aria-label={`${fighter.username}: ${shown.reaction.name}`}>
-    {sprite ? <PixelSprite sprite={sprite} scale={2} duration={sprite.frames * 110} still={still} /> : <span className="battle-reaction-text">{shown.reaction.text}</span>}
+    <PixelSprite sprite={sprite} scale={2} duration={sprite.frames * 110} still={still} />
   </p>;
 }
 

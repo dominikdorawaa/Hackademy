@@ -24,7 +24,7 @@ it('opens from the portrait with a tap and sends the picked reaction', () => {
   expect(screen.getAllByRole('menuitem')).toHaveLength(QUICK_REACTIONS.length);
   for (const group of ['Emotki', 'Teksty', 'Tańce']) expect(screen.getByRole('group', { name: group })).toBeInTheDocument();
   expect(screen.getAllByRole('menuitem')).toHaveLength(11);
-  expect(screen.getByRole('menuitem', { name: 'WP' })).toHaveTextContent('WP');
+  expect(screen.getByRole('menuitem', { name: 'WP' }).querySelector('.pixel-sprite')).not.toBeNull();
   expect(screen.getByRole('menuitem', { name: 'Scuba' })).toHaveTextContent('Scuba');
   expect(screen.getByRole('menuitem', { name: 'EZ' }).querySelector('.pixel-sprite')).not.toBeNull();
   expect(screen.getByRole('menuitem', { name: 'Six-seven' })).toHaveTextContent('67');

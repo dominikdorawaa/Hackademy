@@ -105,3 +105,12 @@ it('names every kind of item', () => {
   expect(describeItem(item('QUICK_CHAT', 'unknown')).name).toBe('unknown');
   expect(describeItem(item('DANCE', 'walc')).name).toBe('Taniec walc');
 });
+
+it('previews the quick chat lines with their animated stickers', async () => {
+  serve(createShop([], 0));
+  mount();
+  fireEvent.click(await screen.findByRole('tab', { name: 'Teksty do czatu' }));
+  const panel = screen.getByRole('tabpanel');
+  expect(panel.querySelectorAll('.pixel-sprite')).toHaveLength(4);
+  expect(within(panel).getByRole('heading', { name: 'RIP' }).closest('li')).toHaveTextContent('Gdy ktoś poległ z hukiem, RIP z nagrobkiem.');
+});

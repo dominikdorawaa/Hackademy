@@ -20,6 +20,10 @@ export const EMOTE_SPRITES = {
   gg: { src: `${EMOTES}gg.png`, frames: 8, width: 36, height: 26 },
   laugh: { src: `${EMOTES}laugh.png`, frames: 8, width: 44, height: 44 },
   shock: { src: `${EMOTES}shock.png`, frames: 7, width: 42, height: 44 },
+  glhf: { src: `${EMOTES}glhf.png`, frames: 8, width: 79, height: 27 },
+  wp: { src: `${EMOTES}wp.png`, frames: 8, width: 37, height: 26 },
+  nt: { src: `${EMOTES}nt.png`, frames: 8, width: 39, height: 29 },
+  rip: { src: `${EMOTES}rip.png`, frames: 8, width: 51, height: 26 },
 } satisfies Record<string, SpriteSheet>;
 
 export const QUICK_REACTIONS: QuickReaction[] = [
@@ -27,10 +31,10 @@ export const QUICK_REACTIONS: QuickReaction[] = [
   { id: 'gg', kind: 'emote', text: 'GG', name: 'GG', sprite: EMOTE_SPRITES.gg },
   { id: 'laugh', kind: 'emote', text: 'Śmiech', name: 'Śmiech', sprite: EMOTE_SPRITES.laugh },
   { id: 'shock', kind: 'emote', text: 'Szok', name: 'Szok', sprite: EMOTE_SPRITES.shock },
-  { id: 'glhf', kind: 'text', text: 'GL HF', name: 'GL HF', meaning: 'Good luck, have fun. Na start walki.' },
-  { id: 'wp', kind: 'text', text: 'WP', name: 'WP', meaning: 'Well played. Gdy rywal zagrał świetnie.' },
-  { id: 'nt', kind: 'text', text: 'NT', name: 'NT', meaning: 'Nice try. Gdy było naprawdę blisko.' },
-  { id: 'rip', kind: 'text', text: 'RIP', name: 'RIP', meaning: 'Gdy ktoś poległ z hukiem.' },
+  { id: 'glhf', kind: 'text', text: 'GL HF', name: 'GL HF', meaning: 'Good luck, have fun. Na start walki.', sprite: EMOTE_SPRITES.glhf },
+  { id: 'wp', kind: 'text', text: 'WP', name: 'WP', meaning: 'Well played. Gdy rywal zagrał świetnie.', sprite: EMOTE_SPRITES.wp },
+  { id: 'nt', kind: 'text', text: 'NT', name: 'NT', meaning: 'Nice try. Gdy było naprawdę blisko.', sprite: EMOTE_SPRITES.nt },
+  { id: 'rip', kind: 'text', text: 'RIP', name: 'RIP', meaning: 'Gdy ktoś poległ z hukiem, RIP z nagrobkiem.', sprite: EMOTE_SPRITES.rip },
   { id: '67', kind: 'animation', text: '67', name: 'Six-seven', frames: turnedDance('sixseven') },
   { id: 'groove', kind: 'animation', text: 'Luz', name: 'Taniec Luz', frames: turnedDance('groove') },
   { id: 'scuba', kind: 'animation', text: 'Scuba', name: 'Scuba', frames: turnedDance('scuba') },
