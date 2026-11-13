@@ -5,7 +5,8 @@ import { AVATAR_ATLASES, KNOCKED_OUT, victoryDance } from '../avatar/fighters';
 import { useAvatarAtlas } from '../avatar/useAvatarAtlas';
 import { BattleResult } from './BattleResult';
 import { PixelSprite } from '../../PixelSprite';
-import { PODIUM_DANCES, PODIUM_EMOTES, podiumDance, podiumEmote } from './quickChat';
+import { PODIUM_DANCES, PODIUM_EMOTES, podiumDance, podiumEmote, reactionLocked } from './quickChat';
+import { useShop } from '../../../context/ShopContext';
 import type { Fighter, Outcome } from './battleView';
 import type { VictoryDance } from '../avatar/avatarModel';
 import type { GameSession } from '../../../types/api';
@@ -69,22 +70,27 @@ function Loser({ fighter, phase, still }: { fighter: Fighter; phase: LoserPhase;
 function Emote({ session, fighter, serverNow, still }: { session?: GameSession; fighter: Fighter; serverNow: number; still: boolean }) {
   const shown = session ? podiumEmote(session, fighter.id, serverNow) : null;
   const sprite = shown?.reaction.sprite;
-  if (!shown || !sprite) return null;
+  if (!shown) return null;
   return <p key={shown.key} className="battle-podium-emote" data-reaction={shown.reaction.id} role="img" aria-label={`${fighter.username}: ${shown.reaction.name}`}>
-    <PixelSprite sprite={sprite} scale={2} duration={sprite.frames * 110} still={still} />
+    {sprite ? <PixelSprite sprite={sprite} scale={2} duration={sprite.frames * 110} still={still} /> : <span className="battle-reaction-text">{shown.reaction.text}</span>}
   </p>;
 }
 
 function Controls({ dance, canDance, onReact, notice }: { dance: VictoryDance | null; canDance: boolean; onReact: (id: string) => void; notice: string | null }) {
+  const { shop } = useShop();
   return (
     <div className="battle-podium-controls">
       {canDance && <div className="battle-podium-choice" role="group" aria-label="Twój taniec">
         <span aria-hidden="true">Taniec</span>
-        {PODIUM_DANCES.map(option => <button key={option.id} type="button" aria-pressed={dance === option.dance} onClick={() => onReact(option.id)}>{option.name}</button>)}
+        {PODIUM_DANCES.map(option => {
+          const locked = reactionLocked(shop, option.id);
+          return <button key={option.id} type="button" aria-pressed={dance === option.dance} disabled={locked} title={locked ? 'Kupisz w Sklepie' : undefined}
+            onClick={() => onReact(option.id)}>{option.name}{locked && <span className="sr-only">, do kupienia w Sklepie</span>}</button>;
+        })}
       </div>}
       <div className="battle-podium-choice" role="group" aria-label="Szybki czat">
         <span aria-hidden="true">Czat</span>
-        {PODIUM_EMOTES.map(option => <button key={option.id} type="button" onClick={() => onReact(option.id)}>{option.text}</button>)}
+        {PODIUM_EMOTES.filter(option => !reactionLocked(shop, option.id)).map(option => <button key={option.id} type="button" onClick={() => onReact(option.id)}>{option.text}</button>)}
       </div>
       {notice && <p className="battle-podium-notice" role="status">{notice}</p>}
     </div>

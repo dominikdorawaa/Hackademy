@@ -1,10 +1,16 @@
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 import { act } from '@testing-library/react';
 import { ARRIVE_AT_MS, ARRIVE_MS, BattlePodium, FALL, FALL_DELAY_MS, GRAB_MS, STANDING } from './BattlePodium';
 import { AVATAR_ATLASES, KNOCKED_OUT, victoryDance } from '../avatar/fighters';
 import { podiumDelay, perspective } from './battleView';
 import { createGameSession } from '../../../test/fixtures/arena';
+import { ALL_ITEMS, createShop } from '../../../test/fixtures/shop';
+import type { ShopState } from '../../../types/api';
+
+const shop = vi.hoisted(() => ({ value: null as ShopState | null }));
+vi.mock('../../../context/ShopContext', () => ({ useShop: () => ({ shop: shop.value, status: 'ready', refresh: () => {}, replace: () => {} }) }));
+beforeEach(() => { shop.value = createShop(ALL_ITEMS); });
 
 vi.mock('../avatar/useAvatarAtlas', () => ({
   useAvatarAtlas: () => ({ atlas: 'blob:atlas', front: null }),
@@ -102,4 +108,22 @@ it('shows quick chat emotes sent on the victory stage above the sender', () => {
   expect(screen.queryByRole('img', { name: `${me.username}: EZ` })).not.toBeInTheDocument();
   fireEvent.click(within(screen.getByRole('group', { name: 'Szybki czat' })).getByRole('button', { name: 'GG' }));
   expect(onReact).toHaveBeenCalledWith('gg');
+});
+
+it('keeps paid dances and chat lines out of reach until they are bought', () => {
+  shop.value = createShop(['chat-close']);
+  const onReact = vi.fn();
+  render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still session={stage()} serverNow={1_001_000} onReact={onReact} />);
+  const scuba = within(screen.getByRole('group', { name: 'Twój taniec' })).getByRole('button', { name: 'Scuba, do kupienia w Sklepie' });
+  expect(scuba).toBeDisabled();
+  const chat = screen.getByRole('group', { name: 'Szybki czat' });
+  expect(within(chat).queryByRole('button', { name: 'Rewanż?' })).toBeNull();
+  fireEvent.click(within(chat).getByRole('button', { name: 'Było blisko!' }));
+  expect(onReact).toHaveBeenCalledWith('close');
+});
+
+it('shows a chat line sent on the victory stage as a speech bubble', () => {
+  render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still
+    session={stage({ reactions: [{ id: 5, senderId: 2, reaction: 'glhf', sentAt: 1_000_800 }] })} serverNow={1_001_000} onReact={vi.fn()} />);
+  expect(screen.getByRole('img', { name: `${rival.username}: Powodzenia!` })).toHaveTextContent('Powodzenia!');
 });

@@ -364,3 +364,16 @@
   }
 }
 }
+
+.battle-podium-choice {
+  flex-wrap: wrap;
+}
+
+.battle-podium-choice button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.battle-podium-emote .battle-reaction-text {
+  font-size: 1rem;
+}

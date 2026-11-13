@@ -1710,3 +1710,39 @@ button.battle-answer:disabled {
   }
 }
 }
+
+.quick-chat-item {
+  position: relative;
+}
+
+.quick-chat-item[data-locked] {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.quick-chat-item[data-locked]:hover,
+.quick-chat-item[data-locked]:focus-visible {
+  border-color: var(--battle-glass-line);
+  background: rgb(255 255 255 / 0.06);
+  outline: 2px solid var(--battle-glass-line);
+}
+
+.quick-chat-lock {
+  position: absolute;
+  top: 3px;
+  right: 3px;
+}
+
+.battle-reaction-text {
+  display: inline-block;
+  padding: 6px 10px;
+  border: 2px solid #050a14;
+  border-radius: 4px;
+  background: #f4f6ff;
+  color: #050a14;
+  font-family: var(--ud-pixel, inherit);
+  font-size: 1.125rem;
+  line-height: 1.1;
+  white-space: nowrap;
+  box-shadow: 0 3px 0 #050a14;
+}

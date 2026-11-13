@@ -1,12 +1,18 @@
 import { useState } from 'react';
 import { fireEvent, render, screen, within } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
+import { MemoryRouter } from 'react-router-dom';
+import { ALL_ITEMS, createShop } from '../../test/fixtures/shop';
+import type { ShopState } from '../../types/api';
 import { AvatarStudio } from './AvatarStudio';
 import type { StudioTab } from './AvatarStudio';
 import { DEFAULT_AVATAR } from '../arena/avatar/avatarModel';
 import type { Avatar } from '../arena/avatar/avatarModel';
 
 const atlas = vi.hoisted(() => ({ ready: true }));
+const shop = vi.hoisted(() => ({ value: null as ShopState | null }));
+vi.mock('../../context/ShopContext', () => ({ useShop: () => ({ shop: shop.value, status: 'ready', refresh: () => {}, replace: () => {} }) }));
+beforeEach(() => { shop.value = createShop(ALL_ITEMS); });
 vi.mock('../arena/avatar/useAvatarAtlas', () => ({
   useAvatarAtlas: () => atlas.ready ? { atlas: 'blob:atlas', front: 'blob:front' } : null,
   useAvatarPortrait: () => 'blob:portrait',
@@ -15,8 +21,8 @@ vi.mock('../arena/avatar/useAvatarAtlas', () => ({
 function Harness({ onChange = () => undefined, reducedMotion = false }: { onChange?: (avatar: Avatar) => void; reducedMotion?: boolean }) {
   const [avatar, setAvatar] = useState<Avatar>({ ...DEFAULT_AVATAR, colors: { ...DEFAULT_AVATAR.colors } });
   const [tab, setTab] = useState<StudioTab>('outfit');
-  return <AvatarStudio avatar={avatar} onChange={next => { setAvatar(next); onChange(next); }} reducedMotion={reducedMotion} tab={tab} onTab={setTab}
-    aside={<p>Dymek</p>} />;
+  return <MemoryRouter><AvatarStudio avatar={avatar} onChange={next => { setAvatar(next); onChange(next); }} reducedMotion={reducedMotion} tab={tab} onTab={setTab}
+    aside={<p>Dymek</p>} /></MemoryRouter>;
 }
 
 it('moves between categories with the keyboard', () => {
@@ -112,4 +118,29 @@ it('shows a loader until the avatar is drawn', () => {
   render(<Harness />);
   expect(screen.getByRole('status')).toBeInTheDocument();
   atlas.ready = true;
+});
+
+it('locks the Scuba dance until it is bought and points to the Shop', () => {
+  shop.value = createShop([], 120);
+  const onChange = vi.fn();
+  render(<Harness onChange={onChange} />);
+  fireEvent.click(screen.getByRole('tab', { name: 'Taniec' }));
+  const scuba = screen.getByRole('radio', { name: /^Scuba/ });
+  expect(scuba).toBeDisabled();
+  expect(scuba.closest('label')).toHaveAttribute('data-locked', 'true');
+  expect(screen.getByText('400 Bajtów')).toBeInTheDocument();
+  expect(screen.getByRole('link', { name: 'Kup w Sklepie' })).toHaveAttribute('href', '/shop');
+  fireEvent.click(scuba);
+  expect(onChange).not.toHaveBeenCalled();
+  expect(screen.getByRole('radio', { name: /^Six-seven/ })).toBeEnabled();
+});
+
+it('lets players who own Scuba pick it', () => {
+  shop.value = createShop(['dance-scuba']);
+  const onChange = vi.fn();
+  render(<Harness onChange={onChange} />);
+  fireEvent.click(screen.getByRole('tab', { name: 'Taniec' }));
+  expect(screen.queryByRole('link', { name: 'Kup w Sklepie' })).toBeNull();
+  fireEvent.click(screen.getByRole('radio', { name: /^Scuba/ }));
+  expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ dance: 'scuba' }));
 });

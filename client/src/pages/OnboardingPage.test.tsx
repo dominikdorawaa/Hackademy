@@ -13,6 +13,9 @@ import { renderWithAuth } from '../test/renderWithAuth';
 import OnboardingPage from './OnboardingPage';
 import { PROFILE_UPDATED } from '../lib/profile';
 import { DANCE_MS } from '../components/mascot/Mascot';
+import { ALL_ITEMS, createShop } from '../test/fixtures/shop';
+
+vi.mock('../context/ShopContext', () => ({ useShop: () => ({ shop: createShop(ALL_ITEMS), status: 'ready', refresh: () => {}, replace: () => {} }) }));
 
 vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
   useAvatarAtlas: () => ({ atlas: 'blob:atlas', front: 'blob:front' }),

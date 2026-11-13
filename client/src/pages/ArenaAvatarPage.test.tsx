@@ -20,6 +20,9 @@ vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
 }));
 
 import ArenaAvatarPage from './ArenaAvatarPage';
+import { ALL_ITEMS, createShop } from '../test/fixtures/shop';
+
+vi.mock('../context/ShopContext', () => ({ useShop: () => ({ shop: createShop(ALL_ITEMS), status: 'ready', refresh: () => {}, replace: () => {} }) }));
 
 beforeEach(() => { atlas.ready = true; atlas.front = 'blob:front'; atlas.last = null; });
 const setup = () => render(<MemoryRouter><AuthProvider><ThemeProvider><ArenaAvatarPage /></ThemeProvider></AuthProvider></MemoryRouter>);

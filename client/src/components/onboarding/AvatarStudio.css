@@ -362,3 +362,33 @@
   }
 }
 }
+
+.studio-card[data-locked] {
+  cursor: default;
+}
+
+.studio-card[data-locked]:hover {
+  transform: none;
+}
+
+.studio-card[data-locked] .studio-card-portrait {
+  opacity: 0.55;
+}
+
+.studio-card-lock {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  margin-top: 6px;
+  color: var(--ud-muted);
+  font-size: 0.8125rem;
+  font-weight: 600;
+}
+
+.studio-card-lock a {
+  color: var(--ud-link);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}

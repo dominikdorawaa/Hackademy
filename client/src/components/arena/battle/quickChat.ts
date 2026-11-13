@@ -1,14 +1,16 @@
 import { turnedDance } from '../avatar/fighters';
 import type { VictoryDance } from '../avatar/avatarModel';
 import type { SpriteSheet } from '../../PixelSprite';
-import type { ArenaReaction, GameSession } from '../../../types/api';
+import type { ArenaReaction, GameSession, ShopState } from '../../../types/api';
+import { isLocked } from '../../../lib/bytes';
 
-export type ReactionKind = 'emote' | 'animation';
+export type ReactionKind = 'emote' | 'text' | 'animation';
 
 export interface QuickReaction { id: string; kind: ReactionKind; text: string; name: string; sprite?: SpriteSheet; frames?: number[] }
 
 export const REACTION_GROUPS: { kind: ReactionKind; label: string }[] = [
   { kind: 'emote', label: 'Emotki' },
+  { kind: 'text', label: 'Teksty' },
   { kind: 'animation', label: 'Tańce' },
 ];
 
@@ -25,6 +27,10 @@ export const QUICK_REACTIONS: QuickReaction[] = [
   { id: 'gg', kind: 'emote', text: 'GG', name: 'GG', sprite: EMOTE_SPRITES.gg },
   { id: 'laugh', kind: 'emote', text: 'Śmiech', name: 'Śmiech', sprite: EMOTE_SPRITES.laugh },
   { id: 'shock', kind: 'emote', text: 'Szok', name: 'Szok', sprite: EMOTE_SPRITES.shock },
+  { id: 'glhf', kind: 'text', text: 'Powodzenia!', name: 'Powodzenia!' },
+  { id: 'rematch', kind: 'text', text: 'Rewanż?', name: 'Rewanż?' },
+  { id: 'close', kind: 'text', text: 'Było blisko!', name: 'Było blisko!' },
+  { id: 'root', kind: 'text', text: 'Mam roota.', name: 'Mam roota.' },
   { id: '67', kind: 'animation', text: '67', name: 'Six-seven', frames: turnedDance('sixseven') },
   { id: 'groove', kind: 'animation', text: 'Luz', name: 'Taniec Luz', frames: turnedDance('groove') },
   { id: 'scuba', kind: 'animation', text: 'Scuba', name: 'Scuba', frames: turnedDance('scuba') },
@@ -55,7 +61,7 @@ export const PODIUM_DANCES: { id: string; dance: VictoryDance; name: string }[] 
   { id: '67', dance: 'sixseven', name: 'Six-seven' },
   { id: 'scuba', dance: 'scuba', name: 'Scuba' },
 ];
-export const PODIUM_EMOTES = QUICK_REACTIONS.filter(reaction => reaction.kind === 'emote');
+export const PODIUM_EMOTES = QUICK_REACTIONS.filter(reaction => reaction.kind !== 'animation');
 
 export function podiumDance(session: GameSession, playerId: number): VictoryDance | null {
   const since = session.finishedAt ?? Infinity;
@@ -66,7 +72,7 @@ export function podiumDance(session: GameSession, playerId: number): VictoryDanc
 
 export function podiumEmote(session: GameSession, playerId: number, serverNow: number): ShownReaction | null {
   const shown = shownReaction(session, playerId, serverNow);
-  if (!shown || shown.reaction.kind !== 'emote') return null;
+  if (!shown || shown.reaction.kind === 'animation') return null;
   const sent = (session.reactions ?? []).find(item => item.id === shown.key);
   return sent && sent.sentAt >= (session.finishedAt ?? Infinity) ? shown : null;
 }
@@ -77,9 +83,17 @@ export function reactionDance(shown: ShownReaction | null) {
   return { key: shown.key, frames };
 }
 
+export function reactionLocked(shop: ShopState | null, id: string) {
+  const reaction = findReaction(id);
+  if (!reaction) return false;
+  if (reaction.kind === 'text') return isLocked(shop, 'QUICK_CHAT', id);
+  return reaction.kind === 'animation' && isLocked(shop, 'DANCE', DANCE_BY_REACTION[id]);
+}
+
 export function reactionRefusal(status: number, body: Record<string, unknown> | null) {
   const retryAfter = typeof body?.retryAfter === 'number' ? body.retryAfter : 1;
   if (status === 429) return `Za szybko. Kolejna reakcja za ${Math.max(1, retryAfter)} s.`;
   if (status === 404) return 'Ta walka nie jest już dostępna.';
+  if (status === 403) return 'Tę reakcję kupisz w Sklepie.';
   return 'Nie udało się wysłać reakcji.';
 }

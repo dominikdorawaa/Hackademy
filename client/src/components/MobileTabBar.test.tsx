@@ -25,7 +25,7 @@ describe('mobile tab bar', () => {
     realtime.state = state([]);
     renderWithAuth(<Route path="*" element={<MobileTabBar />} />, '/learn/paths/3');
     const bar = screen.getByRole('navigation', { name: 'Nawigacja na telefonie' });
-    expect(within(bar).getAllByRole('link').map(link => link.textContent)).toEqual(['Start', 'Ucz się', 'Arena', 'Ranking']);
+    expect(within(bar).getAllByRole('link').map(link => link.textContent)).toEqual(['Start', 'Ucz się', 'Arena', 'Ranking', 'Sklep']);
     expect(within(bar).getByRole('link', { name: 'Ucz się' })).toHaveAttribute('aria-current', 'page');
     await userEvent.click(within(bar).getByRole('link', { name: 'Ranking' }));
     expect(within(bar).getByRole('link', { name: 'Ranking' })).toHaveAttribute('aria-current', 'page');

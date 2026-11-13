@@ -602,3 +602,61 @@ export interface OnboardingState {
   avatarConfirmed: boolean
   tourStatus: TourStatus
 }
+
+export type ShopCategory = 'DANCE' | 'OUTFIT' | 'QUICK_CHAT'
+
+export interface ShopItem {
+  id: string
+  category: ShopCategory
+  reference: string
+  price: number
+  owned: boolean
+}
+
+export interface CoinPackage {
+  id: string
+  coins: number
+  priceMinor: number
+  currency: string
+}
+
+export type TopUpMode = 'off' | 'test' | 'live'
+
+export interface ShopState {
+  balance: number
+  items: ShopItem[]
+  packages: CoinPackage[]
+  topUps: TopUpMode
+}
+
+export interface TopUpOrder {
+  id: number
+  packageId: string
+  coins: number
+  priceMinor: number
+  currency: string
+  status: 'PENDING' | 'PAID' | 'CANCELLED'
+  redirectUrl: string | null
+  test: boolean
+}
+
+export type WalletTransactionKind = 'PURCHASE' | 'TOP_UP' | 'ADMIN'
+
+export interface WalletTransaction {
+  id: number
+  amount: number
+  balanceAfter: number
+  kind: WalletTransactionKind
+  itemId: string | null
+  orderId: number | null
+  reason: string | null
+  adminUsername: string | null
+  createdAt: string
+}
+
+export interface WalletAdmin {
+  userId: number
+  username: string
+  balance: number
+  transactions: WalletTransaction[]
+}

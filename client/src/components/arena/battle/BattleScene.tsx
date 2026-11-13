@@ -36,9 +36,9 @@ function Plate({ fighter, side, hp, quickChat }: { fighter: Fighter; side: 'me' 
 
 function EmoteBubble({ side, shown, still }: { side: 'me' | 'rival'; shown: ShownReaction | null; still: boolean }) {
   const sprite = shown?.reaction.sprite;
-  if (!shown || !sprite) return null;
+  if (!shown || (!sprite && shown.reaction.kind !== 'text')) return null;
   return <p key={shown.key} className={`battle-reaction is-${side}`} aria-hidden="true" data-reaction={shown.reaction.id}>
-    <PixelSprite sprite={sprite} scale={2} duration={sprite.frames * 110} still={still} />
+    {sprite ? <PixelSprite sprite={sprite} scale={2} duration={sprite.frames * 110} still={still} /> : <span className="battle-reaction-text">{shown.reaction.text}</span>}
   </p>;
 }
 
