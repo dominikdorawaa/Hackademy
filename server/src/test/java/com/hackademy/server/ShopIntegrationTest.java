@@ -51,7 +51,7 @@ class ShopIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.topUps").value("test"))
                 .andExpect(jsonPath("$.items[?(@.id == 'dance-scuba')].price").value(400))
                 .andExpect(jsonPath("$.items[?(@.id == 'dance-scuba')].category").value("DANCE"))
-                .andExpect(jsonPath("$.items[?(@.id == 'chat-rematch')].reference").value("rematch"))
+                .andExpect(jsonPath("$.items[?(@.id == 'chat-wp')].reference").value("wp"))
                 .andExpect(jsonPath("$.items[?(@.owned == true)]", hasSize(0)))
                 .andExpect(jsonPath("$.packages", hasSize(3)))
                 .andExpect(jsonPath("$.packages[0].currency").value("PLN"));
@@ -82,12 +82,12 @@ class ShopIntegrationTest extends PostgresIntegrationTest {
         var player = account(Role.USER);
         var admin = account(Role.ADMIN);
         give(admin, player, 150);
-        Callable<Integer> rematch = () -> postJson(player, "/api/shop/items/chat-rematch/purchase", "{}").andReturn().getResponse().getStatus();
-        Callable<Integer> close = () -> postJson(player, "/api/shop/items/chat-close/purchase", "{}").andReturn().getResponse().getStatus();
+        Callable<Integer> wp = () -> postJson(player, "/api/shop/items/chat-wp/purchase", "{}").andReturn().getResponse().getStatus();
+        Callable<Integer> nt = () -> postJson(player, "/api/shop/items/chat-nt/purchase", "{}").andReturn().getResponse().getStatus();
         var pool = Executors.newFixedThreadPool(2);
         try {
-            var first = pool.submit(rematch);
-            var second = pool.submit(close);
+            var first = pool.submit(wp);
+            var second = pool.submit(nt);
             assertEquals(1, (first.get() == 200 ? 1 : 0) + (second.get() == 200 ? 1 : 0));
         } finally {
             pool.shutdownNow();
@@ -166,9 +166,9 @@ class ShopIntegrationTest extends PostgresIntegrationTest {
 
         postJson(first, url, "{\"reaction\":\"scuba\"}").andExpect(status().isForbidden())
                 .andExpect(jsonPath("$.message").value("Tę reakcję kupisz w sklepie."));
-        postJson(first, url, "{\"reaction\":\"rematch\"}").andExpect(status().isForbidden());
+        postJson(first, url, "{\"reaction\":\"wp\"}").andExpect(status().isForbidden());
         give(admin, first, 150);
-        postJson(first, "/api/shop/items/chat-rematch/purchase", "{}").andExpect(status().isOk());
-        postJson(first, url, "{\"reaction\":\"rematch\"}").andExpect(status().isOk());
+        postJson(first, "/api/shop/items/chat-wp/purchase", "{}").andExpect(status().isOk());
+        postJson(first, url, "{\"reaction\":\"wp\"}").andExpect(status().isOk());
     }
 }

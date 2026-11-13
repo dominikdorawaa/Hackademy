@@ -11,9 +11,9 @@ public enum QuickReaction {
     SIX_SEVEN("67"),
     GROOVE("groove"),
     SCUBA("scuba"),
-    REMATCH("rematch"),
-    CLOSE("close"),
-    ROOT("root"),
+    WP("wp"),
+    NT("nt"),
+    RIP("rip"),
     GLHF("glhf");
 
     private final String id;

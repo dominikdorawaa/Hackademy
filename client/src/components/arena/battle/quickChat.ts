@@ -6,7 +6,7 @@ import { isLocked } from '../../../lib/bytes';
 
 export type ReactionKind = 'emote' | 'text' | 'animation';
 
-export interface QuickReaction { id: string; kind: ReactionKind; text: string; name: string; sprite?: SpriteSheet; frames?: number[] }
+export interface QuickReaction { id: string; kind: ReactionKind; text: string; name: string; meaning?: string; sprite?: SpriteSheet; frames?: number[] }
 
 export const REACTION_GROUPS: { kind: ReactionKind; label: string }[] = [
   { kind: 'emote', label: 'Emotki' },
@@ -27,10 +27,10 @@ export const QUICK_REACTIONS: QuickReaction[] = [
   { id: 'gg', kind: 'emote', text: 'GG', name: 'GG', sprite: EMOTE_SPRITES.gg },
   { id: 'laugh', kind: 'emote', text: 'Śmiech', name: 'Śmiech', sprite: EMOTE_SPRITES.laugh },
   { id: 'shock', kind: 'emote', text: 'Szok', name: 'Szok', sprite: EMOTE_SPRITES.shock },
-  { id: 'glhf', kind: 'text', text: 'Powodzenia!', name: 'Powodzenia!' },
-  { id: 'rematch', kind: 'text', text: 'Rewanż?', name: 'Rewanż?' },
-  { id: 'close', kind: 'text', text: 'Było blisko!', name: 'Było blisko!' },
-  { id: 'root', kind: 'text', text: 'Mam roota.', name: 'Mam roota.' },
+  { id: 'glhf', kind: 'text', text: 'GL HF', name: 'GL HF', meaning: 'Good luck, have fun. Na start walki.' },
+  { id: 'wp', kind: 'text', text: 'WP', name: 'WP', meaning: 'Well played. Gdy rywal zagrał świetnie.' },
+  { id: 'nt', kind: 'text', text: 'NT', name: 'NT', meaning: 'Nice try. Gdy było naprawdę blisko.' },
+  { id: 'rip', kind: 'text', text: 'RIP', name: 'RIP', meaning: 'Gdy ktoś poległ z hukiem.' },
   { id: '67', kind: 'animation', text: '67', name: 'Six-seven', frames: turnedDance('sixseven') },
   { id: 'groove', kind: 'animation', text: 'Luz', name: 'Taniec Luz', frames: turnedDance('groove') },
   { id: 'scuba', kind: 'animation', text: 'Scuba', name: 'Scuba', frames: turnedDance('scuba') },

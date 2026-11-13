@@ -33,7 +33,8 @@ export function describeItem(item: ShopItem) {
     return { name: `Taniec ${dance?.name ?? item.reference}`, description: `${dance?.description ?? ''} Zatańczysz go po wygranej i z szybkiego czatu.`.trim() };
   }
   if (item.category === 'QUICK_CHAT') {
-    return { name: `„${findReaction(item.reference)?.text ?? item.reference}”`, description: 'Tekst do szybkiego czatu w walce i na podium.' };
+    const reaction = findReaction(item.reference);
+    return { name: reaction?.text ?? item.reference, description: `${reaction?.meaning ? `${reaction.meaning} ` : ''}Do szybkiego czatu w walce i na podium.` };
   }
   const outfit = OUTFITS.find(entry => entry.id === item.reference);
   return { name: outfit?.name ?? item.reference, description: outfit?.description ?? '' };
@@ -53,7 +54,7 @@ function DancePreview({ dance }: { dance: VictoryDance }) {
 
 function ItemPreview({ item }: { item: ShopItem }) {
   if (item.category === 'DANCE') return <DancePreview dance={item.reference as VictoryDance} />;
-  if (item.category === 'QUICK_CHAT') return <span className="shop-item-stage"><span className="shop-item-bubble">{findReaction(item.reference)?.text ?? item.reference}</span></span>;
+  if (item.category === 'QUICK_CHAT') return <span className="shop-item-stage"><span className="shop-item-bubble is-slang">{findReaction(item.reference)?.text ?? item.reference}</span></span>;
   return <span className="shop-item-stage" aria-hidden="true" />;
 }
 

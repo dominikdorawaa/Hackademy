@@ -24,7 +24,7 @@ it('opens from the portrait with a tap and sends the picked reaction', () => {
   expect(screen.getAllByRole('menuitem')).toHaveLength(QUICK_REACTIONS.length);
   for (const group of ['Emotki', 'Teksty', 'Tańce']) expect(screen.getByRole('group', { name: group })).toBeInTheDocument();
   expect(screen.getAllByRole('menuitem')).toHaveLength(11);
-  expect(screen.getByRole('menuitem', { name: 'Rewanż?' })).toHaveTextContent('Rewanż?');
+  expect(screen.getByRole('menuitem', { name: 'WP' })).toHaveTextContent('WP');
   expect(screen.getByRole('menuitem', { name: 'Scuba' })).toHaveTextContent('Scuba');
   expect(screen.getByRole('menuitem', { name: 'EZ' }).querySelector('.pixel-sprite')).not.toBeNull();
   expect(screen.getByRole('menuitem', { name: 'Six-seven' })).toHaveTextContent('67');
@@ -80,16 +80,16 @@ it('shows why a reaction was refused', () => {
 });
 
 it('marks paid reactions as locked until they are bought', () => {
-  shop.value = createShop(['chat-rematch']);
+  shop.value = createShop(['chat-wp']);
   const onPick = mount();
   fireEvent.click(trigger());
   const scuba = screen.getByRole('menuitem', { name: 'Scuba, do kupienia w Sklepie' });
   expect(scuba).toHaveAttribute('aria-disabled', 'true');
   expect(scuba.querySelector('.quick-chat-lock')).not.toBeNull();
   fireEvent.click(scuba);
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Powodzenia!, do kupienia w Sklepie' }));
+  fireEvent.click(screen.getByRole('menuitem', { name: 'GL HF, do kupienia w Sklepie' }));
   expect(onPick).not.toHaveBeenCalled();
   expect(screen.getByRole('menuitem', { name: 'Six-seven' })).not.toHaveAttribute('aria-disabled');
-  fireEvent.click(screen.getByRole('menuitem', { name: 'Rewanż?' }));
-  expect(onPick).toHaveBeenCalledWith('rematch');
+  fireEvent.click(screen.getByRole('menuitem', { name: 'WP' }));
+  expect(onPick).toHaveBeenCalledWith('wp');
 });

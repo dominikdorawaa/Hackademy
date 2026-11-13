@@ -2,9 +2,9 @@ import type { ShopState } from '../../types/api';
 
 const ITEMS = [
   { id: 'dance-scuba', category: 'DANCE', reference: 'scuba', price: 400 },
-  { id: 'chat-rematch', category: 'QUICK_CHAT', reference: 'rematch', price: 150 },
-  { id: 'chat-close', category: 'QUICK_CHAT', reference: 'close', price: 150 },
-  { id: 'chat-root', category: 'QUICK_CHAT', reference: 'root', price: 150 },
+  { id: 'chat-wp', category: 'QUICK_CHAT', reference: 'wp', price: 150 },
+  { id: 'chat-nt', category: 'QUICK_CHAT', reference: 'nt', price: 150 },
+  { id: 'chat-rip', category: 'QUICK_CHAT', reference: 'rip', price: 150 },
   { id: 'chat-glhf', category: 'QUICK_CHAT', reference: 'glhf', price: 150 },
 ] as const;
 

@@ -1746,3 +1746,24 @@ button.battle-answer:disabled {
   white-space: nowrap;
   box-shadow: 0 3px 0 #050a14;
 }
+
+.quick-chat-group.is-text .quick-chat-item {
+  display: grid;
+  place-items: center;
+  width: 56px;
+  height: 52px;
+  padding: 4px;
+  font-family: var(--ud-pixel, inherit);
+  font-size: 1.25rem;
+  font-weight: 400;
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+}
+
+.battle-reaction-text {
+  padding: 4px 12px;
+  border-color: #050a14;
+  background: #ffe066;
+  font-size: 1.75rem;
+  letter-spacing: 0.04em;
+}

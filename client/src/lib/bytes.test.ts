@@ -12,7 +12,7 @@ it('uses the right Polish form of Bajt', () => {
 it('treats paid items as locked until the shop says they are owned', () => {
   expect(isLocked(null, 'DANCE', 'scuba')).toBe(true);
   expect(isLocked(null, 'DANCE', 'groove')).toBe(false);
-  expect(isLocked(null, 'QUICK_CHAT', 'rematch')).toBe(true);
+  expect(isLocked(null, 'QUICK_CHAT', 'wp')).toBe(true);
   expect(isLocked(null, 'OUTFIT', 'dres')).toBe(false);
   expect(isLocked(createShop(['dance-scuba']), 'DANCE', 'scuba')).toBe(false);
   expect(isLocked(createShop([]), 'DANCE', 'scuba')).toBe(true);

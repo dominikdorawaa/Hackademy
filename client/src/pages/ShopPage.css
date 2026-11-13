@@ -315,3 +315,10 @@
     translate: none;
   }
 }
+
+.shop-item-bubble.is-slang {
+  padding: 10px 22px;
+  background: #ffe066;
+  font-size: 2.5rem;
+  letter-spacing: 0.04em;
+}

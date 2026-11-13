@@ -5,9 +5,9 @@ import java.util.Optional;
 
 public enum ShopItem {
     DANCE_SCUBA("dance-scuba", ShopCategory.DANCE, "scuba", 400),
-    CHAT_REMATCH("chat-rematch", ShopCategory.QUICK_CHAT, "rematch", 150),
-    CHAT_CLOSE("chat-close", ShopCategory.QUICK_CHAT, "close", 150),
-    CHAT_ROOT("chat-root", ShopCategory.QUICK_CHAT, "root", 150),
+    CHAT_WP("chat-wp", ShopCategory.QUICK_CHAT, "wp", 150),
+    CHAT_NT("chat-nt", ShopCategory.QUICK_CHAT, "nt", 150),
+    CHAT_RIP("chat-rip", ShopCategory.QUICK_CHAT, "rip", 150),
     CHAT_GLHF("chat-glhf", ShopCategory.QUICK_CHAT, "glhf", 150);
 
     private final String id;

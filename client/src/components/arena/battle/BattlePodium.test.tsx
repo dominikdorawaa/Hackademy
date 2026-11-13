@@ -111,19 +111,19 @@ it('shows quick chat emotes sent on the victory stage above the sender', () => {
 });
 
 it('keeps paid dances and chat lines out of reach until they are bought', () => {
-  shop.value = createShop(['chat-close']);
+  shop.value = createShop(['chat-nt']);
   const onReact = vi.fn();
   render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still session={stage()} serverNow={1_001_000} onReact={onReact} />);
   const scuba = within(screen.getByRole('group', { name: 'Twój taniec' })).getByRole('button', { name: 'Scuba, do kupienia w Sklepie' });
   expect(scuba).toBeDisabled();
   const chat = screen.getByRole('group', { name: 'Szybki czat' });
-  expect(within(chat).queryByRole('button', { name: 'Rewanż?' })).toBeNull();
-  fireEvent.click(within(chat).getByRole('button', { name: 'Było blisko!' }));
-  expect(onReact).toHaveBeenCalledWith('close');
+  expect(within(chat).queryByRole('button', { name: 'WP' })).toBeNull();
+  fireEvent.click(within(chat).getByRole('button', { name: 'NT' }));
+  expect(onReact).toHaveBeenCalledWith('nt');
 });
 
 it('shows a chat line sent on the victory stage as a speech bubble', () => {
   render(<BattlePodium me={me} rival={rival} result="win" title="Zwycięstwo" change={16} still
     session={stage({ reactions: [{ id: 5, senderId: 2, reaction: 'glhf', sentAt: 1_000_800 }] })} serverNow={1_001_000} onReact={vi.fn()} />);
-  expect(screen.getByRole('img', { name: `${rival.username}: Powodzenia!` })).toHaveTextContent('Powodzenia!');
+  expect(screen.getByRole('img', { name: `${rival.username}: GL HF` })).toHaveTextContent('GL HF');
 });

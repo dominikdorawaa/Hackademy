@@ -25,7 +25,7 @@ beforeEach(() => {
 });
 
 it('shows the balance, the dances and the quick chat lines with their prices', async () => {
-  serve(createShop(['chat-root'], 420));
+  serve(createShop(['chat-rip'], 420));
   mount();
   expect(await screen.findByRole('heading', { name: 'Sklep', level: 1 })).toBeInTheDocument();
   expect(await screen.findByText('420 Bajtów')).toBeInTheDocument();
@@ -41,8 +41,8 @@ it('shows the balance, the dances and the quick chat lines with their prices', a
   const panel = screen.getByRole('tabpanel');
   expect(screen.getByRole('tab', { name: 'Teksty do czatu' })).toHaveFocus();
   expect(within(panel).getAllByRole('listitem')).toHaveLength(4);
-  expect(within(panel).getByRole('heading', { name: '„Mam roota.”' }).closest('li')).toHaveTextContent('Kupione');
-  expect(within(panel).getByRole('button', { name: 'Kup „Rewanż?” za 150 Bajtów' })).toBeEnabled();
+  expect(within(panel).getByRole('heading', { name: 'RIP' }).closest('li')).toHaveTextContent('Kupione');
+  expect(within(panel).getByRole('button', { name: 'Kup WP za 150 Bajtów' })).toBeEnabled();
   fireEvent.keyDown(screen.getByRole('tab', { name: 'Teksty do czatu' }), { key: 'End' });
   fireEvent.keyDown(screen.getByRole('tab', { name: 'Teksty do czatu' }), { key: 'Home' });
   expect(screen.getByRole('tab', { name: 'Tańce' })).toHaveFocus();
@@ -175,6 +175,6 @@ it('names every kind of item', () => {
   const item = (category: ShopItem['category'], reference: string): ShopItem => ({ id: reference, category, reference, price: 1, owned: false });
   expect(describeItem(item('OUTFIT', 'dres')).name).toBe('Dres');
   expect(describeItem(item('OUTFIT', 'kimono'))).toEqual({ name: 'kimono', description: '' });
-  expect(describeItem(item('QUICK_CHAT', 'unknown')).name).toBe('„unknown”');
+  expect(describeItem(item('QUICK_CHAT', 'unknown')).name).toBe('unknown');
   expect(describeItem(item('DANCE', 'walc')).name).toBe('Taniec walc');
 });
