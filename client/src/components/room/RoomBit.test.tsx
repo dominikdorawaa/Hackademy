@@ -1,10 +1,10 @@
-import { act, render } from '@testing-library/react';
+import { act, fireEvent, render } from '@testing-library/react';
 import { afterEach, beforeEach, expect, it, vi } from 'vitest';
-import RoomBit, { REACTION_FRAMES, REACTION_MS, RoomBitContext, type RoomBitState } from './RoomBit';
+import RoomBit, { PEEK_MS, REACTION_FRAMES, REACTION_MS, RoomBitContext, type RoomBitState } from './RoomBit';
 
 const layer = () => document.querySelector('.room-bit-layer') as HTMLElement | null;
 const sheet = () => (document.querySelector('.room-bit-sprite') as HTMLElement).style.getPropertyValue('--bit-sheet');
-const view = (state: RoomBitState | null) => <RoomBitContext.Provider value={state}><div className="room-body-shell"><RoomBit /></div></RoomBitContext.Provider>;
+const view = (state: RoomBitState | null) => <RoomBitContext.Provider value={state}><div className="room-body-shell"><input aria-label="answer" /><button type="button">go</button><RoomBit /></div></RoomBitContext.Provider>;
 const base: RoomBitState = { successCount: 0, wrongCount: 0, hintCount: 0, finishCount: 0 };
 
 beforeEach(() => {
@@ -74,4 +74,34 @@ it('shows a still reaction pose when motion is reduced', () => {
   rerender(view({ ...base, successCount: 1 }));
   expect(layer()).toHaveAttribute('data-pose', 'correct');
   expect(document.querySelector('.room-bit-sprite')).not.toHaveAttribute('data-animated');
+});
+
+it('stays out of sight until the learner types and hides again when nothing happens', () => {
+  const { rerender, getByLabelText, getByRole } = render(view(base));
+  expect(layer()).not.toHaveAttribute('data-peek');
+  expect(layer()).toHaveAttribute('data-from', 'hidden');
+  fireEvent.keyDown(getByRole('button'), { key: 'a' });
+  fireEvent.keyDown(getByLabelText('answer'), { key: 'Tab' });
+  fireEvent.keyDown(getByLabelText('answer'), { key: 'a', ctrlKey: true });
+  expect(layer()).not.toHaveAttribute('data-peek');
+  fireEvent.keyDown(getByLabelText('answer'), { key: 'a' });
+  expect(layer()).toHaveAttribute('data-peek');
+  expect(layer()).toHaveAttribute('data-pose', 'idle');
+  act(() => vi.advanceTimersByTime(PEEK_MS - 1));
+  fireEvent.keyDown(getByLabelText('answer'), { key: 'Backspace' });
+  act(() => vi.advanceTimersByTime(PEEK_MS - 1));
+  expect(layer()).toHaveAttribute('data-peek');
+  act(() => vi.advanceTimersByTime(1));
+  expect(layer()).not.toHaveAttribute('data-peek');
+  expect(layer()).toHaveAttribute('data-from', 'peek');
+  fireEvent.keyDown(getByLabelText('answer'), { key: 'b' });
+  rerender(view({ ...base, successCount: 1 }));
+  expect(layer()).toHaveAttribute('data-pose', 'correct');
+  expect(layer()).toHaveAttribute('data-from', 'peek');
+  act(() => vi.advanceTimersByTime(REACTION_MS));
+  expect(layer()).not.toHaveAttribute('data-peek');
+  expect(layer()).toHaveAttribute('data-from', 'out');
+  rerender(view({ ...base, successCount: 1, paused: true }));
+  fireEvent.keyDown(getByLabelText('answer'), { key: 'c' });
+  expect(layer()).not.toHaveAttribute('data-peek');
 });
