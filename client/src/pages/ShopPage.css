@@ -268,17 +268,6 @@
   text-align: center;
 }
 
-.shop-topups {
-  margin-top: 48px;
-  scroll-margin-top: 96px;
-}
-
-.shop-topups h2 {
-  margin: 0 0 8px;
-  color: var(--rm-ink);
-  font: 400 2.5rem/1 var(--rm-pixel);
-}
-
 .shop-note {
   margin: 0 0 20px;
   color: var(--rm-muted);
@@ -321,4 +310,30 @@
   background: #ffe066;
   font-size: 2.5rem;
   letter-spacing: 0.04em;
+}
+
+.shop-hero.is-compact {
+  min-height: clamp(200px, 22vw, 280px);
+}
+
+.shop-back {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  margin-bottom: 12px;
+  padding: 4px 10px;
+  border-radius: 3px;
+  background: rgb(5 10 20 / 0.72);
+  color: #e8edf5;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.shop-back:hover {
+  text-decoration: underline;
+}
+
+.shop-back:focus-visible {
+  outline: 3px solid var(--rm-link);
+  outline-offset: 2px;
 }

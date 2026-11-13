@@ -15,9 +15,9 @@ import { dancePreview } from '../components/arena/avatar/movePreviews';
 import { findReaction } from '../components/arena/battle/quickChat';
 import { BytesAmount } from '../components/shop/BytesAmount';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
-import { buyItem, cancelTopUp, errorMessage, payTestTopUp, startTopUp } from '../services/shopApi';
-import { formatBytes, formatMoney } from '../lib/bytes';
-import type { CoinPackage, ShopCategory, ShopItem, TopUpOrder } from '../types/api';
+import { buyItem, errorMessage } from '../services/shopApi';
+import { formatBytes } from '../lib/bytes';
+import type { ShopCategory, ShopItem } from '../types/api';
 import '../components/room/room.css';
 import './ShopPage.css';
 
@@ -77,17 +77,9 @@ function ItemCard({ item, balance, busy, onBuy }: { item: ShopItem; balance: num
           aria-label={`Kup ${name} za ${formatBytes(item.price)}`}>
           {short && <Lock size={14} aria-hidden="true" />}{short ? 'Za mało Bajtów' : 'Kup'}
         </button>
+        {short && <Link className="shop-link" to="/shop/top-up">Doładuj</Link>}
       </>}
     </div>
-  </li>;
-}
-
-function PackCard({ pack, mode, busy, onStart }: { pack: CoinPackage; mode: string; busy: boolean; onStart: (pack: CoinPackage) => void }) {
-  return <li className="shop-pack">
-    <BytesAmount amount={pack.coins} className="shop-pack-amount" />
-    <span className="shop-pack-price">{formatMoney(pack.priceMinor, pack.currency)}</span>
-    <button type="button" className="shop-button is-primary" disabled={busy || mode === 'off'} onClick={() => onStart(pack)}
-      aria-label={`Doładuj ${formatBytes(pack.coins)} za ${formatMoney(pack.priceMinor, pack.currency)}`}>Doładuj</button>
   </li>;
 }
 
@@ -96,7 +88,6 @@ export default function ShopPage() {
   const { shop, status, refresh, replace } = useShop();
   const [tab, setTab] = useState<ShopCategory>('DANCE');
   const [confirm, setConfirm] = useState<ShopItem | null>(null);
-  const [order, setOrder] = useState<TopUpOrder | null>(null);
   const [busy, setBusy] = useState(false);
   const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const id = useId();
@@ -117,31 +108,6 @@ export default function ShopPage() {
     if (!response.ok) { setMessage({ kind: 'error', text: await errorMessage(response, 'Nie udało się kupić przedmiotu.') }); refresh(); return; }
     replace(await response.json());
     setMessage({ kind: 'ok', text: `Kupione: ${describeItem(item).name}.` });
-  });
-
-  const start = (pack: CoinPackage) => run(async () => {
-    const response = await startTopUp(pack.id, auth);
-    if (!response.ok) { setMessage({ kind: 'error', text: await errorMessage(response, 'Nie udało się rozpocząć doładowania.') }); return; }
-    const created = await response.json();
-    if (created.redirectUrl) window.location.assign(created.redirectUrl);
-    else setOrder(created);
-  });
-
-  const payTest = () => run(async () => {
-    if (!order) return;
-    const response = await payTestTopUp(order.id, auth);
-    setOrder(null);
-    if (!response.ok) { setMessage({ kind: 'error', text: await errorMessage(response, 'Płatność się nie udała.') }); return; }
-    replace(await response.json());
-    setMessage({ kind: 'ok', text: `Doładowano ${formatBytes(order.coins)}.` });
-  });
-
-  const cancel = () => run(async () => {
-    if (!order) return;
-    const pending = order;
-    setOrder(null);
-    const response = await cancelTopUp(pending.id, auth);
-    if (!response.ok) setMessage({ kind: 'error', text: await errorMessage(response, 'Nie udało się anulować zamówienia.') });
   });
 
   const moveTab = (event: KeyboardEvent, index: number) => {
@@ -166,7 +132,7 @@ export default function ShopPage() {
         <div className="shop-balance" aria-live="polite">
           <span className="shop-balance-label">Twoje saldo</span>
           {shop ? <BytesAmount amount={shop.balance} className="shop-balance-amount" /> : <span className="shop-balance-amount">…</span>}
-          <a className="shop-link" href="#doladowanie">Doładuj Bajty</a>
+          <Link className="shop-link" to="/shop/top-up">Doładuj Bajty</Link>
         </div>
       </div>
     </section>
@@ -189,12 +155,6 @@ export default function ShopPage() {
           : <ul className="shop-items">{items.map(item => <ItemCard key={item.id} item={item} balance={shop.balance} busy={busy} onBuy={setConfirm} />)}</ul>}
       </section>
 
-      <section id="doladowanie" className="shop-topups" aria-labelledby={`${id}-topups`}>
-        <h2 id={`${id}-topups`}>Doładuj Bajty</h2>
-        {shop?.topUps === 'off' && <p className="shop-note">Płatności uruchomimy wkrótce. Do tego czasu Bajty może przyznać administrator.</p>}
-        {shop?.topUps === 'test' && <p className="shop-note">Tryb testowy: żadne pieniądze nie zostaną pobrane.</p>}
-        {shop && <ul className="shop-packs">{shop.packages.map(pack => <PackCard key={pack.id} pack={pack} mode={shop.topUps} busy={busy} onStart={start} />)}</ul>}
-      </section>
     </div>
 
     <AlertDialog open={confirm !== null} onOpenChange={open => { if (!open) setConfirm(null); }}>
@@ -212,19 +172,5 @@ export default function ShopPage() {
       </AlertDialogContent>
     </AlertDialog>
 
-    <AlertDialog open={order !== null}>
-      <AlertDialogContent>
-        <AlertDialogHeader>
-          <AlertDialogTitle>Płatność testowa</AlertDialogTitle>
-          <AlertDialogDescription>
-            {order ? `Zamówienie na ${formatBytes(order.coins)} za ${formatMoney(order.priceMinor, order.currency)}. To tylko test, prawdziwe płatności podłączymy później.` : ''}
-          </AlertDialogDescription>
-        </AlertDialogHeader>
-        <AlertDialogFooter>
-          <AlertDialogCancel onClick={() => void cancel()}>Anuluj zamówienie</AlertDialogCancel>
-          <AlertDialogAction onClick={() => void payTest()}>Zapłać testowo</AlertDialogAction>
-        </AlertDialogFooter>
-      </AlertDialogContent>
-    </AlertDialog>
   </div>;
 }
