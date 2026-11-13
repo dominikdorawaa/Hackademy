@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 44;
+    static final int SCHEMA_VERSION = 45;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -997,6 +997,21 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         execute("DELETE FROM users WHERE id = 2");
         assertEquals(0, scalar("SELECT count(*) FROM wallets") + scalar("SELECT count(*) FROM wallet_transactions"));
         assertEquals(1, scalar("SELECT count(*) FROM top_up_orders WHERE id = 7 AND user_id IS NULL"));
+    }
+
+    @Test
+    void acceptsTheCrabDanceAndTheCoatOutfit() throws Exception {
+        flyway("44").migrate();
+        insertUser(1, "Crab", "crab@example.com");
+        execute("INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color) VALUES (1, 'baza', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy')");
+        assertSqlState("23514", "UPDATE user_avatars SET victory_dance = 'crab' WHERE user_id = 1");
+
+        assertEquals(1, flyway("45").migrate().migrationsExecuted);
+
+        execute("UPDATE user_avatars SET victory_dance = 'crab', outfit = 'plaszcz' WHERE user_id = 1");
+        assertEquals("crab:plaszcz", text("SELECT victory_dance || ':' || outfit FROM user_avatars WHERE user_id = 1"));
+        assertSqlState("23514", "UPDATE user_avatars SET victory_dance = 'walc' WHERE user_id = 1");
+        assertSqlState("23514", "UPDATE user_avatars SET outfit = 'kimono' WHERE user_id = 1");
     }
 
     private void insertUser(long id, String username, String email) throws SQLException {

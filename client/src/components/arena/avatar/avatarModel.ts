@@ -176,7 +176,7 @@ export const PORTRAIT_CROPS: Record<AvatarPose, [number, number]> = { przod: [16
 const toPose = (value: unknown): AvatarPose => (AVATAR_POSES as readonly unknown[]).includes(value) ? value as AvatarPose : 'przod';
 export const FINISHER_MOVES = ['beam', 'combo'] as const;
 export type FinisherMove = typeof FINISHER_MOVES[number];
-export const VICTORY_DANCES = ['groove', 'sixseven', 'scuba'] as const;
+export const VICTORY_DANCES = ['groove', 'sixseven', 'scuba', 'crab'] as const;
 export type VictoryDance = typeof VICTORY_DANCES[number];
 const toFinisher = (value: unknown): FinisherMove => (FINISHER_MOVES as readonly unknown[]).includes(value) ? value as FinisherMove : 'beam';
 const toDance = (value: unknown): VictoryDance => (VICTORY_DANCES as readonly unknown[]).includes(value) ? value as VictoryDance : 'groove';

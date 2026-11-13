@@ -38,6 +38,7 @@ export const QUICK_REACTIONS: QuickReaction[] = [
   { id: '67', kind: 'animation', text: '67', name: 'Six-seven', frames: turnedDance('sixseven') },
   { id: 'groove', kind: 'animation', text: 'Luz', name: 'Taniec Luz', frames: turnedDance('groove') },
   { id: 'scuba', kind: 'animation', text: 'Scuba', name: 'Scuba', frames: turnedDance('scuba') },
+  { id: 'crab', kind: 'animation', text: 'Krab', name: 'Krab', frames: turnedDance('crab') },
 ];
 
 export const REACTION_MS = 3000;
@@ -59,11 +60,12 @@ export function shownReaction(session: GameSession, senderId: number, serverNow:
   return { key: latest.id, reaction, age };
 }
 
-export const DANCE_BY_REACTION: Record<string, VictoryDance> = { '67': 'sixseven', groove: 'groove', scuba: 'scuba' };
+export const DANCE_BY_REACTION: Record<string, VictoryDance> = { '67': 'sixseven', groove: 'groove', scuba: 'scuba', crab: 'crab' };
 export const PODIUM_DANCES: { id: string; dance: VictoryDance; name: string }[] = [
   { id: 'groove', dance: 'groove', name: 'Luz' },
   { id: '67', dance: 'sixseven', name: 'Six-seven' },
   { id: 'scuba', dance: 'scuba', name: 'Scuba' },
+  { id: 'crab', dance: 'crab', name: 'Krab' },
 ];
 export const PODIUM_EMOTES = QUICK_REACTIONS.filter(reaction => reaction.kind !== 'animation');
 

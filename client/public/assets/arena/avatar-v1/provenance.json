@@ -485,5 +485,19 @@
     "overlays": "front/ and dance/ hair and hats are the difference between hair edits of the base front and the bald base front; light scalp-edge pixels left over from cutting the head out are removed from the hair overlays, so they do not turn into pale streaks after the hair recolour",
     "processing": "every new frame is moved so the feet stand on row 54 and snapped to the outfit palette by material: outline only on the silhouette edge or between face skin, skin only for clearly skin tones, shoes below the ankles, trousers only on the lower body, the rest to the nearest clothing material; each pixel then takes the nearest colour of its own material, the hoodie green is first tone-mapped to the previous hoodie; enclosed see-through gaps are filled",
     "groove": "animate-with-skeleton-v3 from the side stance of each outfit (seed 98203) with the joint motion read from the previous Luz frames, so the dancer turns from the side to the front and back to the beat; each frame gets a side or a front head anchor depending on which head template fits"
+  },
+  "crab": {
+    "generatedAt": "2026-11-13",
+    "sources": "local-prototype-backups/shop-items-v1",
+    "rows": "rows 17 and 18, columns 1 to 8, each of the 8 poses held for two cells; the turn reuses the Six-seven turn in row 15",
+    "animation": {
+      "endpoint": "animate-with-skeleton-v3",
+      "seed": 98805,
+      "direction": "south",
+      "from": "the first frame of front/<outfit>.png and its estimate-skeleton keypoints",
+      "keypoints": "eight hand-placed poses: a deep wide squat with knees out, both arms raised beside the head like crab claws, the wrists closing in on every other pose, the body sliding sideways 3 pixels right and back with the leading foot sliding along the floor",
+      "action": "crab dance facing the viewer: deep wide squat with knees bent outward, both arms raised beside the head with bent elbows like crab claws, the hands snap open and shut like pincers, the body shuffles sideways sliding the feet along the floor, both feet always on the ground and fully visible with shoes, the head stays still facing the viewer"
+    },
+    "processing": "the front head of each outfit is located in every frame and replaced by the unchanged front head at that spot, so the face never changes; on the base T-shirt the white sleeve trims left behind by the raised arms are painted in the shirt colour; frames are lifted one pixel so the feet stand on row 54 like the other dances; every pixel already matched a colour of the outfit atlas; head anchors are the Six-seven reference anchor moved by the head offset"
   }
 }

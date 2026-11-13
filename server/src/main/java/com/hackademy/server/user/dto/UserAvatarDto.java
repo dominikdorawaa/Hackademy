@@ -28,6 +28,6 @@ public record UserAvatarDto(
     public static final String DEFAULT_POSE = "przod";
     public static final String FINISHERS = "beam|combo";
     public static final String DEFAULT_FINISHER = "beam";
-    public static final String VICTORY_DANCES = "groove|sixseven|scuba";
+    public static final String VICTORY_DANCES = "groove|sixseven|scuba|crab";
     public static final String DEFAULT_VICTORY_DANCE = "groove";
 }

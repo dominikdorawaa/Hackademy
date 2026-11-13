@@ -83,8 +83,8 @@ it('disables items the player cannot afford yet', async () => {
   serve(createShop([], 120));
   mount();
   expect(await screen.findByRole('button', { name: 'Kup Taniec Scuba za 400 Bajtów' })).toBeDisabled();
-  expect(screen.getByText('Za mało Bajtów')).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Doładuj' })).toHaveAttribute('href', '/shop/top-up');
+  expect(screen.getAllByText('Za mało Bajtów')).toHaveLength(2);
+  expect(screen.getAllByRole('link', { name: 'Doładuj' })[0]).toHaveAttribute('href', '/shop/top-up');
   expect(screen.getByRole('link', { name: 'Doładuj Bajty' })).toHaveAttribute('href', '/shop/top-up');
 });
 

@@ -2,6 +2,7 @@ import type { ShopState } from '../../types/api';
 
 const ITEMS = [
   { id: 'dance-scuba', category: 'DANCE', reference: 'scuba', price: 400 },
+  { id: 'dance-crab', category: 'DANCE', reference: 'crab', price: 500 },
   { id: 'chat-wp', category: 'QUICK_CHAT', reference: 'wp', price: 150 },
   { id: 'chat-nt', category: 'QUICK_CHAT', reference: 'nt', price: 150 },
   { id: 'chat-rip', category: 'QUICK_CHAT', reference: 'rip', price: 150 },

@@ -5,6 +5,7 @@ import java.util.Optional;
 
 public enum ShopItem {
     DANCE_SCUBA("dance-scuba", ShopCategory.DANCE, "scuba", 400),
+    DANCE_CRAB("dance-crab", ShopCategory.DANCE, "crab", 500),
     CHAT_WP("chat-wp", ShopCategory.QUICK_CHAT, "wp", 150),
     CHAT_NT("chat-nt", ShopCategory.QUICK_CHAT, "nt", 150),
     CHAT_RIP("chat-rip", ShopCategory.QUICK_CHAT, "rip", 150),

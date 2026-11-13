@@ -36,5 +36,6 @@ export const DANCE_OPTIONS: Record<VictoryDance, { name: string; description: st
   groove: { name: 'Luz', description: 'Swobodny taniec bokiem do rywala.' },
   sixseven: { name: 'Six-seven', description: 'Obrót do widowni i ręce ważące: sześć, siedem.' },
   scuba: { name: 'Scuba', description: 'Obrót do widowni, zatkany nos i fala ręką.' },
+  crab: { name: 'Krab', description: 'Szeroki przysiad, szczypce w górze i dreptanie w bok.' },
 };
 export const POSE_NAMES: Record<Avatar['pose'], string> = { przod: 'Przód', postawa: 'Postawa', profil: 'Profil' };

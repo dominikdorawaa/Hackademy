@@ -4,16 +4,17 @@ export type { FinisherMove };
 export interface AvatarAtlasSource { atlas: string; atlasHeight: number; dances: Record<VictoryDance, number>; run: number; finishers: Record<FinisherMove, number>; dragged: number }
 
 const BASE = '/assets/arena/avatar-v1/';
-const DANCES: Record<VictoryDance, number> = { groove: 6, sixseven: 8, scuba: 13 };
+const DANCES: Record<VictoryDance, number> = { groove: 6, sixseven: 8, scuba: 13, crab: 17 };
 const RUN = 10;
+const ATLAS_HEIGHT = 1216;
 const FINISHERS: Record<FinisherMove, number> = { beam: 2, combo: 11 };
 export const KNOCKED_OUT = 53;
 const DRAGGED = 140;
 
 export const AVATAR_ATLASES: Record<AvatarOutfit, AvatarAtlasSource> = {
-  baza: { atlas: `${BASE}fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
-  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
-  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: 1088, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
+  baza: { atlas: `${BASE}fighter.png`, atlasHeight: ATLAS_HEIGHT, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
+  bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: ATLAS_HEIGHT, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
+  dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: ATLAS_HEIGHT, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
 };
 
 export function atlasViewBox(index: number) {
@@ -21,7 +22,7 @@ export function atlasViewBox(index: number) {
 }
 
 export const danceFrames = (row: number) => [row, row + 1].flatMap(line => Array.from({ length: 8 }, (_, column) => line * 9 + column + 1));
-export const TURNS: Record<Exclude<VictoryDance, 'groove'>, number> = { sixseven: 15, scuba: 16 };
+export const TURNS: Record<Exclude<VictoryDance, 'groove'>, number> = { sixseven: 15, scuba: 16, crab: 15 };
 const turnFrames = (row: number) => Array.from({ length: 4 }, (_, column) => row * 9 + column + 1);
 export const victoryDance = (dance: VictoryDance) => ({ turn: dance === 'groove' ? [] : turnFrames(TURNS[dance]), loop: danceFrames(DANCES[dance]) });
 export function turnedDance(dance: VictoryDance) {

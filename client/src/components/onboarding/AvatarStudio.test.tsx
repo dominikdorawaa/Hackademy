@@ -128,8 +128,9 @@ it('locks the Scuba dance until it is bought and points to the Shop', () => {
   const scuba = screen.getByRole('radio', { name: /^Scuba/ });
   expect(scuba).toBeDisabled();
   expect(scuba.closest('label')).toHaveAttribute('data-locked', 'true');
-  expect(screen.getByText('400 Bajtów')).toBeInTheDocument();
-  expect(screen.getByRole('link', { name: 'Kup w Sklepie' })).toHaveAttribute('href', '/shop');
+  expect(within(scuba.closest('label') as HTMLElement).getByText('400 Bajtów')).toBeInTheDocument();
+  expect(within(screen.getByRole('radio', { name: /^Krab/ }).closest('label') as HTMLElement).getByText('500 Bajtów')).toBeInTheDocument();
+  expect(within(scuba.closest('label') as HTMLElement).getByRole('link', { name: 'Kup w Sklepie' })).toHaveAttribute('href', '/shop');
   fireEvent.click(scuba);
   expect(onChange).not.toHaveBeenCalled();
   expect(screen.getByRole('radio', { name: /^Six-seven/ })).toBeEnabled();
@@ -140,7 +141,8 @@ it('lets players who own Scuba pick it', () => {
   const onChange = vi.fn();
   render(<Harness onChange={onChange} />);
   fireEvent.click(screen.getByRole('tab', { name: 'Taniec' }));
-  expect(screen.queryByRole('link', { name: 'Kup w Sklepie' })).toBeNull();
+  expect(within(screen.getByRole('radio', { name: /^Scuba/ }).closest('label') as HTMLElement).queryByRole('link', { name: 'Kup w Sklepie' })).toBeNull();
+  expect(screen.getByRole('radio', { name: /^Krab/ })).toBeDisabled();
   fireEvent.click(screen.getByRole('radio', { name: /^Scuba/ }));
   expect(onChange).toHaveBeenLastCalledWith(expect.objectContaining({ dance: 'scuba' }));
 });

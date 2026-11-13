@@ -11,6 +11,7 @@ public enum QuickReaction {
     SIX_SEVEN("67"),
     GROOVE("groove"),
     SCUBA("scuba"),
+    CRAB("crab"),
     WP("wp"),
     NT("nt"),
     RIP("rip"),
