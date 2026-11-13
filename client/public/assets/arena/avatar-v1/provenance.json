@@ -499,5 +499,254 @@
       "action": "crab dance facing the viewer: deep wide squat with knees bent outward, both arms raised beside the head with bent elbows like crab claws, the hands snap open and shut like pincers, the body shuffles sideways sliding the feet along the floor, both feet always on the ground and fully visible with shoes, the head stays still facing the viewer"
     },
     "processing": "the front head of each outfit is located in every frame and replaced by the unchanged front head at that spot, so the face never changes; on the base T-shirt the white sleeve trims left behind by the raised arms are painted in the shirt colour; frames are lifted one pixel so the feet stand on row 54 like the other dances; every pixel already matched a colour of the outfit atlas; head anchors are the Six-seven reference anchor moved by the head offset"
+  },
+  "coat": {
+    "generatedAt": "2026-11-13",
+    "sources": "local-prototype-backups/shop-items-v1",
+    "outfit": "plaszcz (Płaszcz netrunnera)",
+    "look": {
+      "side": {
+        "endpoint": "edit-image-pixen",
+        "from": "stance cell 0 of the base atlas",
+        "seed": 98102
+      },
+      "front": {
+        "endpoint": "edit-image-pixen",
+        "from": "first frame of front/baza.png",
+        "seed": 98103
+      },
+      "description": "wearing a long dark charcoal grey hooded trench coat that reaches the knees, the hood lies down flat on the shoulders and back, thin glowing cyan trim lines along the coat edges and cuffs, coat open at the front over a black shirt, dark trousers and black boots; head stays bald"
+    },
+    "animations": {
+      "endpoint": "animate-with-skeleton-v3",
+      "method": "for every animation the skeleton of each base atlas cell is estimated and moved onto the coat stance (side or front) by the difference to the base stance skeleton, then the coat is animated with those keypoints",
+      "runs": [
+        {
+          "name": "row1",
+          "cells": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "view": "side",
+          "seed": 99101,
+          "action": "side view boxing attack facing right: a quick straight punch to the right and back to the guard, the coat tails swing with the motion"
+        },
+        {
+          "name": "beamA",
+          "cells": [
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26
+          ],
+          "view": "side",
+          "seed": 99102,
+          "action": "side view facing right: a finishing move, the fighter gathers power with both hands, then thrusts both open palms forward to the right and returns to the guard, the coat tails flare"
+        },
+        {
+          "name": "beamB",
+          "cells": [
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "view": "side",
+          "seed": 100102,
+          "action": "side view facing right: a finishing move, the fighter gathers power with both hands, then thrusts both open palms forward to the right and returns to the guard, the coat tails flare"
+        },
+        {
+          "name": "hurt",
+          "cells": [
+            37,
+            38,
+            39,
+            40
+          ],
+          "view": "side",
+          "seed": 99103,
+          "action": "side view facing right: takes a hit from the right, recoils the shoulders and head to the left with both fists in front of the chin, then recovers"
+        },
+        {
+          "name": "defeat",
+          "cells": [
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53
+          ],
+          "view": "side",
+          "seed": 99104,
+          "action": "side view facing right: takes a final hit, the knees buckle, staggers back to the left and falls onto the floor, ending lying down motionless with the coat spread on the floor"
+        },
+        {
+          "name": "grooveA",
+          "cells": [
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62
+          ],
+          "view": "side",
+          "seed": 99105,
+          "action": "groove dance: turns from the side to face the viewer to the beat, opens the arms with palms up, sways, bounces into a crouch and turns back to the side, the coat swings"
+        },
+        {
+          "name": "grooveB",
+          "cells": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71
+          ],
+          "view": "side",
+          "seed": 100105,
+          "action": "groove dance: turns from the side to face the viewer to the beat, opens the arms with palms up, sways, bounces into a crouch and turns back to the side, the coat swings"
+        },
+        {
+          "name": "sixseven",
+          "cells": [
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89
+          ],
+          "view": "front",
+          "seed": 99106,
+          "action": "six seven hand gesture facing the viewer, palms up, hands alternating up and down"
+        },
+        {
+          "name": "run",
+          "cells": [
+            91,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98
+          ],
+          "view": "side",
+          "seed": 99107,
+          "action": "side view running to the right in a loop, arms pumping, the long coat tails flapping behind"
+        },
+        {
+          "name": "combo",
+          "cells": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            109,
+            110,
+            111,
+            113,
+            115
+          ],
+          "view": "side",
+          "seed": 99108,
+          "action": "side view facing right: a fast punching combo finisher, several quick punches and a final strike to the right, then back to the guard, the coat tails swing"
+        },
+        {
+          "name": "scubaA",
+          "cells": [
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125
+          ],
+          "view": "front",
+          "seed": 99109,
+          "action": "scuba dance facing the viewer: one hand pinches the nose, the other arm makes a wave motion forward while the body sways and dips like going under water"
+        },
+        {
+          "name": "scubaB",
+          "cells": [
+            127,
+            128,
+            129,
+            130,
+            131,
+            132,
+            133,
+            134
+          ],
+          "view": "front",
+          "seed": 100109,
+          "action": "scuba dance facing the viewer: one hand pinches the nose, the other arm makes a wave motion forward while the body sways and dips like going under water"
+        },
+        {
+          "name": "turn",
+          "cells": [
+            136,
+            137,
+            138,
+            139
+          ],
+          "view": "side",
+          "seed": 99110,
+          "action": "turns from the side view facing right to face the viewer in four steps, arms relaxed"
+        },
+        {
+          "name": "drag",
+          "cells": [
+            140,
+            140,
+            140
+          ],
+          "view": "side",
+          "seed": 99111,
+          "action": "lies knocked out on the back on the floor with the coat spread out, motionless"
+        }
+      ]
+    },
+    "crab": "the Crab dance with the coat front as the first frame, same keypoints and seed as the other outfits",
+    "processing": "the base head is located in every cell (with rotation for falls and lying cells) and replaced by the unchanged base head, which gives the head anchors; in the upper body pixels further than 3 pixels from the base silhouette are removed (glow streaks and beams the generator added), as are loose specks under 12 pixels; every pixel is snapped to the palette of the coat stance, coat front and base stances; held cells reuse the same frame; the front strip is the coat front with the same breathing as the other outfits; the profile is edit-image-pixen seed 87002 like the other outfits with the base head restamped"
   }
 }

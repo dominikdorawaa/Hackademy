@@ -17,7 +17,7 @@ public record UserAvatarDto(
         @Pattern(regexp = UserAvatarDto.FINISHERS) String finisher,
         @Pattern(regexp = UserAvatarDto.VICTORY_DANCES) String victoryDance) {
 
-    public static final String OUTFITS = "baza|bluza|dres";
+    public static final String OUTFITS = "baza|bluza|dres|plaszcz";
     public static final String HAIR_STYLES = "brak|krotkie|irokez|kucyk";
     public static final String HAT_STYLES = "brak|czapka|daszek";
     public static final String CUSTOM_COLOR = "#[0-9a-f]{6}";

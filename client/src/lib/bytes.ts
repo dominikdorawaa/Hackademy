@@ -27,6 +27,6 @@ export function paidItem(category: ShopCategory, reference: string, shop: ShopSt
 
 const PAID_REFERENCES: Record<ShopCategory, { reference: string; owned: false; price: number }[]> = {
   DANCE: [{ reference: 'scuba', owned: false, price: 400 }, { reference: 'crab', owned: false, price: 500 }],
-  OUTFIT: [],
+  OUTFIT: [{ reference: 'plaszcz', owned: false, price: 800 }],
   QUICK_CHAT: ['glhf', 'wp', 'nt', 'rip'].map(reference => ({ reference, owned: false, price: 150 })),
 };

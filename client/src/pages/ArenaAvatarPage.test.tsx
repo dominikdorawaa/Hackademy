@@ -47,7 +47,7 @@ it('waits for the recolored atlas before showing the preview', () => {
 it('offers only outfits that support hairstyles and hats', () => {
   setup();
   const outfits = within(screen.getByRole('radiogroup', { name: 'Strój' })).getAllByRole('radio');
-  expect(outfits).toHaveLength(3);
+  expect(outfits).toHaveLength(4);
   expect(screen.getByRole('radio', { name: /Klasyczna/ })).toBeChecked();
   expect(screen.queryByText(/Sportowa|Loki/)).not.toBeInTheDocument();
 });

@@ -35,7 +35,9 @@ it('shows the balance, the dances and the quick chat lines with their prices', a
   expect(screen.getByRole('button', { name: 'Kup Taniec Scuba za 400 Bajtów' })).toBeEnabled();
 
   fireEvent.click(screen.getByRole('tab', { name: 'Ubrania' }));
-  expect(screen.getByText('Nowe stroje pojawią się w Sklepie wkrótce.')).toBeInTheDocument();
+  expect(screen.getByRole('heading', { name: 'Płaszcz netrunnera' })).toBeInTheDocument();
+  expect(screen.getByRole('img', { name: 'Podgląd stroju Płaszcz netrunnera na Twoim awatarze' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Kup Płaszcz netrunnera za 800 Bajtów' })).toBeDisabled();
 
   fireEvent.keyDown(screen.getByRole('tab', { name: 'Ubrania' }), { key: 'ArrowRight' });
   const panel = screen.getByRole('tabpanel');

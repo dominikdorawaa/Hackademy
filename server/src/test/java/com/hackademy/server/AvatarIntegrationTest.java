@@ -114,6 +114,17 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
+    void wearsTheCoatAndDancesTheCrabOnlyAfterBuyingThem() throws Exception {
+        var owner = account(Role.USER);
+        var coat = AVATAR.replace("\"outfit\":\"bluza\"", "\"outfit\":\"plaszcz\"");
+        putJson(owner, URL, coat).andExpect(status().isForbidden()).andExpect(jsonPath("$.message").value("Ten strój kupisz w sklepie."));
+        putJson(owner, URL, AVATAR.replace("}", ",\"victoryDance\":\"crab\"}")).andExpect(status().isForbidden());
+        jdbcTemplate.update("INSERT INTO owned_items (user_id, item_id) VALUES (?, 'outfit-coat'), (?, 'dance-crab')", owner.id(), owner.id());
+        putJson(owner, URL, coat.replace("}", ",\"victoryDance\":\"crab\"}")).andExpect(status().isOk())
+                .andExpect(jsonPath("$.outfit").value("plaszcz")).andExpect(jsonPath("$.victoryDance").value("crab"));
+    }
+
+    @Test
     void deletingTheAvatarFallsBackToTheGeneratedPortrait() throws Exception {
         var owner = account(Role.USER);
         putJson(owner, URL, AVATAR).andExpect(status().isOk());

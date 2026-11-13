@@ -377,3 +377,12 @@
   outline: 3px solid var(--rm-link);
   outline-offset: 2px;
 }
+
+.shop-item-front {
+  display: block;
+  width: 160px;
+  height: 160px;
+  background-repeat: no-repeat;
+  background-position: 0 0;
+  image-rendering: pixelated;
+}

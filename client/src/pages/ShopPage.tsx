@@ -9,7 +9,7 @@ import { AvatarSprite } from '../components/arena/avatar/AvatarSprite';
 import { useAvatarAtlas } from '../components/arena/avatar/useAvatarAtlas';
 import { AVATAR_ATLASES } from '../components/arena/avatar/fighters';
 import { DEFAULT_AVATAR, fromAvatarConfig } from '../components/arena/avatar/avatarModel';
-import type { VictoryDance } from '../components/arena/avatar/avatarModel';
+import type { AvatarOutfit, VictoryDance } from '../components/arena/avatar/avatarModel';
 import { DANCE_OPTIONS, OUTFITS } from '../components/arena/avatar/avatarOptions';
 import { dancePreview } from '../components/arena/avatar/movePreviews';
 import { findReaction } from '../components/arena/battle/quickChat';
@@ -54,6 +54,18 @@ function DancePreview({ dance }: { dance: VictoryDance }) {
   </span>;
 }
 
+function OutfitPreview({ outfit }: { outfit: AvatarOutfit }) {
+  const { user } = useAuth();
+  const atlas = useAvatarAtlas({ ...(fromAvatarConfig(user?.avatar) ?? DEFAULT_AVATAR), outfit });
+  const name = OUTFITS.find(entry => entry.id === outfit)?.name ?? outfit;
+  const label = `Podgląd stroju ${name} na Twoim awatarze`;
+  return <span className="shop-item-stage">
+    {atlas?.front ? <span className="shop-item-front" role="img" aria-label={label}
+      style={{ backgroundImage: `url(${atlas.front})`, backgroundSize: `${(atlas.frontFrames ?? 1) * 100}% 100%` }} />
+      : atlas && <AvatarSprite atlas={atlas.atlas} atlasHeight={AVATAR_ATLASES[outfit].atlasHeight} frames={[0]} label={label} />}
+  </span>;
+}
+
 function ChatPreview({ reference }: { reference: string }) {
   const reduced = useReducedMotion();
   const reaction = findReaction(reference);
@@ -67,7 +79,7 @@ function ChatPreview({ reference }: { reference: string }) {
 function ItemPreview({ item }: { item: ShopItem }) {
   if (item.category === 'DANCE') return <DancePreview dance={item.reference as VictoryDance} />;
   if (item.category === 'QUICK_CHAT') return <ChatPreview reference={item.reference} />;
-  return <span className="shop-item-stage" aria-hidden="true" />;
+  return <OutfitPreview outfit={item.reference as AvatarOutfit} />;
 }
 
 function ItemCard({ item, balance, busy, onBuy }: { item: ShopItem; balance: number; busy: boolean; onBuy: (item: ShopItem) => void }) {

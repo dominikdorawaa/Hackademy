@@ -5,6 +5,7 @@ export const OUTFITS: { id: Avatar['outfit']; name: string; description: string 
   { id: 'baza', name: 'Klasyczna', description: 'Koszulka i proste spodnie.' },
   { id: 'bluza', name: 'Bluza', description: 'Bluza z opuszczonym kapturem, jeansy i trampki.' },
   { id: 'dres', name: 'Dres', description: 'Kurtka dresowa z paskami i spodnie z lampasem.' },
+  { id: 'plaszcz', name: 'Płaszcz netrunnera', description: 'Długi płaszcz z opuszczonym kapturem i świecącymi lamówkami.' },
 ];
 const SKIN_PRESETS = ['porcelanowa', 'jasna', 'oliwkowa', 'brazowa', 'ciemna', 'heban'];
 const HAIR_PRESETS = ['czarne', 'brazowe', 'blond', 'rude', 'siwe', 'niebieskie'];

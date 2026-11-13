@@ -15,6 +15,7 @@ export const AVATAR_ATLASES: Record<AvatarOutfit, AvatarAtlasSource> = {
   baza: { atlas: `${BASE}fighter.png`, atlasHeight: ATLAS_HEIGHT, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
   bluza: { atlas: `${BASE}hoodie/fighter.png`, atlasHeight: ATLAS_HEIGHT, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
   dres: { atlas: `${BASE}track/fighter.png`, atlasHeight: ATLAS_HEIGHT, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
+  plaszcz: { atlas: `${BASE}coat/fighter.png`, atlasHeight: ATLAS_HEIGHT, dances: DANCES, run: RUN, finishers: FINISHERS, dragged: DRAGGED },
 };
 
 export function atlasViewBox(index: number) {
