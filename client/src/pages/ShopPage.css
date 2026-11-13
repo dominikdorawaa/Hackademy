@@ -51,24 +51,69 @@
 
 .shop-balance {
   display: grid;
-  gap: 6px;
-  min-width: 220px;
-  padding: 16px 20px;
-  border: 2px solid #050a14;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 14px;
+  min-width: 300px;
+  padding: 12px 14px 12px 12px;
+  border: 2px solid #e3b341;
   border-radius: 4px;
-  background: var(--rm-surface);
-  box-shadow: 0 4px 0 #050a14;
+  background: rgb(8 12 24 / 0.88);
+  box-shadow: 0 4px 0 #050a14, inset 0 0 0 2px rgb(5 10 20 / 0.9);
+}
+
+.shop-balance-coin {
+  width: 48px;
+  height: 48px;
+  image-rendering: pixelated;
+  filter: drop-shadow(0 3px 0 #050a14);
+}
+
+.shop-balance-text {
+  display: grid;
+  gap: 4px;
+  min-width: 0;
 }
 
 .shop-balance-label {
-  color: var(--rm-muted);
-  font-size: 0.8125rem;
-  font-weight: 600;
+  color: #d9c48c;
+  font-size: 0.75rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
 }
 
 .shop-balance-amount {
-  color: var(--rm-ink);
-  font: 400 2.5rem/1 var(--rm-pixel);
+  color: #ffe066;
+  font: 400 2.75rem/0.9 var(--rm-pixel);
+  font-variant-numeric: tabular-nums;
+  text-shadow: 2px 2px 0 #050a14;
+}
+
+.shop-balance-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  min-height: 44px;
+  padding: 0 14px;
+  border: 2px solid #050a14;
+  border-radius: 3px;
+  background: #e3b341;
+  box-shadow: 0 3px 0 #050a14;
+  color: #1a1405;
+  font: 400 1.375rem/1 var(--rm-pixel);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.shop-balance-action:hover {
+  background: #ffd35a;
+  translate: 0 -1px;
+}
+
+.shop-balance-action:focus-visible {
+  outline: 3px solid #ffe066;
+  outline-offset: 2px;
 }
 
 .shop-shell {
@@ -300,6 +345,7 @@
 }
 
 @media (prefers-reduced-motion: reduce) {
+  .shop-balance-action:hover,
   .shop-button:not(:disabled):hover {
     translate: none;
   }

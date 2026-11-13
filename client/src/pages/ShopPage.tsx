@@ -14,6 +14,7 @@ import { DANCE_OPTIONS, OUTFITS } from '../components/arena/avatar/avatarOptions
 import { dancePreview } from '../components/arena/avatar/movePreviews';
 import { findReaction } from '../components/arena/battle/quickChat';
 import { BytesAmount } from '../components/shop/BytesAmount';
+import { BalanceCard } from '../components/shop/BalanceCard';
 import { PixelSprite } from '../components/PixelSprite';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { buyItem, errorMessage } from '../services/shopApi';
@@ -140,11 +141,7 @@ export default function ShopPage() {
           <h1 id={`${id}-title`}>Sklep</h1>
           <p>Za Bajty kupisz nowe tańce, stroje i teksty do szybkiego czatu w Arenie.</p>
         </div>
-        <div className="shop-balance" aria-live="polite">
-          <span className="shop-balance-label">Twoje saldo</span>
-          {shop ? <BytesAmount amount={shop.balance} className="shop-balance-amount" /> : <span className="shop-balance-amount">…</span>}
-          <Link className="shop-link" to="/shop/top-up">Doładuj Bajty</Link>
-        </div>
+        <BalanceCard balance={shop?.balance ?? null} topUp />
       </div>
     </section>
 

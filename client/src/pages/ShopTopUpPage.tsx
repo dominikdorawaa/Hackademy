@@ -4,6 +4,7 @@ import { ArrowLeft } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import { BytesAmount } from '../components/shop/BytesAmount';
+import { BalanceCard } from '../components/shop/BalanceCard';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cancelTopUp, errorMessage, payTestTopUp, startTopUp } from '../services/shopApi';
 import { formatBytes, formatMoney } from '../lib/bytes';
@@ -70,10 +71,7 @@ export default function ShopTopUpPage() {
           <h1 id={`${id}-title`}>Doładuj Bajty</h1>
           <p>Wybierz pakiet. Bajty trafią na Twoje konto od razu po opłaceniu zamówienia.</p>
         </div>
-        <div className="shop-balance" aria-live="polite">
-          <span className="shop-balance-label">Twoje saldo</span>
-          {shop ? <BytesAmount amount={shop.balance} className="shop-balance-amount" /> : <span className="shop-balance-amount">…</span>}
-        </div>
+        <BalanceCard balance={shop?.balance ?? null} />
       </div>
     </section>
 
