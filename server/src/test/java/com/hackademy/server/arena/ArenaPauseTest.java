@@ -1,5 +1,6 @@
 package com.hackademy.server.arena;
 
+import com.hackademy.server.shop.ShopAccess;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
@@ -43,7 +44,7 @@ class ArenaPauseTest {
     private final ArenaPresence presence = userId -> !offline.contains(userId);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
             mock(UserServiceImpl.class), mock(DashboardSummaryCache.class), realtime, presence, mock(MatchmakingService.class));
-    private final ArenaController controller = new ArenaController(mock(MatchmakingService.class), arena, null);
+    private final ArenaController controller = new ArenaController(mock(MatchmakingService.class), arena, null, mock(ShopAccess.class));
     private final AtomicLong now = new AtomicLong(START);
 
     @BeforeEach

@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 43;
+    static final int SCHEMA_VERSION = 44;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -967,6 +967,36 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         assertEquals(1, scalar("SELECT count(*) FROM path_enrollments WHERE user_id = 2 AND path_id = 103 AND enrolled_at = '2026-01-01'"));
         assertEquals(3, scalar("SELECT count(*) FROM user_solved_rooms"));
         assertEquals(0, flyway("40").migrate().migrationsExecuted);
+    }
+
+    @Test
+    void keepsScubaForPlayersWhoAlreadyDanceItAndGuardsWallets() throws Exception {
+        flyway("43").migrate();
+        insertUser(1, "Diver", "diver@example.com");
+        insertUser(2, "Groover", "groover@example.com");
+        execute("""
+                INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color, victory_dance) VALUES
+                (1, 'dres', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy', 'scuba'),
+                (2, 'baza', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy', 'groove')
+                """);
+
+        assertEquals(1, flyway("44").migrate().migrationsExecuted);
+
+        assertEquals("1:dance-scuba", text("SELECT string_agg(user_id || ':' || item_id, ',') FROM owned_items"));
+        execute("INSERT INTO wallets (user_id, balance) VALUES (2, 10)");
+        assertSqlState("23514", "UPDATE wallets SET balance = -1 WHERE user_id = 2");
+        assertSqlState("23514", "INSERT INTO wallet_transactions (user_id, amount, balance_after, kind) VALUES (2, 0, 10, 'ADMIN')");
+        assertSqlState("23514", "INSERT INTO wallet_transactions (user_id, amount, balance_after, kind) VALUES (2, 5, 15, 'GIFT')");
+        assertSqlState("23514", "INSERT INTO top_up_orders (user_id, package_id, coins, price_minor, currency, provider, status) VALUES (2, 'small', 500, 999, 'PLN', 'test', 'LOST')");
+        execute("INSERT INTO top_up_orders (id, user_id, package_id, coins, price_minor, currency, provider, provider_reference) VALUES (7, 2, 'small', 500, 999, 'PLN', 'test', 'ref')");
+        assertSqlState("23505", "INSERT INTO top_up_orders (user_id, package_id, coins, price_minor, currency, provider, provider_reference) VALUES (2, 'small', 500, 999, 'PLN', 'test', 'ref')");
+        execute("INSERT INTO wallet_transactions (user_id, amount, balance_after, kind, order_id, admin_id) VALUES (2, 500, 510, 'TOP_UP', 7, 1)");
+        execute("DELETE FROM users WHERE id = 1");
+        assertEquals(0, scalar("SELECT count(*) FROM owned_items"));
+        assertEquals(1, scalar("SELECT count(*) FROM wallet_transactions WHERE user_id = 2 AND admin_id IS NULL"));
+        execute("DELETE FROM users WHERE id = 2");
+        assertEquals(0, scalar("SELECT count(*) FROM wallets") + scalar("SELECT count(*) FROM wallet_transactions"));
+        assertEquals(1, scalar("SELECT count(*) FROM top_up_orders WHERE id = 7 AND user_id IS NULL"));
     }
 
     private void insertUser(long id, String username, String email) throws SQLException {

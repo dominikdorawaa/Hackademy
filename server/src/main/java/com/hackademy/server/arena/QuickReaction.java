@@ -10,7 +10,11 @@ public enum QuickReaction {
     SHOCK("shock"),
     SIX_SEVEN("67"),
     GROOVE("groove"),
-    SCUBA("scuba");
+    SCUBA("scuba"),
+    REMATCH("rematch"),
+    CLOSE("close"),
+    ROOT("root"),
+    GLHF("glhf");
 
     private final String id;
 

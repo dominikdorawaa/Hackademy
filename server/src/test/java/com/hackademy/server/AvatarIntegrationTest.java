@@ -100,6 +100,10 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
         var owner = account(Role.USER);
         putJson(owner, URL, AVATAR).andExpect(status().isOk())
                 .andExpect(jsonPath("$.finisher").value("beam")).andExpect(jsonPath("$.victoryDance").value("groove"));
+        putJson(owner, URL, AVATAR.replace("}", ",\"finisher\":\"combo\",\"victoryDance\":\"scuba\"}")).andExpect(status().isForbidden())
+                .andExpect(jsonPath("$.message").value("Ten taniec kupisz w sklepie."));
+        assertEquals("beam", jdbcTemplate.queryForObject("SELECT finisher FROM user_avatars WHERE user_id = ?", String.class, owner.id()));
+        jdbcTemplate.update("INSERT INTO owned_items (user_id, item_id) VALUES (?, 'dance-scuba')", owner.id());
         putJson(owner, URL, AVATAR.replace("}", ",\"finisher\":\"combo\",\"victoryDance\":\"scuba\"}")).andExpect(status().isOk())
                 .andExpect(jsonPath("$.finisher").value("combo")).andExpect(jsonPath("$.victoryDance").value("scuba"));
         putJson(owner, URL, AVATAR).andExpect(status().isOk()).andExpect(jsonPath("$.finisher").value("combo"));
