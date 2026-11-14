@@ -13,7 +13,7 @@ const tabs: { to: string; label: string; icon: Icon }[] = [
   { to: '/shop', label: 'Sklep', icon: Storefront },
 ];
 
-const fullScreen = [/^\/witaj/, /^\/arena\/battle\//, /^\/learn\/ukos/, /^\/login/, /^\/register/];
+const fullScreen = [/^\/welcome/, /^\/arena\/battle\//, /^\/learn\/ukos/, /^\/login/, /^\/register/];
 
 export function showsMobileTabBar(pathname: string) {
   return !fullScreen.some(pattern => pattern.test(pathname));
