@@ -207,7 +207,7 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         var doc = document();
         var second = ((ArrayNode) doc.path("chapters")).addObject();
         second.put("title", "Powtórka");
-        second.putArray("rooms").add(room(doc, 1).deepCopy());
+        second.putArray("rooms").add(room(doc, 1).deepCopy().put("points", 80));
         room(doc, 0).put("requiresVpn", true);
         ((ObjectNode) room(doc, 0).path("tasks").get(0)).put("content", "<script>alert(1)</script><p>Materiał</p>");
         String response = upload(admin, doc.toString(), 201);
@@ -222,7 +222,7 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
                 """, id);
         assertEquals(List.of("Terminal", "Znajdź flagę", "Znajdź flagę"), rows.stream().map(r -> r.get("title")).toList());
         assertEquals(List.of("PATH", "CTF", "CTF"), rows.stream().map(r -> r.get("room_type")).toList());
-        assertEquals(List.of(30, 50, 50), rows.stream().map(r -> r.get("points")).toList());
+        assertEquals(List.of(30, 50, 80), rows.stream().map(r -> r.get("points")).toList());
         long flagRoom = ((Number) rows.get(1).get("id")).longValue();
         assertEquals("HACK{linux}", jdbcTemplate.queryForObject("SELECT answer FROM room_tasks WHERE room_id = ?", String.class, flagRoom));
         assertNull(jdbcTemplate.queryForObject("SELECT question FROM room_tasks WHERE room_id = ?", String.class, flagRoom));

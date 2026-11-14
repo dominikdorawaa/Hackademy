@@ -324,9 +324,10 @@ describe('content editors', () => {
     const user = userEvent.setup(); mountAdmin('/admin/paths/rooms/new');
     await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy CTF');
     expect(screen.getByRole('radio', { name: 'Teoria' })).toBeChecked();
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'EASY');
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findByText('Zapisano pokój.')).toBeInTheDocument();
-    expect(save.mock.calls[0][1]).toMatchObject({ description: '', roomType: 'PATH' });
+    expect(save.mock.calls[0][1]).toMatchObject({ description: '', roomType: 'PATH', difficulty: 'EASY', points: 50 });
     expect(save.mock.calls[0][1]).not.toHaveProperty('published');
     expect(save.mock.calls[0][1]).not.toHaveProperty('flag');
     expect(await screen.findByRole('heading', { level: 1, name: 'Nowy CTF' })).toBeInTheDocument();
