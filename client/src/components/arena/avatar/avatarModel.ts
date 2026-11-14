@@ -5,7 +5,15 @@ export type Ramp = [string, string, string, string];
 
 export interface OutfitSpec { colors: Partial<Record<Material, string[]>> }
 
-export const OUTFIT_SPECS: Record<'baza' | 'bluza' | 'dres', OutfitSpec> = {
+export const OUTFIT_SPECS: Record<'baza' | 'bluza' | 'dres' | 'plaszcz', OutfitSpec> = {
+  plaszcz: { colors: {
+    outline: ['#2a202b', '#2a212d', '#2c222e', '#291f2b', '#291f2a', '#271d29', '#291f2c', '#352934', '#2f2430', '#19222b', '#261c27', '#261b26', '#1a232c', '#21212a', '#271c28', '#1c2029', '#271d27', '#221f29', '#1e1d23', '#231b25', '#281d29', '#191e27', '#16181d', '#221e27', '#1e1e26'],
+    skin: ['#b67168', '#facea9', '#fdcea9', '#facda7', '#b36f66', '#f9cba5', '#8b7a73', '#746360', '#bf7a6e', '#af6a63', '#fbcba2', '#6a5c56', '#b16b61', '#b36e64', '#facba3', '#fac79d', '#b26d64', '#af6b62', '#695c59', '#fdcba4', '#ba7368', '#b56e65', '#6a5b54', '#fbcda5', '#fcc99e', '#b26d65', '#fdc79e', '#fbc99f', '#f9c89e', '#f9caa1', '#bf7968'],
+    top: ['#3e485d', '#374155', '#3c4559', '#272d3b', '#2b3345', '#3f4654', '#5f5e62', '#35343c', '#3a363e', '#404655', '#444048', '#5c5a5f', '#605f64', '#3b343d', '#3c3841', '#3f4553', '#353b47', '#303441', '#5e6062', '#3b373f', '#5b5d60', '#5b5d5f', '#5d5e61', '#5c5b62', '#5a5b5e', '#37323c', '#3b354f'],
+    bottom: ['#594c49', '#81716a', '#9b8c7f', '#524245', '#615251', '#9e8c81', '#45363d', '#5f5250', '#272d39', '#2e313e', '#2f3137', '#322d34', '#271e2a', '#33323d', '#292e3a', '#1b242e', '#303238', '#2c303d', '#23202c', '#33323a', '#202833', '#1e2631', '#1c252f', '#342833', '#26202a', '#291e29', '#242b37', '#2a2a32', '#2b2f3c', '#2b2d34', '#2b212c', '#2e313d'],
+    shoes: ['#5a4f74', '#5d5077', '#5b4d74', '#594e71', '#574c6f', '#5b4d73'],
+    keep: ['#e7e9e8', '#fdfdfd', '#2bf6de', '#4bf1d8', '#1fe7c5', '#67f6e2', '#0edfba', '#57f4dd', '#2cf7e1', '#15e4be', '#61f5dd', '#2defc8', '#14d3b0', '#4ef3d7', '#1fecc2', '#1be1b7'],
+  } },
   dres: { colors: {
     outline: ['#261d27', '#291e29', '#271e28', '#2a202b', '#281e27', '#241b25', '#251c26', '#231a24', '#271d28', '#231a23'],
     skin: ['#fbcda5', '#facba3', '#fdcba5', '#fdcca5', '#b66f65', '#b36d64', '#b46e63', '#b87066', '#b56a5f', '#b67066', '#bb7468', '#a26058', '#9e625c', '#74625c', '#9e8678', '#fbcb9e', '#fbcc9f', '#fccb9f', '#b16b61', '#b36d62', '#af685e'],
@@ -157,18 +165,21 @@ export type HatStyle = typeof HAT_STYLES[number];
 export const HEAD_OVERLAYS: Record<Exclude<HairStyle | HatStyle, 'brak'>, string> = {
   krotkie: 'hair-short.png', irokez: 'hair-mohawk.png', kucyk: 'hair-ponytail.png', czapka: 'hat-beanie.png', daszek: 'hat-cap.png',
 };
-export const AVATAR_OUTFITS = ['baza', 'bluza', 'dres'] as const;
+export const AVATAR_OUTFITS = ['baza', 'bluza', 'dres', 'plaszcz'] as const;
+export const FREE_OUTFITS = ['baza', 'bluza', 'dres'] as const;
 export type AvatarOutfit = typeof AVATAR_OUTFITS[number];
 export const FRONT_VIEWS: Record<AvatarOutfit, { image: string; anchors: string }> = {
   baza: { image: 'front/baza.png', anchors: 'front/anchors-baza.json' },
   bluza: { image: 'front/bluza.png', anchors: 'front/anchors-bluza.json' },
   dres: { image: 'front/dres.png', anchors: 'front/anchors-dres.json' },
+  plaszcz: { image: 'front/plaszcz.png', anchors: 'front/anchors-plaszcz.json' },
 };
-export const HEAD_ANCHORS: Record<AvatarOutfit, string> = { baza: 'anchors.json', bluza: 'hoodie/anchors.json', dres: 'track/anchors.json' };
+export const HEAD_ANCHORS: Record<AvatarOutfit, string> = { baza: 'anchors.json', bluza: 'hoodie/anchors.json', dres: 'track/anchors.json', plaszcz: 'coat/anchors.json' };
 export const PROFILE_VIEWS: Record<AvatarOutfit, { image: string; anchors: string }> = {
   baza: { image: 'profile/baza.png', anchors: 'profile/anchors-baza.json' },
   bluza: { image: 'profile/bluza.png', anchors: 'profile/anchors-bluza.json' },
   dres: { image: 'profile/dres.png', anchors: 'profile/anchors-dres.json' },
+  plaszcz: { image: 'profile/plaszcz.png', anchors: 'profile/anchors-plaszcz.json' },
 };
 export const AVATAR_POSES = ['przod', 'postawa', 'profil'] as const;
 export type AvatarPose = typeof AVATAR_POSES[number];
@@ -176,7 +187,7 @@ export const PORTRAIT_CROPS: Record<AvatarPose, [number, number]> = { przod: [16
 const toPose = (value: unknown): AvatarPose => (AVATAR_POSES as readonly unknown[]).includes(value) ? value as AvatarPose : 'przod';
 export const FINISHER_MOVES = ['beam', 'combo'] as const;
 export type FinisherMove = typeof FINISHER_MOVES[number];
-export const VICTORY_DANCES = ['groove', 'sixseven', 'scuba'] as const;
+export const VICTORY_DANCES = ['groove', 'sixseven', 'scuba', 'crab'] as const;
 export type VictoryDance = typeof VICTORY_DANCES[number];
 const toFinisher = (value: unknown): FinisherMove => (FINISHER_MOVES as readonly unknown[]).includes(value) ? value as FinisherMove : 'beam';
 const toDance = (value: unknown): VictoryDance => (VICTORY_DANCES as readonly unknown[]).includes(value) ? value as VictoryDance : 'groove';
@@ -254,7 +265,7 @@ export function avatarFromUsername(username: string): Avatar {
   const pick = <T,>(options: readonly T[]) => { const value = options[hash % options.length]; hash = Math.imul(hash ^ (hash >>> 13), 2246822519) >>> 0; return value; };
   const cloth = Object.keys(CLOTH_RAMPS);
   return {
-    outfit: pick(AVATAR_OUTFITS), hair: pick(['krotkie', 'krotkie', 'irokez', 'kucyk', 'brak'] as const), hat: pick(['brak', 'brak', 'brak', 'czapka', 'daszek'] as const), pose: 'przod', finisher: 'beam', dance: 'groove',
+    outfit: pick(FREE_OUTFITS), hair: pick(['krotkie', 'krotkie', 'irokez', 'kucyk', 'brak'] as const), hat: pick(['brak', 'brak', 'brak', 'czapka', 'daszek'] as const), pose: 'przod', finisher: 'beam', dance: 'groove',
     colors: { skin: pick(Object.keys(SKIN_RAMPS)), hair: pick(Object.keys(HAIR_RAMPS)), top: pick(cloth), bottom: pick(cloth), shoes: pick(cloth), hat: pick(cloth) },
   };
 }

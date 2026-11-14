@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "a2eca45f6f92c18bf852ece3e00033929840f677a4a49323f433321c9573d2e7",
-    "hoodie/fighter.png": "60aa88d8140c97e849dec3d0a5a709121e5ba2fe3307227b39cf9231d7c43b6b",
-    "track/fighter.png": "f397ca8e22898c730f9ee15486ed6dd5f3e7710304741909b27333508993bb8e"
+    "fighter.png": "a738231167dbf99da08e1a467756ea78253c380e434f41fd3e6527842f28ef85",
+    "hoodie/fighter.png": "3d90b1e9f5c6153fcc3e6cea1ed3ef6d2f422f7114c2106b6c701c64c210ec3c",
+    "track/fighter.png": "4b9448c2f13af7ccd4a76b91e2e9e0bb9d0cac181185cbb350c491839030cfca"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -485,5 +485,283 @@
     "overlays": "front/ and dance/ hair and hats are the difference between hair edits of the base front and the bald base front; light scalp-edge pixels left over from cutting the head out are removed from the hair overlays, so they do not turn into pale streaks after the hair recolour",
     "processing": "every new frame is moved so the feet stand on row 54 and snapped to the outfit palette by material: outline only on the silhouette edge or between face skin, skin only for clearly skin tones, shoes below the ankles, trousers only on the lower body, the rest to the nearest clothing material; each pixel then takes the nearest colour of its own material, the hoodie green is first tone-mapped to the previous hoodie; enclosed see-through gaps are filled",
     "groove": "animate-with-skeleton-v3 from the side stance of each outfit (seed 98203) with the joint motion read from the previous Luz frames, so the dancer turns from the side to the front and back to the beat; each frame gets a side or a front head anchor depending on which head template fits"
+  },
+  "crab": {
+    "generatedAt": "2026-11-13",
+    "sources": "local-prototype-backups/shop-items-v1",
+    "rows": "rows 17 and 18, columns 1 to 8, each of the 8 poses held for two cells; the turn reuses the Six-seven turn in row 15",
+    "animation": {
+      "endpoint": "animate-with-skeleton-v3",
+      "seed": 98805,
+      "direction": "south",
+      "from": "the first frame of front/<outfit>.png and its estimate-skeleton keypoints",
+      "keypoints": "eight hand-placed poses: a deep wide squat with knees out, both arms raised beside the head like crab claws, the wrists closing in on every other pose, the body sliding sideways 3 pixels right and back with the leading foot sliding along the floor",
+      "action": "crab dance facing the viewer: deep wide squat with knees bent outward, both arms raised beside the head with bent elbows like crab claws, the hands snap open and shut like pincers, the body shuffles sideways sliding the feet along the floor, both feet always on the ground and fully visible with shoes, the head stays still facing the viewer"
+    },
+    "processing": "the front head of each outfit is located in every frame and replaced by the unchanged front head at that spot, so the face never changes; on the base T-shirt the white sleeve trims left behind by the raised arms are painted in the shirt colour; frames are lifted one pixel so the feet stand on row 54 like the other dances; every pixel already matched a colour of the outfit atlas; head anchors are the Six-seven reference anchor moved by the head offset"
+  },
+  "coat": {
+    "generatedAt": "2026-11-13",
+    "sources": "local-prototype-backups/shop-items-v1",
+    "outfit": "plaszcz (Płaszcz netrunnera)",
+    "look": {
+      "side": {
+        "endpoint": "edit-image-pixen",
+        "from": "stance cell 0 of the base atlas",
+        "seed": 98102
+      },
+      "front": {
+        "endpoint": "edit-image-pixen",
+        "from": "first frame of front/baza.png",
+        "seed": 98103
+      },
+      "description": "wearing a long dark charcoal grey hooded trench coat that reaches the knees, the hood lies down flat on the shoulders and back, thin glowing cyan trim lines along the coat edges and cuffs, coat open at the front over a black shirt, dark trousers and black boots; head stays bald"
+    },
+    "animations": {
+      "endpoint": "animate-with-skeleton-v3",
+      "method": "for every animation the skeleton of each base atlas cell is estimated and moved onto the coat stance (side or front) by the difference to the base stance skeleton, then the coat is animated with those keypoints",
+      "runs": [
+        {
+          "name": "row1",
+          "cells": [
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17
+          ],
+          "view": "side",
+          "seed": 99101,
+          "action": "side view boxing attack facing right: a quick straight punch to the right and back to the guard, the coat tails swing with the motion"
+        },
+        {
+          "name": "beamA",
+          "cells": [
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26
+          ],
+          "view": "side",
+          "seed": 99102,
+          "action": "side view facing right: a finishing move, the fighter gathers power with both hands, then thrusts both open palms forward to the right and returns to the guard, the coat tails flare"
+        },
+        {
+          "name": "beamB",
+          "cells": [
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "view": "side",
+          "seed": 100102,
+          "action": "side view facing right: a finishing move, the fighter gathers power with both hands, then thrusts both open palms forward to the right and returns to the guard, the coat tails flare"
+        },
+        {
+          "name": "hurt",
+          "cells": [
+            37,
+            38,
+            39,
+            40
+          ],
+          "view": "side",
+          "seed": 99103,
+          "action": "side view facing right: takes a hit from the right, recoils the shoulders and head to the left with both fists in front of the chin, then recovers"
+        },
+        {
+          "name": "defeat",
+          "cells": [
+            46,
+            47,
+            48,
+            49,
+            50,
+            51,
+            52,
+            53
+          ],
+          "view": "side",
+          "seed": 99104,
+          "action": "side view facing right: takes a final hit, the knees buckle, staggers back to the left and falls onto the floor, ending lying down motionless with the coat spread on the floor"
+        },
+        {
+          "name": "grooveA",
+          "cells": [
+            55,
+            56,
+            57,
+            58,
+            59,
+            60,
+            61,
+            62
+          ],
+          "view": "side",
+          "seed": 99105,
+          "action": "groove dance: turns from the side to face the viewer to the beat, opens the arms with palms up, sways, bounces into a crouch and turns back to the side, the coat swings"
+        },
+        {
+          "name": "grooveB",
+          "cells": [
+            64,
+            65,
+            66,
+            67,
+            68,
+            69,
+            70,
+            71
+          ],
+          "view": "side",
+          "seed": 100105,
+          "action": "groove dance: turns from the side to face the viewer to the beat, opens the arms with palms up, sways, bounces into a crouch and turns back to the side, the coat swings"
+        },
+        {
+          "name": "sixseven",
+          "cells": [
+            74,
+            75,
+            76,
+            77,
+            78,
+            79,
+            80,
+            82,
+            83,
+            84,
+            85,
+            86,
+            87,
+            88,
+            89
+          ],
+          "view": "front",
+          "seed": 99106,
+          "action": "six seven hand gesture facing the viewer, palms up, hands alternating up and down"
+        },
+        {
+          "name": "run",
+          "cells": [
+            91,
+            92,
+            93,
+            94,
+            95,
+            96,
+            97,
+            98
+          ],
+          "view": "side",
+          "seed": 99107,
+          "action": "side view running to the right in a loop, arms pumping, the long coat tails flapping behind"
+        },
+        {
+          "name": "combo",
+          "cells": [
+            100,
+            101,
+            102,
+            103,
+            104,
+            105,
+            106,
+            107,
+            109,
+            110,
+            111,
+            113,
+            115
+          ],
+          "view": "side",
+          "seed": 99108,
+          "action": "side view facing right: a fast punching combo finisher, several quick punches and a final strike to the right, then back to the guard, the coat tails swing"
+        },
+        {
+          "name": "scubaA",
+          "cells": [
+            118,
+            119,
+            120,
+            121,
+            122,
+            123,
+            124,
+            125
+          ],
+          "view": "front",
+          "seed": 99109,
+          "action": "scuba dance facing the viewer: one hand pinches the nose, the other arm makes a wave motion forward while the body sways and dips like going under water"
+        },
+        {
+          "name": "scubaB",
+          "cells": [
+            127,
+            128,
+            129,
+            130,
+            131,
+            132,
+            133,
+            134
+          ],
+          "view": "front",
+          "seed": 100109,
+          "action": "scuba dance facing the viewer: one hand pinches the nose, the other arm makes a wave motion forward while the body sways and dips like going under water"
+        },
+        {
+          "name": "turn",
+          "cells": [
+            136,
+            137,
+            138,
+            139
+          ],
+          "view": "side",
+          "seed": 99110,
+          "action": "turns from the side view facing right to face the viewer in four steps, arms relaxed"
+        },
+        {
+          "name": "drag",
+          "cells": [
+            140,
+            140,
+            140
+          ],
+          "view": "side",
+          "seed": 99111,
+          "action": "lies knocked out on the back on the floor with the coat spread out, motionless"
+        }
+      ]
+    },
+    "crab": "the Crab dance with the coat front as the first frame, same keypoints and seed as the other outfits",
+    "processing": "the base head is located in every cell (with rotation for falls and lying cells) and replaced by the unchanged base head, which gives the head anchors; in the upper body pixels further than 3 pixels from the base silhouette are removed (glow streaks and beams the generator added), as are loose specks under 12 pixels; every pixel is snapped to the palette of the coat stance, coat front and base stances; held cells reuse the same frame; the front strip is the coat front with the same breathing as the other outfits; the profile is edit-image-pixen seed 87002 like the other outfits with the base head restamped"
+  },
+  "danceCleanup": {
+    "generatedAt": "2026-11-13",
+    "sources": "local-prototype-backups/shop-items-v1 (clean.cjs, armline.cjs, assemble.cjs, segment.cjs)",
+    "specks": "in every dance row (6 to 9 and 13 to 18) of baza, the hoodie and the track suit, and in every cell of the coat, small groups of up to six pixels whose colour the recolouring reads as another material than the pixels around them (skin specks on trousers, trouser and shirt specks on fists, shoe specks on legs) take the most common colour of the surrounding material at the same shade, and lone groups of fewer than twelve pixels away from the body are removed",
+    "armOutlines": "in the same dance rows, every clothing pixel that touches an arm or hand below the chin becomes the outline colour, so forearms crossing the chest stay visible with a light shirt and light skin",
+    "turnSkin": "the baza turn frames (cells 136 to 139 and 145 to 148) used darker skin colours than the rest of the dance, so their two darker skin shades move up by one",
+    "coatDances": {
+      "endpoint": "edit-image-pixen",
+      "seed": 99501,
+      "from": "the matching baza cell of every Groove, Six-seven, Scuba and turn frame (cells 55 to 62, 64 to 71, 73 to 80, 82 to 89, 118 to 125, 127 to 134, 136 to 139)",
+      "description": "Same bald fighter, same pose, head, hands and feet. Only the clothes change: a long bright red trench coat to the knees, open over a black shirt, thin glowing cyan trim on the front edges and hem. Sleeves cover the arms to the wrists with cyan cuffs, bare hands stay in place. Sleeves have a dark outline so the arms stand out. Light grey trousers, dark purple shoes.",
+      "processing": "of the two images the one closer to the previous frame is kept; every pixel gets a material from its colour and the baza pixel under it (red is the coat, dark pixels on the torso are the black shirt drawn in the outline colour, grey is trousers, purple at the feet or where baza has shoes is shoes, skin only next to baza skin) and takes the coat atlas colour of that material and shade, the head above the chin is copied from baza so the hair and hats keep the baza head anchors, cells 145 to 148 copy the turn, then the speck cleanup and arm outlines run on these cells"
+    },
+    "handHoles": "below the chin, grey pixels the recolouring keeps unchanged (mostly in the track suit fists) and clothing pixels that sit inside a hand take the skin colour of the same shade, so dark skin no longer shows grey holes in the fists"
   }
 }

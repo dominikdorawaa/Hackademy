@@ -1,10 +1,13 @@
 import { useEffect, useId, useRef, useState } from 'react';
 import type { KeyboardEvent, ReactNode } from 'react';
+import { Lock } from 'lucide-react';
 import { PixelSprite } from '../../PixelSprite';
-import { QUICK_REACTIONS, REACTION_GROUPS } from './quickChat';
+import { QUICK_REACTIONS, REACTION_GROUPS, reactionLocked } from './quickChat';
+import { useShop } from '../../../context/ShopContext';
 
 export function QuickChatMenu({ children, onPick, notice }: { children: ReactNode; onPick: (id: string) => void; notice: string | null }) {
   const [open, setOpen] = useState(false);
+  const { shop } = useShop();
   const menuId = useId();
   const root = useRef<HTMLDivElement>(null);
   const trigger = useRef<HTMLButtonElement>(null);
@@ -51,10 +54,13 @@ export function QuickChatMenu({ children, onPick, notice }: { children: ReactNod
               <div className="quick-chat-items">
                 {QUICK_REACTIONS.filter(reaction => reaction.kind === group.kind).map(reaction => {
                   const slot = QUICK_REACTIONS.indexOf(reaction);
+                  const locked = reactionLocked(shop, reaction.id);
                   return (
                     <button key={reaction.id} ref={element => { items.current[slot] = element; }} type="button" role="menuitem" tabIndex={-1}
-                      className="quick-chat-item" aria-label={reaction.name} onClick={() => pick(reaction.id)}>
+                      className="quick-chat-item" aria-label={locked ? `${reaction.name}, do kupienia w Sklepie` : reaction.name}
+                      aria-disabled={locked || undefined} data-locked={locked || undefined} onClick={() => { if (!locked) pick(reaction.id); }}>
                       {reaction.sprite ? <PixelSprite sprite={reaction.sprite} duration={reaction.sprite.frames * 110} /> : reaction.text}
+                      {locked && <Lock className="quick-chat-lock" size={12} aria-hidden="true" />}
                     </button>
                   );
                 })}

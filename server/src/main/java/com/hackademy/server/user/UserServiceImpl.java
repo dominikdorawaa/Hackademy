@@ -116,6 +116,7 @@ public class UserServiceImpl implements UserService {
     private final UserAvatarRepository userAvatarRepository;
     private final com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
     private final ApplicationEventPublisher events;
+    private final com.hackademy.server.shop.ShopAccess shopAccess;
 
     @Override
     @Transactional(readOnly = true)
@@ -256,6 +257,7 @@ public class UserServiceImpl implements UserService {
     @Transactional
     public UserAvatarDto saveAvatar(Long userId, UserAvatarDto avatar) {
         if (!userRepository.existsById(userId)) throw new UserNotFoundException("User not found");
+        shopAccess.requireAvatarItems(userId, avatar);
         UserAvatar entity = userAvatarRepository.findById(userId).orElseGet(() -> UserAvatar.of(userId, avatar));
         entity.apply(avatar);
         UserAvatarDto saved = userAvatarRepository.save(entity).toDto();

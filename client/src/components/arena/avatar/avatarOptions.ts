@@ -5,6 +5,7 @@ export const OUTFITS: { id: Avatar['outfit']; name: string; description: string 
   { id: 'baza', name: 'Klasyczna', description: 'Koszulka i proste spodnie.' },
   { id: 'bluza', name: 'Bluza', description: 'Bluza z opuszczonym kapturem, jeansy i trampki.' },
   { id: 'dres', name: 'Dres', description: 'Kurtka dresowa z paskami i spodnie z lampasem.' },
+  { id: 'plaszcz', name: 'Płaszcz netrunnera', description: 'Długi płaszcz z opuszczonym kapturem i świecącymi lamówkami.' },
 ];
 const SKIN_PRESETS = ['porcelanowa', 'jasna', 'oliwkowa', 'brazowa', 'ciemna', 'heban'];
 const HAIR_PRESETS = ['czarne', 'brazowe', 'blond', 'rude', 'siwe', 'niebieskie'];
@@ -36,5 +37,6 @@ export const DANCE_OPTIONS: Record<VictoryDance, { name: string; description: st
   groove: { name: 'Luz', description: 'Swobodny taniec bokiem do rywala.' },
   sixseven: { name: 'Six-seven', description: 'Obrót do widowni i ręce ważące: sześć, siedem.' },
   scuba: { name: 'Scuba', description: 'Obrót do widowni, zatkany nos i fala ręką.' },
+  crab: { name: 'Krab', description: 'Szeroki przysiad, szczypce w górze i dreptanie w bok.' },
 };
 export const POSE_NAMES: Record<Avatar['pose'], string> = { przod: 'Przód', postawa: 'Postawa', profil: 'Profil' };

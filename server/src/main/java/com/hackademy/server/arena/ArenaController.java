@@ -1,5 +1,6 @@
 package com.hackademy.server.arena;
 
+import com.hackademy.server.shop.ShopAccess;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserService;
 import lombok.RequiredArgsConstructor;
@@ -32,6 +33,7 @@ public class ArenaController {
     private final MatchmakingService matchmakingService;
     private final ArenaService arenaService;
     private final UserService userService;
+    private final ShopAccess shopAccess;
 
     private static User currentUser() {
         return (User) SecurityContextHolder.getContext().getAuthentication().getPrincipal();
@@ -117,6 +119,9 @@ public class ArenaController {
     @PostMapping("/game/{gameId}/reaction")
     public ResponseEntity<?> react(@PathVariable String gameId, @RequestBody(required = false) Map<String, String> payload) {
         String reaction = payload == null ? null : payload.get("reaction");
+        if (shopAccess.reactionLocked(currentUser().getId(), reaction)) {
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Tę reakcję kupisz w Sklepie."));
+        }
         ReactionOutcome outcome = arenaService.react(gameId, currentUser().getId(), reaction);
         return switch (outcome.status()) {
             case SENT -> ResponseEntity.ok(Map.of("message", "Reakcja wysłana"));

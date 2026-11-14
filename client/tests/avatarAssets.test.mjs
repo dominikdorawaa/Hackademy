@@ -42,7 +42,7 @@ function decode(file) {
 for (const [outfit, [atlasFile, anchorFile]] of Object.entries(ATLASES)) {
   test(`${outfit} running and Six-seven frames are whole, anchored and listed in provenance`, () => {
     const file = read(atlasFile), atlas = decode(file), anchors = JSON.parse(read(anchorFile).toString());
-    assert.deepEqual([atlas.width, atlas.height], [576, 1088]);
+    assert.deepEqual([atlas.width, atlas.height], [576, 1216]);
     for (let column = 1; column <= 8; column++) {
       const cell = RUN_ROW * 9 + column, top = RUN_ROW * 64, left = column * 64;
       assert.equal(anchors.cells[cell]?.angle, 0);
