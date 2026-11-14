@@ -44,7 +44,7 @@ public class TopUpService {
     public boolean markPaid(String providerName, String reference) {
         Paid paid = jdbc.query("""
                 UPDATE top_up_orders SET status = 'PAID', paid_at = now()
-                WHERE provider = ? AND provider_reference = ? AND status = 'PENDING'
+                WHERE provider = ? AND provider_reference = ? AND status = 'PENDING' AND user_id IS NOT NULL
                 RETURNING id, user_id, coins
                 """, rs -> rs.next() ? new Paid(rs.getLong("id"), (Long) rs.getObject("user_id"), rs.getInt("coins")) : null, providerName, reference);
         if (paid == null || paid.userId() == null) return false;

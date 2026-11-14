@@ -120,7 +120,7 @@ public class ArenaController {
     public ResponseEntity<?> react(@PathVariable String gameId, @RequestBody(required = false) Map<String, String> payload) {
         String reaction = payload == null ? null : payload.get("reaction");
         if (shopAccess.reactionLocked(currentUser().getId(), reaction)) {
-            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Tę reakcję kupisz w sklepie."));
+            return ResponseEntity.status(HttpStatus.FORBIDDEN).body(Map.of("message", "Tę reakcję kupisz w Sklepie."));
         }
         ReactionOutcome outcome = arenaService.react(gameId, currentUser().getId(), reaction);
         return switch (outcome.status()) {

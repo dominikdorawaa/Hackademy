@@ -165,7 +165,7 @@ class ShopIntegrationTest extends PostgresIntegrationTest {
         String url = "/api/arena/game/" + arena.acceptChallenge(challenge.getId(), second.id()).getId() + "/reaction";
 
         postJson(first, url, "{\"reaction\":\"scuba\"}").andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Tę reakcję kupisz w sklepie."));
+                .andExpect(jsonPath("$.message").value("Tę reakcję kupisz w Sklepie."));
         postJson(first, url, "{\"reaction\":\"wp\"}").andExpect(status().isForbidden());
         give(admin, first, 150);
         postJson(first, "/api/shop/items/chat-wp/purchase", "{}").andExpect(status().isOk());

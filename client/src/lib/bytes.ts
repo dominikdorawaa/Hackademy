@@ -1,7 +1,7 @@
 import type { ShopCategory, ShopState } from '../types/api';
 
 const plural = new Intl.PluralRules('pl-PL');
-const number = new Intl.NumberFormat('pl-PL');
+export const bytesNumber = new Intl.NumberFormat('pl-PL');
 
 export function bytesWord(amount: number) {
   const rule = plural.select(Math.abs(amount));
@@ -9,7 +9,7 @@ export function bytesWord(amount: number) {
 }
 
 export function formatBytes(amount: number) {
-  return `${number.format(amount)} ${bytesWord(amount)}`;
+  return `${bytesNumber.format(amount)} ${bytesWord(amount)}`;
 }
 
 export function formatMoney(minor: number, currency: string) {

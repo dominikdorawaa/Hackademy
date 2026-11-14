@@ -101,7 +101,7 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
         putJson(owner, URL, AVATAR).andExpect(status().isOk())
                 .andExpect(jsonPath("$.finisher").value("beam")).andExpect(jsonPath("$.victoryDance").value("groove"));
         putJson(owner, URL, AVATAR.replace("}", ",\"finisher\":\"combo\",\"victoryDance\":\"scuba\"}")).andExpect(status().isForbidden())
-                .andExpect(jsonPath("$.message").value("Ten taniec kupisz w sklepie."));
+                .andExpect(jsonPath("$.message").value("Ten taniec kupisz w Sklepie."));
         assertEquals("beam", jdbcTemplate.queryForObject("SELECT finisher FROM user_avatars WHERE user_id = ?", String.class, owner.id()));
         jdbcTemplate.update("INSERT INTO owned_items (user_id, item_id) VALUES (?, 'dance-scuba')", owner.id());
         putJson(owner, URL, AVATAR.replace("}", ",\"finisher\":\"combo\",\"victoryDance\":\"scuba\"}")).andExpect(status().isOk())
@@ -117,7 +117,7 @@ class AvatarIntegrationTest extends PostgresIntegrationTest {
     void wearsTheCoatAndDancesTheCrabOnlyAfterBuyingThem() throws Exception {
         var owner = account(Role.USER);
         var coat = AVATAR.replace("\"outfit\":\"bluza\"", "\"outfit\":\"plaszcz\"");
-        putJson(owner, URL, coat).andExpect(status().isForbidden()).andExpect(jsonPath("$.message").value("Ten strój kupisz w sklepie."));
+        putJson(owner, URL, coat).andExpect(status().isForbidden()).andExpect(jsonPath("$.message").value("Ten strój kupisz w Sklepie."));
         putJson(owner, URL, AVATAR.replace("}", ",\"victoryDance\":\"crab\"}")).andExpect(status().isForbidden());
         jdbcTemplate.update("INSERT INTO owned_items (user_id, item_id) VALUES (?, 'outfit-coat'), (?, 'dance-crab')", owner.id(), owner.id());
         putJson(owner, URL, coat.replace("}", ",\"victoryDance\":\"crab\"}")).andExpect(status().isOk())

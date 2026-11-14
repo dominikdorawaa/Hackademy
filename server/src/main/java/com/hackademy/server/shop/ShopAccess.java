@@ -16,10 +16,10 @@ public class ShopAccess {
 
     public void requireAvatarItems(long userId, UserAvatarDto avatar) {
         if (locked(userId, avatar.victoryDance() == null ? Optional.empty() : ShopItem.find(ShopCategory.DANCE, avatar.victoryDance()))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ten taniec kupisz w sklepie.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ten taniec kupisz w Sklepie.");
         }
         if (locked(userId, avatar.outfit() == null ? Optional.empty() : ShopItem.find(ShopCategory.OUTFIT, avatar.outfit()))) {
-            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ten strój kupisz w sklepie.");
+            throw new ResponseStatusException(HttpStatus.FORBIDDEN, "Ten strój kupisz w Sklepie.");
         }
     }
 
