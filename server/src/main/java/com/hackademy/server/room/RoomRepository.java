@@ -5,12 +5,14 @@ import com.hackademy.server.room.dto.RoomAdminSummaryDto;
 import com.hackademy.server.room.dto.RoomSummaryDto;
 import jakarta.persistence.LockModeType;
 import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 import org.springframework.stereotype.Repository;
 
+import java.util.Collection;
 import java.util.List;
 import java.util.Optional;
 
@@ -52,6 +54,21 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
            "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn, r.roomType) " +
            "FROM Room r ORDER BY r.id")
     List<RoomAdminSummaryDto> findAllAdminSummaries();
+
+    String ADMIN_MATCH = "(LOCATE(LOWER(:query), LOWER(r.title)) > 0 OR EXISTS (SELECT cr.roomId FROM ChapterRoom cr JOIN PathChapter c ON c.id = cr.chapterId JOIN Path p ON p.id = c.pathId WHERE cr.roomId = r.id AND LOCATE(LOWER(:query), LOWER(p.title)) > 0))";
+
+    @Query("SELECT new com.hackademy.server.room.dto.RoomAdminSummaryDto(" +
+           "r.id, r.title, r.category, r.difficulty, r.points, r.requiresVpn, r.roomType) " +
+           "FROM Room r WHERE r.roomType IN :types AND " + ADMIN_MATCH + " ORDER BY r.id")
+    Slice<RoomAdminSummaryDto> findAdminPage(@Param("query") String query, @Param("types") Collection<RoomType> types, Pageable pageable);
+
+    @Query("SELECT r.roomType AS type, COUNT(r) AS total FROM Room r WHERE " + ADMIN_MATCH + " GROUP BY r.roomType")
+    List<RoomTypeCount> countAdminByType(@Param("query") String query);
+
+    interface RoomTypeCount {
+        RoomType getType();
+        long getTotal();
+    }
 
     @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +
            "r.id, r.title, r.description, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +

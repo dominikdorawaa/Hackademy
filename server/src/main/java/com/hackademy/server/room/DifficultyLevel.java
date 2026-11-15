@@ -6,13 +6,13 @@ public enum DifficultyLevel {
     HARD(150),
     INSANE(200);
 
-    private final int ctfPoints;
+    private final int suggestedPoints;
 
-    DifficultyLevel(int ctfPoints) {
-        this.ctfPoints = ctfPoints;
+    DifficultyLevel(int suggestedPoints) {
+        this.suggestedPoints = suggestedPoints;
     }
 
-    public int ctfPoints() {
-        return ctfPoints;
+    public int suggestedPoints() {
+        return suggestedPoints;
     }
 }

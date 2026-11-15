@@ -102,7 +102,7 @@ class RoomInManyPathsIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.message", containsString("rozdziale 1")));
         assertEquals(2, assignments(shared));
 
-        String adminRooms = getAs(admin, "/api/admin/rooms").andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
+        String adminRooms = getAs(admin, "/api/admin/rooms/all").andExpect(status().isOk()).andReturn().getResponse().getContentAsString();
         assertEquals(List.of(linuxTitle, webTitle), JsonPath.read(adminRooms, "$[?(@.id == " + shared + ")].paths[*].title"));
         assertEquals(List.of(linuxTitle), JsonPath.read(adminRooms, "$[?(@.id == " + other + ")].paths[*].title"));
         getAs(admin, "/api/admin/content/rooms/" + shared).andExpect(status().isOk())

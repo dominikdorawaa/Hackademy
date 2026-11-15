@@ -519,12 +519,30 @@ class RoomServiceImplTest {
     }
 
     @Test
-    void ctfRoomPointsComeFromDifficultyNotFromRequest() throws IOException {
+    void ctfRoomKeepsRequestedPoints() throws IOException {
         returnSavedRoom();
 
         Room room = service.createRoom(createRequest("Nowy", DifficultyLevel.HARD, 999, RoomType.CTF), null);
 
-        assertEquals(150, room.getPoints());
+        assertEquals(999, room.getPoints());
+    }
+
+    @Test
+    void ctfRoomWithoutPointsGetsTheSuggestedPoints() throws IOException {
+        returnSavedRoom();
+
+        Room room = service.createRoom(createRequest("Nowy", DifficultyLevel.HARD, null, RoomType.CTF), null);
+
+        assertEquals(DifficultyLevel.HARD.suggestedPoints(), room.getPoints());
+    }
+
+    @Test
+    void ctfRoomNeedsNonNegativePoints() {
+        var error = assertThrows(RoomRuleException.class,
+                () -> service.createRoom(createRequest("Nowy", DifficultyLevel.EASY, -1, RoomType.CTF), null));
+
+        assertEquals(HttpStatus.BAD_REQUEST, error.getStatusCode());
+        assertEquals("points", error.field());
     }
 
     @Test
@@ -598,7 +616,7 @@ class RoomServiceImplTest {
 
         assertEquals(4, room.getContentRevision());
         assertEquals("Nowy", room.getTitle());
-        assertEquals(DifficultyLevel.MEDIUM.ctfPoints(), room.getPoints());
+        assertEquals(10, room.getPoints());
     }
 
     @Test
@@ -660,7 +678,7 @@ class RoomServiceImplTest {
         Room room = service.updateRoom(2L, updateRequest("Room 2", RoomType.CTF), null);
 
         assertEquals(RoomType.CTF, room.getRoomType());
-        assertEquals(DifficultyLevel.MEDIUM.ctfPoints(), room.getPoints());
+        assertEquals(10, room.getPoints());
     }
 
     @Test
@@ -671,7 +689,7 @@ class RoomServiceImplTest {
         Room room = service.updateRoom(1L, updateRequest("Room 1", null), null);
 
         assertEquals(RoomType.CTF, room.getRoomType());
-        assertEquals(DifficultyLevel.MEDIUM.ctfPoints(), room.getPoints());
+        assertEquals(10, room.getPoints());
     }
 
     @Test

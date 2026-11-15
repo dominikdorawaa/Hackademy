@@ -317,7 +317,7 @@ class ContentDraftsIntegrationTest {
         mvc.perform(post("/api/paths/" + id + "/enroll").header("Authorization", "Bearer " + user)).andExpect(status().isOk());
         mvc.perform(get("/api/paths/" + id + "/enrolled").header("Authorization", "Bearer " + user)).andExpect(content().string("true"));
         mvc.perform(get("/api/rooms/" + roomId + "/file").header("Authorization", "Bearer " + user)).andExpect(status().isOk()).andExpect(content().bytes(file));
-        mvc.perform(get("/api/admin/paths").header("Authorization", "Bearer " + expert)).andExpect(status().isOk()).andExpect(jsonPath("$[?(@.id == " + id + ")].published").value(org.hamcrest.Matchers.contains(true)));
+        mvc.perform(get("/api/admin/paths").param("query", (String) p.get("title")).header("Authorization", "Bearer " + expert)).andExpect(status().isOk()).andExpect(jsonPath("$.items[?(@.id == " + id + ")].published").value(org.hamcrest.Matchers.contains(true)));
     }
 
     @Test void createsChapterOnPublishedParentAtomicallyAndNeverSilentlyHidesIt() throws Exception {

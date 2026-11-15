@@ -127,7 +127,7 @@ public class ContentService {
         v.text("category", r.category(), 255, true);
         if (r.difficulty() == null) v.problem("difficulty", "Wybierz trudność");
         if (r.roomType() == null) v.problem("roomType", "Wybierz typ pokoju");
-        if (r.roomType() == RoomType.PATH && (r.points() == null || r.points() < 0)) v.problem("points", "Podaj nieujemną liczbę punktów");
+        if (r.points() == null || r.points() < 0) v.problem("points", "Podaj nieujemną liczbę punktów");
         var tasks = r.tasks() == null ? List.<RoomTaskRequest>of() : r.tasks();
         if (tasks.size() > 100) v.problem("tasks", "Maksymalnie 100 zadań");
         if (live && tasks.isEmpty()) v.problem("tasks", "Dodaj przynajmniej jedno zadanie");
@@ -223,7 +223,10 @@ public class ContentService {
     }
 
     @Transactional(readOnly = true)
-    public List<PathSummaryDto> adminPaths() {
-        return paths.findAdminListViews().stream().map(p -> PathSummaryDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerUrl()).hasBanner(Boolean.TRUE.equals(p.getHasBanner())).published(Boolean.TRUE.equals(p.getPublished())).roomsCount(p.getRoomsCount()).enrolled(false).systemKey(p.getSystemKey()).build()).toList();
+    public org.springframework.data.domain.Slice<PathSummaryDto> adminPaths(int page, int size, String query) {
+        String term = query == null ? "" : query.strip();
+        if (term.length() > 64) term = term.substring(0, 64);
+        var request = org.springframework.data.domain.PageRequest.of(Math.max(0, page), Math.max(1, Math.min(100, size)));
+        return paths.findAdminListPage(term, request).map(p -> PathSummaryDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerUrl()).hasBanner(Boolean.TRUE.equals(p.getHasBanner())).published(Boolean.TRUE.equals(p.getPublished())).roomsCount(p.getRoomsCount()).enrolled(false).systemKey(p.getSystemKey()).build());
     }
 }

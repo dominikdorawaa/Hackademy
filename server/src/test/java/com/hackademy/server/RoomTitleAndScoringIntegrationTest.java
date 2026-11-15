@@ -247,26 +247,32 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
     }
 
     @Test
-    void backendDerivesCtfPointsFromDifficultyAndKeepsPathPoints() throws Exception {
+    void everyRoomKeepsItsXpAndCtfFallsBackToTheSuggestedXp() throws Exception {
         var admin = account(Role.ADMIN);
         var ctf = room(uniqueTitle("Scored"), "CTF");
         ctf.put("difficulty", "MEDIUM"); ctf.put("points", 7);
         String saved = save(admin, "rooms", null, ctf, 201);
         long ctfId = number(saved, "$.room.id");
-        assertEquals(100, number(saved, "$.room.points"));
+        assertEquals(7, number(saved, "$.room.points"));
         revise(ctf, saved);
         ctf.put("difficulty", "INSANE"); ctf.put("points", null);
+        assertEquals("Podaj nieujemną liczbę punktów", field(save(admin, "rooms", ctfId, ctf, 400), "points"));
+        ctf.put("points", 200);
         assertEquals(200, number(save(admin, "rooms", ctfId, ctf, 200), "$.room.points"));
 
         String legacy = legacyRoom(admin, null, """
-                {"title":"%s","description":"d","difficulty":"HARD","category":"Web","points":-1,"requiresVpn":false,"roomType":"CTF","hints":[]}
+                {"title":"%s","description":"d","difficulty":"HARD","category":"Web","requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(uniqueTitle("Legacy")), 201);
         assertEquals(150, number(legacy, "$.points"));
         String legacyTitle = JsonPath.read(legacy, "$.title");
-        legacyRoom(admin, number(legacy, "$.id"), """
+        String legacyNegative = legacyRoom(admin, number(legacy, "$.id"), """
                 {"title":"%s","description":"d","difficulty":"EASY","points":-5,"category":"Web","requiresVpn":false,"roomType":"CTF","hints":[]}
+                """.formatted(legacyTitle), 400);
+        assertEquals("Podaj nieujemną liczbę punktów", field(legacyNegative, "points"));
+        legacyRoom(admin, number(legacy, "$.id"), """
+                {"title":"%s","description":"d","difficulty":"EASY","points":75,"category":"Web","requiresVpn":false,"roomType":"CTF","hints":[]}
                 """.formatted(legacyTitle), 200);
-        assertEquals(50, jdbcTemplate.queryForObject("SELECT points FROM rooms WHERE id = ?", Integer.class, number(legacy, "$.id")));
+        assertEquals(75, jdbcTemplate.queryForObject("SELECT points FROM rooms WHERE id = ?", Integer.class, number(legacy, "$.id")));
 
         var path = room(uniqueTitle("Learning"), "PATH");
         path.put("difficulty", "HARD"); path.put("points", 30);
@@ -286,7 +292,26 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
 
         revise(path, pathSaved);
         path.put("roomType", "CTF");
-        assertEquals(150, number(save(admin, "rooms", number(pathSaved, "$.room.id"), path, 200), "$.room.points"));
+        assertEquals(30, number(save(admin, "rooms", number(pathSaved, "$.room.id"), path, 200), "$.room.points"));
+    }
+
+    @Test
+    void roomsOfBothTypesNeedADifficulty() throws Exception {
+        var admin = account(Role.ADMIN);
+        for (String type : List.of("PATH", "CTF")) {
+            String title = uniqueTitle("No difficulty");
+            var room = room(title, type);
+            room.put("difficulty", null);
+            assertEquals("Wybierz trudność", field(save(admin, "rooms", null, room, 400), "difficulty"));
+            assertEquals(0, jdbcTemplate.queryForObject("SELECT count(*) FROM rooms WHERE title = ?", Integer.class, title));
+
+            room.put("difficulty", "MEDIUM");
+            String saved = save(admin, "rooms", null, room, 201);
+            revise(room, saved);
+            room.put("difficulty", null);
+            assertEquals("Wybierz trudność", field(save(admin, "rooms", number(saved, "$.room.id"), room, 400), "difficulty"));
+            assertEquals("MEDIUM", jdbcTemplate.queryForObject("SELECT difficulty FROM rooms WHERE id = ?", String.class, number(saved, "$.room.id")));
+        }
     }
 
     @Test

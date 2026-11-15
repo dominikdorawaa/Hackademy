@@ -74,7 +74,7 @@ public class PathImportService {
             var room = roomService.createRoom(new CreateRoomRequest(item.path("title").asText().trim(),
                     description.description(),
                     DifficultyLevel.valueOf(item.path("difficulty").asText()), item.path("category").asText(),
-                    item.path("points").asInt(0), item.path("requiresVpn").asBoolean(false),
+                    item.has("points") ? item.path("points").asInt() : null, item.path("requiresVpn").asBoolean(false),
                     RoomType.valueOf(item.path("roomType").asText("PATH"))), null);
             var tasks = new ArrayList<RoomTaskRequest>();
             for (var task : item.path("tasks")) {

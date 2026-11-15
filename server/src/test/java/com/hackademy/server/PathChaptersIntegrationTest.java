@@ -259,7 +259,8 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
     @Test
     void createsPathWithFirstChapterAndManagesChapters() throws Exception {
         var admin = account(Role.ADMIN);
-        long first = createRoom(admin, uniqueTitle("First"), "PATH");
+        String firstTitle = uniqueTitle("First");
+        long first = createRoom(admin, firstTitle, "PATH");
         addFlagTask(first, "flag");
         long second = createRoom(admin, uniqueTitle("Second"), "PATH");
         addFlagTask(second, "flag");
@@ -315,8 +316,8 @@ class PathChaptersIntegrationTest extends PostgresIntegrationTest {
                 .andExpect(jsonPath("$.rooms[1].id").value(first))
                 .andExpect(jsonPath("$.rooms[2].id").value(second));
 
-        var adminRooms = getAs(admin, "/api/admin/rooms").andExpect(status().isOk()).andReturn();
-        List<Number> owners = JsonPath.read(adminRooms.getResponse().getContentAsString(), "$[?(@.id == %d)].paths[*].id".formatted(first));
+        var adminRooms = getAs(admin, "/api/admin/rooms?query=" + firstTitle).andExpect(status().isOk()).andReturn();
+        List<Number> owners = JsonPath.read(adminRooms.getResponse().getContentAsString(), "$.items[?(@.id == %d)].paths[*].id".formatted(first));
         assertEquals(List.of(pathId), owners.stream().map(Number::longValue).toList());
     }
 

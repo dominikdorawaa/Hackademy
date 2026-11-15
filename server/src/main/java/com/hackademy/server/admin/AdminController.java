@@ -13,6 +13,7 @@ import com.hackademy.server.room.dto.UpdateRoomTasksRequest;
 import com.hackademy.server.path.dto.UpdatePathChaptersRequest;
 import com.hackademy.server.path.dto.UpdatePathMetaRequest;
 import com.hackademy.server.room.Room;
+import com.hackademy.server.room.RoomType;
 import com.hackademy.server.path.PathService;
 import com.hackademy.server.room.RoomService;
 import com.hackademy.server.user.UserService;
@@ -66,6 +67,16 @@ public class AdminController {
     }
 
     @GetMapping("/rooms")
+    public RoomPageResult getRoomsPage(
+            @RequestParam(defaultValue = "0") int page,
+            @RequestParam(defaultValue = "50") int size,
+            @RequestParam(defaultValue = "") String query,
+            @RequestParam(required = false) RoomType type
+    ) {
+        return RoomPageResult.of(roomService.getRoomsPageForAdmin(page, size, query, type), roomService.countRoomsForAdmin(query));
+    }
+
+    @GetMapping("/rooms/all")
     public List<RoomAdminSummaryDto> getAllRooms() {
         return roomService.getAllRoomsForAdmin();
     }
@@ -113,8 +124,8 @@ public class AdminController {
     }
 
     @GetMapping("/paths")
-    public List<PathSummaryDto> listPaths() {
-        return contentService.adminPaths();
+    public PageResult<PathSummaryDto> listPaths(@RequestParam(defaultValue = "0") int page, @RequestParam(defaultValue = "50") int size, @RequestParam(defaultValue = "") String query) {
+        return PageResult.from(contentService.adminPaths(page, size, query));
     }
 
     @DeleteMapping("/paths/{id}")

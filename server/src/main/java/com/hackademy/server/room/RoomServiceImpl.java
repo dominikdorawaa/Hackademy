@@ -26,6 +26,7 @@ import com.hackademy.server.user.UserServiceImpl;
 import com.hackademy.server.exception.UserNotFoundException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.PageRequest;
+import org.springframework.data.domain.Slice;
 import org.springframework.stereotype.Service;
 import org.springframework.http.HttpStatus;
 import org.springframework.web.server.ResponseStatusException;
@@ -38,6 +39,8 @@ import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Comparator;
+import java.util.EnumMap;
+import java.util.EnumSet;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -83,8 +86,8 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private static int points(RoomType roomType, DifficultyLevel difficulty, Integer requested) {
-        if (roomType == RoomType.CTF) {
-            return difficulty.ctfPoints();
+        if (requested == null && roomType == RoomType.CTF) {
+            return difficulty.suggestedPoints();
         }
         if (requested == null || requested < 0) {
             throw new RoomRuleException(HttpStatus.BAD_REQUEST, "points", "Podaj nieujemną liczbę punktów");
@@ -121,14 +124,43 @@ public class RoomServiceImpl implements RoomService {
     @Override
     @Transactional(readOnly = true)
     public List<RoomAdminSummaryDto> getAllRoomsForAdmin() {
-        Map<Long, List<RoomPathDto>> pathsByRoom = new HashMap<>();
-        for (var owner : chapterRoomRepository.findAllOwners()) {
-            pathsByRoom.computeIfAbsent(owner.getRoomId(), id -> new ArrayList<>())
-                    .add(new RoomPathDto(owner.getPathId(), owner.getPathTitle(), Boolean.TRUE.equals(owner.getPathPublished())));
-        }
+        Map<Long, List<RoomPathDto>> pathsByRoom = pathsByRoom(chapterRoomRepository.findAllOwners());
         return roomRepository.findAllAdminSummaries().stream()
                 .map(room -> room.withPaths(pathsByRoom.getOrDefault(room.id(), List.of())))
                 .toList();
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Slice<RoomAdminSummaryDto> getRoomsPageForAdmin(int page, int size, String query, RoomType type) {
+        Set<RoomType> types = type == null ? EnumSet.allOf(RoomType.class) : EnumSet.of(type);
+        var rooms = roomRepository.findAdminPage(adminTerm(query), types, PageRequest.of(Math.max(0, page), Math.max(1, Math.min(100, size))));
+        List<Long> ids = rooms.getContent().stream().map(RoomAdminSummaryDto::id).toList();
+        Map<Long, List<RoomPathDto>> pathsByRoom = ids.isEmpty() ? Map.of() : pathsByRoom(chapterRoomRepository.findOwners(ids));
+        return rooms.map(room -> room.withPaths(pathsByRoom.getOrDefault(room.id(), List.of())));
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public Map<RoomType, Long> countRoomsForAdmin(String query) {
+        Map<RoomType, Long> counts = new EnumMap<>(RoomType.class);
+        for (RoomType type : RoomType.values()) counts.put(type, 0L);
+        for (var row : roomRepository.countAdminByType(adminTerm(query))) counts.put(row.getType(), row.getTotal());
+        return counts;
+    }
+
+    private static String adminTerm(String query) {
+        String term = query == null ? "" : query.strip();
+        return term.length() > 64 ? term.substring(0, 64) : term;
+    }
+
+    private static Map<Long, List<RoomPathDto>> pathsByRoom(List<ChapterRoomRepository.RoomOwnerView> owners) {
+        Map<Long, List<RoomPathDto>> pathsByRoom = new HashMap<>();
+        for (var owner : owners) {
+            pathsByRoom.computeIfAbsent(owner.getRoomId(), id -> new ArrayList<>())
+                    .add(new RoomPathDto(owner.getPathId(), owner.getPathTitle(), Boolean.TRUE.equals(owner.getPathPublished())));
+        }
+        return pathsByRoom;
     }
 
     @Override
