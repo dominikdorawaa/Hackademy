@@ -19,7 +19,7 @@
 
 .px-toasts-group:has(ol) + .px-toasts-group > ol { margin-top: 8px; }
 
-body:has(.site-shell--room) .px-toasts {
+body:has(.site-shell--room, .room-footer) .px-toasts {
   --px-toasts-base: calc(92px + env(safe-area-inset-bottom));
 }
 
