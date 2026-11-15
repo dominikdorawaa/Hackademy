@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 45;
+    static final int SCHEMA_VERSION = 46;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -522,7 +522,7 @@ class SchemaMigrationTest {
                 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (3, 1, 0), (4, 1, 1), (9, 1, 2);
                 """);
 
-        assertEquals(SCHEMA_VERSION - 8, flyway().migrate().migrationsExecuted);
+        assertEquals(45 - 8, flyway("45").migrate().migrationsExecuted);
 
         assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms WHERE id <= 4"));
         assertEquals(10, scalar("SELECT points FROM users WHERE id = 1"));
@@ -1012,6 +1012,22 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         assertEquals("crab:plaszcz", text("SELECT victory_dance || ':' || outfit FROM user_avatars WHERE user_id = 1"));
         assertSqlState("23514", "UPDATE user_avatars SET victory_dance = 'walc' WHERE user_id = 1");
         assertSqlState("23514", "UPDATE user_avatars SET outfit = 'kimono' WHERE user_id = 1");
+    }
+
+    @Test
+    void letsCtfRoomsKeepTheirOwnXpAndKeepsStoredRooms() throws Exception {
+        flyway("45").migrate();
+        insertRoom(1);
+        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (2, 'Intro', 'd', 'HARD', 'Path', 7, 0, false, 'PATH', now(), now())");
+        assertSqlState("23514", "UPDATE rooms SET points = 60 WHERE id = 1");
+
+        assertEquals(1, flyway("46").migrate().migrationsExecuted);
+
+        assertEquals("1:EASY:50,2:HARD:7", text("SELECT string_agg(id || ':' || difficulty || ':' || points, ',' ORDER BY id) FROM rooms"));
+        execute("UPDATE rooms SET points = 60 WHERE id = 1");
+        assertEquals(60, scalar("SELECT points FROM rooms WHERE id = 1"));
+        assertSqlState("23514", "UPDATE rooms SET points = -1 WHERE id = 1");
+        assertSqlState("23514", "UPDATE rooms SET difficulty = 'UNKNOWN' WHERE id = 1");
     }
 
     private void insertUser(long id, String username, String email) throws SQLException {
