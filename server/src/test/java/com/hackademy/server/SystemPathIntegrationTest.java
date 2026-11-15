@@ -27,8 +27,8 @@ class SystemPathIntegrationTest extends PostgresIntegrationTest {
         var expert = account(Role.EXPERT);
         var user = account(Role.USER);
 
-        getAs(admin, "/api/admin/paths").andExpect(status().isOk())
-                .andExpect(jsonPath("$[?(@.id == " + id + ")].systemKey").value(hasItem("ukos")));
+        getAs(admin, "/api/admin/paths?query=dyżur").andExpect(status().isOk())
+                .andExpect(jsonPath("$.items[?(@.id == " + id + ")].systemKey").value(hasItem("ukos")));
         getAs(admin, "/api/admin/paths/" + id).andExpect(jsonPath("$.systemKey").value("ukos"))
                 .andExpect(jsonPath("$.title").value("Dyżur Zero"));
 

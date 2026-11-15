@@ -1,20 +1,6 @@
 import { request } from './http';
 import type { SessionScope } from './http';
-import type { ApiId, PathMetaRequest, CreatePathRequest, PathSummaryDto, PathAdminDetailDto, RoomAdminSummaryDto, RoomAdminDto, RoomWriteRequest } from '../types/api';
-
-export function getRooms(auth: SessionScope) {
-  return request<RoomAdminSummaryDto[]>(`/api/admin/rooms`, {
-    method: 'GET',
-    auth,
-  });
-}
-
-export function getPaths(auth: SessionScope) {
-  return request<PathSummaryDto[]>(`/api/admin/paths`, {
-    method: 'GET',
-    auth,
-  });
-}
+import type { ApiId, PathMetaRequest, CreatePathRequest, PathSummaryDto, PathAdminDetailDto, RoomAdminDto, RoomWriteRequest } from '../types/api';
 
 export function getPath(id: ApiId, auth: SessionScope) {
   return request<PathAdminDetailDto>(`/api/admin/paths/${id}`, {

@@ -1,4 +1,4 @@
-import { useCallback, useEffect, useMemo, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
 import { Lock, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
@@ -11,6 +11,7 @@ import { RoomTypeIcon, roomTypeLabel, roomTypes } from '../../components/admin/R
 import { DeleteRoomDescription, RoomPathsCell } from '../../components/admin/RoomPaths';
 import { cn } from '@/lib/utils';
 import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
+import { PageControls } from '../../components/admin/PageControls';
 import { errorText, numberFormat } from '../../components/admin/adminFormat';
 import { useAdminAccess } from './adminAccess';
 import { roomsPath as base } from './adminConfig';
@@ -23,39 +24,53 @@ export default function RoomsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
   const [type, setType] = useState<RoomType | 'ALL'>('ALL');
+  const [page, setPage] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const [counts, setCounts] = useState<Record<RoomType, number>>({ PATH: 0, CTF: 0 });
+  const requestId = useRef(0);
+  useEffect(() => {
+    const term = query.trim();
+    if (term === search) return;
+    const timer = setTimeout(() => { setSearch(term); setPage(0); }, 300);
+    return () => clearTimeout(timer);
+  }, [query, search]);
 
   const load = useCallback(async () => {
+    const generation = ++requestId.current;
     try {
       setLoading(true);
-      const data = (await adminApi.getAllRoomsAdmin(sessionKey)) ?? [];
-      setRooms(data);
+      const result = await adminApi.getRoomsPage(sessionKey, page, { query: search, type: type === 'ALL' ? '' : type });
+      if (generation !== requestId.current) return;
+      setRooms(result.items);
+      setHasNext(result.hasNext);
+      setCounts(result.counts);
       setError(null);
     } catch (err) {
+      if (generation !== requestId.current) return;
       setError(errorText(err, 'Nie udało się pobrać pokoi.'));
     } finally {
-      setLoading(false);
+      if (generation === requestId.current) setLoading(false);
     }
-  }, [sessionKey]);
+  }, [sessionKey, page, search, type]);
 
+  const cancelLoad = useCallback(() => { requestId.current++; }, []);
   useEffect(() => {
     if (sessionKey) void load();
-  }, [sessionKey, load]);
+    return cancelLoad;
+  }, [sessionKey, load, cancelLoad]);
 
-  const filtered = useMemo(() => {
-    const term = query.trim().toLowerCase();
-    return rooms.filter((room) => (type === 'ALL' || (room.roomType ?? 'PATH') === type)
-      && (!term || room.title.toLowerCase().includes(term) || room.paths.some((path) => path.title.toLowerCase().includes(term))));
-  }, [rooms, query, type]);
   const filters: { value: RoomType | 'ALL'; label: string; count: number }[] = [
-    { value: 'ALL', label: 'Wszystkie', count: rooms.length },
-    ...roomTypes.map((entry) => ({ value: entry.type, label: entry.label, count: rooms.filter((room) => (room.roomType ?? 'PATH') === entry.type).length })),
+    { value: 'ALL', label: 'Wszystkie', count: roomTypes.reduce((total, entry) => total + counts[entry.type], 0) },
+    ...roomTypes.map((entry) => ({ value: entry.type, label: entry.label, count: counts[entry.type] })),
   ];
+  const chooseType = (value: RoomType | 'ALL') => { setType(value); setPage(0); };
 
   const remove = async (room: RoomAdminSummaryDto) => {
     try {
       await adminApi.deleteRoom(room.id, sessionKey);
-      setRooms((current) => current.filter((entry) => entry.id !== room.id));
+      if (rooms.length === 1 && page > 0) setPage(page - 1); else await load();
       toast.success(`Pokój „${room.title}” został usunięty.`);
     } catch (err) {
       toast.error(errorText(err, 'Nie udało się usunąć pokoju.'));
@@ -86,7 +101,7 @@ export default function RoomsPage() {
         </div>
         <div role="group" aria-label="Filtruj po typie" className="inline-flex w-fit rounded-md bg-muted/50 p-0.5">
           {filters.map((filter) => (
-            <button key={filter.value} type="button" aria-pressed={type === filter.value} onClick={() => setType(filter.value)}
+            <button key={filter.value} type="button" aria-pressed={type === filter.value} onClick={() => chooseType(filter.value)}
               className={cn('inline-flex h-8 items-center gap-1.5 rounded-[5px] px-3 text-sm text-muted-foreground outline-none transition-colors hover:text-foreground focus-visible:ring-2 focus-visible:ring-ring',
                 type === filter.value && 'bg-background font-medium text-foreground shadow-xs')}>
               {filter.value !== 'ALL' && <RoomTypeIcon type={filter.value} className="size-3.5" />}
@@ -101,10 +116,10 @@ export default function RoomsPage() {
       </div>
       {loading ? (
         <LoadingRows label="Ładowanie pokoi" />
-      ) : filtered.length === 0 ? (
+      ) : rooms.length === 0 ? (
         <EmptyState
-          title={query || type !== 'ALL' ? 'Brak pasujących pokoi' : 'Nie ma jeszcze pokoi.'}
-          action={!query && type === 'ALL' && <Button asChild variant="outline"><Link to={`${base}/new`}>Utwórz pierwszy pokój</Link></Button>}
+          title={search || type !== 'ALL' ? 'Brak pasujących pokoi' : page > 0 ? 'Na tej stronie nie ma pokoi.' : 'Nie ma jeszcze pokoi.'}
+          action={!search && type === 'ALL' && page === 0 && <Button asChild variant="outline"><Link to={`${base}/new`}>Utwórz pierwszy pokój</Link></Button>}
         />
       ) : (
         <div className="rounded-xl border bg-card">
@@ -120,7 +135,7 @@ export default function RoomsPage() {
               </TableRow>
             </TableHeader>
             <TableBody>
-              {filtered.map((room) => (
+              {rooms.map((room) => (
                 <TableRow key={room.id}>
                   <TableCell className="font-medium">
                     <Link to={`${base}/${room.id}`} className="hover:text-primary hover:underline underline-offset-4">
@@ -168,6 +183,7 @@ export default function RoomsPage() {
           </Table>
         </div>
       )}
+      <PageControls page={page} hasNext={hasNext} loading={loading} onPage={setPage} />
     </>
   );
 }

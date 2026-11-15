@@ -11,6 +11,7 @@ import { server } from '../../test/mocks/server';
 import { findToast } from '../../test/toasts';
 import Toaster from '../../components/common/Toaster';
 import { currentUserHandler } from '../../test/mocks/handlers';
+import { pathsPageHandler } from '../../test/mocks/adminLists';
 import { createToken } from '../../test/fixtures/auth';
 import { AdminAccessRoute } from './adminAccess';
 import PathsPage from './PathsPage';
@@ -153,8 +154,8 @@ describe('learning path import', () => {
     expect(screen.queryByRole('button', { name: 'Importuj JSON' })).not.toBeInTheDocument();
   });
   it('keeps existing draft rows editable and handles deletion success and failure', async () => {
-    const paths = [{ ...imported, roomsCount: 2 }];
-    server.use(http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json(paths)),
+    const paths = [{ ...imported, roomsCount: 2, enrolled: false }];
+    server.use(pathsPageHandler(paths),
       http.delete(`${API_URL}/api/admin/paths/12`, () => HttpResponse.json({ message: 'Nie można usunąć' }, { status: 409 })));
     const user = userEvent.setup(); mount();
     expect(await screen.findByRole('link', { name: 'Edytuj Import' })).toHaveAttribute('href', '/admin/paths/12');
@@ -163,11 +164,11 @@ describe('learning path import', () => {
     await user.click(screen.getByRole('button', { name: 'Usuń ścieżkę' }));
     await findToast('Nie można usunąć', 'assertive');
     expect(screen.getByRole('link', { name: 'Import' })).toBeInTheDocument();
-    server.use(http.delete(`${API_URL}/api/admin/paths/12`, () => new HttpResponse(null, { status: 204 })));
+    server.use(http.delete(`${API_URL}/api/admin/paths/12`, () => { paths.splice(0, 1); return new HttpResponse(null, { status: 204 }); }));
     await user.click(screen.getByRole('button', { name: 'Usuń Import' }));
     await user.click(screen.getByRole('button', { name: 'Usuń ścieżkę' }));
     await findToast(/Ścieżka „Import” została usunięta/);
-    expect(screen.queryByRole('link', { name: 'Import' })).not.toBeInTheDocument();
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Import' })).not.toBeInTheDocument());
   });
   it('still offers import when loading the existing path list fails', async () => {
     server.use(http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json({ message: 'Nie udało się pobrać listy' }, { status: 500 })));

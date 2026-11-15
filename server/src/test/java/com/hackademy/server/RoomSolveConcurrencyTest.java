@@ -125,7 +125,7 @@ class RoomSolveConcurrencyTest {
                 .description("Concurrency test")
                 .difficulty(difficulty)
                 .category("Test")
-                .points(difficulty.ctfPoints())
+                .points(difficulty.suggestedPoints())
                 .build());
         PublishedPaths.publishInPath(jdbcTemplate, room.getId());
         return room;

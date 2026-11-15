@@ -24,10 +24,10 @@ import { toast } from '../../components/common/toast';
 
 const defaultCategory = (kind: RoomType) => kind === 'PATH' ? 'Path' : 'Web';
 function empty(kind: RoomType): RoomSave {
-  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, tasks: [] };
+  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: null, points: NaN, requiresVpn: false, roomType: kind, tasks: [] };
 }
 function fromDetail(d: contentApi.RoomEditor): RoomSave {
-  return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, tasks: d.tasks.tasks.map(task => ({ ...task, hints: task.hints ?? [] })) };
+  return { ...d.room, revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, tasks: d.tasks.tasks.map(task => ({ ...task, hints: task.hints ?? [] })) };
 }
 export default function RoomEditorPage() {
   const { roomId } = useParams();
@@ -88,7 +88,11 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const changeType = (roomType: RoomType) => {
     const current = formRef.current;
     const category = current.category === defaultCategory(current.roomType ?? 'PATH') ? { category: defaultCategory(roomType) } : {};
-    change({ roomType, ...category, ...(roomType === 'CTF' ? { points: pointsForDifficulty[current.difficulty] } : {}) });
+    change({ roomType, ...category });
+  };
+  const changeDifficulty = (difficulty: DifficultyLevel) => {
+    change({ difficulty, points: pointsForDifficulty[difficulty] });
+    setErrors(current => { const next = { ...current }; delete next.difficulty; delete next.points; return next; });
   };
   // A room inside a published path is seen by players at once, so it has to stay complete.
   const ready = live || !!parentDraft?.published || !!context?.published;
@@ -101,6 +105,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
     checkText(nextErrors, 'shortDescription', current.shortDescription ?? '', 100);
     checkText(nextErrors, 'description', current.description, 20000, ready);
     checkText(nextErrors, 'category', current.category, 255, true);
+    if (!current.difficulty) nextErrors.difficulty = 'Wybierz trudność';
     if (!Number.isSafeInteger(current.points) || current.points < 0 || current.points > 2147483647) nextErrors.points = 'Podaj nieujemną liczbę całkowitą do 2147483647';
     if (ready && !current.tasks.length) nextErrors.tasks = 'Dodaj przynajmniej jedno zadanie';
     current.tasks.forEach((task, i) => {
@@ -170,11 +175,9 @@ function RoomEditor({ roomId }: { roomId: string }) {
               <div className="md:col-span-2"><TextField name="title" label="Tytuł" value={form.title} limit={255} required error={errors.title} onChange={title => change({ title })} /></div>
               <div className="md:col-span-2"><TextField name="shortDescription" label="Krótki opis" value={form.shortDescription ?? ''} limit={100} error={errors.shortDescription} onChange={shortDescription => change({ shortDescription })} /></div>
               <div className="md:col-span-2"><TextField name="description" label="Opis" value={form.description} limit={20000} required={ready} multiline error={errors.description} onChange={description => change({ description })} /></div>
-              {kind === 'CTF' && <>
-                <TextField name="category" label="Kategoria" value={form.category} limit={255} required error={errors.category} onChange={category => change({ category })} />
-                <div className="grid gap-2"><label htmlFor="content-difficulty">Trudność *</label><select id="content-difficulty" className="rounded border bg-background p-2" value={form.difficulty} onChange={e => change({ difficulty: e.target.value as DifficultyLevel, points: pointsForDifficulty[e.target.value as DifficultyLevel] })}>{Object.entries(difficultyLabels).map(([level, label]) => <option key={level} value={level}>{label}</option>)}</select><span className="text-xs text-muted-foreground">{formatXp(pointsForDifficulty[form.difficulty])}</span></div>
-              </>}
-              {kind === 'PATH' && <div className="grid gap-2"><label htmlFor="content-points">XP *</label><Input id="content-points" type="number" min={0} value={Number.isNaN(form.points) ? '' : form.points} onChange={e => change({ points: e.target.value === '' ? NaN : Number(e.target.value) })} aria-invalid={!!errors.points} />{errors.points && <p role="alert" className="text-destructive">{errors.points}</p>}</div>}
+              {kind === 'CTF' && <TextField name="category" label="Kategoria" value={form.category} limit={255} required error={errors.category} onChange={category => change({ category })} />}
+              <div className="grid content-start gap-2"><label htmlFor="content-difficulty">Trudność *</label><select id="content-difficulty" className="rounded border bg-background p-2" value={form.difficulty ?? ''} onChange={e => changeDifficulty(e.target.value as DifficultyLevel)} aria-invalid={!!errors.difficulty} aria-required><option value="" disabled>Wybierz trudność</option>{Object.entries(difficultyLabels).map(([level, label]) => <option key={level} value={level}>{label}</option>)}</select>{errors.difficulty && <p role="alert" className="text-destructive">{errors.difficulty}</p>}</div>
+              <div className="grid content-start gap-2"><label htmlFor="content-points">XP *</label><Input id="content-points" type="number" min={0} value={Number.isNaN(form.points) ? '' : form.points} onChange={e => change({ points: e.target.value === '' ? NaN : Number(e.target.value) })} aria-invalid={!!errors.points} /><span className="text-xs text-muted-foreground">{form.difficulty ? `Podpowiedź dla tej trudności: ${formatXp(pointsForDifficulty[form.difficulty])}. Możesz wpisać inną wartość.` : 'Wybierz trudność, a XP uzupełni się samo.'}</span>{errors.points && <p role="alert" className="text-destructive">{errors.points}</p>}</div>
             </div>
           </Section>
           {(kind === 'CTF' || form.requiresVpn) && <Section title="Dodatki CTF" description="Opcjonalne. Plik i wymóg VPN widzi gracz na początku pokoju.">

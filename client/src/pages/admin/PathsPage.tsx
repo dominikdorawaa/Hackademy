@@ -1,13 +1,15 @@
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { Link } from 'react-router-dom';
-import { Eye, Lock, Pencil, Plus, Trash2 } from 'lucide-react';
+import { Eye, Lock, Pencil, Plus, Search, Trash2 } from 'lucide-react';
 import { Badge } from '@/components/ui/badge';
 import { Button } from '@/components/ui/button';
+import { Input } from '@/components/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
 import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { PathSummaryDto } from '../../types/api';
 import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
+import { PageControls } from '../../components/admin/PageControls';
 import { errorText, numberFormat, plural } from '../../components/admin/adminFormat';
 import { useAdminAccess } from './adminAccess';
 import PathImportDialog from './PathImportDialog';
@@ -19,26 +21,45 @@ export default function PathsPage() {
   const [paths, setPaths] = useState<PathSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [query, setQuery] = useState('');
+  const [search, setSearch] = useState('');
+  const [page, setPage] = useState(0);
+  const [hasNext, setHasNext] = useState(false);
+  const requestId = useRef(0);
+  useEffect(() => {
+    const term = query.trim();
+    if (term === search) return;
+    const timer = setTimeout(() => { setSearch(term); setPage(0); }, 300);
+    return () => clearTimeout(timer);
+  }, [query, search]);
 
   const load = useCallback(async () => {
+    const generation = ++requestId.current;
     try {
-      setPaths((await adminApi.getPaths(sessionKey)) ?? []);
+      setLoading(true);
+      const result = await adminApi.getPathsPage(sessionKey, page, search);
+      if (generation !== requestId.current) return;
+      setPaths(result.items);
+      setHasNext(result.hasNext);
       setError(null);
     } catch (err) {
+      if (generation !== requestId.current) return;
       setError(errorText(err, 'Nie udało się pobrać ścieżek.'));
     } finally {
-      setLoading(false);
+      if (generation === requestId.current) setLoading(false);
     }
-  }, [sessionKey]);
+  }, [sessionKey, page, search]);
 
+  const cancelLoad = useCallback(() => { requestId.current++; }, []);
   useEffect(() => {
     if (sessionKey) void load();
-  }, [sessionKey, load]);
+    return cancelLoad;
+  }, [sessionKey, load, cancelLoad]);
 
   const remove = async (path: PathSummaryDto) => {
     try {
       await adminApi.deletePath(path.id, sessionKey);
-      setPaths((current) => current.filter((entry) => entry.id !== path.id));
+      if (paths.length === 1 && page > 0) setPage(page - 1); else await load();
       toast.success(`Ścieżka „${path.title}” została usunięta. Jej pokoje wróciły do puli.`);
     } catch (err) {
       toast.error(errorText(err, 'Nie udało się usunąć ścieżki.'));
@@ -52,13 +73,25 @@ export default function PathsPage() {
         description="Ścieżka składa się z rozdziałów, a rozdział z pokoi. Kolejność ustawiasz w edytorze ścieżki."
         actions={<>{isAdmin && <PathImportDialog />}<Button asChild><Link to="/admin/paths/new"><Plus />Nowa ścieżka</Link></Button></>}
       />
+      <div className="relative mb-4 w-full sm:max-w-xs">
+        <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
+        <Input
+          aria-label="Szukaj ścieżki"
+          placeholder="Szukaj po tytule…"
+          value={query}
+          onChange={(event) => setQuery(event.target.value)}
+          className="pl-9"
+        />
+      </div>
       <div className="mb-4 space-y-2">
         {error && <StatusMessage kind="error">{error}</StatusMessage>}
       </div>
       {loading ? (
         <LoadingRows label="Ładowanie ścieżek" />
       ) : paths.length === 0 ? (
-        <EmptyState title="Nie ma jeszcze ścieżek" description="Utwórz pierwszą ścieżkę i dodaj do niej pokoje." />
+        search ? <EmptyState title="Brak pasujących ścieżek" description="Zmień frazę wyszukiwania." />
+          : page > 0 ? <EmptyState title="Na tej stronie nie ma ścieżek." />
+          : <EmptyState title="Nie ma jeszcze ścieżek" description="Utwórz pierwszą ścieżkę i dodaj do niej pokoje." />
       ) : (
         <div className="rounded-xl border bg-card">
           <Table>
@@ -107,6 +140,7 @@ export default function PathsPage() {
           </Table>
         </div>
       )}
+      <PageControls page={page} hasNext={hasNext} loading={loading} onPage={setPage} />
     </>
   );
 }
