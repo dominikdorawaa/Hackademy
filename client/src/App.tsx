@@ -24,13 +24,13 @@ const ShopPage = lazy(() => import('./pages/ShopPage'));
 const ShopTopUpPage = lazy(() => import('./pages/ShopTopUpPage'));
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import adminRoutes from './pages/admin/adminRoutes';
+import onboardingRoutes from './pages/onboardingRoutes';
 import NotFoundPage from './pages/NotFoundPage';
 import { PrivacyPage, TermsPage } from './pages/LegalPages';
 import { ArenaLoader } from './components/arena/ArenaLoader';
 
 const UkosPage = lazy(() => import('./ukos/UkosPage'));
 const ArenaAvatarPage = lazy(() => import('./pages/ArenaAvatarPage'));
-const OnboardingPage = lazy(() => import('./pages/OnboardingPage'));
 const ArenaBattlePage = lazy(() => import('./pages/ArenaBattlePage'));
 
 function App() {
@@ -47,7 +47,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/login/*" element={<LoginPage />} />
             <Route path="/register/*" element={<RegisterPage />} />
-            <Route path="/witaj" element={<ProtectedRoute onboarding><Suspense fallback={<ArenaLoader label="Wczytuję powitanie" />}><OnboardingPage /></Suspense></ProtectedRoute>} />
+            {onboardingRoutes}
             <Route path="/arena/avatar" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Ładowanie kreatora awatara" />}><ArenaAvatarPage /></Suspense></ProtectedRoute>} />
 
             <Route path="/arena/battle/:gameId" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Wczytuję walkę" />}><ArenaBattlePage /></Suspense></ProtectedRoute>} />

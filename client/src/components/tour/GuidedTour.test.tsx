@@ -15,7 +15,7 @@ import { renderWithAuth } from '../../test/renderWithAuth';
 const Layout = () => <><Outlet /><GuidedTour /></>;
 const routes = <Route element={<Layout />}>
   {[...new Set(TOUR_STEPS.map(step => step.path))].map(path => <Route key={path} path={path} element={<>{TOUR_STEPS.filter(step => step.path === path).map(step => <section key={step.target} data-tour={step.target}><h1>{step.target}</h1></section>)}</>} />)}
-  <Route path="/witaj" element={<p>Powitanie</p>} />
+  <Route path="/welcome" element={<p>Powitanie</p>} />
 </Route>;
 const location = () => screen.getByTestId('location').textContent?.split(':')[0];
 const dialog = () => screen.getByRole('dialog');
@@ -138,7 +138,7 @@ describe('guided tour', () => {
     expect(location()).toBe('/learn');
     first.unmount();
     server.use(http.get(onboardingUrl, () => HttpResponse.json({ avatarConfirmed: false, tourStatus: 'PENDING' })));
-    renderWithAuth(routes, '/witaj');
+    renderWithAuth(routes, '/welcome');
     await act(async () => { await new Promise(resolve => setTimeout(resolve, 50)); });
     expect(screen.queryByRole('dialog')).toBeNull();
     expect(screen.getByText('Powitanie')).toBeInTheDocument();

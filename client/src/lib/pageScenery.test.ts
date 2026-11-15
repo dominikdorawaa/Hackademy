@@ -5,7 +5,7 @@ it.each([
   ['/', 'home'], ['/dashboard/', 'dashboard'], ['/learn', 'learn'], ['/learn/paths/7', 'path'], ['/learn/ukos', 'ukos'],
   ['/rooms/1', 'ctf'], ['/arena', 'arena'], ['/arena/avatar', 'avatar'], ['/arena/battle/game-7', 'battle'],
   ['/ranking', 'ranking'], ['/profile', 'profile'], ['/profile/ola%20test', 'profile'], ['/friends', 'friends'], ['/settings', 'settings'],
-  ['/login/sso-callback', 'auth'], ['/register', 'auth'], ['/witaj', 'onboarding'], ['/privacy', 'legal'], ['/terms', 'legal'],
+  ['/login/sso-callback', 'auth'], ['/register', 'auth'], ['/welcome', 'onboarding'], ['/privacy', 'legal'], ['/terms', 'legal'],
   ['/admin', 'admin'], ['/admin/users', 'admin'], ['/admin/preview/rooms/7', 'ctf'], ['/admin/preview/paths/7', 'path'],
   ['/missing', 'notfound'],
 ] as const)('selects the intended scene for %s', (pathname, scene) => {
