@@ -24,7 +24,7 @@ beforeAll(() => {
 });
 beforeEach(() => {
   setClerkSession(createToken('ADMIN'));
-  server.use(currentUserHandler('ADMIN'), http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])), http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json([])),
+  server.use(currentUserHandler('ADMIN'), http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([])), http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json([])),
     http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(path)), http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] } })));
 });
 afterEach(() => vi.restoreAllMocks());
@@ -56,7 +56,7 @@ describe('draft editors and guarded navigation', () => {
     const file = new File(['{"rooms":[]}'], 'rooms.json', { type: 'application/json' });
     await user.upload(screen.getByLabelText('Plik JSON (do 5 MB)'), file);
     server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(importedPath)),
-      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])));
+      http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])));
     await user.click(screen.getByRole('button', { name: 'Dodaj pokoje' }));
     expect(await screen.findByText('Dodano pokoje. Gracze zobaczą je po publikacji ścieżki.')).toBeInTheDocument();
     await waitFor(() => expect(screen.getByRole('list', { name: 'Pokoje rozdziału 1' })).toHaveTextContent('Pokój'));
@@ -134,7 +134,7 @@ describe('draft editors and guarded navigation', () => {
     const created = { ...room, id: 12, title: 'Skaner', roomType: 'CTF' as const, paths: [{ id: 5, title: 'Nowa', published: false }] };
     const saveRoom = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 1, tasks: [] }, pathId: 5, paths: created.paths });
     server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, title: 'Nowa', contentRevision: 4, chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [12] }] })),
-      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([created])));
+      http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([created])));
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/5'));
     expect(saveRoom.mock.calls[0][1]).toMatchObject({ pathId: 5, chapterId: 11, pathRevision: 3, roomType: 'CTF' });
@@ -155,7 +155,7 @@ describe('draft editors and guarded navigation', () => {
   it('carries edits of a published path with the new room, so an empty new chapter can be published with it', async () => {
     const live = { ...path, description: 'Opis', published: true, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] };
     server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(live)),
-      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])));
+      http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])));
     const user = userEvent.setup(); const router = mount('/admin/paths/5');
     const savePath = vi.spyOn(contentApi, 'savePath');
     await screen.findByLabelText('Tytuł *');
@@ -235,7 +235,7 @@ describe('draft editors and guarded navigation', () => {
     expect(await screen.findByLabelText('Tryb odblokowania')).toHaveValue('CHAPTER');
   });
   it('adds an existing room to the chosen chapter and saves its assignment', async () => {
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [] }])));
+    server.use(http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([{ ...room, paths: [] }])));
     const user = userEvent.setup(); mount('/admin/paths/5');
     const save = vi.spyOn(contentApi, 'savePath').mockResolvedValue(path);
     await screen.findByLabelText('Tytuł *');
@@ -421,7 +421,7 @@ describe('room title and scoring rules', () => {
     expect(screen.getByText('200 XP')).toBeInTheDocument();
   });
   it('shows a duplicate room title in a chapter reported by the backend', async () => {
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])),
+    server.use(http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])),
       http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })),
       http.put(`${API_URL}/api/admin/content/paths/5`, () => HttpResponse.json({ message: 'Rozdział 1 zawiera już pokój „Pokój”', fields: { 'chapters.0.rooms': 'Rozdział 1 zawiera już pokój „Pokój”' } }, { status: 409 })));
     const user = userEvent.setup(); mount('/admin/paths/5');
@@ -454,7 +454,7 @@ describe('room shared by many paths', () => {
   });
   it('opens a room from the path editor with that path as the way back', async () => {
     server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })),
-      http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths }])),
+      http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([{ ...room, paths }])),
       http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room, tasks: { revision: 0, tasks: [] }, pathId: null, paths })));
     const user = userEvent.setup(); const router = mount('/admin/paths/5');
     const row = (await screen.findByText('Pokój')).closest('li')!;

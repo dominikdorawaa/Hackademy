@@ -7,6 +7,7 @@ import { afterAll, afterEach, beforeAll, describe, expect, it, vi } from 'vitest
 import API_URL from '../../apiConfig';
 import { server } from '../../test/mocks/server';
 import { currentUserHandler } from '../../test/mocks/handlers';
+import { roomsPageHandler } from '../../test/mocks/adminLists';
 import { createToken } from '../../test/fixtures/auth';
 import { renderWithAuth } from '../../test/renderWithAuth';
 import type {
@@ -170,7 +171,7 @@ describe('admin panel layout', () => {
 
   it('lists moved CTF rooms next to lesson rooms in the rooms tab', async () => {
     const rooms = [room(1, 'Web 1', { roomType: 'CTF', category: 'Web', points: 50, paths: [{ id: 4, title: 'Zadania CTF', published: true }] }), room(2, 'Lekcja', { paths: [] })];
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)));
+    server.use(roomsPageHandler(rooms));
     signIn('ADMIN');
     mountAdmin('/admin/paths/rooms');
 
@@ -189,7 +190,7 @@ describe('admin panel layout', () => {
 
   it('shows the type of every room and filters the list by type', async () => {
     const rooms = [room(1, 'Web 1', { roomType: 'CTF' }), room(2, 'Lekcja', {}), room(3, 'Sieci', { roomType: 'CTF' })];
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)));
+    server.use(roomsPageHandler(rooms));
     signIn('ADMIN');
     const user = userEvent.setup();
     mountAdmin('/admin/paths/rooms');
@@ -201,31 +202,33 @@ describe('admin panel layout', () => {
     expect(filters.getByRole('button', { name: /Wszystkie/ })).toHaveAttribute('aria-pressed', 'true');
     await user.click(filters.getByRole('button', { name: /CTF/ }));
     expect(filters.getByRole('button', { name: /CTF/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(screen.queryByRole('link', { name: 'Lekcja' })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Lekcja' })).toBeNull());
     await user.click(filters.getByRole('button', { name: /Teoria/ }));
-    expect(screen.getByRole('link', { name: 'Lekcja' })).toBeInTheDocument();
+    expect(await screen.findByRole('link', { name: 'Lekcja' })).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Web 1' })).toBeNull();
     await user.type(screen.getByLabelText('Szukaj pokoju'), 'web');
-    expect(screen.getByText('Brak pasujących pokoi')).toBeInTheDocument();
+    expect(await screen.findByText('Brak pasujących pokoi')).toBeInTheDocument();
     expect(screen.queryByRole('link', { name: 'Utwórz pierwszy pokój' })).toBeNull();
   });
 
   it('searches rooms by title or path and deletes a moved CTF room', async () => {
     const rooms = [room(1, 'Web 1', { roomType: 'CTF', paths: [{ id: 6, title: 'Web Basics', published: false }, { id: 4, title: 'Zadania CTF', published: true }] }), room(2, 'Lekcja', { paths: [{ id: 5, title: 'Linux', published: true }] })];
     let deleted: string | undefined;
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)),
-      http.delete(`${API_URL}/api/admin/rooms/:id`, ({ params }) => { deleted = String(params.id); return new HttpResponse(null, { status: 204 }); }));
+    server.use(roomsPageHandler(rooms),
+      http.delete(`${API_URL}/api/admin/rooms/:id`, ({ params }) => { deleted = String(params.id); rooms.splice(rooms.findIndex((entry) => entry.id === Number(params.id)), 1); return new HttpResponse(null, { status: 204 }); }));
     signIn('ADMIN');
     const user = userEvent.setup();
     mountAdmin('/admin/paths/rooms');
 
     await screen.findByRole('link', { name: 'Web 1' });
     await user.type(screen.getByLabelText('Szukaj pokoju'), 'zadania');
-    expect(screen.queryByRole('link', { name: 'Lekcja' })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Lekcja' })).toBeNull());
+    expect(screen.getByRole('link', { name: 'Web 1' })).toBeInTheDocument();
     await user.clear(screen.getByLabelText('Szukaj pokoju'));
     await user.type(screen.getByLabelText('Szukaj pokoju'), 'brak');
-    expect(screen.getByText('Brak pasujących pokoi')).toBeInTheDocument();
+    expect(await screen.findByText('Brak pasujących pokoi')).toBeInTheDocument();
     await user.clear(screen.getByLabelText('Szukaj pokoju'));
+    await screen.findByRole('link', { name: 'Lekcja' });
 
     expect(screen.getByRole('columnheader', { name: 'Ścieżki' })).toBeInTheDocument();
     expect(screen.getByRole('button', { name: '2 ścieżki: Web Basics, Zadania CTF' })).toHaveTextContent('2 ścieżki');
@@ -236,12 +239,13 @@ describe('admin panel layout', () => {
     await user.click(dialog.getByRole('button', { name: 'Usuń pokój' }));
     expect(await screen.findByText('Pokój „Web 1” został usunięty.')).toBeInTheDocument();
     expect(deleted).toBe('1');
-    expect(screen.queryByRole('link', { name: 'Web 1' })).toBeNull();
+    await waitFor(() => expect(screen.queryByRole('link', { name: 'Web 1' })).toBeNull());
+    expect(screen.getByRole('link', { name: 'Lekcja' })).toBeInTheDocument();
   });
 
   it('shows an empty rooms tab and a load error', async () => {
     signIn('ADMIN');
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])));
+    server.use(roomsPageHandler([]));
     const empty = mountAdmin('/admin/paths/rooms');
     expect(await screen.findByText('Nie ma jeszcze pokoi.')).toBeInTheDocument();
     expect(screen.getByRole('link', { name: 'Utwórz pierwszy pokój' })).toHaveAttribute('href', '/admin/paths/rooms/new');
@@ -261,7 +265,7 @@ describe('admin panel layout', () => {
 
   it('hides room deletion from experts', async () => {
     const rooms = [room(1, 'Web 1', { roomType: 'CTF', category: 'Web', points: 50 })];
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)));
+    server.use(roomsPageHandler(rooms));
 
     signIn('EXPERT');
     const expertView = mountAdmin('/admin/paths/rooms');
@@ -280,7 +284,7 @@ describe('content editors', () => {
     signIn('ADMIN');
     const initial = { id: 5, title: 'Web', description: 'Opis', bannerUrl: null, hasBanner: false, revision: 2, contentRevision: 3, published: false,
       chapters: [{ id: 11, title: 'Rozdział 1', roomIds: [] }] };
-    server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([])), http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(initial)));
+    server.use(http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([])), http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(initial)));
     const save = vi.spyOn(contentApi, 'savePath').mockRejectedValue(new contentApi.ContentError('Materiał zmienił się w międzyczasie.'));
     const user = userEvent.setup(); mountAdmin('/admin/paths/5');
     await user.type(await screen.findByLabelText('Nazwa rozdziału 1'), ' lokalny');

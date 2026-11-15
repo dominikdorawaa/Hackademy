@@ -18,6 +18,7 @@ import type {
     RoomAdminDto,
     RoomAdminSummaryDto,
     RoomTasksAdminDto,
+    RoomType,
     RoomTaskRequest,
     RoomWriteRequest,
     StatsRange,
@@ -35,6 +36,21 @@ const normalizePage = <T>(data: PageResult<T> | T[] | undefined, page: number): 
 
 export async function getUsersPage(sessionKey: string | null, page = 0, query = '') {
     return normalizePage(await request<PageResult<UserAdminView>>('/users?page=' + page + '&size=50&query=' + encodeURIComponent(query), { method: 'GET', sessionKey }), page);
+}
+
+export interface RoomPageResult extends PageResult<RoomAdminSummaryDto> { counts: Record<RoomType, number> }
+export interface RoomFilters { query?: string; type?: RoomType | '' }
+
+export async function getRoomsPage(sessionKey: string | null, page = 0, filters: RoomFilters = {}): Promise<RoomPageResult> {
+    const params = new URLSearchParams({ page: String(page), size: '50', query: filters.query ?? '' });
+    if (filters.type) params.set('type', filters.type);
+    const data = await request<RoomPageResult>('/rooms?' + params, { method: 'GET', sessionKey });
+    return { ...normalizePage(data, page), counts: { PATH: 0, CTF: 0, ...data?.counts } };
+}
+
+export async function getPathsPage(sessionKey: string | null, page = 0, query = '') {
+    const params = new URLSearchParams({ page: String(page), size: '50', query });
+    return normalizePage(await request<PageResult<PathSummaryDto>>('/paths?' + params, { method: 'GET', sessionKey }), page);
 }
 
 export async function getBugReportsPage(sessionKey: string | null, page = 0, status: BugReportStatus | '' = '') {
@@ -131,13 +147,8 @@ export const createRoom = (roomData: RoomWriteRequest, sessionKey: string | null
     });
 };
 
-export const getRooms = (sessionKey: string | null) => {
-    return request<RoomAdminSummaryDto[]>('/rooms', { method: 'GET', sessionKey });
-};
-
 export const getAllRoomsAdmin = (sessionKey: string | null) => {
-
-     return request<RoomAdminSummaryDto[]>('/rooms', { method: 'GET', sessionKey });
+    return request<RoomAdminSummaryDto[]>('/rooms/all', { method: 'GET', sessionKey });
 };
 
 export const getRoomAdmin = (id: ApiId, sessionKey: string | null) => {
@@ -161,10 +172,6 @@ export const deleteRoom = (id: ApiId, sessionKey: string | null) => {
 
 export const getStats = (range: StatsRange, sessionKey: string | null) => {
     return request<AdminStatsDto>(`/stats?range=${range}`, { method: 'GET', sessionKey });
-};
-
-export const getPaths = (sessionKey: string | null) => {
-    return request<PathSummaryDto[]>('/paths', { method: 'GET', sessionKey });
 };
 
 export const getPath = (id: ApiId, sessionKey: string | null) => {

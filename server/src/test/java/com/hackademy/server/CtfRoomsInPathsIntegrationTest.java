@@ -55,7 +55,8 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
         var player = account(Role.USER);
         long path = insert("INSERT INTO paths (title, description, published, unlock_mode, created_at, updated_at) VALUES ('Zadania CTF', 'd', true, 'OPEN', now(), now()) RETURNING id");
         long chapter = insert("INSERT INTO path_chapters (path_id, title, sort_order, created_at, updated_at) VALUES (" + path + ", 'Rozdział 1', 0, now(), now()) RETURNING id");
-        long room = createRoom(admin, uniqueTitle("Moved"), "CTF");
+        String title = uniqueTitle("Moved");
+        long room = createRoom(admin, title, "CTF");
         addFlagTask(room, "FLAG{moved}");
         jdbcTemplate.update("INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (?, ?, 0)", room, chapter);
 
@@ -65,9 +66,9 @@ class CtfRoomsInPathsIntegrationTest extends PostgresIntegrationTest {
         postJson(player, "/api/paths/" + path + "/enroll", "{}").andExpect(status().isOk());
         getAs(player, "/api/rooms/" + room).andExpect(status().isOk());
         solve(player, room, "FLAG{moved}");
-        getAs(admin, "/api/admin/rooms")
-                .andExpect(jsonPath("$[?(@.id == " + room + ")].paths[*].title").value(hasItem("Zadania CTF")))
-                .andExpect(jsonPath("$[?(@.id == " + room + ")].roomType").value(hasItem("CTF")));
+        getAs(admin, "/api/admin/rooms?query=" + title)
+                .andExpect(jsonPath("$.items[?(@.id == " + room + ")].paths[*].title").value(hasItem("Zadania CTF")))
+                .andExpect(jsonPath("$.items[?(@.id == " + room + ")].roomType").value(hasItem("CTF")));
         mockMvc.perform(get("/api/rooms").header("Authorization", "Bearer " + player.token()))
                 .andExpect(status().is4xxClientError());
         getAs(admin, "/api/admin/stats?range=7")

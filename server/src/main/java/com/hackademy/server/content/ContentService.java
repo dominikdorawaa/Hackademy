@@ -223,7 +223,10 @@ public class ContentService {
     }
 
     @Transactional(readOnly = true)
-    public List<PathSummaryDto> adminPaths() {
-        return paths.findAdminListViews().stream().map(p -> PathSummaryDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerUrl()).hasBanner(Boolean.TRUE.equals(p.getHasBanner())).published(Boolean.TRUE.equals(p.getPublished())).roomsCount(p.getRoomsCount()).enrolled(false).systemKey(p.getSystemKey()).build()).toList();
+    public org.springframework.data.domain.Slice<PathSummaryDto> adminPaths(int page, int size, String query) {
+        String term = query == null ? "" : query.strip();
+        if (term.length() > 64) term = term.substring(0, 64);
+        var request = org.springframework.data.domain.PageRequest.of(Math.max(0, page), Math.max(1, Math.min(100, size)));
+        return paths.findAdminListPage(term, request).map(p -> PathSummaryDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerUrl()).hasBanner(Boolean.TRUE.equals(p.getHasBanner())).published(Boolean.TRUE.equals(p.getPublished())).roomsCount(p.getRoomsCount()).enrolled(false).systemKey(p.getSystemKey()).build());
     }
 }

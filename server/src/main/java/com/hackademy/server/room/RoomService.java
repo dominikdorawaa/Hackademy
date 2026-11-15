@@ -19,6 +19,8 @@ import java.util.List;
 public interface RoomService {
     Room createRoom(CreateRoomRequest createRoomRequest, MultipartFile file) throws IOException;
     List<RoomAdminSummaryDto> getAllRoomsForAdmin();
+    org.springframework.data.domain.Slice<RoomAdminSummaryDto> getRoomsPageForAdmin(int page, int size, String query, RoomType type);
+    java.util.Map<RoomType, Long> countRoomsForAdmin(String query);
     Room updateRoom(Long id, com.hackademy.server.room.dto.UpdateRoomRequest updateRoomRequest, MultipartFile file) throws IOException;
     // Saves room details without checking the current tasks against a new type; the caller saves the tasks
     // in the same transaction right after, and updateRoomTasks checks them.
