@@ -1,0 +1,41 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-11-13",
+  "sources": "local-prototype-backups/shop-v1",
+  "processing": "None. Images are served unchanged and scaled with nearest-neighbor rendering.",
+  "images": [
+    {
+      "file": "shop-dark.png",
+      "endpoint": "create-image-pixflux",
+      "description": "Cozy pixel art shop interior of a hacker academy: wooden and metal shelves on the far left and far right with small glowing gadgets, retro computer cartridges, headphones, folded hoodies and tracksuits on hangers, a small counter in the lower center with a cash register shaped like a terminal, hanging price tags without text. Wide horizontal composition, front view, camera at eye level. Chunky clean pixel art matching simple 64px browser game characters, limited palette, readable large shapes. The middle area stays calm and uncluttered so product cards can sit on top. No people, no characters, no text, no letters, no numbers, no logos, no UI. Night time: dark navy and deep purple base, warm amber shelf lamps, cyan and teal neon accents, soft glow.",
+      "imageSize": {
+        "width": 400,
+        "height": 224
+      },
+      "seed": 44101,
+      "noBackground": false
+    },
+    {
+      "file": "shop-light.png",
+      "endpoint": "create-image-pixflux",
+      "description": "Cozy pixel art shop interior of a hacker academy: wooden and metal shelves on the far left and far right with small glowing gadgets, retro computer cartridges, headphones, folded hoodies and tracksuits on hangers, a small counter in the lower center with a cash register shaped like a terminal, hanging price tags without text. Wide horizontal composition, front view, camera at eye level. Chunky clean pixel art matching simple 64px browser game characters, limited palette, readable large shapes. The middle area stays calm and uncluttered so product cards can sit on top. No people, no characters, no text, no letters, no numbers, no logos, no UI. Bright daytime: soft cream and light sky blue walls, warm sunlight through a window, pastel mint and peach accents, light wooden shelves, low contrast and airy.",
+      "imageSize": {
+        "width": 400,
+        "height": 224
+      },
+      "seed": 44102,
+      "noBackground": false
+    },
+    {
+      "file": "bajt.png",
+      "endpoint": "create-image-pixflux",
+      "description": "A single shiny golden pixel art game coin seen from the front, round, with a small embossed square microchip shape in the middle, thick dark brown outline, a bright highlight on the upper left, no letters, no text, no numbers, centered, filling most of the canvas.",
+      "imageSize": {
+        "width": 32,
+        "height": 32
+      },
+      "seed": 44111,
+      "noBackground": true
+    }
+  ]
+}

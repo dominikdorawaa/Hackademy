@@ -17,7 +17,7 @@ public record UserAvatarDto(
         @Pattern(regexp = UserAvatarDto.FINISHERS) String finisher,
         @Pattern(regexp = UserAvatarDto.VICTORY_DANCES) String victoryDance) {
 
-    public static final String OUTFITS = "baza|bluza|dres";
+    public static final String OUTFITS = "baza|bluza|dres|plaszcz";
     public static final String HAIR_STYLES = "brak|krotkie|irokez|kucyk";
     public static final String HAT_STYLES = "brak|czapka|daszek";
     public static final String CUSTOM_COLOR = "#[0-9a-f]{6}";
@@ -28,6 +28,6 @@ public record UserAvatarDto(
     public static final String DEFAULT_POSE = "przod";
     public static final String FINISHERS = "beam|combo";
     public static final String DEFAULT_FINISHER = "beam";
-    public static final String VICTORY_DANCES = "groove|sixseven|scuba";
+    public static final String VICTORY_DANCES = "groove|sixseven|scuba|crab";
     public static final String DEFAULT_VICTORY_DANCE = "groove";
 }

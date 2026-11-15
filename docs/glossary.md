@@ -38,3 +38,11 @@ Przestrzeń plików, w której uczeń wykonuje ćwiczenia danego laboratorium. J
 
 **Egzamin ścieżki**:
 Samodzielny sprawdzian bez podpowiedzi w osobnym pokoju na końcu całej ścieżki UKOS. Laboratoria nie kończą się własnym egzaminem.
+
+## Shop
+
+- **Bajt (Byte):** the in-app currency. Code may still call it `coins` (`CoinPackage`, `top_up_orders.coins`); the UI always says Bajt, Bajty or Bajtów.
+- **Wallet:** a user's Bajt balance. It never goes below zero and every change is written to the transaction history.
+- **Shop item:** a paid dance, outfit or quick chat line. A user owns it after one purchase and owns it forever.
+- **Top-up:** an order that turns real money into Bajty through a payment provider. Without a configured provider top-ups are off.
+- **Wallet adjustment:** an admin adding or removing Bajty from a user's wallet with a required reason.

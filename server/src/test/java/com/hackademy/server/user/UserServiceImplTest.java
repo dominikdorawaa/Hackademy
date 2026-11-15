@@ -61,6 +61,7 @@ class UserServiceImplTest {
     @Mock UserAvatarRepository userAvatarRepository;
     @Mock com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
     @Mock ApplicationEventPublisher events;
+    @Mock com.hackademy.server.shop.ShopAccess shopAccess;
     @InjectMocks UserServiceImpl service;
 
     @AfterEach

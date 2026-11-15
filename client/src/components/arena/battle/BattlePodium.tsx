@@ -5,7 +5,8 @@ import { AVATAR_ATLASES, KNOCKED_OUT, victoryDance } from '../avatar/fighters';
 import { useAvatarAtlas } from '../avatar/useAvatarAtlas';
 import { BattleResult } from './BattleResult';
 import { PixelSprite } from '../../PixelSprite';
-import { PODIUM_DANCES, PODIUM_EMOTES, podiumDance, podiumEmote } from './quickChat';
+import { PODIUM_DANCES, PODIUM_EMOTES, podiumDance, podiumEmote, reactionLocked } from './quickChat';
+import { useShop } from '../../../context/ShopContext';
 import type { Fighter, Outcome } from './battleView';
 import type { VictoryDance } from '../avatar/avatarModel';
 import type { GameSession } from '../../../types/api';
@@ -76,15 +77,20 @@ function Emote({ session, fighter, serverNow, still }: { session?: GameSession; 
 }
 
 function Controls({ dance, canDance, onReact, notice }: { dance: VictoryDance | null; canDance: boolean; onReact: (id: string) => void; notice: string | null }) {
+  const { shop } = useShop();
   return (
     <div className="battle-podium-controls">
       {canDance && <div className="battle-podium-choice" role="group" aria-label="Twój taniec">
         <span aria-hidden="true">Taniec</span>
-        {PODIUM_DANCES.map(option => <button key={option.id} type="button" aria-pressed={dance === option.dance} onClick={() => onReact(option.id)}>{option.name}</button>)}
+        {PODIUM_DANCES.map(option => {
+          const locked = reactionLocked(shop, option.id);
+          return <button key={option.id} type="button" aria-pressed={dance === option.dance} disabled={locked} title={locked ? 'Kupisz w Sklepie' : undefined}
+            onClick={() => onReact(option.id)}>{option.name}{locked && <span className="sr-only">, do kupienia w Sklepie</span>}</button>;
+        })}
       </div>}
       <div className="battle-podium-choice" role="group" aria-label="Szybki czat">
         <span aria-hidden="true">Czat</span>
-        {PODIUM_EMOTES.map(option => <button key={option.id} type="button" onClick={() => onReact(option.id)}>{option.text}</button>)}
+        {PODIUM_EMOTES.filter(option => !reactionLocked(shop, option.id)).map(option => <button key={option.id} type="button" onClick={() => onReact(option.id)}>{option.text}</button>)}
       </div>
       {notice && <p className="battle-podium-notice" role="status">{notice}</p>}
     </div>

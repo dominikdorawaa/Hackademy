@@ -364,3 +364,13 @@
   }
 }
 }
+
+.battle-podium-choice {
+  flex-wrap: wrap;
+}
+
+.battle-podium-choice button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+

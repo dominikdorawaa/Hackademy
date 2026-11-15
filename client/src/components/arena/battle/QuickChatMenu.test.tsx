@@ -1,7 +1,13 @@
 import { fireEvent, render, screen } from '@testing-library/react';
-import { expect, it, vi } from 'vitest';
+import { beforeEach, expect, it, vi } from 'vitest';
 import { QuickChatMenu } from './QuickChatMenu';
 import { QUICK_REACTIONS } from './quickChat';
+import { ALL_ITEMS, createShop } from '../../../test/fixtures/shop';
+import type { ShopState } from '../../../types/api';
+
+const shop = vi.hoisted(() => ({ value: null as ShopState | null }));
+vi.mock('../../../context/ShopContext', () => ({ useShop: () => ({ shop: shop.value, status: 'ready', refresh: () => {}, replace: () => {} }) }));
+beforeEach(() => { shop.value = createShop(ALL_ITEMS); });
 
 const mount = (onPick = vi.fn(), notice: string | null = null) => {
   render(<div><QuickChatMenu onPick={onPick} notice={notice}><img alt="" /></QuickChatMenu><button type="button">Poza menu</button></div>);
@@ -16,8 +22,9 @@ it('opens from the portrait with a tap and sends the picked reaction', () => {
   expect(trigger()).toHaveAttribute('aria-expanded', 'true');
   expect(screen.getByRole('menu', { name: 'Szybkie reakcje' })).toBeInTheDocument();
   expect(screen.getAllByRole('menuitem')).toHaveLength(QUICK_REACTIONS.length);
-  for (const group of ['Emotki', 'Tańce']) expect(screen.getByRole('group', { name: group })).toBeInTheDocument();
-  expect(screen.getAllByRole('menuitem')).toHaveLength(7);
+  for (const group of ['Emotki', 'Teksty', 'Tańce']) expect(screen.getByRole('group', { name: group })).toBeInTheDocument();
+  expect(screen.getAllByRole('menuitem')).toHaveLength(12);
+  expect(screen.getByRole('menuitem', { name: 'WP' }).querySelector('.pixel-sprite')).not.toBeNull();
   expect(screen.getByRole('menuitem', { name: 'Scuba' })).toHaveTextContent('Scuba');
   expect(screen.getByRole('menuitem', { name: 'EZ' }).querySelector('.pixel-sprite')).not.toBeNull();
   expect(screen.getByRole('menuitem', { name: 'Six-seven' })).toHaveTextContent('67');
@@ -37,11 +44,11 @@ it('works with the keyboard', () => {
   expect(screen.getByRole('menuitem', { name: 'GG' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'ArrowUp' });
   fireEvent.keyDown(menu, { key: 'ArrowLeft' });
-  expect(screen.getByRole('menuitem', { name: 'Scuba' })).toHaveFocus();
+  expect(screen.getByRole('menuitem', { name: 'Krab' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'Home' });
   expect(screen.getByRole('menuitem', { name: 'EZ' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'End' });
-  expect(screen.getByRole('menuitem', { name: 'Scuba' })).toHaveFocus();
+  expect(screen.getByRole('menuitem', { name: 'Krab' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'ArrowDown' });
   expect(screen.getByRole('menuitem', { name: 'EZ' })).toHaveFocus();
   fireEvent.keyDown(menu, { key: 'Escape' });
@@ -70,4 +77,19 @@ it('closes when focus or a tap leaves the menu', () => {
 it('shows why a reaction was refused', () => {
   mount(vi.fn(), 'Za szybko. Kolejna reakcja za 2 s.');
   expect(screen.getByRole('alert')).toHaveTextContent('Za szybko. Kolejna reakcja za 2 s.');
+});
+
+it('marks paid reactions as locked until they are bought', () => {
+  shop.value = createShop(['chat-wp']);
+  const onPick = mount();
+  fireEvent.click(trigger());
+  const scuba = screen.getByRole('menuitem', { name: 'Scuba, do kupienia w Sklepie' });
+  expect(scuba).toHaveAttribute('aria-disabled', 'true');
+  expect(scuba.querySelector('.quick-chat-lock')).not.toBeNull();
+  fireEvent.click(scuba);
+  fireEvent.click(screen.getByRole('menuitem', { name: 'GL HF, do kupienia w Sklepie' }));
+  expect(onPick).not.toHaveBeenCalled();
+  expect(screen.getByRole('menuitem', { name: 'Six-seven' })).not.toHaveAttribute('aria-disabled');
+  fireEvent.click(screen.getByRole('menuitem', { name: 'WP' }));
+  expect(onPick).toHaveBeenCalledWith('wp');
 });

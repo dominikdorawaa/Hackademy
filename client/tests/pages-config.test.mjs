@@ -3,9 +3,9 @@ import { readFile } from 'node:fs/promises'
 import { test } from 'node:test'
 import viteConfig from '../vite.config.js'
 
-test('Cloudflare Pages serves the SPA for every route', async () => {
+test('Cloudflare Pages moves the old welcome address and serves the SPA for every route', async () => {
   const rules = (await readFile('public/_redirects', 'utf8')).trim().split('\n')
-  assert.deepEqual(rules, ['/* /index.html 200'])
+  assert.deepEqual(rules, ['/witaj /welcome 301', '/* /index.html 200'])
 })
 
 test('only hashed build files get a long immutable cache', async () => {

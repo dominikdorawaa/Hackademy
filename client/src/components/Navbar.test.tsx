@@ -12,6 +12,8 @@ import { currentUserUrl } from '../test/mocks/handlers';
 import { createUser } from '../test/fixtures/auth';
 import { renderWithAuth } from '../test/renderWithAuth';
 import type { Challenge, FriendRequestDto } from '../types/api';
+import { ShopProvider } from '../context/ShopContext';
+import { createShop } from '../test/fixtures/shop';
 
 it.each(['/login', '/register', '/ranking'])('offers a theme selector to visitors on %s', async path => {
   renderWithAuth(<Route path="*" element={<Navbar />} />, path);
@@ -74,4 +76,13 @@ it.each([[0, true], [3, false]])('shows a pixel flame for a %i day streak, lit o
   const flame = counter.querySelector('.pixel-sprite');
   expect(flame).toHaveAttribute('data-still', String(out));
   expect(flame?.classList.contains('is-out')).toBe(out);
+});
+
+it('shows the Byte balance and a Shop link to signed-in players', async () => {
+  setClerkSession(createToken());
+  server.use(http.get(currentUserUrl, () => HttpResponse.json(createUser())), http.get(`${API_URL}/api/shop`, () => HttpResponse.json(createShop([], 250))));
+  renderWithAuth(<Route path="*" element={<ShopProvider><Navbar /></ShopProvider>} />, '/shop');
+  const chip = await screen.findByRole('link', { name: 'Twoje Bajty: 250. Otwórz Sklep' });
+  expect(chip).toHaveAttribute('href', '/shop');
+  expect(screen.getByRole('link', { name: 'Sklep' })).toHaveClass('active');
 });

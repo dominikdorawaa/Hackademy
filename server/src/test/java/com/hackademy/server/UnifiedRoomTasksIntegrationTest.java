@@ -60,7 +60,7 @@ class UnifiedRoomTasksIntegrationTest extends PostgresIntegrationTest {
         publishInPath(id);
         joinPathsOf(player, id);
         assertEquals("HACK{exact}", JsonPath.read(saved, "$.tasks.tasks[0].answer"));
-        assertEquals(100, number(saved, "$.room.points"));
+        assertEquals(20, number(saved, "$.room.points"));
 
         getAs(admin, "/api/admin/content/rooms/" + id).andExpect(jsonPath("$.room.flag").doesNotExist());
         getAs(player, "/api/rooms/" + id).andExpect(status().isOk())
@@ -73,7 +73,7 @@ class UnifiedRoomTasksIntegrationTest extends PostgresIntegrationTest {
 
         solveRoom(player, id, "hack{exact}").andExpect(status().isBadRequest());
         solveRoom(player, id, "HACK{exact}").andExpect(status().isOk())
-                .andExpect(jsonPath("$.pointsEarned").value(100));
+                .andExpect(jsonPath("$.pointsEarned").value(20));
         assertEquals(1, jdbcTemplate.queryForObject("SELECT count(*) FROM user_solved_rooms WHERE room_id = ?", Integer.class, id));
     }
 

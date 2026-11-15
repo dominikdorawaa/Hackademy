@@ -25,7 +25,7 @@ describe('mobile tab bar', () => {
     realtime.state = state([]);
     renderWithAuth(<Route path="*" element={<MobileTabBar />} />, '/learn/paths/3');
     const bar = screen.getByRole('navigation', { name: 'Nawigacja na telefonie' });
-    expect(within(bar).getAllByRole('link').map(link => link.textContent)).toEqual(['Start', 'Ucz się', 'Arena', 'Ranking']);
+    expect(within(bar).getAllByRole('link').map(link => link.textContent)).toEqual(['Start', 'Ucz się', 'Arena', 'Ranking', 'Sklep']);
     expect(within(bar).getByRole('link', { name: 'Ucz się' })).toHaveAttribute('aria-current', 'page');
     await userEvent.click(within(bar).getByRole('link', { name: 'Ranking' }));
     expect(within(bar).getByRole('link', { name: 'Ranking' })).toHaveAttribute('aria-current', 'page');
@@ -39,7 +39,7 @@ describe('mobile tab bar', () => {
   });
 
   it('leaves full-screen pages alone', () => {
-    expect(['/witaj', '/arena/battle/abc', '/learn/ukos', '/login', '/register'].map(showsMobileTabBar)).toEqual([false, false, false, false, false]);
+    expect(['/welcome', '/arena/battle/abc', '/learn/ukos', '/login', '/register'].map(showsMobileTabBar)).toEqual([false, false, false, false, false]);
     expect(['/dashboard', '/learn', '/arena', '/arena/avatar', '/ranking', '/profile', '/settings'].every(showsMobileTabBar)).toBe(true);
   });
 

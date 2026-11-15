@@ -1,6 +1,10 @@
 import { useId, useRef, useState } from 'react';
 import type { CSSProperties, KeyboardEvent, ReactNode } from 'react';
-import { Check } from 'lucide-react';
+import { Check, Lock } from 'lucide-react';
+import { Link } from 'react-router-dom';
+import { useShop } from '../../context/ShopContext';
+import { formatBytes, isLocked, paidItem } from '../../lib/bytes';
+import type { ShopCategory } from '../../types/api';
 import { AvatarSprite } from '../arena/avatar/AvatarSprite';
 import { useAvatarAtlas, useAvatarPortrait } from '../arena/avatar/useAvatarAtlas';
 import { AVATAR_POSES, FINISHER_MOVES, HAIR_STYLES, HAT_STYLES, toAvatarConfig, VICTORY_DANCES } from '../arena/avatar/avatarModel';
@@ -29,6 +33,13 @@ const VIEWS: { id: View; label: string }[] = [
 const LOOK_TABS: StudioTab[] = ['outfit', 'head', 'colors'];
 const ATTACK = Array.from({ length: 8 }, (_, column) => 9 + column + 1);
 
+function ShopLock({ category, reference }: { category: ShopCategory; reference: string }) {
+  const { shop } = useShop();
+  if (!isLocked(shop, category, reference)) return null;
+  const price = paidItem(category, reference, shop)?.price ?? 0;
+  return <span className="studio-card-lock"><Lock size={14} aria-hidden="true" /><span>{formatBytes(price)}</span><Link to="/shop">Kup w Sklepie</Link></span>;
+}
+
 function Portrait({ avatar, className }: { avatar: Avatar; className: string }) {
   const portrait = useAvatarPortrait(toAvatarConfig(avatar));
   return portrait ? <img className={className} src={portrait} alt="" /> : <span className={className} aria-hidden="true" />;
@@ -38,6 +49,7 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
   avatar: Avatar; onChange: (avatar: Avatar) => void; reducedMotion: boolean; tab: StudioTab; onTab: (tab: StudioTab) => void; disabled?: boolean; aside?: ReactNode;
 }) {
   const [view, setView] = useState<View>('front');
+  const { shop } = useShop();
   const look = LOOK_TABS.includes(tab);
   const height = AVATAR_ATLASES[avatar.outfit].atlasHeight;
   const atlas = useAvatarAtlas(avatar);
@@ -85,10 +97,10 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
       </div>
       <fieldset className="studio-options color-choices-area" id={`${id}-panel`} role="tabpanel" aria-labelledby={`${id}-tab-${tab}`} disabled={disabled}>
         {tab === 'outfit' && <div className="studio-cards" role="radiogroup" aria-label="Strój">
-          {OUTFITS.map(outfit => <label key={outfit.id} className="studio-card" data-selected={avatar.outfit === outfit.id}>
-            <input type="radio" name={`${id}-outfit`} checked={avatar.outfit === outfit.id} onChange={() => set({ outfit: outfit.id })} />
+          {OUTFITS.map(outfit => <label key={outfit.id} className="studio-card" data-selected={avatar.outfit === outfit.id} data-locked={isLocked(shop, 'OUTFIT', outfit.id) || undefined}>
+            <input type="radio" name={`${id}-outfit`} checked={avatar.outfit === outfit.id} disabled={isLocked(shop, 'OUTFIT', outfit.id)} onChange={() => { if (!isLocked(shop, 'OUTFIT', outfit.id)) set({ outfit: outfit.id }); }} />
             <Portrait avatar={{ ...avatar, outfit: outfit.id, pose: 'przod' }} className="studio-card-portrait" />
-            <span className="studio-card-text"><strong>{outfit.name}</strong><small>{outfit.description}</small></span>
+            <span className="studio-card-text"><strong>{outfit.name}</strong><small>{outfit.description}</small><ShopLock category="OUTFIT" reference={outfit.id} /></span>
             {avatar.outfit === outfit.id && <Check className="studio-card-check" size={18} aria-hidden="true" />}
           </label>)}
         </div>}
@@ -129,10 +141,10 @@ export function AvatarStudio({ avatar, onChange, reducedMotion, tab, onTab, disa
         {tab === 'dance' && <div className="studio-group">
           <h3 id={`${id}-dance`}>Taniec zwycięstwa</h3>
           <div className="studio-cards" role="radiogroup" aria-labelledby={`${id}-dance`}>
-            {VICTORY_DANCES.map(dance => <label key={dance} className="studio-card" data-selected={avatar.dance === dance}>
-              <input type="radio" name={`${id}-dance`} checked={avatar.dance === dance} onChange={() => set({ dance })} />
+            {VICTORY_DANCES.map(dance => <label key={dance} className="studio-card" data-selected={avatar.dance === dance} data-locked={isLocked(shop, 'DANCE', dance) || undefined}>
+              <input type="radio" name={`${id}-dance`} checked={avatar.dance === dance} disabled={isLocked(shop, 'DANCE', dance)} onChange={() => { if (!isLocked(shop, 'DANCE', dance)) set({ dance }); }} />
               <span className="studio-card-portrait studio-card-move" aria-hidden="true">{atlas && <AvatarSprite atlas={atlas.atlas} atlasHeight={height} frames={[danceFrame(dance)]} label="" />}</span>
-              <span className="studio-card-text"><strong>{DANCE_OPTIONS[dance].name}</strong><small>{DANCE_OPTIONS[dance].description}</small></span>
+              <span className="studio-card-text"><strong>{DANCE_OPTIONS[dance].name}</strong><small>{DANCE_OPTIONS[dance].description}</small><ShopLock category="DANCE" reference={dance} /></span>
               {avatar.dance === dance && <Check className="studio-card-check" size={18} aria-hidden="true" />}
             </label>)}
           </div>

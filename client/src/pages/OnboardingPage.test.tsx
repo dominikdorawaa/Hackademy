@@ -10,9 +10,12 @@ import { createToken, createUser } from '../test/fixtures/auth';
 import { currentUserUrl, onboardingUrl } from '../test/mocks/handlers';
 import { server } from '../test/mocks/server';
 import { renderWithAuth } from '../test/renderWithAuth';
-import OnboardingPage from './OnboardingPage';
+import onboardingRoutes from './onboardingRoutes';
 import { PROFILE_UPDATED } from '../lib/profile';
 import { DANCE_MS } from '../components/mascot/Mascot';
+import { ALL_ITEMS, createShop } from '../test/fixtures/shop';
+
+vi.mock('../context/ShopContext', () => ({ useShop: () => ({ shop: createShop(ALL_ITEMS), status: 'ready', refresh: () => {}, replace: () => {} }) }));
 
 vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
   useAvatarAtlas: () => ({ atlas: 'blob:atlas', front: 'blob:front' }),
@@ -20,7 +23,7 @@ vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
 }));
 
 const routes = <>
-  <Route path="/witaj" element={<ProtectedRoute onboarding><OnboardingPage /></ProtectedRoute>} />
+  {onboardingRoutes}
   <Route path="/dashboard" element={<ProtectedRoute><p>Dashboard</p></ProtectedRoute>} />
 </>;
 const location = () => screen.getByTestId('location').textContent?.split(':')[0];
@@ -37,7 +40,7 @@ const availabilityUrl = `${API_URL}/api/user/me/username/availability`;
 const usernameUrl = `${API_URL}/api/user/me/username`;
 
 const openName = async () => {
-  renderWithAuth(routes, '/witaj');
+  renderWithAuth(routes, '/welcome');
   expect(await screen.findByRole('heading', { name: 'Witaj w Hackademy, nowy!' })).toHaveFocus();
   expect(screen.getByText('Krok 1 z 3')).toBeInTheDocument();
   expect(screen.getByText('Cześć! Jestem Bit.')).toBeInTheDocument();
@@ -45,6 +48,12 @@ const openName = async () => {
   expect(await screen.findByRole('heading', { name: 'Jak mamy Cię nazywać?' })).toHaveFocus();
   expect(screen.getByText('Krok 2 z 3')).toBeInTheDocument();
 };
+
+it('moves the old Polish welcome address to the English one', async () => {
+  renderWithAuth(routes, '/witaj');
+  expect(await screen.findByRole('heading', { name: 'Witaj w Hackademy, nowy!' })).toBeInTheDocument();
+  expect(screen.getByTestId('location')).toHaveTextContent('/welcome:REPLACE');
+});
 
 const openStudio = async () => {
   await openName();
@@ -94,7 +103,7 @@ it('keeps the choices after a failed save and only finishes after a successful r
   fireEvent.click(screen.getByRole('radio', { name: /Bluza/ }));
   fireEvent.click(screen.getByRole('button', { name: 'Zatwierdzam mój awatar' }));
   expect(await screen.findByRole('alert')).toHaveTextContent('Twój awatar nie został zapisany na koncie.');
-  expect(location()).toBe('/witaj');
+  expect(location()).toBe('/welcome');
   expect(screen.getByRole('radio', { name: /Bluza/ })).toBeChecked();
   fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
   expect(await screen.findByText('Dashboard')).toBeInTheDocument();
@@ -106,7 +115,7 @@ it('does not treat a reply without confirmation as done', async () => {
   await openStudio();
   fireEvent.click(screen.getByRole('button', { name: 'Zatwierdzam mój awatar' }));
   expect(await screen.findByRole('alert')).toBeInTheDocument();
-  expect(location()).toBe('/witaj');
+  expect(location()).toBe('/welcome');
 });
 
 it('starts from the saved account avatar and offers a retry when the account cannot load', async () => {
@@ -114,7 +123,7 @@ it('starts from the saved account avatar and offers a retry when the account can
   server.use(http.get(currentUserUrl, () => (++calls <= 1
     ? HttpResponse.json({}, { status: 500 })
     : HttpResponse.json({ ...createUser(), username: 'nowy', avatar: { outfit: 'bluza', hair: 'kucyk', hat: 'brak', skin: 'jasna', hairColor: 'rude', topColor: 'bialy', bottomColor: 'granatowy', shoesColor: 'czerwony', hatColor: 'bialy', pose: 'postawa' } }))));
-  renderWithAuth(routes, '/witaj');
+  renderWithAuth(routes, '/welcome');
   fireEvent.click(await screen.findByRole('button', { name: 'Wybierz swoją nazwę' }));
   expect(screen.getByRole('textbox', { name: 'Nazwa profilu' })).toBeDisabled();
   expect(screen.getByRole('button', { name: 'Dalej' })).toBeDisabled();
@@ -223,7 +232,7 @@ it('is reachable from the API helper for the tour too', async () => {
 it('lets Bit dance the Scuba on the welcome screen and then calm down again', async () => {
   vi.useFakeTimers({ shouldAdvanceTime: true });
   try {
-    renderWithAuth(routes, '/witaj');
+    renderWithAuth(routes, '/welcome');
     const bit = await screen.findByRole('button', { name: 'Pingwin Bit, zatańcz' });
     const mood = () => bit.querySelector('.mascot')?.getAttribute('data-mood');
     expect(mood()).toBe('calm');

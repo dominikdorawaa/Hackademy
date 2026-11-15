@@ -1,5 +1,5 @@
 import { Link, useLocation } from 'react-router-dom';
-import { BookOpen, House, Sword, Trophy } from '@phosphor-icons/react';
+import { BookOpen, House, Storefront, Sword, Trophy } from '@phosphor-icons/react';
 import type { Icon } from '@phosphor-icons/react';
 import type { CSSProperties } from 'react';
 import { useRealtime } from '../context/RealtimeContext';
@@ -10,9 +10,10 @@ const tabs: { to: string; label: string; icon: Icon }[] = [
   { to: '/learn', label: 'Ucz się', icon: BookOpen },
   { to: '/arena', label: 'Arena', icon: Sword },
   { to: '/ranking', label: 'Ranking', icon: Trophy },
+  { to: '/shop', label: 'Sklep', icon: Storefront },
 ];
 
-const fullScreen = [/^\/witaj/, /^\/arena\/battle\//, /^\/learn\/ukos/, /^\/login/, /^\/register/];
+const fullScreen = [/^\/welcome/, /^\/arena\/battle\//, /^\/learn\/ukos/, /^\/login/, /^\/register/];
 
 export function showsMobileTabBar(pathname: string) {
   return !fullScreen.some(pattern => pattern.test(pathname));

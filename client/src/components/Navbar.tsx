@@ -5,6 +5,8 @@ import * as arenaApi from '../services/arenaApi';
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
+import { useShop } from '../context/ShopContext';
+import { BytesAmount } from './shop/BytesAmount';
 import { useRealtime } from '../context/RealtimeContext';
 import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
 import { useLandingScrollSpy } from '../hooks/useLandingScrollSpy';
@@ -30,6 +32,7 @@ type Notification =
 
 const Navbar = () => {
   const { isAuthenticated, logout, sessionKey, loading, user: userData } = useAuth();
+  const { shop } = useShop();
   const navigate = useNavigate();
   const location = useLocation();
   const roomChrome = useRoomChrome();
@@ -251,6 +254,7 @@ const Navbar = () => {
                   <Link to="/learn" className={isActivePrefix('/learn') ? 'active' : ''}>Ucz się</Link>
                   <Link to="/arena" className={isActivePrefix('/arena') ? 'active' : ''}>Tryb Rankingowy</Link>
                   <Link to="/ranking" className={isActivePrefix('/ranking') ? 'active' : ''}>Ranking</Link>
+                  <Link to="/shop" className={isActivePrefix('/shop') ? 'active' : ''}>Sklep</Link>
                 </>
               ) : (
                 <>
@@ -406,6 +410,10 @@ const Navbar = () => {
                         </div>
                     )}
                 </div>
+
+                {shop && <Link to="/shop" className="nav-bytes" title="Twoje Bajty" aria-label={`Twoje Bajty: ${shop.balance}. Otwórz Sklep`}>
+                    <BytesAmount amount={shop.balance} />
+                </Link>}
 
                 <div className="nav-streak" style={{
                     alignItems: 'center', 

@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { PageControls } from '../../components/admin/PageControls';
-import { Search, Trash2 } from 'lucide-react';
+import { Coins, Search, Trash2 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
@@ -10,6 +10,7 @@ import * as adminApi from '../../services/adminApi';
 import type { Role, UserAdminView } from '../../types/api';
 import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
 import { dateFormat, errorText } from '../../components/admin/adminFormat';
+import { WalletDialog } from './WalletDialog';
 
 const roleLabels: Record<Role, string> = { USER: 'Użytkownik', EXPERT: 'Ekspert', ADMIN: 'Administrator' };
 
@@ -22,6 +23,7 @@ export default function UsersPage() {
   const [search, setSearch] = useState('');
   const [page, setPage] = useState(0);
   const [hasNext, setHasNext] = useState(false);
+  const [walletUser, setWalletUser] = useState<UserAdminView | null>(null);
   const requestId = useRef(0);
   useEffect(() => {
     const timer = setTimeout(() => { setSearch(query.trim()); setPage(0); }, 300);
@@ -73,7 +75,7 @@ export default function UsersPage() {
 
   return (
     <>
-      <PageHeader title="Użytkownicy" description="Zmieniaj role i usuwaj konta. Zmiana roli działa od razu." />
+      <PageHeader title="Użytkownicy" description="Zmieniaj role, przyznawaj Bajty i usuwaj konta. Zmiana roli działa od razu." />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
         <div className="relative w-full sm:max-w-xs">
           <Search aria-hidden="true" className="pointer-events-none absolute top-1/2 left-3 size-4 -translate-y-1/2 text-muted-foreground" />
@@ -102,7 +104,7 @@ export default function UsersPage() {
                 <TableHead className="hidden md:table-cell">E-mail</TableHead>
                 <TableHead className="w-44">Rola</TableHead>
                 <TableHead className="hidden lg:table-cell">Dołączył</TableHead>
-                <TableHead className="w-12"><span className="sr-only">Akcje</span></TableHead>
+                <TableHead className="w-24"><span className="sr-only">Akcje</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -126,7 +128,10 @@ export default function UsersPage() {
                   <TableCell className="hidden text-muted-foreground tabular-nums lg:table-cell">
                     {dateFormat.format(new Date(user.createdAt))}
                   </TableCell>
-                  <TableCell className="text-right">
+                  <TableCell className="text-right whitespace-nowrap">
+                    <Button variant="ghost" size="icon-sm" aria-label={`Bajty użytkownika ${user.username}`} className="text-muted-foreground" onClick={() => setWalletUser(user)}>
+                      <Coins />
+                    </Button>
                     <ConfirmAction
                       title={`Usunąć konto ${user.username}?`}
                       description="Konto, postępy i wiadomości użytkownika zostaną trwale usunięte."
@@ -146,6 +151,7 @@ export default function UsersPage() {
         </div>
       )}
       <PageControls page={page} hasNext={hasNext} loading={loading} onPage={setPage} />
+      <WalletDialog user={walletUser} onClose={() => setWalletUser(null)} />
     </>
   );
 }

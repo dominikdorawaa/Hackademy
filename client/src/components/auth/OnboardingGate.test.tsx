@@ -11,7 +11,7 @@ import { renderWithAuth } from '../../test/renderWithAuth';
 
 const routes = <>
   <Route path="/login" element={<p>Logowanie</p>} />
-  <Route path="/witaj" element={<ProtectedRoute onboarding><p>Powitanie</p></ProtectedRoute>} />
+  <Route path="/welcome" element={<ProtectedRoute onboarding><p>Powitanie</p></ProtectedRoute>} />
   <Route path="/dashboard" element={<ProtectedRoute><p>Dashboard</p></ProtectedRoute>} />
   <Route path="/arena" element={<ProtectedRoute><p>Arena</p></ProtectedRoute>} />
 </>;
@@ -23,12 +23,12 @@ it('sends a new account to the welcome step from any protected address', async (
   server.use(http.get(onboardingUrl, () => HttpResponse.json({ avatarConfirmed: false, tourStatus: 'PENDING' })));
   renderWithAuth(routes, '/arena');
   expect(await screen.findByText('Powitanie')).toBeInTheDocument();
-  expect(location()).toBe('/witaj');
+  expect(location()).toBe('/welcome');
   expect(screen.queryByText('Arena')).toBeNull();
 });
 
 it('lets a confirmed account in and keeps it away from the welcome step', async () => {
-  renderWithAuth(routes, '/witaj');
+  renderWithAuth(routes, '/welcome');
   expect(await screen.findByText('Dashboard')).toBeInTheDocument();
   expect(location()).toBe('/dashboard');
 });
@@ -40,11 +40,11 @@ it('does not open the app when the account state cannot be read, and retries', a
   expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się sprawdzić Twojego konta.');
   expect(screen.queryByText('Dashboard')).toBeNull();
   fireEvent.click(screen.getByRole('button', { name: 'Spróbuj ponownie' }));
-  await waitFor(() => expect(location()).toBe('/witaj'));
+  await waitFor(() => expect(location()).toBe('/welcome'));
 });
 
 it('still sends guests to the login page', async () => {
   setClerkSession(null);
-  renderWithAuth(routes, '/witaj');
+  renderWithAuth(routes, '/welcome');
   expect(await screen.findByText('Logowanie')).toBeInTheDocument();
 });

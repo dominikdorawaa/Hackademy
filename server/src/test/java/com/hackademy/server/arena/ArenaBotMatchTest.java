@@ -1,5 +1,6 @@
 package com.hackademy.server.arena;
 
+import com.hackademy.server.shop.ShopAccess;
 import tools.jackson.databind.json.JsonMapper;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
@@ -60,7 +61,7 @@ class ArenaBotMatchTest {
     private final MatchmakingServiceImpl matchmaking = new MatchmakingServiceImpl(users, realtime);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, friendships, users, avatars,
             userServiceImpl, dashboard, realtime, presence, matchmaking);
-    private final ArenaController controller = new ArenaController(matchmaking, arena, mock(UserService.class));
+    private final ArenaController controller = new ArenaController(matchmaking, arena, mock(UserService.class), mock(ShopAccess.class));
     private final AtomicLong now = new AtomicLong(START);
     private final BotDice dice = new BotDice();
     private final MatchRandom matchRandom = new MatchRandom();

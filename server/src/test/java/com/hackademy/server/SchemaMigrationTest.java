@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 43;
+    static final int SCHEMA_VERSION = 46;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -522,7 +522,7 @@ class SchemaMigrationTest {
                 INSERT INTO chapter_rooms (room_id, chapter_id, sort_order) VALUES (3, 1, 0), (4, 1, 1), (9, 1, 2);
                 """);
 
-        assertEquals(SCHEMA_VERSION - 8, flyway().migrate().migrationsExecuted);
+        assertEquals(45 - 8, flyway("45").migrate().migrationsExecuted);
 
         assertEquals("1:50,2:150,3:7,4:5", text("SELECT string_agg(id || ':' || points, ',' ORDER BY id) FROM rooms WHERE id <= 4"));
         assertEquals(10, scalar("SELECT points FROM users WHERE id = 1"));
@@ -967,6 +967,67 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         assertEquals(1, scalar("SELECT count(*) FROM path_enrollments WHERE user_id = 2 AND path_id = 103 AND enrolled_at = '2026-01-01'"));
         assertEquals(3, scalar("SELECT count(*) FROM user_solved_rooms"));
         assertEquals(0, flyway("40").migrate().migrationsExecuted);
+    }
+
+    @Test
+    void keepsScubaForPlayersWhoAlreadyDanceItAndGuardsWallets() throws Exception {
+        flyway("43").migrate();
+        insertUser(1, "Diver", "diver@example.com");
+        insertUser(2, "Groover", "groover@example.com");
+        execute("""
+                INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color, victory_dance) VALUES
+                (1, 'dres', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy', 'scuba'),
+                (2, 'baza', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy', 'groove')
+                """);
+
+        assertEquals(1, flyway("44").migrate().migrationsExecuted);
+
+        assertEquals("1:dance-scuba", text("SELECT string_agg(user_id || ':' || item_id, ',') FROM owned_items"));
+        execute("INSERT INTO wallets (user_id, balance) VALUES (2, 10)");
+        assertSqlState("23514", "UPDATE wallets SET balance = -1 WHERE user_id = 2");
+        assertSqlState("23514", "INSERT INTO wallet_transactions (user_id, amount, balance_after, kind) VALUES (2, 0, 10, 'ADMIN')");
+        assertSqlState("23514", "INSERT INTO wallet_transactions (user_id, amount, balance_after, kind) VALUES (2, 5, 15, 'GIFT')");
+        assertSqlState("23514", "INSERT INTO top_up_orders (user_id, package_id, coins, price_minor, currency, provider, status) VALUES (2, 'small', 500, 999, 'PLN', 'test', 'LOST')");
+        execute("INSERT INTO top_up_orders (id, user_id, package_id, coins, price_minor, currency, provider, provider_reference) VALUES (7, 2, 'small', 500, 999, 'PLN', 'test', 'ref')");
+        assertSqlState("23505", "INSERT INTO top_up_orders (user_id, package_id, coins, price_minor, currency, provider, provider_reference) VALUES (2, 'small', 500, 999, 'PLN', 'test', 'ref')");
+        execute("INSERT INTO wallet_transactions (user_id, amount, balance_after, kind, order_id, admin_id) VALUES (2, 500, 510, 'TOP_UP', 7, 1)");
+        execute("DELETE FROM users WHERE id = 1");
+        assertEquals(0, scalar("SELECT count(*) FROM owned_items"));
+        assertEquals(1, scalar("SELECT count(*) FROM wallet_transactions WHERE user_id = 2 AND admin_id IS NULL"));
+        execute("DELETE FROM users WHERE id = 2");
+        assertEquals(0, scalar("SELECT count(*) FROM wallets") + scalar("SELECT count(*) FROM wallet_transactions"));
+        assertEquals(1, scalar("SELECT count(*) FROM top_up_orders WHERE id = 7 AND user_id IS NULL"));
+    }
+
+    @Test
+    void acceptsTheCrabDanceAndTheCoatOutfit() throws Exception {
+        flyway("44").migrate();
+        insertUser(1, "Crab", "crab@example.com");
+        execute("INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color) VALUES (1, 'baza', 'kucyk', 'brak', 'heban', 'rude', 'bialy', 'granatowy', 'czerwony', 'bialy')");
+        assertSqlState("23514", "UPDATE user_avatars SET victory_dance = 'crab' WHERE user_id = 1");
+
+        assertEquals(1, flyway("45").migrate().migrationsExecuted);
+
+        execute("UPDATE user_avatars SET victory_dance = 'crab', outfit = 'plaszcz' WHERE user_id = 1");
+        assertEquals("crab:plaszcz", text("SELECT victory_dance || ':' || outfit FROM user_avatars WHERE user_id = 1"));
+        assertSqlState("23514", "UPDATE user_avatars SET victory_dance = 'walc' WHERE user_id = 1");
+        assertSqlState("23514", "UPDATE user_avatars SET outfit = 'kimono' WHERE user_id = 1");
+    }
+
+    @Test
+    void letsCtfRoomsKeepTheirOwnXpAndKeepsStoredRooms() throws Exception {
+        flyway("45").migrate();
+        insertRoom(1);
+        execute("INSERT INTO rooms (id, title, description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (2, 'Intro', 'd', 'HARD', 'Path', 7, 0, false, 'PATH', now(), now())");
+        assertSqlState("23514", "UPDATE rooms SET points = 60 WHERE id = 1");
+
+        assertEquals(1, flyway("46").migrate().migrationsExecuted);
+
+        assertEquals("1:EASY:50,2:HARD:7", text("SELECT string_agg(id || ':' || difficulty || ':' || points, ',' ORDER BY id) FROM rooms"));
+        execute("UPDATE rooms SET points = 60 WHERE id = 1");
+        assertEquals(60, scalar("SELECT points FROM rooms WHERE id = 1"));
+        assertSqlState("23514", "UPDATE rooms SET points = -1 WHERE id = 1");
+        assertSqlState("23514", "UPDATE rooms SET difficulty = 'UNKNOWN' WHERE id = 1");
     }
 
     private void insertUser(long id, String username, String email) throws SQLException {

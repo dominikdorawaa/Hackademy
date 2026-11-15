@@ -20,6 +20,9 @@ vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({
 }));
 
 import ArenaAvatarPage from './ArenaAvatarPage';
+import { ALL_ITEMS, createShop } from '../test/fixtures/shop';
+
+vi.mock('../context/ShopContext', () => ({ useShop: () => ({ shop: createShop(ALL_ITEMS), status: 'ready', refresh: () => {}, replace: () => {} }) }));
 
 beforeEach(() => { atlas.ready = true; atlas.front = 'blob:front'; atlas.last = null; });
 const setup = () => render(<MemoryRouter><AuthProvider><ThemeProvider><ArenaAvatarPage /></ThemeProvider></AuthProvider></MemoryRouter>);
@@ -44,7 +47,7 @@ it('waits for the recolored atlas before showing the preview', () => {
 it('offers only outfits that support hairstyles and hats', () => {
   setup();
   const outfits = within(screen.getByRole('radiogroup', { name: 'Strój' })).getAllByRole('radio');
-  expect(outfits).toHaveLength(3);
+  expect(outfits).toHaveLength(4);
   expect(screen.getByRole('radio', { name: /Klasyczna/ })).toBeChecked();
   expect(screen.queryByText(/Sportowa|Loki/)).not.toBeInTheDocument();
 });

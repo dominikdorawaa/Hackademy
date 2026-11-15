@@ -42,6 +42,8 @@ application:
   arena:
     challenge-expiry: ${ARENA_CHALLENGE_EXPIRY:60s}
     intro: ${ARENA_INTRO:7s}
+  shop:
+    test-payments: ${SHOP_TEST_PAYMENTS:false}
   bug-reports:
     hourly-limit: 5
     daily-limit: 20

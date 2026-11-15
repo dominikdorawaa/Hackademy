@@ -285,6 +285,16 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
                 VALUES (?, ?, 'ACCEPTED', 2, 1, now()), (?, ?, 'PENDING', 0, 0, now())
                 """, friend.id(), id, id, invited.id());
         jdbcTemplate.update("INSERT INTO bug_reports (reporter_id, source, description, created_at) VALUES (?, 'ARENA', ?, now())", id, report(owner));
+        jdbcTemplate.update("INSERT INTO wallets (user_id, balance) VALUES (?, 150) ON CONFLICT DO NOTHING", id);
+        jdbcTemplate.update("INSERT INTO owned_items (user_id, item_id) VALUES (?, 'dance-crab') ON CONFLICT DO NOTHING", id);
+        long order = jdbcTemplate.queryForObject("""
+                INSERT INTO top_up_orders (user_id, package_id, coins, price_minor, currency, provider, status, paid_at)
+                VALUES (?, 'small', 500, 999, 'PLN', 'TEST', 'PAID', now()) RETURNING id
+                """, Long.class, id);
+        jdbcTemplate.update("""
+                INSERT INTO wallet_transactions (user_id, amount, balance_after, kind, order_id, admin_id, reason)
+                VALUES (?, 500, 500, 'TOP_UP', ?, NULL, NULL), (?, -350, 150, 'ADMIN', NULL, ?, 'Korekta')
+                """, id, order, id, id);
     }
 
     private static String report(Account owner) {

@@ -320,7 +320,9 @@ it('shows the rival reaction to the player', async () => {
 });
 
 it('words every refused reaction', () => {
-  expect(reactionRefusal(403, null)).toBe('Nie udało się wysłać reakcji.');
+  expect(reactionRefusal(403, null)).toBe('Tę reakcję kupisz w Sklepie.');
+
+  expect(reactionRefusal(400, null)).toBe('Nie udało się wysłać reakcji.');
   expect(reactionRefusal(429, {})).toBe('Za szybko. Kolejna reakcja za 1 s.');
   expect(reactionRefusal(429, { retryAfter: 3 })).toBe('Za szybko. Kolejna reakcja za 3 s.');
   expect(reactionRefusal(404, null)).toBe('Ta walka nie jest już dostępna.');
