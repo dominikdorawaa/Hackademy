@@ -92,7 +92,7 @@ function PathEditor({ pathId }: { pathId: string }) {
     if (Object.keys(nextErrors).length) { focusError(nextErrors); return false; }
     return true;
   };
-  const save = async (published = formRef.current.published, notify = true) => {
+  const save = async (published = formRef.current.published, notify = true, leaving = false) => {
     if (savingRef.current) return false;
     const current = formRef.current;
     if (!validate(published)) return false;
@@ -100,7 +100,9 @@ function PathEditor({ pathId }: { pathId: string }) {
     try {
       const detail = await contentApi.savePath(idRef.current, { ...current, published }, file, sessionKey);
       const saved = fromDetail(detail);
-      idRef.current = detail.id; setId(detail.id); formRef.current = saved;
+      idRef.current = detail.id;
+      if (leaving) return true;
+      setId(detail.id); formRef.current = saved;
       setForm(saved); setBaseline(saved); setFile(null);
       if (notify) toast.success(published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.');
       if (detail.hasBanner) setBanner(`${API_URL}/api/admin/content/paths/${detail.id}/banner?v=${detail.contentRevision}`);
@@ -114,9 +116,10 @@ function PathEditor({ pathId }: { pathId: string }) {
   const guard = useUnsavedChanges(dirty, () => save(), saving);
   const normalSave = async (published = formRef.current.published) => {
     const wasNew = idRef.current == null;
-    if (await save(published) && wasNew) {
+    if (await save(published, !wasNew, wasNew) && wasNew) {
       guard.allowNavigation();
       navigate(`/admin/paths/${idRef.current}`, { replace: true });
+      toast.success(published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.');
     }
   };
   // A new room starts from its chapter: a draft path is saved quietly first, so the room editor gets a real chapter.

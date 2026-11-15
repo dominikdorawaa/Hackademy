@@ -92,7 +92,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
   };
   // A room inside a published path is seen by players at once, so it has to stay complete.
   const ready = live || !!parentDraft?.published || !!context?.published;
-  const save = async (notify = true) => {
+  const save = async (notify = true, leaving = false) => {
     if (savingRef.current || !loaded) return false;
     const current = formRef.current;
     const nextErrors: FieldErrors = {};
@@ -118,7 +118,9 @@ function RoomEditor({ roomId }: { roomId: string }) {
       const parent = idRef.current == null && parentDraft ? { parentDraft, chapterIndex: creation?.chapterIndex ?? 0, ...(parentId != null ? { pathId: parentId } : {}) } : idRef.current == null && context ? { pathId: context.id, chapterId: Number(contextChapter), pathRevision: context.contentRevision ?? 0 } : {};
       const detail = await contentApi.saveRoom(idRef.current, { ...current, ...parent }, file, sessionKey);
       const saved = fromDetail(detail);
-      idRef.current = detail.room.id; setId(detail.room.id); formRef.current = saved;
+      idRef.current = detail.room.id;
+      if (leaving) return true;
+      setId(detail.room.id); formRef.current = saved;
       setForm(saved); setBaseline(saved); setFile(null); setPaths(detail.paths ?? []); setLive(detail.live ?? false);
       if (detail.pathId != null) { setParentId(detail.pathId); setParentDraft(null); }
       if (notify) toast.success('Zapisano pokój.');
@@ -133,11 +135,14 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const normalSave = async () => {
     const wasNew = idRef.current == null;
     const fromChapter = wasNew && (contextPath != null || parentDraft != null);
-    if (await save(!fromChapter) && wasNew) {
+    if (await save(!wasNew, wasNew) && wasNew) {
       guard.allowNavigation();
       // A room created from a chapter goes straight back to its path, where it is already in place.
       if (fromChapter) navigate(`/admin/paths/${contextPath ?? parentId}`, { replace: true, state: { arrivedRoomId: idRef.current } });
-      else navigate(`${base}/${idRef.current}`, { replace: true });
+      else {
+        navigate(`${base}/${idRef.current}`, { replace: true });
+        toast.success('Zapisano pokój.');
+      }
     }
   };
   const returnPath = contextPath || parentId ? `/admin/paths/${contextPath ?? parentId}` : base;
