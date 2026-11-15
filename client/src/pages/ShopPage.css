@@ -131,12 +131,6 @@
   font-weight: 600;
 }
 
-.shop-message.is-ok {
-  border-color: var(--rm-teal);
-  background: var(--rm-teal-soft);
-  color: var(--rm-ink);
-}
-
 .shop-message.is-error {
   border-color: var(--rm-error);
   background: var(--rm-error-soft);

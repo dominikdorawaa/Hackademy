@@ -59,9 +59,7 @@
 .settings-button-danger { background: color-mix(in srgb, var(--settings-error-color) 14%, transparent); color: var(--settings-error-color); }
 .settings-button-danger:hover:not(:disabled) { background: var(--settings-error-color); color: #ffffff; }
 .settings-page .settings-footnote { margin-top: 16px; font-size: .8125rem; }
-.settings-feedback { position: sticky; bottom: 16px; z-index: 5; margin-top: 20px; font-size: var(--ud-text-s); color: var(--ud-ink); }
-.settings-feedback:not(:empty) { padding: 12px 16px; border-radius: var(--ud-radius); background: var(--ud-tip-bg); box-shadow: var(--ud-float-shadow); }
-.settings-feedback-error, .settings-error p { color: var(--settings-error-color); }
+.settings-error p { color: var(--settings-error-color); }
 .settings-error .settings-button { margin-top: 12px; }
 .settings-page :is(button, a, input, select):focus-visible { outline: 2px solid var(--ud-link); outline-offset: 3px; }
 .settings-page .settings-segmented input:focus-visible { outline: none; }

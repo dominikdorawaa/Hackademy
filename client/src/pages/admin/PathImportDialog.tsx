@@ -9,6 +9,7 @@ import { ContentError, importPath, importPathRooms } from '../../services/conten
 import JsonFilePicker from '../../components/admin/JsonFilePicker';
 import type { ChapterRequest, PathAdminDetailDto } from '../../types/api';
 import example from '../../data/path-import-example.json?raw';
+import { toast } from '../../components/common/toast';
 
 const roomsExample = JSON.stringify({ rooms: (JSON.parse(example) as { chapters: { rooms: unknown[] }[] }).chapters[0].rooms }, null, 2);
 export interface ExistingImportPath { id: number; title: string; contentRevision: number; chaptersRevision: number; chapters: ChapterRequest[] }
@@ -50,7 +51,8 @@ export default function PathImportDialog({ existing, requestOpen, onImported, di
         setOpen(false); setFile(null);
       } else {
         const path = await importPath(file, sessionKey);
-        navigate(`/admin/paths/${path.id}`, { state: { flash: 'Zaimportowano ścieżkę jako szkic. Bannery i pliki dodasz w edytorze.' } });
+        toast.success('Zaimportowano ścieżkę jako szkic. Bannery i pliki dodasz w edytorze.');
+        navigate(`/admin/paths/${path.id}`);
       }
     } catch (error) {
       const fields = error instanceof ContentError ? Object.entries(error.fields) : [];

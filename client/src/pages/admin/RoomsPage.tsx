@@ -15,6 +15,7 @@ import { PageControls } from '../../components/admin/PageControls';
 import { errorText, numberFormat } from '../../components/admin/adminFormat';
 import { useAdminAccess } from './adminAccess';
 import { roomsPath as base } from './adminConfig';
+import { toast } from '../../components/common/toast';
 
 export default function RoomsPage() {
   const { sessionKey } = useAuth();
@@ -22,7 +23,6 @@ export default function RoomsPage() {
   const [rooms, setRooms] = useState<RoomAdminSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
   const [type, setType] = useState<RoomType | 'ALL'>('ALL');
@@ -68,14 +68,12 @@ export default function RoomsPage() {
   const chooseType = (value: RoomType | 'ALL') => { setType(value); setPage(0); };
 
   const remove = async (room: RoomAdminSummaryDto) => {
-    setSuccess(null);
     try {
       await adminApi.deleteRoom(room.id, sessionKey);
       if (rooms.length === 1 && page > 0) setPage(page - 1); else await load();
-      setSuccess(`Pokój „${room.title}” został usunięty.`);
-      setError(null);
+      toast.success(`Pokój „${room.title}” został usunięty.`);
     } catch (err) {
-      setError(errorText(err, 'Nie udało się usunąć pokoju.'));
+      toast.error(errorText(err, 'Nie udało się usunąć pokoju.'));
     }
   };
 
@@ -115,7 +113,6 @@ export default function RoomsPage() {
       </div>
       <div className="mb-4 space-y-2">
         {error && <StatusMessage kind="error">{error}</StatusMessage>}
-        {success && <StatusMessage kind="success">{success}</StatusMessage>}
       </div>
       {loading ? (
         <LoadingRows label="Ładowanie pokoi" />

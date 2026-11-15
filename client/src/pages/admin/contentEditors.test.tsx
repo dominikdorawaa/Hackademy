@@ -1,5 +1,5 @@
 import { setClerkSession } from '../../test/clerk';
-import { render, screen, waitFor, fireEvent, within } from '@testing-library/react';
+import { cleanup, render, screen, waitFor, fireEvent, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { createMemoryRouter, createRoutesFromElements, Outlet, Route, RouterProvider } from 'react-router-dom';
 import { afterEach, beforeAll, beforeEach, describe, expect, it, vi } from 'vitest';
@@ -7,6 +7,9 @@ import { http, HttpResponse } from 'msw';
 import { AuthProvider } from '../../context/AuthContext';
 import { ThemeProvider } from '../../context/ThemeContext';
 import { server } from '../../test/mocks/server';
+import { findToast, queryToast } from '../../test/toasts';
+import Toaster from '../../components/common/Toaster';
+import { currentToasts, subscribeToasts } from '../../components/common/toast';
 import { currentUserHandler } from '../../test/mocks/handlers';
 import { createToken } from '../../test/fixtures/auth';
 import API_URL from '../../apiConfig';
@@ -32,7 +35,7 @@ async function chooseType(user: ReturnType<typeof userEvent.setup>, type: 'Teori
   await user.click(await screen.findByRole('radio', { name: type }));
 }
 function mount(initial: string, entries: (string | { pathname: string; state?: unknown })[] = [initial]) {
-  const router = createMemoryRouter(createRoutesFromElements(<Route element={<ThemeProvider><AuthProvider><Outlet /></AuthProvider></ThemeProvider>}>
+  const router = createMemoryRouter(createRoutesFromElements(<Route element={<ThemeProvider><AuthProvider><Outlet /><Toaster /></AuthProvider></ThemeProvider>}>
     {adminRoutes}<Route path="/" element={<p>Główna</p>} /><Route path="/login" element={<p>Logowanie</p>} />
   </Route>), { initialEntries: entries, initialIndex: entries.length - 1 });
   render(<RouterProvider router={router} />); return router;
@@ -58,7 +61,7 @@ describe('draft editors and guarded navigation', () => {
     server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json(importedPath)),
       http.get(`${API_URL}/api/admin/rooms/all`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])));
     await user.click(screen.getByRole('button', { name: 'Dodaj pokoje' }));
-    expect(await screen.findByText('Dodano pokoje. Gracze zobaczą je po publikacji ścieżki.')).toBeInTheDocument();
+    await findToast('Dodano pokoje. Gracze zobaczą je po publikacji ścieżki.');
     await waitFor(() => expect(screen.getByRole('list', { name: 'Pokoje rozdziału 1' })).toHaveTextContent('Pokój'));
     expect(contentApi.importPathRooms).toHaveBeenCalledWith(5, { chapterId: 11, contentRevision: 4, chaptersRevision: 3 }, file, expect.any(String));
     expect(save).toHaveBeenCalledOnce();
@@ -87,6 +90,50 @@ describe('draft editors and guarded navigation', () => {
     await user.click(screen.getByRole('button', { name: 'Wyjdź bez zapisywania' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/rooms'));
   });
+  it('confirms a new path or room only after the editor moved to its saved address', async () => {
+    const seen: string[] = [];
+    const headings: string[] = [];
+    const heading = () => { const text = Array.from(document.querySelectorAll('h1'), element => element.textContent).join(' | '); if (text && headings.at(-1) !== text) headings.push(text); };
+    const watcher = new MutationObserver(heading);
+    watcher.observe(document.body, { childList: true, subtree: true, characterData: true });
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/12`, () => HttpResponse.json({ room: { ...room, id: 12, title: 'Nowy' }, tasks: { revision: 0, tasks: [] } })));
+    let router = mount('/admin/paths/new');
+    const unsubscribe = subscribeToasts(() => { const latest = currentToasts().at(-1); if (latest) seen.push(`${latest.message} @ ${router.state.location.pathname}`); });
+    vi.spyOn(contentApi, 'savePath').mockResolvedValue({ ...path, title: 'Nowa' });
+    vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: { ...room, id: 12, title: 'Nowy' }, tasks: { revision: 0, tasks: [] }, paths: [] });
+    const user = userEvent.setup();
+    await user.type(await screen.findByLabelText('Tytuł *'), 'Nowa');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await findToast('Zapisano szkic.');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Web' })).toBeInTheDocument();
+    expect(headings).not.toContain('Nowa');
+    router.dispose();
+    cleanup();
+    headings.length = 0;
+    router = mount('/admin/paths/rooms/new');
+    await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy');
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'EASY');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await findToast('Zapisano pokój.');
+    expect(await screen.findByRole('heading', { level: 1, name: 'Nowy' })).toBeInTheDocument();
+    expect(headings.indexOf('Nowy')).toBeGreaterThan(headings.indexOf('Edycja pokoju'));
+    expect(headings.indexOf('Edycja pokoju')).toBeGreaterThan(-1);
+    watcher.disconnect();
+    unsubscribe();
+    expect(seen).toEqual(['Zapisano szkic. @ /admin/paths/5', 'Zapisano pokój. @ /admin/paths/rooms/12']);
+  });
+  it('warns with a toast when an unsaved new path or room is previewed', async () => {
+    const user = userEvent.setup(); const router = mount('/admin/paths/new');
+    await user.click(await screen.findByRole('button', { name: 'Podgląd' }));
+    await findToast('Zapisz szkic przed podglądem.', 'assertive');
+    expect(router.state.location.pathname).toBe('/admin/paths/new');
+    await router.navigate('/admin/paths/rooms/new');
+    await screen.findByRole('heading', { name: 'Nowy pokój' });
+    await screen.findByLabelText('Tytuł *');
+    await user.click(screen.getByRole('button', { name: 'Podgląd' }));
+    await findToast('Zapisz pokój przed podglądem.', 'assertive');
+    expect(router.state.location.pathname).toBe('/admin/paths/rooms/new');
+  });
   it('does not navigate on failed save-and-leave, focuses first invalid field and keeps all data', async () => {
     const user = userEvent.setup(); const router = mount('/admin/paths/5');
     const title = await screen.findByLabelText('Tytuł *'); await user.clear(title);
@@ -94,6 +141,8 @@ describe('draft editors and guarded navigation', () => {
     await user.click(screen.getByRole('button', { name: 'Podgląd' }));
     await user.click(screen.getByRole('button', { name: 'Zapisz i przejdź dalej' }));
     expect(await screen.findByText('To pole jest wymagane')).toBeInTheDocument();
+    expect(screen.getByLabelText('Tytuł *')).toHaveAttribute('aria-invalid', 'true');
+    expect(queryToast('To pole jest wymagane')).toBeNull();
     await waitFor(() => expect(title).toHaveFocus());
     expect(router.state.location.pathname).toBe('/admin/paths/5');
     expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Wstęp lokalny');
@@ -219,7 +268,7 @@ describe('draft editors and guarded navigation', () => {
     await user.type(screen.getByLabelText('Podpowiedź 1 *'), 'Podpowiedź lokalna');
     vi.spyOn(contentApi, 'saveRoom').mockRejectedValue(new contentApi.ContentError('Awaria zapisu'));
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
-    expect(await screen.findByText('Awaria zapisu')).toBeInTheDocument();
+    await findToast('Awaria zapisu', 'assertive');
     expect(screen.getByLabelText('Tytuł zadania *')).toHaveValue('Pierwsze');
     expect(screen.getByLabelText('Podpowiedź 1 *')).toHaveValue('Podpowiedź lokalna');
   });

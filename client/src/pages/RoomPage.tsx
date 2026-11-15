@@ -7,7 +7,7 @@ import { BookOpen, Check, CheckCheck, Download, Flag, HelpCircle, Lightbulb, Rot
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
-import ToastNotification from '../components/common/ToastNotification';
+import { toast } from '../components/common/toast';
 import SuccessModal from '../components/common/SuccessModal';
 import './RoomPage.css';
 import { LoadingSkeleton, Skeleton } from '../components/common/Skeleton';
@@ -24,6 +24,9 @@ import { BugReportButton } from '../components/bugReport/BugReportButton';
 import { closeRoomActivity, openRoomActivity } from '../services/presenceApi';
 import { formatXp } from '../lib/units';
 import { xpAfterHints } from '../lib/level';
+
+const CONNECTION_ERROR = 'Błąd połączenia';
+const DOWNLOAD_ERROR = 'Nie udało się pobrać pliku. Spróbuj ponownie.';
 
 const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const { id } = useParams();
@@ -85,10 +88,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     </p>
   );
 
-  const [toast, setToast] = useState<{ message: string; type: string } | null>(null);
   const [taskFeedback, setTaskFeedback] = useState<{ taskId: number; status: 'success' | 'error'; message: string } | null>(null);
-  const [failedHint, setFailedHint] = useState<number | null>(null);
-  const [completeError, setCompleteError] = useState('');
   const wide = useMediaQuery('(min-width: 1100px)');
   const [sidebarHidden, setSidebarHidden] = useStoredFlag('hackademy.roomTaskList.hidden');
   const sidebar = wide && !sidebarHidden;
@@ -105,18 +105,17 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     if (preview) { setRevealedHints(current => [...current, hintId]); react('hintCount'); return; }
     if (pendingHint !== null) return;
     setPendingHint(hintId);
-    setFailedHint(null);
     try {
       const response = await roomApi.unlockHint(id ?? '', hintId, { sessionKey });
       if (!response.ok) {
-        setFailedHint(hintId);
+        toast.error('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
         return;
       }
       const unlocked = await response.json();
       setRoom(prev => prev ? { ...prev, tasks: prev.tasks.map(t => ({ ...t, hints: (t.hints ?? []).map(h => h.id === unlocked.id ? unlocked : h) })) } : null);
       react('hintCount');
     } catch {
-      setToast({ message: 'Błąd połączenia', type: 'error' });
+      toast.error(CONNECTION_ERROR);
     } finally {
       setPendingHint(null);
     }
@@ -134,8 +133,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
               document.body.appendChild(a);
               a.click();
               a.remove();
-          }
-      } catch (err) { console.error(err); }
+          } else toast.error(DOWNLOAD_ERROR);
+      } catch { toast.error(DOWNLOAD_ERROR); }
   };
 
   const handleCloseSuccessModal = () => {
@@ -217,7 +216,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             if (answered) { playSound('learningError'); react('wrongCount'); }
             setTaskFeedback({ taskId, status: 'error', message: data.message || 'Niepoprawna odpowiedź' });
         }
-    } catch { setToast({ message: 'Błąd połączenia', type: 'error' }); }
+    } catch { toast.error(CONNECTION_ERROR); }
     finally { setPendingTask(null); }
   };
 
@@ -231,12 +230,11 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     }
     if (finishingRoom) return;
     setFinishingRoom(true);
-    setCompleteError('');
     try {
       const response = await roomApi.completeTaskRoom(id ?? '', { sessionKey });
       const data = await response.json();
       if (!response.ok || !data.success) {
-        setCompleteError(data.message || 'Nie udało się ukończyć pokoju');
+        toast.error(data.message || 'Nie udało się ukończyć pokoju');
         return;
       }
       if (!room?.solved) celebrate('room', true);
@@ -246,7 +244,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       setSuccessMessage('Wszystkie zadania wykonane! Pokój ukończony.');
       setShowSuccessModal(true);
     } catch {
-      setToast({ message: 'Błąd połączenia', type: 'error' });
+      toast.error(CONNECTION_ERROR);
     } finally {
       setFinishingRoom(false);
     }
@@ -326,21 +324,12 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
     : { label: 'Zakończ', disabled: !isSolved && !preview, primary: isSolved, onClick: () => navigate(backTo) };
 
   const modals = (
-    <>
-      <SuccessModal
-        isOpen={showSuccessModal}
-        onClose={handleCloseSuccessModal}
-        points={earnedPoints}
-        message={successMessage}
-      />
-      {toast && (
-        <ToastNotification
-            message={toast.message}
-            type={toast.type}
-            onClose={() => setToast(null)}
-        />
-      )}
-    </>
+    <SuccessModal
+      isOpen={showSuccessModal}
+      onClose={handleCloseSuccessModal}
+      points={earnedPoints}
+      message={successMessage}
+    />
   );
 
   if (tasks.length === 0) {
@@ -426,7 +415,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
           {`Podpowiedź (${nextHint.order + 1}/${taskHints.length}) · ${hintPrice}`}
         </button>
       )}
-      {taskHints.some(hint => hint.id === failedHint) && <p className="room-message is-error" role="alert">Nie udało się odblokować podpowiedzi. Spróbuj ponownie.</p>}
     </section>
   );
   const roomMeta = (
@@ -513,7 +501,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
               </form>
             )}
             {hintsBlock}
-            {completeError && <p className="room-message is-error" role="alert">{completeError}</p>}
           </article>
         </div>
       </div>

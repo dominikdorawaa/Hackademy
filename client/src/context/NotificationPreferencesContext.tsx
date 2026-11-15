@@ -10,12 +10,14 @@ interface PreferencesContextValue {
   saving: boolean;
   error: string | null;
   reload: () => void;
-  update: (key: keyof NotificationPreferences, value: boolean) => Promise<boolean>;
+  update: (key: keyof NotificationPreferences, value: boolean) => Promise<'saved' | 'failed' | 'skipped'>;
 }
+
+export const SAVE_ERROR = 'Nie udało się zapisać zmiany. Poprzednie ustawienie zostało zachowane.';
 
 const PreferencesContext = createContext<PreferencesContextValue>({
   preferences: defaultNotificationPreferences, loaded: false, saving: false, error: null,
-  reload: () => {}, update: async () => false,
+  reload: () => {}, update: async () => 'skipped',
 });
 
 export function NotificationPreferencesProvider({ children }: PropsWithChildren) {
@@ -53,7 +55,7 @@ export function NotificationPreferencesProvider({ children }: PropsWithChildren)
   }, [sessionKey, attempt]);
 
   const update = useCallback(async (key: keyof NotificationPreferences, value: boolean) => {
-    if (!sessionKey || activeToken.current !== sessionKey || session.sessionKey !== sessionKey || !session.loaded || pending.current) return false;
+    if (!sessionKey || activeToken.current !== sessionKey || session.sessionKey !== sessionKey || !session.loaded || pending.current) return 'skipped';
     pending.current = true;
     setSaving(true);
     const current = controller.current;
@@ -62,13 +64,13 @@ export function NotificationPreferencesProvider({ children }: PropsWithChildren)
         { sessionKey }, current?.signal);
       if (!response.ok) throw new Error();
       const preferences = await response.json();
-      if (current?.signal.aborted || activeToken.current !== sessionKey) return false;
+      if (current?.signal.aborted || activeToken.current !== sessionKey) return 'skipped';
       setSession({ sessionKey, preferences, loaded: true, error: null });
-      return true;
+      return 'saved';
     } catch {
-      if (!current?.signal.aborted && activeToken.current === sessionKey) setSession(previous => ({ ...previous,
-        error: 'Nie udało się zapisać zmiany. Poprzednie ustawienie zostało zachowane.' }));
-      return false;
+      if (current?.signal.aborted || activeToken.current !== sessionKey) return 'skipped';
+      setSession(previous => ({ ...previous, error: SAVE_ERROR }));
+      return 'failed';
     } finally {
       if (!current?.signal.aborted && activeToken.current === sessionKey) {
         pending.current = false;

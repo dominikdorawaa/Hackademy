@@ -1,10 +1,11 @@
 import { PROFILE_UPDATED } from '../lib/profile';
 import type { ProfilePersonalization } from '../lib/profile';
-import { createContext, useState, useContext, useEffect, useLayoutEffect, useCallback, useMemo } from 'react';
+import { createContext, useState, useContext, useEffect, useLayoutEffect, useCallback, useMemo, useRef } from 'react';
 import type { PropsWithChildren } from 'react';
 import { useAuth as useClerkAuth, useClerk } from '@clerk/react';
 import { registerSession, invalidateReads } from '../services/http';
 import { getCurrentUser } from '../services/userApi';
+import { toast } from '../components/common/toast';
 import type { DashboardUser } from '../types/api';
 
 export type AuthUser = DashboardUser;
@@ -30,6 +31,12 @@ export function AuthProvider({ children }: PropsWithChildren) {
     setExpiredSession(sessionKey);
     await signOut();
   }, [signOut, sessionKey]);
+
+  const endedSession = useRef(authenticated ? sessionKey : null);
+  useLayoutEffect(() => {
+    if (endedSession.current && !authenticated) toast.clear();
+    endedSession.current = authenticated ? sessionKey : null;
+  }, [sessionKey, authenticated]);
 
   useEffect(() => { try { localStorage.removeItem('token'); } catch { return; } }, []);
   useLayoutEffect(() => {
