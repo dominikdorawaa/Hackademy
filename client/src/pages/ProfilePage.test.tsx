@@ -21,6 +21,7 @@ import {
 import { server } from '../test/mocks/server';
 import { DEFAULT_AVATAR, toAvatarConfig } from '../components/arena/avatar/avatarModel';
 import { renderWithAuth } from '../test/renderWithAuth';
+import { findToast } from '../test/toasts';
 import type {
   ActivityDto,
   BadgeDto,
@@ -183,7 +184,7 @@ describe('user profile integration', () => {
     await user.click(editor.getByRole('checkbox', { name: 'Odznaka 6' }));
     await user.click(editor.getByRole('checkbox', { name: 'Odznaka 7' }));
     await user.click(editor.getByRole('button', { name: 'Zapisz profil' }));
-    expect(await screen.findByText('Profil zapisany')).toBeInTheDocument();
+    await findToast('Profil zapisany');
     expect(updates).toEqual([expect.objectContaining({ bio: 'Odkrywam cyberbezpieczeństwo', interests: ['LINUX', 'NETWORKS'], featuredBadgeIds: [6, 7] })]);
     expect(screen.getByRole('img', { name: 'Avatar tester' }).getAttribute('src')).not.toContain('dicebear');
     const showcase = within(screen.getByRole('region', { name: 'Wyróżnione osiągnięcia' }));
@@ -570,9 +571,11 @@ describe('user profile integration', () => {
     await user.click(
       await screen.findByRole('button', { name: 'Dodaj do znajomych' }),
     );
-    expect(await screen.findByRole('alert')).toHaveTextContent(
-      'Nie udało się wysłać zaproszenia',
-    );
+    await findToast('Nie udało się wysłać zaproszenia. Spróbuj ponownie.', 'assertive');
+    expect(screen.queryByText('Zaproszenie wysłane')).not.toBeInTheDocument();
+    server.use(http.post(url('/friends/request/friend'), () => HttpResponse.error()));
+    await user.click(screen.getByRole('button', { name: 'Dodaj do znajomych' }));
+    await findToast('Nie udało się połączyć z serwerem.', 'assertive');
     expect(screen.queryByText('Zaproszenie wysłane')).not.toBeInTheDocument();
     server.use(
       http.post(url('/friends/request/friend'), () =>

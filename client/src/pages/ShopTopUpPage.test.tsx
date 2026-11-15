@@ -10,12 +10,14 @@ import { createToken, createUser } from '../test/fixtures/auth';
 import { createShop } from '../test/fixtures/shop';
 import { currentUserUrl } from '../test/mocks/handlers';
 import { server } from '../test/mocks/server';
+import { findToast } from '../test/toasts';
+import Toaster from '../components/common/Toaster';
 import type { ShopState } from '../types/api';
 import ShopTopUpPage from './ShopTopUpPage';
 
 
 const shopUrl = `${API_URL}/api/shop`;
-const mount = () => render(<MemoryRouter><AuthProvider><ShopProvider><ShopTopUpPage /></ShopProvider></AuthProvider></MemoryRouter>);
+const mount = () => render(<MemoryRouter><AuthProvider><ShopProvider><ShopTopUpPage /><Toaster /></ShopProvider></AuthProvider></MemoryRouter>);
 const serve = (state: ShopState) => server.use(http.get(shopUrl, () => HttpResponse.json(state)));
 
 beforeEach(() => {
@@ -43,7 +45,7 @@ it('tops up with the test payment and lets the player cancel a pending order', a
   const dialog = await screen.findByRole('alertdialog');
   expect(dialog).toHaveTextContent('Płatność testowa');
   fireEvent.click(within(dialog).getByRole('button', { name: 'Zapłać testowo' }));
-  expect(await screen.findByRole('status')).toHaveTextContent('Doładowano 500 Bajtów.');
+  await findToast('Doładowano 500 Bajtów.');
 
   fireEvent.click(screen.getByRole('button', { name: /^Doładuj 1200 Bajtów/ }));
   fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Anuluj zamówienie' }));
@@ -77,10 +79,10 @@ it('reports a failed top-up start and a lost connection', async () => {
   server.use(http.post(`${shopUrl}/top-ups`, () => HttpResponse.json({ message: 'Doładowania Bajtów będą dostępne wkrótce.' }, { status: 503 })));
   mount();
   fireEvent.click(await screen.findByRole('button', { name: /^Doładuj 500 Bajtów/ }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Doładowania Bajtów będą dostępne wkrótce.');
+  await findToast('Doładowania Bajtów będą dostępne wkrótce.', 'assertive');
   server.use(http.post(`${shopUrl}/top-ups`, () => HttpResponse.error()));
   fireEvent.click(screen.getByRole('button', { name: /^Doładuj 500 Bajtów/ }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się połączyć z serwerem.');
+  await findToast('Nie udało się połączyć z serwerem.', 'assertive');
 });
 
 it('reports failed test payments and cancellations', async () => {
@@ -93,10 +95,10 @@ it('reports failed test payments and cancellations', async () => {
   mount();
   fireEvent.click(await screen.findByRole('button', { name: /^Doładuj 500 Bajtów/ }));
   fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Zapłać testowo' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('To zamówienie nie czeka już na płatność.');
+  await findToast('To zamówienie nie czeka już na płatność.', 'assertive');
   fireEvent.click(screen.getByRole('button', { name: /^Doładuj 500 Bajtów/ }));
   fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Anuluj zamówienie' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Nie znaleziono zamówienia, które czeka na płatność.');
+  await findToast('Nie znaleziono zamówienia, które czeka na płatność.', 'assertive');
 });
 
 it('shows the balance with a way back to the Shop and retries a failed load', async () => {

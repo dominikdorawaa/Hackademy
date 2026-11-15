@@ -17,6 +17,7 @@ import { ContentChapters } from '../../components/admin/ContentStructure';
 import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
 import { useAdminAccess } from './adminAccess';
 import PathImportDialog from './PathImportDialog';
+import { toast } from '../../components/common/toast';
 
 const empty: PathSave = { revision: 0, chaptersRevision: 0, title: '', description: '', bannerUrl: null, published: false, chapters: [{ id: null, title: 'Rozdział 1', roomIds: [] }], unlockMode: 'OPEN' };
 const unlockModes: Record<PathUnlockMode, { label: string; description: string }> = {
@@ -50,8 +51,7 @@ function PathEditor({ pathId }: { pathId: string }) {
   const savingRef = useRef(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
-  const arrival = location.state as { flash?: string; arrivedRoomId?: number } | null;
-  const [success, setSuccess] = useState<string | null>(arrival?.flash ?? null);
+  const arrival = location.state as { arrivedRoomId?: number } | null;
   const [arrived, setArrived] = useState<number | null>(arrival?.arrivedRoomId ?? null);
   const [attempt, setAttempt] = useState(0);
   const [systemKey, setSystemKey] = useState<string | null>(null);
@@ -74,7 +74,7 @@ function PathEditor({ pathId }: { pathId: string }) {
     return () => clearTimeout(timer);
   }, [arrived, loading]);
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file;
-  const change = (values: Partial<PathSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
+  const change = (values: Partial<PathSave>) => setForm(current => ({ ...current, ...values }));
   const validate = (published: boolean, roomComing: number | null = null) => {
     const current = formRef.current;
     const nextErrors: FieldErrors = {};
@@ -88,7 +88,7 @@ function PathEditor({ pathId }: { pathId: string }) {
       checkText(nextErrors, `chapters.${i}.title`, c.title, 120, true);
       if (published && !c.roomIds?.length && i !== roomComing) nextErrors[`chapters.${i}.rooms`] = 'Dodaj pokój do rozdziału przed publikacją';
     });
-    setSuccess(null); setErrors(nextErrors); setError(null);
+    setErrors(nextErrors);
     if (Object.keys(nextErrors).length) { focusError(nextErrors); return false; }
     return true;
   };
@@ -102,11 +102,11 @@ function PathEditor({ pathId }: { pathId: string }) {
       const saved = fromDetail(detail);
       idRef.current = detail.id; setId(detail.id); formRef.current = saved;
       setForm(saved); setBaseline(saved); setFile(null);
-      if (notify) setSuccess(published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.');
+      if (notify) toast.success(published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.');
       if (detail.hasBanner) setBanner(`${API_URL}/api/admin/content/paths/${detail.id}/banner?v=${detail.contentRevision}`);
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się zapisać ścieżki.');
+      toast.error(e instanceof Error ? e.message : 'Nie udało się zapisać ścieżki.');
       if (e instanceof contentApi.ContentError) { setErrors(e.fields); focusError(e.fields); }
       return false;
     } finally { savingRef.current = false; setSaving(false); }
@@ -114,9 +114,9 @@ function PathEditor({ pathId }: { pathId: string }) {
   const guard = useUnsavedChanges(dirty, () => save(), saving);
   const normalSave = async (published = formRef.current.published) => {
     const wasNew = idRef.current == null;
-    if (await save(published, !wasNew) && wasNew) {
+    if (await save(published) && wasNew) {
       guard.allowNavigation();
-      navigate(`/admin/paths/${idRef.current}`, { replace: true, state: { flash: published ? 'Zapisano opublikowany materiał.' : 'Zapisano szkic.' } });
+      navigate(`/admin/paths/${idRef.current}`, { replace: true });
     }
   };
   // A new room starts from its chapter: a draft path is saved quietly first, so the room editor gets a real chapter.
@@ -130,7 +130,7 @@ function PathEditor({ pathId }: { pathId: string }) {
         navigate(`/admin/paths/rooms/new?pathId=${idRef.current}&chapterId=${chapter.id}&pathRevision=${formRef.current.revision}`, { state: crumbs(chapter.title) });
         return;
       }
-      if (file) { setError('Zapisz najpierw nowy banner ścieżki.'); return; }
+      if (file) { toast.warning('Zapisz najpierw nowy banner ścieżki.'); return; }
       if (!validate(true, index)) return;
       guard.allowNavigation();
       navigate('/admin/paths/rooms/new', { state: { parentDraft: formRef.current, parentId: idRef.current, chapterIndex: index, ...crumbs(chapter.title) } });
@@ -158,7 +158,7 @@ function PathEditor({ pathId }: { pathId: string }) {
             published ? 'bg-emerald-600 text-white dark:bg-emerald-500/20 dark:text-emerald-300' : 'bg-muted text-muted-foreground')}>{published ? 'Opublikowana' : 'Szkic'}</span>
         </div>
         <div className="ml-auto flex shrink-0 items-center gap-1.5 sm:gap-2">
-          <Button type="button" variant="ghost" size="sm" aria-label="Podgląd" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else setError('Zapisz szkic przed podglądem.'); })}><Eye /><span className="hidden sm:inline">Podgląd</span></Button>
+          <Button type="button" variant="ghost" size="sm" aria-label="Podgląd" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/paths/${idRef.current}`); else toast.warning('Zapisz szkic przed podglądem.'); })}><Eye /><span className="hidden sm:inline">Podgląd</span></Button>
           <ConfirmAction tone={published ? 'destructive' : 'default'} title={published ? 'Przenieść ścieżkę do szkiców?' : 'Opublikować ścieżkę?'} confirmLabel={published ? 'Przenieś do szkiców' : 'Opublikuj'}
             description={`${published ? 'Ścieżka i jej rozdziały znikną graczom. Pokoje, które są też w innej opublikowanej ścieżce, zostaną tam widoczne.' : 'Gracze od razu zobaczą ścieżkę i wszystkie jej pokoje.'}${dirty ? ' Niezapisane zmiany zapiszą się razem z nią.' : ''}`}
             onConfirm={() => normalSave(!published)}
@@ -171,7 +171,7 @@ function PathEditor({ pathId }: { pathId: string }) {
         Edytujesz opublikowaną ścieżkę. Zmiany po zapisie od razu zobaczą użytkownicy.
       </p>}
     </div>
-    <div className="grid gap-3 empty:hidden">{error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}</div>
+    <div className="grid gap-3 empty:hidden">{error && <StatusMessage kind="error">{error}</StatusMessage>}</div>
     {loading ? <LoadingRows label="Ładowanie ścieżki" /> : error && id != null && !form.title ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form id="path-editor" noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-8" aria-label="Edytor ścieżki">
         <fieldset disabled={saving} className="grid min-w-0 gap-8">
@@ -193,7 +193,7 @@ function PathEditor({ pathId }: { pathId: string }) {
               existing={{ id, title: baseline.title, contentRevision: baseline.revision, chaptersRevision: baseline.chaptersRevision, chapters: baseline.chapters }}
               requestOpen={open => guard.request(open)} onImported={detail => {
                 const next = fromDetail(detail); formRef.current = next; setForm(next); setBaseline(next); setFile(null);
-                setSuccess(form.published ? 'Dodano pokoje. Ścieżka jest opublikowana, więc gracze już je widzą.' : 'Dodano pokoje. Gracze zobaczą je po publikacji ścieżki.');
+                toast.success(form.published ? 'Dodano pokoje. Ścieżka jest opublikowana, więc gracze już je widzą.' : 'Dodano pokoje. Gracze zobaczą je po publikacji ścieżki.');
                 setErrors({}); setError(null); setLoading(true); setAttempt(value => value + 1);
               }} /></span>} />
           <Section title="Odblokowywanie" description="Ukończone pokoje pozostają dostępne. Blokady samouczków VM i VPN obowiązują dodatkowo.">

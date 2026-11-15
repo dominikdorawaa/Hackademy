@@ -9,6 +9,7 @@ import { server } from '../../test/mocks/server';
 import { currentUserHandler } from '../../test/mocks/handlers';
 import { createToken } from '../../test/fixtures/auth';
 import { renderWithAuth } from '../../test/renderWithAuth';
+import { findToast } from '../../test/toasts';
 import type {
   AdminStatsDto,
   BugReportAdmin,
@@ -213,8 +214,12 @@ describe('admin panel layout', () => {
   it('searches rooms by title or path and deletes a moved CTF room', async () => {
     const rooms = [room(1, 'Web 1', { roomType: 'CTF', paths: [{ id: 6, title: 'Web Basics', published: false }, { id: 4, title: 'Zadania CTF', published: true }] }), room(2, 'Lekcja', { paths: [{ id: 5, title: 'Linux', published: true }] })];
     let deleted: string | undefined;
+    let deleteFails = true;
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json(rooms)),
-      http.delete(`${API_URL}/api/admin/rooms/:id`, ({ params }) => { deleted = String(params.id); return new HttpResponse(null, { status: 204 }); }));
+      http.delete(`${API_URL}/api/admin/rooms/:id`, ({ params }) => {
+        if (deleteFails) return HttpResponse.json({ message: 'Pokój jest w użyciu.' }, { status: 409 });
+        deleted = String(params.id); return new HttpResponse(null, { status: 204 });
+      }));
     signIn('ADMIN');
     const user = userEvent.setup();
     mountAdmin('/admin/paths/rooms');
@@ -234,7 +239,12 @@ describe('admin panel layout', () => {
     expect(dialog.getByText('Web Basics, Zadania CTF')).toBeInTheDocument();
     expect(dialog.getByText(/Zniknie z 2 ścieżek/)).toBeInTheDocument();
     await user.click(dialog.getByRole('button', { name: 'Usuń pokój' }));
-    expect(await screen.findByText('Pokój „Web 1” został usunięty.')).toBeInTheDocument();
+    await findToast('Pokój jest w użyciu.', 'assertive');
+    expect(screen.getByRole('link', { name: 'Web 1' })).toBeInTheDocument();
+    deleteFails = false;
+    await user.click(screen.getByRole('button', { name: 'Usuń Web 1' }));
+    await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Usuń pokój' }));
+    await findToast('Pokój „Web 1” został usunięty.');
     expect(deleted).toBe('1');
     expect(screen.queryByRole('link', { name: 'Web 1' })).toBeNull();
   });
@@ -312,7 +322,7 @@ describe('content editors', () => {
     expect(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' })).toBeInTheDocument();
     await user.type(screen.getByLabelText('Tytuł *'), ' zmieniony');
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
-    expect(await screen.findByText('Zapisano pokój.')).toBeInTheDocument();
+    await findToast('Zapisano pokój.');
     expect(save.mock.calls[0][1].tasks[0].hints).toEqual(['Zachowana podpowiedź', 'Nowa podpowiedź']);
   });
   it('saves an incomplete room as a draft and keeps the new room available for preview', async () => {
@@ -325,7 +335,7 @@ describe('content editors', () => {
     await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy CTF');
     expect(screen.getByRole('radio', { name: 'Teoria' })).toBeChecked();
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
-    expect(await screen.findByText('Zapisano pokój.')).toBeInTheDocument();
+    await findToast('Zapisano pokój.');
     expect(save.mock.calls[0][1]).toMatchObject({ description: '', roomType: 'PATH' });
     expect(save.mock.calls[0][1]).not.toHaveProperty('published');
     expect(save.mock.calls[0][1]).not.toHaveProperty('flag');
@@ -478,6 +488,7 @@ describe('admin dashboard', () => {
     signIn('ADMIN');
     let users = [{ id: 2, username: 'page-user', email: 'page@example.com', role: 'USER', createdAt: '2026-10-01T00:00:00' }];
     let roleFails = true;
+    let deleteFails = true;
     server.use(
       http.get(`${API_URL}/api/admin/users`, () => HttpResponse.json({ items: users, page: 0, size: 50, hasNext: false })),
       http.put(`${API_URL}/api/admin/users/2/role`, async ({ request }) => {
@@ -486,20 +497,29 @@ describe('admin dashboard', () => {
         users = users.map(user => ({ ...user, role: body.role }));
         return HttpResponse.json(users[0]);
       }),
-      http.delete(`${API_URL}/api/admin/users/2`, () => { users = []; return new HttpResponse(null, { status: 204 }); }),
+      http.delete(`${API_URL}/api/admin/users/2`, () => {
+        if (deleteFails) return HttpResponse.json({ message: 'delete refused' }, { status: 409 });
+        users = []; return new HttpResponse(null, { status: 204 });
+      }),
     );
     mountAdmin('/admin/users');
     await screen.findByText('page-user');
     const user = userEvent.setup();
     await user.click(screen.getByRole('combobox', { name: 'Rola użytkownika page-user' }));
     await user.click(screen.getByRole('option', { name: 'Ekspert' }));
-    await screen.findByText('role refused');
+    await findToast('role refused', 'assertive');
     roleFails = false;
     await user.click(screen.getByRole('combobox', { name: 'Rola użytkownika page-user' }));
     await user.click(screen.getByRole('option', { name: 'Ekspert' }));
     await waitFor(() => expect(users[0].role).toBe('EXPERT'));
+    await findToast('Zmieniono rolę na „Ekspert”.');
     await user.click(screen.getByRole('button', { name: 'Usuń page-user' }));
     await user.click(await screen.findByRole('button', { name: 'Usuń konto' }));
+    await findToast('delete refused', 'assertive');
+    deleteFails = false;
+    await user.click(screen.getByRole('button', { name: 'Usuń page-user' }));
+    await user.click(await screen.findByRole('button', { name: 'Usuń konto' }));
+    await findToast('Użytkownik został usunięty.');
     await screen.findByText('Nie znaleziono użytkowników');
   });
 
@@ -530,11 +550,11 @@ describe('admin dashboard', () => {
     const row = (text: string) => within(screen.getByText(text).closest('tr')!);
     await screen.findByText('resolve-me');
     await user.click(row('resolve-me').getByRole('button', { name: 'Oznacz jako rozwiązane' }));
-    expect(await screen.findByText('status refused')).toBeInTheDocument();
+    await findToast('status refused', 'assertive');
     statusFails = false;
     await user.click(row('resolve-me').getByRole('button', { name: 'Oznacz jako rozwiązane' }));
     await waitFor(() => expect(screen.queryByText('resolve-me')).toBeNull());
-    expect(screen.getByText('Zgłoszenie oznaczone jako rozwiązane.')).toBeInTheDocument();
+    await findToast('Zgłoszenie oznaczone jako rozwiązane.');
 
     await user.click(row('delete-me').getByRole('button', { name: 'Usuń' }));
     await user.click(await screen.findByRole('button', { name: 'Usuń zgłoszenie' }));
@@ -542,7 +562,7 @@ describe('admin dashboard', () => {
     deleteFails = false;
     await user.click(screen.getByRole('button', { name: 'Usuń zgłoszenie' }));
     await waitFor(() => expect(screen.queryByText('delete-me')).toBeNull());
-    expect(screen.getByText('Zgłoszenie usunięte.')).toBeInTheDocument();
+    await findToast('Zgłoszenie usunięte.');
 
     await user.click(screen.getByRole('combobox', { name: 'Filtruj według statusu' }));
     await user.click(screen.getByRole('option', { name: 'Wszystkie' }));

@@ -1,11 +1,11 @@
-import { useCallback, useEffect, useId, useState } from 'react';
+import { useEffect, useId, useState } from 'react';
 import { Bug } from 'lucide-react';
 import { useLocation } from 'react-router-dom';
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { Label } from '@/components/ui/label';
 import { Textarea } from '@/components/ui/textarea';
 import { StatusMessage } from '../common/StatusMessage';
-import ToastNotification from '../common/ToastNotification';
+import { toast } from '../common/toast';
 import { useAuth } from '../../context/AuthContext';
 import { submitBugReport } from '../../services/bugReportApi';
 import { TOO_MANY_REQUESTS, readRetryAfter } from '../../services/rateLimit';
@@ -34,8 +34,6 @@ export function BugReportButton({ context, className, labelled = false }: { cont
   const [error, setError] = useState<string | null>(null);
   const [blockedUntil, setBlockedUntil] = useState<number | null>(null);
   const [now, setNow] = useState(() => Date.now());
-  const [sent, setSent] = useState(false);
-  const hideSent = useCallback(() => setSent(false), []);
 
   useEffect(() => {
     if (blockedUntil === null) return;
@@ -61,7 +59,7 @@ export function BugReportButton({ context, className, labelled = false }: { cont
       if (response.ok) {
         setText('');
         setOpen(false);
-        setSent(true);
+        toast.success(SENT);
       } else if (response.status === TOO_MANY_REQUESTS) {
         const seconds = await readRetryAfter(response);
         const current = Date.now();
@@ -120,7 +118,6 @@ export function BugReportButton({ context, className, labelled = false }: { cont
           </form>
         </DialogContent>
       </Dialog>
-      {sent && <ToastNotification message={SENT} onClose={hideSent} />}
     </>
   );
 }

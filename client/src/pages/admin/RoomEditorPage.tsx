@@ -20,6 +20,7 @@ import { roomsPath as base, pointsForDifficulty, reservedRoomTitles } from './ad
 import { useAdminAccess } from './adminAccess';
 import { difficultyLabels } from '../../components/admin/adminFormat';
 import { formatXp } from '../../lib/units';
+import { toast } from '../../components/common/toast';
 
 const defaultCategory = (kind: RoomType) => kind === 'PATH' ? 'Path' : 'Web';
 function empty(kind: RoomType): RoomSave {
@@ -58,7 +59,6 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const savingRef = useRef(false);
   const [errors, setErrors] = useState<FieldErrors>({});
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>((location.state as { flash?: string } | null)?.flash ?? null);
   const [attempt, setAttempt] = useState(0);
   const [loaded, setLoaded] = useState(false);
   const [paths, setPaths] = useState<RoomPathDto[]>([]);
@@ -84,7 +84,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
   }, [sessionKey, contextPath, contextChapter, contextRevision, attempt]);
   // Unsaved path edits carried with a new room live only here, so leaving before the room is saved would drop them.
   const dirty = JSON.stringify(form) !== JSON.stringify(baseline) || !!file || (parentDraft != null && id == null);
-  const change = (values: Partial<RoomSave>) => { setForm(current => ({ ...current, ...values })); setSuccess(null); };
+  const change = (values: Partial<RoomSave>) => setForm(current => ({ ...current, ...values }));
   const changeType = (roomType: RoomType) => {
     const current = formRef.current;
     const category = current.category === defaultCategory(current.roomType ?? 'PATH') ? { category: defaultCategory(roomType) } : {};
@@ -111,7 +111,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
       task.hints?.forEach((hint, h) => checkText(nextErrors, `tasks.${i}.hints.${h}`, hint, 2000, true));
     });
     if (file && file.size > 50 * 1024 * 1024) nextErrors.file = 'Plik może mieć maksymalnie 50 MB';
-    setErrors(nextErrors); setError(null); setSuccess(null);
+    setErrors(nextErrors);
     if (Object.keys(nextErrors).length) { focusError(nextErrors); return false; }
     savingRef.current = true; setSaving(true);
     try {
@@ -121,10 +121,10 @@ function RoomEditor({ roomId }: { roomId: string }) {
       idRef.current = detail.room.id; setId(detail.room.id); formRef.current = saved;
       setForm(saved); setBaseline(saved); setFile(null); setPaths(detail.paths ?? []); setLive(detail.live ?? false);
       if (detail.pathId != null) { setParentId(detail.pathId); setParentDraft(null); }
-      if (notify) setSuccess('Zapisano pokój.');
+      if (notify) toast.success('Zapisano pokój.');
       return true;
     } catch (e) {
-      setError(e instanceof Error ? e.message : 'Nie udało się zapisać pokoju.');
+      toast.error(e instanceof Error ? e.message : 'Nie udało się zapisać pokoju.');
       if (e instanceof contentApi.ContentError) { setErrors(e.fields); focusError(e.fields); }
       return false;
     } finally { savingRef.current = false; setSaving(false); }
@@ -133,11 +133,11 @@ function RoomEditor({ roomId }: { roomId: string }) {
   const normalSave = async () => {
     const wasNew = idRef.current == null;
     const fromChapter = wasNew && (contextPath != null || parentDraft != null);
-    if (await save(!wasNew) && wasNew) {
+    if (await save(!fromChapter) && wasNew) {
       guard.allowNavigation();
       // A room created from a chapter goes straight back to its path, where it is already in place.
       if (fromChapter) navigate(`/admin/paths/${contextPath ?? parentId}`, { replace: true, state: { arrivedRoomId: idRef.current } });
-      else navigate(`${base}/${idRef.current}`, { replace: true, state: { flash: 'Zapisano pokój.' } });
+      else navigate(`${base}/${idRef.current}`, { replace: true });
     }
   };
   const returnPath = contextPath || parentId ? `/admin/paths/${contextPath ?? parentId}` : base;
@@ -153,9 +153,9 @@ function RoomEditor({ roomId }: { roomId: string }) {
         <li aria-current="page" className="min-w-0 truncate font-medium text-foreground">{id == null ? 'Nowy pokój' : form.title || 'Pokój'}</li>
       </ol>
     </nav> : <Button asChild variant="ghost" className="mb-3"><Link to={returnPath}>← {contextPath || parentId ? 'Wróć do edytora ścieżki' : 'Pokoje'}</Link></Button>}
-    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}${contextPath ? `?pathId=${contextPath}` : ''}`); else setError('Zapisz pokój przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description={<DeleteRoomDescription paths={paths} />} confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
+    <PageHeader title={id == null ? 'Nowy pokój' : form.title || 'Edycja pokoju'} actions={<><Button variant="outline" disabled={saving} onClick={() => guard.request(() => { if (idRef.current != null) navigate(`/admin/preview/rooms/${idRef.current}${contextPath ? `?pathId=${contextPath}` : ''}`); else toast.warning('Zapisz pokój przed podglądem.'); })}>Podgląd</Button>{id != null && isAdmin && <ConfirmAction title="Usunąć ten pokój?" description={<DeleteRoomDescription paths={paths} />} confirmLabel="Usuń pokój" onConfirm={async () => { await adminApi.deleteRoom(id, sessionKey); guard.allowNavigation(); navigate(returnPath); }} trigger={<Button variant="outline">Usuń pokój</Button>} />}</>} />
     {publishedPathsWarning(paths) && <StatusMessage kind="warning">{publishedPathsWarning(paths)} Przypisania zmienisz w edytorze ścieżki.</StatusMessage>}
-    {error && <StatusMessage kind="error">{error}</StatusMessage>}{success && <StatusMessage kind="success">{success}</StatusMessage>}
+    {error && <StatusMessage kind="error">{error}</StatusMessage>}
     {loading ? <LoadingRows label="Ładowanie pokoju" /> : !loaded ? <Button onClick={() => setAttempt(a => a + 1)}>Spróbuj ponownie</Button> :
       <form noValidate onSubmit={e => { e.preventDefault(); void normalSave(); }} className="mt-4 grid gap-6" aria-label="Edytor pokoju">
         <fieldset disabled={saving} className="grid min-w-0 gap-6">

@@ -4,7 +4,7 @@ import { Link, useNavigate, useSearchParams } from 'react-router-dom';
 import { useClerk, useReverification, useUser } from '@clerk/react';
 import { useAuth } from '../context/AuthContext';
 import { useTheme } from '../context/ThemeContext';
-import { useNotificationPreferences } from '../context/NotificationPreferencesContext';
+import { SAVE_ERROR, useNotificationPreferences } from '../context/NotificationPreferencesContext';
 import * as userApi from '../services/userApi';
 import type { NotificationPreferences } from '../services/userApi';
 import type { DashboardUser } from '../types/api';
@@ -24,6 +24,7 @@ import { USERNAME_MAX } from '../lib/username';
 import { getActivitySharing, saveActivitySharing } from '../services/presenceApi';
 import { DeleteAccountDialog } from '../components/settings/DeleteAccountDialog';
 import { rememberAccountDeleted } from '../lib/accountDeletion';
+import { toast } from '../components/common/toast';
 
 const sections: Record<'account' | 'notifications' | 'appearance' | 'security', { title: string; description: string; icon: Icon }> = {
   account: { title: 'Konto', description: 'Dane logowania i profil publiczny.', icon: UserCircle },
@@ -124,7 +125,6 @@ export default function SettingsPage() {
   const [busy, setBusy] = useState<'permission' | null>(null);
   const { change: changeUsername, changing: renaming } = useUsernameChange();
   const [nameError, setNameError] = useState('');
-  const [feedback, setFeedback] = useState<{ message: string; error: boolean } | null>(null);
   const activeToken = useRef(sessionKey);
   useLayoutEffect(() => { activeToken.current = sessionKey; }, [sessionKey]);
   const notificationsSupported = 'Notification' in window && window.isSecureContext;
@@ -178,9 +178,9 @@ export default function SettingsPage() {
       const response = await saveActivitySharing(enabled, { sessionKey });
       if (!response.ok) throw new Error();
       setSharing((await response.json()).enabled);
-      setFeedback({ message: enabled ? 'Znajomi znów widzą, co robisz.' : 'Znajomi widzą już tylko, czy jesteś online.', error: false });
+      toast.success(enabled ? 'Znajomi znów widzą, co robisz.' : 'Znajomi widzą już tylko, czy jesteś online.');
     } catch {
-      setFeedback({ message: 'Nie udało się zapisać ustawienia prywatności.', error: true });
+      toast.error('Nie udało się zapisać ustawienia prywatności.');
     } finally {
       setSavingSharing(false);
     }
@@ -208,7 +208,6 @@ export default function SettingsPage() {
     const parameters = new URLSearchParams(search);
     parameters.set('section', next);
     setSearch(parameters);
-    setFeedback(null);
   };
 
   const unchangedName = !account || username.trim() === account.username;
@@ -217,13 +216,12 @@ export default function SettingsPage() {
 
   const changeName = async (event: FormEvent) => {
     event.preventDefault();
-    setFeedback(null);
     setNameError('');
     const result = await changeUsername(username);
     if (!result) return;
     if (!result.ok) { setNameError(result.error); return; }
     setAccount(previous => previous && { ...previous, username: result.username });
-    setFeedback({ message: 'Nazwa użytkownika została zmieniona.', error: false });
+    toast.success('Nazwa użytkownika została zmieniona.');
   };
 
   const changeNotification = async (key: keyof NotificationPreferences, value: boolean) => {
@@ -234,25 +232,25 @@ export default function SettingsPage() {
         const permission = await Notification.requestPermission();
         if (activeToken.current !== sessionKey) return;
         if (permission !== 'granted') {
-          setFeedback({ message: 'Przeglądarka nie udzieliła zgody. Możesz ją zmienić w ustawieniach uprawnień tej strony.', error: true });
+          toast.error('Przeglądarka nie udzieliła zgody. Możesz ją zmienić w ustawieniach uprawnień tej strony.');
           return;
         }
       } catch {
-        setFeedback({ message: 'Nie udało się uzyskać zgody na powiadomienia w tej przeglądarce.', error: true });
+        toast.error('Nie udało się uzyskać zgody na powiadomienia w tej przeglądarce.');
         return;
       } finally { setBusy(null); }
     }
-    setFeedback(null);
-    const saved = await update(key, value);
-    if (saved) setFeedback({ message: 'Preferencje zostały zapisane.', error: false });
+    const result = await update(key, value);
+    if (result === 'saved') toast.success('Preferencje zostały zapisane.');
+    else if (result === 'failed') toast.error(SAVE_ERROR);
   };
   const previewSound = async (event: AnySoundEvent, game: boolean) => {
     if (!await unlockAudio() || !playSound(event)) {
-      setFeedback({ message: 'Ta przeglądarka nie odtwarza dźwięków na tej stronie.', error: true });
+      toast.error('Ta przeglądarka nie odtwarza dźwięków na tej stronie.');
       return;
     }
     const enabled = game ? preferences.gameSounds : preferences.sound;
-    setFeedback(enabled ? null : { message: `Tak brzmi ten sygnał. Włącz „${game ? 'Dźwięki gry' : 'Dźwięk'}”, aby grał przy prawdziwych zdarzeniach.`, error: false });
+    if (!enabled) toast.info(`Tak brzmi ten sygnał. Włącz „${game ? 'Dźwięki gry' : 'Dźwięk'}”, aby grał przy prawdziwych zdarzeniach.`);
   };
   const soundPicker = (events: (AnySoundEvent)[], game: boolean) => <details className="settings-sounds">
     <summary>Wybierz sygnały<CaretDown size={14} aria-hidden="true" /></summary>
@@ -276,19 +274,19 @@ export default function SettingsPage() {
       if (activeToken.current !== sessionKey) return;
     }
     if (permission !== 'granted') {
-      setFeedback({ message: 'Przeglądarka blokuje powiadomienia z Hackademy. Zezwól na nie w ustawieniach strony (ikona obok adresu).', error: true });
+      toast.error('Przeglądarka blokuje powiadomienia z Hackademy. Zezwól na nie w ustawieniach strony (ikona obok adresu).');
       return;
     }
     try {
       const notification = new Notification('Próbne powiadomienie Hackademy', { body: 'Tak zobaczysz zaproszenie, wyzwanie albo znaleziony mecz, gdy Hackademy jest w tle.' });
-      notification.onerror = () => setFeedback({ message: 'System nie wyświetlił powiadomienia. Sprawdź, czy ustawienia systemu pozwalają przeglądarce pokazywać powiadomienia.', error: true });
+      notification.onerror = () => toast.error('System nie wyświetlił powiadomienia. Sprawdź, czy ustawienia systemu pozwalają przeglądarce pokazywać powiadomienia.');
     } catch {
-      setFeedback({ message: 'Nie udało się wyświetlić powiadomienia na tym urządzeniu.', error: true });
+      toast.error('Nie udało się wyświetlić powiadomienia na tym urządzeniu.');
       return;
     }
-    setFeedback({ message: preferences.browserNotifications
+    toast.success(preferences.browserNotifications
       ? 'Wysłano próbne powiadomienie. Jeśli go nie widzisz, wyłącz tryb „Nie przeszkadzać” i sprawdź, czy system pozwala przeglądarce pokazywać powiadomienia.'
-      : 'Wysłano próbne powiadomienie. Włącz przełącznik, aby dostawać je przy prawdziwych zdarzeniach.', error: false });
+      : 'Wysłano próbne powiadomienie. Włącz przełącznik, aby dostawać je przy prawdziwych zdarzeniach.');
   };
 
   const notificationSwitch = (key: keyof NotificationPreferences, label: string, unavailable = false) => !loaded && !preferenceError
@@ -346,7 +344,7 @@ export default function SettingsPage() {
           </SettingsGroup>
         </>}
         {section === 'notifications' && <>
-          {preferenceError && <div className="settings-error"><p role="alert">{preferenceError}</p>{!loaded && <button className="settings-button" onClick={reload}>Spróbuj ponownie</button>}</div>}
+          {preferenceError && !loaded && <div className="settings-error"><p role="alert">{preferenceError}</p><button className="settings-button" onClick={reload}>Spróbuj ponownie</button></div>}
           {!loaded && !preferenceError && <p role="status" aria-label="Ładowanie preferencji" className="sr-only">Ładowanie preferencji</p>}
           <SettingsGroup id="preview" title="Tak to wygląda">
             <NotificationPreview ownName={account?.username ?? user?.username} ownAvatar={account?.avatar ?? user?.avatar} />
@@ -402,7 +400,7 @@ export default function SettingsPage() {
                 </ul>
                 <figure className="settings-motion-demo" aria-hidden="true"><ArenaRunner avatar={account?.avatar ?? user?.avatar} className="settings-motion-runner" />
                   <figcaption>{calmMotion ? 'Podgląd: stoi' : 'Podgląd: biegnie'}</figcaption></figure>
-              </div>}><Switch label="Ogranicz animacje" checked={reducedMotion} onChange={value => { setReducedMotion(value); setFeedback({ message: 'Preferencja została zapisana na tym urządzeniu.', error: false }); }} /></SettingRow>
+              </div>}><Switch label="Ogranicz animacje" checked={reducedMotion} onChange={value => { setReducedMotion(value); toast.success('Preferencja została zapisana na tym urządzeniu.'); }} /></SettingRow>
           </SettingsGroup>
           <p className="settings-footnote">Ustawienia systemowe ograniczające ruch są zawsze respektowane. Preferencja animacji zapisuje się na tym urządzeniu.</p>
         </>}
@@ -419,7 +417,6 @@ export default function SettingsPage() {
                 onDelete={deleteAccount} /></SettingRow>
           </SettingsGroup>
         </>}
-        <div className={`settings-feedback ${feedback?.error ? 'settings-feedback-error' : ''}`} role={feedback?.error ? 'alert' : 'status'} aria-live="polite">{saving ? 'Zapisywanie preferencji…' : feedback?.message}</div>
       </section>
     </div>
   </div>;

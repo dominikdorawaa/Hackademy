@@ -8,6 +8,8 @@ import API_URL from '../../apiConfig';
 import { AuthProvider } from '../../context/AuthContext';
 import { ThemeProvider } from '../../context/ThemeContext';
 import { server } from '../../test/mocks/server';
+import { findToast } from '../../test/toasts';
+import Toaster from '../../components/common/Toaster';
 import { currentUserHandler } from '../../test/mocks/handlers';
 import { createToken } from '../../test/fixtures/auth';
 import { AdminAccessRoute } from './adminAccess';
@@ -27,7 +29,7 @@ beforeEach(() => {
   server.use(currentUserHandler('ADMIN'), http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json([])));
 });
 function mount(existing?: ExistingImportPath, onImported?: (path: PathAdminDetailDto) => void) {
-  const router = createMemoryRouter([{ element: <ThemeProvider><AuthProvider><Outlet /></AuthProvider></ThemeProvider>, children: [
+  const router = createMemoryRouter([{ element: <ThemeProvider><AuthProvider><Outlet /><Toaster /></AuthProvider></ThemeProvider>, children: [
     { path: '/admin/paths', element: <AdminAccessRoute>{existing ? <PathImportDialog existing={existing} onImported={onImported} /> : <PathsPage />}</AdminAccessRoute> },
     { path: '/admin/paths/12', element: <h1>Edytor importu</h1> },
     { path: '/', element: <h1>Główna</h1> },
@@ -88,7 +90,7 @@ describe('learning path import', () => {
     expect(await screen.findByRole('heading', { name: 'Edytor importu' })).toBeInTheDocument();
     expect(upload).toHaveBeenCalledWith(file, expect.any(String));
     expect(router.state.location.pathname).toBe('/admin/paths/12');
-    expect(router.state.location.state.flash).toContain('jako szkic');
+    await findToast('Zaimportowano ścieżkę jako szkic. Bannery i pliki dodasz w edytorze.');
   });
   it('shows every located error and keeps the selected file for retry', async () => {
     const upload = vi.spyOn(contentApi, 'importPath').mockRejectedValue(new contentApi.ContentError('Błędy', {
@@ -159,12 +161,12 @@ describe('learning path import', () => {
     expect(screen.getByText('Szkic')).toBeInTheDocument();
     await user.click(screen.getByRole('button', { name: 'Usuń Import' }));
     await user.click(screen.getByRole('button', { name: 'Usuń ścieżkę' }));
-    expect(await screen.findByText('Nie można usunąć')).toBeInTheDocument();
+    await findToast('Nie można usunąć', 'assertive');
     expect(screen.getByRole('link', { name: 'Import' })).toBeInTheDocument();
     server.use(http.delete(`${API_URL}/api/admin/paths/12`, () => new HttpResponse(null, { status: 204 })));
     await user.click(screen.getByRole('button', { name: 'Usuń Import' }));
     await user.click(screen.getByRole('button', { name: 'Usuń ścieżkę' }));
-    expect(await screen.findByText(/Ścieżka „Import” została usunięta/)).toBeInTheDocument();
+    await findToast(/Ścieżka „Import” została usunięta/);
     expect(screen.queryByRole('link', { name: 'Import' })).not.toBeInTheDocument();
   });
   it('still offers import when loading the existing path list fails', async () => {

@@ -11,6 +11,7 @@ import type { Role, UserAdminView } from '../../types/api';
 import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } from '../../components/admin/AdminUi';
 import { dateFormat, errorText } from '../../components/admin/adminFormat';
 import { WalletDialog } from './WalletDialog';
+import { toast } from '../../components/common/toast';
 
 const roleLabels: Record<Role, string> = { USER: 'Użytkownik', EXPERT: 'Ekspert', ADMIN: 'Administrator' };
 
@@ -58,18 +59,20 @@ export default function UsersPage() {
   const changeRole = async (userId: number, role: Role) => {
     try {
       await adminApi.updateUserRole(userId, role, sessionKey);
+      toast.success(`Zmieniono rolę na „${roleLabels[role]}”.`);
       await load();
     } catch (err) {
-      setError(errorText(err, 'Nie udało się zmienić roli.'));
+      toast.error(errorText(err, 'Nie udało się zmienić roli.'));
     }
   };
 
   const remove = async (userId: number) => {
     try {
       await adminApi.deleteUser(userId, sessionKey);
+      toast.success('Użytkownik został usunięty.');
       if (users.length === 1 && page > 0) setPage(page - 1); else await load();
     } catch (err) {
-      setError(errorText(err, 'Nie udało się usunąć użytkownika.'));
+      toast.error(errorText(err, 'Nie udało się usunąć użytkownika.'));
     }
   };
 

@@ -11,6 +11,7 @@ import { ConfirmAction, EmptyState, LoadingRows, PageHeader, StatusMessage } fro
 import { errorText, numberFormat, plural } from '../../components/admin/adminFormat';
 import { useAdminAccess } from './adminAccess';
 import PathImportDialog from './PathImportDialog';
+import { toast } from '../../components/common/toast';
 
 export default function PathsPage() {
   const { sessionKey } = useAuth();
@@ -18,7 +19,6 @@ export default function PathsPage() {
   const [paths, setPaths] = useState<PathSummaryDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
 
   const load = useCallback(async () => {
     try {
@@ -36,14 +36,12 @@ export default function PathsPage() {
   }, [sessionKey, load]);
 
   const remove = async (path: PathSummaryDto) => {
-    setSuccess(null);
     try {
       await adminApi.deletePath(path.id, sessionKey);
       setPaths((current) => current.filter((entry) => entry.id !== path.id));
-      setSuccess(`Ścieżka „${path.title}” została usunięta. Jej pokoje wróciły do puli.`);
-      setError(null);
+      toast.success(`Ścieżka „${path.title}” została usunięta. Jej pokoje wróciły do puli.`);
     } catch (err) {
-      setError(errorText(err, 'Nie udało się usunąć ścieżki.'));
+      toast.error(errorText(err, 'Nie udało się usunąć ścieżki.'));
     }
   };
 
@@ -56,7 +54,6 @@ export default function PathsPage() {
       />
       <div className="mb-4 space-y-2">
         {error && <StatusMessage kind="error">{error}</StatusMessage>}
-        {success && <StatusMessage kind="success">{success}</StatusMessage>}
       </div>
       {loading ? (
         <LoadingRows label="Ładowanie ścieżek" />

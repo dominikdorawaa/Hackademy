@@ -11,6 +11,7 @@ import * as adminApi from '../../services/adminApi';
 import type { RoomTaskAdminDto, RoomTasksAdminDto, RoomTaskRequest } from '../../types/api';
 import { ConfirmAction, LoadingRows, Section, StatusMessage } from './AdminUi';
 import { errorText, plural } from './adminFormat';
+import { toast } from '../common/toast';
 
 interface DraftTask {
   key: string;
@@ -61,7 +62,6 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   const [loadAttempt, setLoadAttempt] = useState(0);
   const [saving, setSaving] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [showProblems, setShowProblems] = useState(false);
   const loadKey = `${roomId}:${sessionKey}`;
   const ready = loadedFor === loadKey;
@@ -78,7 +78,6 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     setLoading(true);
     setLoadedFor(null);
     setError(null);
-    setSuccess(null);
     if (!sessionKey) return;
     let active = true;
     adminApi.getRoomTasks(roomId, sessionKey)
@@ -109,7 +108,6 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
   const change = (key: string, field: keyof Omit<DraftTask, 'key' | 'id'>, value: string) => {
     if (editingDisabled) return;
     setTasks((current) => current.map((task) => (task.key === key ? { ...task, [field]: value } : task)));
-    setSuccess(null);
   };
 
   const toggle = (key: string) => {
@@ -126,7 +124,6 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
     const key = nextKey();
     setTasks((current) => [...current, { key, id: null, title: '', content: '', question: '', answer: '' }]);
     setOpen((current) => new Set(current).add(key));
-    setSuccess(null);
   };
 
   const move = (index: number, offset: number) => {
@@ -138,21 +135,18 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
       [next[index], next[target]] = [next[target], next[index]];
       return next;
     });
-    setSuccess(null);
   };
 
   const remove = (key: string) => {
     if (editingDisabled) return;
     setTasks((current) => current.filter((task) => task.key !== key));
-    setSuccess(null);
   };
 
   const save = async () => {
     if (editingDisabled) return;
     setShowProblems(true);
-    setSuccess(null);
     if (invalid) {
-      setError('Popraw zaznaczone zadania przed zapisaniem.');
+      toast.warning('Popraw zaznaczone zadania przed zapisaniem.');
       return;
     }
     setSaving(true);
@@ -163,7 +157,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
       setOpen(new Set());
       setShowProblems(false);
       setError(null);
-      setSuccess('Zapisano zadania.');
+      toast.success('Zapisano zadania.');
     } catch (err) {
       setError(errorText(err, 'Nie udało się zapisać zadań.'));
     } finally {
@@ -183,8 +177,7 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
       setOpen(new Set());
       setShowProblems(false);
       setError(null);
-      setSuccess(null);
-    } finally {
+      } finally {
       setSaving(false);
     }
   };
@@ -213,7 +206,6 @@ export default function TasksEditor({ roomId }: { roomId: number }) {
             onConfirm={reload}
           />}
         </>}
-        {success && <StatusMessage kind="success">{success}</StatusMessage>}
         {ready && removedCount > 0 && (
           <StatusMessage kind="warning">
             Po zapisaniu zniknie {removedCount} {plural(removedCount, ['zadanie', 'zadania', 'zadań'])} razem z postępami graczy.

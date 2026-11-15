@@ -11,6 +11,7 @@ import { createToken, createUser } from '../test/fixtures/auth';
 import { server } from '../test/mocks/server';
 import UserDashboardPage from './UserDashboardPage';
 import SettingsPage from './SettingsPage';
+import Toaster from '../components/common/Toaster';
 
 it('shows the new name on the dashboard after a rename in settings without signing in again', async () => {
   let username = 'gracz224448';
@@ -37,6 +38,7 @@ it('shows the new name on the dashboard after a rename in settings without signi
           <Route path="/dashboard" element={<UserDashboardPage />} />
           <Route path="/settings" element={<SettingsPage />} />
         </Routes>
+        <Toaster />
       </NotificationPreferencesProvider></ThemeProvider></AuthProvider>
     </MemoryRouter>,
   );

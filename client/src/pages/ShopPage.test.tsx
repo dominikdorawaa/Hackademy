@@ -10,13 +10,15 @@ import { createToken, createUser } from '../test/fixtures/auth';
 import { createShop } from '../test/fixtures/shop';
 import { currentUserUrl } from '../test/mocks/handlers';
 import { server } from '../test/mocks/server';
+import { findToast } from '../test/toasts';
+import Toaster from '../components/common/Toaster';
 import type { ShopItem, ShopState } from '../types/api';
 import ShopPage, { describeItem } from './ShopPage';
 
 vi.mock('../components/arena/avatar/useAvatarAtlas', () => ({ useAvatarAtlas: () => ({ atlas: 'blob:atlas', front: null }), useAvatarPortrait: () => null }));
 
 const shopUrl = `${API_URL}/api/shop`;
-const mount = () => render(<MemoryRouter><AuthProvider><ShopProvider><ShopPage /></ShopProvider></AuthProvider></MemoryRouter>);
+const mount = () => render(<MemoryRouter><AuthProvider><ShopProvider><ShopPage /><Toaster /></ShopProvider></AuthProvider></MemoryRouter>);
 const serve = (state: ShopState) => server.use(http.get(shopUrl, () => HttpResponse.json(state)));
 
 beforeEach(() => {
@@ -62,7 +64,7 @@ it('buys an item after confirming and updates the balance everywhere', async () 
   const dialog = await screen.findByRole('alertdialog');
   expect(dialog).toHaveTextContent('Zapłacisz 400 Bajtów. Po zakupie zostanie Ci 100 Bajtów.');
   fireEvent.click(within(dialog).getByRole('button', { name: 'Kup' }));
-  expect(await screen.findByRole('status')).toHaveTextContent('Kupione: Taniec Scuba.');
+  await findToast('Kupione: Taniec Scuba.');
   expect(bought).toBe('dance-scuba');
   expect(screen.getByText('100 Bajtów')).toBeInTheDocument();
   expect(screen.getByRole('link', { name: 'Ustaw w kreatorze' })).toHaveAttribute('href', '/arena/avatar');
@@ -77,8 +79,12 @@ it('explains a refused purchase and refreshes the shop', async () => {
   mount();
   fireEvent.click(await screen.findByRole('button', { name: 'Kup Taniec Scuba za 400 Bajtów' }));
   fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Kup' }));
-  expect(await screen.findByRole('alert')).toHaveTextContent('Masz już ten przedmiot.');
+  await findToast('Masz już ten przedmiot.', 'assertive');
   await waitFor(() => expect(loads).toBe(2));
+  server.use(http.post(`${shopUrl}/items/:id/purchase`, () => HttpResponse.error()));
+  fireEvent.click(screen.getByRole('button', { name: 'Kup Taniec Scuba za 400 Bajtów' }));
+  fireEvent.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Kup' }));
+  await findToast('Nie udało się połączyć z serwerem.', 'assertive');
 });
 
 it('disables items the player cannot afford yet', async () => {
