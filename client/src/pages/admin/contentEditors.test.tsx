@@ -400,12 +400,14 @@ describe('room type in the editor', () => {
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findAllByText('Maksymalnie 200 znaków')).not.toHaveLength(0);
     expect(save).not.toHaveBeenCalled();
+    expect(document.querySelector('.px-toast-message')).toBeNull();
     fireEvent.change(description, { target: { value: 'Krótko o pokoju' } });
     save.mockResolvedValue({ room: { ...room, description: 'Krótko o pokoju' }, tasks: { revision: 1, tasks: [] }, pathId: null, paths: [], live: false });
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1]).toMatchObject({ description: 'Krótko o pokoju' });
     expect(save.mock.calls[0][1]).not.toHaveProperty('shortDescription');
+    await findToast('Zapisano pokój.');
   });
   it('has only one save action and no publication of its own', async () => {
     mount('/admin/paths/rooms/9');
