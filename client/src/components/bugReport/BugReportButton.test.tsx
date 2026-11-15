@@ -9,6 +9,8 @@ import { onRateLimit } from '../../services/rateLimit';
 import { setClerkSession } from '../../test/clerk';
 import { createToken } from '../../test/fixtures/auth';
 import { server } from '../../test/mocks/server';
+import Toaster from '../../components/common/Toaster';
+import { findToast } from '../../test/toasts';
 import type { BugReportRequest } from '../../types/api';
 import { BugReportButton, reportLength, waitText } from './BugReportButton';
 
@@ -17,7 +19,7 @@ const URL = `${API_URL}/api/bug-reports`;
 function mount(context: Omit<BugReportRequest, 'description' | 'pagePath'> = { source: 'ROOM', roomId: 4, taskId: 9 }, labelled = false) {
   return render(
     <MemoryRouter initialEntries={['/rooms/4?tab=tasks']}>
-      <AuthProvider><BugReportButton className="trigger" context={context} labelled={labelled} /></AuthProvider>
+      <AuthProvider><BugReportButton className="trigger" context={context} labelled={labelled} /><Toaster /></AuthProvider>
     </MemoryRouter>,
   );
 }
@@ -49,7 +51,7 @@ describe('bug report button', () => {
 
     await waitFor(() => expect(screen.queryByRole('dialog')).toBeNull());
     expect(body).toEqual({ source: 'ROOM', roomId: 4, taskId: 9, pagePath: '/rooms/4', description: 'Flaga nie przechodzi' });
-    expect(screen.getByText('Dziękujemy! Zgłoszenie trafiło do zespołu.')).toBeInTheDocument();
+    await findToast('Dziękujemy! Zgłoszenie trafiło do zespołu.');
     const again = await open();
     expect(again.dialog.getByLabelText('Opis problemu')).toHaveValue('');
   });

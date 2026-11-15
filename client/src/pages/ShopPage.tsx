@@ -18,6 +18,7 @@ import { BalanceCard } from '../components/shop/BalanceCard';
 import { PixelSprite } from '../components/PixelSprite';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { buyItem, errorMessage } from '../services/shopApi';
+import { toast } from '../components/common/toast';
 import { formatBytes } from '../lib/bytes';
 import type { ShopCategory, ShopItem } from '../types/api';
 import '../components/room/room.css';
@@ -113,25 +114,23 @@ export default function ShopPage() {
   const [tab, setTab] = useState<ShopCategory>('DANCE');
   const [confirm, setConfirm] = useState<ShopItem | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const id = useId();
   const tabs = useRef<(HTMLButtonElement | null)[]>([]);
   const auth = { sessionKey };
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
-    setMessage(null);
     try { await work(); }
-    catch { setMessage({ kind: 'error', text: 'Nie udało się połączyć z serwerem.' }); }
+    catch { toast.error('Nie udało się połączyć z serwerem.'); }
     finally { setBusy(false); }
   };
 
   const buy = (item: ShopItem) => run(async () => {
     setConfirm(null);
     const response = await buyItem(item.id, auth);
-    if (!response.ok) { setMessage({ kind: 'error', text: await errorMessage(response, 'Nie udało się kupić przedmiotu.') }); refresh(); return; }
+    if (!response.ok) { toast.error(await errorMessage(response, 'Nie udało się kupić przedmiotu.')); refresh(); return; }
     replace(await response.json());
-    setMessage({ kind: 'ok', text: `Kupione: ${describeItem(item).name}.` });
+    toast.success(`Kupione: ${describeItem(item).name}.`);
   });
 
   const moveTab = (event: KeyboardEvent, index: number) => {
@@ -158,7 +157,6 @@ export default function ShopPage() {
     </section>
 
     <div className="shop-shell">
-      {message && <p className={`shop-message is-${message.kind}`} role={message.kind === 'error' ? 'alert' : 'status'}>{message.text}</p>}
       {status === 'error' && !shop && <p className="shop-message is-error" role="alert">
         Nie udało się wczytać Sklepu. <button type="button" className="shop-link" onClick={refresh}>Spróbuj ponownie</button>
       </p>}

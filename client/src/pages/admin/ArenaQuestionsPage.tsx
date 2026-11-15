@@ -13,6 +13,7 @@ import * as adminApi from '../../services/adminApi';
 import type { ArenaQuestionAdmin, ArenaQuestionCategory, ArenaQuestionDifficulty } from '../../types/api';
 import ArenaQuestionDialog from './ArenaQuestionDialog';
 import { arenaDifficultyLabels, categories, categoryLabels, difficulties } from './arenaQuestionForm';
+import { toast } from '../../components/common/toast';
 
 const ALL = 'ALL';
 
@@ -25,7 +26,6 @@ export default function ArenaQuestionsPage() {
   const [questions, setQuestions] = useState<ArenaQuestionAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [query, setQuery] = useState('');
   const [search, setSearch] = useState('');
   const [category, setCategory] = useState<ArenaQuestionCategory | ''>('');
@@ -40,8 +40,6 @@ export default function ArenaQuestionsPage() {
     const timer = setTimeout(() => { setSearch(query.trim()); setPage(0); }, 300);
     return () => clearTimeout(timer);
   }, [query]);
-
-  useEffect(() => { setSuccess(null); }, [search, category, difficulty]);
 
   const load = useCallback(async () => {
     const generation = ++requestId.current;
@@ -69,24 +67,22 @@ export default function ArenaQuestionsPage() {
   const openEditor = (question: ArenaQuestionAdmin | null) => {
     setEditing(question);
     setEditorOpen(true);
-    setSuccess(null);
   };
 
   const saved = (_question: ArenaQuestionAdmin, created: boolean) => {
     setEditorOpen(false);
-    setSuccess(created ? 'Dodano pytanie do banku areny.' : 'Zapisano zmiany w pytaniu.');
+    toast.success(created ? 'Dodano pytanie do banku areny.' : 'Zapisano zmiany w pytaniu.');
     if (created && page !== 0) setPage(0); else void load();
   };
 
   const remove = async (question: ArenaQuestionAdmin) => {
-    setSuccess(null);
     try {
       await adminApi.deleteArenaQuestion(question.id, sessionKey);
-      setSuccess('Usunięto pytanie. Trwające pojedynki dokończą je bez zmian.');
+      toast.success('Usunięto pytanie. Trwające pojedynki dokończą je bez zmian.');
       if (questions.length === 1 && page > 0) setPage(page - 1); else await load();
     } catch (err) {
       await load();
-      setError(errorText(err, 'Nie udało się usunąć pytania.'));
+      toast.error(errorText(err, 'Nie udało się usunąć pytania.'));
     }
   };
 
@@ -133,7 +129,6 @@ export default function ArenaQuestionsPage() {
       </div>
       <div className="mb-4 space-y-2">
         {error && <StatusMessage kind="error">{error}</StatusMessage>}
-        {success && <StatusMessage kind="success">{success}</StatusMessage>}
       </div>
       {loading ? (
         <LoadingRows label="Ładowanie pytań" />

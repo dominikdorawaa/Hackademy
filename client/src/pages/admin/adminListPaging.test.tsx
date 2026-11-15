@@ -9,6 +9,7 @@ import { currentUserHandler } from '../../test/mocks/handlers';
 import { pathsPageHandler, roomsPageHandler } from '../../test/mocks/adminLists';
 import { createToken } from '../../test/fixtures/auth';
 import { renderWithAuth } from '../../test/renderWithAuth';
+import { findToast, queryToast } from '../../test/toasts';
 import type { PathSummaryDto, RoomAdminSummaryDto } from '../../types/api';
 import adminRoutes from './adminRoutes';
 
@@ -127,7 +128,7 @@ describe('rooms list paging', { timeout: 30000 }, () => {
 
     await user.click(screen.getByRole('button', { name: 'Usuń Pokój 051' }));
     await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Usuń pokój' }));
-    expect(await screen.findByText('Pokój „Pokój 051” został usunięty.')).toBeInTheDocument();
+    await findToast('Pokój „Pokój 051” został usunięty.');
     expect(await screen.findByText('Strona 1')).toBeInTheDocument();
     await waitFor(() => expect(roomLinks()).toHaveLength(50));
     expect(screen.getByRole('button', { name: 'Następna' })).toBeDisabled();
@@ -256,7 +257,7 @@ describe('paths list paging', { timeout: 30000 }, () => {
 
     await user.click(screen.getByRole('button', { name: 'Usuń Ścieżka 052' }));
     await user.click(within(await screen.findByRole('alertdialog')).getByRole('button', { name: 'Usuń ścieżkę' }));
-    expect(await screen.findByText(/Ścieżka „Ścieżka 052” została usunięta/)).toBeInTheDocument();
+    await findToast(/Ścieżka „Ścieżka 052” została usunięta/);
     expect(await screen.findByText('Strona 1')).toBeInTheDocument();
     await waitFor(() => expect(pathLinks()).toHaveLength(50));
     expect(requests.at(-1)!.searchParams.get('page')).toBe('0');
@@ -289,5 +290,6 @@ describe('paths list paging', { timeout: 30000 }, () => {
     server.use(http.get(`${API_URL}/api/admin/paths`, () => HttpResponse.json({ message: 'Baza nie odpowiada' }, { status: 500 })));
     mount('ADMIN', '/admin/paths');
     expect(await screen.findByText('Baza nie odpowiada')).toBeInTheDocument();
+    expect(queryToast('Baza nie odpowiada')).toBeNull();
   });
 });

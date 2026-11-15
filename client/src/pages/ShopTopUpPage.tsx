@@ -7,6 +7,7 @@ import { BytesAmount } from '../components/shop/BytesAmount';
 import { BalanceCard } from '../components/shop/BalanceCard';
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle } from '@/components/ui/alert-dialog';
 import { cancelTopUp, errorMessage, payTestTopUp, startTopUp } from '../services/shopApi';
+import { toast } from '../components/common/toast';
 import { formatBytes, formatMoney } from '../lib/bytes';
 import type { CoinPackage, TopUpOrder } from '../types/api';
 import '../components/room/room.css';
@@ -26,21 +27,19 @@ export default function ShopTopUpPage() {
   const { shop, status, refresh, replace } = useShop();
   const [order, setOrder] = useState<TopUpOrder | null>(null);
   const [busy, setBusy] = useState(false);
-  const [message, setMessage] = useState<{ kind: 'ok' | 'error'; text: string } | null>(null);
   const id = useId();
   const auth = { sessionKey };
 
   const run = async (work: () => Promise<void>) => {
     setBusy(true);
-    setMessage(null);
     try { await work(); }
-    catch { setMessage({ kind: 'error', text: 'Nie udało się połączyć z serwerem.' }); }
+    catch { toast.error('Nie udało się połączyć z serwerem.'); }
     finally { setBusy(false); }
   };
 
   const start = (pack: CoinPackage) => run(async () => {
     const response = await startTopUp(pack.id, auth);
-    if (!response.ok) { setMessage({ kind: 'error', text: await errorMessage(response, 'Nie udało się rozpocząć doładowania.') }); return; }
+    if (!response.ok) { toast.error(await errorMessage(response, 'Nie udało się rozpocząć doładowania.')); return; }
     const created = await response.json();
     if (created.redirectUrl) window.location.assign(created.redirectUrl);
     else setOrder(created);
@@ -50,9 +49,9 @@ export default function ShopTopUpPage() {
     if (!order) return;
     const response = await payTestTopUp(order.id, auth);
     setOrder(null);
-    if (!response.ok) { setMessage({ kind: 'error', text: await errorMessage(response, 'Płatność się nie udała.') }); return; }
+    if (!response.ok) { toast.error(await errorMessage(response, 'Płatność się nie udała.')); return; }
     replace(await response.json());
-    setMessage({ kind: 'ok', text: `Doładowano ${formatBytes(order.coins)}.` });
+    toast.success(`Doładowano ${formatBytes(order.coins)}.`);
   });
 
   const cancel = () => run(async () => {
@@ -60,7 +59,7 @@ export default function ShopTopUpPage() {
     const pending = order;
     setOrder(null);
     const response = await cancelTopUp(pending.id, auth);
-    if (!response.ok) setMessage({ kind: 'error', text: await errorMessage(response, 'Nie udało się anulować zamówienia.') });
+    if (!response.ok) toast.error(await errorMessage(response, 'Nie udało się anulować zamówienia.'));
   });
 
   return <div className="room-tokens shop-page">
@@ -76,7 +75,6 @@ export default function ShopTopUpPage() {
     </section>
 
     <div className="shop-shell">
-      {message && <p className={`shop-message is-${message.kind}`} role={message.kind === 'error' ? 'alert' : 'status'}>{message.text}</p>}
       {status === 'error' && !shop && <p className="shop-message is-error" role="alert">
         Nie udało się wczytać pakietów. <button type="button" className="shop-link" onClick={refresh}>Spróbuj ponownie</button>
       </p>}

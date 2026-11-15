@@ -13,7 +13,7 @@ import ActivityCalendar from '../ActivityCalendar';
 import BioText from './BioText';
 import UserAvatar from '../UserAvatar';
 import ProfileEditor from './ProfileEditor';
-import ProfileSaveNotification from './ProfileSaveNotification';
+import { toast } from '../common/toast';
 import BadgeShowcase from './BadgeShowcase';
 import { PROFILE_INTERESTS, profileCompletion } from '../../lib/profile';
 import type { ProfilePersonalization } from '../../lib/profile';
@@ -152,10 +152,7 @@ export default function UserProfile({ username }: { username?: string }) {
   const [editing, setEditing] = useState(false);
   const [renamed, setRenamed] = useState<string | null>(null);
   const [savedAvatar, setSavedAvatar] = useState<AvatarConfig | null>(null);
-  const [saved, setSaved] = useState(false);
-  const dismissSaved = useCallback(() => setSaved(false), []);
   const [sending, setSending] = useState(false);
-  const [actionError, setActionError] = useState<string | null>(null);
   const [requestSent, setRequestSent] = useState(false);
   const pendingInvitation = useRef<AbortController | null>(null);
   useEffect(() => () => pendingInvitation.current?.abort(), []);
@@ -165,7 +162,6 @@ export default function UserProfile({ username }: { username?: string }) {
     const controller = new AbortController();
     pendingInvitation.current = controller;
     setSending(true);
-    setActionError(null);
     try {
       const response = await friendApi.sendRequest(
         username!,
@@ -178,13 +174,13 @@ export default function UserProfile({ username }: { username?: string }) {
         return;
       }
       if (!response.ok) {
-        setActionError('Nie udało się wysłać zaproszenia. Spróbuj ponownie.');
+        toast.error('Nie udało się wysłać zaproszenia. Spróbuj ponownie.');
         return;
       }
       setRequestSent(true);
     } catch {
       if (!controller.signal.aborted)
-        setActionError('Nie udało się połączyć z serwerem.');
+        toast.error('Nie udało się połączyć z serwerem.');
     } finally {
       if (!controller.signal.aborted) setSending(false);
     }
@@ -217,7 +213,7 @@ export default function UserProfile({ username }: { username?: string }) {
     canFeature: profileBadges.some(badge => badge.earned),
   });
   const incomplete = own && completion.percent < 100;
-  const edit = () => { setSaved(false); setEditing(true); };
+  const edit = () => setEditing(true);
 
   return (
     <div className="profile-page">
@@ -282,17 +278,11 @@ export default function UserProfile({ username }: { username?: string }) {
                     </Button>
                   )}
                 </ResourceContent>
-                {actionError && (
-                  <p role="alert" className="profile-error">
-                    {actionError}
-                  </p>
-                )}
               </>
             </div>
           )}
         </div>
       </header>
-      {saved && <ProfileSaveNotification onClose={dismissSaved} />}
       {incomplete && <section className="profile-welcome" aria-labelledby="profile-welcome-title"><div className="profile-welcome-copy">
         <h2 id="profile-welcome-title">Nadaj profilowi swój charakter</h2><p>Dodaj opis i zainteresowania, a potem wybierz odznaki do gabloty.</p>
         <div className="profile-completion">
@@ -324,7 +314,7 @@ export default function UserProfile({ username }: { username?: string }) {
       </div>
       {editing && <ProfileEditor username={person.username} initial={appearance} badges={profileBadges} onClose={() => setEditing(false)}
         avatar={person.avatar} onAvatarSaved={setSavedAvatar} onOpenAvatarStudio={() => navigate('/arena/avatar?from=profile')}
-        onUnauthorized={unauthorized} onRenamed={setRenamed} onSaved={(value, name) => { setPersonalization(value); setRenamed(name); setSaved(true); }} />}
+        onUnauthorized={unauthorized} onRenamed={setRenamed} onSaved={(value, name) => { setPersonalization(value); setRenamed(name); toast.success('Profil zapisany'); }} />}
     </div>
   );
 }

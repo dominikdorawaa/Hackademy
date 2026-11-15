@@ -28,6 +28,7 @@ import onboardingRoutes from './pages/onboardingRoutes';
 import NotFoundPage from './pages/NotFoundPage';
 import { PrivacyPage, TermsPage } from './pages/LegalPages';
 import { ArenaLoader } from './components/arena/ArenaLoader';
+import Toaster from './components/common/Toaster';
 
 const UkosPage = lazy(() => import('./ukos/UkosPage'));
 const ArenaAvatarPage = lazy(() => import('./pages/ArenaAvatarPage'));
@@ -132,6 +133,7 @@ function App() {
             <Route path="*" element={<NotFoundPage />} />
           </Route>
         </Routes></Suspense>
+        <Toaster />
         </FriendOnlineFeedProvider>
         </NotificationPreferencesProvider>
       </RealtimeProvider>

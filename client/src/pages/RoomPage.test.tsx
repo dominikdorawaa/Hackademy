@@ -12,6 +12,8 @@ import { renderWithAuth } from '../test/renderWithAuth';
 import type { HintDto, RoomDetailDto, RoomTaskDto } from '../types/api';
 import { onRateLimit } from '../services/rateLimit';
 import RoomPage from './RoomPage';
+import { findToast } from '../test/toasts';
+import { toast } from '../components/common/toast';
 
 const live = vi.hoisted(() => {
   let connected = true;
@@ -190,6 +192,20 @@ describe('task room completion', () => {
     expect(completions).toBe(1);
     expect(await screen.findByText('Wszystkie zadania wykonane! Pokój ukończony.')).toBeInTheDocument();
     expect(screen.queryByRole('button', { name: 'Ukończ pokój' })).not.toBeInTheDocument();
+  });
+
+  it('shows a refused or interrupted room completion as an error toast', async () => {
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/complete`, () => HttpResponse.json({ success: false, message: 'Pokój jest zablokowany.' }, { status: 409 })));
+    mount([{ id: 1, title: 'Zadanie A', content: 'Treść', question: 'Pytanie?', requiresAnswer: true, completed: true }]);
+    await userEvent.click(await screen.findByRole('button', { name: 'Ukończ pokój' }));
+    await findToast('Pokój jest zablokowany.', 'assertive');
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/complete`, () => HttpResponse.json({ success: false }, { status: 500 })));
+    await userEvent.click(screen.getByRole('button', { name: 'Ukończ pokój' }));
+    await findToast('Nie udało się ukończyć pokoju', 'assertive');
+    server.use(http.post(`${API_URL}/api/rooms/7/tasks/complete`, () => HttpResponse.error()));
+    await userEvent.click(screen.getByRole('button', { name: 'Ukończ pokój' }));
+    await findToast('Błąd połączenia', 'assertive');
+    expect(screen.getByRole('button', { name: 'Ukończ pokój' })).toBeEnabled();
   });
 
   it('does not offer completion when there is still an unfinished task', async () => {
@@ -404,9 +420,27 @@ describe('CTF room', () => {
     server.use(http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => HttpResponse.json({ message: 'x' }, { status: 500 })));
     mountCtf();
     await user.click(await screen.findByRole('button', { name: 'Podpowiedź (1/2) · −5 XP' }));
-    expect(await screen.findByRole('alert')).toHaveTextContent('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.');
+    await findToast('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.', 'assertive');
+    expect(screen.getAllByText('Nie udało się odblokować podpowiedzi. Spróbuj ponownie.')).toHaveLength(1);
     expect(screen.queryByText('Zajrzyj do źródła strony')).not.toBeInTheDocument();
-    expect(document.querySelector('.px-toast')).toBeNull();
+    expect(screen.getByRole('button', { name: 'Podpowiedź (1/2) · −5 XP' })).toBeEnabled();
+  });
+
+  it('reports a lost connection and failed downloads as error toasts', async () => {
+    const user = userEvent.setup();
+    server.use(
+      http.post(`${API_URL}/api/rooms/7/hints/1/unlock`, () => HttpResponse.error()),
+      http.get(`${API_URL}/api/rooms/7/file`, () => HttpResponse.json({ message: 'Brak pliku' }, { status: 404 })),
+    );
+    mountCtf({ fileName: 'zrzut.pcap' });
+    await user.click(await screen.findByRole('button', { name: 'Podpowiedź (1/2) · −5 XP' }));
+    await findToast('Błąd połączenia', 'assertive');
+    await user.click(screen.getByRole('button', { name: 'Pobierz plik' }));
+    await findToast('Nie udało się pobrać pliku. Spróbuj ponownie.', 'assertive');
+    act(() => toast.clear());
+    server.use(http.get(`${API_URL}/api/rooms/7/file`, () => HttpResponse.error()));
+    await user.click(screen.getByRole('button', { name: 'Pobierz plik' }));
+    await findToast('Nie udało się pobrać pliku. Spróbuj ponownie.', 'assertive');
   });
 
   it('shows a captured flag of a solved CTF room as done', async () => {

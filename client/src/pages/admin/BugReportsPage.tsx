@@ -11,6 +11,7 @@ import { useAuth } from '../../context/AuthContext';
 import * as adminApi from '../../services/adminApi';
 import type { BugReportAdmin, BugReportStatus } from '../../types/api';
 import { lessons } from '../../ukos/content';
+import { toast } from '../../components/common/toast';
 
 const ALL = 'ALL';
 const filters: [BugReportStatus | typeof ALL, string][] = [['OPEN', 'Otwarte'], ['RESOLVED', 'Rozwiązane'], [ALL, 'Wszystkie']];
@@ -54,7 +55,6 @@ export default function BugReportsPage() {
   const [reports, setReports] = useState<BugReportAdmin[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
-  const [success, setSuccess] = useState<string | null>(null);
   const [pending, setPending] = useState<number | null>(null);
   const requestId = useRef(0);
 
@@ -84,34 +84,30 @@ export default function BugReportsPage() {
   const changeStatus = async (report: BugReportAdmin) => {
     const next: BugReportStatus = report.status === 'OPEN' ? 'RESOLVED' : 'OPEN';
     setPending(report.id);
-    setSuccess(null);
     try {
       const updated = await adminApi.updateBugReportStatus(report.id, next, sessionKey);
       setReports((current) => filter === ALL
         ? current.map((item) => item.id === report.id ? updated ?? { ...item, status: next } : item)
         : current.filter((item) => item.id !== report.id));
-      setSuccess(next === 'RESOLVED' ? 'Zgłoszenie oznaczone jako rozwiązane.' : 'Zgłoszenie jest znowu otwarte.');
-      setError(null);
+      toast.success(next === 'RESOLVED' ? 'Zgłoszenie oznaczone jako rozwiązane.' : 'Zgłoszenie jest znowu otwarte.');
     } catch (err) {
-      setError(errorText(err, 'Nie udało się zmienić statusu zgłoszenia.'));
+      toast.error(errorText(err, 'Nie udało się zmienić statusu zgłoszenia.'));
     } finally {
       setPending(null);
     }
   };
 
   const remove = async (report: BugReportAdmin) => {
-    setSuccess(null);
     await adminApi.deleteBugReport(report.id, sessionKey);
     setReports((current) => current.filter((item) => item.id !== report.id));
-    setSuccess('Zgłoszenie usunięte.');
-    setError(null);
+    toast.success('Zgłoszenie usunięte.');
   };
 
   return (
     <>
       <PageHeader title="Zgłoszenia błędów" description="Problemy, które gracze zgłosili z pokojów, areny i laboratorium." />
       <div className="mb-4 flex flex-col gap-3 sm:flex-row sm:items-center">
-        <Select value={filter} onValueChange={(value) => { setFilter(value as BugReportStatus | typeof ALL); setPage(0); setSuccess(null); }}>
+        <Select value={filter} onValueChange={(value) => { setFilter(value as BugReportStatus | typeof ALL); setPage(0); }}>
           <SelectTrigger aria-label="Filtruj według statusu" className="w-full sm:w-48">
             <SelectValue />
           </SelectTrigger>
@@ -122,7 +118,6 @@ export default function BugReportsPage() {
       </div>
       <div className="mb-4 space-y-2">
         {error && <StatusMessage kind="error">{error}</StatusMessage>}
-        {success && <StatusMessage kind="success">{success}</StatusMessage>}
       </div>
       {loading ? (
         <LoadingRows label="Ładowanie zgłoszeń" />

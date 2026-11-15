@@ -6,12 +6,15 @@ import { http, HttpResponse } from 'msw';
 import { MemoryRouter, Route, Routes } from 'react-router-dom';
 import { AuthProvider } from '../context/AuthContext';
 import { ThemeProvider } from '../context/ThemeContext';
-import { NotificationPreferencesProvider } from '../context/NotificationPreferencesContext';
+import { NotificationPreferencesProvider, SAVE_ERROR } from '../context/NotificationPreferencesContext';
 import { createToken } from '../test/fixtures/auth';
 import { server } from '../test/mocks/server';
 import API_URL from '../apiConfig';
 import { defaultNotificationPreferences } from '../services/userApi';
 import SettingsPage from './SettingsPage';
+import Toaster from '../components/common/Toaster';
+import { toast } from '../components/common/toast';
+import { findToast } from '../test/toasts';
 
 const sounds = vi.hoisted(() => ({ play: vi.fn(() => true), unlock: vi.fn(async () => true) }));
 vi.mock('../lib/notificationSounds', async importOriginal => ({
@@ -19,7 +22,7 @@ vi.mock('../lib/notificationSounds', async importOriginal => ({
 
 function mount(section = 'account') {
   setClerkSession(createToken());
-  render(<MemoryRouter initialEntries={[`/settings?section=${section}`]}><AuthProvider><ThemeProvider><NotificationPreferencesProvider><SettingsPage /></NotificationPreferencesProvider></ThemeProvider></AuthProvider></MemoryRouter>);
+  render(<MemoryRouter initialEntries={[`/settings?section=${section}`]}><AuthProvider><ThemeProvider><NotificationPreferencesProvider><SettingsPage /><Toaster /></NotificationPreferencesProvider></ThemeProvider></AuthProvider></MemoryRouter>);
 }
 
 describe('settings', () => {
@@ -82,9 +85,14 @@ describe('settings', () => {
     await waitFor(() => expect(toggle).toBeEnabled());
     expect(toggle).toHaveAttribute('aria-checked', 'true');
     fireEvent.click(toggle);
-    await screen.findByText('Znajomi widzą już tylko, czy jesteś online.');
+    await findToast('Znajomi widzą już tylko, czy jesteś online.');
     expect(shared).toBe(false);
     expect(screen.getByRole('switch', { name: 'Pokazuj znajomym, co robię' })).toHaveAttribute('aria-checked', 'false');
+    server.use(http.put(`${API_URL}/api/presence/sharing`, () => new HttpResponse(null, { status: 500 })));
+    await waitFor(() => expect(toggle).toBeEnabled());
+    fireEvent.click(toggle);
+    await findToast('Nie udało się zapisać ustawienia prywatności.', 'assertive');
+    expect(toggle).toHaveAttribute('aria-checked', 'false');
   });
 
   it('offers a retry when the privacy setting cannot be read', async () => {
@@ -133,8 +141,14 @@ describe('settings', () => {
     expect(screen.queryByRole('status', { name: 'Ładowanie preferencji' })).not.toBeInTheDocument();
     await waitFor(() => expect(toggle).toBeEnabled());
     fireEvent.click(toggle);
-    await screen.findByText(/Poprzednie ustawienie zostało zachowane/);
+    await findToast(SAVE_ERROR, 'assertive');
+    expect(screen.getAllByText(SAVE_ERROR)).toHaveLength(1);
+    expect(screen.queryByRole('button', { name: 'Spróbuj ponownie' })).not.toBeInTheDocument();
     expect(toggle).toHaveAttribute('aria-checked', 'true');
+    act(() => toast.clear());
+    await waitFor(() => expect(toggle).toBeEnabled());
+    fireEvent.click(toggle);
+    await findToast(SAVE_ERROR, 'assertive');
   });
 
   it('does not enable browser notifications when permission is denied', async () => {
@@ -151,10 +165,15 @@ describe('settings', () => {
       const toggle = await screen.findByRole('switch', { name: 'Powiadomienia systemowe' });
       await waitFor(() => expect(toggle).toBeEnabled());
       fireEvent.click(toggle);
-      await screen.findByText(/Przeglądarka nie udzieliła zgody/);
+      await findToast(/Przeglądarka nie udzieliła zgody/, 'assertive');
       expect(permission).toHaveBeenCalledTimes(1);
       expect(saves).toBe(0);
       expect(toggle).toHaveAttribute('aria-checked', 'false');
+      permission.mockRejectedValueOnce(new Error('blocked'));
+      await waitFor(() => expect(toggle).toBeEnabled());
+      fireEvent.click(toggle);
+      await findToast('Nie udało się uzyskać zgody na powiadomienia w tej przeglądarce.', 'assertive');
+      expect(saves).toBe(0);
     } finally { vi.unstubAllGlobals(); }
   });
 
@@ -388,11 +407,12 @@ describe('settings', () => {
     const shown = vi.fn();
     const permission = vi.fn(async () => 'granted');
     const created: FakeNotification[] = [];
+    let broken = false;
     class FakeNotification {
       static permission = 'default';
       static requestPermission = permission;
       onerror: (() => void) | null = null;
-      constructor(title: string, options?: NotificationOptions) { shown(title, options?.tag); created.push(this); }
+      constructor(title: string, options?: NotificationOptions) { if (broken) throw new Error('blocked'); shown(title, options?.tag); created.push(this); }
     }
     vi.stubGlobal('isSecureContext', true);
     vi.stubGlobal('Notification', FakeNotification);
@@ -401,7 +421,7 @@ describe('settings', () => {
       mount('notifications');
       const preview = await screen.findByRole('button', { name: 'Wyślij próbne' });
       fireEvent.click(preview);
-      await screen.findByText(/Wysłano próbne powiadomienie/);
+      await findToast(/Wysłano próbne powiadomienie/);
       expect(permission).toHaveBeenCalledTimes(1);
       expect(shown).toHaveBeenCalledWith('Próbne powiadomienie Hackademy', undefined);
       act(() => created[0].onerror?.());
@@ -409,8 +429,13 @@ describe('settings', () => {
 
       FakeNotification.permission = 'denied';
       fireEvent.click(preview);
-      await screen.findByText(/Przeglądarka blokuje powiadomienia/);
+      await findToast(/Przeglądarka blokuje powiadomienia/, 'assertive');
       expect(shown).toHaveBeenCalledTimes(1);
+
+      FakeNotification.permission = 'granted';
+      broken = true;
+      fireEvent.click(preview);
+      await findToast('Nie udało się wyświetlić powiadomienia na tym urządzeniu.', 'assertive');
     } finally { vi.unstubAllGlobals(); }
   });
 

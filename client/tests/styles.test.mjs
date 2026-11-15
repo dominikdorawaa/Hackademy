@@ -23,6 +23,7 @@ test('production CSS includes Preflight, layout utilities and the Hackademy shad
   assert.match(css, /--muted-foreground:\s*var\(--text-gray\)/)
   assert.match(css, /\[data-theme=["']?light["']?\]/)
   assert.match(css, /\.dark\\:bg-input\\\/30:where\(\[data-theme=["']dark["']\],\s*\[data-theme=["']dark["']\]\s*\*\)\s*\{[^}]*background-color:\s*var\(--input\)/)
+  assert.match(css, /body:has\(\.site-shell--room,\s*\.room-footer\)\s*\.px-toasts\s*\{[^}]*--px-toasts-base:\s*calc\(92px/)
   assert.doesNotMatch(css, /prefers-color-scheme:\s*dark/)
   assert.doesNotMatch(css, /@tailwind\s+(base|components|utilities)/)
 })

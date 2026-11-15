@@ -4,6 +4,7 @@ import { MemoryRouter, Routes, useLocation, useNavigationType } from 'react-rout
 import { AuthProvider } from '../context/AuthContext';
 import { OnboardingProvider } from '../context/OnboardingContext';
 import { ThemeProvider } from '../context/ThemeContext';
+import Toaster from '../components/common/Toaster';
 
 function Location() {
   const location = useLocation();
@@ -19,6 +20,7 @@ export function renderWithAuth(routes: ReactNode, initialEntry = '/login') {
           <OnboardingProvider>
             <Location />
             <Routes>{routes}</Routes>
+            <Toaster />
           </OnboardingProvider>
         </AuthProvider>
       </MemoryRouter>

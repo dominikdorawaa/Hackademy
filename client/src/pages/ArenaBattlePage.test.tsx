@@ -6,6 +6,7 @@ import { beforeEach, expect, it, vi } from 'vitest';
 import API_URL from '../apiConfig';
 import * as arenaApi from '../services/arenaApi';
 import { AuthProvider } from '../context/AuthContext';
+import Toaster from '../components/common/Toaster';
 import { createGameSession } from '../test/fixtures/arena';
 import { createToken, createUser } from '../test/fixtures/auth';
 import { currentUserUrl } from '../test/mocks/handlers';
@@ -23,7 +24,7 @@ const live = (gameSession: GameSession): RealtimeState => ({
   streamId: 's', revision: 1, friendRequests: [], friends: [], challenges: [], outgoingChallenges: [], expiredChallenges: [], rejectedChallenges: [], serverTime: 0, gameSession, queued: false,
 });
 const battle = () => <MemoryRouter initialEntries={['/arena/battle/game']}><AuthProvider>
-  <Routes><Route path="/arena/battle/:gameId" element={<ArenaBattlePage />} /></Routes>
+  <Routes><Route path="/arena/battle/:gameId" element={<ArenaBattlePage />} /></Routes><Toaster />
 </AuthProvider></MemoryRouter>;
 const mount = () => render(battle());
 
