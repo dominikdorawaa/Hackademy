@@ -1,4 +1,4 @@
-import { act, fireEvent, render, screen, within } from '@testing-library/react';
+import { act, fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import Toaster from './Toaster';
 import { LONG_TOAST_DURATION_MS, MAX_TOASTS, TOAST_DURATION_MS, currentToasts, subscribeToasts, toast } from './toast';
@@ -124,6 +124,26 @@ describe('toaster', () => {
     expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('0px');
     act(() => { toast.clear(); });
     expect(disconnect).toHaveBeenCalled();
+    vi.unstubAllGlobals();
+  });
+
+  it('finds notices that appear after a page change and drops the lift once they are gone', async () => {
+    const observed: Element[] = [];
+    vi.stubGlobal('ResizeObserver', class { observe(element: Element) { observed.push(element); } disconnect() { observed.length = 0; } });
+    const box = (element: Element, rect: Partial<DOMRect>) => vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 0, left: 0, right: 0, height: 0, width: 0, x: 0, y: 0, toJSON: () => ({}), ...rect });
+    const stack = render(<Toaster />).baseElement.querySelector('.px-toasts') as HTMLElement;
+    box(stack, { top: 784, bottom: 784, left: 880, right: 1260 });
+    act(() => { toast.success('Po zmianie strony.'); });
+    expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('0px');
+    expect(observed).toEqual([]);
+    const realtime = Object.assign(document.createElement('div'), { className: 'realtime-toasts' });
+    box(realtime, { top: 700, bottom: 784, left: 900, right: 1260, height: 84 });
+    act(() => { document.body.append(realtime); });
+    await waitFor(() => expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('92px'));
+    expect(observed).toEqual([realtime]);
+    act(() => { realtime.remove(); });
+    await waitFor(() => expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('0px'));
+    expect(observed).toEqual([]);
     vi.unstubAllGlobals();
   });
 

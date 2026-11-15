@@ -50,22 +50,38 @@ function useLift(stack: RefObject<HTMLElement | null>, active: boolean) {
   useLayoutEffect(() => {
     const element = stack.current;
     if (!active || !element) return;
-    const obstacles = Array.from(document.querySelectorAll<HTMLElement>(OBSTACLES));
-    const measure = () => {
-      const own = element.getBoundingClientRect();
-      const bottom = own.bottom + (parseFloat(element.style.getPropertyValue('--px-toasts-lift')) || 0);
+    let observed: HTMLElement[] = [];
+    let frame = 0;
+    const resize = typeof ResizeObserver === 'undefined' ? null : new ResizeObserver(() => measure());
+    function measure() {
+      const obstacles = Array.from(document.querySelectorAll<HTMLElement>(OBSTACLES));
+      if (resize && (obstacles.length !== observed.length || obstacles.some((obstacle, index) => obstacle !== observed[index]))) {
+        resize.disconnect();
+        obstacles.forEach(obstacle => resize.observe(obstacle));
+        observed = obstacles;
+      }
+      const own = element!.getBoundingClientRect();
+      const bottom = own.bottom + (parseFloat(element!.style.getPropertyValue('--px-toasts-lift')) || 0);
       setLift(obstacles.reduce((needed, obstacle) => {
         const rect = obstacle.getBoundingClientRect();
         if (!rect.height || rect.right <= own.left || rect.left >= own.right) return needed;
         return Math.max(needed, Math.ceil(bottom - rect.top + GAP));
       }, 0));
+    }
+    const schedule = () => {
+      window.cancelAnimationFrame(frame);
+      frame = window.requestAnimationFrame(measure);
     };
     measure();
-    if (typeof ResizeObserver === 'undefined') return;
-    const observer = new ResizeObserver(measure);
-    obstacles.forEach(obstacle => observer.observe(obstacle));
-    window.addEventListener('resize', measure);
-    return () => { observer.disconnect(); window.removeEventListener('resize', measure); };
+    const changes = new MutationObserver(schedule);
+    changes.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
+    window.addEventListener('resize', schedule);
+    return () => {
+      window.cancelAnimationFrame(frame);
+      changes.disconnect();
+      resize?.disconnect();
+      window.removeEventListener('resize', schedule);
+    };
   }, [stack, active]);
   return active ? lift : 0;
 }
