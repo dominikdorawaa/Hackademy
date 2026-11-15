@@ -12,6 +12,9 @@ export const REACTION_FRAMES = 12;
 export const FRAME_MS = 100;
 export const ENTER_MS = 360;
 export const REACTION_MS = ENTER_MS + REACTION_FRAMES * FRAME_MS + 1000;
+export const PEEK_MS = 4000;
+type BitPlace = 'hidden' | 'peek' | 'out';
+const TYPING_TARGET = 'input, textarea, [contenteditable="true"]';
 const PRIORITY: BitReaction[] = ['finish', 'correct', 'wrong', 'hint'];
 const LINES: Record<BitReaction, string[]> = {
   correct: ['Dokładnie tak!', 'Brawo!', 'Świetnie!'],
@@ -56,6 +59,8 @@ export default function RoomBit() {
   const rect = useShellRect(anchor);
   const [side] = useState<BitSide>(() => Math.random() < .5 ? 'top' : 'side');
   const [shown, setShown] = useState<{ reaction: BitReaction; line: string; key: number } | null>(null);
+  const [typing, setTyping] = useState(false);
+  const [trail, setTrail] = useState<{ at: BitPlace; from: BitPlace }>({ at: 'hidden', from: 'hidden' });
   const seen = useRef(state ? counts(state) : null);
   const current = state ? counts(state) : null;
   const signature = current ? PRIORITY.map(kind => current[kind]).join() : '';
@@ -66,8 +71,30 @@ export default function RoomBit() {
     const fresh = PRIORITY.find(kind => now[kind] > seen.current![kind]);
     seen.current = now;
     if (!fresh || (state.paused && fresh !== 'finish')) return;
+    setTyping(false);
     setShown(previous => ({ reaction: fresh, line: pick(LINES[fresh]), key: (previous?.key ?? 0) + 1 }));
   }, [signature, state]);
+
+  const active = Boolean(state) && !state?.paused;
+  useEffect(() => {
+    const shell = anchor.current?.parentElement;
+    if (!shell || !active) return;
+    let timer: ReturnType<typeof setTimeout> | undefined;
+    const onKey = (event: KeyboardEvent) => {
+      if (event.ctrlKey || event.metaKey || event.altKey) return;
+      if (event.key.length !== 1 && event.key !== 'Backspace') return;
+      if (!(event.target instanceof Element) || !event.target.closest(TYPING_TARGET)) return;
+      setTyping(true);
+      clearTimeout(timer);
+      timer = setTimeout(() => setTyping(false), PEEK_MS);
+    };
+    shell.addEventListener('keydown', onKey, true);
+    return () => {
+      shell.removeEventListener('keydown', onKey, true);
+      clearTimeout(timer);
+      setTyping(false);
+    };
+  }, [active]);
 
   useEffect(() => {
     if (!shown) return;
@@ -81,10 +108,13 @@ export default function RoomBit() {
 
   if (!state) return null;
   const pose = shown?.reaction ?? 'idle';
+  const peeking = !shown && typing;
+  const place: BitPlace = shown ? 'out' : peeking ? 'peek' : 'hidden';
+  if (trail.at !== place) setTrail({ at: place, from: trail.at });
   const layer = rect && createPortal(
-    <div className="room-bit-layer" aria-hidden="true" data-side={side} data-pose={pose} data-reduced={reduced || undefined}
+    <div className="room-bit-layer" aria-hidden="true" data-side={side} data-pose={pose} data-peek={peeking ? '' : undefined} data-from={trail.at === place ? trail.from : trail.at} data-reduced={reduced || undefined}
       style={{ top: rect.top, left: rect.left, width: rect.width, height: rect.height } as CSSProperties}>
-      <div className="room-bit" key={shown?.key ?? 'idle'}>
+      <div className="room-bit" key={shown?.key ?? place}>
         <span className="room-bit-sprite" data-animated={pose !== 'idle' && !reduced ? '' : undefined}
           style={{ '--bit-sheet': `url(${sprite(side, pose)})`, '--bit-frames': pose === 'idle' ? 1 : REACTION_FRAMES } as CSSProperties} />
       </div>
