@@ -7,7 +7,7 @@ import type { ToastItem } from './toast';
 import './Toaster.css';
 
 const icons = { success: CircleCheck, warning: TriangleAlert, error: CircleAlert, info: Info };
-const OBSTACLES = '.realtime-toasts, .rate-limit-notices';
+const OBSTACLES = '.realtime-toasts, .rate-limit-notices, .room-footer';
 const GAP = 8;
 
 function ToastCard({ item }: { item: ToastItem }) {
@@ -61,10 +61,12 @@ function useLift(stack: RefObject<HTMLElement | null>, active: boolean) {
         observed = obstacles;
       }
       const own = element!.getBoundingClientRect();
-      const bottom = own.bottom + (parseFloat(element!.style.getPropertyValue('--px-toasts-lift')) || 0);
+      const applied = parseFloat(element!.style.getPropertyValue('--px-toasts-lift')) || 0;
+      const top = own.top + applied;
+      const bottom = own.bottom + applied;
       setLift(obstacles.reduce((needed, obstacle) => {
         const rect = obstacle.getBoundingClientRect();
-        if (!rect.height || rect.right <= own.left || rect.left >= own.right) return needed;
+        if (!rect.height || rect.right <= own.left || rect.left >= own.right || rect.bottom <= top) return needed;
         return Math.max(needed, Math.ceil(bottom - rect.top + GAP));
       }, 0));
     }
@@ -76,7 +78,9 @@ function useLift(stack: RefObject<HTMLElement | null>, active: boolean) {
     const changes = new MutationObserver(schedule);
     changes.observe(document.body, { childList: true, subtree: true, attributes: true, attributeFilter: ['class'] });
     window.addEventListener('resize', schedule);
+    document.addEventListener('scroll', schedule, { capture: true, passive: true });
     return () => {
+      document.removeEventListener('scroll', schedule, { capture: true });
       window.cancelAnimationFrame(frame);
       changes.disconnect();
       resize?.disconnect();

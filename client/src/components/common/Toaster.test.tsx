@@ -116,7 +116,7 @@ describe('toaster', () => {
     const realtimeBox = box(realtime, { top: 700, bottom: 784, left: 900, right: 1260, height: 84 });
     box(limit, { top: 740, bottom: 784, left: 16, right: 376, height: 44 });
     const stack = render(<Toaster />).baseElement.querySelector('.px-toasts') as HTMLElement;
-    box(stack, { top: 784, bottom: 784, left: 880, right: 1260 });
+    box(stack, { top: 703, bottom: 784, left: 880, right: 1260 });
     act(() => { toast.success('Nad powiadomieniem.'); });
     expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('92px');
     realtimeBox.mockReturnValue({ ...realtime.getBoundingClientRect(), height: 0 });
@@ -132,7 +132,7 @@ describe('toaster', () => {
     vi.stubGlobal('ResizeObserver', class { observe(element: Element) { observed.push(element); } disconnect() { observed.length = 0; } });
     const box = (element: Element, rect: Partial<DOMRect>) => vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 0, left: 0, right: 0, height: 0, width: 0, x: 0, y: 0, toJSON: () => ({}), ...rect });
     const stack = render(<Toaster />).baseElement.querySelector('.px-toasts') as HTMLElement;
-    box(stack, { top: 784, bottom: 784, left: 880, right: 1260 });
+    box(stack, { top: 703, bottom: 784, left: 880, right: 1260 });
     act(() => { toast.success('Po zmianie strony.'); });
     expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('0px');
     expect(observed).toEqual([]);
@@ -144,6 +144,22 @@ describe('toaster', () => {
     act(() => { realtime.remove(); });
     await waitFor(() => expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('0px'));
     expect(observed).toEqual([]);
+    vi.unstubAllGlobals();
+  });
+
+  it('rises above a room footer below it, ignores one above it and follows scrolling', async () => {
+    vi.stubGlobal('ResizeObserver', class { observe() {} disconnect() {} });
+    const box = (element: Element, rect: Partial<DOMRect>) => vi.spyOn(element, 'getBoundingClientRect').mockReturnValue({ top: 0, bottom: 0, left: 0, right: 0, height: 0, width: 0, x: 0, y: 0, toJSON: () => ({}), ...rect });
+    const footer = document.body.appendChild(Object.assign(document.createElement('footer'), { className: 'room-footer' }));
+    const footerBox = box(footer, { top: 498, bottom: 570, left: 288, right: 1248, height: 72 });
+    const stack = render(<Toaster />).baseElement.querySelector('.px-toasts') as HTMLElement;
+    box(stack, { top: 627, bottom: 708, left: 884, right: 1264 });
+    act(() => { toast.success('Nad stopką.'); });
+    expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('0px');
+    footerBox.mockReturnValue({ ...footer.getBoundingClientRect(), top: 680, bottom: 752 });
+    act(() => { document.dispatchEvent(new Event('scroll')); });
+    await waitFor(() => expect(stack.style.getPropertyValue('--px-toasts-lift')).toBe('36px'));
+    footer.remove();
     vi.unstubAllGlobals();
   });
 
