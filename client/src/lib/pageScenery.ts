@@ -17,7 +17,7 @@ export function pageScene(pathname: string): PageScene {
   if (section === 'rooms') return 'ctf';
   if (section === 'login' || section === 'register') return 'auth';
   if (section === 'privacy' || section === 'terms') return 'legal';
-  if (section === 'witaj') return 'onboarding';
+  if (section === 'welcome') return 'onboarding';
   if (section === 'dashboard' || section === 'ranking' || section === 'profile' || section === 'friends' || section === 'settings') return section;
   return 'notfound';
 }

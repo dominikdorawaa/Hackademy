@@ -39,7 +39,7 @@ describe('mobile tab bar', () => {
   });
 
   it('leaves full-screen pages alone', () => {
-    expect(['/witaj', '/arena/battle/abc', '/learn/ukos', '/login', '/register'].map(showsMobileTabBar)).toEqual([false, false, false, false, false]);
+    expect(['/welcome', '/arena/battle/abc', '/learn/ukos', '/login', '/register'].map(showsMobileTabBar)).toEqual([false, false, false, false, false]);
     expect(['/dashboard', '/learn', '/arena', '/arena/avatar', '/ranking', '/profile', '/settings'].every(showsMobileTabBar)).toBe(true);
   });
 
