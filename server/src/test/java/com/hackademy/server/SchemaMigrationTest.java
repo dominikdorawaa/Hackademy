@@ -2,6 +2,9 @@ package com.hackademy.server;
 
 import com.hackademy.server.clerk.ClerkUserResolver;
 import com.hackademy.server.room.RoomDescription;
+import com.hackademy.server.room.RoomReadiness;
+import com.hackademy.server.room.RoomTask;
+import com.hackademy.server.room.RoomType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.flywaydb.core.Flyway;
@@ -1082,7 +1085,14 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 if (order > 0) expected.append('#');
                 expected.append("Zadanie ").append(i).append('|').append(order == 0 ? merged.movedContent() : "").append("<p>Treść ").append(c.id()).append('.').append(i).append("</p>|-|odp");
             }
-            if (c.tasks() == 0 && moved) expected.append("Wstęp|").append(merged.movedContent()).append("|-|-");
+            if (c.tasks() == 0 && moved) {
+                expected.append("Wstęp|").append(merged.movedContent()).append("|Ten pokój nie ma jeszcze pytania. Wróć do niego później.|locked");
+                tasks = tasks.replaceFirst("\\|[0-9a-f]{32}$", "|locked");
+                var created = RoomTask.builder().title("Wstęp").content(merged.movedContent()).sortOrder(0)
+                        .question(text("SELECT question FROM room_tasks WHERE room_id = " + c.id()))
+                        .answer(text("SELECT answer FROM room_tasks WHERE room_id = " + c.id())).build();
+                assertEquals(List.of(), RoomReadiness.taskProblems(RoomType.valueOf(c.type()), List.of(created)), "room " + c.id());
+            }
             assertEquals(expected.toString(), tasks, "room " + c.id());
         }
         assertEquals("Twoje pierwsze polecenie", text("SELECT description FROM rooms WHERE id = 1"));
@@ -1094,6 +1104,7 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 FROM user_completed_tasks u JOIN room_tasks t ON t.id = u.task_id
                 """));
         assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id IN (12, 14)"));
+        assertEquals(2, scalar("SELECT count(DISTINCT answer) FROM room_tasks WHERE room_id IN (11, 13)"));
         assertEquals("1:101|5:101|5:102|11:101|15:103", text("SELECT string_agg(room_id || ':' || path_id, '|' ORDER BY room_id, path_id) FROM chapter_rooms"));
         assertEquals(0, flyway().migrate().migrationsExecuted);
         assertTrue(flyway().validateWithResult().validationSuccessful);

@@ -78,7 +78,7 @@ WHERE m.moved <> ''
   AND t.id = (SELECT f.id FROM room_tasks f WHERE f.room_id = m.room_id ORDER BY f.sort_order, f.id LIMIT 1);
 
 INSERT INTO room_tasks (room_id, title, content, question, answer, sort_order)
-SELECT m.room_id, 'Wstęp', m.moved, NULL, NULL, 0
+SELECT m.room_id, 'Wstęp', m.moved, 'Ten pokój nie ma jeszcze pytania. Wróć do niego później.', md5(random()::text || clock_timestamp()::text || m.room_id), 0
 FROM room_description_merge m
 WHERE m.moved <> ''
   AND NOT m.has_tasks;
