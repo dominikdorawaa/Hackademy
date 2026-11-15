@@ -127,8 +127,6 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
   const finished = path.enrolled && rooms.length > 0 && solvedRooms === rooms.length;
   const rail: RailStep[] = rooms.map(room => room.solved ? 'done' : room === nextRoom ? 'current' : 'todo');
   const openRoom = (room: RoomSummaryDto) => navigate(preview ? `/admin/preview/rooms/${room.id}?kind=PATH&pathId=${id}` : roomHref(room.id, id ? { kind: 'path', pathId: id } : undefined));
-  let roomNumber = 0;
-
   return (
     <div className="room-tokens learn-page pd-page">
       {preview && <div role="status" className="room-preview pd-preview">Podgląd administracyjny: materiał nie jest publikowany, postęp i XP nie są zapisywane.</div>}
@@ -222,14 +220,13 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
                 <p className="pd-chapter-empty">Ten rozdział nie ma jeszcze pokoi.</p>
               ) : (
                 <ol className="pd-track">
-                  {chapter.rooms.map((r) => {
-                    roomNumber += 1;
+                  {chapter.rooms.map((r, roomIndex) => {
                     const status = roomStatus(r);
                     const isNext = r === nextRoom;
                     return (
                       <li key={r.id} className={cn('pd-room', `is-${status.key}`, isNext && 'is-next')}>
                         <span className="pd-node" aria-hidden="true">
-                          {status.key === 'done' ? <Check /> : status.key === 'locked' ? <Lock /> : isNext ? <Play /> : roomNumber}
+                          {status.key === 'done' ? <Check /> : status.key === 'locked' ? <Lock /> : isNext ? <Play /> : `${chapterIndex + 1}.${roomIndex + 1}`}
                         </span>
                         <div className="pd-room-card">
                           <div className="pd-room-copy">
