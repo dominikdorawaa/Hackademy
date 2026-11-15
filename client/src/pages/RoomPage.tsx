@@ -349,8 +349,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         <div className="room-pane-scroll">
           {chips(room.points)}
           <h1 className="room-title" id={titleId}>{room.title}</h1>
-          {room.shortDescription && <p className="room-lead">{room.shortDescription}</p>}
-          <div className="room-prose"><p style={{ whiteSpace: 'pre-line' }}>{room.description}</p></div>
+          {room.description && <p className="room-lead" style={{ whiteSpace: 'pre-line' }}>{room.description}</p>}
           {fileBlock}
         </div>
       </section>

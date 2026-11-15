@@ -6,7 +6,7 @@ import { server } from '../test/mocks/server';
 import { ContentError, contentRequest, importPath, importPathRooms, savePath, saveRoom } from './contentApi';
 
 const path = { revision: 1, chaptersRevision: 2, title: 'Draft', description: '', bannerUrl: null, published: false, chapters: [], unlockMode: 'CHAPTER' as const };
-const room = { revision: 1, tasksRevision: 2, title: 'Draft', description: '', shortDescription: '', category: 'Web', difficulty: 'EASY' as const, points: 50,
+const room = { revision: 1, tasksRevision: 2, title: 'Draft', description: '', category: 'Web', difficulty: 'EASY' as const, points: 50,
   flag: '', requiresVpn: false, roomType: 'CTF' as const, published: false, hints: [], tasks: [] };
 
 beforeEach(() => { registerSession({ sessionKey: 'sessionKey', getToken: async () => 'session-token', expired: vi.fn() }); });

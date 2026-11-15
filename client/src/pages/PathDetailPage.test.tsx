@@ -12,7 +12,7 @@ import type { PathDetailDto, RoomSummaryDto } from '../types/api';
 import PathDetailPage from './PathDetailPage';
 
 const summary = {
-  shortDescription: '',
+  description: '',
   difficulty: 'EASY',
   category: 'Path',
   points: 20,
@@ -33,7 +33,7 @@ const path = (enrolled: boolean): PathDetailDto => ({
   enrolled,
   rooms: [],
   chapters: [
-    { id: 1, title: 'Podstawy', totalRooms: 2, solvedRooms: 1, rooms: [room(1, 'HTTP', true, false), room(2, 'Cookies', false, false)] },
+    { id: 1, title: 'Podstawy', totalRooms: 2, solvedRooms: 1, rooms: [room(1, 'HTTP', true, false), { ...room(2, 'Cookies', false, false), description: 'Ciasteczka i sesje w przeglądarce' }] },
     { id: 2, title: 'Ataki', totalRooms: 1, solvedRooms: 0, rooms: [room(3, 'SQL', false, true)] },
     { id: 3, title: 'Wkrótce', totalRooms: 0, solvedRooms: 0, rooms: [] },
   ],
@@ -136,6 +136,15 @@ describe('path page', () => {
     expect(lockedAttack).toHaveTextContent(/^$/);
     expect(markers('Obrona').map(marker => marker.textContent)).toEqual(['3.1', '3.2']);
     expect(screen.getAllByText(/^0[1-3]$/).map(chapter => chapter.textContent)).toEqual(['01', '02', '03']);
+  });
+
+  it('shows the room description on its card and nothing for a room without one', async () => {
+    server.use(http.get(`${API_URL}/api/paths/5`, () => HttpResponse.json(path(true))));
+    mount();
+    const first = await screen.findByRole('region', { name: 'Podstawy' });
+    const card = within(first).getByText('Ciasteczka i sesje w przeglądarce');
+    expect(card).toHaveClass('pd-room-desc');
+    expect(first.querySelectorAll('.pd-room-desc')).toHaveLength(1);
   });
 
   it('shows an error when the path cannot be loaded', async () => {

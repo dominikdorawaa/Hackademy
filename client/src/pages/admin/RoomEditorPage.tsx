@@ -16,14 +16,14 @@ import { ContentTasks } from '../../components/admin/ContentStructure';
 import { RoomTypeHelp, RoomTypeSwitch } from '../../components/admin/RoomType';
 import { DeleteRoomDescription, publishedPathsWarning } from '../../components/admin/RoomPaths';
 import { useUnsavedChanges } from '../../components/admin/UnsavedChanges';
-import { roomsPath as base, pointsForDifficulty, reservedRoomTitles } from './adminConfig';
+import { roomsPath as base, pointsForDifficulty, reservedRoomTitles, roomDescriptionLimit } from './adminConfig';
 import { useAdminAccess } from './adminAccess';
 import { difficultyLabels } from '../../components/admin/adminFormat';
 import { formatXp } from '../../lib/units';
 
 const defaultCategory = (kind: RoomType) => kind === 'PATH' ? 'Path' : 'Web';
 function empty(kind: RoomType): RoomSave {
-  return { revision: 0, tasksRevision: 0, title: '', description: '', shortDescription: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, tasks: [] };
+  return { revision: 0, tasksRevision: 0, title: '', description: '', category: defaultCategory(kind), difficulty: 'EASY', points: kind === 'CTF' ? 50 : 0, requiresVpn: false, roomType: kind, tasks: [] };
 }
 function fromDetail(d: contentApi.RoomEditor): RoomSave {
   return { ...d.room, points: d.room.roomType === 'CTF' ? pointsForDifficulty[d.room.difficulty] : d.room.points, revision: d.room.contentRevision ?? 0, tasksRevision: d.tasks.revision, tasks: d.tasks.tasks.map(task => ({ ...task, hints: task.hints ?? [] })) };
@@ -98,8 +98,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
     const nextErrors: FieldErrors = {};
     checkText(nextErrors, 'title', current.title, 255, true);
     if (!nextErrors.title && current.title.trim() !== baseline.title && reservedRoomTitles.includes(current.title.trim().toLowerCase())) nextErrors.title = 'Tytuły „Tutorial VM” i „Tutorial VPN” są zarezerwowane dla pokoi samouczka';
-    checkText(nextErrors, 'shortDescription', current.shortDescription ?? '', 100);
-    checkText(nextErrors, 'description', current.description, 20000, ready);
+    checkText(nextErrors, 'description', current.description, roomDescriptionLimit, ready);
     checkText(nextErrors, 'category', current.category, 255, true);
     if (!Number.isSafeInteger(current.points) || current.points < 0 || current.points > 2147483647) nextErrors.points = 'Podaj nieujemną liczbę całkowitą do 2147483647';
     if (ready && !current.tasks.length) nextErrors.tasks = 'Dodaj przynajmniej jedno zadanie';
@@ -163,8 +162,7 @@ function RoomEditor({ roomId }: { roomId: string }) {
             <div className="grid gap-5 md:grid-cols-2">
               <div className="grid gap-2 md:col-span-2"><span className="flex items-center gap-1 text-sm font-medium">Typ pokoju<RoomTypeHelp /></span><RoomTypeSwitch label="Typ pokoju" value={kind} onChange={changeType} /><p className="text-xs text-muted-foreground">Zmiana typu zachowuje zadania i postępy graczy.</p></div>
               <div className="md:col-span-2"><TextField name="title" label="Tytuł" value={form.title} limit={255} required error={errors.title} onChange={title => change({ title })} /></div>
-              <div className="md:col-span-2"><TextField name="shortDescription" label="Krótki opis" value={form.shortDescription ?? ''} limit={100} error={errors.shortDescription} onChange={shortDescription => change({ shortDescription })} /></div>
-              <div className="md:col-span-2"><TextField name="description" label="Opis" value={form.description} limit={20000} required={ready} multiline error={errors.description} onChange={description => change({ description })} /></div>
+              <div className="md:col-span-2"><TextField name="description" label="Opis" value={form.description} limit={roomDescriptionLimit} required={ready} multiline error={errors.description} onChange={description => change({ description })} /></div>
               {kind === 'CTF' && <>
                 <TextField name="category" label="Kategoria" value={form.category} limit={255} required error={errors.category} onChange={category => change({ category })} />
                 <div className="grid gap-2"><label htmlFor="content-difficulty">Trudność *</label><select id="content-difficulty" className="rounded border bg-background p-2" value={form.difficulty} onChange={e => change({ difficulty: e.target.value as DifficultyLevel, points: pointsForDifficulty[e.target.value as DifficultyLevel] })}>{Object.entries(difficultyLabels).map(([level, label]) => <option key={level} value={level}>{label}</option>)}</select><span className="text-xs text-muted-foreground">{formatXp(pointsForDifficulty[form.difficulty])}</span></div>

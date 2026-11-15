@@ -1,6 +1,7 @@
 package com.hackademy.server.content;
 
 import tools.jackson.databind.JsonNode;
+import com.hackademy.server.room.RoomDescription;
 import com.hackademy.server.room.TaskContentSanitizer;
 import com.hackademy.server.room.dto.RoomTaskRequest;
 import java.util.HashSet;
@@ -51,8 +52,8 @@ public final class ContentImportValidation {
         String title = text(room, "title", key, 255, true).trim();
         if (!title.isEmpty() && !titles.add(title)) errors.problem(key + ": title", "Tytuł pokoju powtarza się w tym rozdziale");
         if (Set.of("tutorial vm", "tutorial vpn").contains(title.toLowerCase(Locale.ROOT))) errors.problem(key + ": title", "Tytuł zarezerwowany dla samouczka");
-        text(room, "description", key, 20000, true);
-        text(room, "shortDescription", key, 100, false);
+        String description = text(room, "description", key, 20000, true);
+        String moved = RoomDescription.merge(text(room, "shortDescription", key, 100, false), description).movedContent();
         text(room, "category", key, 255, true);
         choice(room, "difficulty", key, Set.of("EASY", "MEDIUM", "HARD", "INSANE"), true);
         choice(room, "roomType", key, Set.of("PATH", "CTF"), false);
@@ -71,6 +72,7 @@ public final class ContentImportValidation {
             if (!object(task, taskKey, Set.of("title", "content", "question", "answer", "hints"))) continue;
             text(task, "title", taskKey, 255, true);
             String content = text(task, "content", taskKey, 20000, true);
+            if (t == 0 && !moved.isEmpty() && moved.length() + content.length() > 20000) errors.problem(key + ": description", "Opis dłuższy niż " + RoomDescription.MAX_LENGTH + " znaków trafia na początek pierwszego zadania, które przekroczyłoby wtedy 20000 znaków");
             if (!content.isBlank() && TaskContentSanitizer.clean(content).isBlank()) errors.problem(taskKey + ": content", "Podaj treść po usunięciu niedozwolonego HTML");
             String question = text(task, "question", taskKey, 2000, false);
             String answer = text(task, "answer", taskKey, 255, ctf || !question.isBlank());

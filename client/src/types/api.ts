@@ -66,7 +66,6 @@ export interface RegisterRequest extends LoginRequest {
 export interface RoomWriteRequest {
   title: string
   description: string
-  shortDescription?: string | null
   difficulty: DifficultyLevel
   category: string
   points: number
@@ -407,7 +406,7 @@ export interface RoomTaskDto {
 export interface RoomSummaryDto {
   id: number
   title: string
-  shortDescription: string
+  description: string
   difficulty: DifficultyLevel
   category: string
   points: number
@@ -423,7 +422,6 @@ export interface RoomDetailDto {
   id: number
   title: string
   description: string
-  shortDescription: string
   difficulty: DifficultyLevel
   roomType: RoomType
   points: number
@@ -439,7 +437,6 @@ export interface RoomDto {
   id: number
   title: string
   description: string
-  shortDescription: string
   difficulty: DifficultyLevel
   category: string
   points: number
@@ -473,7 +470,6 @@ export interface RoomAdminDto {
   id: number
   title: string
   description: string
-  shortDescription: string
   difficulty: DifficultyLevel
   category: string
   points: number

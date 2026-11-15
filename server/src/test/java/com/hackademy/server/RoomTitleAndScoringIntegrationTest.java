@@ -39,7 +39,7 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
 
     private Map<String, Object> room(String title, String type) {
         var room = new LinkedHashMap<String, Object>();
-        room.put("title", title); room.put("description", ""); room.put("shortDescription", "");
+        room.put("title", title); room.put("description", "");
         room.put("difficulty", "EASY"); room.put("category", "Web"); room.put("points", 30);
         room.put("requiresVpn", false); room.put("roomType", type); room.put("hints", List.of());
         room.put("tasks", List.of()); room.put("revision", 0); room.put("tasksRevision", 0);
@@ -184,7 +184,7 @@ class RoomTitleAndScoringIntegrationTest extends PostgresIntegrationTest {
         try {
             var holder = executor.submit(() -> new TransactionTemplate(transactionManager).executeWithoutResult(status -> {
                 try {
-                    roomService.updateRoom(renamed, new UpdateRoomRequest(title, "", "", DifficultyLevel.EASY, "Web", 30, false, RoomType.PATH), null);
+                    roomService.updateRoom(renamed, new UpdateRoomRequest(title, "", DifficultyLevel.EASY, "Web", 30, false, RoomType.PATH), null);
                     status.flush();
                     ready.countDown();
                     if (!release.await(10, TimeUnit.SECONDS)) throw new IllegalStateException("Commit barrier timed out");

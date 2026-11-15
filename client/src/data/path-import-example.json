@@ -9,8 +9,7 @@
         {
           "title": "Terminal",
           "roomType": "PATH",
-          "description": "Przeczytaj materiał i odpowiedz na pytanie.",
-          "shortDescription": "Twoje pierwsze polecenie",
+          "description": "Twoje pierwsze polecenie w terminalu.",
           "difficulty": "EASY",
           "category": "Linux",
           "points": 30,

@@ -231,7 +231,7 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
                         <div className="pd-room-card">
                           <div className="pd-room-copy">
                             <h4 className="pd-room-title">{r.title}</h4>
-                            {r.shortDescription && <p className="pd-room-desc">{r.shortDescription}</p>}
+                            {r.description && <p className="pd-room-desc">{r.description}</p>}
                             <div className="pd-room-meta">
                               <span className={`pd-status is-${status.key}`}>{status.label}</span>
                               <span className={`room-chip room-chip--${r.difficulty.toLowerCase()}`}>{r.difficulty}</span>

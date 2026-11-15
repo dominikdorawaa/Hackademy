@@ -159,7 +159,6 @@ public class AdminController {
                 .contentRevision(room.getContentRevision())
                 .title(room.getTitle())
                 .description(room.getDescription())
-                .shortDescription(room.getShortDescription())
                 .difficulty(room.getDifficulty())
                 .points(room.getPoints())
                 .category(room.getCategory())

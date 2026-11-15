@@ -70,8 +70,9 @@ public class PathImportService {
 
     private void saveRooms(JsonNode items, Long chapterId, int roomOrder) throws IOException {
         for (var item : items) {
+            var description = RoomDescription.merge(item.path("shortDescription").asText(""), item.path("description").asText());
             var room = roomService.createRoom(new CreateRoomRequest(item.path("title").asText().trim(),
-                    item.path("description").asText(), item.path("shortDescription").asText(""),
+                    description.description(),
                     DifficultyLevel.valueOf(item.path("difficulty").asText()), item.path("category").asText(),
                     item.path("points").asInt(0), item.path("requiresVpn").asBoolean(false),
                     RoomType.valueOf(item.path("roomType").asText("PATH"))), null);
@@ -80,7 +81,8 @@ public class PathImportService {
                 var hints = new ArrayList<String>();
                 if (tasks.isEmpty()) item.path("hints").forEach(hint -> hints.add(hint.asText()));
                 task.path("hints").forEach(hint -> hints.add(hint.asText()));
-                tasks.add(new RoomTaskRequest(null, task.path("title").asText(), task.path("content").asText(),
+                String content = (tasks.isEmpty() ? description.movedContent() : "") + task.path("content").asText();
+                tasks.add(new RoomTaskRequest(null, task.path("title").asText(), content,
                         task.path("question").asText(null), task.path("answer").asText(null), hints));
             }
             roomService.updateRoomTasks(room.getId(), new UpdateRoomTasksRequest(room.getTasksRevision(), tasks));

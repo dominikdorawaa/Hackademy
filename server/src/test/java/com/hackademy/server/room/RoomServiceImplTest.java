@@ -1104,11 +1104,11 @@ class RoomServiceImplTest {
     }
 
     static CreateRoomRequest createRequest(String title, DifficultyLevel difficulty, Integer points, RoomType type) {
-        return new CreateRoomRequest(title, "Opis", "Krótko", difficulty, "Web", points, false, type);
+        return new CreateRoomRequest(title, "Opis", difficulty, "Web", points, false, type);
     }
 
     static UpdateRoomRequest updateRequest(String title, RoomType type) {
-        return new UpdateRoomRequest(title, "Opis", "Krótko", DifficultyLevel.MEDIUM, "Web", 10, false, type);
+        return new UpdateRoomRequest(title, "Opis", DifficultyLevel.MEDIUM, "Web", 10, false, type);
     }
 
     static RoomSummaryDto summary(Long id, String title, boolean requiresVpn, RoomType type) {
