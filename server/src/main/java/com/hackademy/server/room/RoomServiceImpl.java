@@ -83,8 +83,8 @@ public class RoomServiceImpl implements RoomService {
     }
 
     private static int points(RoomType roomType, DifficultyLevel difficulty, Integer requested) {
-        if (roomType == RoomType.CTF) {
-            return difficulty.ctfPoints();
+        if (requested == null && roomType == RoomType.CTF) {
+            return difficulty.suggestedPoints();
         }
         if (requested == null || requested < 0) {
             throw new RoomRuleException(HttpStatus.BAD_REQUEST, "points", "Podaj nieujemną liczbę punktów");

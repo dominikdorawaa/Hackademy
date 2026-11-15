@@ -127,7 +127,7 @@ public class ContentService {
         v.text("category", r.category(), 255, true);
         if (r.difficulty() == null) v.problem("difficulty", "Wybierz trudność");
         if (r.roomType() == null) v.problem("roomType", "Wybierz typ pokoju");
-        if (r.roomType() == RoomType.PATH && (r.points() == null || r.points() < 0)) v.problem("points", "Podaj nieujemną liczbę punktów");
+        if (r.points() == null || r.points() < 0) v.problem("points", "Podaj nieujemną liczbę punktów");
         var tasks = r.tasks() == null ? List.<RoomTaskRequest>of() : r.tasks();
         if (tasks.size() > 100) v.problem("tasks", "Maksymalnie 100 zadań");
         if (live && tasks.isEmpty()) v.problem("tasks", "Dodaj przynajmniej jedno zadanie");

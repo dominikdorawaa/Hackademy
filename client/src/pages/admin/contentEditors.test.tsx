@@ -130,6 +130,7 @@ describe('draft editors and guarded navigation', () => {
     await user.click(screen.getByRole('button', { name: 'Dodaj zadanie z flagą' }));
     expect(screen.getByLabelText('Flaga')).toHaveAttribute('placeholder', 'HACK{...}');
     await user.type(screen.getByLabelText('Tytuł *'), 'Skaner');
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'HARD');
     await user.type(screen.getByLabelText('Tytuł zadania *'), 'Flaga');
     const created = { ...room, id: 12, title: 'Skaner', roomType: 'CTF' as const, paths: [{ id: 5, title: 'Nowa', published: false }] };
     const saveRoom = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 1, tasks: [] }, pathId: 5, paths: created.paths });
@@ -137,7 +138,7 @@ describe('draft editors and guarded navigation', () => {
       http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([created])));
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/5'));
-    expect(saveRoom.mock.calls[0][1]).toMatchObject({ pathId: 5, chapterId: 11, pathRevision: 3, roomType: 'CTF' });
+    expect(saveRoom.mock.calls[0][1]).toMatchObject({ pathId: 5, chapterId: 11, pathRevision: 3, roomType: 'CTF', difficulty: 'HARD', points: 150 });
     const row = (await screen.findByText('Skaner')).closest('li')!;
     expect(row).toHaveClass('bg-primary/15');
     expect(screen.queryByText(/Zapisano/)).not.toBeInTheDocument();
@@ -180,8 +181,12 @@ describe('draft editors and guarded navigation', () => {
     await user.click(screen.getByRole('button', { name: 'Dodaj zadanie' }));
     await user.type(screen.getByLabelText('Tytuł zadania *'), 'Czytaj'); await user.type(screen.getByLabelText('Treść *'), 'Tekst');
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await waitFor(() => expect(screen.getByLabelText('Trudność *')).toHaveFocus());
+    expect(saveRoom).not.toHaveBeenCalled();
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'EASY');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/5'));
-    expect(saveRoom.mock.calls[0][1]).toMatchObject({ pathId: 5, chapterIndex: 1, parentDraft: { published: true, chapters: [{ id: 11, roomIds: [9] }, { id: null, title: 'Rozdział 2', roomIds: [] }] } });
+    expect(saveRoom.mock.calls[0][1]).toMatchObject({ difficulty: 'EASY', points: 50, pathId: 5, chapterIndex: 1, parentDraft: { published: true, chapters: [{ id: 11, roomIds: [9] }, { id: null, title: 'Rozdział 2', roomIds: [] }] } });
   });
   it('still asks a published path for rooms in its other empty chapters before carrying it with a new room', async () => {
     server.use(http.get(`${API_URL}/api/admin/paths/5`, () => HttpResponse.json({ ...path, description: 'Opis', published: true, chapters: [{ id: 11, title: 'Wstęp', roomIds: [9] }] })));
@@ -410,15 +415,16 @@ describe('room title and scoring rules', () => {
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1].title).toBe('Tutorial VM');
   });
-  it('edits a moved CTF room in the rooms tab with points derived from difficulty', async () => {
-    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF', category: 'Web', points: 50 }, tasks: { revision: 0, tasks: [] } })));
+  it('edits a moved CTF room in the rooms tab with its own XP and a suggestion for a new difficulty', async () => {
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: { ...room, roomType: 'CTF', category: 'Web', points: 75 }, tasks: { revision: 0, tasks: [] } })));
     const user = userEvent.setup(); mount('/admin/paths/rooms/9');
     await screen.findByLabelText('Tytuł *');
-    expect(screen.queryByLabelText('XP *')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('XP *')).toHaveValue(75);
     expect(screen.queryByRole('button', { name: 'Dodaj zadanie' })).not.toBeInTheDocument();
     expect(screen.getByRole('link', { name: '← Pokoje' })).toHaveAttribute('href', '/admin/paths/rooms');
     await user.selectOptions(screen.getByLabelText('Trudność *'), 'INSANE');
-    expect(screen.getByText('200 XP')).toBeInTheDocument();
+    expect(screen.getByLabelText('XP *')).toHaveValue(200);
+    expect(screen.getByText('Podpowiedź dla tej trudności: 200 XP. Możesz wpisać inną wartość.')).toBeInTheDocument();
   });
   it('shows a duplicate room title in a chapter reported by the backend', async () => {
     server.use(http.get(`${API_URL}/api/admin/rooms`, () => HttpResponse.json([{ ...room, paths: [{ id: 5, title: 'Web', published: true }] }])),
@@ -429,6 +435,75 @@ describe('room title and scoring rules', () => {
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     expect(await screen.findAllByText('Rozdział 1 zawiera już pokój „Pokój”')).not.toHaveLength(0);
     expect(screen.getByLabelText('Nazwa rozdziału 1')).toHaveValue('Wstęp lokalny');
+  });
+});
+
+describe('room difficulty and suggested XP', () => {
+  it.each([['Teoria', 'PATH'], ['CTF', 'CTF']] as const)('opens a new %s room without a difficulty and does not save it until one is chosen', async (label, type) => {
+    const save = vi.spyOn(contentApi, 'saveRoom');
+    const user = userEvent.setup(); mount('/admin/paths/rooms/new');
+    await chooseType(user, label);
+    const difficulty = screen.getByLabelText('Trudność *');
+    expect(difficulty).toHaveValue('');
+    expect(screen.getByLabelText('XP *')).toHaveValue(null);
+    expect(screen.getByText('Wybierz trudność, a XP uzupełni się samo.')).toBeInTheDocument();
+    await user.type(screen.getByLabelText('Tytuł *'), `Pokój ${type}`);
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findByText('Wybierz trudność', { selector: 'p' })).toHaveAttribute('role', 'alert');
+    expect(difficulty).toHaveAttribute('aria-invalid', 'true');
+    await waitFor(() => expect(difficulty).toHaveFocus());
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it.each([['Teoria', 'PATH'], ['CTF', 'CTF']] as const)('suggests XP for the chosen difficulty in a %s room and keeps a manual XP', async (label, type) => {
+    const saved = { ...room, title: 'Nowy', roomType: type, difficulty: 'MEDIUM' as const, points: 120, contentRevision: 1 };
+    const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: saved, tasks: { revision: 0, tasks: [] } });
+    server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: saved, tasks: { revision: 0, tasks: [] } })));
+    const user = userEvent.setup(); const router = mount('/admin/paths/rooms/new');
+    await chooseType(user, label);
+    await user.type(screen.getByLabelText('Tytuł *'), 'Nowy');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findByText('Wybierz trudność', { selector: 'p' })).toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'MEDIUM');
+    expect(screen.getByLabelText('XP *')).toHaveValue(100);
+    expect(screen.queryByText('Wybierz trudność', { selector: 'p' })).not.toBeInTheDocument();
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'HARD');
+    expect(screen.getByLabelText('XP *')).toHaveValue(150);
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'MEDIUM');
+    await user.clear(screen.getByLabelText('XP *'));
+    await user.type(screen.getByLabelText('XP *'), '120');
+    await user.click(screen.getByRole('radio', { name: label === 'CTF' ? 'Teoria' : 'CTF' }));
+    await user.click(screen.getByRole('radio', { name: label }));
+    expect(screen.getByLabelText('XP *')).toHaveValue(120);
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1]).toMatchObject({ roomType: type, difficulty: 'MEDIUM', points: 120 });
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/rooms/9'));
+    await waitFor(() => {
+      expect(screen.getByLabelText('XP *')).toHaveValue(120);
+      expect(screen.getByLabelText('Trudność *')).toHaveValue('MEDIUM');
+    });
+  });
+
+  it('asks for XP when it is cleared after choosing a difficulty', async () => {
+    const save = vi.spyOn(contentApi, 'saveRoom');
+    const user = userEvent.setup(); mount('/admin/paths/rooms/new');
+    await user.type(await screen.findByLabelText('Tytuł *'), 'Nowy');
+    await user.selectOptions(screen.getByLabelText('Trudność *'), 'EASY');
+    await user.clear(screen.getByLabelText('XP *'));
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findByText('Podaj nieujemną liczbę całkowitą do 2147483647')).toBeInTheDocument();
+    expect(screen.queryByText('Wybierz trudność', { selector: 'p' })).not.toBeInTheDocument();
+    expect(save).not.toHaveBeenCalled();
+  });
+
+  it('shows a missing difficulty reported by the server next to the field', async () => {
+    server.use(http.put(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ message: 'Popraw zaznaczone pola', fields: { difficulty: 'Wybierz trudność' } }, { status: 400 })));
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
+    await user.type(await screen.findByLabelText('Tytuł *'), ' nowy');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findByText('Wybierz trudność', { selector: 'p' })).toBeInTheDocument();
+    expect(screen.getByLabelText('Trudność *')).toHaveAttribute('aria-invalid', 'true');
   });
 });
 
