@@ -459,7 +459,7 @@ describe('room difficulty and suggested XP', () => {
     const saved = { ...room, title: 'Nowy', roomType: type, difficulty: 'MEDIUM' as const, points: 120, contentRevision: 1 };
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: saved, tasks: { revision: 0, tasks: [] } });
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: saved, tasks: { revision: 0, tasks: [] } })));
-    const user = userEvent.setup(); mount('/admin/paths/rooms/new');
+    const user = userEvent.setup(); const router = mount('/admin/paths/rooms/new');
     await chooseType(user, label);
     await user.type(screen.getByLabelText('Tytuł *'), 'Nowy');
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
@@ -478,8 +478,11 @@ describe('room difficulty and suggested XP', () => {
     await user.click(screen.getByRole('button', { name: 'Zapisz' }));
     await waitFor(() => expect(save).toHaveBeenCalled());
     expect(save.mock.calls[0][1]).toMatchObject({ roomType: type, difficulty: 'MEDIUM', points: 120 });
-    expect(await screen.findByLabelText('XP *')).toHaveValue(120);
-    expect(screen.getByLabelText('Trudność *')).toHaveValue('MEDIUM');
+    await waitFor(() => expect(router.state.location.pathname).toBe('/admin/paths/rooms/9'));
+    await waitFor(() => {
+      expect(screen.getByLabelText('XP *')).toHaveValue(120);
+      expect(screen.getByLabelText('Trudność *')).toHaveValue('MEDIUM');
+    });
   });
 
   it('asks for XP when it is cleared after choosing a difficulty', async () => {
