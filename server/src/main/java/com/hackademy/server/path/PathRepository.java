@@ -1,6 +1,8 @@
 package com.hackademy.server.path;
 
 import jakarta.persistence.LockModeType;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.domain.Slice;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Lock;
 import org.springframework.data.jpa.repository.Query;
@@ -53,8 +55,8 @@ public interface PathRepository extends JpaRepository<Path, Long> {
             """, nativeQuery = true)
     List<PathListView> findAllListViews();
 
-    @Query(value = "SELECT p.id AS id, p.title AS title, p.description AS description, p.banner_url AS bannerUrl, (p.banner_data IS NOT NULL) AS hasBanner, p.published AS published, p.system_key AS systemKey, COUNT(cr.room_id) AS roomsCount FROM paths p LEFT JOIN path_chapters c ON c.path_id = p.id LEFT JOIN chapter_rooms cr ON cr.chapter_id = c.id GROUP BY p.id ORDER BY p.id", nativeQuery = true)
-    List<PathListView> findAdminListViews();
+    @Query(value = "SELECT p.id AS id, p.title AS title, p.description AS description, p.banner_url AS bannerUrl, (p.banner_data IS NOT NULL) AS hasBanner, p.published AS published, p.system_key AS systemKey, COUNT(cr.room_id) AS roomsCount FROM paths p LEFT JOIN path_chapters c ON c.path_id = p.id LEFT JOIN chapter_rooms cr ON cr.chapter_id = c.id WHERE strpos(lower(p.title), lower(:query)) > 0 GROUP BY p.id ORDER BY p.id", nativeQuery = true)
+    Slice<PathListView> findAdminListPage(@Param("query") String query, Pageable pageable);
 
     interface PathProgressView {
         Long getId();
