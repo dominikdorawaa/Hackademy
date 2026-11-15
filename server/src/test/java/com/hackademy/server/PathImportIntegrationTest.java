@@ -273,7 +273,7 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
         postJson(player, "/api/paths/" + id + "/enroll", "{}").andExpect(status().isOk());
         getAs(player, "/api/paths/" + id)
                 .andExpect(jsonPath("$.chapters[0].rooms[0].description").value("Twoje pierwsze polecenie w terminalu."))
-                .andExpect(jsonPath("$.chapters[0].rooms[0].shortDescription").doesNotExist());
+                .andExpect(jsonPath("$.chapters[0].rooms[0].shortDescription").value("Twoje pierwsze polecenie w terminalu."));
         getAs(player, "/api/rooms/" + terminal)
                 .andExpect(jsonPath("$.description").value("Twoje pierwsze polecenie w terminalu."))
                 .andExpect(jsonPath("$.shortDescription").doesNotExist());

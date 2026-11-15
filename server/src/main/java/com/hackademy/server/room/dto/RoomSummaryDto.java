@@ -42,4 +42,8 @@ public class RoomSummaryDto {
         this.solved = false;
         this.locked = false;
     }
+
+    public String getShortDescription() {
+        return description;
+    }
 }
