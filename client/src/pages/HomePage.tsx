@@ -21,10 +21,10 @@ const HomePage = () => {
   const { isAuthenticated, loading } = useAuth();
   const navigate = useNavigate();
   useEffect(() => {
-    if (!accountWasDeleted()) return;
+    if (loading || isAuthenticated || !accountWasDeleted()) return;
     forgetAccountDeleted();
     toast.info('Konto zostało trwale usunięte. Dziękujemy za wspólną naukę.');
-  }, []);
+  }, [loading, isAuthenticated]);
 
   useEffect(() => {
     if (!loading && isAuthenticated) {
