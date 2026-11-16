@@ -84,9 +84,9 @@
   ],
   "processing": "Frames packed into a 576x384 atlas (rows idle, jab, hook, power, hurt, defeat; column 0 repeats idle) on the y=54 ground line. Head items are the difference between each edit and the bald idle frame, limited to the head and non-skin pixels. anchors.json stores, per atlas cell, the translation and rotation that best fit the idle head skin mask, searched within plus or minus 20 degrees except in the defeat row. The groove rows (cells 55 to 71) had transparent eye pixels refilled from the idle head, and the last defeat cell (53) is the final frame of a PixelLab animation that starts from cell 52, in which the head sinks onto the floor with the face still in profile; the idle head is restamped at its fitted angle so head items fit, and the floor value stops them at the y=54 ground line.",
   "atlasSha256": {
-    "fighter.png": "a738231167dbf99da08e1a467756ea78253c380e434f41fd3e6527842f28ef85",
-    "hoodie/fighter.png": "3d90b1e9f5c6153fcc3e6cea1ed3ef6d2f422f7114c2106b6c701c64c210ec3c",
-    "track/fighter.png": "4b9448c2f13af7ccd4a76b91e2e9e0bb9d0cac181185cbb350c491839030cfca"
+    "fighter.png": "5a8cad0ac6b7c3d9615a6f2add44b478b38faff20644afeaecaa4338f2821683",
+    "hoodie/fighter.png": "c152e5437a008f315e3a7f224e3213671487dfdeb30e7a1b47d8a814695fe087",
+    "track/fighter.png": "b69d649822d379b45ecddf2d2456e006c8234c79d7d4a97b5498c50f3c0e6180"
   },
   "run": {
     "generatedAt": "2026-10-17",
@@ -763,5 +763,49 @@
       "processing": "of the two images the one closer to the previous frame is kept; every pixel gets a material from its colour and the baza pixel under it (red is the coat, dark pixels on the torso are the black shirt drawn in the outline colour, grey is trousers, purple at the feet or where baza has shoes is shoes, skin only next to baza skin) and takes the coat atlas colour of that material and shade, the head above the chin is copied from baza so the hair and hats keep the baza head anchors, cells 145 to 148 copy the turn, then the speck cleanup and arm outlines run on these cells"
     },
     "handHoles": "below the chin, grey pixels the recolouring keeps unchanged (mostly in the track suit fists) and clothing pixels that sit inside a hand take the skin colour of the same shade, so dark skin no longer shows grey holes in the fists"
+  },
+  "danceRework": {
+    "generatedAt": "2026-11-16",
+    "sources": "local-prototype-backups/skeleton-dance-v1",
+    "scuba": {
+      "endpoint": "animate-with-skeleton-v3",
+      "seed": 151604,
+      "from": "the first frame of front/baza.png with hand-corrected estimate-skeleton keypoints",
+      "keypoints": "one hand pinches the nose, the other forearm is held in front of the chest, hips sway once per loop with soft knees",
+      "processing": "the head and the nose hand come from one clean frame and move with the nose keypoint; the forward hand is drawn by script as an edge-on hand three pixels long that continues the forearm and swings left and right from the wrist four times per loop",
+      "outfits": {
+        "endpoint": "transfer-outfit-v2",
+        "seeds": {
+          "bluza": 161011,
+          "dres": 161012,
+          "plaszcz": 171004
+        },
+        "processing": "the head and hand come from the baza frame, the legs are rebuilt from the baza legs in the outfit trouser and shoe colours, the tracksuit is stretched to its own height"
+      }
+    },
+    "sixseven": {
+      "outfits": {
+        "endpoint": "transfer-outfit-v2",
+        "seeds": {
+          "bluza": 181001,
+          "dres": 181002,
+          "plaszcz": 181003
+        },
+        "processing": "sleeves cover the whole arm to the wrist and the hands are the baza hands, so no hand floats apart from the arm"
+      }
+    },
+    "crab": {
+      "outfits": {
+        "endpoint": "transfer-outfit-v2",
+        "seeds": {
+          "bluza": 171001,
+          "dres": 171002,
+          "plaszcz": 171003
+        },
+        "processing": "the upper arms follow the baza arms, the baza shirt gets a white sleeve trim at both shoulders"
+      }
+    },
+    "recolour": "every dance cell is checked against the colour materials: no skin below the waist, no trousers above it, no shoe colour above the ankles, shoes always in the shoe zone, eyes keep a white pixel, and the coat below the waist is drawn from the baza legs as trousers, shoes and two coat flaps edged with an outline and a cyan hem",
+    "anchors": "Scuba head anchors are found by matching the front head of cell 148"
   }
 }
