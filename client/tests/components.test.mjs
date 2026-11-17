@@ -23,10 +23,9 @@ before(async () => {
     outdir: outputDir,
     write: false,
   })
-  const modules = await Promise.all(result.outputFiles.map(async ({ path, text }) => {
-    await writeFile(path, text)
-    return [path, await import(pathToFileURL(path).href)]
-  }))
+  await Promise.all(result.outputFiles.map(({ path, text }) => writeFile(path, text)))
+  const modules = await Promise.all(result.outputFiles.filter(({ path }) => path.endsWith('.mjs'))
+    .map(async ({ path }) => [path, await import(pathToFileURL(path).href)]))
   Leaderboard = modules.find(([path]) => path.endsWith('Leaderboard.mjs'))[1].default
 })
 
