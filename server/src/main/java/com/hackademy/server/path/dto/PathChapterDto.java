@@ -9,5 +9,6 @@ public record PathChapterDto(
     int totalRooms,
     int solvedRooms,
     boolean locked,
-    List<RoomSummaryDto> rooms
+    List<RoomSummaryDto> rooms,
+    boolean premium
 ) {}

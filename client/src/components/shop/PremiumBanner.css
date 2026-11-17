@@ -1,0 +1,138 @@
+.premium-banner {
+  position: relative;
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 24px;
+  margin: 0 0 28px;
+  padding: 24px 28px;
+  border: 3px solid #e3b341;
+  border-radius: 4px;
+  background:
+    radial-gradient(circle at 12% 30%, rgb(245 197 66 / 0.28), transparent 45%),
+    linear-gradient(120deg, #1b1430 0%, #2a1d4d 55%, #3a2a12 100%);
+  box-shadow: 0 4px 0 #050a14, 0 0 0 1px rgb(245 197 66 / 0.35) inset;
+  color: #fff;
+  overflow: hidden;
+}
+
+.premium-banner-crown {
+  width: 111px;
+  height: auto;
+}
+
+.premium-banner-kicker {
+  margin: 0 0 4px;
+  color: #f5c542;
+  font-size: 0.8125rem;
+  font-weight: 700;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.premium-banner h2 {
+  margin: 0;
+  color: #fff;
+  font: 400 clamp(2rem, 1.6rem + 1.4vw, 2.75rem)/1 var(--rm-pixel);
+  text-shadow: 2px 2px 0 #050a14;
+}
+
+.premium-banner-perks {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px 18px;
+  margin: 14px 0 0;
+  padding: 0;
+  list-style: none;
+  color: #ece6ff;
+  font-size: 0.9375rem;
+}
+
+.premium-banner-perks li {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.premium-banner-perks svg {
+  width: 16px;
+  height: 16px;
+  color: #f5c542;
+}
+
+.premium-banner-buy {
+  display: grid;
+  justify-items: end;
+  gap: 12px;
+}
+
+.premium-banner-price {
+  display: grid;
+  justify-items: end;
+  margin: 0;
+  color: #fff;
+  font: 400 2.25rem/1 var(--rm-pixel);
+}
+
+.premium-banner-price span {
+  color: #d9d2f2;
+  font-family: inherit;
+  font-size: 1rem;
+}
+
+.premium-banner-cta {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 48px;
+  padding: 0 24px;
+  border: 2px solid #050a14;
+  border-radius: 3px;
+  background: #f5c542;
+  box-shadow: 0 4px 0 #050a14;
+  color: #1b1430;
+  font: 400 1.5rem/1 var(--rm-pixel);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.premium-banner-cta:hover {
+  background: #ffd75e;
+  translate: 0 -1px;
+}
+
+.premium-banner-cta:focus-visible {
+  outline: 3px solid #fff;
+  outline-offset: 3px;
+}
+
+@media (max-width: 760px) {
+  .premium-banner {
+    grid-template-columns: 1fr;
+    gap: 16px;
+    padding: 20px 16px;
+  }
+
+  .premium-banner-crown {
+    width: 74px;
+  }
+
+  .premium-banner-buy {
+    justify-items: start;
+  }
+
+  .premium-banner-price {
+    justify-items: start;
+  }
+
+  .premium-banner-cta {
+    width: 100%;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .premium-banner-cta:hover {
+    translate: none;
+  }
+}
+

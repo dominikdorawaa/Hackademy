@@ -30,7 +30,7 @@ function Podium({ players, metric, username }: { players: RankingEntry[]; metric
           <li key={entry.username} className={`ranking-podium-player place-${position}${me ? ' is-me' : ''}`} aria-current={me ? 'true' : undefined}>
             <div className="ranking-podium-avatar">
               {position === 1 && <PixelSprite sprite={SPRITES.trophy} still className="ranking-trophy" />}
-              <Link to={profile} aria-label={`Profil gracza ${entry.username}`}><UserAvatar username={entry.username} avatar={entry.avatar} alt="" width={64} height={64} /></Link>
+              <Link to={profile} aria-label={`Profil gracza ${entry.username}`}><UserAvatar username={entry.username} avatar={entry.avatar} premium={entry.premium} alt="" width={64} height={64} /></Link>
               <span className="ranking-podium-place">#{position}</span>
             </div>
             <div className="ranking-podium-name"><Link to={profile}>{entry.username}</Link>{me && <span className="ranking-you">Ty</span>}</div>
@@ -74,7 +74,7 @@ function PlayerRow({ entry, metric, username }: { entry: RankingEntry; metric: M
       <td>
         <div className="ranking-player">
           <Link to={profile} className="ranking-portrait" aria-label={`Profil gracza ${entry.username}`}>
-            <UserAvatar username={entry.username} avatar={entry.avatar} alt="" width={40} height={40} />
+            <UserAvatar username={entry.username} avatar={entry.avatar} premium={entry.premium} alt="" width={40} height={40} />
           </Link>
           <div className="ranking-identity">
             <div className="ranking-name"><Link to={profile}>{entry.username}</Link>{me && <span className="ranking-you">Ty</span>}</div>

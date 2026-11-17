@@ -22,7 +22,7 @@ public class TestPaymentProvider implements PaymentProvider {
     }
 
     @Override
-    public PaymentCheckout start(long orderId, long userId, CoinPackage pack) {
-        return new PaymentCheckout("test-" + orderId + "-" + UUID.randomUUID(), null);
+    public PaymentCheckout start(PaymentRequest request) {
+        return new PaymentCheckout("test-" + request.kind() + "-" + request.orderId() + "-" + UUID.randomUUID(), null);
     }
 }

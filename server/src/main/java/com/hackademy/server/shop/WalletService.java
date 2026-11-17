@@ -70,6 +70,21 @@ public class WalletService {
         return after;
     }
 
+    @Transactional
+    public long creditUpTo(long userId, long amount, WalletTransactionKind kind, String reason) {
+        if (amount <= 0) throw new IllegalArgumentException("Kwota musi być dodatnia.");
+        Long before = jdbc.query("SELECT balance FROM wallets WHERE user_id = ? FOR UPDATE", FIRST_LONG, userId);
+        long added = Math.min(amount, MAX_BALANCE - (before == null ? 0 : before));
+        if (added <= 0) return 0;
+        Long after = jdbc.query("""
+                INSERT INTO wallets (user_id, balance) VALUES (?, ?)
+                ON CONFLICT (user_id) DO UPDATE SET balance = wallets.balance + EXCLUDED.balance, updated_at = now()
+                RETURNING balance
+                """, FIRST_LONG, userId, added);
+        record(userId, added, after, kind, null, null, null, reason);
+        return added;
+    }
+
     @Transactional(readOnly = true)
     public List<WalletTransactionDto> history(long userId, int limit) {
         return jdbc.query("""

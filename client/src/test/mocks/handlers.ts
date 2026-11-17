@@ -2,6 +2,7 @@ import { http, HttpResponse } from 'msw';
 import API_URL from '../../apiConfig';
 import type { DashboardUser, Role } from '../../types/api';
 import { createUser } from '../fixtures/auth';
+import { createSubscription } from '../fixtures/subscription';
 import { defaultNotificationPreferences } from '../../services/userApi';
 
 export const currentUserUrl = `${API_URL}/api/user/me`;
@@ -25,4 +26,5 @@ export const handlers = [
   http.get(`${API_URL}/api/presence/sharing`, () => HttpResponse.json({ enabled: true })),
   http.post(`${API_URL}/api/arena/game/:id/return`, () => new HttpResponse(null, { status: 204 })),
   http.post(`${API_URL}/api/arena/game/:id/leave`, () => new HttpResponse(null, { status: 204 })),
+  http.get(`${API_URL}/api/subscription`, () => HttpResponse.json(createSubscription())),
 ];

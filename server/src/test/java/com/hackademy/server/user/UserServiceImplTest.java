@@ -50,6 +50,7 @@ class UserServiceImplTest {
 
     @Mock AccountDeletionService accountDeletionService;
     @Mock UserRepository userRepository;
+    @Mock com.hackademy.server.subscription.SubscriptionAccess subscriptionAccess;
     @Mock com.hackademy.server.friendship.FriendshipRepository friendships;
     @Mock UserSolvedRoomRepository userSolvedRoomRepository;
     @Mock UserBadgeRepository userBadgeRepository;
@@ -190,6 +191,9 @@ class UserServiceImplTest {
         assertEquals("alice", profile.username());
         assertEquals(List.of("WEB"), profile.interests());
         assertSame(badges, profile.badges());
+        assertFalse(profile.premium());
+        when(subscriptionAccess.subscribed(1L)).thenReturn(true);
+        assertTrue(service.getPublicProfile("alice").premium());
 
         user.setLastSolvedDate(LocalDate.now().minusDays(1));
         assertEquals(7, service.getPublicProfile("alice").streak());
@@ -221,6 +225,10 @@ class UserServiceImplTest {
         service.invalidateGlobalRankingCache();
         service.getTop10Ranking();
         verify(userRepository, times(2)).findRankingLeaders();
+
+        when(subscriptionAccess.subscribedAmong(List.of(1L))).thenReturn(java.util.Set.of(1L));
+        service.invalidateGlobalRankingCache();
+        assertTrue(service.getTop10Ranking().get(0).premium());
     }
 
     @Test

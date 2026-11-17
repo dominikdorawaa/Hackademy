@@ -67,7 +67,7 @@ class PathUnlockModesIntegrationTest extends PostgresIntegrationTest {
     }
 
     private Account learner(long pathId) throws Exception {
-        var user = account(Role.USER);
+        var user = subscriber();
         mockMvc.perform(post("/api/paths/" + pathId + "/enroll").header("Authorization", "Bearer " + user.token()))
                 .andExpect(status().isOk());
         return user;

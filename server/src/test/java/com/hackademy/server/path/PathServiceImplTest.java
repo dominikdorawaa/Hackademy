@@ -57,6 +57,7 @@ class PathServiceImplTest {
     @Mock UserRepository userRepository;
     @Mock UserSolvedRoomRepository userSolvedRoomRepository;
     @Mock ContentVisibility visibility;
+    @Mock com.hackademy.server.subscription.SubscriptionAccess subscriptionAccess;
     final DashboardSummaryCache dashboards = new DashboardSummaryCache();
     PathServiceImpl service;
 
@@ -64,7 +65,8 @@ class PathServiceImplTest {
     void setUp() {
         service = new PathServiceImpl(pathRepository, pathChapterRepository, chapterRoomRepository, roomRepository,
                 roomService, pathEnrollmentRepository, userRepository, userSolvedRoomRepository, visibility,
-                new PathUnlockPolicy(chapterRoomRepository, pathEnrollmentRepository), dashboards);
+                new PathUnlockPolicy(chapterRoomRepository, pathEnrollmentRepository, subscriptionAccess, userSolvedRoomRepository), dashboards);
+        lenient().when(subscriptionAccess.unlimited(any())).thenReturn(true);
         dashboards.put(1L, DashboardSummaryDto.builder().build(), dashboards.generation());
     }
 
@@ -184,6 +186,66 @@ class PathServiceImplTest {
         assertFalse(detail.chapters().get(0).locked());
         assertTrue(detail.chapters().get(1).locked());
         assertEquals(List.of(false, false, true), detail.rooms().stream().map(RoomSummaryDto::isLocked).toList());
+    }
+
+    @Test
+    void playerWithoutSubscriptionSeesOnlyTheFirstChapterOpen() {
+        stubPremiumPath();
+
+        var detail = service.getPathDetail(5L, "alice");
+
+        assertFalse(detail.chapters().get(0).premium());
+        assertFalse(detail.chapters().get(0).locked());
+        assertTrue(detail.chapters().get(1).premium());
+        assertTrue(detail.chapters().get(1).locked());
+        assertEquals(List.of(false, true, true), detail.rooms().stream().map(RoomSummaryDto::isPremium).toList());
+        assertEquals(List.of(false, true, true), detail.rooms().stream().map(RoomSummaryDto::isLocked).toList());
+    }
+
+    @Test
+    void solvedRoomsAndRoomsFromAnotherFirstChapterStayOpenWithoutSubscription() {
+        stubPremiumPath();
+        when(userSolvedRoomRepository.findSolvedRoomIdsByUserId(1L)).thenReturn(List.of(12L));
+        when(pathEnrollmentRepository.findPathIdsByUserId(1L)).thenReturn(Set.of(5L, 6L));
+        when(chapterRoomRepository.findPublishedPathsOfRooms(any())).thenReturn(List.of(
+                new Owner(10L, 5L, "OPEN", true), new Owner(12L, 5L, "OPEN", false),
+                new Owner(13L, 5L, "OPEN", false), new Owner(13L, 6L, "OPEN", true)));
+
+        var detail = service.getPathDetail(5L, "alice");
+
+        assertFalse(detail.chapters().get(1).premium());
+        assertFalse(detail.chapters().get(1).locked());
+        assertEquals(List.of(false, false, false), detail.rooms().stream().map(RoomSummaryDto::isLocked).toList());
+    }
+
+    @Test
+    void miniRoomsLockPremiumRoomsForFreePlayers() {
+        when(subscriptionAccess.unlimited(1L)).thenReturn(false);
+        when(pathRepository.findUnlockModeById(5L)).thenReturn(Optional.of(PathUnlockMode.OPEN));
+        when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
+        when(chapterRoomRepository.findMiniRoomsForUser(5L, 1L, 3)).thenReturn(List.of(
+                new MiniRow(10L, "Pierwszy", false, true), new MiniRow(12L, "Drugi", false, false)));
+        when(chapterRoomRepository.findPublishedPathsOfRooms(any())).thenReturn(List.of(
+                new Owner(10L, 5L, "OPEN", true), new Owner(12L, 5L, "OPEN", false)));
+
+        var rooms = service.getPathRoomsMini(5L, "alice", 3).rooms();
+
+        assertEquals(List.of(false, true), rooms.stream().map(PathRoomMiniDto::locked).toList());
+    }
+
+    private void stubPremiumPath() {
+        when(subscriptionAccess.unlimited(1L)).thenReturn(false);
+        when(pathRepository.findById(5L)).thenReturn(Optional.of(path(5L, "Web")));
+        when(pathChapterRepository.findByPathIdOrderBySortOrderAscIdAsc(5L))
+                .thenReturn(List.of(chapter(100L, "Pierwszy", 0), chapter(101L, "Drugi", 1)));
+        when(chapterRoomRepository.findByPathId(5L)).thenReturn(List.of(
+                new ChapterRoom(10L, 100L, 0), new ChapterRoom(12L, 101L, 0), new ChapterRoom(13L, 101L, 1)));
+        when(userRepository.findIdByUsername("alice")).thenReturn(Optional.of(1L));
+        when(pathEnrollmentRepository.existsByUserIdAndPathId(1L, 5L)).thenReturn(true);
+        when(roomRepository.findSummariesInPath(5L)).thenReturn(List.of(room(10L, false), room(12L, false), room(13L, false)));
+        lenient().when(chapterRoomRepository.findPublishedPathsOfRooms(any())).thenReturn(List.of(
+                new Owner(10L, 5L, "OPEN", true), new Owner(12L, 5L, "OPEN", false), new Owner(13L, 5L, "OPEN", false)));
     }
 
     private void stubDetail(boolean enrolled) {
@@ -727,6 +789,9 @@ class PathServiceImplTest {
 
     private record MiniRow(Long getId, String getTitle, Boolean getRequiresVpn, Boolean getSolved)
             implements ChapterRoomRepository.PathRoomMiniRow {}
+
+    private record Owner(Long getRoomId, Long getPathId, String getUnlockMode, Boolean getFirstChapter)
+            implements ChapterRoomRepository.RoomPathView {}
 
     private record Progression(Long getChapterId, Long getRoomId, Boolean getSolved)
             implements ChapterRoomRepository.ProgressionRow {}

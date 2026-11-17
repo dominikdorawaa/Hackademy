@@ -51,4 +51,13 @@ describe('user avatars', () => {
     const looks = new Set(['a', 'b', 'c', 'd', 'e', 'f', 'g', 'h'].map(name => JSON.stringify(avatarFromUsername(name))));
     expect(looks.size).toBeGreaterThan(4);
   });
+
+  it('puts a crown above the avatar of a Premium player', () => {
+    const { container, rerender } = render(<UserAvatar username="tester" avatar={avatar} className="round" />);
+    expect(screen.queryByRole('img', { name: 'Premium' })).toBeNull();
+    rerender(<UserAvatar username="tester" avatar={avatar} className="round" premium />);
+    expect(screen.getByRole('img', { name: 'Premium' })).toBeInTheDocument();
+    expect(screen.getByRole('img', { name: 'Avatar tester' })).toHaveClass('round');
+    expect(container.querySelector('.avatar-crowned')).toHaveAttribute('data-premium', 'true');
+  });
 });

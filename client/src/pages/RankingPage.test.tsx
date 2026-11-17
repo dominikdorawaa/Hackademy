@@ -165,3 +165,14 @@ it('does not invent a podium or an unknown place when a personal goal has no glo
   expect(within(board('Ranking Areny')).queryByRole('progressbar')).not.toBeInTheDocument();
   expect(screen.queryByRole('list', { name: 'Podium' })).not.toBeInTheDocument();
 });
+
+it('shows the Premium crown on the podium and in the list for every viewer', async () => {
+  const ranks = ['ala', 'bob', 'cyd', 'dan'].map((name, index) => ({ ...player(name, 400 - index * 10, 900 - index * 10, index + 1, index + 1), premium: name === 'ala' || name === 'dan' }));
+  respond({ ranking: ranks });
+  mount();
+  const learning = await screen.findByRole('region', { name: 'Ranking nauki' });
+  const crowns = within(learning).getAllByRole('img', { name: 'Premium' });
+  expect(crowns).toHaveLength(2);
+  expect(crowns[0].closest('.ranking-podium-avatar')).not.toBeNull();
+  expect(crowns[1].closest('.ranking-portrait')).not.toBeNull();
+});

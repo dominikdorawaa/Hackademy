@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 46;
+    static final int SCHEMA_VERSION = 47;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -1028,6 +1028,27 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         assertEquals(60, scalar("SELECT points FROM rooms WHERE id = 1"));
         assertSqlState("23514", "UPDATE rooms SET points = -1 WHERE id = 1");
         assertSqlState("23514", "UPDATE rooms SET difficulty = 'UNKNOWN' WHERE id = 1");
+    }
+
+    @Test
+    void addsSubscriptionsAndLetsTheWalletRecordTheirBytes() throws Exception {
+        flyway("46").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        execute("INSERT INTO wallets (user_id, balance) VALUES (1, 1000)");
+        assertSqlState("23514", "INSERT INTO wallet_transactions (user_id, amount, balance_after, kind) VALUES (1, 1000, 1000, 'SUBSCRIPTION')");
+
+        assertEquals(1, flyway("47").migrate().migrationsExecuted);
+
+        execute("INSERT INTO wallet_transactions (user_id, amount, balance_after, kind, reason) VALUES (1, 1000, 1000, 'SUBSCRIPTION', 'Subskrypcja Premium')");
+        execute("INSERT INTO subscriptions (user_id, active_until) VALUES (1, now() + interval '30 days')");
+        assertSqlState("23505", "INSERT INTO subscriptions (user_id, active_until) VALUES (1, now())");
+        execute("INSERT INTO subscription_orders (user_id, plan_id, days, coins, price_minor, currency, provider, provider_reference) VALUES (1, 'monthly', 30, 1000, 2999, 'PLN', 'test', 'ref')");
+        assertSqlState("23505", "INSERT INTO subscription_orders (user_id, plan_id, days, coins, price_minor, currency, provider, provider_reference) VALUES (1, 'monthly', 30, 1000, 2999, 'PLN', 'test', 'ref')");
+        assertSqlState("23514", "INSERT INTO subscription_orders (user_id, plan_id, days, coins, price_minor, currency, provider) VALUES (1, 'monthly', 0, 1000, 2999, 'PLN', 'test')");
+        assertSqlState("23514", "UPDATE subscription_orders SET status = 'REFUNDED'");
+        execute("DELETE FROM users WHERE id = 1");
+        assertEquals(0, scalar("SELECT count(*) FROM subscriptions"));
+        assertEquals(1, scalar("SELECT count(*) FROM subscription_orders WHERE user_id IS NULL"));
     }
 
     private void insertUser(long id, String username, String email) throws SQLException {

@@ -117,6 +117,7 @@ public class UserServiceImpl implements UserService {
     private final com.hackademy.server.dashboard.DashboardSummaryCache dashboardSummaryCache;
     private final ApplicationEventPublisher events;
     private final com.hackademy.server.shop.ShopAccess shopAccess;
+    private final com.hackademy.server.subscription.SubscriptionAccess subscriptionAccess;
 
     @Override
     @Transactional(readOnly = true)
@@ -307,11 +308,13 @@ public class UserServiceImpl implements UserService {
     public List<RankingEntry> getTop10Ranking() {
         return rankingCache.get(0, key -> {
                     List<RankingRow> top = userRepository.findRankingLeaders();
-                    Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(top.stream().map(RankingRow::getId).toList());
+                    List<Long> ids = top.stream().map(RankingRow::getId).toList();
+                    Map<Long, UserAvatarDto> avatars = userAvatarRepository.findDtosByUserIds(ids);
+                    Set<Long> premium = subscriptionAccess.subscribedAmong(ids);
                     List<RankingEntry> out = top.stream()
                             .map(row -> new RankingEntry(
                                     row.getRankPoints(), row.getRankElo(), row.getUsername(),
-                                    row.getPoints(), row.getElo(), avatars.get(row.getId())))
+                                    row.getPoints(), row.getElo(), avatars.get(row.getId()), premium.contains(row.getId())))
                             .collect(Collectors.toList());
             return out;
         });
@@ -345,6 +348,7 @@ public class UserServiceImpl implements UserService {
                 .featuredBadgeIds(List.copyOf(user.getFeaturedBadgeIds()))
                 .avatar(userAvatarRepository.findDtoByUserId(user.getId()))
                 .badges(badges)
+                .premium(subscriptionAccess.subscribed(user.getId()))
                 .build();
     }
 
@@ -408,7 +412,7 @@ public class UserServiceImpl implements UserService {
 
             long rankElo = userRepository.countByEloGreaterThan(user.getElo()) + 1;
 
-            RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), userAvatarRepository.findDtoByUserId(userId));
+            RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, user.getUsername(), user.getPoints(), user.getElo(), userAvatarRepository.findDtoByUserId(userId), subscriptionAccess.subscribed(userId));
             return new CacheEntry<>(System.currentTimeMillis(), out);
         }).value;
     }
@@ -419,7 +423,7 @@ public class UserServiceImpl implements UserService {
             int e = elo == null ? 500 : elo;
             long rankPoints = userRepository.countByPointsGreaterThan(p) + 1;
             long rankElo = userRepository.countByEloGreaterThan(e) + 1;
-            RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, userAvatarRepository.findDtoByUserId(userId));
+            RankingEntry out = new RankingEntry((int) rankPoints, (int) rankElo, username, p, e, userAvatarRepository.findDtoByUserId(userId), subscriptionAccess.subscribed(userId));
             return new CacheEntry<>(System.currentTimeMillis(), out);
         }).value;
     }

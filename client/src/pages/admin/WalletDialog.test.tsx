@@ -105,4 +105,6 @@ it('labels history entries without optional details', () => {
   expect(transactionLabel(entry({ kind: 'PURCHASE', itemId: null }))).toBe('Zakup: przedmiot');
   expect(transactionLabel(entry({ kind: 'TOP_UP', orderId: null }))).toBe('Doładowanie');
   expect(transactionLabel(entry({ adminUsername: null, reason: null }))).toBe('Administrator: ');
+  expect(transactionLabel(entry({ kind: 'SUBSCRIPTION', reason: 'Subskrypcja Premium' }))).toBe('Subskrypcja Premium');
+  expect(transactionLabel(entry({ kind: 'SUBSCRIPTION', reason: null }))).toBe('Subskrypcja Premium');
 });

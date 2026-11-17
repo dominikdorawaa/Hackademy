@@ -6,7 +6,9 @@ public interface PaymentProvider {
 
     boolean test();
 
-    PaymentCheckout start(long orderId, long userId, CoinPackage pack);
+    PaymentCheckout start(PaymentRequest request);
+
+    record PaymentRequest(String kind, long orderId, long userId, int priceMinor, String currency) {}
 
     record PaymentCheckout(String reference, String redirectUrl) {}
 }
