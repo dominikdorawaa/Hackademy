@@ -231,6 +231,16 @@
 
 .notification-expiry { color: var(--np-link); font-weight: 600; }
 
+.notification-premium {
+  color: var(--np-ink);
+  font-size: 0.8125rem;
+  font-weight: 700;
+  text-decoration: underline;
+  text-decoration-color: #e3b341;
+  text-decoration-thickness: 2px;
+  text-underline-offset: 3px;
+}
+
 .notification-actions {
   display: flex;
   flex-wrap: wrap;

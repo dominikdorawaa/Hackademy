@@ -9,4 +9,5 @@ import java.util.List;
 
 public record RealtimeState(String streamId, long revision, List<FriendRequestDto> friendRequests,
         List<FriendDto> friends, List<Challenge> challenges, List<Challenge> outgoingChallenges,
-        List<Challenge> expiredChallenges, List<Challenge> rejectedChallenges, GameSession gameSession, boolean queued, long serverTime) {}
+        List<Challenge> expiredChallenges, List<Challenge> rejectedChallenges, List<Challenge> missedChallenges, GameSession gameSession,
+        boolean queued, long serverTime) {}

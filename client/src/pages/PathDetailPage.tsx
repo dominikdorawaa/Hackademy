@@ -2,8 +2,8 @@ import * as pathApi from '../services/pathApi';
 import { request } from '../services/http';
 import API_URL from '../apiConfig';
 import { useCallback, useEffect, useState } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { BookOpen, Check, ChevronLeft, ChevronRight, Layers, Lock, Play } from 'lucide-react';
+import { Link, useNavigate, useParams } from 'react-router-dom';
+import { BookOpen, Check, ChevronLeft, ChevronRight, Crown, Layers, Lock, Play } from 'lucide-react';
 import { useAuth } from '../context/AuthContext';
 import { roomHref } from '../lib/roomReturn';
 import { cn } from '../lib/utils';
@@ -11,6 +11,7 @@ import { CHAPTERS, plural, ROOMS } from '../lib/plural';
 import '../components/room/room.css';
 import '../components/learn/learn.css';
 import './PathDetailPage.css';
+import './PremiumPage.css';
 import PathArt from '../components/learn/PathArt';
 import PathRail, { type RailStep } from '../components/learn/PathRail';
 import { LoadingSkeleton, Skeleton, SkeletonText } from '../components/common/Skeleton';
@@ -24,6 +25,7 @@ const unlockModeHints: Record<PathUnlockMode, string> = {
 };
 
 function roomStatus(room: RoomSummaryDto) {
+  if (room.premium) return { key: 'locked', label: 'Premium' };
   if (room.locked) return { key: 'locked', label: 'Zablokowane' };
   if (room.solved) return { key: 'done', label: 'Ukończone' };
   return { key: 'todo', label: 'Do zrobienia' };
@@ -177,6 +179,16 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
         </section>
       )}
 
+      {!preview && path.enrolled && chapters.some(chapter => chapter.premium) && (
+        <section className="pd-call" aria-label="Premium">
+          <div>
+            <p className="pd-call-kicker">Dalsze rozdziały w Premium</p>
+            <p className="pd-call-text">Pierwszy rozdział jest otwarty dla wszystkich. Z Premium przejdziesz całą ścieżkę i zagrasz na Arenie bez limitu.</p>
+          </div>
+          <Link className="room-btn" to="/premium"><Crown aria-hidden="true" />Zobacz Premium</Link>
+        </section>
+      )}
+
       {finished && (
         <section className="pd-call pd-call--done" aria-label="Ścieżka ukończona">
           <div>
@@ -203,7 +215,8 @@ const PathDetailPage = ({ preview = false }: { preview?: boolean }) => {
                 <div className="pd-chapter-name">
                   <span className="pd-chapter-index">
                     Rozdział {chapterIndex + 1}
-                    {chapter.locked && <span className="pd-chapter-lock"><Lock aria-hidden="true" />Zablokowany</span>}
+                    {chapter.premium ? <Link className="premium-badge" to="/premium"><Crown aria-hidden="true" />Premium</Link>
+                      : chapter.locked && <span className="pd-chapter-lock"><Lock aria-hidden="true" />Zablokowany</span>}
                   </span>
                   <h3 id={`pd-chapter-${chapter.id}`} className="pd-chapter-title">{chapter.title}</h3>
                 </div>

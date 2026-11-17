@@ -56,6 +56,7 @@
   .profile-avatar { width: 176px; height: 176px; flex: 0 0 auto; margin: 6px; object-fit: cover; border-radius: 0; background: var(--ud-board); outline: 2px solid var(--ud-line-strong); outline-offset: 4px; }
   .profile-avatar-edit { position: relative; display: inline-flex; flex: 0 0 auto; align-self: start; margin: 6px; border-radius: 0; text-decoration: none; overflow: hidden; outline: 2px solid var(--ud-line-strong); outline-offset: 4px; }
   .profile-avatar-edit .profile-avatar { margin: 0; outline: none; }
+  .profile-avatar-crowned { align-self: start; }
   .profile-avatar-edit-mark { position: absolute; right: 8px; bottom: 8px; display: grid; place-items: center; width: 30px; height: 30px; border: 2px solid var(--profile-hero); border-radius: 0; background: var(--primary-blue); color: #ffffff; }
   .profile-avatar-edit-label { position: absolute; inset: auto 0 0; padding: 10px 46px 12px 12px; background: linear-gradient(to top, rgb(5 12 24 / 85%), transparent); color: #ffffff; font-size: 12px; font-weight: 650; opacity: 0; transform: translateY(4px); transition: opacity 160ms ease-out, transform 160ms ease-out; }
   .profile-avatar-edit:is(:hover, :focus-visible) .profile-avatar-edit-label { opacity: 1; transform: none; }

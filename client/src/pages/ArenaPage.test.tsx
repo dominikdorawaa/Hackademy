@@ -12,6 +12,7 @@ import type { RealtimeState } from '../types/realtime';
 import { createGameSession } from '../test/fixtures/arena';
 import { DEFAULT_AVATAR, toAvatarConfig } from '../components/arena/avatar/avatarModel';
 import { AVATAR_ATLASES } from '../components/arena/avatar/fighters';
+import { createSubscription } from '../test/fixtures/subscription';
 import ArenaPage from './ArenaPage';
 
 const realtime = vi.hoisted(() => ({ value: { state: null as RealtimeState | null, connected: true, error: null, synchronize: vi.fn(async () => {}) } }));
@@ -381,4 +382,83 @@ it('attaches the current match to an arena report', async () => {
   fireEvent.change(await screen.findByLabelText('Opis problemu'), { target: { value: 'Mecz nie chce się otworzyć' } });
   fireEvent.click(screen.getByRole('button', { name: 'Wyślij zgłoszenie' }));
   await waitFor(() => expect(body).toMatchObject({ source: 'ARENA', gameId: 'match-1' }));
+});
+
+it('shows the games left today next to the queue button with a way to Premium', async () => {
+  server.use(http.get(`${API_URL}/api/subscription`, () => HttpResponse.json(createSubscription({ arena: { dailyLimit: 5, playedToday: 3, remaining: 2 } }))));
+  mount();
+  const counter = await screen.findByRole('status', { name: 'Dziś zostało Ci 2 z 5 walk' });
+  expect(counter).toHaveTextContent('Walki dziś');
+  expect(counter).toHaveTextContent('2/5');
+  expect(counter.querySelectorAll('.arena-games-pips .is-left')).toHaveLength(2);
+  expect(counter.querySelectorAll('.arena-games-pips span')).toHaveLength(5);
+  expect(within(counter).getByRole('link', { name: /Bez limitu z Premium/ })).toHaveAttribute('href', '/premium');
+  expect(screen.getByRole('button', { name: 'Znajdź przeciwnika' })).toBeEnabled();
+});
+
+it('replaces the queue button with a Premium offer once the daily games are used', async () => {
+  server.use(http.get(`${API_URL}/api/subscription`, () => HttpResponse.json(createSubscription({ arena: { dailyLimit: 5, playedToday: 5, remaining: 0 } }))));
+  mount();
+  const offer = await screen.findByRole('region', { name: 'Na dziś to wszystko' });
+  expect(offer).toHaveTextContent('Dzisiejszy limit darmowych walk (5) jest wykorzystany.');
+  expect(within(offer).getByRole('link', { name: 'Graj dalej z Premium' })).toHaveAttribute('href', '/premium');
+  expect(screen.queryByRole('button', { name: 'Znajdź przeciwnika' })).toBeNull();
+  expect(screen.queryByRole('status', { name: /walk/ })).toBeNull();
+});
+
+it('hides the daily limit for players with Premium', async () => {
+  server.use(http.get(`${API_URL}/api/subscription`, () => HttpResponse.json(createSubscription({ active: true, arena: { dailyLimit: 5, playedToday: 9, remaining: null } }))));
+  mount();
+  expect(await screen.findByRole('button', { name: 'Znajdź przeciwnika' })).toBeEnabled();
+  expect(screen.queryByText('Walki dziś')).not.toBeInTheDocument();
+  expect(screen.queryByRole('region', { name: 'Na dziś to wszystko' })).not.toBeInTheDocument();
+});
+
+it('locks challenges once the daily games are used and explains why', async () => {
+  server.use(
+    http.get(`${API_URL}/api/subscription`, () => HttpResponse.json(createSubscription({ arena: { dailyLimit: 5, playedToday: 5, remaining: 0 } }))),
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+  );
+  realtime.value.state = state({ challenges: [incoming], friends: [{ id: 2, username: 'ola', points: 860, streak: 0, online: true }] });
+  mount();
+  expect(await screen.findByRole('button', { name: 'Akceptuj' })).toBeDisabled();
+  expect(screen.getByRole('button', { name: 'Wyzwij' })).toBeDisabled();
+  expect(screen.getAllByText(/Dzisiejsze walki są wykorzystane, więc wyzwania wrócą o północy\./)).toHaveLength(2);
+});
+
+it('refreshes the games left when the server reports the daily limit', async () => {
+  let loads = 0;
+  server.use(
+    http.get(`${API_URL}/api/subscription`, () => {
+      loads += 1;
+      return HttpResponse.json(createSubscription({ arena: { dailyLimit: 5, playedToday: loads > 1 ? 5 : 4, remaining: loads > 1 ? 0 : 1 } }));
+    }),
+    http.post(`${API_URL}/api/arena/join`, () => HttpResponse.json({ message: 'Dzisiejszy limit 5 walk jest wykorzystany.', code: 'SUBSCRIPTION_REQUIRED' }, { status: 403 })),
+  );
+  mount();
+  fireEvent.click(await screen.findByRole('button', { name: 'Znajdź przeciwnika' }));
+  expect(await screen.findByRole('region', { name: 'Na dziś to wszystko' })).toBeInTheDocument();
+  expect(loads).toBe(2);
+});
+
+it('marks friends without games today and shows a missed challenge with a way to Premium', async () => {
+  const missed = { ...incoming, id: 'm1', status: 'MISSED' as const };
+  let dismissed = '';
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+    http.get(`${API_URL}/api/subscription/friends/out-of-games`, () => HttpResponse.json([3])),
+    http.post(`${API_URL}/api/arena/challenge/:id/dismiss`, ({ params }) => { dismissed = String(params.id); return HttpResponse.json({ message: 'ok' }); }),
+  );
+  realtime.value.state = state({
+    missedChallenges: [missed],
+    friends: [{ id: 2, username: 'ola', points: 860, streak: 0, online: true }, { id: 3, username: 'kuba', points: 120, streak: 0, online: true }],
+  });
+  mount();
+  expect(await screen.findByText('Bez walk na dziś')).toBeInTheDocument();
+  expect(screen.getAllByRole('button', { name: 'Wyzwij' })).toHaveLength(1);
+  const card = screen.getByRole('list', { name: 'Wyzwania, których nie można było przyjąć' });
+  expect(card).toHaveTextContent('rywal chce Cię wyzwać, ale dziś nie masz już wolnych walk.');
+  expect(within(card).getByRole('link', { name: 'Graj bez limitu z Premium' })).toHaveAttribute('href', '/premium');
+  fireEvent.click(within(card).getByRole('button', { name: 'Zamknij powiadomienie o wyzwaniu od rywal' }));
+  await waitFor(() => expect(dismissed).toBe('m1'));
 });

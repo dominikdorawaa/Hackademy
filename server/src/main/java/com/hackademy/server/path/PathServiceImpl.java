@@ -131,6 +131,7 @@ public class PathServiceImpl implements PathService {
                     || (room.isRequiresVpn() && !tutorials.contains("Tutorial VPN")));
         });
         PathUnlockPolicy.Locks locks = pathUnlockPolicy.playerLocks(id, path.getUnlockMode(), userId);
+        Set<Long> premiumRooms = pathUnlockPolicy.premiumLocked(byId.keySet(), userId, id);
 
         List<RoomSummaryDto> rooms = new ArrayList<>();
         List<PathChapterDto> chapterDtos = new ArrayList<>();
@@ -140,6 +141,10 @@ public class PathServiceImpl implements PathService {
                 RoomSummaryDto dto = byId.get(roomId);
                 if (dto == null) continue;
                 if (locks.roomIds().contains(roomId)) dto.setLocked(true);
+                if (premiumRooms.contains(roomId)) {
+                    dto.setPremium(true);
+                    dto.setLocked(true);
+                }
                 if (!enrolled) {
                     dto.setSolved(false);
                     dto.setLocked(true);
@@ -147,8 +152,10 @@ public class PathServiceImpl implements PathService {
                 chapterRooms.add(dto);
             }
             int solvedRooms = (int) chapterRooms.stream().filter(RoomSummaryDto::isSolved).count();
+            boolean premium = chapterRooms.stream().anyMatch(RoomSummaryDto::isPremium);
+            boolean allPremium = premium && chapterRooms.stream().allMatch(RoomSummaryDto::isPremium);
             chapterDtos.add(new PathChapterDto(chapter.getId(), chapter.getTitle(), chapterRooms.size(), solvedRooms,
-                    locks.chapterIds().contains(chapter.getId()), chapterRooms));
+                    locks.chapterIds().contains(chapter.getId()) || allPremium, chapterRooms, premium));
             rooms.addAll(chapterRooms);
         }
 
@@ -259,11 +266,12 @@ public class PathServiceImpl implements PathService {
     ) {
         Long safeUserId = userId != null ? userId : -1L;
         List<ChapterRoomRepository.PathRoomMiniRow> rows = chapterRoomRepository.findMiniRoomsForUser(pathId, safeUserId, limit);
+        Set<Long> premiumRooms = pathUnlockPolicy.premiumLocked(rows.stream().map(ChapterRoomRepository.PathRoomMiniRow::getId).toList(), userId, pathId);
         List<PathRoomMiniDto> out = new ArrayList<>(rows.size());
         for (var r : rows) {
             boolean requiresVpn = Boolean.TRUE.equals(r.getRequiresVpn());
             boolean solved = Boolean.TRUE.equals(r.getSolved());
-            boolean locked = !enrolled || lockedByPath.contains(r.getId());
+            boolean locked = !enrolled || lockedByPath.contains(r.getId()) || premiumRooms.contains(r.getId());
 
             if ("Tutorial VPN".equals(r.getTitle()) && !hasTutorialVM) {
                 locked = true;

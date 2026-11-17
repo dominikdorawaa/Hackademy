@@ -2,6 +2,7 @@ package com.hackademy.server.handler;
 
 import com.hackademy.server.exception.UserNotFoundException;
 import com.hackademy.server.room.RoomRuleException;
+import com.hackademy.server.subscription.SubscriptionRequiredException;
 import com.hackademy.server.user.ReverificationRequiredException;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -85,6 +86,12 @@ public class GlobalExceptionHandler {
     public ResponseEntity<Map<String, String>> handleOptimisticLockingFailure(ObjectOptimisticLockingFailureException ex) {
         return ResponseEntity.status(HttpStatus.CONFLICT)
                 .body(Map.of("message", "Ktoś zmienił te dane w międzyczasie. Odśwież widok i spróbuj ponownie."));
+    }
+
+    @ExceptionHandler(SubscriptionRequiredException.class)
+    public ResponseEntity<Map<String, String>> subscriptionRequired(SubscriptionRequiredException ex) {
+        return ResponseEntity.status(ex.getStatusCode())
+                .body(Map.of("message", ex.getReason(), "code", SubscriptionRequiredException.CODE));
     }
 
     @ExceptionHandler(ResponseStatusException.class)

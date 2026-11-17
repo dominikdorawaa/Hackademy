@@ -72,6 +72,12 @@ abstract class PostgresIntegrationTest {
         return new Account(savedUser.getId(), username, ClerkTestTokens.tokenFor(savedUser));
     }
 
+    protected Account subscriber() {
+        var account = account(Role.USER);
+        jdbcTemplate.update("INSERT INTO subscriptions (user_id, active_until) VALUES (?, now() + interval '30 days')", account.id());
+        return account;
+    }
+
     protected ResultActions getAs(Account account, String url) throws Exception {
         return mockMvc.perform(get(url).header("Authorization", "Bearer " + account.token()));
     }

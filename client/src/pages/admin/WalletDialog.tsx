@@ -16,6 +16,7 @@ const MAX_AMOUNT = 1_000_000;
 export function transactionLabel(transaction: WalletTransaction) {
   if (transaction.kind === 'PURCHASE') return `Zakup: ${transaction.itemId ?? 'przedmiot'}`;
   if (transaction.kind === 'TOP_UP') return `Doładowanie${transaction.orderId ? ` #${transaction.orderId}` : ''}`;
+  if (transaction.kind === 'SUBSCRIPTION') return transaction.reason ?? 'Subskrypcja Premium';
   return `${transaction.adminUsername ?? 'Administrator'}: ${transaction.reason ?? ''}`;
 }
 

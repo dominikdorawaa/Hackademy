@@ -1,0 +1,31 @@
+{
+  "provider": "PixelLab",
+  "generatedAt": "2026-11-17",
+  "sprites": [
+    {
+      "file": "crown.png",
+      "frames": 8,
+      "frameWidth": 37,
+      "frameHeight": 27,
+      "base": {
+        "endpoint": "create-image-pixflux",
+        "description": "A small bright saturated yellow gold royal crown with three pointed tips, a round ruby red gem in the middle of the band, white shine highlight on the gold. Clean chunky pixel art icon for a web app, front view, centered, thick dark outline, simple flat shading, transparent background, no text, no letters.",
+        "imageSize": { "width": 40, "height": 40 },
+        "outline": "single color black outline",
+        "shading": "basic shading",
+        "detail": "low detail",
+        "colorImage": "pixel/step-trophy.png",
+        "seed": 53005
+      },
+      "animation": {
+        "endpoint": "animate-with-text-v3",
+        "action": "A bright diagonal white shine stripe sweeps across the gold crown from left to right, then a white four point star sparkle pops on the right tip and fades away. The crown itself stays perfectly still and keeps exactly its shape, size and colours. Seamless loop, transparent background.",
+        "frameCount": 8,
+        "seed": 54002,
+        "firstAndLastFrame": "base"
+      },
+      "processing": "Alpha cut at 128, the returned reference frame left out, the eight generated frames trimmed to their shared bounds and packed side by side as a looping sprite sheet. The up and down hop is added in CSS.",
+      "sha256": "26ed4c7e4e0746ab615eaeda8b2ea309bb4400f646643b9fedfad20d3d605de8"
+    }
+  ]
+}

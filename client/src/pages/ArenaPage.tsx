@@ -15,6 +15,10 @@ import { ArenaLoader, ArenaRunner } from '../components/arena/ArenaLoader';
 import { FriendRowsSkeleton } from '../components/FriendRowsSkeleton';
 import { secondsLeft } from '../components/arena/battle/battleView';
 import { useArenaClock } from '../hooks/useArenaClock';
+import { useSubscription } from '../hooks/useSubscription';
+import { useFriendsOutOfGames } from '../hooks/useFriendsOutOfGames';
+import { ArenaGamesLeft, ArenaLimitNote, ArenaLimitReached } from '../components/arena/ArenaDailyLimit';
+import { SUBSCRIPTION_REQUIRED } from '../services/subscriptionApi';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
 import type { DashboardUser, RankingEntry } from '../types/api';
 import './UserDashboardPage.css';
@@ -56,6 +60,11 @@ const ArenaPage = () => {
     const [processingChallengeId, setProcessingChallengeId] = useState<string | null>(null);
     const [acceptedChallenges, setAcceptedChallenges] = useState<string[]>([]);
     const [challengeError, setChallengeError] = useState<string | null>(null);
+    const { subscription, refresh: refreshSubscription } = useSubscription(status);
+    const gamesLeft = subscription?.arena.remaining;
+    const outOfGames = gamesLeft === 0;
+    const missed = realtime?.missedChallenges ?? [];
+    const { outOfGames: friendsOutOfGames, refresh: refreshFriendsOutOfGames } = useFriendsOutOfGames((friends ?? []).map(friend => friend.id));
 
     useEffect(() => {
         let cancelled = false;
@@ -87,6 +96,7 @@ const ArenaPage = () => {
                 await synchronize();
             } else {
                 const data = await response.json();
+                if (data.code === SUBSCRIPTION_REQUIRED) { refreshSubscription(); refreshFriendsOutOfGames(); }
                 setFriendChallenges(previous => ({ ...previous, [username]: { error: data.message ?? 'Nie udało się wysłać wyzwania.' } }));
             }
         } catch {
@@ -105,6 +115,7 @@ const ArenaPage = () => {
                 void synchronize();
             } else {
                 const data = await response.json();
+                if (data.code === SUBSCRIPTION_REQUIRED) refreshSubscription();
                 setError(data.message ?? 'Nie udało się dołączyć do kolejki.');
             }
         } catch {
@@ -158,6 +169,7 @@ const ArenaPage = () => {
                 await synchronize();
             } else {
                 const data = await response.json();
+                if (data.code === SUBSCRIPTION_REQUIRED) refreshSubscription();
                 setChallengeError(data.message ?? 'Nie udało się przyjąć wyzwania.');
             }
         } catch {
@@ -207,7 +219,7 @@ const ArenaPage = () => {
                                 <span className="arena-card-rank" role={known ? undefined : "status"}>{rankLabel}</span>
                             </div>
                             <Link className="arena-card-portrait-edit" to="/arena/avatar" aria-label="Zmień swój awatar">
-                                <UserAvatar className="arena-card-portrait" username={userData.username} avatar={userData.avatar} alt="" />
+                                <UserAvatar className="arena-card-portrait" username={userData.username} avatar={userData.avatar} premium={userData.premium} alt="" />
                             </Link>
                             <p className="arena-card-name">{userData.username}</p>
                             <p className="arena-card-elo">
@@ -257,7 +269,7 @@ const ArenaPage = () => {
                                                 </div>
                                                 <div className="arena-rejected-actions">
                                                     <button type="button" className="ud-btn ud-btn-small" onClick={() => handleChallengeFriend(challenge.targetUsername)}
-                                                        disabled={offline || retry === 'sending'}>
+                                                        disabled={offline || outOfGames || retry === 'sending'}>
                                                         {retry === 'sending' ? 'Wysyłam…' : 'Wyzwij ponownie'}
                                                     </button>
                                                     <button type="button" className="arena-rejected-close" aria-label={`Zamknij powiadomienie o odrzuceniu przez ${challenge.targetUsername}`}
@@ -268,6 +280,26 @@ const ArenaPage = () => {
                                             </li>
                                         );
                                     })}
+                                </ul>
+                            )}
+                            {status !== 'GAME' && missed.length > 0 && (
+                                <ul className="arena-rejected" aria-label="Wyzwania, których nie można było przyjąć">
+                                    {missed.map(challenge => (
+                                        <li key={challenge.id} className="arena-rejected-card arena-missed-card">
+                                            <UserAvatar className="arena-rejected-avatar" username={challenge.challengerUsername} avatar={challenge.challengerAvatar} alt="" />
+                                            <div className="arena-rejected-copy">
+                                                <p className="arena-rejected-title">Nieodebrane wyzwanie</p>
+                                                <p><strong>{challenge.challengerUsername}</strong> chce Cię wyzwać, ale dziś nie masz już wolnych walk.</p>
+                                                <Link className="arena-games-premium" to="/premium">Graj bez limitu z Premium</Link>
+                                            </div>
+                                            <div className="arena-rejected-actions">
+                                                <button type="button" className="arena-rejected-close" aria-label={`Zamknij powiadomienie o wyzwaniu od ${challenge.challengerUsername}`}
+                                                    onClick={() => handleDismissNotice(challenge.id)}>
+                                                    <i className="fas fa-times" aria-hidden="true"></i>
+                                                </button>
+                                            </div>
+                                        </li>
+                                    ))}
                                 </ul>
                             )}
                             {status !== 'GAME' && outgoing.length + expired.length > 0 && (
@@ -307,8 +339,13 @@ const ArenaPage = () => {
                                 <Link className="ud-btn arena-go" to={`/arena/battle/${gameSession.id}`}>Wróć do walki</Link>
                             ) : status === 'QUEUE' || joiningQueue ? (
                                 <button type="button" className="ud-btn ud-btn-quiet" onClick={handleLeaveQueue} disabled={joiningQueue && status !== 'QUEUE'}>Anuluj</button>
+                            ) : outOfGames && subscription ? (
+                                <ArenaLimitReached limit={subscription.arena.dailyLimit} />
                             ) : (
                                 <button type="button" className="ud-btn arena-go" onClick={handleJoinQueue} disabled={offline}>Znajdź przeciwnika</button>
+                            )}
+                            {typeof gamesLeft === 'number' && !outOfGames && subscription && status !== 'GAME' && (
+                                <ArenaGamesLeft left={gamesLeft} limit={subscription.arena.dailyLimit} />
                             )}
                         </div>
                         </div>
@@ -334,7 +371,7 @@ const ArenaPage = () => {
                                                 {!accepted && (
                                                     <button type="button" className="ud-btn ud-btn-small arena-reject" onClick={() => handleRejectChallenge(challenge.id)} disabled={busy}>Odrzuć</button>
                                                 )}
-                                                <button type="button" className="ud-btn ud-btn-small ud-btn-solid" onClick={() => handleAcceptChallenge(challenge.id)} disabled={busy || accepted}>
+                                                <button type="button" className="ud-btn ud-btn-small ud-btn-solid" onClick={() => handleAcceptChallenge(challenge.id)} disabled={busy || accepted || outOfGames}>
                                                     {accepted ? 'Zaakceptowano' : 'Akceptuj'}
                                                 </button>
                                             </span>
@@ -343,6 +380,7 @@ const ArenaPage = () => {
                                 })}
                             </ul>
                             {challengeError && <p role="alert" className="arena-error">{challengeError}</p>}
+                            {outOfGames && <ArenaLimitNote />}
                         </section>
                     )}
                 </div>
@@ -353,6 +391,7 @@ const ArenaPage = () => {
                             <h2 id="arena-friends-title">Wyzwij znajomego</h2>
                             {friends && friends.length > 0 && <Link className="ud-link" to="/friends">Wszyscy znajomi ({friends.length})</Link>}
                         </div>
+                        {outOfGames && <ArenaLimitNote />}
                         {friendsFailed ? (
                             <p className="ud-empty">Nie udało się wczytać znajomych. Odśwież stronę, żeby spróbować ponownie.</p>
                         ) : friends === null ? (
@@ -380,9 +419,11 @@ const ArenaPage = () => {
                                             <span className="ud-friend-act">
                                                 {sent ? (
                                                     <span className="ud-friend-sent">Wyzwanie wysłane</span>
+                                                ) : friendsOutOfGames.has(friend.id) ? (
+                                                    <span className="ud-friend-sent arena-friend-tired">Bez walk na dziś</span>
                                                 ) : (
                                                     <button type="button" className="ud-btn ud-btn-small" onClick={() => handleChallengeFriend(friend.username)}
-                                                        disabled={offline || status === 'GAME' || state === 'sending'}>
+                                                        disabled={offline || outOfGames || status === 'GAME' || state === 'sending'}>
                                                         {state === 'sending' ? 'Wysyłam…' : 'Wyzwij'}
                                                     </button>
                                                 )}

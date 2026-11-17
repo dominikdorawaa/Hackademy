@@ -222,7 +222,7 @@ const ProfilePeek = ({ username, sessionKey, isMe = false, className }: ProfileP
             <>
               <span className="ud-peek-head">
                 <Link className="ud-peek-avatar-link" to={profilePath} tabIndex={-1} aria-hidden="true">
-                  <UserAvatar className="ud-peek-avatar" username={profile.username} avatar={profile.avatar} alt="" />
+                  <UserAvatar className="ud-peek-avatar" username={profile.username} avatar={profile.avatar} premium={profile.premium} alt="" />
                   {presence !== undefined && <span className="presence-dot ud-peek-avatar-dot" data-online={presence} />}
                 </Link>
                 <span className="ud-peek-who">

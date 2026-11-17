@@ -1,6 +1,7 @@
 package com.hackademy.server.arena;
 
 import com.hackademy.server.shop.ShopAccess;
+import com.hackademy.server.subscription.SubscriptionRequiredException;
 import com.hackademy.server.user.User;
 import com.hackademy.server.user.UserService;
 import lombok.RequiredArgsConstructor;
@@ -153,6 +154,8 @@ public class ArenaController {
             Long targetId = userService.getUserIdByUsername(targetUsername);
             arenaService.createChallenge(challenger.getId(), challenger.getUsername(), targetId, targetUsername);
             return ResponseEntity.ok(Map.of("message", "Propozycja została wysłana!"));
+        } catch (SubscriptionRequiredException limit) {
+            throw limit;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }
@@ -167,6 +170,8 @@ public class ArenaController {
     public ResponseEntity<?> acceptChallenge(@PathVariable String challengeId) {
         try {
             return ResponseEntity.ok(arenaService.acceptChallenge(challengeId, currentUser().getId()));
+        } catch (SubscriptionRequiredException limit) {
+            throw limit;
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("message", e.getMessage()));
         }

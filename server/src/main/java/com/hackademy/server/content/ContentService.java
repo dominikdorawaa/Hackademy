@@ -217,7 +217,7 @@ public class ContentService {
         for (var c : chapters.findByPathIdOrderBySortOrderAscIdAsc(id)) {
             var chapterRooms = links.stream().filter(a -> a.getChapterId().equals(c.getId())).map(a -> roomService.getRoomById(a.getRoomId())).map(r -> new RoomSummaryDto(r.getId(), r.getTitle(), r.getShortDescription(), r.getDifficulty(), r.getCategory(), r.getPoints(), r.getSolutionsCount(), r.isRequiresVpn(), r.getRoomType(), r.getCreatedAt())).toList();
             all.addAll(chapterRooms);
-            sections.add(new PathChapterDto(c.getId(), c.getTitle(), chapterRooms.size(), 0, false, chapterRooms));
+            sections.add(new PathChapterDto(c.getId(), c.getTitle(), chapterRooms.size(), 0, false, chapterRooms, false));
         }
         return PathDetailDto.builder().id(p.getId()).title(p.getTitle()).description(p.getDescription()).bannerUrl(p.getBannerData() == null ? p.getBannerUrl() : "/api/admin/content/paths/" + id + "/banner").hasBanner(p.getBannerData() != null).enrolled(true).unlockMode(p.getUnlockMode()).chapters(sections).rooms(all).build();
     }
