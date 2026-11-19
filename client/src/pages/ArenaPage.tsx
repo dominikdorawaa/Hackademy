@@ -20,6 +20,7 @@ import { useFriendsOutOfGames } from '../hooks/useFriendsOutOfGames';
 import { ArenaGamesLeft, ArenaLimitNote, ArenaLimitReached } from '../components/arena/ArenaDailyLimit';
 import { SUBSCRIPTION_REQUIRED } from '../services/subscriptionApi';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
+import { RecentBattles } from '../components/arena/history/RecentBattles';
 import type { DashboardUser, RankingEntry } from '../types/api';
 import './UserDashboardPage.css';
 import './ArenaPage.css';
@@ -383,6 +384,8 @@ const ArenaPage = () => {
                             {outOfGames && <ArenaLimitNote />}
                         </section>
                     )}
+
+                    <RecentBattles sessionKey={sessionKey} refreshKey={status} />
                 </div>
 
                 <aside className="ud-board arena-board" aria-label="Znajomi i zasady">

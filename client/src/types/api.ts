@@ -686,3 +686,45 @@ export interface WalletAdmin {
   balance: number
   transactions: WalletTransaction[]
 }
+
+export type ArenaMatchResult = 'WIN' | 'LOSS' | 'DRAW'
+
+export interface ArenaMatchSummary {
+  id: number
+  opponentName: string
+  opponentAvatar?: AvatarConfig | null
+  result: ArenaMatchResult
+  eloChange: number
+  finishedAt: ApiDateTime
+}
+
+export interface ArenaMatchPage {
+  items: ArenaMatchSummary[]
+  hasMore: boolean
+}
+
+export interface ArenaMatchRound {
+  round: number
+  content: string
+  category: string
+  difficulty?: string | null
+  answers: string[]
+  correctAnswer: number
+  choice: number | null
+  answerMillis: number | null
+  opponentChoice: number | null
+  opponentAnswerMillis: number | null
+  hpAfter: number
+  opponentHpAfter: number
+}
+
+export interface ArenaMatchDetail {
+  summary: ArenaMatchSummary
+  finishReason?: string | null
+  eloBefore?: number | null
+  opponentElo?: number | null
+  hp?: number | null
+  opponentHp?: number | null
+  durationSeconds?: number | null
+  rounds: ArenaMatchRound[]
+}

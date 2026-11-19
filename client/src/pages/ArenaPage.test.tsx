@@ -462,3 +462,29 @@ it('marks friends without games today and shows a missed challenge with a way to
   fireEvent.click(within(card).getByRole('button', { name: 'Zamknij powiadomienie o wyzwaniu od rywal' }));
   await waitFor(() => expect(dismissed).toBe('m1'));
 });
+
+it('lists the latest battles with the result and Elo and links to the whole history', async () => {
+  server.use(
+    http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })),
+    http.get(`${API_URL}/api/arena/matches`, ({ request }) => {
+      expect(new URL(request.url).searchParams.get('size')).toBe('5');
+      return HttpResponse.json({ items: [
+        { id: 4, opponentName: 'nullbyte', result: 'LOSS', eloChange: -14, finishedAt: '2026-11-18T21:14:00' },
+        { id: 3, opponentName: 'r00tkit', result: 'WIN', eloChange: 18, finishedAt: '2026-11-18T19:02:00' },
+      ], hasMore: true });
+    }),
+  );
+  mount();
+  const section = await screen.findByRole('region', { name: 'Ostatnie bitwy' });
+  expect(await within(section).findByRole('link', { name: /Przegrana z nullbyte/ })).toHaveAttribute('href', '/arena/history/4');
+  expect(within(section).getByRole('link', { name: /Wygrana z r00tkit/ })).toHaveTextContent('+18 Elo');
+  expect(within(section).getByRole('link', { name: 'Cała historia' })).toHaveAttribute('href', '/arena/history');
+});
+
+it('invites a new player to their first battle in the history section', async () => {
+  server.use(http.get(currentUserUrl, () => HttpResponse.json({ ...createUser(), points: 900 })));
+  mount();
+  const section = await screen.findByRole('region', { name: 'Ostatnie bitwy' });
+  expect(await within(section).findByText('Twoje bitwy pojawią się tutaj po pierwszym pojedynku.')).toBeInTheDocument();
+  expect(within(section).queryByRole('link', { name: 'Cała historia' })).not.toBeInTheDocument();
+});

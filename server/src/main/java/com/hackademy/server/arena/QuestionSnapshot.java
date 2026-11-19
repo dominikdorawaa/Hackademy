@@ -5,7 +5,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.random.RandomGenerator;
 
-public record QuestionSnapshot(Long id, String content, String category, List<String> answers, int correctAnswer) {
+public record QuestionSnapshot(Long id, String content, String category, List<String> answers, int correctAnswer, String difficulty) {
 
     static QuestionSnapshot shuffled(ArenaQuestion question, RandomGenerator random) {
         List<String> answers = new ArrayList<>(BattleEngine.ANSWERS);
@@ -19,6 +19,6 @@ public record QuestionSnapshot(Long id, String content, String category, List<St
             else if (correct == swap) correct = index;
         }
         return new QuestionSnapshot(question.getId(), question.getContent(), question.getCategory(),
-                List.copyOf(answers), correct);
+                List.copyOf(answers), correct, question.getDifficulty());
     }
 }

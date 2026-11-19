@@ -1,17 +1,25 @@
 package com.hackademy.server.arena;
 
+import org.springframework.data.domain.Pageable;
 import org.springframework.data.jpa.repository.JpaRepository;
 import org.springframework.data.jpa.repository.Query;
 import org.springframework.data.repository.query.Param;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Optional;
 
 public interface ArenaMatchRepository extends JpaRepository<ArenaMatch, Long> {
     @Query("select m.result, count(m) from ArenaMatch m where m.userId = :userId group by m.result")
     List<Object[]> countResults(@Param("userId") Long userId);
 
     List<ArenaMatch> findTop5ByUserIdOrderByIdDesc(Long userId);
+
+    List<ArenaMatch> findByUserIdOrderByFinishedAtDescIdDesc(Long userId, Pageable page);
+
+    Optional<ArenaMatch> findByIdAndUserId(Long id, Long userId);
+
+    Optional<ArenaMatch> findByGameIdAndUserId(String gameId, Long userId);
 
     long countByUserIdAndFinishedAtGreaterThanEqual(Long userId, LocalDateTime since);
 

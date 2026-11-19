@@ -55,6 +55,8 @@ public class GameSession {
     @JsonIgnore
     private List<QuestionSnapshot> questions = new ArrayList<>();
     @JsonIgnore
+    private List<PlayedRound> played = new ArrayList<>();
+    @JsonIgnore
     private Map<Long, Integer> choices = new HashMap<>();
     @JsonIgnore
     private Map<Long, Long> answerElapsedMillis = new HashMap<>();
@@ -84,6 +86,23 @@ public class GameSession {
     public int eloOf(Long playerId) {
         Integer elo = player1Id.equals(playerId) ? player1Elo : player2Elo;
         return elo == null ? QuestionDraw.DEFAULT_ELO : elo;
+    }
+
+    public String usernameOf(Long playerId) {
+        return player1Id.equals(playerId) ? player1Username : player2Username;
+    }
+
+    public UserAvatarDto avatarOf(Long playerId) {
+        return player1Id.equals(playerId) ? player1Avatar : player2Avatar;
+    }
+
+    public Integer startingEloOf(Long playerId) {
+        return player1Id.equals(playerId) ? player1Elo : player2Elo;
+    }
+
+    public int eloChangeOf(Long playerId) {
+        Integer change = player1Id.equals(playerId) ? player1EloChange : player2EloChange;
+        return change == null ? 0 : change;
     }
 
     public Long opponentOf(Long userId) {
