@@ -1,6 +1,10 @@
 package com.hackademy.server;
 
 import com.hackademy.server.clerk.ClerkUserResolver;
+import com.hackademy.server.room.RoomDescription;
+import com.hackademy.server.room.RoomReadiness;
+import com.hackademy.server.room.RoomTask;
+import com.hackademy.server.room.RoomType;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.oauth2.jwt.Jwt;
 import org.flywaydb.core.Flyway;
@@ -16,6 +20,7 @@ import org.testcontainers.postgresql.PostgreSQLContainer;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.SQLException;
+import java.util.List;
 import java.util.UUID;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
@@ -24,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 47;
+    static final int SCHEMA_VERSION = 49;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -1012,6 +1017,97 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
         assertEquals("crab:plaszcz", text("SELECT victory_dance || ':' || outfit FROM user_avatars WHERE user_id = 1"));
         assertSqlState("23514", "UPDATE user_avatars SET victory_dance = 'walc' WHERE user_id = 1");
         assertSqlState("23514", "UPDATE user_avatars SET outfit = 'kimono' WHERE user_id = 1");
+    }
+
+    private record DescriptionCase(long id, String type, String shortDescription, String description, int tasks) {}
+
+    @Test
+    void mergesTheShortDescriptionIntoTheDescriptionWithoutLosingText() throws Exception {
+        flyway("45").migrate();
+        insertUser(1, "Reader", "reader@example.com");
+        String sentences = "Pierwsze zdanie opisu. " + "Drugie zdanie o terminalu i plikach w katalogu /etc. ".repeat(3) + "Trzecie <b>z HTML</b> & **markdown**.\r\nDruga linia.";
+        var cases = List.of(
+                new DescriptionCase(1, "PATH", "Twoje pierwsze polecenie", "Przeczytaj materiał i odpowiedz na pytanie.", 1),
+                new DescriptionCase(2, "CTF", null, "Przeszukaj katalog domowy i zdobądź flagę.", 1),
+                new DescriptionCase(3, "PATH", "Sam krótki opis", "", 1),
+                new DescriptionCase(4, "PATH", "", "Mieści się w limicie.", 2),
+                new DescriptionCase(5, "PATH", "  ", sentences, 2),
+                new DescriptionCase(6, "CTF", null, "słowo ".repeat(45) + "koniec", 1),
+                new DescriptionCase(7, "PATH", null, "x".repeat(250), 1),
+                new DescriptionCase(8, "PATH", null, "y".repeat(199) + "😀ogon", 1),
+                new DescriptionCase(9, "PATH", null, "z".repeat(200), 1),
+                new DescriptionCase(10, "PATH", "Ten sam tekst", " Ten sam tekst ", 1),
+                new DescriptionCase(11, "PATH", "Krótki opis pokoju bez zadań", "Opis pokoju bez zadań trafia do nowego zadania.", 0),
+                new DescriptionCase(12, "CTF", null, "Krótki opis bez zadań zostaje.", 0),
+                new DescriptionCase(13, "CTF", " " + "k".repeat(230) + " ", "Stary opis", 0),
+                new DescriptionCase(14, "PATH", null, "   ", 0),
+                new DescriptionCase(15, "PATH", "Krótki opis szkicu", "Opis szkicu trafia do pierwszego zadania.", 1));
+        try (var connection = connect(url);
+             var room = connection.prepareStatement("INSERT INTO rooms (id, title, description, short_description, difficulty, category, points, solutions_count, requires_vpn, room_type, created_at, updated_at) VALUES (?, ?, ?, ?, 'EASY', 'Linux', 50, 0, false, ?, now(), now())");
+             var task = connection.prepareStatement("INSERT INTO room_tasks (id, room_id, title, content, question, answer, sort_order) VALUES (?, ?, ?, ?, NULL, 'odp', ?)")) {
+            for (var c : cases) {
+                room.setLong(1, c.id()); room.setString(2, "Pokój " + c.id()); room.setString(3, c.description());
+                room.setString(4, c.shortDescription()); room.setString(5, c.type()); room.executeUpdate();
+                for (int i = 0; i < c.tasks(); i++) {
+                    task.setLong(1, c.id() * 10 + i); task.setLong(2, c.id()); task.setString(3, "Zadanie " + i);
+                    task.setString(4, "<p>Treść " + c.id() + "." + i + "</p>"); task.setInt(5, c.tasks() - 1 - i); task.executeUpdate();
+                }
+            }
+        }
+        execute("""
+                INSERT INTO paths (id, title, description, published, unlock_mode, created_at, updated_at) VALUES
+                (101, 'Pierwsza', 'Opis', true, 'OPEN', now(), now()), (102, 'Druga', 'Opis', true, 'OPEN', now(), now()), (103, 'Szkic', '', false, 'OPEN', now(), now());
+                INSERT INTO path_chapters (id, path_id, title, sort_order, created_at, updated_at) VALUES
+                (101, 101, 'A', 0, now(), now()), (102, 102, 'A', 0, now(), now()), (103, 103, 'A', 0, now(), now());
+                INSERT INTO chapter_rooms (room_id, chapter_id, sort_order, room_title, path_id) VALUES
+                (1, 101, 0, 'Pokój 1', 101), (5, 101, 1, 'Pokój 5', 101), (11, 101, 2, 'Pokój 11', 101), (5, 102, 0, 'Pokój 5', 102), (15, 103, 0, 'Pokój 15', 103);
+                INSERT INTO user_solved_rooms (user_id, room_id, solved_at, awarded_points) VALUES (1, 11, now(), 50), (1, 4, now(), 50);
+                INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (1, 40, now()), (1, 41, now());
+                """);
+
+        flyway("48").migrate();
+        assertEquals(1, flyway().migrate().migrationsExecuted);
+        assertEquals(String.valueOf(SCHEMA_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
+
+        for (var c : cases) {
+            var merged = RoomDescription.merge(c.shortDescription(), c.description());
+            boolean moved = !merged.movedContent().isEmpty();
+            boolean changed = moved || !merged.description().equals(c.description());
+            String where = " FROM rooms WHERE id = " + c.id();
+            assertEquals(merged.description(), text("SELECT description" + where), "room " + c.id());
+            assertTrue(merged.description().length() <= RoomDescription.MAX_LENGTH, "room " + c.id());
+            assertEquals((changed ? 1 : 0) + ":" + (moved ? 1 : 0), text("SELECT content_revision || ':' || tasks_revision" + where), "room " + c.id());
+            assertEquals(c.shortDescription() == null ? "null" : c.shortDescription(), text("SELECT coalesce(short_description, 'null')" + where), "room " + c.id());
+            String tasks = text("SELECT coalesce(string_agg(title || '|' || content || '|' || coalesce(question, '-') || '|' || coalesce(answer, '-'), '#' ORDER BY sort_order, id), '') FROM room_tasks WHERE room_id = " + c.id());
+            var expected = new StringBuilder();
+            for (int order = 0; order < c.tasks(); order++) {
+                int i = c.tasks() - 1 - order;
+                if (order > 0) expected.append('#');
+                expected.append("Zadanie ").append(i).append('|').append(order == 0 ? merged.movedContent() : "").append("<p>Treść ").append(c.id()).append('.').append(i).append("</p>|-|odp");
+            }
+            if (c.tasks() == 0 && moved) {
+                expected.append("Wstęp|").append(merged.movedContent()).append("|Ten pokój nie ma jeszcze pytania. Wróć do niego później.|locked");
+                tasks = tasks.replaceFirst("\\|[0-9a-f]{32}$", "|locked");
+                var created = RoomTask.builder().title("Wstęp").content(merged.movedContent()).sortOrder(0)
+                        .question(text("SELECT question FROM room_tasks WHERE room_id = " + c.id()))
+                        .answer(text("SELECT answer FROM room_tasks WHERE room_id = " + c.id())).build();
+                assertEquals(List.of(), RoomReadiness.taskProblems(RoomType.valueOf(c.type()), List.of(created)), "room " + c.id());
+            }
+            assertEquals(expected.toString(), tasks, "room " + c.id());
+        }
+        assertEquals("Twoje pierwsze polecenie", text("SELECT description FROM rooms WHERE id = 1"));
+        assertEquals("<p>Przeczytaj materiał i odpowiedz na pytanie.</p><p>Treść 1.0</p>", text("SELECT content FROM room_tasks WHERE room_id = 1"));
+        assertEquals("<p>Trzecie &lt;b&gt;z HTML&lt;/b&gt; &amp; **markdown**.<br>Druga linia.</p><p>Treść 5.1</p>", text("SELECT content FROM room_tasks WHERE room_id = 5 AND sort_order = 0"));
+        assertEquals("<p>Treść 5.0</p>", text("SELECT content FROM room_tasks WHERE room_id = 5 AND sort_order = 1"));
+        assertEquals("1:11:Wstęp|1:4:Zadanie 0|1:4:Zadanie 1", text("""
+                SELECT string_agg(u.user_id || ':' || t.room_id || ':' || t.title, '|' ORDER BY t.room_id DESC, t.title)
+                FROM user_completed_tasks u JOIN room_tasks t ON t.id = u.task_id
+                """));
+        assertEquals(0, scalar("SELECT count(*) FROM room_tasks WHERE room_id IN (12, 14)"));
+        assertEquals(2, scalar("SELECT count(DISTINCT answer) FROM room_tasks WHERE room_id IN (11, 13)"));
+        assertEquals("1:101|5:101|5:102|11:101|15:103", text("SELECT string_agg(room_id || ':' || path_id, '|' ORDER BY room_id, path_id) FROM chapter_rooms"));
+        assertEquals(0, flyway().migrate().migrationsExecuted);
+        assertTrue(flyway().validateWithResult().validationSuccessful);
     }
 
     @Test

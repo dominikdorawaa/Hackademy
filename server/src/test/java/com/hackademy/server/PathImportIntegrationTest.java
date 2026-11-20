@@ -29,6 +29,7 @@ import static org.junit.jupiter.api.Assertions.*;
 import static org.mockito.ArgumentMatchers.*;
 import static org.mockito.Mockito.doAnswer;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.multipart;
+import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
 class PathImportIntegrationTest extends PostgresIntegrationTest {
@@ -259,6 +260,61 @@ class PathImportIntegrationTest extends PostgresIntegrationTest {
             String response = upload(admin, doc.toString(), 201);
             assertEquals(mode.equals("missing") ? "OPEN" : mode, JsonPath.read(response, "$.unlockMode"));
         }
+    }
+
+    @Test
+    void importsTheSingleDescriptionAndShowsItOnTheMapAndInTheRoom() throws Exception {
+        var admin = account(Role.ADMIN); var player = account(Role.USER);
+        String path = upload(admin, document().toString(), 201);
+        long id = number(path, "$.id"), terminal = number(path, "$.chapters[0].roomIds[0]");
+        assertEquals("Twoje pierwsze polecenie w terminalu.", jdbcTemplate.queryForObject("SELECT description FROM rooms WHERE id = ?", String.class, terminal));
+        assertEquals("<p>Polecenie <code>pwd</code> wyświetla bieżący katalog.</p>", firstTaskContent(terminal));
+        jdbcTemplate.update("UPDATE paths SET published = true WHERE id = ?", id);
+        postJson(player, "/api/paths/" + id + "/enroll", "{}").andExpect(status().isOk());
+        getAs(player, "/api/paths/" + id)
+                .andExpect(jsonPath("$.chapters[0].rooms[0].description").value("Twoje pierwsze polecenie w terminalu."))
+                .andExpect(jsonPath("$.chapters[0].rooms[0].shortDescription").value("Twoje pierwsze polecenie w terminalu."));
+        getAs(player, "/api/rooms/" + terminal)
+                .andExpect(jsonPath("$.description").value("Twoje pierwsze polecenie w terminalu."))
+                .andExpect(jsonPath("$.shortDescription").doesNotExist());
+    }
+
+    @Test
+    void convertsTheOldFormatWithoutLosingTheLongDescription() throws Exception {
+        var admin = account(Role.ADMIN);
+        var doc = document();
+        room(doc, 0).put("shortDescription", " Twoje pierwsze polecenie ").put("description", "Przeczytaj materiał i odpowiedz na pytanie.");
+        String head = "Pierwsze zdanie. " + "a".repeat(150) + ".";
+        room(doc, 1).put("description", head + " Reszta <b>opisu</b> & dalej, która ciągnie się jeszcze przez kilka słów\nw drugiej linii.");
+        String path = upload(admin, doc.toString(), 201);
+        long terminal = number(path, "$.chapters[0].roomIds[0]"), flag = number(path, "$.chapters[0].roomIds[1]");
+        assertEquals("Twoje pierwsze polecenie", jdbcTemplate.queryForObject("SELECT description FROM rooms WHERE id = ?", String.class, terminal));
+        assertEquals("<p>Przeczytaj materiał i odpowiedz na pytanie.</p><p>Polecenie <code>pwd</code> wyświetla bieżący katalog.</p>", firstTaskContent(terminal));
+        assertEquals(head, jdbcTemplate.queryForObject("SELECT description FROM rooms WHERE id = ?", String.class, flag));
+        assertEquals("<p>Reszta &lt;b&gt;opisu&lt;/b&gt; &amp; dalej, która ciągnie się jeszcze przez kilka słów<br>w drugiej linii.</p><p>Flaga leży w ukrytym pliku <code>.flaga</code> w katalogu domowym.</p>", firstTaskContent(flag));
+        var batch = batch();
+        ((ObjectNode) batch.path("rooms").get(0)).put("shortDescription", "Krótki opis dopisanego pokoju");
+        String appended = append(admin, number(path, "$.id"), target(path), batch, 201);
+        long added = number(appended, "$.chapters[0].roomIds[2]");
+        assertEquals("Krótki opis dopisanego pokoju", jdbcTemplate.queryForObject("SELECT description FROM rooms WHERE id = ?", String.class, added));
+        assertEquals("<p>Twoje pierwsze polecenie w terminalu.</p><p>Polecenie <code>pwd</code> wyświetla bieżący katalog.</p>", firstTaskContent(added));
+    }
+
+    @Test
+    void rejectsAnOldDescriptionThatWouldOverflowTheFirstTask() throws Exception {
+        var admin = account(Role.ADMIN);
+        var doc = document();
+        room(doc, 0).put("description", "x".repeat(300));
+        ((ObjectNode) room(doc, 0).path("tasks").get(0)).put("content", "y".repeat(19950));
+        var errors = reject(admin, doc);
+        assertTrue(errors.get("rozdział 1, pokój 1: description").contains("20000"));
+        assertFalse(errors.containsKey("rozdział 1, pokój 2: description"));
+        ((ObjectNode) room(doc, 0).path("tasks").get(0)).put("content", "y".repeat(19800));
+        upload(admin, doc.toString(), 201);
+    }
+
+    private String firstTaskContent(long roomId) {
+        return jdbcTemplate.queryForObject("SELECT content FROM room_tasks WHERE room_id = ? ORDER BY sort_order, id LIMIT 1", String.class, roomId);
     }
 
     @Test

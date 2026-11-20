@@ -33,9 +33,6 @@ public class Room {
     @Column(nullable = false, columnDefinition = "TEXT")
     private String description;
 
-    @Column(name = "short_description")
-    private String shortDescription;
-
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private DifficultyLevel difficulty;

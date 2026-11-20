@@ -11,7 +11,6 @@ public record RoomAdminDto(
     long contentRevision,
     String title,
     String description,
-    String shortDescription,
     DifficultyLevel difficulty,
     String category,
     int points,

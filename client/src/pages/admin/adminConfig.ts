@@ -10,3 +10,4 @@ export const pointsForDifficulty: Record<DifficultyLevel, number> = {
 };
 
 export const reservedRoomTitles = ['tutorial vm', 'tutorial vpn'];
+export const roomDescriptionLimit = 200;

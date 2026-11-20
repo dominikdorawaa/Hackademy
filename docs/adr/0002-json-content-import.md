@@ -10,14 +10,16 @@ Format i przykład są dostępne w oknie importu do skopiowania lub pobrania. Ź
 | --- | --- | --- |
 | Ścieżka | `title`, `description`, `chapters` | `unlockMode` (domyślnie `OPEN`) |
 | Rozdział | `title`, `rooms` | brak |
-| Pokój | `title`, `description`, `difficulty`, `category`, `points` (pokój CTF może je pominąć), `tasks` | `roomType` (`PATH` dla teorii albo `CTF`, domyślnie `PATH`), `shortDescription`, `requiresVpn` (domyślnie `false`), `hints` |
+| Pokój | `title`, `description`, `difficulty`, `category`, `points` (pokój CTF może je pominąć), `tasks` | `roomType` (`PATH` dla teorii albo `CTF`, domyślnie `PATH`), `requiresVpn` (domyślnie `false`), `hints` |
 | Zadanie | `title`, `content` | `question`, `answer` |
 
 `chapters`, `rooms`, `hints` i `tasks` są listami. Listy rozdziałów i pokoi nie mogą być puste. Pominięte listy podpowiedzi i zadań są puste. `hints` zawiera teksty podpowiedzi. Każdy pokój ma co najmniej jedno zadanie. W pokoju teorii pytanie wymaga odpowiedzi, a odpowiedź wymaga pytania. W pokoju CTF odpowiedź zadania jest flagą: jest wymagana, pytanie jest opcjonalne, a XP wynika z trudności. Treść zadania obsługuje wyłącznie HTML formatowania zgodny z edytorem; niedozwolony HTML jest usuwany i nie może pozostawić pustej treści.
 
 Tryby odblokowania: `OPEN`, `CHAPTER`, `ROOM`. Trudność: `EASY`, `MEDIUM`, `HARD`, `INSANE`. Punkty pokoi PATH są podawane jako nieujemna liczba całkowita do 2147483647. Kolejność list określa kolejność rozdziałów, pokoi, podpowiedzi i zadań. Tytuły są przycinane na początku i końcu; tytuły pokoi muszą być różne w obrębie rozdziału (wielkość liter jest rozróżniana). Tytuły Tutorial VM i Tutorial VPN są zarezerwowane, niezależnie od wielkości liter. Powtórzenia tytułów w różnych rozdziałach i ścieżkach są dozwolone.
 
-Limity: 5 MB na plik, 100 rozdziałów, 500 pokoi łącznie, 100 podpowiedzi i 100 zadań na pokój. Maksymalne długości: tytuł ścieżki i rozdziału 120, tytuł pokoju i zadania 255, opisy i treść zadania 20000, krótki opis 100, kategoria 255, podpowiedź i pytanie 2000, odpowiedź 255 znaków.
+Limity: 5 MB na plik, 100 rozdziałów, 500 pokoi łącznie, 100 podpowiedzi i 100 zadań na pokój. Maksymalne długości: tytuł ścieżki i rozdziału 120, tytuł pokoju i zadania 255, opis pokoju 200, opis ścieżki i treść zadania 20000, kategoria 255, podpowiedź i pytanie 2000, odpowiedź 255 znaków.
+
+Opis pokoju jest widoczny na karcie w ścieżce i na górze pokoju; materiał należy do treści zadań. Na czas przejścia import przyjmuje też dawny format z polem `shortDescription` (do 100 znaków) i opisem do 20000 znaków. Opisem pokoju zostaje wtedy `shortDescription`, a gdy go brak, początek opisu do 200 znaków, ucięty na końcu ostatniego mieszczącego się zdania, linii albo słowa. Pozostała część opisu trafia jako akapit na początek treści pierwszego zadania (ta sama reguła co migracja V47), więc pierwsze zadanie nie może po tym przekroczyć 20000 znaków.
 
 Nieznane pola, identyfikatory istniejących materiałów, pola publikacji, bannery i pliki są odrzucane. Typy są sprawdzane bez konwersji, np. `points: "30"` i `requiresVpn: "false"` są błędne. Opcjonalne teksty mogą być null; opcjonalne listy, tryb i boolean po podaniu muszą mieć poprawny typ. Powtórzone klucze JSON i dodatkowa treść po dokumencie są błędami składni. Przy błędnej składni zwracany jest błąd pliku; przy poprawnej składni zbierane są błędy wszystkich elementów, z pozycją od 1, np. `rozdział 2, pokój 3, zadanie 1: answer`.
 

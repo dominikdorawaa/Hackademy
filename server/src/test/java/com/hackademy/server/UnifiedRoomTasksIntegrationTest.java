@@ -21,7 +21,7 @@ class UnifiedRoomTasksIntegrationTest extends PostgresIntegrationTest {
 
     private Map<String, Object> room(String type, List<Map<String, Object>> tasks) {
         var room = new LinkedHashMap<String, Object>();
-        room.put("title", uniqueTitle(type + " room")); room.put("description", "Opis"); room.put("shortDescription", "");
+        room.put("title", uniqueTitle(type + " room")); room.put("description", "Opis");
         room.put("difficulty", "MEDIUM"); room.put("category", "Web"); room.put("points", 20);
         room.put("requiresVpn", false); room.put("roomType", type); room.put("hints", List.of());
         room.put("tasks", tasks); room.put("revision", 0); room.put("tasksRevision", 0);

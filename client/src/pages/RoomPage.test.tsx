@@ -44,7 +44,7 @@ const withHints = (tasks: TaskFixture[]): RoomTaskDto[] => tasks.map(task => ({ 
 
 function mount(tasks: TaskFixture[]) {
   const room: RoomDetailDto = {
-    id: 7, title: 'HTTP', description: 'Opis', shortDescription: '', difficulty: 'EASY', roomType: 'PATH',
+    id: 7, title: 'HTTP', description: 'Opis', difficulty: 'EASY', roomType: 'PATH',
     points: 50, solutionsCount: 0, createdAt: '2026-10-01T00:00:00', solved: false,
     requiresVpn: false, fileName: null, tasks: withHints(tasks),
   };
@@ -112,7 +112,7 @@ describe('room activity for friends', () => {
       http.delete(`${API_URL}/api/presence/room/7`, ({ request }) => { calls.push(`close:${new URL(request.url).searchParams.get('tab')}`); return new HttpResponse(null, { status: 204 }); }),
     );
     const room: RoomDetailDto = {
-      id: 7, title: 'HTTP', description: 'Opis', shortDescription: '', difficulty: 'EASY', roomType: 'PATH', points: 50, solutionsCount: 0,
+      id: 7, title: 'HTTP', description: 'Opis', difficulty: 'EASY', roomType: 'PATH', points: 50, solutionsCount: 0,
       createdAt: '2026-10-01T00:00:00', solved: false, requiresVpn: false, fileName: null,
       tasks: [{ id: 1, title: 'Zadanie', content: 'Treść', question: 'Pytanie?', requiresAnswer: true, completed: false, hints: [] }],
     };
@@ -305,7 +305,7 @@ function mountCtf({ unlockedHintIds = [], tasks, ...overrides }: Partial<Omit<Ro
   const hints = [1, 2].map((id, order) => unlockedHintIds.includes(id) ? { id, order, description: hintTexts[id] } : { id, order });
   const solved = overrides.solved ?? false;
   const room: RoomDetailDto = {
-    id: 7, title: 'Pierwsza flaga', description: 'Znajdź flagę', shortDescription: 'Rozgrzewka', difficulty: 'EASY', roomType: 'CTF',
+    id: 7, title: 'Pierwsza flaga', description: 'Znajdź flagę', difficulty: 'EASY', roomType: 'CTF',
     points: 50, solutionsCount: 3, createdAt: '2026-10-01T00:00:00', solved, requiresVpn: false, fileName: null,
     tasks: withHints(tasks ?? [{ id: 5, title: 'Ukryta flaga', content: '<p>Flaga jest w kodzie strony.</p>', question: null, requiresAnswer: true, completed: solved, hints }]),
     ...overrides,
@@ -463,6 +463,35 @@ describe('CTF room', () => {
     mountCtf({ tasks: [] });
     expect(await screen.findByText('Ten pokój nie ma jeszcze zadań. Wróć do niego później.')).toBeInTheDocument();
     expect(screen.queryByRole('textbox')).not.toBeInTheDocument();
+  });
+});
+
+describe('room description', () => {
+  it('shows the description once under the title of a room without tasks', async () => {
+    mountCtf({ description: 'Opis widoczny też na karcie ścieżki', tasks: [] });
+    await screen.findByRole('heading', { name: 'Pierwsza flaga' });
+    const lead = screen.getByText('Opis widoczny też na karcie ścieżki');
+    expect(lead).toHaveClass('room-lead');
+    expect(screen.getAllByText('Opis widoczny też na karcie ścieżki')).toHaveLength(1);
+  });
+
+  it('leaves out the lead when the room has no description', async () => {
+    mountCtf({ description: '', tasks: [] });
+    await screen.findByRole('heading', { name: 'Pierwsza flaga' });
+    expect(document.querySelector('.room-lead')).toBeNull();
+  });
+
+  it('shows the description at the top of the first task only', async () => {
+    const user = userEvent.setup();
+    mountCtf({ description: 'Opis na górze pokoju', tasks: [
+      { id: 5, title: 'Pierwsze', content: '<p>Materiał</p>', question: null, requiresAnswer: false, completed: true },
+      { id: 6, title: 'Drugie', content: '<p>Dalej</p>', question: null, requiresAnswer: false, completed: false },
+    ] });
+    await screen.findByRole('heading', { name: '02. Drugie' });
+    expect(screen.queryByText('Opis na górze pokoju')).toBeNull();
+    await user.click(screen.getByRole('button', { name: 'Wstecz' }));
+    await screen.findByRole('heading', { name: '01. Pierwsze' });
+    expect(screen.getByText('Opis na górze pokoju').closest('.room-intro')).not.toBeNull();
   });
 });
 
@@ -695,7 +724,7 @@ describe('next room in a path', () => {
 
   function mountSolved(tasks: TaskFixture[], url: string) {
     const room: RoomDetailDto = {
-      id: 7, title: 'HTTP', description: 'Opis', shortDescription: '', difficulty: 'EASY', roomType: 'PATH',
+      id: 7, title: 'HTTP', description: 'Opis', difficulty: 'EASY', roomType: 'PATH',
       points: 50, solutionsCount: 2, createdAt: '2026-10-01T00:00:00', solved: true,
       requiresVpn: false, fileName: null, tasks: withHints(tasks),
     };

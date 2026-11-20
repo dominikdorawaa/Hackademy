@@ -306,7 +306,7 @@ describe('content editors', () => {
   });
   it('blocks an existing room after load failure and preserves task hints after retry', async () => {
     signIn('ADMIN'); let loads = 0;
-    const existing = { id: 9, title: 'CTF', description: 'Opis', shortDescription: '', difficulty: 'MEDIUM', category: 'Web', points: 100,
+    const existing = { id: 9, title: 'CTF', description: 'Opis', difficulty: 'MEDIUM', category: 'Web', points: 100,
       solutionsCount: 0, requiresVpn: false, roomType: 'CTF', contentRevision: 2, createdAt: '2026-10-10T10:00:00', updatedAt: null };
     const detail = { room: existing, tasks: { revision: 0, tasks: [{ id: 3, title: 'Flaga', content: 'Znajdź flagę', question: null, answer: 'CTF{x}', hints: ['Zachowana podpowiedź'] }] } };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => ++loads === 1 ? HttpResponse.json({ message: 'Nie udało się wczytać pokoju' }, { status: 500 }) : HttpResponse.json(detail)));
@@ -331,7 +331,7 @@ describe('content editors', () => {
   });
   it('saves an incomplete room as a draft and keeps the new room available for preview', async () => {
     signIn('ADMIN');
-    const created = { id: 9, title: 'Nowy CTF', description: '', shortDescription: '', difficulty: 'EASY', category: 'Path', points: 0,
+    const created = { id: 9, title: 'Nowy CTF', description: '', difficulty: 'EASY', category: 'Path', points: 0,
       solutionsCount: 0, requiresVpn: false, roomType: 'PATH', contentRevision: 1, createdAt: '2026-10-10T10:00:00', updatedAt: null };
     server.use(http.get(`${API_URL}/api/admin/content/rooms/9`, () => HttpResponse.json({ room: created, tasks: { revision: 0, tasks: [] } })));
     const save = vi.spyOn(contentApi, 'saveRoom').mockResolvedValue({ room: created, tasks: { revision: 0, tasks: [] } } as contentApi.RoomEditor);

@@ -16,7 +16,7 @@ import java.time.LocalDateTime;
 public class RoomSummaryDto {
     private Long id;
     private String title;
-    private String shortDescription;
+    private String description;
     private DifficultyLevel difficulty;
     private String category;
     private int points;
@@ -28,11 +28,11 @@ public class RoomSummaryDto {
     private RoomType roomType;
     private LocalDateTime createdAt;
 
-    public RoomSummaryDto(Long id, String title, String shortDescription, DifficultyLevel difficulty, String category,
+    public RoomSummaryDto(Long id, String title, String description, DifficultyLevel difficulty, String category,
             int points, int solutionsCount, boolean requiresVpn, RoomType roomType, LocalDateTime createdAt) {
         this.id = id;
         this.title = title;
-        this.shortDescription = shortDescription;
+        this.description = description;
         this.difficulty = difficulty;
         this.category = category;
         this.points = points;
@@ -42,5 +42,9 @@ public class RoomSummaryDto {
         this.createdAt = createdAt;
         this.solved = false;
         this.locked = false;
+    }
+
+    public String getShortDescription() {
+        return description;
     }
 }

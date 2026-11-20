@@ -45,7 +45,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     Optional<Room> findByIdForUpdate(@Param("id") Long id);
     
     @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +
-            "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
+            "r.id, r.title, r.description, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
             "FROM Room r JOIN ChapterRoom cr ON cr.roomId = r.id JOIN PathChapter c ON c.id = cr.chapterId " +
             "WHERE c.pathId = :pathId AND " + VISIBLE)
     List<RoomSummaryDto> findSummariesInPath(@Param("pathId") Long pathId);
@@ -71,7 +71,7 @@ public interface RoomRepository extends JpaRepository<Room, Long> {
     }
 
     @Query("SELECT new com.hackademy.server.room.dto.RoomSummaryDto(" +
-           "r.id, r.title, r.shortDescription, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
+           "r.id, r.title, r.description, r.difficulty, r.category, r.points, r.solutionsCount, r.requiresVpn, r.roomType, r.createdAt) " +
            "FROM Room r WHERE " + VISIBLE + " AND r.category != :category ORDER BY r.solutionsCount DESC")
     List<RoomSummaryDto> findTop3ByCategoryNot(@Param("category") String category, Pageable pageable);
 }

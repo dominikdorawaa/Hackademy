@@ -19,7 +19,7 @@ import type { PathAdminDetailDto } from '../../types/api';
 
 const path: PathAdminDetailDto = { id: 5, title: 'Web', description: '', bannerUrl: null, hasBanner: false, revision: 2, contentRevision: 3, published: false,
   chapters: [{ id: 11, title: 'Wstęp', roomIds: [] }] };
-const room = { id: 9, title: 'Pokój', description: 'Treść', shortDescription: '', difficulty: 'EASY' as const, category: 'Path', points: 50, solutionsCount: 0,
+const room = { id: 9, title: 'Pokój', description: 'Treść', difficulty: 'EASY' as const, category: 'Path', points: 50, solutionsCount: 0,
   requiresVpn: false, roomType: 'PATH' as const, contentRevision: 0, createdAt: '2026-10-10T10:00:00', updatedAt: null };
 beforeAll(() => {
   globalThis.ResizeObserver = class { observe() {} unobserve() {} disconnect() {} } as unknown as typeof ResizeObserver;
@@ -387,6 +387,28 @@ describe('room type in the editor', () => {
     expect(save.mock.calls[0][1]).toMatchObject({ roomType: 'CTF', points: 50, tasks });
   });
 
+  it('edits one room description of up to 200 characters with a counter', async () => {
+    const user = userEvent.setup(); mount('/admin/paths/rooms/9');
+    const description = await screen.findByLabelText('Opis');
+    expect(screen.queryByLabelText(/Krótki opis/)).not.toBeInTheDocument();
+    expect(screen.getByText('5/200')).toBeInTheDocument();
+    fireEvent.change(description, { target: { value: 'x'.repeat(200) } });
+    expect(screen.getByText('200/200')).not.toHaveClass('text-destructive');
+    fireEvent.change(description, { target: { value: 'x'.repeat(201) } });
+    expect(screen.getByText('201/200')).toHaveClass('text-destructive');
+    const save = vi.spyOn(contentApi, 'saveRoom');
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    expect(await screen.findAllByText('Maksymalnie 200 znaków')).not.toHaveLength(0);
+    expect(save).not.toHaveBeenCalled();
+    expect(document.querySelector('.px-toast-message')).toBeNull();
+    fireEvent.change(description, { target: { value: 'Krótko o pokoju' } });
+    save.mockResolvedValue({ room: { ...room, description: 'Krótko o pokoju' }, tasks: { revision: 1, tasks: [] }, pathId: null, paths: [], live: false });
+    await user.click(screen.getByRole('button', { name: 'Zapisz' }));
+    await waitFor(() => expect(save).toHaveBeenCalled());
+    expect(save.mock.calls[0][1]).toMatchObject({ description: 'Krótko o pokoju' });
+    expect(save.mock.calls[0][1]).not.toHaveProperty('shortDescription');
+    await findToast('Zapisano pokój.');
+  });
   it('has only one save action and no publication of its own', async () => {
     mount('/admin/paths/rooms/9');
     await screen.findByLabelText('Tytuł *');

@@ -11,7 +11,6 @@ public record RoomDetailDto(
     Long id,
     String title,
     String description,
-    String shortDescription,
     DifficultyLevel difficulty,
     RoomType roomType,
     int points,

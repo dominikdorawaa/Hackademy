@@ -39,7 +39,7 @@ class ContentDraftsIntegrationTest {
     }
     Map<String, Object> room(boolean ready, String type) {
         var r = new LinkedHashMap<String, Object>();
-        r.put("title", "Room " + UUID.randomUUID()); r.put("description", ready ? "Ready description" : ""); r.put("shortDescription", "");
+        r.put("title", "Room " + UUID.randomUUID()); r.put("description", ready ? "Ready description" : "");
         r.put("difficulty", "EASY"); r.put("category", "Web"); r.put("points", 50);
         r.put("requiresVpn", false); r.put("roomType", type); r.put("tasks", ready ? List.of(task(type)) : List.of());
         r.put("revision", 0); r.put("tasksRevision", 0); return r;
@@ -255,10 +255,16 @@ class ContentDraftsIntegrationTest {
 
     @Test void enforcesAllTextLimitsBeforeSaving() throws Exception {
         String admin = token(Role.ADMIN);
-        for (var field : Map.of("title", 255, "description", 20000, "shortDescription", 100, "category", 255).entrySet()) {
+        for (var field : Map.of("title", 255, "description", 200, "category", 255).entrySet()) {
             var r = room(false, "CTF"); r.put(field.getKey(), "x".repeat(field.getValue() + 1));
             assertTrue(save("rooms", null, r, admin, 400).contains(field.getKey()));
         }
+        var described = room(false, "CTF"); described.put("description", "x".repeat(200));
+        assertEquals("x".repeat(200), JsonPath.read(save("rooms", null, described, admin, 201), "$.room.description"));
+        var legacy = room(false, "CTF"); legacy.put("shortDescription", "Stary krótki opis");
+        assertTrue(save("rooms", null, legacy, admin, 400).contains("Krótki opis połączono z opisem"));
+        legacy.put("shortDescription", "  ");
+        assertTrue(save("rooms", null, legacy, admin, 201).contains("\"description\""));
         for (var field : Map.of("title", 120, "description", 20000, "bannerUrl", 2048).entrySet()) {
             var p = path(false); p.put(field.getKey(), "x".repeat(field.getValue() + 1));
             assertTrue(save("paths", null, p, admin, 400).contains(field.getKey()));

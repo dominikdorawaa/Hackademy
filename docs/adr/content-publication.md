@@ -25,10 +25,10 @@ Limity znaków są takie same w przeglądarce i backendzie (jednostki UTF-16):
 | Pole | Limit |
 | --- | ---: |
 | Tytuł ścieżki / nazwa rozdziału | 120 |
-| Opis ścieżki / pokoju / treść zadania | 20000 |
+| Opis ścieżki / treść zadania | 20000 |
+| Opis pokoju (karta w ścieżce i góra pokoju) | 200 |
 | URL bannera | 2048 |
 | Tytuł pokoju / kategoria / flaga / tytuł zadania / odpowiedź | 255 |
-| Krótki opis pokoju | 100 |
 | Podpowiedź / pytanie zadania | 2000 |
 
 Materiał może zawierać do 100 rozdziałów, zadań lub podpowiedzi; rozdział do 500 pokoi. Banner obsługuje PNG, JPEG, WebP i GIF do 5 MB; plik pokoju do 50 MB. Liczniki nie obcinają wpisanej treści. Niepoprawny zapis zachowuje stan, wskazuje pole i ustawia fokus. Błędy walidacji API zwracają mapę `fields`; konflikty wersji pozostawiają cały lokalny formularz.

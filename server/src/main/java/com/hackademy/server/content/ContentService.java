@@ -94,7 +94,7 @@ public class ContentService {
     public record RoomEditor(RoomAdminDto room, RoomTasksAdminDto tasks, Long pathId, List<RoomPathDto> paths, boolean live) {}
     public static RoomAdminDto adminRoom(Room room) {
         return RoomAdminDto.builder().id(room.getId()).title(room.getTitle()).description(room.getDescription())
-                .shortDescription(room.getShortDescription()).category(room.getCategory()).difficulty(room.getDifficulty())
+                .category(room.getCategory()).difficulty(room.getDifficulty())
                 .points(room.getPoints()).requiresVpn(room.isRequiresVpn()).roomType(room.getRoomType())
                 .contentRevision(room.getContentRevision()).solutionsCount(room.getSolutionsCount())
                 .createdAt(room.getCreatedAt()).updatedAt(room.getUpdatedAt()).build();
@@ -122,8 +122,8 @@ public class ContentService {
             live = r.pathId() != null && paths.findByIdForUpdate(r.pathId()).map(Path::isPublished).orElse(false);
         }
         v.text("title", r.title(), 255, true);
-        v.text("description", r.description(), 20000, live);
-        v.text("shortDescription", r.shortDescription(), 100, false);
+        v.text("description", r.description(), RoomDescription.MAX_LENGTH, live);
+        if (r.shortDescription() != null && !r.shortDescription().isBlank()) v.problem("shortDescription", "Krótki opis połączono z opisem. Odśwież edytor i wpisz tekst w polu Opis.");
         v.text("category", r.category(), 255, true);
         if (r.difficulty() == null) v.problem("difficulty", "Wybierz trudność");
         if (r.roomType() == null) v.problem("roomType", "Wybierz typ pokoju");
@@ -169,12 +169,12 @@ public class ContentService {
         }
         Room saved;
         if (id == null) {
-            saved = roomService.createRoom(new CreateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType()), file);
+            saved = roomService.createRoom(new CreateRoomRequest(r.title().trim(), text(r.description()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType()), file);
         } else {
             var current = rooms.findByIdForUpdate(id).orElseThrow(() -> new ResponseStatusException(HttpStatus.NOT_FOUND));
             revision(r.revision(), current.getContentRevision());
             revision(r.tasksRevision(), current.getTasksRevision());
-            saved = roomService.updateRoomBeforeTasks(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), text(r.shortDescription()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType()), file);
+            saved = roomService.updateRoomBeforeTasks(id, new UpdateRoomRequest(r.title().trim(), text(r.description()), r.difficulty(), r.category(), r.points(), r.requiresVpn(), r.roomType()), file);
         }
         roomService.updateRoomTasks(saved.getId(), new UpdateRoomTasksRequest(saved.getTasksRevision(), tasks));
         saved.setContentRevision(saved.getContentRevision() + 1);
@@ -205,7 +205,7 @@ public class ContentService {
     public RoomDetailDto previewRoom(Long id) {
         var r = roomService.getRoomById(id);
         var tasks = r.getTasks().stream().sorted(Comparator.comparingInt(RoomTask::getSortOrder).thenComparing(RoomTask::getId)).map(t -> RoomTaskDto.builder().id(t.getId()).title(t.getTitle()).content(t.getContent()).question(t.getQuestion()).requiresAnswer(t.getAnswer() != null).completed(false).hints(RoomServiceImpl.hintDtos(t, hintId -> true)).build()).toList();
-        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).shortDescription(r.getShortDescription()).difficulty(r.getDifficulty()).roomType(r.getRoomType()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).fileName(roomFiles.findFileNameByRoomId(r.getId())).tasks(tasks).build();
+        return RoomDetailDto.builder().id(r.getId()).title(r.getTitle()).description(r.getDescription()).difficulty(r.getDifficulty()).roomType(r.getRoomType()).points(r.getPoints()).solutionsCount(r.getSolutionsCount()).createdAt(r.getCreatedAt()).solved(false).requiresVpn(r.isRequiresVpn()).fileName(roomFiles.findFileNameByRoomId(r.getId())).tasks(tasks).build();
     }
 
     @Transactional(readOnly = true)
@@ -215,7 +215,7 @@ public class ContentService {
         var all = new ArrayList<RoomSummaryDto>();
         var sections = new ArrayList<PathChapterDto>();
         for (var c : chapters.findByPathIdOrderBySortOrderAscIdAsc(id)) {
-            var chapterRooms = links.stream().filter(a -> a.getChapterId().equals(c.getId())).map(a -> roomService.getRoomById(a.getRoomId())).map(r -> new RoomSummaryDto(r.getId(), r.getTitle(), r.getShortDescription(), r.getDifficulty(), r.getCategory(), r.getPoints(), r.getSolutionsCount(), r.isRequiresVpn(), r.getRoomType(), r.getCreatedAt())).toList();
+            var chapterRooms = links.stream().filter(a -> a.getChapterId().equals(c.getId())).map(a -> roomService.getRoomById(a.getRoomId())).map(r -> new RoomSummaryDto(r.getId(), r.getTitle(), r.getDescription(), r.getDifficulty(), r.getCategory(), r.getPoints(), r.getSolutionsCount(), r.isRequiresVpn(), r.getRoomType(), r.getCreatedAt())).toList();
             all.addAll(chapterRooms);
             sections.add(new PathChapterDto(c.getId(), c.getTitle(), chapterRooms.size(), 0, false, chapterRooms, false));
         }

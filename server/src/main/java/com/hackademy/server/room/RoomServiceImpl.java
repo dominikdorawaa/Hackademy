@@ -104,7 +104,6 @@ public class RoomServiceImpl implements RoomService {
         Room room = Room.builder()
                 .title(title)
                 .description(createRoomRequest.description())
-                .shortDescription(createRoomRequest.shortDescription())
                 .difficulty(createRoomRequest.difficulty())
                 .category(createRoomRequest.category())
                 .points(points(roomType, createRoomRequest.difficulty(), createRoomRequest.points()))
@@ -190,7 +189,6 @@ public class RoomServiceImpl implements RoomService {
         room.setContentRevision(room.getContentRevision() + 1);
         room.setTitle(title);
         room.setDescription(updateRoomRequest.description());
-        room.setShortDescription(updateRoomRequest.shortDescription());
         room.setDifficulty(updateRoomRequest.difficulty());
         room.setCategory(updateRoomRequest.category());
         room.setPoints(points);
@@ -274,7 +272,6 @@ public class RoomServiceImpl implements RoomService {
                 .id(room.getId())
                 .title(room.getTitle())
                 .description(room.getDescription())
-                .shortDescription(room.getShortDescription())
                 .difficulty(room.getDifficulty())
                 .roomType(room.getRoomType())
                 .points(room.getPoints())
