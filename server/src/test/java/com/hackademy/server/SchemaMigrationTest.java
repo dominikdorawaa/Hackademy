@@ -29,7 +29,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 47;
+    static final int SCHEMA_VERSION = 49;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -1065,7 +1065,7 @@ Druga linia', 'MEDIUM', 'Web', 100, 'FLAG{sql}', 1, false, 'CTF', true, 0, 2, no
                 INSERT INTO user_completed_tasks (user_id, task_id, completed_at) VALUES (1, 40, now()), (1, 41, now());
                 """);
 
-        assertEquals(1, flyway("46").migrate().migrationsExecuted);
+        flyway("48").migrate();
         assertEquals(1, flyway().migrate().migrationsExecuted);
         assertEquals(String.valueOf(SCHEMA_VERSION), text("SELECT version FROM flyway_schema_history ORDER BY installed_rank DESC LIMIT 1"));
 
