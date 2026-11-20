@@ -276,6 +276,7 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
         jdbcTemplate.update("INSERT INTO user_notification_preferences (user_id) VALUES (?) ON CONFLICT DO NOTHING", id);
         jdbcTemplate.update("INSERT INTO ukos_lab_progress (user_id, completed_steps) VALUES (?, 3)", id);
         jdbcTemplate.update("INSERT INTO arena_matches (user_id, game_id, opponent_name, result, elo_change, finished_at) VALUES (?, ?, 'Rywal', 'WIN', 16, now())", id, "game-" + id);
+        jdbcTemplate.update("INSERT INTO arena_matches (user_id, game_id, opponent_name, opponent_id, result, elo_change, finished_at) VALUES (?, ?, 'Rywal', ?, 'LOSS', -16, now())", friend.id(), "game-vs-" + id, id);
         jdbcTemplate.update("""
                 INSERT INTO user_avatars (user_id, outfit, hair, hat, skin, hair_color, top_color, bottom_color, shoes_color, hat_color)
                 VALUES (?, 'dres', 'krotkie', 'brak', 'jasna', 'czarne', 'bordowy', 'grafitowy', 'bialy', 'granatowy') ON CONFLICT DO NOTHING
