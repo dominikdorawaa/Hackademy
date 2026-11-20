@@ -1,6 +1,6 @@
 import { request } from './http';
 import type { SessionScope } from './http';
-import type { AnswerResponse, ApiId, MessageResponse, ChallengeRequest, Challenge, GameSession } from '../types/api';
+import type { AnswerResponse, ApiId, ArenaMatchDetail, ArenaMatchPage, MessageResponse, ChallengeRequest, Challenge, GameSession } from '../types/api';
 
 export function getStatus(auth: SessionScope) {
   return request<GameSession>(`/api/arena/status`, {
@@ -98,3 +98,15 @@ export function surrender(id: ApiId, auth: SessionScope) {
   });
 }
 
+
+export function getMatches(page: number, size: number, auth: SessionScope) {
+  return request<ArenaMatchPage>(`/api/arena/matches?page=${page}&size=${size}`, { method: 'GET', auth });
+}
+
+export function getMatch(id: ApiId, auth: SessionScope) {
+  return request<ArenaMatchDetail>(`/api/arena/matches/${encodeURIComponent(String(id))}`, { method: 'GET', auth });
+}
+
+export function getMatchOfGame(gameId: string, auth: SessionScope) {
+  return request<ArenaMatchDetail>(`/api/arena/matches/game/${encodeURIComponent(gameId)}`, { method: 'GET', auth });
+}

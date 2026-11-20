@@ -10,7 +10,15 @@ import lombok.Getter;
 import lombok.NoArgsConstructor;
 import lombok.Setter;
 
+import com.hackademy.server.user.dto.UserAvatarDto;
+import jakarta.persistence.CascadeType;
+import jakarta.persistence.Convert;
+import jakarta.persistence.OneToMany;
+import jakarta.persistence.OrderBy;
+
 import java.time.LocalDateTime;
+import java.util.ArrayList;
+import java.util.List;
 
 @Entity
 @Table(name = "arena_matches")
@@ -40,4 +48,35 @@ public class ArenaMatch {
 
     @Column(name = "finished_at", nullable = false)
     private LocalDateTime finishedAt;
+
+    @Column(name = "opponent_id")
+    private Long opponentId;
+
+    @Column(name = "opponent_bot", nullable = false)
+    private boolean opponentBot;
+
+    @Column(name = "finish_reason", length = 16)
+    private String finishReason;
+
+    @Column(name = "elo_before")
+    private Integer eloBefore;
+
+    @Column(name = "opponent_elo")
+    private Integer opponentElo;
+
+    private Integer hp;
+
+    @Column(name = "opponent_hp")
+    private Integer opponentHp;
+
+    @Column(name = "duration_seconds")
+    private Integer durationSeconds;
+
+    @Convert(converter = AvatarJsonConverter.class)
+    @Column(name = "opponent_avatar", columnDefinition = "text")
+    private UserAvatarDto opponentAvatar;
+
+    @OneToMany(mappedBy = "match", cascade = CascadeType.ALL, orphanRemoval = true)
+    @OrderBy("roundNumber")
+    private List<ArenaMatchRound> rounds = new ArrayList<>();
 }

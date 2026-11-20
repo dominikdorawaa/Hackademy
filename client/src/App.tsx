@@ -14,6 +14,8 @@ const LearnPage = lazy(() => import('./pages/LearnPage'));
 const UserDashboardPage = lazy(() => import('./pages/UserDashboardPage'));
 const PathDetailPage = lazy(() => import('./pages/PathDetailPage'));
 const ArenaPage = lazy(() => import('./pages/ArenaPage'));
+const ArenaHistoryPage = lazy(() => import('./pages/ArenaHistoryPage'));
+const ArenaMatchPage = lazy(() => import('./pages/ArenaMatchPage'));
 const RankingPage = lazy(() => import('./pages/RankingPage'));
 const ProfilePage = lazy(() => import('./pages/ProfilePage'));
 const PublicProfilePage = lazy(() => import('./pages/PublicProfilePage'));
@@ -52,6 +54,9 @@ function App() {
             {onboardingRoutes}
             <Route path="/arena/avatar" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Ładowanie kreatora awatara" />}><ArenaAvatarPage /></Suspense></ProtectedRoute>} />
 
+            <Route path="/arena/history" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Wczytuję historię bitew" />}><ArenaHistoryPage /></Suspense></ProtectedRoute>} />
+            <Route path="/arena/history/game/:gameId" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Wczytuję bitwę" />}><ArenaMatchPage /></Suspense></ProtectedRoute>} />
+            <Route path="/arena/history/:matchId" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Wczytuję bitwę" />}><ArenaMatchPage /></Suspense></ProtectedRoute>} />
             <Route path="/arena/battle/:gameId" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Wczytuję walkę" />}><ArenaBattlePage /></Suspense></ProtectedRoute>} />
             <Route
               path="/arena"

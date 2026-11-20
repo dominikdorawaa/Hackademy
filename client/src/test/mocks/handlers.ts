@@ -24,6 +24,7 @@ export const handlers = [
   http.put(`${API_URL}/api/presence/room/:id`, () => new HttpResponse(null, { status: 204 })),
   http.delete(`${API_URL}/api/presence/room/:id`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${API_URL}/api/presence/sharing`, () => HttpResponse.json({ enabled: true })),
+  http.get(`${API_URL}/api/arena/matches`, () => HttpResponse.json({ items: [], hasMore: false })),
   http.post(`${API_URL}/api/arena/game/:id/return`, () => new HttpResponse(null, { status: 204 })),
   http.post(`${API_URL}/api/arena/game/:id/leave`, () => new HttpResponse(null, { status: 204 })),
   http.get(`${API_URL}/api/subscription`, () => HttpResponse.json(createSubscription())),

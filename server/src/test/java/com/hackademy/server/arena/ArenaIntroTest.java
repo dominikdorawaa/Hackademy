@@ -32,7 +32,7 @@ class ArenaIntroTest {
     private final ArenaMatchRepository matches = mock(ArenaMatchRepository.class);
     private final UserServiceImpl userService = mock(UserServiceImpl.class);
     private final RealtimeNotifier realtime = mock(RealtimeNotifier.class);
-    private final ArenaHistory history = new ArenaHistory(matches, users, userService);
+    private final ArenaHistory history = new ArenaHistory(matches, users, userService, avatars);
     private final ArenaServiceImpl arena = new ArenaServiceImpl(questions, mock(FriendshipRepository.class), users, avatars,
             userService, mock(DashboardSummaryCache.class), realtime, presence, mock(MatchmakingService.class));
     private final AtomicLong now = new AtomicLong(10_000);

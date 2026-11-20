@@ -169,6 +169,7 @@ it('shows the result with the Elo change when the battle ends', async () => {
   expect(screen.queryByText('Rywal padł po Twoim ciosie.')).not.toBeInTheDocument();
   expect(screen.getByText('+16 Elo')).toBeInTheDocument();
   expect(screen.getByRole('button', { name: 'Wróć do Areny' })).toBeInTheDocument();
+  expect(screen.getByRole('button', { name: 'Zobacz przebieg' })).toBeInTheDocument();
   expect(screen.queryByRole('button', { name: 'Poddaj walkę' })).not.toBeInTheDocument();
   expect(screen.queryByRole('timer')).not.toBeInTheDocument();
 });
@@ -347,6 +348,7 @@ it('shows a battle cancelled by a server restart without a winner', async () => 
   expect(await screen.findByRole('heading', { name: 'Mecz anulowany' })).toBeInTheDocument();
   expect(screen.getByText('Serwer został zrestartowany w trakcie walki, więc mecz anulowano. Elo się nie zmienia.')).toBeInTheDocument();
   expect(screen.getByText('0 Elo')).toBeInTheDocument();
+  expect(screen.queryByRole('button', { name: 'Zobacz przebieg' })).not.toBeInTheDocument();
 });
 
 it.each([

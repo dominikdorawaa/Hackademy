@@ -72,6 +72,8 @@ public final class BattleEngine {
         damage.put(first, damage(session, second, first, choices.get(second) == question.correctAnswer()));
         damage.put(second, damage(session, first, second, choices.get(first) == question.correctAnswer()));
         session.getHp().replaceAll((player, hp) -> Math.max(0, hp - damage.get(player)));
+        session.getPlayed().add(new PlayedRound(session.getRound(), question, Map.copyOf(choices),
+                Map.copyOf(session.getAnswerElapsedMillis()), Map.copyOf(session.getHp())));
         session.setLastRound(new RoundResult(session.getRound(), question.id(), question.content(),
                 question.answers(), question.correctAnswer(), Map.copyOf(choices), Map.copyOf(damage)));
         session.setQuestion(null);

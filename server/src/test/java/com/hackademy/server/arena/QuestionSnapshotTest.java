@@ -31,7 +31,7 @@ class QuestionSnapshotTest {
     void keepsTheQuestionDetailsAndAnImmutableOrder() {
         var snapshot = QuestionSnapshot.shuffled(QUESTION, AnswerOrder.correctAt(3));
         assertEquals(new QuestionSnapshot(5L, "Czym jest podatność zero-day?", "OGOLNE",
-                List.of("Naprawiona", "Tylko stara", "Niewykorzystywalna", "Nieznana producentowi"), 3), snapshot);
+                List.of("Naprawiona", "Tylko stara", "Niewykorzystywalna", "Nieznana producentowi"), 3, QUESTION.getDifficulty()), snapshot);
         assertThrows(UnsupportedOperationException.class, () -> snapshot.answers().set(0, "X"));
         assertEquals(List.of("Naprawiona", "Tylko stara", "Niewykorzystywalna"), QUESTION.wrongAnswers());
     }

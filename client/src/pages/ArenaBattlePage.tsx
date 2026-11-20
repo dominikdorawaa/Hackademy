@@ -192,7 +192,8 @@ export default function ArenaBattlePage() {
       footer={
         <RoomFooterBar
           title={finished ? undefined : confirmSurrender ? 'Poddanie oznacza porażkę.' : `Walka z ${rival.username}`}
-          back={confirmSurrender && !finished ? { label: 'Walczę dalej', onClick: () => setConfirmSurrender(false) } : undefined}
+          back={confirmSurrender && !finished ? { label: 'Walczę dalej', onClick: () => setConfirmSurrender(false) }
+            : finished && result !== 'cancelled' ? { label: 'Zobacz przebieg', onClick: () => navigate(`/arena/history/game/${session.id}`) } : undefined}
           next={next}
         />
       }>

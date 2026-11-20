@@ -24,7 +24,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 
 @Testcontainers
 class SchemaMigrationTest {
-    static final int SCHEMA_VERSION = 47;
+    static final int SCHEMA_VERSION = 48;
     @Container
     private static final PostgreSQLContainer postgres = new PostgreSQLContainer("postgres:17.11-alpine");
 
@@ -384,6 +384,31 @@ class SchemaMigrationTest {
         execute("DELETE FROM users WHERE id = 1");
         assertEquals(1, scalar("SELECT count(*) FROM arena_matches"));
         assertTrue(flyway("43").validateWithResult().validationSuccessful);
+    }
+
+    @Test
+    void linksOldArenaResultsToTheOpponentAndKeepsRoundsAfterAccountsAndQuestionsGo() throws Exception {
+        flyway("47").migrate();
+        insertUser(1, "Alice", "alice@example.com");
+        insertUser(2, "Bob", "bob@example.com");
+        execute("INSERT INTO arena_matches (id, user_id, game_id, opponent_name, result, elo_change, finished_at) VALUES (1, 1, 'g1', 'Bob', 'WIN', 16, now()), (2, 2, 'g1', 'Alice', 'LOSS', -16, now()), (3, 1, 'g2', 'kruk', 'LOSS', -9, now())");
+        assertEquals(1, flyway("48").migrate().migrationsExecuted);
+        assertEquals("2,1,", text("SELECT string_agg(coalesce(opponent_id::text, ''), ',' ORDER BY id) FROM arena_matches"));
+        long question = scalar("SELECT min(id) FROM arena_questions");
+        execute("""
+                INSERT INTO arena_match_rounds (match_id, round_number, question_id, content, category, difficulty, answer_1, answer_2, answer_3, answer_4,
+                    correct_answer, choice, answer_millis, opponent_choice, opponent_answer_millis, hp_after, opponent_hp_after)
+                VALUES (1, 1, %d, 'Pytanie', 'WEB', 'EASY', 'a', 'b', 'c', 'd', 2, 2, 1800, NULL, NULL, 100, 82)
+                """.formatted(question));
+        assertSqlState("23505", "INSERT INTO arena_match_rounds (match_id, round_number, content, category, answer_1, answer_2, answer_3, answer_4, correct_answer, hp_after, opponent_hp_after) VALUES (1, 1, 'x', 'WEB', 'a', 'b', 'c', 'd', 0, 1, 1)");
+        assertSqlState("23514", "INSERT INTO arena_match_rounds (match_id, round_number, content, category, answer_1, answer_2, answer_3, answer_4, correct_answer, hp_after, opponent_hp_after) VALUES (1, 2, 'x', 'WEB', 'a', 'b', 'c', 'd', 4, 1, 1)");
+        execute("DELETE FROM arena_questions WHERE id = " + question);
+        execute("DELETE FROM users WHERE id = 2");
+        assertEquals(":Pytanie", text("SELECT coalesce(question_id::text, '') || ':' || content FROM arena_match_rounds WHERE match_id = 1"));
+        assertEquals(",", text("SELECT string_agg(coalesce(opponent_id::text, ''), ',' ORDER BY id) FROM arena_matches"));
+        execute("DELETE FROM users WHERE id = 1");
+        assertEquals(0, scalar("SELECT count(*) FROM arena_match_rounds"));
+        assertTrue(flyway("48").validateWithResult().validationSuccessful);
     }
 
     @Test
