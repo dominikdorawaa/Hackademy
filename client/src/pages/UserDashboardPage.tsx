@@ -643,7 +643,7 @@ const UserDashboardPage = () => {
 
         <aside className="ud-board" id="ud-board" aria-labelledby="ud-board-title" data-tour="dashboard-board">
           <Link className="ud-profile" to="/profile">
-            <UserAvatar className="ud-avatar" username={stats.username} avatar={userData?.avatar} alt="" />
+            <UserAvatar className="ud-avatar" username={stats.username} avatar={userData?.avatar} premium={userData?.premium} alt="" />
             <span className="ud-profile-who">
               <span className="ud-profile-name">{stats.username}</span>
               <span className="ud-profile-sub">

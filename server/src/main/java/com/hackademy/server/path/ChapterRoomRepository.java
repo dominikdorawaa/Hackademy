@@ -49,10 +49,12 @@ public interface ChapterRoomRepository extends JpaRepository<ChapterRoom, Chapte
         Long getRoomId();
         Long getPathId();
         String getUnlockMode();
+        Boolean getFirstChapter();
     }
 
     @Query(value = """
-            SELECT cr.room_id AS roomId, p.id AS pathId, p.unlock_mode AS unlockMode
+            SELECT cr.room_id AS roomId, p.id AS pathId, p.unlock_mode AS unlockMode,
+              (pc.id = (SELECT f.id FROM path_chapters f WHERE f.path_id = p.id ORDER BY f.sort_order ASC, f.id ASC LIMIT 1)) AS firstChapter
             FROM chapter_rooms cr
             JOIN path_chapters pc ON pc.id = cr.chapter_id
             JOIN paths p ON p.id = pc.path_id

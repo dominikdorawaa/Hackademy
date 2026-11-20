@@ -3,6 +3,8 @@ package com.hackademy.server.arena;
 import com.hackademy.server.dashboard.DashboardSummaryCache;
 import com.hackademy.server.friendship.FriendshipRepository;
 import com.hackademy.server.realtime.RealtimeNotifier;
+import com.hackademy.server.subscription.SubscriptionAccess;
+import com.hackademy.server.subscription.SubscriptionRequiredException;
 import com.hackademy.server.user.AccountBlockedEvent;
 import com.hackademy.server.user.AvatarChangedEvent;
 import com.hackademy.server.user.User;
@@ -59,6 +61,7 @@ public class ArenaServiceImpl implements ArenaService {
     static final Duration DEFAULT_CHALLENGE_EXPIRY = Duration.ofSeconds(60);
     static final long NOTICE_MILLIS = 300_000;
     static final int NOTICES_KEPT = 1024;
+    static final String MISSED = "MISSED";
 
     private final ArenaQuestionRepository questionRepository;
     private final FriendshipRepository friendshipRepository;
@@ -86,6 +89,7 @@ public class ArenaServiceImpl implements ArenaService {
     private volatile long challengeExpiryMillis = DEFAULT_CHALLENGE_EXPIRY.toMillis();
     private volatile long introMillis;
     private ArenaHistory history;
+    private SubscriptionAccess subscriptions;
     private volatile boolean closing;
 
     private record Notice(Challenge challenge, long at) {}
@@ -121,6 +125,11 @@ public class ArenaServiceImpl implements ArenaService {
         this.history = history;
     }
 
+    @Autowired(required = false)
+    void useSubscriptions(SubscriptionAccess subscriptions) {
+        this.subscriptions = subscriptions;
+    }
+
     void useRandom(RandomGenerator random) {
         this.random = random;
     }
@@ -145,6 +154,7 @@ public class ArenaServiceImpl implements ArenaService {
 
     @Override
     public void joinQueue(Long userId, String username) {
+        if (subscriptions != null) subscriptions.requireArenaGame(userId);
         synchronized (players) {
             if (isPlaying(userId)) throw new IllegalStateException(YOU_ARE_PLAYING);
             matchmaking.joinQueue(userId, username);
@@ -518,6 +528,15 @@ public class ArenaServiceImpl implements ArenaService {
     @Override
     public Challenge createChallenge(Long challengerId, String challengerUsername, Long targetId, String targetUsername) {
         if (challengerId.equals(targetId)) throw new IllegalArgumentException("Nie możesz wyzwać samego siebie.");
+        if (subscriptions != null) {
+            subscriptions.requireArenaGame(challengerId);
+            try {
+                subscriptions.requireOpponentArenaGame(targetId, targetUsername);
+            } catch (SubscriptionRequiredException limit) {
+                noteMissed(challengerId, challengerUsername, targetId, targetUsername);
+                throw limit;
+            }
+        }
         Challenge challenge = new Challenge(UUID.randomUUID().toString(), challengerId, challengerUsername,
                 targetId, targetUsername, LocalDateTime.now(), "PENDING");
         var avatars = avatarRepository.findDtosByUserIds(List.of(challengerId, targetId));
@@ -556,6 +575,10 @@ public class ArenaServiceImpl implements ArenaService {
                 throw new IllegalArgumentException(EXPIRED_CHALLENGE);
             }
             if (closing) throw new IllegalStateException(SHUTTING_DOWN);
+            if (subscriptions != null) {
+                subscriptions.requireArenaGame(userId);
+                subscriptions.requireOpponentArenaGame(challenge.getChallengerId(), challenge.getChallengerUsername());
+            }
             try {
                 reserve(userId, YOU_ARE_PLAYING, challenge.getChallengerId(), busyMessage(challenge.getChallengerUsername()));
             } catch (PlayerBusyException busy) {
@@ -622,6 +645,22 @@ public class ArenaServiceImpl implements ArenaService {
 
     public List<Challenge> getExpiredChallenges(Long userId) {
         return closedChallenges(userId, "EXPIRED");
+    }
+
+    public List<Challenge> getMissedChallenges(Long userId) {
+        return withCurrentAvatars(notices.values().stream()
+                .filter(notice -> notice.challenge().getTargetId().equals(userId) && MISSED.equals(notice.challenge().getStatus()))
+                .sorted(Comparator.comparingLong(Notice::at).thenComparing(notice -> notice.challenge().getId()))
+                .map(Notice::challenge)
+                .toList());
+    }
+
+    private void noteMissed(Long challengerId, String challengerUsername, Long targetId, String targetUsername) {
+        Challenge missed = new Challenge(UUID.randomUUID().toString(), challengerId, challengerUsername, targetId, targetUsername, LocalDateTime.now(), MISSED);
+        notices.values().removeIf(notice -> MISSED.equals(notice.challenge().getStatus())
+                && notice.challenge().getChallengerId().equals(challengerId) && notice.challenge().getTargetId().equals(targetId));
+        notices.put(missed.getId(), new Notice(missed, clock.getAsLong()));
+        realtime.arenaChanged(targetId);
     }
 
     public List<Challenge> getRejectedChallenges(Long userId) {
@@ -696,7 +735,7 @@ public class ArenaServiceImpl implements ArenaService {
     @Override
     public void dismissChallengeNotice(String challengeId, Long userId) {
         var notice = notices.get(challengeId);
-        if (notice != null && notice.challenge().getChallengerId().equals(userId) && notices.remove(challengeId, notice)) {
+        if (notice != null && recipientOf(notice).equals(userId) && notices.remove(challengeId, notice)) {
             realtime.arenaChanged(userId);
         }
     }
@@ -775,13 +814,17 @@ public class ArenaServiceImpl implements ArenaService {
         });
     }
 
+    private static Long recipientOf(Notice notice) {
+        return MISSED.equals(notice.challenge().getStatus()) ? notice.challenge().getTargetId() : notice.challenge().getChallengerId();
+    }
+
     private void sweepNotices(long now) {
         var oldestFirst = notices.values().stream().sorted(Comparator.comparingLong(Notice::at)).toList();
         int kept = oldestFirst.size();
         var dismissed = new TreeSet<Long>();
         for (Notice notice : oldestFirst) {
             if (now - notice.at() < NOTICE_MILLIS && kept <= NOTICES_KEPT) break;
-            if (notices.remove(notice.challenge().getId(), notice)) dismissed.add(notice.challenge().getChallengerId());
+            if (notices.remove(notice.challenge().getId(), notice)) dismissed.add(recipientOf(notice));
             kept--;
         }
         if (!dismissed.isEmpty()) realtime.arenaChanged(dismissed.toArray(Long[]::new));

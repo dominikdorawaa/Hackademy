@@ -295,6 +295,11 @@ class AccountDeletionIntegrationTest extends PostgresIntegrationTest {
                 INSERT INTO wallet_transactions (user_id, amount, balance_after, kind, order_id, admin_id, reason)
                 VALUES (?, 500, 500, 'TOP_UP', ?, NULL, NULL), (?, -350, 150, 'ADMIN', NULL, ?, 'Korekta')
                 """, id, order, id, id);
+        jdbcTemplate.update("INSERT INTO subscriptions (user_id, active_until) VALUES (?, now() + interval '30 days') ON CONFLICT DO NOTHING", id);
+        jdbcTemplate.update("""
+                INSERT INTO subscription_orders (user_id, plan_id, days, coins, price_minor, currency, provider, status, paid_at)
+                VALUES (?, 'monthly', 30, 1000, 2999, 'PLN', 'TEST', 'PAID', now())
+                """, id);
     }
 
     private static String report(Account owner) {

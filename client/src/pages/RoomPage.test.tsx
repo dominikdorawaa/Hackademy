@@ -89,6 +89,14 @@ describe('a room of a path the player did not join', () => {
     expect(await screen.findByText('Strona ścieżki 3')).toBeInTheDocument();
   });
 
+  it('points a room of a Premium chapter to the subscription', async () => {
+    server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json(
+      { message: 'Ten pokój jest w Premium.', code: 'SUBSCRIPTION_REQUIRED' }, { status: 403 })));
+    open('/rooms/7');
+    expect(await screen.findByRole('alert')).toHaveTextContent('Ten pokój jest w Premium.');
+    expect(screen.getByRole('link', { name: 'Zobacz Premium' })).toHaveAttribute('href', '/premium');
+  });
+
   it('keeps showing other refusals on the page', async () => {
     server.use(http.get(`${API_URL}/api/rooms/7`, () => HttpResponse.json({ message: 'Ten pokój jest jeszcze zablokowany.' }, { status: 403 })));
     open('/rooms/7');

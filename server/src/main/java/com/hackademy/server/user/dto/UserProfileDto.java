@@ -19,5 +19,6 @@ public record UserProfileDto(
     String tagline,
     List<String> interests,
     List<Long> featuredBadgeIds,
-    UserAvatarDto avatar
+    UserAvatarDto avatar,
+    boolean premium
 ) {}

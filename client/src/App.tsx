@@ -22,6 +22,7 @@ const RoomPage = lazy(() => import('./pages/RoomPage'));
 const SettingsPage = lazy(() => import('./pages/SettingsPage'));
 const ShopPage = lazy(() => import('./pages/ShopPage'));
 const ShopTopUpPage = lazy(() => import('./pages/ShopTopUpPage'));
+const PremiumPage = lazy(() => import('./pages/PremiumPage'));
 import ProtectedRoute from './components/auth/ProtectedRoute';
 import adminRoutes from './pages/admin/adminRoutes';
 import onboardingRoutes from './pages/onboardingRoutes';
@@ -64,6 +65,7 @@ function App() {
             <Route path="/ranking" element={<RankingPage />} />
             <Route path="/shop" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Otwieram Sklep" />}><ShopPage /></Suspense></ProtectedRoute>} />
             <Route path="/shop/top-up" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Otwieram doładowanie" />}><ShopTopUpPage /></Suspense></ProtectedRoute>} />
+            <Route path="/premium" element={<ProtectedRoute><Suspense fallback={<ArenaLoader label="Otwieram Premium" />}><PremiumPage /></Suspense></ProtectedRoute>} />
             <Route path="/privacy" element={<PrivacyPage />} />
             <Route path="/terms" element={<TermsPage />} />
             <Route

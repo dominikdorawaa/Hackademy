@@ -99,7 +99,7 @@ export interface Challenge {
   expiresAt: number
   challengerElo?: number | null
   targetElo?: number | null
-  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED'
+  status: 'PENDING' | 'ACCEPTED' | 'REJECTED' | 'CANCELLED' | 'EXPIRED' | 'MISSED'
 }
 
 export interface BattleQuestion {
@@ -302,6 +302,7 @@ export interface PathChapterDto {
   totalRooms: number
   solvedRooms: number
   locked?: boolean
+  premium?: boolean
   rooms: RoomSummaryDto[]
 }
 
@@ -413,6 +414,7 @@ export interface RoomSummaryDto {
   solutionsCount: number
   solved: boolean
   locked: boolean
+  premium?: boolean
   requiresVpn: boolean
   roomType: RoomType
   createdAt: ApiDateTime
@@ -496,6 +498,7 @@ export interface RecentSolvedRoomDto {
 }
 
 export interface RankingEntry {
+  premium?: boolean
   avatar?: AvatarConfig | null
   rankPoints: number | null
   rankElo: number | null
@@ -526,6 +529,7 @@ export interface RankingSummaryDto {
 }
 
 export interface DashboardUser extends RankingUser {
+  premium?: boolean
   elo?: number
   hasVpnAccess: boolean
   onboarding?: OnboardingState
@@ -560,6 +564,7 @@ export interface ProfilePortfolioDto {
 }
 
 export interface UserProfileDto {
+  premium?: boolean
   avatar?: AvatarConfig | null
   tagline?: string
   interests?: string[]
@@ -636,7 +641,28 @@ export interface TopUpOrder {
   test: boolean
 }
 
-export type WalletTransactionKind = 'PURCHASE' | 'TOP_UP' | 'ADMIN'
+export interface SubscriptionState {
+  active: boolean
+  staff: boolean
+  activeUntil: ApiDateTime | null
+  plan: { id: string; days: number; coins: number; priceMinor: number; currency: string }
+  payments: TopUpMode
+  arena: { dailyLimit: number; playedToday: number; remaining: number | null }
+}
+
+export interface SubscriptionOrder {
+  id: number
+  planId: string
+  days: number
+  coins: number
+  priceMinor: number
+  currency: string
+  status: 'PENDING' | 'PAID' | 'CANCELLED'
+  redirectUrl: string | null
+  test: boolean
+}
+
+export type WalletTransactionKind ='PURCHASE' | 'TOP_UP' | 'ADMIN' | 'SUBSCRIPTION'
 
 export interface WalletTransaction {
   id: number

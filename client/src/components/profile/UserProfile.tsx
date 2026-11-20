@@ -12,6 +12,7 @@ import type { AvatarConfig, DashboardUser, UserProfileDto } from '../../types/ap
 import ActivityCalendar from '../ActivityCalendar';
 import BioText from './BioText';
 import UserAvatar from '../UserAvatar';
+import { PremiumCrown } from '../PremiumCrown';
 import ProfileEditor from './ProfileEditor';
 import { toast } from '../common/toast';
 import BadgeShowcase from './BadgeShowcase';
@@ -25,6 +26,11 @@ import { Button } from '../ui/button';
 import { LoadingSkeleton, Skeleton, SkeletonText } from '../common/Skeleton';
 import '../../pages/ProfilePage.css';
 import './ProfileLayout.css';
+
+function CrownedEdit({ premium, children }: { premium?: boolean; children: ReactNode }) {
+  if (!premium) return children;
+  return <span className="avatar-crowned profile-avatar-crowned" data-premium="true">{children}<PremiumCrown /></span>;
+}
 
 function ProfileSkeleton() {
   return (
@@ -225,13 +231,13 @@ export default function UserProfile({ username }: { username?: string }) {
         <span>Profil</span>
       </div>
       <header className="profile-header" data-tour={own ? 'profile' : undefined}>
-        {own ? <Link className="profile-avatar-edit" to="/arena/avatar?from=profile" aria-label="Zmień swój awatar">
+        {own ? <CrownedEdit premium={person.premium}><Link className="profile-avatar-edit" to="/arena/avatar?from=profile" aria-label="Zmień swój awatar">
           <UserAvatar className="profile-avatar" username={person.username} avatar={person.avatar} alt={`Avatar ${person.username}`} />
           <span className="profile-avatar-edit-label" aria-hidden="true">Edytuj awatar</span>
           <span className="profile-avatar-edit-mark" aria-hidden="true"><ProfileIcon kind="edit" weight="bold" size={16} /></span>
-        </Link> : <UserAvatar
+        </Link></CrownedEdit> : <UserAvatar
           className="profile-avatar"
-          username={person.username} avatar={person.avatar}
+          username={person.username} avatar={person.avatar} premium={person.premium}
           alt={`Avatar ${person.username}`}
         />}
         <div className="profile-identity">

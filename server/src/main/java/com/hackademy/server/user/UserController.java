@@ -38,6 +38,7 @@ public class UserController {
     private final CurrentProfileDetails profileDetails;
     private final OnboardingService onboardingService;
     private final NotificationPreferencesRepository notificationPreferencesRepository;
+    private final com.hackademy.server.subscription.SubscriptionAccess subscriptionAccess;
 
     @GetMapping("/me/notification-preferences")
     public NotificationPreferencesDto getNotificationPreferences(Authentication authentication) {
@@ -101,6 +102,7 @@ public class UserController {
         userInfo.put("featuredBadgeIds", appearance.featuredBadgeIds());
         userInfo.put("elo", userDetails.getElo());
         userInfo.put("avatar", userService.getAvatar(userDetails.getId()));
+        userInfo.put("premium", subscriptionAccess.subscribed(userDetails.getId()));
         userInfo.put("onboarding", new com.hackademy.server.user.dto.OnboardingDto(userDetails.getAvatarConfirmedAt() != null, userDetails.getTourStatus()));
         userInfo.put("notificationPreferences", getNotificationPreferences(authentication));
 

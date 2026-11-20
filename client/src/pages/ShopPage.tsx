@@ -2,6 +2,7 @@ import { useId, useRef, useState } from 'react';
 import type { KeyboardEvent } from 'react';
 import { Link } from 'react-router-dom';
 import { Check, Lock } from 'lucide-react';
+import { PremiumBanner } from '../components/shop/PremiumBanner';
 import { useAuth } from '../context/AuthContext';
 import { useShop } from '../context/ShopContext';
 import { useReducedMotion } from '../hooks/useReducedMotion';
@@ -157,6 +158,7 @@ export default function ShopPage() {
     </section>
 
     <div className="shop-shell">
+      <PremiumBanner />
       {status === 'error' && !shop && <p className="shop-message is-error" role="alert">
         Nie udało się wczytać Sklepu. <button type="button" className="shop-link" onClick={refresh}>Spróbuj ponownie</button>
       </p>}

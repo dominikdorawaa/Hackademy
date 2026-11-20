@@ -4,7 +4,7 @@ import { request } from '../services/http';
 import { rateLimitMessage, retryAfterSeconds, TOO_MANY_REQUESTS } from '../services/rateLimit';
 import React, { useState, useEffect, useId, useRef } from 'react';
 import { BookOpen, Check, CheckCheck, Download, Flag, HelpCircle, Lightbulb, RotateCcw } from 'lucide-react';
-import { useParams, useNavigate, useLocation } from 'react-router-dom';
+import { Link, useParams, useNavigate, useLocation } from 'react-router-dom';
 import { useAuth } from '../context/AuthContext';
 import { useRealtime } from '../context/RealtimeContext';
 import { toast } from '../components/common/toast';
@@ -22,6 +22,7 @@ import { useMediaQuery } from '../hooks/useMediaQuery';
 import { PixelSprite, SPRITES } from '../components/PixelSprite';
 import { BugReportButton } from '../components/bugReport/BugReportButton';
 import { closeRoomActivity, openRoomActivity } from '../services/presenceApi';
+import { SUBSCRIPTION_REQUIRED } from '../services/subscriptionApi';
 import { formatXp } from '../lib/units';
 import { xpAfterHints } from '../lib/level';
 
@@ -38,6 +39,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [room, setRoom] = useState<RoomDetailDto | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [premiumRequired, setPremiumRequired] = useState<string | null>(null);
   const [revealedHints, setRevealedHints] = useState<number[]>([]);
   const [pendingHint, setPendingHint] = useState<number | null>(null);
 
@@ -153,6 +155,10 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
             navigate(`/learn/paths/${pathId}`, { replace: true });
             return;
           }
+          if (body?.code === SUBSCRIPTION_REQUIRED) {
+            setPremiumRequired(body.message || 'Ten pokój jest w Premium.');
+            return;
+          }
           throw new Error(body?.message || 'Failed to fetch room details');
         }
         const data = await response.json();
@@ -264,6 +270,10 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
         {[0, 1, 2].map(row => <Skeleton key={row} height={64} radius={12} />)}
       </div>
     </LoadingSkeleton>
+  </div>;
+  if (premiumRequired) return <div className="hackademy-container" style={{paddingTop: '40px'}}>
+    <p role="alert">{premiumRequired}</p>
+    <Link className="room-btn room-btn--primary" to="/premium">Zobacz Premium</Link>
   </div>;
   if (error) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Błąd: {error}</div>;
   if (!room) return <div className="hackademy-container" style={{paddingTop: '40px'}}>Nie znaleziono pokoju</div>;

@@ -9,6 +9,7 @@ export interface RealtimeState {
   outgoingChallenges: Challenge[];
   expiredChallenges: Challenge[];
   rejectedChallenges: Challenge[];
+  missedChallenges?: Challenge[];
   gameSession: GameSession | null;
   queued: boolean;
   serverTime: number;

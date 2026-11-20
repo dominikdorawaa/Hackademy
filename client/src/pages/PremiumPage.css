@@ -1,0 +1,121 @@
+.premium-status {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 16px;
+  padding: 12px 14px;
+  border: 1px solid var(--rm-line);
+  border-radius: 4px;
+  background: var(--rm-surface);
+  color: var(--rm-ink);
+  font-weight: 600;
+}
+
+.premium-status.is-active {
+  border-color: #e3b341;
+}
+
+.premium-status svg,
+.premium-plan h2 svg {
+  flex: none;
+  width: 20px;
+  height: 20px;
+  color: #e3b341;
+}
+
+.premium-plans {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 20px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.premium-plan {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 14px;
+  padding: 20px;
+  border: 1px solid var(--rm-line);
+  border-radius: 4px;
+  background: var(--rm-surface);
+}
+
+.premium-plan.is-featured {
+  border: 2px solid #e3b341;
+}
+
+.premium-plan h2 {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0;
+  color: var(--rm-ink);
+  font: 400 2rem/1 var(--rm-pixel);
+}
+
+.premium-price {
+  margin: 0;
+  color: var(--rm-ink);
+  font: 400 2.25rem/1 var(--rm-pixel);
+}
+
+.premium-price span {
+  color: var(--rm-muted);
+  font-family: inherit;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.premium-perks {
+  display: grid;
+  gap: 10px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  color: var(--rm-ink);
+}
+
+.premium-perks li {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  line-height: 1.4;
+}
+
+.premium-perks svg {
+  flex: none;
+  width: 18px;
+  height: 18px;
+  margin-top: 1px;
+  color: var(--rm-teal);
+}
+
+.premium-plan .shop-button {
+  margin-top: auto;
+}
+
+.premium-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  border: 1px solid #e3b341;
+  border-radius: 3px;
+  color: #b7871a;
+  font-size: 0.75rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+[data-theme='dark'] .premium-badge {
+  color: #e3b341;
+}
+
+.premium-badge svg {
+  width: 14px;
+  height: 14px;
+}

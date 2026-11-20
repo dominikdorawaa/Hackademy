@@ -96,6 +96,27 @@ describe('path page', () => {
     expect(await screen.findByText('Przechodź rozdziały krok po kroku.')).toBeInTheDocument();
   });
 
+  it('marks chapters after the first as Premium for players without a subscription', async () => {
+    const free = path(true);
+    server.use(http.get(`${API_URL}/api/paths/5`, () => HttpResponse.json({
+      ...free,
+      chapters: free.chapters.map(chapter => chapter.id === 1 ? chapter : {
+        ...chapter, locked: true, premium: true, rooms: chapter.rooms.map(item => ({ ...item, locked: true, premium: true })),
+      }),
+    })));
+    mount();
+
+    const first = await screen.findByRole('region', { name: 'Podstawy' });
+    expect(within(first).queryByRole('link', { name: 'Premium' })).toBeNull();
+    const second = screen.getByRole('region', { name: 'Ataki' });
+    expect(within(second).getByRole('link', { name: 'Premium' })).toHaveAttribute('href', '/premium');
+    expect(within(second).queryByText('Zablokowany')).toBeNull();
+    expect(within(second).getByText('Premium', { selector: '.pd-status' })).toBeInTheDocument();
+    expect(within(second).getByRole('button', { name: /Start/ })).toBeDisabled();
+    expect(screen.getByText('Dalsze rozdziały w Premium')).toBeInTheDocument();
+    expect(screen.getByRole('link', { name: 'Zobacz Premium' })).toHaveAttribute('href', '/premium');
+  });
+
   it('shows chapter locks and the unlock mode hint', async () => {
     const locked = path(true);
     server.use(http.get(`${API_URL}/api/paths/5`, () => HttpResponse.json({

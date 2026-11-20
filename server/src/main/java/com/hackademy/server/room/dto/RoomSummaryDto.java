@@ -23,6 +23,7 @@ public class RoomSummaryDto {
     private int solutionsCount;
     private boolean solved;
     private boolean locked;
+    private boolean premium;
     private boolean requiresVpn;
     private RoomType roomType;
     private LocalDateTime createdAt;

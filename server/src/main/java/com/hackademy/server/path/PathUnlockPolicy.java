@@ -1,8 +1,12 @@
 package com.hackademy.server.path;
 
+import com.hackademy.server.room.UserSolvedRoomRepository;
+import com.hackademy.server.subscription.SubscriptionAccess;
+import com.hackademy.server.subscription.SubscriptionRequiredException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Collection;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -18,8 +22,12 @@ public class PathUnlockPolicy {
         public static final Locks NONE = new Locks(Set.of(), Set.of());
     }
 
+    public static final String PREMIUM_ROOM = "Ten pokój jest w Premium. Bez subskrypcji otwarty jest pierwszy rozdział każdej ścieżki.";
+
     private final ChapterRoomRepository chapterRoomRepository;
     private final PathEnrollmentRepository pathEnrollmentRepository;
+    private final SubscriptionAccess subscriptionAccess;
+    private final UserSolvedRoomRepository userSolvedRoomRepository;
 
     private record Progress(Locks locks, Map<Long, Long> chapterOfLockedRoom) {}
 
@@ -65,12 +73,33 @@ public class PathUnlockPolicy {
         return new Locks(lockedChapters, locked);
     }
 
+    public Set<Long> premiumLocked(Collection<Long> roomIds, Long userId, Long viewedPathId) {
+        if (roomIds.isEmpty() || subscriptionAccess.unlimited(userId)) return Set.of();
+        return premiumLocked(chapterRoomRepository.findPublishedPathsOfRooms(roomIds), userId, viewedPathId);
+    }
+
+    private Set<Long> premiumLocked(List<ChapterRoomRepository.RoomPathView> owners, Long userId, Long viewedPathId) {
+        Set<Long> enrolled = new HashSet<>(userId == null ? Set.of() : pathEnrollmentRepository.findPathIdsByUserId(userId));
+        if (viewedPathId != null) enrolled.add(viewedPathId);
+        Set<Long> free = new HashSet<>(userId == null ? List.of() : userSolvedRoomRepository.findSolvedRoomIdsByUserId(userId));
+        Set<Long> locked = new HashSet<>();
+        for (var owner : owners) {
+            locked.add(owner.getRoomId());
+            if (Boolean.TRUE.equals(owner.getFirstChapter()) && enrolled.contains(owner.getPathId())) free.add(owner.getRoomId());
+        }
+        locked.removeAll(free);
+        return locked;
+    }
+
     public void requireUnlocked(Long roomId, Long userId) {
         var owners = chapterRoomRepository.findPublishedPathsOfRooms(List.of(roomId));
         if (owners.isEmpty()) return;
         var joined = enrolledOwners(owners, userId);
         if (joined.isEmpty()) {
             throw new PathEnrollmentRequiredException(owners.stream().map(ChapterRoomRepository.RoomPathView::getPathId).toList());
+        }
+        if (!subscriptionAccess.unlimited(userId) && !premiumLocked(owners, userId, null).isEmpty()) {
+            throw new SubscriptionRequiredException(PREMIUM_ROOM);
         }
         if (!unlocked(joined, null, userId).isEmpty()) return;
         PathUnlockMode mode = PathUnlockMode.valueOf(joined.get(0).getUnlockMode());

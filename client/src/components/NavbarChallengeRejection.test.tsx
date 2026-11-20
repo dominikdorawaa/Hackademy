@@ -127,3 +127,26 @@ describe('rejected challenges in the notification bell', () => {
     expect(within(duel).getByRole('button', { name: 'Przyjmij pojedynek' })).toBeEnabled();
   });
 });
+
+describe('challenges that could not reach the player', () => {
+  const missed = (id: string, challengerUsername: string): Challenge => ({ id, challengerId: 3, challengerUsername, targetId: 1,
+    targetUsername: 'tester', createdAt: '2026-10-24T12:00:00', status: 'MISSED', expiresAt: 0 });
+
+  it('tells the player who wanted to duel them, links to Premium and closes the note on the server', async () => {
+    const dismissed: string[] = [];
+    server.use(http.post(`${API_URL}/api/arena/challenge/:id/dismiss`, ({ params }) => {
+      dismissed.push(String(params.id));
+      return HttpResponse.json({ message: 'ok' });
+    }));
+    environment.state = { ...snapshot(1), missedChallenges: [missed('m1', 'kuba')] };
+    await renderNavbar();
+    const user = userEvent.setup();
+    await user.click(screen.getByRole('button', { name: 'Powiadomienia' }));
+    expect(screen.getByText(/nowe/)).toHaveTextContent('1 nowe');
+    const item = screen.getByText('kuba').closest('li')!;
+    expect(item).toHaveTextContent('kuba chce Cię wyzwać, ale dziś nie masz już wolnych walk.');
+    expect(within(item).getByRole('link', { name: 'Graj bez limitu z Premium' })).toHaveAttribute('href', '/premium');
+    await user.click(within(item).getByRole('button', { name: 'Zamknij powiadomienie o wyzwaniu od kuba' }));
+    await waitFor(() => expect(dismissed).toEqual(['m1']));
+  });
+});

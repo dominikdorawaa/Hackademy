@@ -57,10 +57,12 @@ const Navbar = () => {
   ], [realtime, preferences.friendRequests, preferences.challenges]);
   const rejectedChallenges = useMemo(() => preferences.challenges ? realtime?.rejectedChallenges ?? [] : [],
     [realtime, preferences.challenges]);
+  const missedChallenges = useMemo(() => preferences.challenges ? realtime?.missedChallenges ?? [] : [],
+    [realtime, preferences.challenges]);
   const [readRejections, setReadRejections] = useState<ReadonlySet<string>>(() => new Set());
   const onlineFeed = useFriendOnlineFeed();
   const { markAllRead } = onlineFeed;
-  const unreadCount = notifications.length + rejectedChallenges.filter(challenge => !readRejections.has(challenge.id)).length
+  const unreadCount = notifications.length + [...rejectedChallenges, ...missedChallenges].filter(challenge => !readRejections.has(challenge.id)).length
     + onlineFeed.entries.filter(entry => !entry.read).length;
   const [processedNotifications, setProcessedNotifications] = useState<string[]>([]); // Track processed IDs
   const menuRef = useRef<HTMLDivElement | null>(null);
@@ -117,11 +119,12 @@ const Navbar = () => {
   useEffect(() => {
     if (wasNotificationsOpen.current && !isNotificationsOpen) {
       markAllRead();
-      setReadRejections(read => rejectedChallenges.every(challenge => read.has(challenge.id))
-        ? read : new Set([...read, ...rejectedChallenges.map(challenge => challenge.id)]));
+      const closed = [...rejectedChallenges, ...missedChallenges];
+      setReadRejections(read => closed.every(challenge => read.has(challenge.id))
+        ? read : new Set([...read, ...closed.map(challenge => challenge.id)]));
     }
     wasNotificationsOpen.current = isNotificationsOpen;
-  }, [isNotificationsOpen, markAllRead, rejectedChallenges]);
+  }, [isNotificationsOpen, markAllRead, rejectedChallenges, missedChallenges]);
 
   const handleLogout = () => {
     setIsMenuOpen(false);
@@ -320,7 +323,7 @@ const Navbar = () => {
                                 )}
                             </div>
 
-                            {notifications.length === 0 && rejectedChallenges.length === 0 && onlineFeed.entries.length === 0 ? (
+                            {notifications.length === 0 && rejectedChallenges.length === 0 && missedChallenges.length === 0 && onlineFeed.entries.length === 0 ? (
                                 <div className="notifications-empty">
                                     <span>Brak nowych powiadomień</span>
                                     <small>Zaproszenia i wyzwania od znajomych pojawią się tutaj.</small>
@@ -365,9 +368,29 @@ const Navbar = () => {
                                             })}
                                         </ul>
                                     </>}
-                                    {(rejectedChallenges.length > 0 || onlineFeed.entries.length > 0) && <>
+                                    {(rejectedChallenges.length > 0 || missedChallenges.length > 0 || onlineFeed.entries.length > 0) && <>
                                         <p className="notifications-group">Wcześniej</p>
                                         <ul className="notifications-list">
+                                            {missedChallenges.map(challenge => (
+                                                <li key={`MISSED-${challenge.id}`} className="notification-item notification-missed"
+                                                    data-unread={!readRejections.has(challenge.id)}>
+                                                    <span className="notification-portrait-wrap">
+                                                        <UserAvatar className="notification-portrait" username={challenge.challengerUsername} avatar={challenge.challengerAvatar} alt="" />
+                                                    </span>
+                                                    <div className="notification-body">
+                                                        <p className="notification-message">
+                                                            <strong>{challenge.challengerUsername}</strong> chce Cię wyzwać, ale dziś nie masz już wolnych walk.
+                                                        </p>
+                                                        <Link className="notification-premium" to="/premium" onClick={() => setIsNotificationsOpen(false)}>Graj bez limitu z Premium</Link>
+                                                    </div>
+                                                    <button type="button" className="notification-online-close"
+                                                        aria-label={`Zamknij powiadomienie o wyzwaniu od ${challenge.challengerUsername}`}
+                                                        disabled={processedNotifications.includes(`REJECTED-${challenge.id}`)}
+                                                        onClick={() => handleDismissRejection(challenge.id)}>
+                                                        <i className="fas fa-times" aria-hidden="true"></i>
+                                                    </button>
+                                                </li>
+                                            ))}
                                             {rejectedChallenges.map(challenge => (
                                                 <li key={`REJECTED-${challenge.id}`} className="notification-item notification-rejected"
                                                     data-unread={!readRejections.has(challenge.id)}>
@@ -433,7 +456,7 @@ const Navbar = () => {
                 <div ref={menuRef} className="nav-account">
                   <button type="button" className="nav-account-toggle" data-slot="nav-account"
                     aria-label="Menu konta" aria-expanded={isMenuOpen} onClick={() => setIsMenuOpen(!isMenuOpen)}>
-                  <UserAvatar username={userData.username} avatar={userData.avatar}
+                  <UserAvatar username={userData.username} avatar={userData.avatar} premium={userData.premium}
                     alt="User Avatar"
                     className="avatar" 
                     style={{
