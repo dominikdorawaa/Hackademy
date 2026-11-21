@@ -13,17 +13,17 @@ import org.junit.jupiter.params.provider.MethodSource;
 import org.springframework.mock.web.MockMultipartFile;
 
 class PathContentFilesTest {
-    private static final Path CONTENT = Path.of("..", "content", "paths");
+    private static final Path PATH_FILES_DIR = Path.of("..", "content", "paths");
 
-    static List<Path> files() throws IOException {
-        assertThat(CONTENT).isDirectory();
-        try (Stream<Path> paths = Files.list(CONTENT)) {
+    static List<Path> pathFiles() throws IOException {
+        assertThat(PATH_FILES_DIR).isDirectory();
+        try (Stream<Path> paths = Files.list(PATH_FILES_DIR)) {
             return paths.filter(path -> path.toString().endsWith(".json")).sorted().toList();
         }
     }
 
     @ParameterizedTest
-    @MethodSource("files")
+    @MethodSource("pathFiles")
     void pathFilePassesImportValidation(Path file) throws IOException {
         var upload = new MockMultipartFile("file", file.getFileName().toString(), "application/json", Files.readAllBytes(file));
         var root = ContentImportReader.read(upload);

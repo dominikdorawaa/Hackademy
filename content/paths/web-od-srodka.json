@@ -23,7 +23,7 @@
             },
             {
               "title": "Kody statusu",
-              "content": "<p>Pierwsza cyfra kodu mówi, co się stało:</p><ul><li><code>2xx</code> sukces, np. <code>200 OK</code></li><li><code>3xx</code> przekierowanie, np. <code>302 Found</code></li><li><code>4xx</code> błąd klienta: <code>401</code> brak zalogowania, <code>403</code> brak uprawnień, <code>404</code> brak zasobu</li><li><code>5xx</code> błąd serwera, np. <code>500</code></li></ul>",
+              "content": "<p>Pierwsza cyfra kodu mówi, co się stało:</p><ul><li><code>2xx</code> sukces, np. <code>200 OK</code></li><li><code>3xx</code> przekierowanie, np. <code>302 Found</code></li><li><code>4xx</code> błąd klienta: <code>401</code> brak uwierzytelnienia (nie jesteś zalogowany), <code>403</code> brak uprawnień, <code>404</code> brak zasobu</li><li><code>5xx</code> błąd serwera, np. <code>500</code></li></ul>",
               "question": "Jaki kod zwróci serwer, gdy zalogowany użytkownik wejdzie do panelu, do którego nie ma uprawnień?",
               "answer": "403",
               "hints": [
@@ -94,7 +94,7 @@
             {
               "title": "Kodowanie URL",
               "content": "<p>W adresie URL znaki specjalne zapisuje się jako <code>%</code> i dwie cyfry szesnastkowe kodu znaku. Przykłady: <code>%27</code> to apostrof, <code>%3D</code> to znak równości, <code>%2F</code> to ukośnik.</p>",
-              "question": "Jaki ciąg w adresie URL oznacza spację?",
+              "question": "Jakim ciągiem zaczynającym się od % zapisuje się spację w adresie URL?",
               "answer": "%20"
             },
             {
@@ -173,27 +173,27 @@
           "requiresVpn": false,
           "tasks": [
             {
-              "title": "HttpOnly",
+              "title": "Ochrona przed skryptami",
               "content": "<p>Jeśli na stronie uda się uruchomić obcy JavaScript (XSS), skrypt może odczytać <code>document.cookie</code> i wysłać sesję atakującemu. Jeden atrybut w <code>Set-Cookie</code> sprawia, że ciasteczko jest niewidoczne dla JavaScriptu.</p><pre><code>Set-Cookie: sesja=c41d7e09; Path=/; ______</code></pre>",
               "question": "Jaki atrybut wpiszesz w miejsce luki?",
               "answer": "HttpOnly"
             },
             {
-              "title": "Secure",
+              "title": "Tylko przez HTTPS",
               "content": "<p>W niezaszyfrowanej sieci (np. publiczne Wi-Fi) ciasteczko wysłane przez <code>http://</code> może podsłuchać każdy w pobliżu.</p>",
               "question": "Który atrybut sprawia, że przeglądarka wysyła ciasteczko tylko przez HTTPS?",
               "answer": "Secure"
             },
             {
               "title": "SameSite",
-              "content": "<p>Atrybut <code>SameSite</code> decyduje, czy ciasteczko leci przy żądaniach wywołanych przez inne strony. Chroni przed atakiem CSRF, w którym obca strona wysyła formularz do Twojego banku w Twoim imieniu.</p><ul><li><code>None</code>: zawsze (wymaga <code>Secure</code>)</li><li><code>Lax</code>: przy zwykłym przejściu linkiem, ale nie przy formularzach POST z obcych stron</li><li><code>Strict</code>: nigdy przy żądaniach z innych stron</li></ul>",
+              "content": "<p>Atrybut <code>SameSite</code> decyduje, czy ciasteczko jest wysyłane przy żądaniach wywołanych przez inne strony. Chroni przed atakiem CSRF, w którym obca strona wysyła formularz do Twojego banku w Twoim imieniu.</p><ul><li><code>None</code>: zawsze (wymaga <code>Secure</code>)</li><li><code>Lax</code>: przy zwykłym przejściu linkiem, ale nie przy formularzach POST z obcych stron</li><li><code>Strict</code>: nigdy przy żądaniach z innych stron</li></ul>",
               "question": "Jaka wartość SameSite całkowicie blokuje ciasteczko przy żądaniach z innych stron?",
               "answer": "Strict"
             },
             {
               "title": "Rola w ciasteczku",
               "content": "<p>Po zalogowaniu jako jan dostajesz ciasteczko:</p><pre><code>Set-Cookie: auth=dXNlcj1qYW47cm9sZT11c2Vy</code></pre><p>Zdekoduj je. Serwer nie podpisuje tej wartości, tylko odczytuje rolę i wierzy w nią.</p>",
-              "question": "Podaj wartość ciasteczka auth (w Base64), która da Ci rolę admin. Nie zmieniaj niczego poza rolą.",
+              "question": "Podaj wartość ciasteczka auth w standardowym Base64 (z dopełnieniem =, bez znaku nowej linii), która da Ci rolę admin. Nie zmieniaj niczego poza rolą.",
               "answer": "dXNlcj1qYW47cm9sZT1hZG1pbg==",
               "hints": [
                 "Zdekoduj ciasteczko, zmień user na admin tylko w polu role i zakoduj całość ponownie.",
@@ -213,7 +213,7 @@
           "tasks": [
             {
               "title": "Budowa tokenu",
-              "content": "<p>JWT to części zakodowane w Base64URL i połączone kropkami: <strong>nagłówek</strong>, <strong>payload</strong> (dane) i <strong>podpis</strong>.</p><pre><code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqYW4iLCJyb2xlIjoidXNlciIsImZsYWciOiJIQUNLe2p3dF90b190eWxrb19iYXNlNjR9In0.GjnPIYwFgofuLN2OF5iOKbTKvSApt1oh9BMEG08Uwv0</code></pre>",
+              "content": "<p>JWT składa się z części zakodowanych w Base64URL i połączonych kropkami: <strong>nagłówek</strong>, <strong>payload</strong> (dane) i <strong>podpis</strong>.</p><pre><code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqYW4iLCJyb2xlIjoidXNlciIsImZsYWciOiJIQUNLe2p3dF90b190eWxrb19iYXNlNjR9In0.GjnPIYwFgofuLN2OF5iOKbTKvSApt1oh9BMEG08Uwv0</code></pre>",
               "question": "Z ilu części składa się JWT?",
               "answer": "3"
             },
@@ -263,7 +263,7 @@
             {
               "title": "Komentarz",
               "content": "<p>Po wstrzyknięciu zostaje końcówka oryginalnego zapytania, która psuje składnię. Usuwa się ją komentarzem. Login <code>admin'-- </code> daje:</p><pre><code>SELECT * FROM users WHERE login = 'admin'-- ' AND haslo = ''</code></pre><p>Sprawdzanie hasła znika, więc logujesz się jako admin.</p>",
-              "question": "Jakie dwa znaki rozpoczynają komentarz jednoliniowy w SQL?",
+              "question": "Jakie dwa znaki rozpoczynają komentarz jednoliniowy w SQL? Podaj je bez spacji.",
               "answer": "--"
             },
             {
@@ -284,7 +284,7 @@
             {
               "title": "Obrona",
               "content": "<p>Jedyna skuteczna obrona to zapytania, w których kod SQL i dane są przekazywane do bazy osobno. Baza nigdy nie potraktuje danych jak kodu:</p><pre><code>stmt = conn.prepareStatement(\"SELECT * FROM users WHERE login = ?\");\nstmt.setString(1, login);</code></pre>",
-              "question": "Uzupełnij angielską nazwę tej techniki: prepared ______",
+              "question": "Uzupełnij angielską nazwę tej techniki (liczba mnoga): prepared ______",
               "answer": "statements"
             }
           ]
@@ -301,19 +301,19 @@
             {
               "title": "Odbity XSS",
               "content": "<p>Wyszukiwarka wypisuje frazę bez żadnej obróbki:</p><pre><code>/szukaj?q=buty\n&lt;p&gt;Wyniki dla: &lt;b&gt;buty&lt;/b&gt;&lt;/p&gt;</code></pre><p>Jeśli w <code>q</code> podasz kod HTML, przeglądarka go wykona. Klasyczny test to tag, który uruchamia JavaScript, np. z <code>alert(1)</code> w środku.</p>",
-              "question": "Jak nazywa się tag HTML, który zawiera kod JavaScript?",
+              "question": "Jak nazywa się tag HTML, który zawiera kod JavaScript? Podaj samą nazwę, bez nawiasów.",
               "answer": "script"
             },
             {
               "title": "Zapisany XSS",
               "content": "<p>XSS w wyszukiwarce działa tylko na osobę, która kliknie spreparowany link (<strong>reflected</strong>). Gdy złośliwy komentarz trafi do bazy i wyświetla się każdemu, kto otworzy stronę, mówimy o XSS <strong>stored</strong>. Jest groźniejszy, bo nie wymaga od ofiary żadnej akcji.</p>",
-              "question": "Który rodzaj XSS atakuje każdego, kto otworzy stronę z zapisanym komentarzem?",
+              "question": "Który rodzaj XSS atakuje każdego, kto otworzy stronę z zapisanym komentarzem? Odpowiedz jednym słowem: reflected albo stored.",
               "answer": "stored"
             },
             {
               "title": "Escapowanie",
               "content": "<p>Obrona to zamiana znaków specjalnych na encje HTML, zanim trafią na stronę. Wtedy przeglądarka wyświetli je jako tekst:</p><ul><li><code>&gt;</code> zamienia się na <code>&amp;gt;</code></li><li><code>\"</code> zamienia się na <code>&amp;quot;</code></li><li><code>&amp;</code> zamienia się na <code>&amp;amp;</code></li></ul>",
-              "question": "Na jaką encję HTML zamienia się znak mniejszości?",
+              "question": "Na jaką encję nazwaną (z literami, nie numerem) zamienia się znak mniejszości?",
               "answer": "&lt;"
             },
             {
@@ -327,9 +327,9 @@
             },
             {
               "title": "Druga linia obrony",
-              "content": "<p>Nagłówek <code>Content-Security-Policy</code> mówi przeglądarce, z jakich źródeł wolno ładować skrypty. Polityka <code>script-src 'self'</code> blokuje skrypty wpisane w kod strony, więc nawet udane wstrzyknięcie nic nie uruchomi.</p>",
-              "question": "Jakim trzyliterowym skrótem nazywa się ten nagłówek?",
-              "answer": "CSP"
+              "content": "<p>Specjalny nagłówek odpowiedzi (w skrócie CSP) mówi przeglądarce, z jakich źródeł wolno ładować skrypty. Polityka <code>script-src 'self'</code> blokuje skrypty wpisane w kod strony, więc nawet udane wstrzyknięcie nic nie uruchomi.</p>",
+              "question": "Jak brzmi pełna nazwa tego nagłówka HTTP?",
+              "answer": "Content-Security-Policy"
             }
           ]
         },
@@ -343,7 +343,7 @@
           "requiresVpn": false,
           "tasks": [
             {
-              "title": "Średnik",
+              "title": "Łączenie poleceń",
               "content": "<p>Aplikacja wykonuje:</p><pre><code>system(\"ping -c 1 \" + ip)</code></pre><p>Powłoka pozwala zapisać kilka poleceń w jednej linii. Jeden znak oddziela polecenia i uruchamia drugie niezależnie od wyniku pierwszego.</p>",
               "question": "Jaki to znak?",
               "answer": ";"
@@ -378,7 +378,7 @@
       "rooms": [
         {
           "title": "IDOR",
-          "description": "Zalogowałeś się do sklepu i pobierasz swoją fakturę. Sprawdź, czy serwer pilnuje, czyje faktury Ci pokazuje.",
+          "description": "Po zalogowaniu do sklepu pobierasz swoją fakturę. Sprawdź, czy serwer pilnuje, czyje faktury Ci pokazuje.",
           "shortDescription": "Cudze dane o jeden numer dalej",
           "difficulty": "MEDIUM",
           "category": "Web",
@@ -402,14 +402,14 @@
             },
             {
               "title": "Cudza faktura",
-              "content": "<p>Odpowiedź serwera:</p><pre><code>{\n  \"id\": 1042,\n  \"klient\": \"Anna Nowak\",\n  \"adres\": \"ul. Polna 4, Kraków\",\n  \"kwota\": 1899.00,\n  \"uwagi\": \"HACK{cudza_faktura_1042}\"\n}</code></pre><p>Właśnie zobaczyłeś dane osobowe innej klientki. W prawdziwym teście zgłaszasz to od razu, nie pobierasz kolejnych rekordów.</p>",
+              "content": "<p>Odpowiedź serwera:</p><pre><code>{\n  \"id\": 1042,\n  \"klient\": \"Anna Nowak\",\n  \"adres\": \"ul. Polna 4, Kraków\",\n  \"kwota\": 1899.00,\n  \"uwagi\": \"HACK{cudza_faktura_1042}\"\n}</code></pre><p>Na ekranie są teraz dane osobowe innej klientki. W prawdziwym teście zgłaszasz to od razu, nie pobierasz kolejnych rekordów.</p>",
               "question": "Podaj flagę z cudzej faktury.",
               "answer": "HACK{cudza_faktura_1042}"
             },
             {
               "title": "Obrona",
               "content": "<p>Losowe identyfikatory (UUID) utrudniają zgadywanie, ale nie są obroną. Każde żądanie musi być sprawdzone pod kątem tego, czy zasób należy do zalogowanego użytkownika. Ukrycie przycisku w interfejsie niczego nie chroni, bo żądanie można wysłać ręcznie.</p>",
-              "question": "Po której stronie trzeba sprawdzać uprawnienia: klienta czy serwera?",
+              "question": "Po której stronie trzeba sprawdzać uprawnienia? Odpowiedz jednym słowem: klienta albo serwera.",
               "answer": "serwera"
             }
           ]
@@ -437,8 +437,8 @@
             },
             {
               "title": "Naiwny filtr",
-              "content": "<p>Programista dodał filtr, który <strong>jednokrotnie</strong> usuwa z parametru każde wystąpienie <code>../</code>:</p><pre><code>plik = plik.replace(\"../\", \"\")</code></pre><p>Filtr nie sprawdza, co zostanie po usunięciu. Ułóż ciąg, z którego po wycięciu <code>../</code> powstanie dokładnie <code>../</code>.</p>",
-              "question": "Podaj najkrótszy taki ciąg (6 znaków, same kropki i ukośniki).",
+              "content": "<p>Programista dodał filtr w Pythonie, który <strong>jednokrotnie</strong> usuwa z parametru każde wystąpienie <code>../</code> (bez ponownego sprawdzania wyniku):</p><pre><code>plik = plik.replace(\"../\", \"\")</code></pre><p>Filtr nie sprawdza, co zostanie po usunięciu. Ułóż ciąg, z którego po wycięciu <code>../</code> powstanie dokładnie <code>../</code>.</p>",
+              "question": "Wstaw ../ między dwie kropki a ukośnik drugiego ../. Jaki ciąg powstanie?",
               "answer": "....//",
               "hints": [
                 "Wstaw ../ w środek drugiego ../, tak by po wycięciu środka zewnętrzne kawałki się skleiły."
@@ -447,7 +447,7 @@
             {
               "title": "Odczyt flagi",
               "content": "<p>Flaga leży w pliku <code>/flaga.txt</code>. Filtr z poprzedniego zadania nadal działa.</p>",
-              "question": "Podaj pełną wartość parametru plik, która ominie filtr i odczyta /flaga.txt.",
+              "question": "Podaj pełną wartość parametru plik, która ominie filtr i odczyta /flaga.txt. Użyj ciągu z poprzedniego zadania i najmniejszej potrzebnej liczby poziomów.",
               "answer": "....//....//....//flaga.txt",
               "hints": [
                 "Każdy z trzech poziomów wymaga osobnego ....//"
@@ -467,8 +467,8 @@
       "title": "Sprawdzian",
       "rooms": [
         {
-          "title": "Audyt sklepu Bajtex",
-          "description": "Właściciel sklepu Bajtex zlecił Ci test penetracyjny. Masz pisemną zgodę i zakres: cała aplikacja sklep.bajtex.example. Każde zadanie korzysta z tego, co znalazłeś w poprzednim. Ten pokój nie ma podpowiedzi.",
+          "title": "Audyt sklepu TechKram",
+          "description": "Właściciel sklepu TechKram zlecił Ci test penetracyjny. Masz pisemną zgodę i zakres: cała aplikacja sklep.techkram.example. Każde zadanie korzysta z tego, co znalazłeś w poprzednim. Ten pokój nie ma podpowiedzi.",
           "shortDescription": "Łańcuch podatności, bez podpowiedzi",
           "difficulty": "HARD",
           "category": "Web",
@@ -484,7 +484,7 @@
             {
               "title": "Rabat w ciasteczku",
               "content": "<p>Hasło kierownika okazało się słabe i udało Ci się zalogować. Koszyk zapisuje ciasteczko:</p><pre><code>Set-Cookie: koszyk=eyJ1c2VyIjoia2llcm93bmlrIiwicmFiYXQiOjB9</code></pre><p>Serwer nie podpisuje tej wartości i liczy cenę według zapisanego w niej rabatu w procentach.</p>",
-              "question": "Podaj wartość ciasteczka koszyk (w Base64), która da rabat 100. Zachowaj dokładny format JSON, bez spacji.",
+              "question": "Podaj wartość ciasteczka koszyk w standardowym Base64 (z dopełnieniem =, bez znaku nowej linii), która da rabat 100. Zachowaj dokładny format JSON, bez spacji.",
               "answer": "eyJ1c2VyIjoia2llcm93bmlrIiwicmFiYXQiOjEwMH0="
             },
             {
@@ -496,7 +496,7 @@
             {
               "title": "Notatka w bazie",
               "content": "<p>Przez UNION SELECT odczytujesz tabelę <code>notatki</code>:</p><pre><code>1 | kopia | backup przeniesiony do /var/backup/flaga.txt | kierownik</code></pre><p>Sklep ma endpoint <code>/pobierz?plik=</code>, który otwiera <code>\"/var/www/sklep/pliki/\" + plik</code> i jednokrotnie usuwa z parametru każde <code>../</code>.</p>",
-              "question": "Podaj wartość parametru plik, która odczyta /var/backup/flaga.txt.",
+              "question": "Podaj wartość parametru plik, która odczyta /var/backup/flaga.txt. Użyj ciągu ....// i najmniejszej potrzebnej liczby poziomów.",
               "answer": "....//....//....//backup/flaga.txt"
             },
             {
