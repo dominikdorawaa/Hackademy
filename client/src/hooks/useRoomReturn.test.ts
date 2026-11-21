@@ -18,20 +18,28 @@ describe('useRoomReturn', () => {
   });
 
   it('names the path and points to the next room in chapter order', async () => {
-    const room = (id: number, title: string) => ({ id, title });
+    const room = (id: number, title: string, solved = false) => ({ id, title, solved });
     server.use(http.get(`${API_URL}/api/paths/3`, () => HttpResponse.json({
-      id: 3, title: 'Linux', rooms: [room(9, 'Bez rozdziału')],
-      chapters: [{ id: 1, rooms: [room(7, 'Terminal')] }, { id: 2, rooms: [room(8, 'Flaga'), room(9, 'Bez rozdziału')] }],
+      id: 3, title: 'Linux', rooms: [room(9, 'Bez rozdziału'), room(10, 'Luźny')],
+      chapters: [{ id: 1, title: 'Start', rooms: [room(7, 'Terminal', true)] }, { id: 2, title: 'Flagi', rooms: [room(8, 'Flaga'), room(9, 'Bez rozdziału')] }],
     })));
     const { result, rerender } = renderHook(({ id }) => useRoomReturn(id, '?pathId=3', 'sessionKey'), { initialProps: { id: '7' } });
     await waitFor(() => expect(result.current.pending).toBe(false));
     expect(result.current).toEqual({
       to: '/learn/paths/3', label: 'Wróć do ścieżki: Linux', title: 'Linux', pending: false,
       next: { to: '/rooms/8?pathId=3', title: 'Flaga' },
+      path: {
+        title: 'Linux', currentId: 7, chapters: [
+          { number: 1, title: 'Start', rooms: [{ id: 7, title: 'Terminal', solved: true }] },
+          { number: 2, title: 'Flagi', rooms: [{ id: 8, title: 'Flaga', solved: false }, { id: 9, title: 'Bez rozdziału', solved: false }] },
+          { number: null, title: null, rooms: [{ id: 10, title: 'Luźny', solved: false }] },
+        ],
+      },
     });
-    rerender({ id: '9' });
+    rerender({ id: '10' });
     await waitFor(() => expect(result.current.pending).toBe(false));
     expect(result.current.next).toBeNull();
+    expect(result.current.path?.currentId).toBe(10);
   });
 
   it('offers a locked next room only after the path unlocks it for the solved room', async () => {

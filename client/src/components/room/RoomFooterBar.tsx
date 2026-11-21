@@ -1,5 +1,5 @@
 import { useEffect, useId, useRef, useState, type ReactNode } from 'react';
-import { Check, ChevronLeft, ChevronRight, List, Lock, PanelLeftOpen } from 'lucide-react';
+import { Check, ChevronLeft, ChevronRight, List, Lock } from 'lucide-react';
 import { cn } from '../../lib/utils';
 
 export interface RoomStep {
@@ -20,7 +20,6 @@ interface RoomFooterSteps {
   current: number;
   list?: boolean;
   listHeader?: ReactNode;
-  onPin?: () => void;
   unit: string;
   listLabel: string;
   onSelect: (index: number) => void;
@@ -72,12 +71,6 @@ export default function RoomFooterBar({ progress, title, badge, back, next }: Ro
             <div className="room-steps-head">
               <div className="room-steps-title">
                 <p className="room-kicker">Zadania</p>
-                {progress.onPin && (
-                  <button type="button" className="room-tasklist-hide" aria-label="Pokaż spis z boku" title="Pokaż spis z boku"
-                    onClick={() => { setOpen(false); progress.onPin?.(); }}>
-                    <PanelLeftOpen aria-hidden="true" />
-                  </button>
-                )}
               </div>
               {progress.listHeader && <div className="room-steps-meta">{progress.listHeader}</div>}
             </div>
