@@ -30,9 +30,9 @@ describe('useRoomReturn', () => {
       next: { to: '/rooms/8?pathId=3', title: 'Flaga' },
       path: {
         title: 'Linux', currentId: 7, chapters: [
-          { title: 'Start', rooms: [{ id: 7, title: 'Terminal', solved: true }] },
-          { title: 'Flagi', rooms: [{ id: 8, title: 'Flaga', solved: false }, { id: 9, title: 'Bez rozdziału', solved: false }] },
-          { title: 'Linux', rooms: [{ id: 10, title: 'Luźny', solved: false }] },
+          { number: 1, title: 'Start', rooms: [{ id: 7, title: 'Terminal', solved: true }] },
+          { number: 2, title: 'Flagi', rooms: [{ id: 8, title: 'Flaga', solved: false }, { id: 9, title: 'Bez rozdziału', solved: false }] },
+          { number: null, title: null, rooms: [{ id: 10, title: 'Luźny', solved: false }] },
         ],
       },
     });

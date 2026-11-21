@@ -237,8 +237,9 @@
   white-space: nowrap;
 }
 
-.room-nav-path-label > span:first-child { color: var(--rm-ink-soft); }
-.room-nav-path-chapter { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; }
+.room-nav-path-full, .room-nav-path-short { color: var(--rm-ink-soft); }
+.room-nav-path-short { display: none; }
+.room-nav-path-chapter { max-width: 34ch; overflow: hidden; text-overflow: ellipsis; }
 .room-nav-path-chapter::before { content: '·'; margin-right: 8px; }
 
 .room-nav-steps .is-done button { background: var(--rm-teal); }
@@ -979,7 +980,8 @@
 @media (max-width: 767px) {
   .room-nav-meta { display: none; }
   .room-steps-meta { display: flex; }
-  .room-nav-path-label { display: none; }
+  .room-nav-path-full { display: none; }
+  .room-nav-path-short { display: inline; }
 }
 
 @media (max-width: 600px) {

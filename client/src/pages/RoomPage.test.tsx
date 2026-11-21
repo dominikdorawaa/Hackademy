@@ -629,7 +629,8 @@ describe('task room reader', () => {
       expect(screen.queryByRole('button', { name: 'Lista zadań' })).not.toBeInTheDocument();
       expect(within(list).getByRole('button', { name: /Drugie/ })).toHaveAttribute('aria-current', 'step');
       expect(within(list).getByRole('button', { name: /Trzecie/ })).toBeDisabled();
-      expect(within(list).getByLabelText('Ukończone zadania: 1 z 3')).toHaveTextContent('1/3');
+      expect(within(list).getByText('Ukończone zadania: 1 z 3')).toHaveClass('sr-only');
+      expect(within(list).getByText('1/3')).toHaveAttribute('aria-hidden', 'true');
       expect(screen.queryByRole('progressbar', { name: 'Postęp pokoju' })).not.toBeInTheDocument();
       await user.click(within(list).getByRole('button', { name: 'Pierwsze, ukończone' }));
       expect(screen.getByRole('heading', { name: '01. Pierwsze' })).toBeInTheDocument();
@@ -640,7 +641,7 @@ describe('task room reader', () => {
       expect(rail).toHaveClass('is-rail');
       expect(window.localStorage.getItem('hackademy.roomTaskList.collapsed')).toBe('1');
       expect(screen.queryByRole('button', { name: 'Lista zadań' })).not.toBeInTheDocument();
-      expect(within(rail).getByRole('button', { name: /Drugie/ })).toHaveAttribute('title', '2. Drugie');
+      expect(within(rail).getByRole('button', { name: /Drugie/ }).closest('li')).toHaveAttribute('title', '2. Drugie');
       await user.click(within(rail).getByRole('button', { name: /Drugie/ }));
       expect(screen.getByRole('heading', { name: '02. Drugie' })).toBeInTheDocument();
       await user.click(within(rail).getByRole('button', { name: 'Rozwiń spis zadań' }));

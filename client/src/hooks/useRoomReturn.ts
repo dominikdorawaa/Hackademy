@@ -2,10 +2,16 @@ import { useEffect, useState } from 'react';
 import * as pathApi from '../services/pathApi';
 import type { PathDetailDto, RoomSummaryDto } from '../types/api';
 
+export interface RoomPathChapter {
+  number: number | null;
+  title: string | null;
+  rooms: { id: number; title: string; solved: boolean }[];
+}
+
 export interface RoomPathProgress {
   title: string;
   currentId: number;
-  chapters: { title: string; rooms: { id: number; title: string; solved: boolean }[] }[];
+  chapters: RoomPathChapter[];
 }
 
 export interface RoomReturn {
@@ -17,27 +23,20 @@ export interface RoomReturn {
   path?: RoomPathProgress;
 }
 
-function pathProgress(path: PathDetailDto, currentId: number): RoomPathProgress {
+function pathChapters(path: PathDetailDto): { number: number | null; title: string | null; rooms: RoomSummaryDto[] }[] {
   const seen = new Set<number>();
-  const pick = (rooms: RoomSummaryDto[] = []) => rooms
-    .filter(room => !seen.has(room.id) && seen.add(room.id))
-    .map(room => ({ id: room.id, title: room.title, solved: room.solved }));
-  const chapters = (path.chapters ?? []).map(chapter => ({ title: chapter.title, rooms: pick(chapter.rooms) }));
-  const loose = pick(path.rooms);
-  if (loose.length > 0) chapters.push({ title: path.title, rooms: loose });
-  return { title: path.title, currentId, chapters: chapters.filter(chapter => chapter.rooms.length > 0) };
+  const unseen = (rooms: RoomSummaryDto[] = []) => rooms.filter(room => !seen.has(room.id) && seen.add(room.id));
+  const chapters = (path.chapters ?? []).map((chapter, index) => ({ number: index + 1, title: chapter.title, rooms: unseen(chapter.rooms) }));
+  const loose = unseen(path.rooms);
+  return [...chapters, { number: null, title: null, rooms: loose }].filter(chapter => chapter.rooms.length > 0);
 }
 
 const LEARN_RETURN: RoomReturn = { to: '/learn', label: 'Wróć do nauki', title: 'Nauka', pending: false };
 const DASHBOARD_RETURN: RoomReturn = { to: '/dashboard', label: 'Wróć do dashboardu', title: 'Dashboard', pending: false };
 
-function pathRooms(path: PathDetailDto): RoomSummaryDto[] {
-  const rooms = [...(path.chapters ?? []).flatMap(chapter => chapter.rooms ?? []), ...(path.rooms ?? [])];
-  return rooms.filter((room, index) => rooms.findIndex(other => other.id === room.id) === index);
-}
-
 function pathReturn(path: PathDetailDto, roomId: string): RoomReturn | null {
-  const rooms = pathRooms(path);
+  const chapters = pathChapters(path);
+  const rooms = chapters.flatMap(chapter => chapter.rooms);
   const index = rooms.findIndex(room => String(room.id) === roomId);
   if (index < 0) return null;
   const next = rooms[index + 1];
@@ -47,7 +46,11 @@ function pathReturn(path: PathDetailDto, roomId: string): RoomReturn | null {
     title: path.title,
     pending: false,
     next: next && !next.locked ? { to: `/rooms/${next.id}?pathId=${path.id}`, title: next.title } : null,
-    path: pathProgress(path, rooms[index].id),
+    path: {
+      title: path.title,
+      currentId: rooms[index].id,
+      chapters: chapters.map(chapter => ({ ...chapter, rooms: chapter.rooms.map(({ id, title, solved }) => ({ id, title, solved })) })),
+    },
   };
 }
 

@@ -93,7 +93,6 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
   const [taskFeedback, setTaskFeedback] = useState<{ taskId: number; status: 'success' | 'error'; message: string } | null>(null);
   const wide = useMediaQuery('(min-width: 1100px)');
   const [taskListCollapsed, setTaskListCollapsed] = useStoredFlag('hackademy.roomTaskList.collapsed');
-  const sidebar = wide;
 
   const titleId = useId();
   const readerRef = useRef<HTMLDivElement>(null);
@@ -442,12 +441,12 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       : finish;
 
   return (
-    <RoomFrame nav={{ ...nav, meta: roomMeta, ...(sidebar ? { progress: undefined } : { steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }) }} label="Pokój z zadaniami" className="room-frame--reader" mascot={bit}
+    <RoomFrame nav={{ ...nav, meta: roomMeta, ...(wide ? { progress: undefined } : { steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }) }} label="Pokój z zadaniami" className="room-frame--reader" mascot={bit}
       footer={
         <RoomFooterBar
           progress={{
             steps,
-            list: !sidebar,
+            list: !wide,
             listHeader: roomMeta,
             current: taskIndex,
             unit: 'Zadanie',
@@ -461,7 +460,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       }>
       {previewBanner}
       <div className="room-reader-shell" ref={readerRef}>
-        {sidebar && <RoomTaskList steps={steps} current={taskIndex} onSelect={setActiveTask}
+        {wide && <RoomTaskList steps={steps} current={taskIndex} onSelect={setActiveTask}
           collapsed={taskListCollapsed} onToggle={() => setTaskListCollapsed(!taskListCollapsed)} />}
         <div className="room-reader">
           <h1 className="sr-only">{room.title}</h1>

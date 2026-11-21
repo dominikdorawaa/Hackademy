@@ -41,18 +41,18 @@ function PathTrack({ path }: { path: RoomPathProgress }) {
   if (index < 0) return null;
   const solved = rooms.filter(room => room.solved).length;
   const chapter = path.chapters.find(item => item.rooms.some(room => room.id === path.currentId));
-  const position = `Pokój ${index + 1} z ${rooms.length}`;
   return (
     <>
       <p className="room-nav-path-label">
-        <span>Ścieżka: {position.toLowerCase()}</span>
-        {chapter && chapter.title !== path.title && <span className="room-nav-path-chapter">{chapter.title}</span>}
+        <span className="room-nav-path-full">Ścieżka: pokój {index + 1} z {rooms.length}</span>
+        <span className="room-nav-path-short" aria-hidden="true">Pokój {index + 1}/{rooms.length}</span>
+        {chapter?.title && <span className="room-nav-path-chapter">Rozdział {chapter.number}: {chapter.title}</span>}
       </p>
       <div className="room-nav-track room-nav-path" role="progressbar" aria-label="Postęp ścieżki"
         aria-valuemin={0} aria-valuemax={rooms.length} aria-valuenow={solved}
-        aria-valuetext={`${position}. Ukończone pokoje: ${solved} z ${rooms.length}.`}>
+        aria-valuetext={`Pokój ${index + 1} z ${rooms.length}. Ukończone pokoje: ${solved} z ${rooms.length}.`}>
         {path.chapters.map((item, chapterIndex) => (
-          <ol key={chapterIndex} style={{ flexGrow: item.rooms.length }} title={item.title}>
+          <ol key={chapterIndex} style={{ flexGrow: item.rooms.length }} title={item.title ? `Rozdział ${item.number}: ${item.title}` : undefined}>
             {item.rooms.map(room => (
               <li key={room.id} title={room.title} className={cn(room.solved && 'is-done', room.id === path.currentId && 'is-current')} />
             ))}
