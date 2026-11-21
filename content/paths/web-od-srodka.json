@@ -1,0 +1,513 @@
+{
+  "title": "Web od środka",
+  "description": "Podstawy bezpieczeństwa aplikacji webowych. Zaczynasz od tego, jak przeglądarka rozmawia z serwerem, a kończysz samodzielnym audytem sklepu internetowego. Trudność rośnie z każdym rozdziałem.",
+  "unlockMode": "ROOM",
+  "chapters": [
+    {
+      "title": "Jak działa web",
+      "rooms": [
+        {
+          "title": "Żądanie i odpowiedź HTTP",
+          "description": "Każda strona, którą otwierasz, to rozmowa przeglądarki z serwerem w protokole HTTP. Zanim zaczniesz szukać podatności, musisz rozumieć, jak taka rozmowa wygląda.",
+          "shortDescription": "Metody, adresy i kody statusu",
+          "difficulty": "EASY",
+          "category": "Web",
+          "points": 50,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Żądanie i metody HTTP",
+              "content": "<p>Przeglądarka wysyła do serwera <strong>żądanie</strong>. Na jego początku stoi <strong>metoda</strong>, czyli informacja, co chcesz zrobić z zasobem. Najważniejsze metody:</p><ul><li><code>GET</code> pobiera zasób, np. stronę albo obrazek. Parametry trafiają do adresu URL.</li><li><code>POST</code> wysyła dane w treści żądania, np. formularz logowania.</li><li><code>PUT</code> i <code>DELETE</code> zmieniają lub usuwają zasób, zwykle w API.</li></ul><p>Pierwsza linia żądania zawiera metodę, ścieżkę i wersję protokołu, a pod nią są nagłówki:</p><pre><code>GET /profil?id=7 HTTP/1.1\nHost: sklep.example</code></pre><p>Serwer odpowiada linią statusu, nagłówkami i treścią, np. kodem HTML strony.</p>",
+              "question": "Jaką metodą HTTP przeglądarka pobiera stronę po wpisaniu adresu?",
+              "answer": "GET"
+            },
+            {
+              "title": "Kody statusu",
+              "content": "<p>Pierwsza cyfra kodu mówi, co się stało:</p><ul><li><code>2xx</code> sukces, np. <code>200 OK</code></li><li><code>3xx</code> przekierowanie, np. <code>302 Found</code></li><li><code>4xx</code> błąd klienta: <code>401</code> brak uwierzytelnienia (nie jesteś zalogowany), <code>403</code> brak uprawnień, <code>404</code> brak zasobu</li><li><code>5xx</code> błąd serwera, np. <code>500</code></li></ul>",
+              "question": "Jaki kod zwróci serwer, gdy zalogowany użytkownik wejdzie do panelu, do którego nie ma uprawnień?",
+              "answer": "403",
+              "hints": [
+                "401 oznacza, że serwer nie wie, kim jesteś. Tu serwer wie, ale Ci nie pozwala."
+              ]
+            },
+            {
+              "title": "Parametry w adresie",
+              "content": "<p>Po znaku <code>?</code> zaczyna się <strong>query string</strong>: pary <code>nazwa=wartość</code> oddzielone znakiem <code>&amp;</code>. To dane, które kontroluje użytkownik, więc to pierwsze miejsce, które sprawdza pentester.</p><pre><code>/sklep?strona=2&amp;kategoria=buty&amp;sort=cena</code></pre>",
+              "question": "Jaką wartość ma parametr kategoria w powyższym adresie?",
+              "answer": "buty"
+            }
+          ]
+        },
+        {
+          "title": "Nagłówki i ciasteczka",
+          "description": "Nagłówki HTTP niosą informacje, których nie widać na stronie: kim jest klient, jaki to typ danych i jaka sesja trwa. Czasem zdradzają więcej, niż powinny.",
+          "shortDescription": "Co serwer mówi poza treścią strony",
+          "difficulty": "EASY",
+          "category": "Web",
+          "points": 50,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Nagłówki żądania",
+              "content": "<p>Przykładowe nagłówki wysyłane przez przeglądarkę:</p><pre><code>Host: sklep.example\nUser-Agent: Mozilla/5.0 (Windows NT 10.0)\nAccept: text/html</code></pre><p><code>Host</code> mówi, do której domeny kierujesz żądanie (jeden serwer może obsługiwać wiele stron). <code>User-Agent</code> opisuje przeglądarkę i łatwo go podrobić.</p>",
+              "question": "Który nagłówek żądania wskazuje nazwę domeny serwera?",
+              "answer": "Host"
+            },
+            {
+              "title": "Ciasteczko od serwera",
+              "content": "<p>HTTP nie pamięta poprzednich żądań. Żeby Cię rozpoznać, serwer zapisuje w przeglądarce ciasteczko:</p><pre><code>HTTP/1.1 200 OK\nSet-Cookie: sesja=8f3a91c2; Path=/</code></pre>",
+              "question": "Jakim nagłówkiem odpowiedzi serwer zapisuje ciasteczko w przeglądarce?",
+              "answer": "Set-Cookie"
+            },
+            {
+              "title": "Ciasteczko od przeglądarki",
+              "content": "<p>Przy każdym kolejnym żądaniu do tej domeny przeglądarka sama dołącza zapisane ciasteczka:</p><pre><code>GET /koszyk HTTP/1.1\nHost: sklep.example\nCookie: sesja=8f3a91c2</code></pre><p>Kto zna wartość ciasteczka sesji, ten dla serwera jest Tobą.</p>",
+              "question": "Jakim nagłówkiem przeglądarka odsyła ciasteczka do serwera?",
+              "answer": "Cookie"
+            },
+            {
+              "title": "Gadatliwy serwer",
+              "content": "<p>Programiści zostawiają czasem nagłówki diagnostyczne na produkcji. Przejrzyj odpowiedź serwera (w przeglądarce znajdziesz ją w narzędziach deweloperskich, zakładka Sieć):</p><pre><code>HTTP/1.1 200 OK\nServer: nginx/1.18.0\nContent-Type: text/html; charset=utf-8\nX-Powered-By: PHP/7.2.24\nX-Debug-Token: HACK{naglowki_mowia_wiecej}\nSet-Cookie: sesja=c41d7e09; Path=/</code></pre><p>Zwróć też uwagę na wersje oprogramowania: <code>PHP/7.2.24</code> od dawna nie dostaje poprawek bezpieczeństwa.</p>",
+              "question": "Podaj flagę, którą zdradza odpowiedź serwera.",
+              "answer": "HACK{naglowki_mowia_wiecej}",
+              "hints": [
+                "Flaga ma format HACK{...} i siedzi w jednym z nagłówków zaczynających się od X-."
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Kodowanie to nie szyfrowanie",
+          "description": "W ruchu sieciowym ciągle widać dziwne ciągi znaków. Większość z nich to tylko kodowanie, które każdy odwróci w kilka sekund. Naucz się je rozpoznawać.",
+          "shortDescription": "Base64, URL i hex w praktyce",
+          "difficulty": "EASY",
+          "category": "Kryptografia",
+          "points": 50,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Base64",
+              "content": "<p>Base64 zapisuje dowolne bajty za pomocą liter, cyfr oraz <code>+</code> i <code>/</code>. Na końcu często pojawia się <code>=</code> jako dopełnienie. Zdekodujesz go poleceniem:</p><pre><code>echo 'aGFja2FkZW15' | base64 -d</code></pre><p>Możesz też użyć narzędzia CyberChef (operacja From Base64).</p>",
+              "question": "Co oznacza ciąg aGFja2FkZW15?",
+              "answer": "hackademy"
+            },
+            {
+              "title": "Kodowanie URL",
+              "content": "<p>W adresie URL znaki specjalne zapisuje się jako <code>%</code> i dwie cyfry szesnastkowe kodu znaku. Przykłady: <code>%27</code> to apostrof, <code>%3D</code> to znak równości, <code>%2F</code> to ukośnik.</p>",
+              "question": "Jakim ciągiem zaczynającym się od % zapisuje się spację w adresie URL?",
+              "answer": "%20"
+            },
+            {
+              "title": "Hex",
+              "content": "<p>Zapis szesnastkowy przedstawia każdy bajt jako dwie cyfry 0-9 i a-f. Litera <code>H</code> to <code>48</code>, <code>A</code> to <code>41</code>, więc <code>4841434b</code> to słowo HACK.</p><p>Tabelę ASCII znajdziesz poleceniem <code>man ascii</code> albo w CyberChef (From Hex).</p>",
+              "question": "Jakie słowo zapisano w hex jako 6b6f64?",
+              "answer": "kod"
+            },
+            {
+              "title": "Czy to bezpieczne?",
+              "content": "<p>Kodowanie nie używa żadnego klucza. Każdy, kto zobaczy dane zakodowane w Base64, odczyta je bez trudu. Szyfrowanie wymaga klucza, którego atakujący nie ma.</p>",
+              "question": "Czy zakodowanie hasła w Base64 chroni je przed odczytaniem? Odpowiedz tak lub nie.",
+              "answer": "nie"
+            },
+            {
+              "title": "Ciasteczko z niespodzianką",
+              "content": "<p>Sklep zapisał w przeglądarce ciasteczko:</p><pre><code>Set-Cookie: promo=SEFDS3tiYXNlNjRfdG9fbmllX3N6eWZyfQ==</code></pre><p>Twórca uważał, że nikt nie zrozumie tej wartości.</p>",
+              "question": "Zdekoduj ciasteczko i podaj flagę.",
+              "answer": "HACK{base64_to_nie_szyfr}",
+              "hints": [
+                "Znak = na końcu to typowy ślad Base64."
+              ]
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Uwierzytelnianie i sesje",
+      "rooms": [
+        {
+          "title": "Hasła i hashowanie",
+          "description": "Bazy danych wyciekają. To, czy wyciek oznacza katastrofę, zależy od tego, jak zapisano hasła.",
+          "shortDescription": "Jak serwer powinien przechowywać hasła",
+          "difficulty": "EASY",
+          "category": "Kryptografia",
+          "points": 50,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Funkcja skrótu",
+              "content": "<p>Funkcja skrótu (hash) zamienia dowolne dane w ciąg o stałej długości. Nie da się jej odwrócić, a nawet mała zmiana danych daje zupełnie inny wynik. Przy logowaniu serwer liczy skrót podanego hasła i porównuje go z zapisanym.</p><pre><code>echo -n 'hackademy' | sha256sum</code></pre><p>SHA-256 daje 256 bitów, a każdy znak szesnastkowy zapisuje 4 bity.</p>",
+              "question": "Ile znaków szesnastkowych ma skrót SHA-256?",
+              "answer": "64"
+            },
+            {
+              "title": "Sól",
+              "content": "<p>Jeśli dwie osoby mają hasło <code>123456</code>, ich skróty będą identyczne, a atakujący może użyć gotowych tablic skrótów popularnych haseł (rainbow tables). Dlatego do każdego hasła dodaje się losową, unikalną wartość przed hashowaniem i zapisuje ją obok skrótu.</p>",
+              "question": "Jak po angielsku nazywa się losowa wartość dodawana do hasła przed hashowaniem?",
+              "answer": "salt"
+            },
+            {
+              "title": "Wolne funkcje",
+              "content": "<p>MD5 i SHA-1 są bardzo szybkie: karta graficzna sprawdza miliardy haseł na sekundę. Do haseł stosuje się funkcje celowo wolne i z wbudowaną solą: <code>bcrypt</code>, <code>scrypt</code>, <code>Argon2</code>.</p>",
+              "question": "Która z funkcji: MD5, SHA-1, bcrypt jest przeznaczona do przechowywania haseł?",
+              "answer": "bcrypt"
+            },
+            {
+              "title": "Wyciek bez soli",
+              "content": "<p>Z bazy sklepu wyciekł wpis użytkownika zapisany jako MD5 bez soli:</p><pre><code>marek:e6a52c828d56b46129fbf85c4cd164b3</code></pre><p>Atakujący ma listę popularnych haseł z policzonymi skrótami:</p><pre><code>e10adc3949ba59abbe56e057f20f883e  123456\n6d932c406fa15164ee48ff5a52f81dae  haslo1\nd8578edf8458ce06fbc5bb76a58c5ca4  qwerty\ne6a52c828d56b46129fbf85c4cd164b3  zaq12wsx\n21232f297a57a5a743894a0e4a801fc3  admin</code></pre>",
+              "question": "Jakie hasło ma marek?",
+              "answer": "zaq12wsx",
+              "hints": [
+                "Porównaj skrót z wycieku z każdą linią listy."
+              ]
+            }
+          ]
+        },
+        {
+          "title": "Sesja w ciasteczku",
+          "description": "Po zalogowaniu Twoja tożsamość to zwykle jedno ciasteczko. Sprawdź, jak je chronić i co się dzieje, gdy serwer ufa temu, co w nim jest.",
+          "shortDescription": "Atrybuty ciasteczek i podrabianie sesji",
+          "difficulty": "MEDIUM",
+          "category": "Uwierzytelnianie",
+          "points": 100,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Ochrona przed skryptami",
+              "content": "<p>Jeśli na stronie uda się uruchomić obcy JavaScript (XSS), skrypt może odczytać <code>document.cookie</code> i wysłać sesję atakującemu. Jeden atrybut w <code>Set-Cookie</code> sprawia, że ciasteczko jest niewidoczne dla JavaScriptu.</p><pre><code>Set-Cookie: sesja=c41d7e09; Path=/; ______</code></pre>",
+              "question": "Jaki atrybut wpiszesz w miejsce luki?",
+              "answer": "HttpOnly"
+            },
+            {
+              "title": "Tylko przez HTTPS",
+              "content": "<p>W niezaszyfrowanej sieci (np. publiczne Wi-Fi) ciasteczko wysłane przez <code>http://</code> może podsłuchać każdy w pobliżu.</p>",
+              "question": "Który atrybut sprawia, że przeglądarka wysyła ciasteczko tylko przez HTTPS?",
+              "answer": "Secure"
+            },
+            {
+              "title": "SameSite",
+              "content": "<p>Atrybut <code>SameSite</code> decyduje, czy ciasteczko jest wysyłane przy żądaniach wywołanych przez inne strony. Chroni przed atakiem CSRF, w którym obca strona wysyła formularz do Twojego banku w Twoim imieniu.</p><ul><li><code>None</code>: zawsze (wymaga <code>Secure</code>)</li><li><code>Lax</code>: przy zwykłym przejściu linkiem, ale nie przy formularzach POST z obcych stron</li><li><code>Strict</code>: nigdy przy żądaniach z innych stron</li></ul>",
+              "question": "Jaka wartość SameSite całkowicie blokuje ciasteczko przy żądaniach z innych stron?",
+              "answer": "Strict"
+            },
+            {
+              "title": "Rola w ciasteczku",
+              "content": "<p>Po zalogowaniu jako jan dostajesz ciasteczko:</p><pre><code>Set-Cookie: auth=dXNlcj1qYW47cm9sZT11c2Vy</code></pre><p>Zdekoduj je. Serwer nie podpisuje tej wartości, tylko odczytuje rolę i wierzy w nią.</p>",
+              "question": "Podaj wartość ciasteczka auth w standardowym Base64 (z dopełnieniem =, bez znaku nowej linii), która da Ci rolę admin. Nie zmieniaj niczego poza rolą.",
+              "answer": "dXNlcj1qYW47cm9sZT1hZG1pbg==",
+              "hints": [
+                "Zdekoduj ciasteczko, zmień user na admin tylko w polu role i zakoduj całość ponownie.",
+                "Użyj echo -n, żeby nie zakodować znaku nowej linii."
+              ]
+            }
+          ]
+        },
+        {
+          "title": "JWT od środka",
+          "description": "JSON Web Token to popularny sposób przekazywania tożsamości w API. Wygląda groźnie, ale jego treść może przeczytać każdy.",
+          "shortDescription": "Budowa tokenu i typowe błędy",
+          "difficulty": "MEDIUM",
+          "category": "Uwierzytelnianie",
+          "points": 100,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Budowa tokenu",
+              "content": "<p>JWT składa się z części zakodowanych w Base64URL i połączonych kropkami: <strong>nagłówek</strong>, <strong>payload</strong> (dane) i <strong>podpis</strong>.</p><pre><code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiJqYW4iLCJyb2xlIjoidXNlciIsImZsYWciOiJIQUNLe2p3dF90b190eWxrb19iYXNlNjR9In0.GjnPIYwFgofuLN2OF5iOKbTKvSApt1oh9BMEG08Uwv0</code></pre>",
+              "question": "Z ilu części składa się JWT?",
+              "answer": "3"
+            },
+            {
+              "title": "Nagłówek",
+              "content": "<p>Zdekoduj pierwszą część tokenu, czyli wszystko przed pierwszą kropką. Base64URL używa <code>-</code> i <code>_</code> zamiast <code>+</code> i <code>/</code> i pomija znaki <code>=</code>.</p><pre><code>eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9</code></pre>",
+              "question": "Jaki algorytm podpisu wskazuje pole alg?",
+              "answer": "HS256"
+            },
+            {
+              "title": "Payload",
+              "content": "<p>Druga część to dane użytkownika. Podpis chroni je przed zmianą, ale <strong>nie ukrywa ich</strong>. Nie trzymaj w JWT niczego tajnego.</p><pre><code>eyJzdWIiOiJqYW4iLCJyb2xlIjoidXNlciIsImZsYWciOiJIQUNLe2p3dF90b190eWxrb19iYXNlNjR9In0</code></pre>",
+              "question": "Zdekoduj payload i podaj flagę.",
+              "answer": "HACK{jwt_to_tylko_base64}",
+              "hints": [
+                "Payload to część między pierwszą a drugą kropką. Jeśli dekoder protestuje, dopisz na końcu znaki = do długości podzielnej przez 4."
+              ]
+            },
+            {
+              "title": "Token bez podpisu",
+              "content": "<p>Standard JWT dopuszcza specjalny algorytm oznaczający brak podpisu. Źle skonfigurowane biblioteki akceptowały takie tokeny, więc wystarczyło zmienić nagłówek, dopisać w payloadzie <code>\"role\":\"admin\"</code> i usunąć podpis.</p><pre><code>{\"alg\":\"____\",\"typ\":\"JWT\"}</code></pre>",
+              "question": "Jaką wartość pola alg wykorzystuje ten atak?",
+              "answer": "none"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Wstrzyknięcia",
+      "rooms": [
+        {
+          "title": "SQL Injection",
+          "description": "Aplikacja skleja zapytanie SQL z tym, co wpiszesz w formularzu. Jeden znak wystarczy, żeby zmienić sens zapytania.",
+          "shortDescription": "Gdy dane stają się kodem SQL",
+          "difficulty": "MEDIUM",
+          "category": "Web",
+          "points": 100,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Sklejanie zapytania",
+              "content": "<p>Kod logowania wygląda tak:</p><pre><code>query = \"SELECT * FROM users WHERE login = '\" + login + \"' AND haslo = '\" + haslo + \"'\"</code></pre><p>Wartość <code>login</code> trafia między apostrofy. Jeśli wpiszesz w niej ten sam znak, zamkniesz tekst wcześniej, niż chciał programista, a reszta zostanie potraktowana jak kod SQL.</p>",
+              "question": "Jaki znak w polu login zamyka tekst w tym zapytaniu?",
+              "answer": "'"
+            },
+            {
+              "title": "Komentarz",
+              "content": "<p>Po wstrzyknięciu zostaje końcówka oryginalnego zapytania, która psuje składnię. Usuwa się ją komentarzem. Login <code>admin'-- </code> daje:</p><pre><code>SELECT * FROM users WHERE login = 'admin'-- ' AND haslo = ''</code></pre><p>Sprawdzanie hasła znika, więc logujesz się jako admin.</p>",
+              "question": "Jakie dwa znaki rozpoczynają komentarz jednoliniowy w SQL? Podaj je bez spacji.",
+              "answer": "--"
+            },
+            {
+              "title": "Liczba kolumn",
+              "content": "<p>Żeby dokleić własne zapytanie przez <code>UNION SELECT</code>, musisz znać liczbę kolumn. Testujesz <code>ORDER BY n</code> w wyszukiwarce produktów:</p><pre><code>' ORDER BY 1-- -   wyniki\n' ORDER BY 2-- -   wyniki\n' ORDER BY 3-- -   wyniki\n' ORDER BY 4-- -   błąd: Unknown column '4' in 'order clause'</code></pre>",
+              "question": "Ile kolumn zwraca zapytanie wyszukiwarki?",
+              "answer": "3",
+              "hints": [
+                "Ostatni test, który zwrócił wyniki, mówi, ile jest kolumn."
+              ]
+            },
+            {
+              "title": "UNION SELECT",
+              "content": "<p>Wysyłasz:</p><pre><code>' UNION SELECT login, haslo, rola FROM users-- -</code></pre><p>Na liście produktów pojawiają się nowe pozycje:</p><pre><code>Klawiatura mechaniczna | 249 zł | elektronika\nadmin | HACK{union_select_mowi_wszystko} | admin\njan | $2b$12$Qm1x... | user</code></pre>",
+              "question": "Podaj flagę, która wyciekła z tabeli users.",
+              "answer": "HACK{union_select_mowi_wszystko}"
+            },
+            {
+              "title": "Obrona",
+              "content": "<p>Jedyna skuteczna obrona to zapytania, w których kod SQL i dane są przekazywane do bazy osobno. Baza nigdy nie potraktuje danych jak kodu:</p><pre><code>stmt = conn.prepareStatement(\"SELECT * FROM users WHERE login = ?\");\nstmt.setString(1, login);</code></pre>",
+              "question": "Uzupełnij angielską nazwę tej techniki (liczba mnoga): prepared ______",
+              "answer": "statements"
+            }
+          ]
+        },
+        {
+          "title": "XSS",
+          "description": "Cross-Site Scripting pozwala atakującemu uruchomić własny skrypt w przeglądarce ofiary, na zaufanej stronie. Skrypt widzi to samo co ofiara.",
+          "shortDescription": "Obcy JavaScript na Twojej stronie",
+          "difficulty": "MEDIUM",
+          "category": "Web",
+          "points": 100,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Odbity XSS",
+              "content": "<p>Wyszukiwarka wypisuje frazę bez żadnej obróbki:</p><pre><code>/szukaj?q=buty\n&lt;p&gt;Wyniki dla: &lt;b&gt;buty&lt;/b&gt;&lt;/p&gt;</code></pre><p>Jeśli w <code>q</code> podasz kod HTML, przeglądarka go wykona. Klasyczny test to tag, który uruchamia JavaScript, np. z <code>alert(1)</code> w środku.</p>",
+              "question": "Jak nazywa się tag HTML, który zawiera kod JavaScript? Podaj samą nazwę, bez nawiasów.",
+              "answer": "script"
+            },
+            {
+              "title": "Zapisany XSS",
+              "content": "<p>XSS w wyszukiwarce działa tylko na osobę, która kliknie spreparowany link (<strong>reflected</strong>). Gdy złośliwy komentarz trafi do bazy i wyświetla się każdemu, kto otworzy stronę, mówimy o XSS <strong>stored</strong>. Jest groźniejszy, bo nie wymaga od ofiary żadnej akcji.</p>",
+              "question": "Który rodzaj XSS atakuje każdego, kto otworzy stronę z zapisanym komentarzem? Odpowiedz jednym słowem: reflected albo stored.",
+              "answer": "stored"
+            },
+            {
+              "title": "Escapowanie",
+              "content": "<p>Obrona to zamiana znaków specjalnych na encje HTML, zanim trafią na stronę. Wtedy przeglądarka wyświetli je jako tekst:</p><ul><li><code>&gt;</code> zamienia się na <code>&amp;gt;</code></li><li><code>\"</code> zamienia się na <code>&amp;quot;</code></li><li><code>&amp;</code> zamienia się na <code>&amp;amp;</code></li></ul>",
+              "question": "Na jaką encję nazwaną (z literami, nie numerem) zamienia się znak mniejszości?",
+              "answer": "&lt;"
+            },
+            {
+              "title": "Kontekst atrybutu",
+              "content": "<p>Tym razem fraza trafia do atrybutu, a znaki <code>&lt;</code> i <code>&gt;</code> są filtrowane:</p><pre><code>&lt;input name=\"q\" value=\"TWOJA_FRAZA\"&gt;</code></pre><p>Nie musisz tworzyć nowego tagu. Wystarczy wyjść z wartości atrybutu i dopisać własny, np. <code>autofocus onfocus=alert(1)</code>.</p>",
+              "question": "Jaki znak musisz wpisać jako pierwszy, żeby wyjść z wartości atrybutu value?",
+              "answer": "\"",
+              "hints": [
+                "Wartość atrybutu jest otoczona cudzysłowami."
+              ]
+            },
+            {
+              "title": "Druga linia obrony",
+              "content": "<p>Specjalny nagłówek odpowiedzi (w skrócie CSP) mówi przeglądarce, z jakich źródeł wolno ładować skrypty. Polityka <code>script-src 'self'</code> blokuje skrypty wpisane w kod strony, więc nawet udane wstrzyknięcie nic nie uruchomi.</p>",
+              "question": "Jak brzmi pełna nazwa tego nagłówka HTTP?",
+              "answer": "Content-Security-Policy"
+            }
+          ]
+        },
+        {
+          "title": "Command Injection",
+          "description": "Panel routera ma formularz do sprawdzania łączności. Pod spodem aplikacja uruchamia polecenie systemowe, doklejając do niego Twój adres IP.",
+          "shortDescription": "Gdy aplikacja woła powłokę",
+          "difficulty": "MEDIUM",
+          "category": "Web",
+          "points": 100,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Łączenie poleceń",
+              "content": "<p>Aplikacja wykonuje:</p><pre><code>system(\"ping -c 1 \" + ip)</code></pre><p>Powłoka pozwala zapisać kilka poleceń w jednej linii. Jeden znak oddziela polecenia i uruchamia drugie niezależnie od wyniku pierwszego.</p>",
+              "question": "Jaki to znak?",
+              "answer": ";"
+            },
+            {
+              "title": "Operatory warunkowe",
+              "content": "<p>Są też operatory warunkowe: <code>||</code> uruchamia drugie polecenie, gdy pierwsze się nie powiedzie, a drugi operator tylko wtedy, gdy pierwsze się powiedzie. Do tego <code>|</code> przekazuje wynik pierwszego polecenia do drugiego.</p>",
+              "question": "Jaki operator uruchamia drugie polecenie tylko po sukcesie pierwszego?",
+              "answer": "&&"
+            },
+            {
+              "title": "Odczyt pliku",
+              "content": "<p>Wpisujesz w pole adresu:</p><pre><code>127.0.0.1; ls; cat flaga.txt</code></pre><p>Odpowiedź panelu:</p><pre><code>PING 127.0.0.1 (127.0.0.1) 56(84) bytes of data.\n64 bytes from 127.0.0.1: icmp_seq=1 ttl=64 time=0.041 ms\nconfig.php\nflaga.txt\nindex.php\nHACK{srednik_otwiera_drzwi}</code></pre>",
+              "question": "Podaj flagę z pliku flaga.txt.",
+              "answer": "HACK{srednik_otwiera_drzwi}",
+              "hints": [
+                "Spójrz na ostatnią linię odpowiedzi."
+              ]
+            },
+            {
+              "title": "Obrona",
+              "content": "<p>Najlepiej w ogóle nie wołać powłoki, tylko użyć funkcji biblioteki albo przekazać argumenty jako listę, bez interpretacji znaków specjalnych. Dane wejściowe należy sprawdzać według listy dozwolonych wartości (tu: poprawny adres IP). Proces aplikacji powinien mieć tylko te uprawnienia, których naprawdę potrzebuje, żeby udany atak wyrządził jak najmniej szkód.</p>",
+              "question": "Uzupełnij angielską nazwę tej zasady: principle of least ______",
+              "answer": "privilege"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Kontrola dostępu",
+      "rooms": [
+        {
+          "title": "IDOR",
+          "description": "Po zalogowaniu do sklepu pobierasz swoją fakturę. Sprawdź, czy serwer pilnuje, czyje faktury Ci pokazuje.",
+          "shortDescription": "Cudze dane o jeden numer dalej",
+          "difficulty": "MEDIUM",
+          "category": "Web",
+          "points": 100,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Bezpośrednie odwołanie",
+              "content": "<p>Twoja faktura jest dostępna pod adresem:</p><pre><code>GET /api/faktury/1043</code></pre><p>Jeśli serwer sprawdza tylko, czy jesteś zalogowany, a nie czy faktura jest Twoja, mamy podatność IDOR: Insecure Direct Object ______.</p>",
+              "question": "Jakiego angielskiego słowa brakuje w nazwie?",
+              "answer": "Reference"
+            },
+            {
+              "title": "Sąsiednie numery",
+              "content": "<p>Numery faktur są nadawane po kolei. Najprostszy test to zmiana numeru o jeden.</p>",
+              "question": "Jaki numer wpiszesz, żeby zobaczyć fakturę wystawioną tuż przed Twoją?",
+              "answer": "1042",
+              "hints": [
+                "Faktura wystawiona wcześniej ma mniejszy numer."
+              ]
+            },
+            {
+              "title": "Cudza faktura",
+              "content": "<p>Odpowiedź serwera:</p><pre><code>{\n  \"id\": 1042,\n  \"klient\": \"Anna Nowak\",\n  \"adres\": \"ul. Polna 4, Kraków\",\n  \"kwota\": 1899.00,\n  \"uwagi\": \"HACK{cudza_faktura_1042}\"\n}</code></pre><p>Na ekranie są teraz dane osobowe innej klientki. W prawdziwym teście zgłaszasz to od razu, nie pobierasz kolejnych rekordów.</p>",
+              "question": "Podaj flagę z cudzej faktury.",
+              "answer": "HACK{cudza_faktura_1042}"
+            },
+            {
+              "title": "Obrona",
+              "content": "<p>Losowe identyfikatory (UUID) utrudniają zgadywanie, ale nie są obroną. Każde żądanie musi być sprawdzone pod kątem tego, czy zasób należy do zalogowanego użytkownika. Ukrycie przycisku w interfejsie niczego nie chroni, bo żądanie można wysłać ręcznie.</p>",
+              "question": "Po której stronie trzeba sprawdzać uprawnienia? Odpowiedz jednym słowem: klienta albo serwera.",
+              "answer": "serwera"
+            }
+          ]
+        },
+        {
+          "title": "Path Traversal",
+          "description": "Sklep udostępnia pliki do pobrania przez parametr w adresie. Sprawdź, czy da się pobrać coś, czego nikt nie planował udostępniać.",
+          "shortDescription": "Wyjście poza katalog z plikami",
+          "difficulty": "HARD",
+          "category": "Web",
+          "points": 150,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Katalog nadrzędny",
+              "content": "<p>Endpoint pobierania:</p><pre><code>/pobierz?plik=regulamin.pdf\n\n// serwer otwiera: \"/var/www/pliki/\" + plik</code></pre><p>W ścieżkach plików specjalny ciąg oznacza katalog nadrzędny. Jeśli serwer go nie odrzuci, możesz wyjść z <code>/var/www/pliki/</code>.</p>",
+              "question": "Jaki ciąg (z ukośnikiem na końcu) oznacza przejście do katalogu nadrzędnego?",
+              "answer": "../"
+            },
+            {
+              "title": "Ile poziomów",
+              "content": "<p>Chcesz odczytać plik <code>/etc/passwd</code>, startując z <code>/var/www/pliki/</code>.</p>",
+              "question": "Ile razy musisz użyć ../, żeby dojść do katalogu głównego /?",
+              "answer": "3"
+            },
+            {
+              "title": "Naiwny filtr",
+              "content": "<p>Programista dodał filtr w Pythonie, który <strong>jednokrotnie</strong> usuwa z parametru każde wystąpienie <code>../</code> (bez ponownego sprawdzania wyniku):</p><pre><code>plik = plik.replace(\"../\", \"\")</code></pre><p>Filtr nie sprawdza, co zostanie po usunięciu. Ułóż ciąg, z którego po wycięciu <code>../</code> powstanie dokładnie <code>../</code>.</p>",
+              "question": "Wstaw ../ między dwie kropki a ukośnik drugiego ../. Jaki ciąg powstanie?",
+              "answer": "....//",
+              "hints": [
+                "Wstaw ../ w środek drugiego ../, tak by po wycięciu środka zewnętrzne kawałki się skleiły."
+              ]
+            },
+            {
+              "title": "Odczyt flagi",
+              "content": "<p>Flaga leży w pliku <code>/flaga.txt</code>. Filtr z poprzedniego zadania nadal działa.</p>",
+              "question": "Podaj pełną wartość parametru plik, która ominie filtr i odczyta /flaga.txt. Użyj ciągu z poprzedniego zadania i najmniejszej potrzebnej liczby poziomów.",
+              "answer": "....//....//....//flaga.txt",
+              "hints": [
+                "Każdy z trzech poziomów wymaga osobnego ....//"
+              ]
+            },
+            {
+              "title": "Obrona",
+              "content": "<p>Zamiast filtrować ciągi, serwer powinien zamienić ścieżkę na kanoniczną (rozwiązać <code>..</code> i dowiązania) i sprawdzić, czy wynik nadal leży wewnątrz katalogu z plikami. Jeszcze lepiej pozwolić pobierać tylko pliki z listy dozwolonych identyfikatorów.</p><p>Filtry ciągów często przegrywają też z kodowaniem URL: ukośnik można zapisać jako <code>%2f</code>, a kropkę jako <code>%2e</code>.</p>",
+              "question": "Jak w kodowaniu URL zapisuje się kropkę?",
+              "answer": "%2e"
+            }
+          ]
+        }
+      ]
+    },
+    {
+      "title": "Sprawdzian",
+      "rooms": [
+        {
+          "title": "Audyt sklepu TechKram",
+          "description": "Właściciel sklepu TechKram zlecił Ci test penetracyjny. Masz pisemną zgodę i zakres: cała aplikacja sklep.techkram.example. Każde zadanie korzysta z tego, co znalazłeś w poprzednim. Ten pokój nie ma podpowiedzi.",
+          "shortDescription": "Łańcuch podatności, bez podpowiedzi",
+          "difficulty": "HARD",
+          "category": "Web",
+          "points": 150,
+          "requiresVpn": false,
+          "tasks": [
+            {
+              "title": "Rozpoznanie kont",
+              "content": "<p>Formularz logowania reaguje różnie na różne loginy. Twoje próby z tym samym hasłem:</p><pre><code>anna       -&gt; Nieznany użytkownik\nkierownik  -&gt; Niepoprawne hasło\ntest       -&gt; Nieznany użytkownik\nadmin      -&gt; Nieznany użytkownik</code></pre><p>Różne komunikaty pozwalają ustalić, które konta istnieją (user enumeration).</p>",
+              "question": "Który login istnieje w sklepie?",
+              "answer": "kierownik"
+            },
+            {
+              "title": "Rabat w ciasteczku",
+              "content": "<p>Hasło kierownika okazało się słabe i udało Ci się zalogować. Koszyk zapisuje ciasteczko:</p><pre><code>Set-Cookie: koszyk=eyJ1c2VyIjoia2llcm93bmlrIiwicmFiYXQiOjB9</code></pre><p>Serwer nie podpisuje tej wartości i liczy cenę według zapisanego w niej rabatu w procentach.</p>",
+              "question": "Podaj wartość ciasteczka koszyk w standardowym Base64 (z dopełnieniem =, bez znaku nowej linii), która da rabat 100. Zachowaj dokładny format JSON, bez spacji.",
+              "answer": "eyJ1c2VyIjoia2llcm93bmlrIiwicmFiYXQiOjEwMH0="
+            },
+            {
+              "title": "Wyszukiwarka",
+              "content": "<p>Fraza z apostrofem w wyszukiwarce produktów zwraca błąd bazy:</p><pre><code>You have an error in your SQL syntax near '%'' at line 1</code></pre><p>Testujesz liczbę kolumn:</p><pre><code>' ORDER BY 3-- -   wyniki\n' ORDER BY 4-- -   wyniki\n' ORDER BY 5-- -   błąd</code></pre>",
+              "question": "Ile kolumn musi mieć Twoje UNION SELECT?",
+              "answer": "4"
+            },
+            {
+              "title": "Notatka w bazie",
+              "content": "<p>Przez UNION SELECT odczytujesz tabelę <code>notatki</code>:</p><pre><code>1 | kopia | backup przeniesiony do /var/backup/flaga.txt | kierownik</code></pre><p>Sklep ma endpoint <code>/pobierz?plik=</code>, który otwiera <code>\"/var/www/sklep/pliki/\" + plik</code> i jednokrotnie usuwa z parametru każde <code>../</code>.</p>",
+              "question": "Podaj wartość parametru plik, która odczyta /var/backup/flaga.txt. Użyj ciągu ....// i najmniejszej potrzebnej liczby poziomów.",
+              "answer": "....//....//....//backup/flaga.txt"
+            },
+            {
+              "title": "Raport",
+              "content": "<p>Pobrany plik zawiera:</p><pre><code># kopia zapasowa, nie udostępniać\nsecret=SEFDS3thdWR5dF96YWxpY3pvbnl9</code></pre>",
+              "question": "Podaj zdekodowaną flagę.",
+              "answer": "HACK{audyt_zaliczony}"
+            }
+          ]
+        }
+      ]
+    }
+  ]
+}
