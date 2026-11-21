@@ -205,6 +205,42 @@
   transition: background-color 300ms var(--rm-ease), filter 160ms var(--rm-ease);
 }
 
+.room-nav-path { gap: 6px; }
+
+.room-nav-path ol {
+  flex: 1 1 0;
+  display: flex;
+  gap: 2px;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.room-nav-path li {
+  flex: 1 1 0;
+  height: 10px;
+  background: var(--rm-line-strong);
+  transition: background-color 300ms var(--rm-ease);
+}
+
+.room-nav-path li.is-done { background: var(--rm-teal); }
+.room-nav-path li.is-current { background: var(--rm-blue); }
+
+.room-nav-path-label {
+  flex: none;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 0 0 auto;
+  color: var(--rm-muted);
+  font: 600 0.8125rem/1.2 var(--rm-text);
+  white-space: nowrap;
+}
+
+.room-nav-path-label > span:first-child { color: var(--rm-ink-soft); }
+.room-nav-path-chapter { max-width: 22ch; overflow: hidden; text-overflow: ellipsis; }
+.room-nav-path-chapter::before { content: '·'; margin-right: 8px; }
+
 .room-nav-steps .is-done button { background: var(--rm-teal); }
 .room-nav-steps .is-current button { background: var(--rm-blue); }
 .room-nav-steps button:hover:not(:disabled) { filter: brightness(1.25); }
@@ -675,33 +711,36 @@
 
 .room-reader-shell:has(> .room-tasklist) {
   display: grid;
-  grid-template-columns: 272px minmax(0, 860px);
-  justify-content: center;
-  gap: 40px;
-  padding-left: 32px;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
 }
 
-.room-reader-shell:has(> .room-tasklist) > .room-reader { width: 100%; margin: 0; }
+.room-reader-shell:has(> .room-tasklist) > .room-reader { width: 100%; }
 .site-shell--room .room-frame-body:has(> .room-reader-shell > .room-tasklist) { container-type: size; }
 
 .room-tasklist {
   position: sticky;
-  top: 24px;
-  align-self: start;
+  top: 0;
   display: flex;
   flex-direction: column;
-  max-height: calc(100cqh - 48px);
-  margin-top: 24px;
-  padding: 14px 12px 8px;
-  border: 2px solid var(--rm-line);
-  border-radius: 6px;
+  width: 288px;
+  height: 100cqh;
+  padding: 16px 12px;
+  border-right: 2px solid var(--rm-line);
   background: var(--rm-surface);
+  transition: width 200ms var(--rm-ease);
 }
 
-.room-tasklist-head { flex: none; display: flex; align-items: center; justify-content: space-between; gap: 8px; margin: -4px 0 6px; padding: 0 0 0 4px; }
+.room-tasklist.is-rail { width: 64px; padding: 12px 8px; }
+
+.room-tasklist-head { flex: none; display: flex; align-items: center; gap: 8px; margin: 0 0 10px; padding: 0 0 0 4px; }
 .room-tasklist-head .room-kicker { margin: 0; }
+.room-tasklist-count { margin-left: auto; color: var(--rm-muted); font: 600 0.8125rem/1 var(--rm-text); font-variant-numeric: tabular-nums; }
+.room-tasklist.is-rail .room-tasklist-head { flex-direction: column-reverse; gap: 10px; padding: 0; }
+.room-tasklist.is-rail .room-tasklist-count { margin: 0; }
 
 .room-tasklist-hide {
+  flex: none;
   display: grid;
   place-items: center;
   width: 32px;
@@ -735,6 +774,7 @@
   transition: background-color 160ms var(--rm-ease);
 }
 
+.room-tasklist.is-rail .room-tasklist-item { justify-content: center; padding: 8px 0; }
 .room-tasklist-item:hover:not(:disabled) { background: var(--rm-surface-2); }
 .room-tasklist-item[aria-current] { background: var(--rm-blue-soft); color: var(--rm-ink); font-weight: 650; }
 .room-tasklist-item:disabled { color: var(--rm-muted); cursor: not-allowed; }
@@ -757,35 +797,6 @@
 .room-tasklist-item[aria-current] .room-tasklist-mark { background: var(--rm-blue); color: #fff; }
 .room-tasklist-item.is-done .room-tasklist-mark { background: var(--rm-teal); color: var(--rm-ground); }
 .room-tasklist-title { flex: 1 1 auto; min-width: 0; }
-
-.room-tasklist-label {
-  margin: 8px 8px 2px;
-  color: var(--rm-muted);
-  font-size: 0.75rem;
-  font-weight: 650;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-}
-
-.room-tasklist-toggle {
-  flex: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  align-self: flex-start;
-  min-height: 36px;
-  margin-top: 6px;
-  padding: 0 8px;
-  border: 0;
-  border-radius: 6px;
-  background: transparent;
-  color: var(--rm-link);
-  font: 600 0.8125rem/1 var(--rm-text);
-}
-
-.room-tasklist-toggle svg { width: 16px; height: 16px; }
-.room-tasklist-toggle:hover { background: var(--rm-surface-2); }
-.room-tasklist-toggle:focus-visible { outline: 2px solid var(--rm-link); outline-offset: 2px; }
 
 .room-question {
   margin-top: 40px;
@@ -948,6 +959,7 @@
 
 @media (max-width: 1023px) {
   .room-nav-meta .room-solvers { display: none; }
+  .room-nav-path-chapter { display: none; }
 }
 
 @media (max-width: 899px) {
@@ -967,6 +979,7 @@
 @media (max-width: 767px) {
   .room-nav-meta { display: none; }
   .room-steps-meta { display: flex; }
+  .room-nav-path-label { display: none; }
 }
 
 @media (max-width: 600px) {
@@ -995,8 +1008,10 @@
   .room-meter span,
   .room-btn,
   .room-steps button,
+  .room-tasklist,
   .room-tasklist-item,
   .room-nav-steps button,
+  .room-nav-path li,
   .room-split-handle::after { transition: none; }
   .room-steps { animation: none; }
 }

@@ -2,12 +2,30 @@ import { useEffect, useState } from 'react';
 import * as pathApi from '../services/pathApi';
 import type { PathDetailDto, RoomSummaryDto } from '../types/api';
 
+export interface RoomPathProgress {
+  title: string;
+  currentId: number;
+  chapters: { title: string; rooms: { id: number; title: string; solved: boolean }[] }[];
+}
+
 export interface RoomReturn {
   to: string;
   label: string;
   title: string;
   pending: boolean;
   next?: { to: string; title: string } | null;
+  path?: RoomPathProgress;
+}
+
+function pathProgress(path: PathDetailDto, currentId: number): RoomPathProgress {
+  const seen = new Set<number>();
+  const pick = (rooms: RoomSummaryDto[] = []) => rooms
+    .filter(room => !seen.has(room.id) && seen.add(room.id))
+    .map(room => ({ id: room.id, title: room.title, solved: room.solved }));
+  const chapters = (path.chapters ?? []).map(chapter => ({ title: chapter.title, rooms: pick(chapter.rooms) }));
+  const loose = pick(path.rooms);
+  if (loose.length > 0) chapters.push({ title: path.title, rooms: loose });
+  return { title: path.title, currentId, chapters: chapters.filter(chapter => chapter.rooms.length > 0) };
 }
 
 const LEARN_RETURN: RoomReturn = { to: '/learn', label: 'Wróć do nauki', title: 'Nauka', pending: false };
@@ -29,6 +47,7 @@ function pathReturn(path: PathDetailDto, roomId: string): RoomReturn | null {
     title: path.title,
     pending: false,
     next: next && !next.locked ? { to: `/rooms/${next.id}?pathId=${path.id}`, title: next.title } : null,
+    path: pathProgress(path, rooms[index].id),
   };
 }
 
