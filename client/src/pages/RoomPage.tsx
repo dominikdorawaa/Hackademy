@@ -92,8 +92,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
 
   const [taskFeedback, setTaskFeedback] = useState<{ taskId: number; status: 'success' | 'error'; message: string } | null>(null);
   const wide = useMediaQuery('(min-width: 1100px)');
-  const [sidebarHidden, setSidebarHidden] = useStoredFlag('hackademy.roomTaskList.hidden');
-  const sidebar = wide && !sidebarHidden;
+  const [taskListCollapsed, setTaskListCollapsed] = useStoredFlag('hackademy.roomTaskList.collapsed');
 
   const titleId = useId();
   const readerRef = useRef<HTMLDivElement>(null);
@@ -298,6 +297,7 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       onClick: () => navigate(backTo),
     },
     title: room.title,
+    path: preview ? undefined : roomReturn.path,
     progress: tasks.length > 0
       ? { value: completedTasksCount, max: tasks.length, label: 'Postęp pokoju' }
       : { value: isSolved ? 1 : 0, max: 1, label: 'Postęp pokoju' },
@@ -441,13 +441,12 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       : finish;
 
   return (
-    <RoomFrame nav={{ ...nav, meta: roomMeta, steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }} label="Pokój z zadaniami" className="room-frame--reader" mascot={bit}
+    <RoomFrame nav={{ ...nav, meta: roomMeta, ...(wide ? { progress: undefined } : { steps: { items: steps, current: taskIndex, onSelect: setActiveTask } }) }} label="Pokój z zadaniami" className="room-frame--reader" mascot={bit}
       footer={
         <RoomFooterBar
           progress={{
             steps,
-            list: !sidebar,
-            onPin: wide && sidebarHidden ? () => setSidebarHidden(false) : undefined,
+            list: !wide,
             listHeader: roomMeta,
             current: taskIndex,
             unit: 'Zadanie',
@@ -461,7 +460,8 @@ const RoomContent = ({ preview = false }: { preview?: boolean }) => {
       }>
       {previewBanner}
       <div className="room-reader-shell" ref={readerRef}>
-        {sidebar && <RoomTaskList steps={steps} current={taskIndex} onSelect={setActiveTask} onHide={() => setSidebarHidden(true)} />}
+        {wide && <RoomTaskList steps={steps} current={taskIndex} onSelect={setActiveTask}
+          collapsed={taskListCollapsed} onToggle={() => setTaskListCollapsed(!taskListCollapsed)} />}
         <div className="room-reader">
           <h1 className="sr-only">{room.title}</h1>
           <article key={task.id} className="room-reader-article" aria-labelledby={titleId}>

@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom';
 import { ChevronLeft } from 'lucide-react';
 import { cn } from '../../lib/utils';
 import type { RoomStep } from './RoomFooterBar';
+import type { RoomPathProgress } from '../../hooks/useRoomReturn';
 
 export interface RoomNavBack {
   title: string;
@@ -29,11 +30,40 @@ export interface RoomNavProps {
   title: string;
   progress?: RoomNavProgress;
   steps?: RoomNavSteps;
+  path?: RoomPathProgress;
   meta?: ReactNode;
   action?: ReactNode;
 }
 
-export default function RoomNavInfo({ back, title, progress, steps, meta, action }: RoomNavProps) {
+function PathTrack({ path }: { path: RoomPathProgress }) {
+  const rooms = path.chapters.flatMap(chapter => chapter.rooms);
+  const index = rooms.findIndex(room => room.id === path.currentId);
+  if (index < 0) return null;
+  const solved = rooms.filter(room => room.solved).length;
+  const chapter = path.chapters.find(item => item.rooms.some(room => room.id === path.currentId));
+  return (
+    <>
+      <p className="room-nav-path-label">
+        <span className="room-nav-path-full">Ścieżka: pokój {index + 1} z {rooms.length}</span>
+        <span className="room-nav-path-short" aria-hidden="true">Pokój {index + 1}/{rooms.length}</span>
+        {chapter?.title && <span className="room-nav-path-chapter">Rozdział {chapter.number}: {chapter.title}</span>}
+      </p>
+      <div className="room-nav-track room-nav-path" role="progressbar" aria-label="Postęp ścieżki"
+        aria-valuemin={0} aria-valuemax={rooms.length} aria-valuenow={solved}
+        aria-valuetext={`Pokój ${index + 1} z ${rooms.length}. Ukończone pokoje: ${solved} z ${rooms.length}.`}>
+        {path.chapters.map((item, chapterIndex) => (
+          <ol key={chapterIndex} style={{ flexGrow: item.rooms.length }} title={item.title ? `Rozdział ${item.number}: ${item.title}` : undefined}>
+            {item.rooms.map(room => (
+              <li key={room.id} title={room.title} className={cn(room.solved && 'is-done', room.id === path.currentId && 'is-current')} />
+            ))}
+          </ol>
+        ))}
+      </div>
+    </>
+  );
+}
+
+export default function RoomNavInfo({ back, title, progress, steps, path, meta, action }: RoomNavProps) {
   const ratio = progress && progress.max > 0 ? Math.min(1, Math.max(0, progress.value / progress.max)) : 0;
   const percent = Math.round(ratio * 100);
   const backContent = <><ChevronLeft aria-hidden="true" /><span>{back.title}</span></>;
@@ -51,7 +81,8 @@ export default function RoomNavInfo({ back, title, progress, steps, meta, action
         <strong className="room-nav-title" title={title}>{title}</strong>
         {meta && <div className="room-nav-meta">{meta}</div>}
       </div>
-      {!steps && meter && (
+      {path && <PathTrack path={path} />}
+      {!path && !steps && meter && (
         <div className="room-nav-progress">
           <div className="room-meter" {...meter}>
             <span style={{ transform: `scaleX(${ratio})` }} />
@@ -60,7 +91,7 @@ export default function RoomNavInfo({ back, title, progress, steps, meta, action
         </div>
       )}
       {action}
-      {steps && (
+      {!path && steps && (
         <div className="room-nav-track">
           <ol className="room-nav-steps" aria-hidden="true">
             {steps.items.map((step, index) => (

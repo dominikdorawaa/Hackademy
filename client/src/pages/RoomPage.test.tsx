@@ -629,23 +629,24 @@ describe('task room reader', () => {
       expect(screen.queryByRole('button', { name: 'Lista zadań' })).not.toBeInTheDocument();
       expect(within(list).getByRole('button', { name: /Drugie/ })).toHaveAttribute('aria-current', 'step');
       expect(within(list).getByRole('button', { name: /Trzecie/ })).toBeDisabled();
-      await user.click(within(list).getByRole('button', { name: 'Zwiń' }));
-      expect(within(list).queryByRole('button', { name: /Pierwsze/ })).not.toBeInTheDocument();
-      expect(within(list).getAllByRole('button').map(button => button.textContent)).toEqual(['', '2Drugie', 'Trzecie', 'Pokaż wszystkie']);
-      expect(window.localStorage.getItem('hackademy.roomTaskList.short')).toBe('1');
-      await user.click(within(list).getByRole('button', { name: 'Pokaż wszystkie' }));
+      expect(within(list).getByText('Ukończone zadania: 1 z 3')).toHaveClass('sr-only');
+      expect(within(list).getByText('1/3')).toHaveAttribute('aria-hidden', 'true');
+      expect(screen.queryByRole('progressbar', { name: 'Postęp pokoju' })).not.toBeInTheDocument();
       await user.click(within(list).getByRole('button', { name: 'Pierwsze, ukończone' }));
       expect(screen.getByRole('heading', { name: '01. Pierwsze' })).toBeInTheDocument();
       expect(within(list).getByRole('button', { name: /Pierwsze/ })).toHaveAttribute('aria-current', 'step');
 
-      await user.click(within(list).getByRole('button', { name: 'Ukryj spis zadań' }));
-      expect(screen.queryByRole('complementary', { name: 'Spis zadań' })).not.toBeInTheDocument();
-      expect(window.localStorage.getItem('hackademy.roomTaskList.hidden')).toBe('1');
-      await user.click(screen.getByRole('button', { name: 'Lista zadań' }));
-      await user.click(screen.getByRole('button', { name: 'Pokaż spis z boku' }));
-      expect(screen.getByRole('complementary', { name: 'Spis zadań' })).toBeInTheDocument();
+      await user.click(within(list).getByRole('button', { name: 'Zwiń spis zadań' }));
+      const rail = screen.getByRole('complementary', { name: 'Spis zadań' });
+      expect(rail).toHaveClass('is-rail');
+      expect(window.localStorage.getItem('hackademy.roomTaskList.collapsed')).toBe('1');
       expect(screen.queryByRole('button', { name: 'Lista zadań' })).not.toBeInTheDocument();
-      expect(window.localStorage.getItem('hackademy.roomTaskList.hidden')).toBe('0');
+      expect(within(rail).getByRole('button', { name: /Drugie/ }).closest('li')).toHaveAttribute('title', '2. Drugie');
+      await user.click(within(rail).getByRole('button', { name: /Drugie/ }));
+      expect(screen.getByRole('heading', { name: '02. Drugie' })).toBeInTheDocument();
+      await user.click(within(rail).getByRole('button', { name: 'Rozwiń spis zadań' }));
+      expect(screen.getByRole('complementary', { name: 'Spis zadań' })).not.toHaveClass('is-rail');
+      expect(window.localStorage.getItem('hackademy.roomTaskList.collapsed')).toBe('0');
     } finally {
       vi.unstubAllGlobals();
       window.localStorage.clear();
